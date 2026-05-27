@@ -117,6 +117,15 @@
 
   /** |menu_| is the NSMenu to be shown in the pulldown menu-list of the IME. */
   IBOutlet NSMenu *menu_;
+
+  /** Radio items under Input Mode (GNOME IBUS parity). */
+  NSArray<NSMenuItem *> *inputModeMenuItems_;
+
+  /** Toggle: Traditional kanji (Kyūjitai). */
+  NSMenuItem *traditionalKanjiMenuItem_;
+
+  /** Toggle: show/hide floating toolbar. */
+  NSMenuItem *toolbarMenuItem_;
 }
 
 /** These are externally accessible to achieve tests. */

@@ -83,6 +83,15 @@ namespace {
 // the renderer process.
 RendererReceiver *gRendererReceiver = nil;
 
+@interface MozcImkInputController (ImeMenu)
+- (void)setupImeMenu;
+- (void)updateImeMenuState:(const Output *)output;
+- (IBAction)inputModeMenuClicked:(NSMenuItem *)sender;
+- (IBAction)traditionalKanjiMenuClicked:(id)sender;
+- (IBAction)odorijiPaletteMenuClicked:(id)sender;
+- (IBAction)toolbarVisibilityMenuClicked:(id)sender;
+@end
+
 // TODO(horo): This value should be get from system configuration.
 //  DoubleClickInterval can be get from NSEvent (MacOSX ver >= 10.6)
 constexpr NSTimeInterval kDoubleTapInterval = 0.5;
@@ -140,6 +149,14 @@ CompositionMode EffectiveCompositionMode(const Output &output,
     return output.mode();
   }
   return fallback;
+}
+
+// Maps server mode to the IBUS-style input-mode menu selection (Manyōshū → Katakana).
+CompositionMode CompositionModeForImeMenu(CompositionMode mode) {
+  if (mode == mozc::commands::MANYOSHU) {
+    return mozc::commands::FULL_KATAKANA;
+  }
+  return mode;
 }
 
 CompositionMode NormalizeModeForEmptyHalfAscii(CompositionMode mode,
@@ -359,6 +376,7 @@ const char *CompositionModeName(CompositionMode mode) {
 
   // We don't check the return value of NSBundle because it fails during tests.
   [[NSBundle mainBundle] loadNibNamed:@"Config" owner:self topLevelObjects:nil];
+  [self setupImeMenu];
   if (!originalString_ || !composedString_ || !mozcRenderer_ || !mozcClient_) {
     self = nil;
   } else {
@@ -529,6 +547,7 @@ const char *CompositionModeName(CompositionMode mode) {
   mode_ = new_mode;
   mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
   mozc::mac::MozcToolbarUpdate(output, mode_);
+  [self updateImeMenuState:&output];
 }
 
 - (BOOL)isConverterSessionActivated {
@@ -936,6 +955,7 @@ const char *CompositionModeName(CompositionMode mode) {
     }
     [self updateCandidates:output];
     mozc::mac::MozcToolbarUpdate(*output, mode_);
+    [self updateImeMenuState:output];
     --processOutputDepth_;
     return;
   }
@@ -1017,6 +1037,7 @@ const char *CompositionModeName(CompositionMode mode) {
   }
 
   mozc::mac::MozcToolbarUpdate(*output, mode_);
+  [self updateImeMenuState:output];
 
   // Handle callbacks.
   if (output->has_callback() && output->callback().has_session_command()) {
@@ -1399,6 +1420,150 @@ const char *CompositionModeName(CompositionMode mode) {
     return;
   }
   [self commitText:output.result().value().c_str() client:[self client]];
+}
+
+#pragma mark IME menu (GNOME IBUS parity)
+
+- (void)setupImeMenu {
+  if (!menu_) {
+    return;
+  }
+
+  NSArray<NSMenuItem *> *legacyItems = [menu_ itemArray];
+  NSString *menuTitle = menu_.title;
+
+  NSMenu *newMenu = [[NSMenu alloc] initWithTitle:menuTitle];
+
+  struct ModeMenuEntry {
+    const char *title;
+    CompositionMode mode;
+  };
+  constexpr ModeMenuEntry kModeEntries[] = {
+      {"Direct input", mozc::commands::DIRECT},
+      {"Hiragana", mozc::commands::HIRAGANA},
+      {"Katakana", mozc::commands::FULL_KATAKANA},
+      {"Latin", mozc::commands::HALF_ASCII},
+      {"Wide Latin", mozc::commands::FULL_ASCII},
+      {"Half width katakana", mozc::commands::HALF_KATAKANA},
+  };
+
+  NSMenu *modeMenu = [[NSMenu alloc] initWithTitle:@"Input Mode"];
+  NSMutableArray<NSMenuItem *> *modeItems = [NSMutableArray array];
+  for (const ModeMenuEntry &entry : kModeEntries) {
+    NSString *title = [NSString stringWithUTF8String:entry.title];
+    NSMenuItem *item =
+        [[NSMenuItem alloc] initWithTitle:title
+                                   action:@selector(inputModeMenuClicked:)
+                            keyEquivalent:@""];
+    item.target = self;
+    item.tag = static_cast<NSInteger>(entry.mode);
+    [modeMenu addItem:item];
+    [modeItems addObject:item];
+  }
+  inputModeMenuItems_ = [modeItems copy];
+
+  NSMenuItem *modeMenuItem =
+      [[NSMenuItem alloc] initWithTitle:@"Input Mode" action:nil keyEquivalent:@""];
+  modeMenuItem.submenu = modeMenu;
+  [newMenu addItem:modeMenuItem];
+
+  traditionalKanjiMenuItem_ =
+      [[NSMenuItem alloc] initWithTitle:@"Traditional kanji (Kyūjitai)"
+                                 action:@selector(traditionalKanjiMenuClicked:)
+                          keyEquivalent:@""];
+  traditionalKanjiMenuItem_.target = self;
+  [newMenu addItem:traditionalKanjiMenuItem_];
+
+  NSMenuItem *odorijiItem =
+      [[NSMenuItem alloc] initWithTitle:@"Odoriji (iteration marks)"
+                                 action:@selector(odorijiPaletteMenuClicked:)
+                          keyEquivalent:@""];
+  odorijiItem.target = self;
+  [newMenu addItem:odorijiItem];
+
+  toolbarMenuItem_ = [[NSMenuItem alloc] initWithTitle:@"Toolbar"
+                                                action:@selector(toolbarVisibilityMenuClicked:)
+                                         keyEquivalent:@""];
+  toolbarMenuItem_.target = self;
+  [newMenu addItem:toolbarMenuItem_];
+
+  [newMenu addItem:[NSMenuItem separatorItem]];
+
+  for (NSMenuItem *item in legacyItems) {
+    [newMenu addItem:item];
+  }
+
+  menu_ = newMenu;
+  [self updateImeMenuState:nullptr];
+}
+
+- (void)updateImeMenuState:(const Output *)output {
+  if (!inputModeMenuItems_ || !traditionalKanjiMenuItem_ || !toolbarMenuItem_) {
+    return;
+  }
+
+  CompositionMode display_mode = mode_;
+  if (output != nullptr && (output->has_status() || output->has_mode())) {
+    display_mode = NormalizeModeForEmptyHalfAscii(
+        EffectiveCompositionMode(*output, mode_), *output);
+  }
+  const CompositionMode menu_mode = CompositionModeForImeMenu(display_mode);
+  for (NSMenuItem *item in inputModeMenuItems_) {
+    const auto item_mode = static_cast<CompositionMode>(item.tag);
+    item.state = (item_mode == menu_mode) ? NSControlStateValueOn : NSControlStateValueOff;
+  }
+
+  if (output != nullptr && output->has_config()) {
+    const bool use_trad = output->config().use_traditional_kanji();
+    traditionalKanjiMenuItem_.state =
+        use_trad ? NSControlStateValueOn : NSControlStateValueOff;
+  }
+
+  const bool toolbar_visible = mozc::mac::MozcToolbarLoadVisiblePreference();
+  toolbarMenuItem_.state =
+      toolbar_visible ? NSControlStateValueOn : NSControlStateValueOff;
+}
+
+- (IBAction)inputModeMenuClicked:(NSMenuItem *)sender {
+  const auto mode = static_cast<CompositionMode>(sender.tag);
+  SessionCommand command;
+  if (mode == mozc::commands::DIRECT) {
+    command.set_type(SessionCommand::TURN_OFF_IME);
+  } else {
+    command.set_type(SessionCommand::SWITCH_COMPOSITION_MODE);
+    CompositionMode server_mode = mode;
+    if (server_mode == mozc::commands::FULL_KATAKANA) {
+      server_mode = mozc::commands::MANYOSHU;
+    }
+    command.set_composition_mode(server_mode);
+  }
+  [self sendCommand:command];
+}
+
+- (IBAction)traditionalKanjiMenuClicked:(id)sender {
+  (void)sender;
+  SessionCommand command;
+  command.set_type(SessionCommand::TOGGLE_TRADITIONAL_KANJI);
+  [self sendCommand:command];
+}
+
+- (IBAction)odorijiPaletteMenuClicked:(id)sender {
+  (void)sender;
+  SessionCommand command;
+  command.set_type(SessionCommand::SHOW_ODORIJI_PALETTE);
+  [self sendCommand:command];
+}
+
+- (IBAction)toolbarVisibilityMenuClicked:(id)sender {
+  (void)sender;
+  const bool visible = !mozc::mac::MozcToolbarLoadVisiblePreference();
+  mozc::mac::MozcToolbarSaveVisiblePreference(visible);
+  if (visible) {
+    mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+  } else {
+    mozc::mac::MozcToolbarHide();
+  }
+  [self updateImeMenuState:nullptr];
 }
 
 #pragma mark callbacks
