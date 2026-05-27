@@ -207,14 +207,52 @@ static const unichar kYenMark = 0xA5;
     }
   }
 
+  const bool ctrl_alt_no_command =
+      (nsModifiers & NSEventModifierFlagControl) &&
+      (nsModifiers & NSEventModifierFlagOption) &&
+      !(nsModifiers & NSEventModifierFlagCommand);
+  const bool macron_shift = ctrl_alt_no_command && (nsModifiers & NSEventModifierFlagShift);
+
   NSString *inputString = [event characters];
   NSString *inputStringRaw = [event charactersIgnoringModifiers];
-  if ([inputString length] == 0) {
+
+  if ([inputString length] == 0 && [inputStringRaw length] == 0) {
     return NO;
   }
+  if ([inputString length] == 0 && ctrl_alt_no_command && [inputStringRaw length] > 0) {
+    inputString = inputStringRaw;
+  }
 
-  unichar inputChar = [((nsModifiers == NSEventModifierFlagShift) ? inputString : inputStringRaw)
-      characterAtIndex:0];
+  // Shift alone: use |characters| (e.g. \S-a => "A").  Ctrl+Shift without Alt keeps
+  // |charactersIgnoringModifiers| (e.g. \C-S-a => "a" + SHIFT) for marina shortcuts.
+  const bool shift_only = (nsModifiers == NSEventModifierFlagShift);
+  const BOOL use_shifted_chars = shift_only && [inputString length] > 0;
+  unichar inputChar =
+      [((use_shifted_chars) ? inputString : inputStringRaw) characterAtIndex:0];
+
+  // Dvorak etc.: Ctrl+Alt+Shift often yields 'a' + SHIFT in modifiers, not key_code 'A'.
+  // InsertMacronVowel needs uppercase key_code for ĀĒĪŌŪ.
+  if (macron_shift) {
+    switch (inputChar) {
+      case 'a':
+        inputChar = 'A';
+        break;
+      case 'e':
+        inputChar = 'E';
+        break;
+      case 'i':
+        inputChar = 'I';
+        break;
+      case 'o':
+        inputChar = 'O';
+        break;
+      case 'u':
+        inputChar = 'U';
+        break;
+      default:
+        break;
+    }
+  }
   std::map<unsigned short, KeyEvent::SpecialKey>::const_iterator sp_iter =
       kSpecialKeyMap->find(keyCode);
   if (sp_iter != kSpecialKeyMap->end()) {

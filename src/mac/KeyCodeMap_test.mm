@@ -115,6 +115,24 @@ TEST_F(KeyCodeMapTest, NormaKeyEvent) {
        "key_code: 97\n"
        "modifier_keys: SHIFT\n"
        "modifier_keys: CTRL\n"},
+      {"\\C-\\M-a (macron capital)", "A", "a",
+       NSControlKeyMask | NSShiftKeyMask | NSAlternateKeyMask, kVK_ANSI_A,
+       "key_code: 65\n"
+       "modifier_keys: SHIFT\n"
+       "modifier_keys: CTRL\n"
+       "modifier_keys: ALT\n"},
+      {"\\C-\\M-a Dvorak-style (raw a + shift)", "a", "a",
+       NSControlKeyMask | NSShiftKeyMask | NSAlternateKeyMask, kVK_ANSI_A,
+       "key_code: 65\n"
+       "modifier_keys: SHIFT\n"
+       "modifier_keys: CTRL\n"
+       "modifier_keys: ALT\n"},
+      {"\\C-\\M-A macron empty chars", "", "",
+       NSControlKeyMask | NSShiftKeyMask | NSAlternateKeyMask, kVK_ANSI_A,
+       "key_code: 65\n"
+       "modifier_keys: SHIFT\n"
+       "modifier_keys: CTRL\n"
+       "modifier_keys: ALT\n"},
       {"Tab key", "\x09", nullptr, 0, kVK_Tab, "special_key: TAB\n"},
       {"\\S-Tab", "\x09", nullptr, NSShiftKeyMask, kVK_Tab,
        "special_key: TAB\n"

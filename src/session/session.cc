@@ -427,6 +427,15 @@ bool Session::SendCommand(commands::Command* command) {
     case commands::SessionCommand::INSERT_ODORIJI_DEFAULT:
       result = InsertOdorijiDefault(command);
       break;
+    case commands::SessionCommand::INSERT_MACRON_VOWEL: {
+      const absl::string_view text = command->input().command().text();
+      if (text.size() == 1) {
+        command->mutable_input()->mutable_key()->set_key_code(
+            static_cast<uint32_t>(text[0]));
+      }
+      result = InsertMacronVowel(command);
+      break;
+    }
     default:
       LOG(WARNING) << "Unknown command" << *command;
       result = DoNothing(command);

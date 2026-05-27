@@ -228,6 +228,17 @@ bool IsMarinaNumberRowShortcut(const KeyEvent &key) {
          IsMarinaNumberRowSlot(key, '5');
 }
 
+bool IsMacronVowelLetter(unichar c) {
+  const unichar lower = (c >= 'A' && c <= 'Z') ? (c - 'A' + 'a') : c;
+  return lower == 'a' || lower == 'e' || lower == 'i' || lower == 'o' || lower == 'u';
+}
+
+bool IsCtrlOptionMacronChord(NSUInteger ns_modifiers) {
+  return (ns_modifiers & NSEventModifierFlagControl) &&
+         (ns_modifiers & NSEventModifierFlagOption) &&
+         !(ns_modifiers & NSEventModifierFlagCommand);
+}
+
 bool IsPhysicalModifierKeyCode(unsigned short key_code) {
   switch (key_code) {
     case kVK_Control:
@@ -289,6 +300,7 @@ const char *CompositionModeName(CompositionMode mode) {
 @interface MozcImkInputController (MarinaPrivate)
 - (BOOL)isConverterSessionActivated;
 - (BOOL)dispatchMarinaNumberRowShortcut:(const KeyEvent &)keyEvent client:(id)sender;
+- (BOOL)tryMacronVowelChord:(NSEvent *)event client:(id)sender;
 @end
 
 @implementation MozcImkInputController
@@ -634,6 +646,59 @@ const char *CompositionModeName(CompositionMode mode) {
     return YES;
   }
 
+  return YES;
+}
+
+- (BOOL)tryMacronVowelChord:(NSEvent *)event client:(id)sender {
+  if ([event type] != NSEventTypeKeyDown) {
+    return NO;
+  }
+
+  NSUInteger ns_modifiers = [event modifierFlags];
+  ns_modifiers &= (~NSEventModifierFlagCapsLock & NSEventModifierFlagDeviceIndependentFlagsMask);
+  if (!IsCtrlOptionMacronChord(ns_modifiers)) {
+    return NO;
+  }
+
+  const bool want_upper = (ns_modifiers & NSEventModifierFlagShift) != 0;
+  NSString *chars = [event characters];
+  NSString *raw = [event charactersIgnoringModifiers];
+  unichar c = 0;
+
+  // Use whatever the active keyboard layout reports (AZERTY 'a' is on Q, etc.).
+  if (want_upper && chars != nil && [chars length] > 0) {
+    c = [chars characterAtIndex:0];
+  } else if (raw != nil && [raw length] > 0) {
+    c = [raw characterAtIndex:0];
+  } else if (chars != nil && [chars length] > 0) {
+    c = [chars characterAtIndex:0];
+  } else if ([event keyCode] == kVK_JIS_Kana) {
+    // AZERTY Ctrl+Alt can emit a Hiragana keysym with no printable char (IBus does
+    // the same); default to ā slot only in that edge case.
+    c = want_upper ? 'A' : 'a';
+  } else {
+    return NO;
+  }
+
+  if (!IsMacronVowelLetter(c)) {
+    return NO;
+  }
+
+  unichar lower = c;
+  if (lower >= 'A' && lower <= 'Z') {
+    lower = static_cast<unichar>(lower - 'A' + 'a');
+  }
+  const unichar key_char = want_upper ? static_cast<unichar>(lower - 'a' + 'A') : lower;
+
+  SessionCommand command;
+  command.set_type(SessionCommand::INSERT_MACRON_VOWEL);
+  command.set_text(std::string(1, static_cast<char>(key_char)));
+  [self sendCommand:command];
+
+  if (MarinaImkTraceEnabled()) {
+    LOG(INFO) << "[marinaImk] macron vowel=" << static_cast<char>(key_char)
+              << " keyCode=" << [event keyCode] << " mode_=" << CompositionModeName(mode_);
+  }
   return YES;
 }
 
@@ -1249,6 +1314,11 @@ const char *CompositionModeName(CompositionMode mode) {
   // Control, Shift, Command, etc. Swallow them so the app does not beep.
   if (IsPhysicalModifierKeyCode([event keyCode]) &&
       ([event type] == NSEventTypeKeyDown || [event type] == NSEventTypeFlagsChanged)) {
+    return YES;
+  }
+
+  // Ctrl+Option(+Shift)+vowel: layout-aware macron (AZERTY/Dvorak); bypass KeyCodeMap.
+  if ([self tryMacronVowelChord:event client:sender]) {
     return YES;
   }
 
