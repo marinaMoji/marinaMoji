@@ -43,8 +43,17 @@ def _qt_mac_repository_impl(repo_ctx):
         workspace_root = repo_ctx.path(Label("@//:MODULE.bazel")).dirname
         qt_path = workspace_root.get_child(qt_path_str)
     repo_ctx.symlink(qt_path.get_child("lib"), "lib")
-    repo_ctx.symlink(qt_path.get_child("libexec"), "libexec")
-    repo_ctx.symlink(qt_path.get_child("plugins"), "plugins")
+
+    # Homebrew Qt 6 puts libexec and plugins under share/qt/.
+    share_qt = qt_path.get_child("share").get_child("qt")
+    libexec_path = qt_path.get_child("libexec")
+    plugins_path = qt_path.get_child("plugins")
+    if share_qt.get_child("libexec").exists:
+        libexec_path = share_qt.get_child("libexec")
+    if share_qt.get_child("plugins").exists:
+        plugins_path = share_qt.get_child("plugins")
+    repo_ctx.symlink(libexec_path, "libexec")
+    repo_ctx.symlink(plugins_path, "plugins")
     repo_ctx.template("BUILD.bazel", repo_ctx.path(Label("@//bazel:BUILD.qt.bazel")))
 
 qt_mac_repository = repository_rule(

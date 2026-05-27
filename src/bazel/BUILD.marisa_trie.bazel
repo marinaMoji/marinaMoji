@@ -1,0 +1,19 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "marisa_trie",
+    srcs = glob(
+        ["lib/**/*.cc"],
+        exclude = ["lib/**/*test*.cc"],
+    ),
+    hdrs = glob([
+        "include/**/*.h",
+        "lib/**/*.h",
+    ]),
+    includes = [
+        "include",
+        "lib",
+    ],
+)

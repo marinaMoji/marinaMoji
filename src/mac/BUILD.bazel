@@ -99,6 +99,10 @@ mozc_macos_application(
             "//gui/word_register_dialog:word_register_dialog_macos": "Resources",
             "//renderer:mozc_renderer_macos": "Resources",
             "//server:mozc_server_macos": "Resources",
+            "@opencc_source//:jp2t_data": "Resources/opencc",
+            "//unix/ibus:toolbar_icons": "Resources",
+            "//data/keymap:keymap_files": "Resources/keymap",
+            "//data/preedit:kaeriten.tsv": "Resources/keymap",
         },
     ),
     app_icons = ["//data/images/mac:product_icon.icns"],
@@ -126,6 +130,7 @@ mozc_objc_library(
     hdrs = ["common.h"],
     sdk_frameworks = ["Foundation"],
     visibility = [
+        "//mac:__subpackages__",
         "//renderer:__pkg__",
     ],
     deps = ["//protocol:commands_cc_proto"],
@@ -154,6 +159,24 @@ mozc_objc_library(
 )
 
 mozc_objc_library(
+    name = "mozc_toolbar",
+    srcs = ["mozc_toolbar.mm"],
+    hdrs = ["mozc_toolbar.h"],
+    sdk_frameworks = [
+        "Cocoa",
+        "QuartzCore",
+    ],
+    tags = ["manual"],
+    deps = [
+        ":common",
+        "//base/mac:mac_util",
+        "//client:client_interface",
+        "//protocol:commands_cc_proto",
+        "//protocol:config_cc_proto",
+    ],
+)
+
+mozc_objc_library(
     name = "mozc_imk_input_controller",
     srcs = ["mozc_imk_input_controller.mm"],
     hdrs = ["mozc_imk_input_controller.h"],
@@ -170,6 +193,7 @@ mozc_objc_library(
     deps = [
         ":common",
         ":keycode_map",
+        ":mozc_toolbar",
         ":renderer_receiver",
         "//base:const",
         "//base:process",

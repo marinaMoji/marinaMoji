@@ -22,6 +22,12 @@ Composition	Ctrl Shift `	ToggleAlphanumericMode
 Composition	Ctrl Shift 5	ToggleHiraganaDirect
 Composition	Ctrl Shift %	ToggleHiraganaDirect
 Composition	Ctrl Shift ²	ToggleHiraganaDirect
+Composition	Ctrl Shift F	ToggleTraditionalKanji
+Composition	Ctrl Shift f	ToggleTraditionalKanji
+Composition	Ctrl Shift 1	InsertOdorijiDefault
+Composition	Ctrl Shift !	InsertOdorijiDefault
+Composition	Ctrl Shift 2	ShowOdorijiPalette
+Composition	Ctrl Shift @	ShowOdorijiPalette
 Composition	RightShift	ToggleManyoshuHiragana
 Composition	Ctrl Alt a	InsertMacronVowel
 Composition	Ctrl Alt e	InsertMacronVowel
@@ -135,6 +141,7 @@ Conversion	Ctrl Shift 5	ToggleHiraganaDirect
 Conversion	Ctrl Shift %	ToggleHiraganaDirect
 Conversion	Ctrl Shift ²	ToggleHiraganaDirect
 Conversion	Ctrl Shift F	ToggleTraditionalKanji
+Conversion	Ctrl Shift f	ToggleTraditionalKanji
 Conversion	Ctrl ;	DisplayAsHalfWidth
 Conversion	Ctrl :	DisplayAsHalfAlphanumeric
 Conversion	Ctrl '	DisplayAsHalfAlphanumeric
@@ -248,6 +255,12 @@ Precomposition	Ctrl Shift `	ToggleAlphanumericMode
 Precomposition	Ctrl Shift 5	ToggleHiraganaDirect
 Precomposition	Ctrl Shift %	ToggleHiraganaDirect
 Precomposition	Ctrl Shift ²	ToggleHiraganaDirect
+Precomposition	Ctrl Shift F	ToggleTraditionalKanji
+Precomposition	Ctrl Shift f	ToggleTraditionalKanji
+Precomposition	Ctrl Shift 1	InsertOdorijiDefault
+Precomposition	Ctrl Shift !	InsertOdorijiDefault
+Precomposition	Ctrl Shift 2	ShowOdorijiPalette
+Precomposition	Ctrl Shift @	ShowOdorijiPalette
 Precomposition	RightShift	ToggleManyoshuHiragana
 Precomposition	Ctrl Alt a	InsertMacronVowel
 Precomposition	Ctrl Alt e	InsertMacronVowel

@@ -156,6 +156,7 @@ Conversion	Ctrl Shift `	ToggleAlphanumericMode
 Conversion	Ctrl Shift 5	ToggleHiraganaDirect
 Conversion	Ctrl Shift ²	ToggleHiraganaDirect
 Conversion	Ctrl Shift F	ToggleTraditionalKanji
+Conversion	Ctrl Shift f	ToggleTraditionalKanji
 Conversion	Ctrl Shift Space	InsertFullSpace
 Conversion	Ctrl Space	InsertHalfSpace
 Conversion	Ctrl t	ConvertToHalfAlphanumeric

@@ -23,7 +23,9 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 MAC_DIR = SCRIPT_DIR / "mac"
 ICONSET_DIR = MAC_DIR / "product_icon.iconset"
 
-# SVG basenames that map to mac/*.tiff (rendered at 32×32 RGBA)
+# SVG basenames that map to mac/*.tiff (rendered at 32×32 RGBA).
+# Keep this aligned with the historical Google Mozc assets, which are 32×32
+# TIFFs at 144 dpi.
 MODE_ICONS = [
     "direct",
     "full_ascii",
@@ -84,7 +86,10 @@ def svg_to_png(svg_path: Path, png_path: Path, size: int) -> None:
 def png_to_tiff(png_path: Path, tiff_path: Path) -> None:
     """Convert a PNG to an uncompressed RGBA TIFF."""
     img = Image.open(png_path).convert("RGBA")
-    img.save(tiff_path, format="TIFF")
+    # Match legacy macOS mode icons:
+    # - uncompressed RGBA TIFF
+    # - 144 dpi
+    img.save(tiff_path, format="TIFF", compression="raw", dpi=(144, 144))
 
 
 def build_icns(iconset_dir: Path, icns_path: Path) -> None:

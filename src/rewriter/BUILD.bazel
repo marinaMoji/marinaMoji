@@ -284,7 +284,8 @@ mozc_cc_test(
 
 # OpenCC rewriter: when MOZC_USE_OPENCC is defined and opencc is linked,
 # converts candidates to kyūjitai via jp2t. Otherwise no-op.
-# Enabled at build time for Linux (oss_linux, linux) when libopencc is available.
+# Linux: dynamic linking against system libopencc via pkg-config.
+# macOS: static linking against OpenCC built from source (self-contained).
 mozc_cc_library(
     name = "opencc_rewriter",
     srcs = ["opencc_rewriter.cc"],
@@ -292,7 +293,9 @@ mozc_cc_library(
     local_defines = mozc_select(
         default = [],
         linux = ["MOZC_USE_OPENCC"],
+        macos = ["MOZC_USE_OPENCC"],
         oss_linux = ["MOZC_USE_OPENCC"],
+        oss_macos = ["MOZC_USE_OPENCC"],
     ),
     deps = [
         ":rewriter_interface",
@@ -304,7 +307,15 @@ mozc_cc_library(
     ] + mozc_select(
         default = [],
         linux = ["@opencc//:opencc"],
+        macos = [
+            "@opencc_source//:opencc",
+            "//base/mac:mac_util",
+        ],
         oss_linux = ["@opencc//:opencc"],
+        oss_macos = [
+            "@opencc_source//:opencc",
+            "//base/mac:mac_util",
+        ],
     ),
     alwayslink = 1,
 )

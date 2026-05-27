@@ -30,6 +30,7 @@
 #include "rewriter/opencc_rewriter.h"
 
 #include <cstdlib>
+#include <fstream>
 #include <mutex>
 #include <string>
 
@@ -39,6 +40,9 @@
 #include "protocol/config.pb.h"
 #include "request/conversion_request.h"
 #include "rewriter/rewriter_interface.h"
+#if defined(__APPLE__)
+#include "base/mac/mac_util.h"
+#endif  // __APPLE__
 
 #ifdef MOZC_USE_OPENCC
 #include <opencc/Config.hpp>
@@ -55,6 +59,24 @@ std::string GetOpenccConfigPath() {
   if (env && env[0] != '\0') {
     return std::string(env) + "/jp2t.json";
   }
+#if defined(__APPLE__)
+  // Bundled inside the .app at Contents/Resources/opencc/jp2t.json.
+  {
+    std::string bundle_path =
+        MacUtil::GetServerDirectory() + "/opencc/jp2t.json";
+    if (std::ifstream(bundle_path).good()) {
+      return bundle_path;
+    }
+  }
+  // Fallback to Homebrew paths for development builds.
+  for (const char* prefix : {"/opt/homebrew/share/opencc",
+                             "/usr/local/share/opencc"}) {
+    std::string path = std::string(prefix) + "/jp2t.json";
+    if (std::ifstream(path).good()) {
+      return path;
+    }
+  }
+#endif  // __APPLE__
   return "/usr/share/opencc/jp2t.json";
 }
 

@@ -205,7 +205,8 @@ pkg_config_repository(
     ],
 )
 
-# OpenCC (optional: kyūjitai conversion via jp2t when MOZC_USE_OPENCC is defined)
+# OpenCC (kyūjitai conversion via jp2t when MOZC_USE_OPENCC is defined)
+# Linux: system libopencc via pkg-config (dynamic linking).
 pkg_config_repository(
     name = "opencc",
     packages = ["opencc"],
@@ -377,4 +378,53 @@ http_archive(
     build_file_content = "exports_files([\"KEN_ALL.CSV\"])",
     sha256 = "3adc97d8e19e1168a6cdcb2fce759d0e9e613a9a3b630cc180aecfd56ae81eaf",
     url = "https://github.com/hiroyuki-komatsu/japanpost_zipcode/raw/621d059fbcbfae17bfca15b439692bae934268c3/ken_all.zip",
+)
+
+# macOS: OpenCC built from source as a static library so the .app is
+# self-contained and does not require Homebrew at runtime.
+# The opencc_source repo provides the library and data files (jp2t.json +
+# .ocd2 dictionaries) that are bundled into the app bundle's Resources/.
+# Its transitive deps (marisa-trie, rapidjson, darts-clone) are declared
+# separately below.
+http_archive(
+    name = "opencc_source",
+    build_file = "@//bazel:BUILD.opencc.bazel",
+    patch_cmds = [
+        # Remove sub-package BUILD files so every file belongs to the root
+        # package controlled by our build_file. This avoids pulling in
+        # OpenCC's pybind11/tclap deps. Keep the root BUILD.bazel intact
+        # (it was placed by the build_file attribute before patch_cmds run).
+        "find . -mindepth 2 \\( -name BUILD -o -name BUILD.bazel \\) -delete",
+    ],
+    strip_prefix = "OpenCC-ver.1.2.0",
+    url = "https://github.com/BYVoid/OpenCC/archive/refs/tags/ver.1.2.0.tar.gz",
+)
+
+http_archive(
+    name = "marisa_trie",
+    build_file = "@//bazel:BUILD.marisa_trie.bazel",
+    strip_prefix = "marisa-trie-0.2.6",
+    url = "https://github.com/s-yata/marisa-trie/archive/refs/tags/v0.2.6.tar.gz",
+)
+
+http_archive(
+    name = "rapidjson",
+    build_file = "@//bazel:BUILD.rapidjson.bazel",
+    strip_prefix = "rapidjson-1.1.0",
+    url = "https://github.com/Tencent/rapidjson/archive/refs/tags/v1.1.0.tar.gz",
+)
+
+http_archive(
+    name = "darts_clone",
+    build_file = "@//bazel:BUILD.darts_clone.bazel",
+    strip_prefix = "darts-clone-0.32h",
+    url = "https://github.com/s-yata/darts-clone/archive/refs/tags/v0.32h.tar.gz",
+)
+
+http_archive(
+    name = "tclap",
+    build_file = "@//bazel:BUILD.tclap.bazel",
+    sha256 = "7e87d13734076fa4f626f6144ce9a02717198b3f054341a6886e2107b048b235",
+    strip_prefix = "tclap-1.2.5",
+    url = "https://github.com/mirror/tclap/archive/v1.2.5.tar.gz",
 )

@@ -136,6 +136,7 @@ Conversion	RightAlt ^	SetMacronDeadKey
 Conversion	Ctrl Shift `	ToggleAlphanumericMode
 Conversion	Ctrl Shift ²	ToggleAlphanumericMode
 Conversion	Ctrl Shift F	ToggleTraditionalKanji
+Conversion	Ctrl Shift f	ToggleTraditionalKanji
 Conversion	Ctrl Shift Left	SegmentWidthShrink
 Conversion	Ctrl Shift Right	SegmentWidthExpand
 Conversion	Ctrl Space	ConvertNext

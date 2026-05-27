@@ -60,6 +60,7 @@
 #include "ipc/ipc.h"
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
+#include "mac/mozc_toolbar.h"
 #include "renderer/renderer_client.h"
 
 using mozc::kProductNameInEnglish;
@@ -110,7 +111,8 @@ CompositionMode GetCompositionMode(absl::string_view mode_id) {
     return mozc::commands::HALF_ASCII;
   }
   if (mode_id == kKatakanaModeId) {
-    return mozc::commands::FULL_KATAKANA;
+    // Redirect Katakana selection to Manyoshu (menu still shows "Katakana").
+    return mozc::commands::MANYOSHU;
   }
   if (mode_id == kHalfWidthKanaModeId) {
     return mozc::commands::HALF_KATAKANA;
@@ -132,6 +134,7 @@ absl::string_view GetModeId(CompositionMode mode) {
     case mozc::commands::HALF_ASCII:
       return kRomanModeId;
     case mozc::commands::FULL_KATAKANA:
+    case mozc::commands::MANYOSHU:
       return kKatakanaModeId;
     case mozc::commands::HALF_KATAKANA:
       return kHalfWidthKanaModeId;
@@ -299,6 +302,9 @@ bool CanSurroundingText(absl::string_view bundle_id) {
     suppressSuggestion_ = mozc::MacUtil::IsSuppressSuggestionWindow(window_name, window_owner);
   }
 
+  mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+  mozc::mac::MozcToolbarSetActiveController((__bridge void *)self);
+
   DLOG(INFO) << kProductNameInEnglish << " client (" << self << "): activated for " << sender;
   DLOG(INFO) << "sender bundleID: " << clientBundle_;
 }
@@ -307,6 +313,8 @@ bool CanSurroundingText(absl::string_view bundle_id) {
   if (imkClientForTest_) {
     return;
   }
+  mozc::mac::MozcToolbarHide();
+  mozc::mac::MozcToolbarSetActiveController(nullptr);
 
   RendererCommand clearCommand;
   clearCommand.set_type(RendererCommand::UPDATE);
@@ -616,6 +624,8 @@ bool CanSurroundingText(absl::string_view bundle_id) {
         break;
     }
   }
+
+  mozc::mac::MozcToolbarUpdate(*output, mode_);
 
   // Handle callbacks.
   if (output->has_callback() && output->callback().has_session_command()) {

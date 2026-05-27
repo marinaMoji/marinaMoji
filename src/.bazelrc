@@ -68,6 +68,7 @@ test:linux_env   --test_tag_filters=-nolinux
 
 ## macOS specific options
 build:macos_env --build_tag_filters=-nomac --objccopt "-fsigned-char"
+build:macos_env --macos_minimum_os=12.0 --host_macos_minimum_os=12.0
 test:macos_env   --test_tag_filters=-nomac
 
 ## Windows specific options

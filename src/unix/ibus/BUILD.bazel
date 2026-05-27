@@ -60,7 +60,10 @@ config_setting(
 filegroup(
     name = "toolbar_icons",
     srcs = glob(["toolbar_icons/*.svg"]),
-    visibility = ["//unix:__pkg__"],
+    visibility = [
+        "//mac:__pkg__",
+        "//unix:__pkg__",
+    ],
 )
 # For marinaMozc about dialog (Qt resource).
 exports_files(["toolbar_icons/logo_long_light.svg"], visibility = ["//gui/about_dialog:__pkg__"])

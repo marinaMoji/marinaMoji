@@ -1,0 +1,104 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "opencc",
+    srcs = glob(
+        ["src/*.cpp"],
+        exclude = [
+            "src/SimpleConverter.cpp",  # Needs @bazel_tools//tools/cpp/runfiles
+            "src/py_opencc.cpp",        # Needs @pybind11_bazel
+            "src/*Test*.cpp",
+        ],
+    ),
+    hdrs = glob([
+        "src/*.hpp",
+        "src/*.h",
+    ]),
+    defines = ["Opencc_BUILT_AS_STATIC"],
+    include_prefix = "opencc",
+    includes = ["src"],
+    strip_include_prefix = "src",
+    deps = [
+        "@darts_clone",
+        "@marisa_trie",
+        "@rapidjson",
+    ],
+)
+
+cc_binary(
+    name = "opencc_dict",
+    srcs = ["src/tools/DictConverter.cpp"],
+    includes = ["src"],
+    deps = [
+        ":opencc",
+        "@tclap",
+    ],
+)
+
+# Reverse JPVariants.txt to produce JPVariantsRev.txt (swap key <-> values).
+genrule(
+    name = "reverse_jp_variants",
+    srcs = ["data/dictionary/JPVariants.txt"],
+    outs = ["JPVariantsRev.txt"],
+    cmd = """python3 -c '
+import sys, codecs
+dic = {}
+for line in codecs.open(sys.argv[1], "r", encoding="utf-8"):
+    s = line.strip()
+    if not s or s.startswith("#"):
+        continue
+    key, value = line.split("\\t", 1)
+    value = value.rstrip("\\r\\n")
+    for v in value.split(" "):
+        dic.setdefault(v, []).append(key)
+out = open(sys.argv[2], "wb")
+for k in sorted(dic.keys()):
+    out.write((k + "\\t" + " ".join(dic[k]) + "\\n").encode("utf-8"))
+out.close()
+' $(location data/dictionary/JPVariants.txt) $@""",
+)
+
+# Compile text dictionaries to .ocd2 binary format.
+_JP_DICTS = [
+    "JPShinjitaiCharacters",
+    "JPShinjitaiPhrases",
+]
+
+[genrule(
+    name = "compile_" + d,
+    srcs = ["data/dictionary/" + d + ".txt"],
+    outs = [d + ".ocd2"],
+    cmd = "$(location :opencc_dict) --input $(location data/dictionary/" + d + ".txt) --output $@ --from text --to ocd2",
+    tools = [":opencc_dict"],
+) for d in _JP_DICTS]
+
+genrule(
+    name = "compile_JPVariantsRev",
+    srcs = [":reverse_jp_variants"],
+    outs = ["JPVariantsRev.ocd2"],
+    cmd = "$(location :opencc_dict) --input $(location :reverse_jp_variants) --output $@ --from text --to ocd2",
+    tools = [":opencc_dict"],
+)
+
+# Flatten the config file so it loses the data/config/ prefix when bundled.
+genrule(
+    name = "copy_jp2t_config",
+    srcs = ["data/config/jp2t.json"],
+    outs = ["jp2t.json"],
+    cmd = "cp $< $@",
+)
+
+# Data files for jp2t (shinjitai -> kyujitai) conversion, to be bundled
+# into the macOS .app at Contents/Resources/opencc/.
+filegroup(
+    name = "jp2t_data",
+    srcs = [
+        ":compile_JPShinjitaiCharacters",
+        ":compile_JPShinjitaiPhrases",
+        ":compile_JPVariantsRev",
+        ":copy_jp2t_config",
+    ],
+)

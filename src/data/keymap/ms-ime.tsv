@@ -64,6 +64,7 @@ Composition	Ctrl Shift 5	ToggleHiraganaDirect
 Composition	Ctrl Shift %	ToggleHiraganaDirect
 Composition	Ctrl Shift ²	ToggleHiraganaDirect
 Composition	Ctrl Shift F	ToggleTraditionalKanji
+Composition	Ctrl Shift f	ToggleTraditionalKanji
 Composition	Ctrl Shift Space	InsertFullSpace
 Composition	Ctrl Space	InsertHalfSpace
 Composition	Ctrl t	ConvertToHalfAlphanumeric
@@ -168,6 +169,7 @@ Conversion	Ctrl AltGr Shift U	InsertMacronVowel
 Conversion	RightAlt ¨	SetMacronDeadKey
 Conversion	RightAlt ^	SetMacronDeadKey
 Conversion	Ctrl Shift F	ToggleTraditionalKanji
+Conversion	Ctrl Shift f	ToggleTraditionalKanji
 Conversion	Ctrl Shift Space	InsertFullSpace
 Conversion	Ctrl Space	InsertHalfSpace
 Conversion	Ctrl t	ConvertToHalfAlphanumeric
@@ -314,6 +316,7 @@ Precomposition	Ctrl Shift 5	ToggleHiraganaDirect
 Precomposition	Ctrl Shift %	ToggleHiraganaDirect
 Precomposition	Ctrl Shift ²	ToggleHiraganaDirect
 Precomposition	Ctrl Shift F	ToggleTraditionalKanji
+Precomposition	Ctrl Shift f	ToggleTraditionalKanji
 Precomposition	Ctrl Shift Space	InsertFullSpace
 Precomposition	Eisu	ToggleAlphanumericMode
 Precomposition	Hankaku/Zenkaku	IMEOff
