@@ -161,6 +161,11 @@ void FillDefaultScriptShortcuts(std::vector<ShortcutEntry> *script) {
       {"Eisu", "ToggleAlphanumericMode"},
       {"Ctrl Shift 5", "ToggleHiraganaDirect"},
       {"Ctrl Shift F", "ToggleTraditionalKanji"},
+      {"Ctrl Shift 3", "ToggleTraditionalKanji"},
+      {"Ctrl Shift #", "ToggleTraditionalKanji"},
+      {"Ctrl Shift 4", "ToggleManyoshuHiragana"},
+      {"Ctrl Shift $", "ToggleManyoshuHiragana"},
+      {"Ctrl Shift %", "ToggleHiraganaDirect"},
       {"RightShift", "ToggleManyoshuHiragana"},
       {"Ctrl i", "ConvertToFullKatakana"},
       {"F7", "ConvertToFullKatakana"},
@@ -389,6 +394,7 @@ std::string GetKeymapPath(const std::string &filename) {
 #pragma mark - MozcToolbarView
 
 @interface MozcToolbarView : NSView {
+  NSView *backgroundView_;
   NSImageView *logoView_;
   NSButton *modeButton_;
   NSButton *tradButton_;
@@ -410,6 +416,7 @@ std::string GetKeymapPath(const std::string &filename) {
 - (void)updateMode:(mozc::commands::CompositionMode)mode;
 - (void)updateTraditionalKanji:(bool)useTrad;
 - (void)setClient:(mozc::client::ClientInterface *)client;
+- (void)applyToolbarChrome;
 
 @end
 
@@ -429,16 +436,14 @@ std::string GetKeymapPath(const std::string &filename) {
   useTraditionalKanji_ = false;
   isDarkMode_ = [self isDarkAppearance];
 
-  NSVisualEffectView *vibrancy =
-      [[NSVisualEffectView alloc] initWithFrame:self.bounds];
-  vibrancy.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-  vibrancy.blendingMode = NSVisualEffectBlendingModeBehindWindow;
-  vibrancy.material = NSVisualEffectMaterialHUDWindow;
-  vibrancy.state = NSVisualEffectStateActive;
-  vibrancy.wantsLayer = YES;
-  vibrancy.layer.cornerRadius = kCornerRadius;
-  vibrancy.layer.masksToBounds = YES;
-  [self addSubview:vibrancy];
+  // Solid chrome (matches Linux GTK toolbar: white / dark gray, not vibrancy).
+  backgroundView_ = [[NSView alloc] initWithFrame:self.bounds];
+  backgroundView_.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+  backgroundView_.wantsLayer = YES;
+  backgroundView_.layer.cornerRadius = kCornerRadius;
+  backgroundView_.layer.masksToBounds = YES;
+  [self addSubview:backgroundView_];
+  [self applyToolbarChrome];
 
   CGFloat x = 4;
   CGFloat iconY = (kToolbarHeight - kIconSize) / 2.0;
@@ -591,6 +596,32 @@ std::string GetKeymapPath(const std::string &filename) {
   return NO;
 }
 
+- (NSColor *)toolbarBackgroundColor {
+  // Same palette as unix/ibus/mozc_toolbar.cc EnsureToolbarCSS (alpha 1.0 here).
+  if (isDarkMode_) {
+    return [NSColor colorWithCalibratedRed:32.0 / 255.0
+                                       green:35.0 / 255.0
+                                        blue:40.0 / 255.0
+                                       alpha:1.0];
+  }
+  return [NSColor whiteColor];
+}
+
+- (void)applyToolbarChrome {
+  if (!backgroundView_.layer) {
+    return;
+  }
+  backgroundView_.layer.backgroundColor = [self toolbarBackgroundColor].CGColor;
+  if (isDarkMode_) {
+    backgroundView_.layer.borderColor =
+        [[NSColor colorWithCalibratedWhite:1.0 alpha:0.12] CGColor];
+  } else {
+    backgroundView_.layer.borderColor =
+        [[NSColor colorWithCalibratedWhite:0.0 alpha:0.08] CGColor];
+  }
+  backgroundView_.layer.borderWidth = 1.0;
+}
+
 #pragma mark - State Updates
 
 - (void)updateMode:(mozc::commands::CompositionMode)mode {
@@ -651,21 +682,27 @@ std::string GetKeymapPath(const std::string &filename) {
 }
 
 - (void)modeSelected:(NSMenuItem *)item {
-  if (!client_) return;
   auto mode =
       static_cast<mozc::commands::CompositionMode>(item.tag);
 
+  mozc::commands::SessionCommand command;
   if (mode == mozc::commands::DIRECT) {
-    mozc::commands::KeyEvent key_event;
-    key_event.set_special_key(mozc::commands::KeyEvent::OFF);
-    mozc::commands::Output output;
-    client_->SendKey(key_event, &output);
+    command.set_type(mozc::commands::SessionCommand::TURN_OFF_IME);
   } else {
-    mozc::commands::SessionCommand command;
     command.set_type(mozc::commands::SessionCommand::SWITCH_COMPOSITION_MODE);
     command.set_composition_mode(mode);
-    mozc::commands::Output output;
-    client_->SendCommand(command, &output);
+  }
+
+  id<ControllerCallback> controller = g_active_controller;
+  if (controller) {
+    [controller sendCommand:command];
+    return;
+  }
+
+  if (!client_) return;
+  mozc::commands::Output output;
+  if (!client_->SendCommand(command, &output)) {
+    return;
   }
   currentMode_ = mode;
   modeButton_.image = [self modeIconForMode:mode];
@@ -777,6 +814,7 @@ std::string GetKeymapPath(const std::string &filename) {
   if (newDark == isDarkMode_) return;
   isDarkMode_ = newDark;
 
+  [self applyToolbarChrome];
   logoView_.image = [self loadLogoSvg:isDarkMode_ ? @"logo_long_dark" : @"logo_long_light"];
   modeButton_.image = [self modeIconForMode:currentMode_];
   [self updateTradIcon];
@@ -852,6 +890,12 @@ void MozcToolbarSetActiveController(void *controller) {
 
 void MozcToolbarUpdate(const commands::Output &output,
                        commands::CompositionMode mode) {
+  commands::CompositionMode display_mode = mode;
+  if (output.has_status()) {
+    display_mode = output.status().activated() ? output.status().mode()
+                                               : commands::DIRECT;
+  }
+
   bool has_trad =
       output.has_config() && output.config().has_use_traditional_kanji();
   bool use_trad =
@@ -859,7 +903,7 @@ void MozcToolbarUpdate(const commands::Output &output,
 
   dispatch_async(dispatch_get_main_queue(), ^{
     if (!g_toolbar_view) return;
-    [g_toolbar_view updateMode:mode];
+    [g_toolbar_view updateMode:display_mode];
     if (has_trad) {
       [g_toolbar_view updateTraditionalKanji:use_trad];
     }

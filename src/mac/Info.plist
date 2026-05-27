@@ -39,7 +39,7 @@
 				<key>TISIntendedLanguage</key>
 				<string>ja</string>
 				<key>tsInputModeAlternateMenuIconFileKey</key>
-				<string>hiragana.tiff</string>
+				<string>marinamoji.tiff</string>
 				<key>tsInputModeDefaultStateKey</key>
 				<true/>
 				<key>tsInputModeIsVisibleKey</key>
@@ -51,9 +51,9 @@
 				<key>tsInputModeKeyEquivalentModifiersKey</key>
 				<integer>4608</integer>
 				<key>tsInputModeMenuIconFileKey</key>
-				<string>hiragana.tiff</string>
+				<string>marinamoji.tiff</string>
 				<key>tsInputModePaletteIconFileKey</key>
-				<string>hiragana.tiff</string>
+				<string>marinamoji.tiff</string>
 				<key>tsInputModePrimaryInScriptKey</key>
 				<true/>
 				<key>tsInputModeScriptKey</key>
@@ -70,7 +70,7 @@
 				<key>tsInputModeDefaultStateKey</key>
 				<true/>
 				<key>tsInputModeIsVisibleKey</key>
-				<true/>
+				<false/>
 				<key>tsInputModeJISKeyboardShortcutKey</key>
 				<integer>2</integer>
 				<key>tsInputModeKeyEquivalentKey</key>
@@ -97,7 +97,7 @@
 				<key>tsInputModeDefaultStateKey</key>
 				<true/>
 				<key>tsInputModeIsVisibleKey</key>
-				<true/>
+				<false/>
 				<key>tsInputModeJISKeyboardShortcutKey</key>
 				<integer>2</integer>
 				<key>tsInputModeKeyEquivalentKey</key>
@@ -124,7 +124,7 @@
 				<key>tsInputModeDefaultStateKey</key>
 				<true/>
 				<key>tsInputModeIsVisibleKey</key>
-				<true/>
+				<false/>
 				<key>tsInputModeJISKeyboardShortcutKey</key>
 				<integer>0</integer>
 				<key>tsInputModeKeyEquivalentKey</key>
@@ -151,7 +151,7 @@
 				<key>tsInputModeDefaultStateKey</key>
 				<true/>
 				<key>tsInputModeIsVisibleKey</key>
-				<true/>
+				<false/>
 				<key>tsInputModeJISKeyboardShortcutKey</key>
 				<integer>3</integer>
 				<key>tsInputModeKeyEquivalentKey</key>

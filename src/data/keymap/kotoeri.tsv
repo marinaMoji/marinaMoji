@@ -24,6 +24,10 @@ Composition	Ctrl Shift %	ToggleHiraganaDirect
 Composition	Ctrl Shift ²	ToggleHiraganaDirect
 Composition	Ctrl Shift F	ToggleTraditionalKanji
 Composition	Ctrl Shift f	ToggleTraditionalKanji
+Composition	Ctrl Shift 3	ToggleTraditionalKanji
+Composition	Ctrl Shift #	ToggleTraditionalKanji
+Composition	Ctrl Shift 4	ToggleManyoshuHiragana
+Composition	Ctrl Shift $	ToggleManyoshuHiragana
 Composition	Ctrl Shift 1	InsertOdorijiDefault
 Composition	Ctrl Shift !	InsertOdorijiDefault
 Composition	Ctrl Shift 2	ShowOdorijiPalette
@@ -142,6 +146,10 @@ Conversion	Ctrl Shift %	ToggleHiraganaDirect
 Conversion	Ctrl Shift ²	ToggleHiraganaDirect
 Conversion	Ctrl Shift F	ToggleTraditionalKanji
 Conversion	Ctrl Shift f	ToggleTraditionalKanji
+Conversion	Ctrl Shift 3	ToggleTraditionalKanji
+Conversion	Ctrl Shift #	ToggleTraditionalKanji
+Conversion	Ctrl Shift 4	ToggleManyoshuHiragana
+Conversion	Ctrl Shift $	ToggleManyoshuHiragana
 Conversion	Ctrl ;	DisplayAsHalfWidth
 Conversion	Ctrl :	DisplayAsHalfAlphanumeric
 Conversion	Ctrl '	DisplayAsHalfAlphanumeric
@@ -257,6 +265,10 @@ Precomposition	Ctrl Shift %	ToggleHiraganaDirect
 Precomposition	Ctrl Shift ²	ToggleHiraganaDirect
 Precomposition	Ctrl Shift F	ToggleTraditionalKanji
 Precomposition	Ctrl Shift f	ToggleTraditionalKanji
+Precomposition	Ctrl Shift 3	ToggleTraditionalKanji
+Precomposition	Ctrl Shift #	ToggleTraditionalKanji
+Precomposition	Ctrl Shift 4	ToggleManyoshuHiragana
+Precomposition	Ctrl Shift $	ToggleManyoshuHiragana
 Precomposition	Ctrl Shift 1	InsertOdorijiDefault
 Precomposition	Ctrl Shift !	InsertOdorijiDefault
 Precomposition	Ctrl Shift 2	ShowOdorijiPalette

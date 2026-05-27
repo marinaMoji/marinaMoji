@@ -36,6 +36,8 @@
 
 #include <unistd.h>
 
+#include <string>
+
 #include <cstdint>
 #include <cstdlib>
 #include <functional>
@@ -128,6 +130,27 @@ CompositionMode GetCompositionMode(absl::string_view mode_id) {
   return mozc::commands::DIRECT;
 }
 
+CompositionMode EffectiveCompositionMode(const Output &output,
+                                         CompositionMode fallback) {
+  if (output.has_status()) {
+    return output.status().activated() ? output.status().mode()
+                                       : mozc::commands::DIRECT;
+  }
+  if (output.has_mode()) {
+    return output.mode();
+  }
+  return fallback;
+}
+
+CompositionMode NormalizeModeForEmptyHalfAscii(CompositionMode mode,
+                                               const Output &output) {
+  if (mode == mozc::commands::HALF_ASCII &&
+      (!output.has_preedit() || output.preedit().segment_size() == 0)) {
+    return mozc::commands::DIRECT;
+  }
+  return mode;
+}
+
 absl::string_view GetModeId(CompositionMode mode) {
   switch (mode) {
     case mozc::commands::DIRECT:
@@ -178,7 +201,95 @@ bool CanSurroundingText(absl::string_view bundle_id) {
   // because calling attributedSubstringFromRange to it is very heavy.
   return bundle_id != "com.evernote.Evernote";
 }
+
+bool KeyEventHasCtrlShift(const KeyEvent &key) {
+  bool ctrl = false;
+  bool shift = false;
+  for (int i = 0; i < key.modifier_keys_size(); ++i) {
+    if (key.modifier_keys(i) == KeyEvent::CTRL) {
+      ctrl = true;
+    }
+    if (key.modifier_keys(i) == KeyEvent::SHIFT) {
+      shift = true;
+    }
+  }
+  return ctrl && shift;
+}
+
+// Ctrl+Shift+US number-row slot (1..5) after KeyCodeMap physical-key normalization.
+bool IsMarinaNumberRowSlot(const KeyEvent &key, char slot_digit) {
+  return KeyEventHasCtrlShift(key) && key.has_key_code() &&
+         key.key_code() == static_cast<uint32_t>(slot_digit);
+}
+
+bool IsMarinaNumberRowShortcut(const KeyEvent &key) {
+  return IsMarinaNumberRowSlot(key, '1') || IsMarinaNumberRowSlot(key, '2') ||
+         IsMarinaNumberRowSlot(key, '3') || IsMarinaNumberRowSlot(key, '4') ||
+         IsMarinaNumberRowSlot(key, '5');
+}
+
+bool IsPhysicalModifierKeyCode(unsigned short key_code) {
+  switch (key_code) {
+    case kVK_Control:
+    case kVK_RightControl:
+    case kVK_Shift:
+    case kVK_RightShift:
+    case kVK_Option:
+    case kVK_RightOption:
+    case kVK_Command:
+    case kVK_CapsLock:
+    case kVK_Function:
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool MarinaImkTraceEnabled() {
+  static int env_trace = -1;
+  if (env_trace < 0) {
+    env_trace = ::getenv("MARINA_IMK_TRACE") != nullptr ? 1 : 0;
+  }
+  if (env_trace != 0) {
+    return true;
+  }
+  // Re-check the flag file every time: the IME process often stays alive across
+  // "touch imk_trace", so a one-shot cache left trace disabled until logout.
+  const char *home = ::getenv("HOME");
+  if (home == nullptr) {
+    return false;
+  }
+  const std::string flag =
+      std::string(home) + "/Library/Application Support/marinaMozc/imk_trace";
+  return ::access(flag.c_str(), F_OK) == 0;
+}
+
+const char *CompositionModeName(CompositionMode mode) {
+  switch (mode) {
+    case mozc::commands::DIRECT:
+      return "DIRECT";
+    case mozc::commands::HIRAGANA:
+      return "HIRAGANA";
+    case mozc::commands::FULL_KATAKANA:
+      return "FULL_KATAKANA";
+    case mozc::commands::MANYOSHU:
+      return "MANYOSHU";
+    case mozc::commands::HALF_KATAKANA:
+      return "HALF_KATAKANA";
+    case mozc::commands::FULL_ASCII:
+      return "FULL_ASCII";
+    case mozc::commands::HALF_ASCII:
+      return "HALF_ASCII";
+    default:
+      return "?";
+  }
+}
 }  // namespace
+
+@interface MozcImkInputController (MarinaPrivate)
+- (BOOL)isConverterSessionActivated;
+- (BOOL)dispatchMarinaNumberRowShortcut:(const KeyEvent &)keyEvent client:(id)sender;
+@end
 
 @implementation MozcImkInputController
 #pragma mark accessors for testing
@@ -224,6 +335,10 @@ bool CanSurroundingText(absl::string_view bundle_id) {
   cursorPosition_ = -1;
   mode_ = mozc::commands::DIRECT;
   suppressSuggestion_ = false;
+  syncingDisplayMode_ = false;
+  handlingKeyboardEvent_ = false;
+  suppressSetValueUntil_ = 0;
+  processOutputDepth_ = 0;
   yenSignCharacter_ = mozc::config::Config::YEN_SIGN;
   mozcRenderer_ = mozc::renderer::RendererClient::Create();
   mozcClient_ = mozc::client::ClientFactory::NewClient();
@@ -249,6 +364,9 @@ bool CanSurroundingText(absl::string_view bundle_id) {
     // set some values to prevent warning.
     applicationInfo->set_thread_id(0);
     applicationInfo->set_receiver_handle(0);
+    if (MarinaImkTraceEnabled()) {
+      LOG(INFO) << "[marinaImk] trace enabled pid=" << ::getpid();
+    }
   }
 
   return self;
@@ -302,8 +420,9 @@ bool CanSurroundingText(absl::string_view bundle_id) {
     suppressSuggestion_ = mozc::MacUtil::IsSuppressSuggestionWindow(window_name, window_owner);
   }
 
-  mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
   mozc::mac::MozcToolbarSetActiveController((__bridge void *)self);
+  [self refreshModeFromServer:sender];
+  [self syncServerActivationIfNeeded:sender];
 
   DLOG(INFO) << kProductNameInEnglish << " client (" << self << "): activated for " << sender;
   DLOG(INFO) << "sender bundleID: " << clientBundle_;
@@ -340,19 +459,183 @@ bool CanSurroundingText(absl::string_view bundle_id) {
     return;
   }
 
+  // Called by macOS when |-switchDisplayMode| uses |selectInputMode:|.  Do not
+  // push mode changes back to the server or call |-switchDisplayMode| again.
+  const NSTimeInterval now = [[NSDate date] timeIntervalSinceReferenceDate];
+  if (syncingDisplayMode_ || handlingKeyboardEvent_ || now < suppressSetValueUntil_) {
+    if (MarinaImkTraceEnabled()) {
+      LOG(INFO) << "[marinaImk] setValue skipped"
+                << " sync=" << syncingDisplayMode_ << " key=" << handlingKeyboardEvent_
+                << " suppress=" << (now < suppressSetValueUntil_);
+    }
+    [super setValue:value forTag:tag client:sender];
+    return;
+  }
+
+  // macOS calls this when the input-mode picker changes.  Do not call the full
+  // |-switchMode:| / |-handleConfig| path (freeze risk).  Do sync IME ON/OFF with
+  // the converter when the user picks Hiragana vs Direct — otherwise mode_ says
+  // HIRAGANA while the session stays DIRECT and Ctrl+Shift+1..4 return
+  // consumed=false (beep) even though the user turned hiragana on.
   CompositionMode new_mode = [value isKindOfClass:[NSString class]]
                                  ? GetCompositionMode([value UTF8String])
                                  : mozc::commands::DIRECT;
   if (new_mode == mozc::commands::HALF_ASCII && [composedString_ length] == 0) {
     new_mode = mozc::commands::DIRECT;
   }
-
-  [self switchMode:new_mode client:sender];
-  [self handleConfig];
+  if (new_mode != mode_) {
+    if (MarinaImkTraceEnabled()) {
+      LOG(INFO) << "[marinaImk] setValue mode " << CompositionModeName(mode_) << " -> "
+                << CompositionModeName(new_mode);
+    }
+    mode_ = new_mode;
+    mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+    if (new_mode == mozc::commands::DIRECT) {
+      [self syncServerDeactivationIfNeeded:sender];
+    } else {
+      [self syncServerActivationIfNeeded:sender];
+    }
+  }
+  // Do not call |-handleConfig| here: |-overrideKeyboardWithKeyboardNamed:| can
+  // re-enter the input system and contributed to post-shortcut freezes.
   [super setValue:value forTag:tag client:sender];
 }
 
 #pragma mark internal methods
+
+- (void)refreshModeFromServer:(id)sender {
+  SessionCommand command;
+  command.set_type(SessionCommand::GET_STATUS);
+  Output output;
+  if (!mozcClient_->SendCommand(command, &output)) {
+    mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+    return;
+  }
+
+  CompositionMode new_mode = NormalizeModeForEmptyHalfAscii(
+      EffectiveCompositionMode(output, mode_), output);
+  mode_ = new_mode;
+  mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+  mozc::mac::MozcToolbarUpdate(output, mode_);
+}
+
+- (BOOL)isConverterSessionActivated {
+  SessionCommand command;
+  command.set_type(SessionCommand::GET_STATUS);
+  Output output;
+  if (!mozcClient_->SendCommand(command, &output) || !output.has_status()) {
+    return NO;
+  }
+  return output.status().activated();
+}
+
+- (BOOL)ensureConverterActivated:(id)sender context:(mozc::commands::Context *)context {
+  (void)context;
+  if ([self isConverterSessionActivated]) {
+    return YES;
+  }
+  SessionCommand command;
+  command.set_type(SessionCommand::TURN_ON_IME);
+  const CompositionMode on_mode =
+      mode_ == mozc::commands::DIRECT ? mozc::commands::HIRAGANA : mode_;
+  command.set_composition_mode(on_mode);
+  Output output;
+  if (!mozcClient_->SendCommand(command, &output)) {
+    return NO;
+  }
+  [self processOutput:&output client:sender];
+  if (MarinaImkTraceEnabled()) {
+    LOG(INFO) << "[marinaImk] ensureConverterActivated TURN_ON_IME"
+              << " mode_=" << CompositionModeName(mode_);
+  }
+  return YES;
+}
+
+- (void)syncServerActivationIfNeeded:(id)sender {
+  if (mode_ == mozc::commands::DIRECT) {
+    return;
+  }
+  mozc::commands::Context context;
+  [self ensureConverterActivated:sender context:&context];
+}
+
+- (void)syncServerDeactivationIfNeeded:(id)sender {
+  if (mode_ != mozc::commands::DIRECT || ![self isConverterSessionActivated]) {
+    return;
+  }
+  SessionCommand command;
+  command.set_type(SessionCommand::TURN_OFF_IME);
+  Output output;
+  if (!mozcClient_->SendCommand(command, &output)) {
+    return;
+  }
+  [self processOutput:&output client:sender];
+  if (MarinaImkTraceEnabled()) {
+    LOG(INFO) << "[marinaImk] syncServerDeactivation TURN_OFF_IME";
+  }
+}
+
+- (BOOL)dispatchMarinaNumberRowShortcut:(const KeyEvent &)keyEvent client:(id)sender {
+  if (MarinaImkTraceEnabled() && keyEvent.has_key_code()) {
+    LOG(INFO) << "[marinaImk] dispatch shortcut slot="
+              << static_cast<char>(keyEvent.key_code())
+              << " mode_=" << CompositionModeName(mode_);
+  }
+
+  // Slot 5: same as toolbar Direct ↔ Hiragana (SessionCommand, not keymap).
+  if (IsMarinaNumberRowSlot(keyEvent, '5')) {
+    SessionCommand command;
+    if ([self isConverterSessionActivated]) {
+      command.set_type(SessionCommand::TURN_OFF_IME);
+    } else {
+      command.set_type(SessionCommand::TURN_ON_IME);
+      command.set_composition_mode(mozc::commands::HIRAGANA);
+    }
+    [self sendCommand:command];
+    return YES;
+  }
+
+  if (![self isConverterSessionActivated]) {
+    SessionCommand command;
+    command.set_type(SessionCommand::TURN_ON_IME);
+    const CompositionMode on_mode =
+        mode_ == mozc::commands::DIRECT ? mozc::commands::HIRAGANA : mode_;
+    command.set_composition_mode(on_mode);
+    [self sendCommand:command];
+  }
+
+  if (IsMarinaNumberRowSlot(keyEvent, '2')) {
+    SessionCommand command;
+    command.set_type(SessionCommand::SHOW_ODORIJI_PALETTE);
+    [self sendCommand:command];
+    return YES;
+  }
+  if (IsMarinaNumberRowSlot(keyEvent, '3')) {
+    SessionCommand command;
+    command.set_type(SessionCommand::TOGGLE_TRADITIONAL_KANJI);
+    [self sendCommand:command];
+    return YES;
+  }
+  if (IsMarinaNumberRowSlot(keyEvent, '1')) {
+    SessionCommand command;
+    command.set_type(SessionCommand::INSERT_ODORIJI_DEFAULT);
+    [self sendCommand:command];
+    return YES;
+  }
+  if (IsMarinaNumberRowSlot(keyEvent, '4')) {
+    SessionCommand command;
+    command.set_type(SessionCommand::SWITCH_COMPOSITION_MODE);
+    if (mode_ == mozc::commands::MANYOSHU) {
+      command.set_composition_mode(mozc::commands::HIRAGANA);
+    } else {
+      command.set_composition_mode(mozc::commands::MANYOSHU);
+    }
+    [self sendCommand:command];
+    return YES;
+  }
+
+  return YES;
+}
 
 - (void)handleConfig {
   // Get the config and set client-side behaviors
@@ -461,7 +744,18 @@ bool CanSurroundingText(absl::string_view bundle_id) {
   }
 
   absl::string_view mode_id = GetModeId(mode_);
+  if (mode_id == lastDisplayModeId_) {
+    return;
+  }
+
+  lastDisplayModeId_.assign(mode_id.data(), mode_id.size());
+  syncingDisplayMode_ = true;
   [[self client] selectInputMode:[NSString stringWithUTF8String:mode_id.data()]];
+  // |selectInputMode:| may call |-setValue:forTag:client:| asynchronously; keep
+  // the guard set until the current event finishes.
+  dispatch_async(dispatch_get_main_queue(), ^{
+    syncingDisplayMode_ = false;
+  });
 }
 
 - (void)commitText:(const char *)text client:(id)sender {
@@ -552,7 +846,32 @@ bool CanSurroundingText(absl::string_view bundle_id) {
   if (output == nullptr) {
     return;
   }
+  if (processOutputDepth_ > 12) {
+    LOG(ERROR) << "[marinaImk] processOutput depth limit exceeded; dropping";
+    return;
+  }
+  ++processOutputDepth_;
+  if (MarinaImkTraceEnabled()) {
+    LOG(INFO) << "[marinaImk] processOutput depth=" << processOutputDepth_
+              << " consumed=" << output->consumed() << " mode_=" << CompositionModeName(mode_);
+  }
+
   if (!output->consumed()) {
+    if (output->has_result()) {
+      [self commitText:output->result().value().c_str() client:sender];
+    }
+    if (output->has_status() || output->has_mode()) {
+      const CompositionMode new_mode = NormalizeModeForEmptyHalfAscii(
+          EffectiveCompositionMode(*output, mode_), *output);
+      mode_ = new_mode;
+      mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+    }
+    if (output->has_preedit()) {
+      [self updateComposedString:&(output->preedit())];
+    }
+    [self updateCandidates:output];
+    mozc::mac::MozcToolbarUpdate(*output, mode_);
+    --processOutputDepth_;
     return;
   }
 
@@ -593,18 +912,25 @@ bool CanSurroundingText(absl::string_view bundle_id) {
   [self updateComposedString:&(output->preedit())];
   [self updateCandidates:output];
 
-  if (output->has_mode()) {
-    CompositionMode new_mode = output->mode();
+  if (output->has_mode() || output->has_status()) {
+    CompositionMode new_mode = NormalizeModeForEmptyHalfAscii(
+        EffectiveCompositionMode(*output, mode_), *output);
     // Do not allow HALF_ASCII with empty composition.  This should be
     // handled in the converter, but just in case.
-    if (new_mode == mozc::commands::HALF_ASCII &&
-        (!output->has_preedit() || output->preedit().segment_size() == 0)) {
-      new_mode = mozc::commands::DIRECT;
-      [self switchMode:new_mode client:sender];
-    }
     if (new_mode != mode_) {
+      if (MarinaImkTraceEnabled()) {
+        LOG(INFO) << "[marinaImk] processOutput mode " << CompositionModeName(mode_)
+                  << " -> " << CompositionModeName(new_mode);
+      }
       mode_ = new_mode;
-      [self switchDisplayMode];
+      if (handlingKeyboardEvent_) {
+        suppressSetValueUntil_ = [[NSDate date] timeIntervalSinceReferenceDate] + 0.2;
+      }
+      // Do not call |-switchDisplayMode| here.  Keyboard-driven mode changes
+      // (e.g. Ctrl+Shift+5 / ToggleHiraganaDirect) used to call
+      // |selectInputMode:|, which re-entered |-setValue:forTag:client:| and
+      // could freeze the session.  Toolbar + |mode_| are updated below; the
+      // system menu icon stays on the visible marinaMoji entry (see M8).
     }
   }
 
@@ -641,6 +967,8 @@ bool CanSurroundingText(absl::string_view bundle_id) {
       }
     }
   }
+
+  --processOutputDepth_;
 }
 
 #pragma mark Mozc Server methods
@@ -849,6 +1177,18 @@ bool CanSurroundingText(absl::string_view bundle_id) {
   if (event == nullptr || [event isEqual:[NSNull null]]) {
     return NO;
   }
+
+  handlingKeyboardEvent_ = true;
+  BOOL handled = NO;
+  @try {
+    handled = [self handleEventBody:event client:sender];
+  } @finally {
+    handlingKeyboardEvent_ = false;
+  }
+  return handled;
+}
+
+- (BOOL)handleEventBody:(NSEvent *)event client:(id)sender {
   if ([event type] == NSEventTypeCursorUpdate) {
     [[self client] setMarkedText:composedString_
                   selectionRange:[self selectionRange]
@@ -879,7 +1219,7 @@ bool CanSurroundingText(absl::string_view bundle_id) {
     // mode.
     if ([event keyCode] == kVK_JIS_Kana) {
       [self switchMode:mozc::commands::HIRAGANA client:sender];
-      [self switchDisplayMode];
+      mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
       if (isDoubleTap) {
         SessionCommand command;
         command.set_type(SessionCommand::CONVERT_REVERSE);
@@ -894,7 +1234,7 @@ bool CanSurroundingText(absl::string_view bundle_id) {
       CompositionMode new_mode =
           ([composedString_ length] == 0) ? mozc::commands::DIRECT : mozc::commands::HALF_ASCII;
       [self switchMode:new_mode client:sender];
-      [self switchDisplayMode];
+      mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
     }
   }
 
@@ -905,12 +1245,38 @@ bool CanSurroundingText(absl::string_view bundle_id) {
     return YES;
   }
 
+  // AZERTY/Dvorak: macOS may deliver separate KeyDown / FlagsChanged events for
+  // Control, Shift, Command, etc. Swallow them so the app does not beep.
+  if (IsPhysicalModifierKeyCode([event keyCode]) &&
+      ([event type] == NSEventTypeKeyDown || [event type] == NSEventTypeFlagsChanged)) {
+    return YES;
+  }
+
   // Get the Mozc key event
   KeyEvent keyEvent;
   if (![keyCodeMap_ getMozcKeyCodeFromKeyEvent:event toMozcKeyEvent:&keyEvent]) {
     // Modifier flags change (not submitted to the server yet), or
     // unsupported key pressed.
+    if (MarinaImkTraceEnabled()) {
+      LOG(INFO) << "[marinaImk] handleEvent keyCode=" << [event keyCode]
+                << " no mozc mapping (beep)";
+    }
     return NO;
+  }
+
+  if (MarinaImkTraceEnabled() && keyEvent.has_key_code()) {
+    LOG(INFO) << "[marinaImk] handleEvent keyCode=" << [event keyCode]
+              << " mozc=" << static_cast<char>(keyEvent.key_code())
+              << " mode_=" << CompositionModeName(mode_);
+  }
+
+  mozc::commands::Context context;
+  if (suppressSuggestion_) {
+    context.add_experimental_features("google_search_box");
+  }
+
+  if (IsMarinaNumberRowShortcut(keyEvent)) {
+    return [self dispatchMarinaNumberRowShortcut:keyEvent client:sender];
   }
 
   // If the key event is turn on event, the key event has to be sent
@@ -934,11 +1300,6 @@ bool CanSurroundingText(absl::string_view bundle_id) {
     [originalString_ appendFormat:@"%c", keyEvent.key_code()];
   }
 
-  mozc::commands::Context context;
-  if (suppressSuggestion_) {
-    // TODO(komatsu, horo): Support Google Omnibox too.
-    context.add_experimental_features("google_search_box");
-  }
   keyEvent.set_mode(mode_);
 
   if ([composedString_ length] == 0 && CanSelectedRange(clientBundle_) &&

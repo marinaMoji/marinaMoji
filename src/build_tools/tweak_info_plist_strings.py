@@ -81,6 +81,13 @@ def main():
         'NS_HUMAN_READABLE_COPYRIGHT': copyright_message,
         'INPUT_MODE_ANNOTATION': 'Google',
         }
+  elif options.branding == 'marinaMozc':
+    variables = {
+        'CF_BUNDLE_NAME_EN': 'marinaMoji',
+        'CF_BUNDLE_NAME_JA': 'marinaMoji',
+        'NS_HUMAN_READABLE_COPYRIGHT': copyright_message,
+        'INPUT_MODE_ANNOTATION': 'marinaMoji',
+        }
   else:
     variables = {
         'CF_BUNDLE_NAME_EN': 'Mozc',

@@ -35,5 +35,6 @@ exports_files([
     "half_ascii.tiff",
     "half_katakana.tiff",
     "hiragana.tiff",
+    "marinamoji.tiff",
     "product_icon.icns",
 ])

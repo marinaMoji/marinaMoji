@@ -121,6 +121,24 @@ def build_icns(iconset_dir: Path, icns_path: Path) -> None:
 # Generation steps
 # ---------------------------------------------------------------------------
 
+def generate_marinamoji_mode_tiff() -> None:
+    """icon.svg → marinamoji.tiff (32×32 menu icon for the visible input source)."""
+    print("Generating marinamoji.tiff …")
+    icon_svg = SCRIPT_DIR / "icon.svg"
+    tiff_path = MAC_DIR / "marinamoji.tiff"
+    if not icon_svg.exists():
+        print(f"  WARNING: {icon_svg.name} not found, skipping")
+        return
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+        tmp_png = Path(tmp.name)
+    try:
+        svg_to_png(icon_svg, tmp_png, 32)
+        png_to_tiff(tmp_png, tiff_path)
+        print(f"  icon.svg → {tiff_path.relative_to(SCRIPT_DIR)}")
+    finally:
+        tmp_png.unlink(missing_ok=True)
+
+
 def generate_mode_tiffs() -> None:
     """SVG → 32×32 RGBA TIFF for each input-mode icon."""
     print("Generating input-mode TIFFs …")
@@ -200,6 +218,7 @@ def main() -> None:
         )
 
     generate_mode_tiffs()
+    generate_marinamoji_mode_tiff()
     generate_iconset()
     generate_icns()
     generate_product_icon_png()

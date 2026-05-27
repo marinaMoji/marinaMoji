@@ -463,6 +463,9 @@ message SessionCommand {
 
     // Toggle half-width / full-width (e.g. alphanumeric). Same as Ctrl+Shift+3.
     TOGGLE_FULL_HALF_WIDTH = 30;
+
+    // Insert session default odoriji (e.g. 々). Same as Ctrl+Shift+1.
+    INSERT_ODORIJI_DEFAULT = 31;
   }
   required CommandType type = 1;
 

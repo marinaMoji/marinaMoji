@@ -75,6 +75,21 @@
   /** |suppressSuggestion_| indicates whether to suppress the suggestion. */
   bool suppressSuggestion_;
 
+  /** True while |-switchDisplayMode| is calling |selectInputMode:| (avoids setValue: loops). */
+  bool syncingDisplayMode_;
+
+  /** True during |-handleEvent:client:| (|-setValue:| must not touch the server). */
+  bool handlingKeyboardEvent_;
+
+  /** Ignore |-setValue:| until this time (after keyboard-driven mode sync). */
+  NSTimeInterval suppressSetValueUntil_;
+
+  /** Nesting depth guard for |-processOutput:client:|. */
+  int processOutputDepth_;
+
+  /** Last mode id passed to |selectInputMode:| (skip redundant macOS sync). */
+  std::string lastDisplayModeId_;
+
   /** |keyCodeMap_| manages the mapping between Mac key code and mozc key events. */
   KeyCodeMap *keyCodeMap_;
 
@@ -252,6 +267,8 @@
  * @return YES if context was filled; NO otherwise.
  */
 - (BOOL)fillSurroundingContext:(mozc::commands::Context *)context client:(id<IMKTextInput>)client;
+
+- (BOOL)handleEventBody:(NSEvent *)event client:(id)sender;
 
 @end
 

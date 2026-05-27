@@ -149,16 +149,70 @@ static const unichar kYenMark = 0xA5;
     modifierFlags_ = 0;
   }
 
+  NSUInteger nsModifiers = [event modifierFlags];
+  // strip caps lock effects.
+  nsModifiers &= (~NSEventModifierFlagCapsLock & NSEventModifierFlagDeviceIndependentFlagsMask);
+  const unsigned short keyCode = [event keyCode];
+
+  // marinaMozc: map Ctrl+Shift+number-row *physical* keys to US digit codes so
+  // shortcuts work on Dvorak, AZERTY, and custom layouts (dvorak-dpm, etc.).
+  // Must run before the empty-|characters| check: Ctrl+Shift+digits often have
+  // no printable |characters| on non-QWERTY layouts (that was causing beeps).
+  // Keymap TSV uses Ctrl Shift 1..5 (and shifted aliases on QWERTY).
+  const bool ctrl_shift_only =
+      (nsModifiers & (NSEventModifierFlagControl | NSEventModifierFlagShift)) ==
+          (NSEventModifierFlagControl | NSEventModifierFlagShift) &&
+      !(nsModifiers & (NSEventModifierFlagOption | NSEventModifierFlagCommand));
+  if (ctrl_shift_only) {
+    unichar digit = 0;
+    switch (keyCode) {
+      case kVK_ANSI_1:
+        digit = '1';
+        break;
+      case kVK_ANSI_2:
+        digit = '2';
+        break;
+      case kVK_ANSI_3:
+        digit = '3';
+        break;
+      case kVK_ANSI_4:
+        digit = '4';
+        break;
+      case kVK_ANSI_5:
+        digit = '5';
+        break;
+      case kVK_ANSI_6:
+        digit = '6';
+        break;
+      case kVK_ANSI_7:
+        digit = '7';
+        break;
+      case kVK_ANSI_8:
+        digit = '8';
+        break;
+      case kVK_ANSI_9:
+        digit = '9';
+        break;
+      case kVK_ANSI_0:
+        digit = '0';
+        break;
+      default:
+        break;
+    }
+    if (digit != 0) {
+      keyEvent->clear_special_key();
+      keyEvent->set_key_code(digit);
+      [self addModifierFlags:nsModifiers toMozcKeyEvent:keyEvent];
+      return YES;
+    }
+  }
+
   NSString *inputString = [event characters];
   NSString *inputStringRaw = [event charactersIgnoringModifiers];
   if ([inputString length] == 0) {
     return NO;
   }
 
-  NSUInteger nsModifiers = [event modifierFlags];
-  // strip caps lock effects.
-  nsModifiers &= (~NSEventModifierFlagCapsLock & NSEventModifierFlagDeviceIndependentFlagsMask);
-  unsigned short keyCode = [event keyCode];
   unichar inputChar = [((nsModifiers == NSEventModifierFlagShift) ? inputString : inputStringRaw)
       characterAtIndex:0];
   std::map<unsigned short, KeyEvent::SpecialKey>::const_iterator sp_iter =

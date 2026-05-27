@@ -424,6 +424,9 @@ bool Session::SendCommand(commands::Command* command) {
     case commands::SessionCommand::TOGGLE_FULL_HALF_WIDTH:
       result = ToggleFullHalfWidth(command);
       break;
+    case commands::SessionCommand::INSERT_ODORIJI_DEFAULT:
+      result = InsertOdorijiDefault(command);
+      break;
     default:
       LOG(WARNING) << "Unknown command" << *command;
       result = DoNothing(command);

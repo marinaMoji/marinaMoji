@@ -111,13 +111,35 @@ Toolbar actions that open the **candidate window** must route through the active
 | Kotoeri: shin/kyū in Composition / Precomposition | Same states as MS-IME keymap |
 | Kotoeri: odoriji in Composition / Precomposition | `Ctrl+Shift+1` / `2` (and `!` / `@` on US keyboards) |
 | Toolbar odoriji → IMK `sendCommand:` | Palette output reaches renderer |
+| **Single visible input source: marinaMoji** | `Info.plist`: only `com.apple.inputmethod.Japanese` has `tsInputModeIsVisibleKey`; menu icon `marinamoji.tiff`; labels via `InfoPlist.strings` + `tweak_info_plist_strings.py` for `marinaMozc` branding. Katakana / half-width kana / full-width and half-width alphanumeric modes stay registered but hidden (toolbar and shortcuts still switch modes). |
+| **Toolbar mode on focus** | `activateServer:` calls `GET_STATUS` so the toolbar matches the server (was stuck on Direct until first key). Toolbar mode menu routes through IMK `sendCommand:` → `processOutput`. |
+| **Toolbar solid background** | Replaced `NSVisualEffectView` vibrancy with opaque white / dark gray (`#202328`) matching Linux GTK toolbar. |
 
 ## Testing checklist (after each install)
 
 1. Rebuild and reinstall (commands above).
 2. Ensure LaunchAgents point at `marinaMozcConverter` / `marinaMozcRenderer` under `marinaMozc.app/Contents/Resources/` (not `Mozc.app`).
 3. Reload agents or log out/in; select marinaMozc in System Settings → Keyboard → Input Sources.
+
+### Debug IME freezes / shortcuts (`MARINA_IMK_TRACE`)
+
+If shortcuts beep or Ctrl+Shift+5 freezes the Mac, capture a trace log:
+
+```bash
+mkdir -p ~/Library/Application\ Support/marinaMozc
+touch ~/Library/Application\ Support/marinaMozc/imk_trace
+killall marinaMozc    # IME stays running until killed; required after first touch
+# Switch away from marinaMoji and back in Input Sources, then reproduce in TextEdit:
+tail -f ~/Library/Logs/marinaMozc/marinaMozc.log | grep marinaImk
+```
+
+You should see `[marinaImk] trace enabled pid=…` when the IME loads. If `grep marinaImk` is empty but the log has other `mozc_imk_input_controller` lines, trace was off (IME started before `imk_trace`, or keys not pressed yet).
+
+Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapping` (beep).
+   - If you still see old **Hiragana (Mozc)** rows or multiple mode icons, remove marinaMozc from Input Sources, reinstall, then add it again (macOS caches input-source metadata).
 4. Verify:
+   - [ ] Input menu shows **one** entry named **marinaMoji** (marina icon), not five Hiragana/Katakana/… rows
+   - [ ] Toolbar mode icon matches composition mode **immediately** after switching to marinaMozc (not stuck on Direct until first key)
    - [ ] Japanese conversion (server running)
    - [ ] Toolbar: mode, shin/kyū, odoriji palette, dict, shortcuts
    - [ ] `Ctrl+Shift+F` shin/kyū while composing (Kotoeri / MS-IME)
@@ -132,6 +154,8 @@ Toolbar actions that open the **candidate window** must route through the active
 | ID | Issue | Suggested fix |
 |----|--------|----------------|
 | M1 | **Kotoeri Conversion: `Ctrl+Shift+2` duplicate** — both `ShowOdorijiPalette` and `ToggleFullHalfWidth`; last line in TSV wins (palette blocked on keyboard) | Remove or rebind `ToggleFullHalfWidth` on 2/@; keep toolbar odoriji |
+| M1b | **`Ctrl+Shift+5` freeze when returning from Direct** — `setValue:` / `handleConfig` / `selectInputMode` re-entry | Mitigations: no `switchDisplayMode` from keys; `setValue:` skips server + `handleConfig`; 200ms `setValue` suppress after keyboard mode change; `processOutput` depth limit. **Debug:** `MARINA_IMK_TRACE=1` → `~/Library/Logs/marinaMozc/marinaMozc.log` |
+| M1c | **Ctrl+Shift+1–4 beep on Dvorak/AZERTY** | Fixed: physical number-row mapping runs before empty-`characters` check in `KeyCodeMap.mm` |
 | M2 | **Installer LaunchAgents** still reference `Mozc.app` / `MozcConverter` | Rebrand plists in `src/mac/installer/LaunchAgents/` to `marinaMozc` paths |
 
 ### Medium
@@ -148,6 +172,7 @@ Toolbar actions that open the **candidate window** must route through the active
 |----|--------|--------|
 | M6 | **⌘ Command** combos ignored | `KeyCodeMap.mm` returns NO when Command is held |
 | M7 | **Candidate window position** | Some apps return bad cursor rects; same class of issue as stock Mozc |
+| M8 | **Input menu icon vs composition mode** | With one visible TIS mode (or only “Hiragana” installed), the menu bar icon stays on that mode’s TIFF (orange hiragana on stock Mozc). Mode changes are shown on the **toolbar**, not by swapping the system menu icon. Hidden sub-modes + `selectInputMode:` may not update the visible icon on recent macOS. |
 
 ## Keymap notes (macOS)
 
@@ -155,6 +180,8 @@ Toolbar actions that open the **candidate window** must route through the active
 - **Ctrl+letter** shortcuts use lowercase in TSV (`Ctrl j`); they work on Mac.
 - **Ctrl+Shift+letter** on Mac sends **lowercase** key code + SHIFT modifier; TSV entries with uppercase letters need a **lowercase alias** (e.g. `Ctrl Shift F` and `Ctrl Shift f`).
 - **Digits with Shift** on US layout: bind both `Ctrl Shift 1` and `Ctrl Shift !` (and `2` / `@`) so IBus-style and Mac-style key codes match.
+- **Number-row shortcuts (macOS):** `KeyCodeMap` maps **physical** `kVK_ANSI_1`..`0` + Ctrl+Shift to digit `1`..`0` so Dvorak / AZERTY / custom layouts match QWERTY keymap rows (`Ctrl Shift 1` = odoriji, `3` = shin/kyū, `4` = Manyōshū, `5` = hiragana/direct).
+- **marinaMozc (Kotoeri):** `Ctrl+Shift+3` / `#` → shin/kyū (`ToggleTraditionalKanji`); `Ctrl+Shift+4` / `$` → hiragana/Manyōshū (`ToggleManyoshuHiragana`). `Ctrl+Shift+5` / `%` → hiragana/direct toggle.
 
 ## File map (macOS-specific)
 
@@ -179,3 +206,4 @@ Toolbar actions that open the **candidate window** must route through the active
 | Date | Change |
 |------|--------|
 | 2026-05-27 | Initial plan; Kotoeri odoriji in Composition/Precomposition; document M1–M7 |
+| 2026-05-27 | Single visible IME **marinaMoji** in input menu (hidden secondary TIS modes) |
