@@ -117,6 +117,15 @@
 
   /** |menu_| is the NSMenu to be shown in the pulldown menu-list of the IME. */
   IBOutlet NSMenu *menu_;
+
+  /** Checkmark item for showing/hiding the floating toolbar. */
+  NSMenuItem *toolbarMenuItem_;
+
+  /** Radio items under Input Mode (IBUS / GNOME parity). */
+  NSArray<NSMenuItem *> *inputModeMenuItems_;
+
+  /** Toggle for shin/kyū kanji (IBUS Option.TraditionalKanji). */
+  NSMenuItem *traditionalKanjiMenuItem_;
 }
 
 /** These are externally accessible to achieve tests. */
@@ -166,6 +175,18 @@
  * @param sender The sender of this request (unused).
  */
 - (IBAction)aboutDialogClicked:(id)sender;
+
+/** toolbarVisibilityMenuClicked: toggles the floating toolbar on or off. */
+- (IBAction)toolbarVisibilityMenuClicked:(id)sender;
+
+/** inputModeMenuClicked: switches composition mode (GNOME Input Mode menu). */
+- (IBAction)inputModeMenuClicked:(NSMenuItem *)sender;
+
+/** traditionalKanjiMenuClicked: toggles kyūjitai conversion (Ctrl+Shift+F). */
+- (IBAction)traditionalKanjiMenuClicked:(id)sender;
+
+/** odorijiPaletteMenuClicked: opens the iteration-marks palette. */
+- (IBAction)odorijiPaletteMenuClicked:(id)sender;
 
 /** Sets the ClientInterface to use in the controller.
  *

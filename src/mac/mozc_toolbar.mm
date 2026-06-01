@@ -785,19 +785,24 @@ std::string GetKeymapPath(const std::string &filename) {
   return [dir stringByAppendingPathComponent:@"toolbar.conf"];
 }
 
+- (NSMutableDictionary *)mutablePrefs {
+  NSDictionary *existing =
+      [NSDictionary dictionaryWithContentsOfFile:[self prefsPath]];
+  return existing ? [existing mutableCopy] : [NSMutableDictionary dictionary];
+}
+
 - (void)savePosition {
   NSPoint origin = self.window.frame.origin;
-  NSDictionary *dict = @{
-    @"x" : @(origin.x),
-    @"y" : @(origin.y),
-  };
+  NSMutableDictionary *dict = [self mutablePrefs];
+  dict[@"x"] = @(origin.x);
+  dict[@"y"] = @(origin.y);
   [dict writeToFile:[self prefsPath] atomically:YES];
 }
 
 - (NSPoint)loadPosition {
   NSDictionary *dict =
       [NSDictionary dictionaryWithContentsOfFile:[self prefsPath]];
-  if (dict) {
+  if (dict && dict[@"x"] != nil && dict[@"y"] != nil) {
     return NSMakePoint([dict[@"x"] doubleValue], [dict[@"y"] doubleValue]);
   }
   // Default: bottom-right of main screen
@@ -830,6 +835,20 @@ std::string GetKeymapPath(const std::string &filename) {
 
 static NSPanel *g_toolbar_panel = nil;
 static MozcToolbarView *g_toolbar_view = nil;
+
+static NSString *ToolbarPrefsPath() {
+  NSString *dir = [NSString
+      stringWithUTF8String:mozc::MacUtil::GetApplicationSupportDirectory().c_str()];
+  return [dir stringByAppendingPathComponent:@"toolbar.conf"];
+}
+
+static void EnsureToolbarPrefsDirectory() {
+  NSString *path = ToolbarPrefsPath();
+  [[NSFileManager defaultManager] createDirectoryAtPath:[path stringByDeletingLastPathComponent]
+                            withIntermediateDirectories:YES
+                                             attributes:nil
+                                                  error:nil];
+}
 
 static void EnsureToolbar(mozc::client::ClientInterface *client,
                           mozc::commands::CompositionMode mode) {
@@ -870,6 +889,9 @@ namespace mac {
 
 void MozcToolbarShow(client::ClientInterface *client,
                      commands::CompositionMode mode) {
+  if (!MozcToolbarLoadVisiblePreference()) {
+    return;
+  }
   dispatch_async(dispatch_get_main_queue(), ^{
     EnsureToolbar(client, mode);
     [g_toolbar_view updateMode:mode];
@@ -908,6 +930,26 @@ void MozcToolbarUpdate(const commands::Output &output,
       [g_toolbar_view updateTraditionalKanji:use_trad];
     }
   });
+}
+
+bool MozcToolbarLoadVisiblePreference() {
+  NSDictionary *dict =
+      [NSDictionary dictionaryWithContentsOfFile:ToolbarPrefsPath()];
+  if (!dict || dict[@"toolbar_visible"] == nil) {
+    return true;
+  }
+  return [dict[@"toolbar_visible"] boolValue];
+}
+
+void MozcToolbarSaveVisiblePreference(bool visible) {
+  EnsureToolbarPrefsDirectory();
+  NSMutableDictionary *dict =
+      [[NSDictionary dictionaryWithContentsOfFile:ToolbarPrefsPath()] mutableCopy];
+  if (!dict) {
+    dict = [NSMutableDictionary dictionary];
+  }
+  dict[@"toolbar_visible"] = @(visible);
+  [dict writeToFile:ToolbarPrefsPath() atomically:YES];
 }
 
 }  // namespace mac

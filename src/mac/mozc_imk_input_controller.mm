@@ -151,6 +151,14 @@ CompositionMode NormalizeModeForEmptyHalfAscii(CompositionMode mode,
   return mode;
 }
 
+// Maps server mode to the IBUS-style input-mode menu (Manyōshū → Katakana).
+CompositionMode CompositionModeForImeMenu(CompositionMode mode) {
+  if (mode == mozc::commands::MANYOSHU) {
+    return mozc::commands::FULL_KATAKANA;
+  }
+  return mode;
+}
+
 absl::string_view GetModeId(CompositionMode mode) {
   switch (mode) {
     case mozc::commands::DIRECT:
@@ -301,6 +309,8 @@ const char *CompositionModeName(CompositionMode mode) {
 - (BOOL)isConverterSessionActivated;
 - (BOOL)dispatchMarinaNumberRowShortcut:(const KeyEvent &)keyEvent client:(id)sender;
 - (BOOL)tryMacronVowelChord:(NSEvent *)event client:(id)sender;
+- (void)setupMarinaImeMenuIfNeeded;
+- (void)updateImeMenuState:(const Output *)output;
 @end
 
 @implementation MozcImkInputController
@@ -359,6 +369,7 @@ const char *CompositionModeName(CompositionMode mode) {
 
   // We don't check the return value of NSBundle because it fails during tests.
   [[NSBundle mainBundle] loadNibNamed:@"Config" owner:self topLevelObjects:nil];
+  [self setupMarinaImeMenuIfNeeded];
   if (!originalString_ || !composedString_ || !mozcRenderer_ || !mozcClient_) {
     self = nil;
   } else {
@@ -401,7 +412,145 @@ const char *CompositionModeName(CompositionMode mode) {
   return [super client];
 }
 
+- (NSString *)imeMenuTitle:(const char *)english {
+  static NSDictionary<NSString *, NSString *> *kJapaneseTitles;
+  static dispatch_once_t once;
+  dispatch_once(&once, ^{
+    kJapaneseTitles = @{
+      @"Input Mode" : @"入力モード",
+      @"Direct input" : @"直接入力",
+      @"Hiragana" : @"ひらがな",
+      @"Katakana" : @"カタカナ",
+      @"Latin" : @"半角英数",
+      @"Wide Latin" : @"全角英数",
+      @"Half width katakana" : @"半角カタカナ",
+      @"Traditional kanji (Kyūjitai)" : @"伝統漢字（旧字体）",
+      @"Odoriji (iteration marks)" : @"踊り字（繰り返し記号）",
+      @"Toolbar" : @"ツールバー",
+    };
+  });
+  NSString *key = [NSString stringWithUTF8String:english];
+  if ([[[NSLocale currentLocale] languageCode] isEqualToString:@"ja"]) {
+    NSString *localized = kJapaneseTitles[key];
+    if (localized != nil) {
+      return localized;
+    }
+  }
+  return key;
+}
+
+- (void)setupMarinaImeMenuIfNeeded {
+  if (!menu_ || traditionalKanjiMenuItem_ != nil) {
+    return;
+  }
+
+  // IBUS panel order: Input Mode, Traditional kanji, Odoriji, Toolbar (property_handler.cc).
+  NSInteger insertIndex = 0;
+
+  struct ModeMenuEntry {
+    const char *title;
+    CompositionMode mode;
+  };
+  constexpr ModeMenuEntry kModeEntries[] = {
+      {"Direct input", mozc::commands::DIRECT},
+      {"Hiragana", mozc::commands::HIRAGANA},
+      {"Katakana", mozc::commands::FULL_KATAKANA},
+      {"Latin", mozc::commands::HALF_ASCII},
+      {"Wide Latin", mozc::commands::FULL_ASCII},
+      {"Half width katakana", mozc::commands::HALF_KATAKANA},
+  };
+
+  NSMenu *modeMenu =
+      [[NSMenu alloc] initWithTitle:[self imeMenuTitle:"Input Mode"]];
+  NSMutableArray<NSMenuItem *> *modeItems = [NSMutableArray array];
+  for (const ModeMenuEntry &entry : kModeEntries) {
+    NSMenuItem *item = [[NSMenuItem alloc]
+        initWithTitle:[self imeMenuTitle:entry.title]
+               action:@selector(inputModeMenuClicked:)
+        keyEquivalent:@""];
+    item.target = self;
+    item.tag = static_cast<NSInteger>(entry.mode);
+    [modeMenu addItem:item];
+    [modeItems addObject:item];
+  }
+  inputModeMenuItems_ = [modeItems copy];
+
+  NSMenuItem *modeMenuItem = [[NSMenuItem alloc]
+      initWithTitle:[self imeMenuTitle:"Input Mode"]
+             action:nil
+      keyEquivalent:@""];
+  modeMenuItem.submenu = modeMenu;
+  [menu_ insertItem:modeMenuItem atIndex:insertIndex++];
+  [menu_ insertItem:[NSMenuItem separatorItem] atIndex:insertIndex++];
+
+  traditionalKanjiMenuItem_ = [[NSMenuItem alloc]
+      initWithTitle:[self imeMenuTitle:"Traditional kanji (Kyūjitai)"]
+             action:@selector(traditionalKanjiMenuClicked:)
+      keyEquivalent:@""];
+  traditionalKanjiMenuItem_.target = self;
+  [menu_ insertItem:traditionalKanjiMenuItem_ atIndex:insertIndex++];
+
+  NSMenuItem *odorijiItem = [[NSMenuItem alloc]
+      initWithTitle:[self imeMenuTitle:"Odoriji (iteration marks)"]
+             action:@selector(odorijiPaletteMenuClicked:)
+      keyEquivalent:@""];
+  odorijiItem.target = self;
+  [menu_ insertItem:odorijiItem atIndex:insertIndex++];
+
+  if (toolbarMenuItem_ != nil) {
+    [menu_ removeItem:toolbarMenuItem_];
+  }
+  toolbarMenuItem_ = [[NSMenuItem alloc]
+      initWithTitle:[self imeMenuTitle:"Toolbar"]
+             action:@selector(toolbarVisibilityMenuClicked:)
+      keyEquivalent:@""];
+  toolbarMenuItem_.target = self;
+  [menu_ insertItem:toolbarMenuItem_ atIndex:insertIndex++];
+
+  [menu_ insertItem:[NSMenuItem separatorItem] atIndex:insertIndex];
+  [self updateImeMenuState:nullptr];
+}
+
+- (void)updateImeMenuState:(const Output *)output {
+  if (toolbarMenuItem_) {
+    const bool visible = mozc::mac::MozcToolbarLoadVisiblePreference();
+    toolbarMenuItem_.state =
+        visible ? NSControlStateValueOn : NSControlStateValueOff;
+  }
+
+  if (traditionalKanjiMenuItem_) {
+    bool use_trad = false;
+    if (output != nullptr && output->has_config()) {
+      use_trad = output->config().use_traditional_kanji();
+    } else if (mozcClient_ != nullptr) {
+      Config config;
+      if (mozcClient_->GetConfig(&config)) {
+        use_trad = config.use_traditional_kanji();
+      }
+    }
+    traditionalKanjiMenuItem_.state =
+        use_trad ? NSControlStateValueOn : NSControlStateValueOff;
+  }
+
+  if (!inputModeMenuItems_) {
+    return;
+  }
+
+  CompositionMode display_mode = mode_;
+  if (output != nullptr && (output->has_status() || output->has_mode())) {
+    display_mode = NormalizeModeForEmptyHalfAscii(
+        EffectiveCompositionMode(*output, mode_), *output);
+  }
+  const CompositionMode menu_mode = CompositionModeForImeMenu(display_mode);
+  for (NSMenuItem *item in inputModeMenuItems_) {
+    const auto item_mode = static_cast<CompositionMode>(item.tag);
+    item.state = (item_mode == menu_mode) ? NSControlStateValueOn : NSControlStateValueOff;
+  }
+}
+
 - (NSMenu *)menu {
+  [self setupMarinaImeMenuIfNeeded];
+  [self updateImeMenuState:nullptr];
   return menu_;
 }
 
@@ -529,6 +678,7 @@ const char *CompositionModeName(CompositionMode mode) {
   mode_ = new_mode;
   mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
   mozc::mac::MozcToolbarUpdate(output, mode_);
+  [self updateImeMenuState:&output];
 }
 
 - (BOOL)isConverterSessionActivated {
@@ -936,6 +1086,7 @@ const char *CompositionModeName(CompositionMode mode) {
     }
     [self updateCandidates:output];
     mozc::mac::MozcToolbarUpdate(*output, mode_);
+    [self updateImeMenuState:output];
     --processOutputDepth_;
     return;
   }
@@ -1017,6 +1168,7 @@ const char *CompositionModeName(CompositionMode mode) {
   }
 
   mozc::mac::MozcToolbarUpdate(*output, mode_);
+  [self updateImeMenuState:output];
 
   // Handle callbacks.
   if (output->has_callback() && output->callback().has_session_command()) {
@@ -1422,6 +1574,48 @@ const char *CompositionModeName(CompositionMode mode) {
 
 - (IBAction)aboutDialogClicked:(id)sender {
   MacProcess::LaunchMozcTool("about_dialog");
+}
+
+- (IBAction)toolbarVisibilityMenuClicked:(id)sender {
+  (void)sender;
+  const bool visible = !mozc::mac::MozcToolbarLoadVisiblePreference();
+  mozc::mac::MozcToolbarSaveVisiblePreference(visible);
+  if (visible) {
+    mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+  } else {
+    mozc::mac::MozcToolbarHide();
+  }
+  [self updateImeMenuState:nullptr];
+}
+
+- (IBAction)inputModeMenuClicked:(NSMenuItem *)sender {
+  const auto mode = static_cast<CompositionMode>(sender.tag);
+  SessionCommand command;
+  if (mode == mozc::commands::DIRECT) {
+    command.set_type(SessionCommand::TURN_OFF_IME);
+  } else {
+    command.set_type(SessionCommand::SWITCH_COMPOSITION_MODE);
+    CompositionMode server_mode = mode;
+    if (server_mode == mozc::commands::FULL_KATAKANA) {
+      server_mode = mozc::commands::MANYOSHU;
+    }
+    command.set_composition_mode(server_mode);
+  }
+  [self sendCommand:command];
+}
+
+- (IBAction)traditionalKanjiMenuClicked:(id)sender {
+  (void)sender;
+  SessionCommand command;
+  command.set_type(SessionCommand::TOGGLE_TRADITIONAL_KANJI);
+  [self sendCommand:command];
+}
+
+- (IBAction)odorijiPaletteMenuClicked:(id)sender {
+  (void)sender;
+  SessionCommand command;
+  command.set_type(SessionCommand::SHOW_ODORIJI_PALETTE);
+  [self sendCommand:command];
 }
 
 + (void)setGlobalRendererReceiver:(RendererReceiver *)rendererReceiver {

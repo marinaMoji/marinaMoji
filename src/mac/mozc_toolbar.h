@@ -31,6 +31,10 @@ void MozcToolbarSetActiveController(void *controller);
 void MozcToolbarUpdate(const commands::Output &output,
                        commands::CompositionMode mode);
 
+// Persists toolbar visibility in toolbar.conf (default: visible).
+bool MozcToolbarLoadVisiblePreference();
+void MozcToolbarSaveVisiblePreference(bool visible);
+
 }  // namespace mac
 }  // namespace mozc
 
