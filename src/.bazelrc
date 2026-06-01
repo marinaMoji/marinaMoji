@@ -39,6 +39,7 @@ build:windows_env --extra_toolchains=@local_config_cc//:cc-toolchain-x64_windows
 build:windows_env --extra_toolchains=@local_config_cc//:cc-toolchain-x64_x86_windows-clang-cl
 build:windows_env --host_platform=//:host-windows-clang-cl
 build:windows_env --repo_env=BAZEL_WIN32_WINNT=/D_WIN32_WINNT=0x0A00
+build:windows_env --action_env=BAZEL_VC
 
 ## Compiler options
 common:linux_env   --config=compiler_gcc_like
@@ -82,3 +83,6 @@ build:win_universal_installer --//:win_universal_installer
 build:android_env --copt "-DOS_ANDROID"
 build:android_env --build_tag_filters=-noandroid
 test:android_env  --test_tag_filters=-noandroid
+
+## SFrame relocation errors workaround for GCC 15+ and LLD 19+
+build:no_sframe --copt="-Wa,--gsframe=no" --host_copt="-Wa,--gsframe=no"

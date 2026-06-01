@@ -466,17 +466,17 @@ void FillConversion(const Segments& segments, const size_t segment_index,
   size_t cursor = 0;
   const Segments::const_range conversion_segments =
       segments.conversion_segments();
-
+  const Segment& current_segment = conversion_segments[segment_index];
   for (const Segment& segment : conversion_segments) {
-    if (&segment == &conversion_segments[segment_index]) {
-      const std::string& value = segment.candidate(candidate_id).value;
+    if (&segment == &current_segment) {
+      absl::string_view value = segment.candidate(candidate_id).value;
       if (AddSegment(segment.key(), value, kBaseType | FOCUSED, preedit) &&
           (!preedit->has_highlighted_position())) {
         preedit->set_highlighted_position(cursor);
       }
       cursor += Util::CharsLen(value);
     } else {
-      const std::string& value = segment.candidate(0).value;
+      absl::string_view value = segment.candidate(0).value;
       AddSegment(segment.key(), value, kBaseType, preedit);
       cursor += Util::CharsLen(value);
     }

@@ -26,6 +26,9 @@ marinaMoji provides the following features for scholarly Japanese text input:
 - **Macron vowels** - Input of macron vowels (ā, ē, ī, ō, ū) for scholarly transliteration in ASCII mode
 - **Quick dictionary injection:** type `ctrl+shift+0` in compose mode to immediately save kanji phrase and pronunciation to user dictionary.
 
+For policies on vocabulary and conversion results, see
+[Vocabulary Policy](VOCABULARY_POLICY.md).
+
 Build Instructions
 ------------------
 

@@ -13,7 +13,7 @@ descriptions below and make sure the operations before running them.
 git clone https://github.com/google/mozc.git
 cd mozc/src
 
-bazelisk build package --config oss_linux --config release_build
+bazelisk build package --config release_build
 ```
 
 `bazel-bin/unix/mozc.zip` contains built files.
@@ -124,7 +124,7 @@ You should be able to build Mozc for Linux desktop as follows, assuming
 `bazelisk` is in your `$PATH`.
 
 ```sh
-bazelisk build package --config oss_linux --config release_build
+bazelisk build package --config release_build
 ```
 
 `package` is an alias to build Mozc executables and archive them into
@@ -184,6 +184,16 @@ configurations. Try the following command to
 bazelisk clean --expunge
 ```
 
+### Troubleshooting: Linker error `relocation refers to a discarded section`
+
+If you encounter linker errors related to `.sframe` sections (e.g., `relocation
+refers to a discarded section` when using GCC 15+ and LLD 19+ in non-release
+builds), you can append `--config no_sframe` to disable SFrame generation:
+
+```sh
+bazelisk build package --config no_sframe
+```
+
 ### How to customize installation locations
 
 This fork is branded **marinaMozc** and uses distinct paths so it can be
@@ -231,7 +241,7 @@ git update-index --no-assume-unchanged src/config.bzl
 ### Run all tests
 
 ```sh
-bazelisk test ... --config oss_linux --build_tests_only -c dbg
+bazelisk test ... --build_tests_only -c dbg
 ```
 
 *   `...` means all targets under the current and subdirectories.
@@ -239,7 +249,7 @@ bazelisk test ... --config oss_linux --build_tests_only -c dbg
 ### Run tests under the specific directories
 
 ```sh
-bazelisk test base/... composer/... --config oss_linux --build_tests_only -c dbg
+bazelisk test base/... composer/... --build_tests_only -c dbg
 ```
 
 *   `<dir>/...` means all targets under the `<dir>/` directory.
@@ -247,7 +257,7 @@ bazelisk test base/... composer/... --config oss_linux --build_tests_only -c dbg
 ### Run tests without the specific directories
 
 ```sh
-bazelisk test ... --config oss_linux --build_tests_only -c dbg -- -base/...
+bazelisk test ... --build_tests_only -c dbg -- -base/...
 ```
 
 *   `--` means the end of the flags which start from `-`.
@@ -256,7 +266,7 @@ bazelisk test ... --config oss_linux --build_tests_only -c dbg -- -base/...
 ### Run the specific test
 
 ```sh
-bazelisk test base:util_test --config oss_linux -c dbg
+bazelisk test base:util_test -c dbg
 ```
 
 *   `util_test` is defined in `base/BUILD.bazel`.
@@ -264,7 +274,7 @@ bazelisk test base:util_test --config oss_linux -c dbg
 ### Output logs to stderr
 
 ```
-bazelisk test base:util_test --config oss_linux --test_arg=--stderrthreshold=0 --test_output=all
+bazelisk test base:util_test --test_arg=--stderrthreshold=0 --test_output=all
 ```
 
 *   The `--test_arg=--stderrthreshold=0 --test_output=all` flags show the
