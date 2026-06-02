@@ -204,3 +204,12 @@ downloaded from https://github.com/google/mozc/.
 
 Please check the previous version for more information.
 https://github.com/google/mozc/blob/3.33.6089/docs/build_mozc_in_osx.md#build-with-gyp-maintenance-mode
+
+--------------------------------------------------------------------------------
+
+## marinaMozc feature notes
+
+For marinaMozc-specific macOS behavior and toolbar features (including odoriji, symbols palette, and custom symbol settings), see:
+
+- [MACOS_PORT_PLAN.md](MACOS_PORT_PLAN.md)
+- [SYMBOLS_PALETTE.md](SYMBOLS_PALETTE.md)

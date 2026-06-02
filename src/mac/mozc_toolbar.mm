@@ -10,6 +10,7 @@
 
 #include <fstream>
 #include <map>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -22,8 +23,9 @@
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
 
-// Declared before @implementation MozcToolbarView (used in -odorijiClicked:).
+// Declared before @implementation MozcToolbarView.
 static __weak id<ControllerCallback> g_active_controller = nil;
+static bool g_symbols_palette_visible = false;
 
 namespace {
 
@@ -33,6 +35,9 @@ constexpr int kToolbarHeight = 36;
 constexpr int kButtonWidth = 36;
 constexpr int kToolbarMargin = 20;
 constexpr CGFloat kCornerRadius = 10.0;
+constexpr int kSymbolsTabOdoriji = 0;
+NSString *const kPrefsSymbolsPinnedKey = @"symbols_palette_pinned";
+NSString *const kPrefsSymbolsLastTabKey = @"symbols_palette_last_tab";
 
 using ShortcutEntry = std::pair<std::string, std::string>;
 using GroupedShortcutRow = std::pair<std::string, std::string>;
@@ -208,6 +213,52 @@ void FillDefaultKaeritenShortcuts(std::vector<ShortcutEntry> *kaeriten) {
       {";,", "\xe3\x80\x81"},
   };
   for (const auto &p : kDefault) kaeriten->emplace_back(p.first, p.second);
+}
+
+std::string GetKeymapPath(const std::string &filename);
+
+std::vector<std::string> BuildDefaultOdorijiSymbols() {
+  return {"々", "ゝ", "ゞ", "ヽ", "ヾ", "〻", "〱", "〲"};
+}
+
+std::vector<std::string> BuildDefaultKaeritenSymbols() {
+  std::vector<ShortcutEntry> kaeriten_entries;
+  ParseKaeritenTsv(GetKeymapPath("kaeriten.tsv"), &kaeriten_entries);
+  FillDefaultKaeritenShortcuts(&kaeriten_entries);
+  std::vector<std::string> symbols;
+  std::set<std::string> seen;
+  for (const auto &entry : kaeriten_entries) {
+    if (!entry.second.empty() && seen.insert(entry.second).second) {
+      symbols.push_back(entry.second);
+    }
+  }
+  return symbols;
+}
+
+std::vector<std::string> BuildDefaultGeneralSymbols() {
+  return {"〔", "〕", "［", "］", "【", "】", "〈", "〉", "《", "》", "（", "）",
+          "｛", "｝", "□", "■", "○", "△", "×", "※", "〓", "◆", "◇", "◎",
+          "▲", "▽", "…", "—"};
+}
+
+std::string UserSymbolsPath() {
+  return mozc::MacUtil::GetApplicationSupportDirectory() + "/user_symbols.txt";
+}
+
+std::vector<std::string> LoadUserSymbolsFromFile() {
+  std::vector<std::string> result;
+  std::ifstream ifs(UserSymbolsPath());
+  if (!ifs) return result;
+  std::string line;
+  while (std::getline(ifs, line)) {
+    if (!line.empty() && line.back() == '\r') {
+      line.pop_back();
+    }
+    if (!line.empty()) {
+      result.push_back(line);
+    }
+  }
+  return result;
 }
 
 std::string KeymapFilenameFromSessionKeymap(
@@ -391,6 +442,255 @@ std::string GetKeymapPath(const std::string &filename) {
 @end
 
 // ---------------------------------------------------------------------------
+#pragma mark - MozcSymbolsPaletteWindowController
+
+@interface MozcSymbolsPaletteWindowController : NSWindowController
+    <NSTabViewDelegate, NSWindowDelegate> {
+  mozc::client::ClientInterface *client_;
+  __weak id<ControllerCallback> callbackController_;
+  NSTabView *tabView_;
+  NSButton *pinCheckbox_;
+  NSStackView *odorijiStack_;
+  NSStackView *kaeritenStack_;
+  NSStackView *symbolsStack_;
+  NSStackView *userStack_;
+}
+- (instancetype)initWithClient:(mozc::client::ClientInterface *)client
+                    controller:(id<ControllerCallback>)controller;
+@end
+
+@implementation MozcSymbolsPaletteWindowController
+
+- (instancetype)initWithClient:(mozc::client::ClientInterface *)client
+                    controller:(id<ControllerCallback>)controller {
+  NSPanel *window =
+      [[NSPanel alloc] initWithContentRect:NSMakeRect(0, 0, 520, 380)
+                                 styleMask:NSWindowStyleMaskTitled |
+                                           NSWindowStyleMaskClosable |
+                                           NSWindowStyleMaskResizable |
+                                           NSWindowStyleMaskNonactivatingPanel
+                                   backing:NSBackingStoreBuffered
+                                     defer:YES];
+  window.title = @"Symbols Palette";
+  window.releasedWhenClosed = NO;
+  [window setFloatingPanel:YES];
+  [window setLevel:NSPopUpMenuWindowLevel];
+  [window setHidesOnDeactivate:NO];
+  [window setBecomesKeyOnlyIfNeeded:YES];
+  window.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces;
+  [window center];
+
+  self = [super initWithWindow:window];
+  if (!self) return nil;
+  client_ = client;
+  callbackController_ = controller;
+  window.delegate = self;
+
+  NSView *content = window.contentView;
+  tabView_ = [[NSTabView alloc] initWithFrame:NSMakeRect(10, 50, 500, 320)];
+  tabView_.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+  tabView_.delegate = self;
+  [content addSubview:tabView_];
+
+  pinCheckbox_ =
+      [[NSButton alloc] initWithFrame:NSMakeRect(12, 14, 200, 24)];
+  pinCheckbox_.buttonType = NSButtonTypeSwitch;
+  pinCheckbox_.title = @"Pin palette";
+  pinCheckbox_.target = self;
+  pinCheckbox_.action = @selector(pinCheckboxChanged:);
+  pinCheckbox_.state = [self loadPinnedPreference] ? NSControlStateValueOn
+                                                   : NSControlStateValueOff;
+  [content addSubview:pinCheckbox_];
+
+  [self addSymbolsTabWithTitle:@"Odoriji"
+                      symbols:BuildDefaultOdorijiSymbols()
+                  hintMessage:@"Clicking an odoriji inserts it and sets it as your default (same behavior as the main Odoriji palette). Shortcuts are available in your keymap (Ctrl+Shift+1/2 on common layouts)."
+                      outView:&odorijiStack_];
+  [self addSymbolsTabWithTitle:@"Kaeriten"
+                      symbols:BuildDefaultKaeritenSymbols()
+                  hintMessage:@"Shortcuts are available in your keymap."
+                      outView:&kaeritenStack_];
+  [self addSymbolsTabWithTitle:@"Symbols"
+                      symbols:BuildDefaultGeneralSymbols()
+                  hintMessage:nil
+                      outView:&symbolsStack_];
+  [self addSymbolsTabWithTitle:@"User"
+                      symbols:[self loadUserSymbols]
+                  hintMessage:@"Edit user symbols in Preferences."
+                      outView:&userStack_];
+
+  NSInteger saved_tab = [self loadLastTabPreference];
+  if (saved_tab >= 0 && saved_tab < tabView_.numberOfTabViewItems) {
+    [tabView_ selectTabViewItemAtIndex:saved_tab];
+  } else {
+    [tabView_ selectTabViewItemAtIndex:kSymbolsTabOdoriji];
+  }
+
+  return self;
+}
+
+- (void)addSymbolsTabWithTitle:(NSString *)title
+                       symbols:(const std::vector<std::string> &)symbols
+                   hintMessage:(NSString *)hintMessage
+                       outView:(NSStackView * __strong *)outView {
+  NSTabViewItem *item = [[NSTabViewItem alloc] initWithIdentifier:title];
+  item.label = title;
+
+  NSScrollView *scroll = [[NSScrollView alloc] initWithFrame:NSZeroRect];
+  scroll.hasVerticalScroller = YES;
+  scroll.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+
+  NSView *container = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 460, 300)];
+  NSStackView *stack = [[NSStackView alloc] initWithFrame:NSMakeRect(0, 0, 460, 300)];
+  stack.orientation = NSUserInterfaceLayoutOrientationVertical;
+  stack.alignment = NSLayoutAttributeLeading;
+  stack.spacing = 8.0;
+  stack.edgeInsets = NSEdgeInsetsMake(8, 8, 8, 8);
+  stack.translatesAutoresizingMaskIntoConstraints = NO;
+  [container addSubview:stack];
+  [NSLayoutConstraint activateConstraints:@[
+    [stack.leadingAnchor constraintEqualToAnchor:container.leadingAnchor],
+    [stack.trailingAnchor constraintEqualToAnchor:container.trailingAnchor],
+    [stack.topAnchor constraintEqualToAnchor:container.topAnchor]
+  ]];
+
+  if (hintMessage.length > 0) {
+    NSTextField *hint = [NSTextField labelWithString:hintMessage];
+    hint.lineBreakMode = NSLineBreakByWordWrapping;
+    hint.maximumNumberOfLines = 2;
+    [stack addArrangedSubview:hint];
+  }
+
+  NSStackView *row = nil;
+  constexpr NSInteger kColumns = 8;
+  NSInteger col = 0;
+  NSInteger symbolIndex = 0;
+  for (const std::string &value : symbols) {
+    if (value.empty()) continue;
+    if (row == nil || col == 0) {
+      row = [[NSStackView alloc] initWithFrame:NSZeroRect];
+      row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+      row.alignment = NSLayoutAttributeCenterY;
+      row.spacing = 6.0;
+      [stack addArrangedSubview:row];
+    }
+    NSString *text = [NSString stringWithUTF8String:value.c_str()];
+    NSButton *button = [NSButton buttonWithTitle:text
+                                          target:self
+                                          action:@selector(symbolClicked:)];
+    if ([title isEqualToString:@"Odoriji"]) {
+      button.identifier = @"odorijiSymbolButton";
+      button.tag = symbolIndex;
+    }
+    button.bezelStyle = NSBezelStyleRounded;
+    button.controlSize = NSControlSizeRegular;
+    button.font = [NSFont systemFontOfSize:18.0];
+    [button.widthAnchor constraintGreaterThanOrEqualToConstant:40.0].active = YES;
+    [button.heightAnchor constraintEqualToConstant:32.0].active = YES;
+    button.contentTintColor = nil;
+    [row addArrangedSubview:button];
+    col = (col + 1) % kColumns;
+    ++symbolIndex;
+  }
+
+  [stack addArrangedSubview:[NSView new]];
+  scroll.documentView = container;
+  item.view = scroll;
+  [tabView_ addTabViewItem:item];
+  if (outView) {
+    *outView = stack;
+  }
+}
+
+- (std::vector<std::string>)loadUserSymbols {
+  return LoadUserSymbolsFromFile();
+}
+
+- (NSString *)prefsPath {
+  NSString *dir = [NSString
+      stringWithUTF8String:mozc::MacUtil::GetApplicationSupportDirectory().c_str()];
+  return [dir stringByAppendingPathComponent:@"toolbar.conf"];
+}
+
+- (NSMutableDictionary *)mutablePrefs {
+  NSDictionary *existing =
+      [NSDictionary dictionaryWithContentsOfFile:[self prefsPath]];
+  return existing ? [existing mutableCopy] : [NSMutableDictionary dictionary];
+}
+
+- (bool)loadPinnedPreference {
+  NSDictionary *dict =
+      [NSDictionary dictionaryWithContentsOfFile:[self prefsPath]];
+  return dict[kPrefsSymbolsPinnedKey] != nil &&
+         [dict[kPrefsSymbolsPinnedKey] boolValue];
+}
+
+- (NSInteger)loadLastTabPreference {
+  NSDictionary *dict =
+      [NSDictionary dictionaryWithContentsOfFile:[self prefsPath]];
+  if (dict[kPrefsSymbolsLastTabKey] == nil) {
+    return kSymbolsTabOdoriji;
+  }
+  return [dict[kPrefsSymbolsLastTabKey] integerValue];
+}
+
+- (void)savePinnedPreference:(bool)pinned {
+  NSMutableDictionary *dict = [self mutablePrefs];
+  dict[kPrefsSymbolsPinnedKey] = @(pinned);
+  [dict writeToFile:[self prefsPath] atomically:YES];
+}
+
+- (void)saveLastTabPreference:(NSInteger)index {
+  NSMutableDictionary *dict = [self mutablePrefs];
+  dict[kPrefsSymbolsLastTabKey] = @(index);
+  [dict writeToFile:[self prefsPath] atomically:YES];
+}
+
+- (void)pinCheckboxChanged:(id)sender {
+  [self savePinnedPreference:(pinCheckbox_.state == NSControlStateValueOn)];
+}
+
+- (void)tabView:(NSTabView *)tabView didSelectTabViewItem:(NSTabViewItem *)item {
+  NSInteger index = [tabView indexOfTabViewItem:item];
+  [self saveLastTabPreference:index];
+}
+
+- (void)symbolClicked:(NSButton *)sender {
+  NSString *text = sender.title;
+  if (text.length == 0) return;
+  id<ControllerCallback> controller = callbackController_ ? callbackController_ : g_active_controller;
+  if (!controller) return;
+
+  // Odoriji tab uses the same session flow as the main odoriji palette so the
+  // selected symbol becomes the new default odoriji.
+  if ([sender.identifier isEqualToString:@"odorijiSymbolButton"]) {
+    mozc::commands::SessionCommand show;
+    show.set_type(mozc::commands::SessionCommand::SHOW_ODORIJI_PALETTE);
+    [controller sendCommand:show];
+
+    mozc::commands::SessionCommand submit;
+    submit.set_type(mozc::commands::SessionCommand::SUBMIT_CANDIDATE);
+    submit.set_id(static_cast<int32_t>(sender.tag));
+    [controller sendCommand:submit];
+  } else {
+    mozc::commands::Output output;
+    output.mutable_result()->set_value(text.UTF8String);
+    [controller outputResult:output];
+  }
+
+  if (pinCheckbox_.state != NSControlStateValueOn) {
+    g_symbols_palette_visible = false;
+    [[self window] orderOut:nil];
+  }
+}
+
+- (void)windowWillClose:(NSNotification *)notification {
+  g_symbols_palette_visible = false;
+}
+
+@end
+
+// ---------------------------------------------------------------------------
 #pragma mark - MozcToolbarView
 
 @interface MozcToolbarView : NSView {
@@ -398,7 +698,7 @@ std::string GetKeymapPath(const std::string &filename) {
   NSImageView *logoView_;
   NSButton *modeButton_;
   NSButton *tradButton_;
-  NSButton *odorijiButton_;
+  NSButton *symbolsButton_;
   NSButton *dictButton_;
   NSButton *shortcutsButton_;
 
@@ -469,10 +769,11 @@ std::string GetKeymapPath(const std::string &filename) {
   [self addSubview:tradButton_];
   x += kButtonWidth;
 
-  // Odoriji
-  odorijiButton_ = [self makeButtonAt:x action:@selector(odorijiClicked:)];
-  odorijiButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_marks_dark" : @"toolbar_marks_light"];
-  [self addSubview:odorijiButton_];
+  // Symbols palette
+  symbolsButton_ = [self makeButtonAt:x action:@selector(symbolsClicked:)];
+  symbolsButton_.image =
+      [self loadSvg:isDarkMode_ ? @"toolbar_symbols_dark" : @"toolbar_symbols_light"];
+  [self addSubview:symbolsButton_];
   x += kButtonWidth;
 
   // Dict
@@ -722,21 +1023,6 @@ std::string GetKeymapPath(const std::string &filename) {
   }
 }
 
-- (void)odorijiClicked:(id)sender {
-  mozc::commands::SessionCommand command;
-  command.set_type(mozc::commands::SessionCommand::SHOW_ODORIJI_PALETTE);
-  // Route through the active IMK controller so processOutput/updateCandidates runs
-  // (same as Linux MozcEngine::SendToolbarSessionCommand → UpdateAll).
-  id<ControllerCallback> controller = g_active_controller;
-  if (controller) {
-    [controller sendCommand:command];
-    return;
-  }
-  if (!client_) return;
-  mozc::commands::Output output;
-  client_->SendCommand(command, &output);
-}
-
 - (void)dictClicked:(id)sender {
   if (!client_) return;
   client_->LaunchTool("word_register_dialog", "");
@@ -755,6 +1041,19 @@ std::string GetKeymapPath(const std::string &filename) {
   // Keep a strong reference so the window stays alive.
   objc_setAssociatedObject(self, "shortcutsCtrl", ctrl,
                            OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (void)symbolsClicked:(id)sender {
+  if (!client_) return;
+  MozcSymbolsPaletteWindowController *ctrl =
+      [[MozcSymbolsPaletteWindowController alloc] initWithClient:client_
+                                                      controller:g_active_controller];
+  objc_setAssociatedObject(self, "symbolsPaletteCtrl", ctrl,
+                           OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+  g_symbols_palette_visible = true;
+  [ctrl showWindow:nil];
+  [ctrl.window makeKeyAndOrderFront:nil];
+  [ctrl.window orderFrontRegardless];
 }
 
 #pragma mark - Dragging (from any non-button area)
@@ -823,7 +1122,8 @@ std::string GetKeymapPath(const std::string &filename) {
   logoView_.image = [self loadLogoSvg:isDarkMode_ ? @"logo_long_dark" : @"logo_long_light"];
   modeButton_.image = [self modeIconForMode:currentMode_];
   [self updateTradIcon];
-  odorijiButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_marks_dark" : @"toolbar_marks_light"];
+  symbolsButton_.image =
+      [self loadSvg:isDarkMode_ ? @"toolbar_symbols_dark" : @"toolbar_symbols_light"];
   dictButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_dict_dark" : @"toolbar_dict_light"];
   shortcutsButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_shortcuts_dark" : @"toolbar_shortcuts_light"];
 }
@@ -901,6 +1201,7 @@ void MozcToolbarShow(client::ClientInterface *client,
 
 void MozcToolbarHide() {
   dispatch_async(dispatch_get_main_queue(), ^{
+    if (g_symbols_palette_visible) return;
     [g_toolbar_panel orderOut:nil];
   });
 }

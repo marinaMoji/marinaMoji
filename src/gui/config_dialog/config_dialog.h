@@ -37,6 +37,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "client/client_interface.h"
 #include "gui/config_dialog/ui_config_dialog.h"
@@ -67,6 +68,7 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   virtual void ClearUserPrediction();
   virtual void ClearUnusedUserPrediction();
   virtual void EditUserDictionary();
+  virtual void EditUserSymbols();
   virtual void EditKeymap();
   virtual void EditRomanTable();
   virtual void ResetToDefaults();

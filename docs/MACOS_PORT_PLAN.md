@@ -106,7 +106,7 @@ Toolbar actions that open the **candidate window** must route through the active
 |------|--------|
 | `kProductPrefix` → `marinaMozc` on `__APPLE__` | Server/tool paths match `marinaMozc.app` layout |
 | OpenCC bundled in app `Resources/opencc` | Shin/kyū conversion on macOS |
-| Floating toolbar | Mode, shin/kyū, odoriji, dict, shortcuts popup |
+| Floating toolbar | Mode, shin/kyū, odoriji, symbols palette, dict, shortcuts popup |
 | Keymap: `Ctrl Shift f` alias | macOS sends lowercase letter for Ctrl+Shift+letter; fixes shin/kyū shortcut |
 | Kotoeri: shin/kyū in Composition / Precomposition | Same states as MS-IME keymap |
 | Kotoeri: odoriji in Composition / Precomposition | `Ctrl+Shift+1` / `2` (and `!` / `@` on US keyboards) |
@@ -114,6 +114,7 @@ Toolbar actions that open the **candidate window** must route through the active
 | **Single visible input source: marinaMoji** | `Info.plist`: only `com.apple.inputmethod.Japanese` has `tsInputModeIsVisibleKey`; menu icon `marinamoji.tiff`; labels via `InfoPlist.strings` + `tweak_info_plist_strings.py` for `marinaMozc` branding. Katakana / half-width kana / full-width and half-width alphanumeric modes stay registered but hidden (toolbar and shortcuts still switch modes). |
 | **Toolbar mode on focus** | `activateServer:` calls `GET_STATUS` so the toolbar matches the server (was stuck on Direct until first key). Toolbar mode menu routes through IMK `sendCommand:` → `processOutput`. |
 | **Toolbar solid background** | Replaced `NSVisualEffectView` vibrancy with opaque white / dark gray (`#202328`) matching Linux GTK toolbar. |
+| **Symbols palette (macOS)** | Toolbar symbols button opens tabbed palette (Odoriji/Kaeriten/Symbols/User), remembers last tab + pin state per device, and inserts clicked symbols; user strings editable in Preferences. |
 
 ## Testing checklist (after each install)
 
@@ -141,7 +142,7 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
    - [ ] Input menu shows **one** entry named **marinaMoji** (marina icon), not five Hiragana/Katakana/… rows
    - [ ] Toolbar mode icon matches composition mode **immediately** after switching to marinaMozc (not stuck on Direct until first key)
    - [ ] Japanese conversion (server running)
-   - [ ] Toolbar: mode, shin/kyū, odoriji palette, dict, shortcuts
+   - [ ] Toolbar: mode, shin/kyū, odoriji palette, symbols palette, dict, shortcuts
    - [ ] `Ctrl+Shift+3` / `#` shin/kyū while composing (Kotoeri / MS-IME / ATOK)
    - [ ] `Ctrl+Shift+1` default odoriji, `Ctrl+Shift+2` palette while composing
    - [ ] `Ctrl+Shift+4` / `$` Manyōshū toggle, `Ctrl+Shift+5` / `%` hiragana/direct
@@ -199,6 +200,7 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
 ## Related docs
 
 - [ODORIJI_PALETTE.md](ODORIJI_PALETTE.md) — palette behavior (all platforms)
+- [SYMBOLS_PALETTE.md](SYMBOLS_PALETTE.md) — macOS tabbed symbols palette
 - [SHIN_KYU_TOOLBAR.md](SHIN_KYU_TOOLBAR.md) — shin/kyū UI
 - [OPENCC_INTEGRATION.md](OPENCC_INTEGRATION.md) — OpenCC / traditional kanji
 - [GTK_TOOLBAR.md](GTK_TOOLBAR.md) — Linux toolbar reference implementation

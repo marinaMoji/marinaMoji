@@ -31,8 +31,10 @@
 #include "gui/config_dialog/config_dialog.h"
 
 #include <QMessageBox>
+#include <QInputDialog>
 #include <algorithm>
 #include <cstdint>
+#include <fstream>
 #include <istream>
 #include <map>
 #include <memory>
@@ -43,6 +45,7 @@
 #include "absl/log/log.h"
 #include "absl/strings/string_view.h"
 #include "base/config_file_stream.h"
+#include "base/file_util.h"
 #include "client/client.h"
 #include "config/config_handler.h"
 #include "config/stats_config_util.h"
@@ -86,6 +89,42 @@ void Connect(const QList<T *> &objects, const char *signal,
     QObject::connect(*itr, signal, receiver, slot);
   }
 }
+#ifdef __APPLE__
+std::string UserSymbolsPath() {
+  return mozc::FileUtil::JoinPath(mozc::MacUtil::GetApplicationSupportDirectory(),
+                            "user_symbols.txt");
+}
+
+std::vector<std::string> LoadUserSymbolsFromFile() {
+  std::vector<std::string> values;
+  std::ifstream ifs(UserSymbolsPath());
+  if (!ifs) {
+    return values;
+  }
+  std::string line;
+  while (std::getline(ifs, line)) {
+    if (!line.empty() && line.back() == '\r') {
+      line.pop_back();
+    }
+    if (!line.empty()) {
+      values.push_back(line);
+    }
+  }
+  return values;
+}
+
+void SaveUserSymbolsToFile(const std::vector<std::string> &values) {
+  std::ofstream ofs(UserSymbolsPath(), std::ios::out | std::ios::trunc);
+  if (!ofs) {
+    return;
+  }
+  for (const std::string &value : values) {
+    if (!value.empty()) {
+      ofs << value << '\n';
+    }
+  }
+}
+#endif  // __APPLE__
 }  // namespace
 
 namespace mozc {
@@ -248,6 +287,8 @@ ConfigDialog::ConfigDialog()
                    SLOT(ClearUnusedUserPrediction()));
   QObject::connect(editUserDictionaryButton, SIGNAL(clicked()), this,
                    SLOT(EditUserDictionary()));
+  QObject::connect(editUserSymbolsButton, SIGNAL(clicked()), this,
+                   SLOT(EditUserSymbols()));
   QObject::connect(editKeymapButton, SIGNAL(clicked()), this,
                    SLOT(EditKeymap()));
   QObject::connect(resetToDefaultsButton, SIGNAL(clicked()), this,
@@ -837,6 +878,40 @@ void ConfigDialog::ClearUnusedUserPrediction() {
 
 void ConfigDialog::EditUserDictionary() {
   client_->LaunchTool("dictionary_tool", "");
+}
+
+void ConfigDialog::EditUserSymbols() {
+#ifdef __APPLE__
+  const std::vector<std::string> current_values = LoadUserSymbolsFromFile();
+  QStringList lines;
+  for (const std::string &value : current_values) {
+    if (!value.empty()) {
+      lines << QString::fromStdString(value);
+    }
+  }
+  bool ok = false;
+  const QString initial_text = lines.join("\n");
+  const QString edited = QInputDialog::getMultiLineText(
+      this, windowTitle(),
+      tr("User symbols for Symbols Palette (one entry per line):"),
+      initial_text, &ok);
+  if (!ok) {
+    return;
+  }
+
+  std::vector<std::string> updated_values;
+  const QStringList split = edited.split('\n');
+  for (const QString &line : split) {
+    const QString trimmed = line.trimmed();
+    if (!trimmed.isEmpty()) {
+      updated_values.push_back(trimmed.toStdString());
+    }
+  }
+  SaveUserSymbolsToFile(updated_values);
+#else   // __APPLE__
+  QMessageBox::information(this, windowTitle(),
+                           tr("User symbols editor is currently available on macOS only."));
+#endif  // __APPLE__
 }
 
 void ConfigDialog::EditKeymap() {
