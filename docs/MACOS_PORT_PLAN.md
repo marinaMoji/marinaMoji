@@ -142,8 +142,9 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
    - [ ] Toolbar mode icon matches composition mode **immediately** after switching to marinaMozc (not stuck on Direct until first key)
    - [ ] Japanese conversion (server running)
    - [ ] Toolbar: mode, shin/kyū, odoriji palette, dict, shortcuts
-   - [ ] `Ctrl+Shift+F` shin/kyū while composing (Kotoeri / MS-IME)
+   - [ ] `Ctrl+Shift+3` / `#` shin/kyū while composing (Kotoeri / MS-IME / ATOK)
    - [ ] `Ctrl+Shift+1` default odoriji, `Ctrl+Shift+2` palette while composing
+   - [ ] `Ctrl+Shift+4` / `$` Manyōshū toggle, `Ctrl+Shift+5` / `%` hiragana/direct
    - [ ] Candidate window F5/F6 behavior unchanged
 5. Logs: `~/Library/Logs/marinaMozc/marinaMozc.log`
 
@@ -153,7 +154,7 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
 
 | ID | Issue | Suggested fix |
 |----|--------|----------------|
-| M1 | **Kotoeri Conversion: `Ctrl+Shift+2` duplicate** — both `ShowOdorijiPalette` and `ToggleFullHalfWidth`; last line in TSV wins (palette blocked on keyboard) | Remove or rebind `ToggleFullHalfWidth` on 2/@; keep toolbar odoriji |
+| M1 | **Kotoeri Conversion: `Ctrl+Shift+2` duplicate** — both `ShowOdorijiPalette` and `ToggleFullHalfWidth`; last line in TSV wins (palette blocked on keyboard) | **Resolved**: number-row mappings now use `1` odoriji default, `2` palette, `3` shin/kyū, `4` Manyōshū, `5` hiragana/direct in Kotoeri/MS-IME/ATOK keymaps. |
 | M1b | **`Ctrl+Shift+5` freeze when returning from Direct** — `setValue:` / `handleConfig` / `selectInputMode` re-entry | Mitigations: no `switchDisplayMode` from keys; `setValue:` skips server + `handleConfig`; 200ms `setValue` suppress after keyboard mode change; `processOutput` depth limit. **Debug:** `MARINA_IMK_TRACE=1` → `~/Library/Logs/marinaMozc/marinaMozc.log` |
 | M1c | **Ctrl+Shift+1–4 beep on Dvorak/AZERTY** | Fixed: physical number-row mapping runs before empty-`characters` check in `KeyCodeMap.mm` |
 | M2 | **Installer LaunchAgents** still reference `Mozc.app` / `MozcConverter` | Rebrand plists in `src/mac/installer/LaunchAgents/` to `marinaMozc` paths |
@@ -182,6 +183,7 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
 - **Digits with Shift** on US layout: bind both `Ctrl Shift 1` and `Ctrl Shift !` (and `2` / `@`) so IBus-style and Mac-style key codes match.
 - **Number-row shortcuts (macOS):** `KeyCodeMap` maps **physical** `kVK_ANSI_1`..`0` + Ctrl+Shift to digit `1`..`0` so Dvorak / AZERTY / custom layouts match QWERTY keymap rows (`Ctrl Shift 1` = odoriji, `3` = shin/kyū, `4` = Manyōshū, `5` = hiragana/direct).
 - **marinaMozc (Kotoeri):** `Ctrl+Shift+3` / `#` → shin/kyū (`ToggleTraditionalKanji`); `Ctrl+Shift+4` / `$` → hiragana/Manyōshū (`ToggleManyoshuHiragana`). `Ctrl+Shift+5` / `%` → hiragana/direct toggle.
+- **Aligned keymaps:** `ms-ime.tsv` and `atok.tsv` now follow the same number-row mapping (`1` odoriji default, `2` palette, `3` shin/kyū, `4` Manyōshū, `5` hiragana/direct, with shifted symbol variants).
 
 ## File map (macOS-specific)
 

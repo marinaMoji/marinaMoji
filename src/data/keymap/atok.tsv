@@ -18,6 +18,14 @@ Composition	Ctrl u	ConvertToHiragana
 Composition	Delete	Delete
 Composition	Down	Commit
 Composition	Ctrl Shift `	ToggleAlphanumericMode
+Composition	Ctrl Shift 1	InsertOdorijiDefault
+Composition	Ctrl Shift !	InsertOdorijiDefault
+Composition	Ctrl Shift 2	ShowOdorijiPalette
+Composition	Ctrl Shift @	ShowOdorijiPalette
+Composition	Ctrl Shift 3	ToggleTraditionalKanji
+Composition	Ctrl Shift #	ToggleTraditionalKanji
+Composition	Ctrl Shift 4	ToggleManyoshuHiragana
+Composition	Ctrl Shift $	ToggleManyoshuHiragana
 Composition	Ctrl Shift 5	ToggleHiraganaDirect
 Composition	Ctrl Shift %	ToggleHiraganaDirect
 Composition	Ctrl Shift ²	ToggleHiraganaDirect
@@ -98,8 +106,10 @@ Conversion	Ctrl Shift 1	InsertOdorijiDefault
 Conversion	Ctrl Shift !	InsertOdorijiDefault
 Conversion	Ctrl Shift 2	ShowOdorijiPalette
 Conversion	Ctrl Shift @	ShowOdorijiPalette
-Conversion	Ctrl Shift 3	ToggleFullHalfWidth
-Conversion	Ctrl Shift #	ToggleFullHalfWidth
+Conversion	Ctrl Shift 3	ToggleTraditionalKanji
+Conversion	Ctrl Shift #	ToggleTraditionalKanji
+Conversion	Ctrl Shift 4	ToggleManyoshuHiragana
+Conversion	Ctrl Shift $	ToggleManyoshuHiragana
 Conversion	RightShift	ToggleManyoshuHiragana
 Conversion	Ctrl Alt a	InsertMacronVowel
 Conversion	Ctrl Alt e	InsertMacronVowel
@@ -218,6 +228,14 @@ Precomposition	Ctrl Backspace	Undo
 Precomposition	Ctrl F12	LaunchConfigDialog
 Precomposition	Ctrl F7	LaunchWordRegisterDialog
 Precomposition	Ctrl Shift `	ToggleAlphanumericMode
+Precomposition	Ctrl Shift 1	InsertOdorijiDefault
+Precomposition	Ctrl Shift !	InsertOdorijiDefault
+Precomposition	Ctrl Shift 2	ShowOdorijiPalette
+Precomposition	Ctrl Shift @	ShowOdorijiPalette
+Precomposition	Ctrl Shift 3	ToggleTraditionalKanji
+Precomposition	Ctrl Shift #	ToggleTraditionalKanji
+Precomposition	Ctrl Shift 4	ToggleManyoshuHiragana
+Precomposition	Ctrl Shift $	ToggleManyoshuHiragana
 Precomposition	Ctrl Shift 5	ToggleHiraganaDirect
 Precomposition	Ctrl Shift %	ToggleHiraganaDirect
 Precomposition	Ctrl Shift ²	ToggleHiraganaDirect

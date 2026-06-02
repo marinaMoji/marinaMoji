@@ -36,9 +36,14 @@ To keep **upstream merges** easy, odoriji logic is isolated in a single module; 
 
 ## Keymap
 
-- **Ctrl+Shift+1** → `InsertOdorijiDefault` (insert session default odoriji), **Ctrl+Shift+2** → `ShowOdorijiPalette` (open palette), **Ctrl+Shift+3** → `ToggleFullHalfWidth` (toggle half/full width), and **Ctrl+Shift+`** / **Ctrl+Shift+²** (AZERTY) → `ToggleAlphanumericMode` (toggle kana/ASCII input) are bound in Precomposition, Composition, and Conversion in:
-  - `ms-ime.tsv`, `chromeos.tsv`, `mobile.tsv`: Precomposition, Composition, Conversion
-  - `atok.tsv`, `kotoeri.tsv`: Conversion only (Ctrl+Shift+3 where Ctrl+Shift+2 exists)
+- Number-row bindings now commonly use:
+  - **Ctrl+Shift+1 / !** → `InsertOdorijiDefault`
+  - **Ctrl+Shift+2 / @** → `ShowOdorijiPalette`
+  - **Ctrl+Shift+3 / #** → `ToggleTraditionalKanji` (MS-IME / ATOK / Kotoeri in marinaMozc)
+  - **Ctrl+Shift+4 / $** → `ToggleManyoshuHiragana` (MS-IME / ATOK / Kotoeri in marinaMozc)
+  - **Ctrl+Shift+5 / %** → `ToggleHiraganaDirect`
+- `Ctrl+Shift+\`` / `Ctrl+Shift+²` (AZERTY) remains `ToggleAlphanumericMode` where defined.
+- Exact command assignment for 3/4 may differ by layout; check `src/data/keymap/*.tsv` for the active keymap.
 
 ## Files
 

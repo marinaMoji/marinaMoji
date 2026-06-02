@@ -30,7 +30,7 @@ can be built and tested against existing test cases.
 The following sections describe relevant software components that are necessary
 to build Mozc for Linux desktop.
 
-### Bazelisk
+### Bazelisk (required)
 
 [Bazelisk](https://github.com/bazelbuild/bazelisk) is a wrapper of
 [Bazel](https://bazel.build) to use the specific version of Bazel.
@@ -38,14 +38,22 @@ to build Mozc for Linux desktop.
 The Bazel version specified in [`src/.bazeliskrc`](../src/.bazeliskrc) is what
 continuous builds are testing against.
 
+As of this writing, the repository is pinned to:
+
+`USE_BAZEL_VERSION=9.0.2`
+
+If your distro `bazel` package is older, builds may fail with module/toolchain
+errors. Prefer `bazelisk` so the correct Bazel version is downloaded
+automatically.
+
 See the following document for detail on how Bazelisk determines the Bazel
 version.
 
 *   [How does Bazelisk know which Bazel version to run?](https://github.com/bazelbuild/bazelisk/blob/master/README.md#how-does-bazelisk-know-which-bazel-version-to-run)
 
 ⚠️ Bazel version mismatch is a major source of build failures. If you manually
-install Bazel then use it instead of Bazelisk, pay extra attention to which
-version of Bazel you are using.
+install Bazel and use it instead of Bazelisk, make sure it matches
+`src/.bazeliskrc` exactly.
 
 ### C++ toolchain
 
@@ -164,10 +172,13 @@ If it still does not appear, confirm that `ibus-daemon` is running and that no e
 
 - **Toolbar:** When you focus a text field, the marinaMozc toolbar window shows the current schema (あ, ア, etc.), Shin/Kyū (traditional kanji) toggle, Odoriji button, and Half/Full button. If the window was empty before, rebuild and reinstall so the fix (showing all widgets) is applied.
 
-- **Keyboard shortcuts** (from the keymap, e.g. MS-IME style):
-  - **Ctrl+Shift+2** – Odoriji (iteration marks) palette
-  - **Ctrl+Shift+3** – Toggle half/full width
-  - **Ctrl+Shift+F** – Toggle traditional (kyūjitai) / modern (shinjitai) kanji  
+- **Keyboard shortcuts** (from the keymap, e.g. MS-IME / ATOK style):
+  - **Ctrl+Shift+1 / !** – Insert default odoriji
+  - **Ctrl+Shift+2 / @** – Odoriji (iteration marks) palette
+  - **Ctrl+Shift+3 / #** – Toggle traditional (kyūjitai) / modern (shinjitai) kanji
+  - **Ctrl+Shift+4 / $** – Toggle Hiragana <-> Manyoshu
+  - **Ctrl+Shift+5 / %** – Toggle Hiragana <-> Direct
+  - **Ctrl+Shift+F / f** – Traditional-kanji toggle alias on some layouts  
   If these do nothing, your desktop or IBus may be capturing them; use the **IBus menu** (click the icon in the panel) or the **toolbar** instead.
 
 - **Odoriji from the menu:** The "Odoriji (iteration marks)" menu item works when the engine is active (e.g. focus in a text field). If it only works after you start typing, click inside a text field first so the engine has focus, then open the menu and choose Odoriji.

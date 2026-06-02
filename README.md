@@ -17,14 +17,22 @@ Build Status
 
 marinaMoji provides the following features for scholarly Japanese text input:
 
-- **Kyūjitai/Shinjitai conversion:** Automatic conversion between modern and traditional characters via OpenCC (! currently improving conversion tables !).
-- **Historical kana input:** Direct input of historical kana forms (ゐ, ゑ, and historical distinctions)
-- **Full katakana mode:** convert katakana into kanji, as in hiragana mode; quickly switch between the two with `shift_R`.
-- **Historical marks palette:** Set default repetition mark (々, 〻, 〱, ゝ, ヽ, ヾ, ゞ, ヶ, etc.) via input palette (`ctrl+shift+2`) and insert via `ctrl+shift+1`. 
-- **Unicode kaeriten shortcuts:** directly type ㆑㆒㆓, etc., via `;r`, `;1`, `;2`, etc.
-- **Floating toolbar** - Visual mode indicator showing current input mode, shin/kyu,  with quick access to historical marks
-- **Macron vowels** - Input of macron vowels (ā, ē, ī, ō, ū) for scholarly transliteration in ASCII mode
-- **Quick dictionary injection:** type `ctrl+shift+0` in compose mode to immediately save kanji phrase and pronunciation to user dictionary.
+1. **Kyūjitai/Shinjitai conversion:** Automatic conversion between modern and traditional characters via OpenCC (! currently improving conversion tables !).
+2. **Historical kana input:** Direct input of historical kana forms (ゐ, ゑ, and historical distinctions)
+3. **Full katakana mode:** convert katakana into kanji, as in hiragana mode; quickly switch between the two with `shift_R`.
+4. **Historical marks palette:** Set default repetition mark (々, 〻, 〱, ゝ, ヽ, ヾ, ゞ, ヶ, etc.) via input palette (`ctrl+shift+2`) and insert via `ctrl+shift+1`. 
+5. **Kaeriten input:** directly type ㆑㆒㆓, etc., via `;r`, `;1`, `;2`, etc., to produce superscript unicode kaeriten. These can be retained or systematically replaced with the desired code in XML, LaTeX, etc. Our [plugin](https://github.com/marinaMoji/plugin) for LibreOffice and OnlyOffice handles page-setting for your word processor (testing).  
+6. **Floating toolbar** - Visual mode indicator showing current input mode, shin/kyu,  with quick access to historical marks
+7. **Macron vowels** - Input of macron vowels (ā, ē, ī, ō, ū) for scholarly transliteration in ASCII mode
+8. **Quick dictionary injection:** type `ctrl+shift+0` in compose mode to immediately save kanji phrase and pronunciation to user dictionary.
+
+## Planned features
+
+1. User dictionary synchronisation
+2. Toggle historical kana orthography
+3. Integrate Jim Breen dictionaries
+4. Build additional dictionary modules
+5. Character composer
 
 For policies on vocabulary and conversion results, see
 [Vocabulary Policy](VOCABULARY_POLICY.md).

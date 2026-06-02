@@ -12,7 +12,7 @@ Floating GTK toolbar in **marinaMoji style**: white (or dark) rounded panel, **b
 - **Schema (input mode)** – Label: あ (Hiragana), ア (Katakana), 万 (Manyōshū), _A / Ａ (half/full ASCII), _ｱ (half Katakana), A (Direct).
 - **Shin/Kyū** – Toggle traditional (kyūjitai) / modern (shinjitai) kanji (same as Ctrl+Shift+F). Checked = traditional.
 - **Odoriji** – Opens the odoriji palette (same as Ctrl+Shift+2).
-- **Half/Full** – Toggles half-width / full-width (same as Ctrl+Shift+3). Only active in ASCII modes; label shows "Half", "Full", or "Half/Full".
+- **Half/Full** – Toggles half-width / full-width. Keyboard shortcut depends on active keymap (do not assume Ctrl+Shift+3 on all layouts). Only active in ASCII modes; label shows "Half", "Full", or "Half/Full".
 
 The toolbar is shown when the engine has focus and hidden on focus loss. State is updated from engine output after each command.
 
