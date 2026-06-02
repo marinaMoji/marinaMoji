@@ -67,8 +67,8 @@ QString ReplaceString(const QString &str) {
   Replace(replaced, "[ProductName]", GuiUtil::ProductName());
 
 #ifdef MARINAMOZC
-  Replace(replaced, "[ProductUrl]", "https://github.com/marinaMoji/marinaMozc");
-  Replace(replaced, "[ForumUrl]", "https://github.com/marinaMoji/marinaMozc/issues");
+  Replace(replaced, "[ProductUrl]", "https://github.com/marinaMoji/marinaMoji");
+  Replace(replaced, "[ForumUrl]", "https://github.com/marinaMoji/marinaMoji/issues");
   Replace(replaced, "[ForumName]", QObject::tr("issues"));
 #elif defined(GOOGLE_JAPANESE_INPUT_BUILD)
   Replace(replaced, "[ProductUrl]", "https://www.google.co.jp/ime/");

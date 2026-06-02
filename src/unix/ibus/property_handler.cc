@@ -200,6 +200,7 @@ PropertyHandler::PropertyHandler(
   AppendToolPropertyToPanel();
   AppendTraditionalKanjiPropertyToPanel();
   AppendOdorijiPalettePropertyToPanel();
+  AppendPrivacyModePropertyToPanel();
   if (toolbar_available) {
     AppendToolbarPropertyToPanel();
   }
@@ -220,6 +221,8 @@ PropertyHandler::~PropertyHandler() {
   prop_traditional_kanji_.Unref();
 
   prop_odoriji_palette_.Unref();
+
+  prop_privacy_mode_.Unref();
 
   if (prop_toolbar_.IsInitialized()) {
     prop_toolbar_.Unref();
@@ -360,6 +363,14 @@ void PropertyHandler::AppendOdorijiPalettePropertyToPanel() {
   prop_root_.Append(&prop_odoriji_palette_);
 }
 
+void PropertyHandler::AppendPrivacyModePropertyToPanel() {
+  const std::string label = translator_->MaybeTranslate("Privacy mode");
+  prop_privacy_mode_.Initialize("Option.PrivacyMode", PROP_TYPE_TOGGLE, label,
+                                "" /* icon */, PROP_STATE_UNCHECKED, nullptr);
+  prop_privacy_mode_.RefSink();
+  prop_root_.Append(&prop_privacy_mode_);
+}
+
 void PropertyHandler::AppendToolbarPropertyToPanel() {
   const std::string label = translator_->MaybeTranslate("Toolbar");
   prop_toolbar_.Initialize("Toolbar", PROP_TYPE_TOGGLE, label, "" /* icon */,
@@ -406,6 +417,13 @@ void PropertyHandler::Update(IbusEngineWrapper* engine,
     prop_traditional_kanji_.SetState(use_traditional ? PROP_STATE_CHECKED
                                                      : PROP_STATE_UNCHECKED);
     engine->UpdateProperty(&prop_traditional_kanji_);
+  }
+
+  if (prop_privacy_mode_.IsInitialized() && output.has_config()) {
+    const bool privacy_on = output.config().incognito_mode();
+    prop_privacy_mode_.SetState(privacy_on ? PROP_STATE_CHECKED
+                                           : PROP_STATE_UNCHECKED);
+    engine->UpdateProperty(&prop_privacy_mode_);
   }
 }
 
@@ -525,6 +543,22 @@ void PropertyHandler::ProcessPropertyActivate(IbusEngineWrapper* engine,
         prop_traditional_kanji_.SetState(use_traditional ? PROP_STATE_CHECKED
                                                         : PROP_STATE_UNCHECKED);
         engine->UpdateProperty(&prop_traditional_kanji_);
+      }
+    }
+    return;
+  }
+
+  if (prop_privacy_mode_.IsInitialized() &&
+      prop_privacy_mode_.GetKey() == property_name) {
+    commands::SessionCommand command;
+    command.set_type(commands::SessionCommand::TOGGLE_PRIVACY_MODE);
+    commands::Output output;
+    if (client_->SendCommand(command, &output)) {
+      if (output.has_config()) {
+        const bool privacy_on = output.config().incognito_mode();
+        prop_privacy_mode_.SetState(privacy_on ? PROP_STATE_CHECKED
+                                              : PROP_STATE_UNCHECKED);
+        engine->UpdateProperty(&prop_privacy_mode_);
       }
     }
     return;

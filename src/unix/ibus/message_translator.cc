@@ -62,6 +62,9 @@ const TranslationMap kUTF8JapaneseMap[] = {
     {"Show toolbar", "ツールバーを表示"},
     {"Hide toolbar", "ツールバーを非表示"},
     {"Toolbar", "ツールバー"},
+    {"Traditional kanji (Kyūjitai)", "伝統漢字（旧字体）"},
+    {"Odoriji (iteration marks)", "踊り字（繰り返し記号）"},
+    {"Privacy mode", "プライバシーモード"},
 #ifdef MARINAMOZC
     {"About marinaMoji", "marinaMoji について"},
 #elif defined(GOOGLE_JAPANESE_INPUT_BUILD)

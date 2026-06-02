@@ -46,6 +46,19 @@ Japanese language models and vocabularies (dictionary data).
     case or philosophy, we welcome you to freely fork the project within the
     bounds of the license and build your own vocabulary or dictionary.
 
+### 4. marinaMoji fork vocabulary
+
+This repository is a **fork** of Mozc for the marinaMoji input method. It
+maintains its own supplementary dictionary in
+[`src/data/dictionary_manual/`](src/data/dictionary_manual/) (for example
+product names such as **marinaMoji** and **marinaMozc**). Those entries are
+added deliberately for this project; they are not submitted through Google's
+upstream vocabulary feedback forms above.
+
+If you report conversion issues for **this fork**, please use this project's
+issue tracker rather than the Mozc Project forms (which apply to upstream
+Google Japanese Input / Mozc, not marinaMoji builds).
+
 --------------------------------------------------------------------------------
 
 ## 語彙集合および変換結果に関する方針
@@ -79,3 +92,13 @@ Mozc プロジェクトでは、日本語の言語モデルおよび語彙集合
 
 *   **フォークの推奨:**
     Mozcはオープンソースソフトウェア（OSS）です。プロジェクトが提供する標準の語彙集合が特定の用途や思想に合致しない場合は、ライセンスの範囲内で自由にプロジェクトをフォークし、独自の語彙集合や辞書を構築されることを歓迎します。
+
+### 4. marinaMoji フォークの語彙
+
+本リポジトリは marinaMoji 入力メソッド向けの **Mozc フォーク** です。
+[`src/data/dictionary_manual/`](src/data/dictionary_manual/) に、本プロジェクト用の
+補足辞書（**marinaMoji** や **marinaMozc** などの製品名など）を意図的に収録しています。
+これらは上記の Mozc 本家向け専用フォームではなく、フォーク内で管理します。
+
+**本フォーク** の変換に関するフィードバックは、本リポジトリの Issue 等をご利用ください
+（Google 本家のフォームは upstream 向けです）。

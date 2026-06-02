@@ -469,6 +469,9 @@ message SessionCommand {
 
     // Insert macron vowel (ā ē ī ō ū). |text| must be one ASCII letter a–u or A–U.
     INSERT_MACRON_VOWEL = 32;
+
+    // Toggle privacy mode (incognito + no history learning).
+    TOGGLE_PRIVACY_MODE = 33;
   }
   required CommandType type = 1;
 

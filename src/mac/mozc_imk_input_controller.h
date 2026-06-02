@@ -126,6 +126,9 @@
 
   /** Toggle for shin/kyū kanji (IBUS Option.TraditionalKanji). */
   NSMenuItem *traditionalKanjiMenuItem_;
+
+  /** Toggle for privacy mode (incognito + no history learning). */
+  NSMenuItem *privacyModeMenuItem_;
 }
 
 /** These are externally accessible to achieve tests. */
@@ -170,7 +173,7 @@
  */
 - (IBAction)registerWordClicked:(id)sender;
 
-/** aboutDialogClicked: is called when the user clicks "About Mozc..." menu item.
+/** aboutDialogClicked: is called when the user clicks "About marinaMoji" menu item.
  *
  * @param sender The sender of this request (unused).
  */
@@ -187,6 +190,9 @@
 
 /** odorijiPaletteMenuClicked: opens the iteration-marks palette. */
 - (IBAction)odorijiPaletteMenuClicked:(id)sender;
+
+/** privacyModeMenuClicked: toggles incognito / no-learning privacy mode. */
+- (IBAction)privacyModeMenuClicked:(id)sender;
 
 /** Sets the ClientInterface to use in the controller.
  *

@@ -35,10 +35,11 @@ namespace mozc {
 inline constexpr char kProductNameInEnglish[] = "Google Japanese Input";
 #define kProductPrefix "GoogleJapaneseInput"
 #else  // GOOGLE_JAPANESE_INPUT_BUILD
-inline constexpr char kProductNameInEnglish[] = "Mozc";
 #if defined(__APPLE__)
+inline constexpr char kProductNameInEnglish[] = "marinaMoji";
 #define kProductPrefix "marinaMozc"
 #else
+inline constexpr char kProductNameInEnglish[] = "Mozc";
 #define kProductPrefix "Mozc"
 #endif  // __APPLE__
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD

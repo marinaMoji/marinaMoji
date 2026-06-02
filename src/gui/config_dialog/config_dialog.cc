@@ -356,11 +356,6 @@ ConfigDialog::ConfigDialog()
     launchAdministrationDialogButton->setIcon(vista_shield_icon);
     launchAdministrationDialogButtonForUsageStats->setIcon(vista_shield_icon);
   }
-
-  usageStatsCheckBox->setDisabled(true);
-  usageStatsCheckBox->setVisible(false);
-  usageStatsMessage->setDisabled(true);
-  usageStatsMessage->setVisible(false);
 #else   // _WIN32
   launchAdministrationDialogButton->setEnabled(false);
   launchAdministrationDialogButton->setVisible(false);
@@ -371,6 +366,17 @@ ConfigDialog::ConfigDialog()
   dictionaryPreloadingAndUACLabel->setVisible(false);
 #endif  // _WIN32
 
+#ifdef GOOGLE_JAPANESE_INPUT_BUILD
+#ifdef _WIN32
+  // On Windows, usage_stats is managed by administration_dialog.
+  usageStatsCheckBox->setDisabled(true);
+  usageStatsCheckBox->setVisible(false);
+  usageStatsMessage->setDisabled(true);
+  usageStatsMessage->setVisible(false);
+#else   // _WIN32
+  launchAdministrationDialogButtonForUsageStats->setEnabled(false);
+  launchAdministrationDialogButtonForUsageStats->setVisible(false);
+#endif  // _WIN32
 #ifdef __linux__
   // On Linux, disable all fields for UsageStats
   usageStatsLabel->setEnabled(false);
@@ -382,8 +388,31 @@ ConfigDialog::ConfigDialog()
   usageStatsCheckBox->setEnabled(false);
   usageStatsCheckBox->setVisible(false);
 #endif  // __linux__
+#else   // GOOGLE_JAPANESE_INPUT_BUILD
+  // marinaMozc / OSS: show the section but permanently disabled with an
+  // explicit privacy statement (all platforms).
+  launchAdministrationDialogButtonForUsageStats->setEnabled(false);
+  launchAdministrationDialogButtonForUsageStats->setVisible(false);
+  usageStatsButtonGroup->setVisible(false);
+#endif  // GOOGLE_JAPANESE_INPUT_BUILD
 
   GuiUtil::ReplaceWidgetLabels(this);
+
+#ifndef GOOGLE_JAPANESE_INPUT_BUILD
+  usageStatsCheckBox->setChecked(false);
+  usageStatsCheckBox->setEnabled(false);
+  usageStatsCheckBox->setVisible(true);
+  usageStatsLabel->setVisible(true);
+  usageStatsLabel->setEnabled(true);
+  usageStatsLine->setVisible(true);
+  usageStatsMessage->setVisible(true);
+  usageStatsMessage->setEnabled(true);
+  usageStatsMessage->setText(
+      tr("%1 does not send usage statistics or crash reports to Google or "
+         "to the marinaMoji developers. Upstream Mozc includes an optional "
+         "telemetry setting; that setting is permanently disabled here.")
+          .arg(GuiUtil::ProductName()));
+#endif  // GOOGLE_JAPANESE_INPUT_BUILD
 
   Reload();
 
@@ -393,9 +422,9 @@ ConfigDialog::ConfigDialog()
   IMEHotKeyDisabledCheckBox->setVisible(false);
 #endif  // _WIN32
 
-#ifdef CHANNEL_DEV
+#if defined(GOOGLE_JAPANESE_INPUT_BUILD) && defined(CHANNEL_DEV)
   usageStatsCheckBox->setEnabled(false);
-#endif  // CHANNEL_DEV
+#endif  // GOOGLE_JAPANESE_INPUT_BUILD && CHANNEL_DEV
 }
 
 bool ConfigDialog::SetConfig(const config::Config &config) {
@@ -514,6 +543,10 @@ bool ConfigDialog::Update() {
 }
 
 void ConfigDialog::SetSendStatsCheckBox() {
+#ifndef GOOGLE_JAPANESE_INPUT_BUILD
+  usageStatsCheckBox->setChecked(false);
+  return;
+#endif  // GOOGLE_JAPANESE_INPUT_BUILD
   // On windows, usage_stats flag is managed by
   // administration_dialog. http://b/2889759
 #ifndef _WIN32
@@ -523,6 +556,9 @@ void ConfigDialog::SetSendStatsCheckBox() {
 }
 
 void ConfigDialog::GetSendStatsCheckBox() const {
+#ifndef GOOGLE_JAPANESE_INPUT_BUILD
+  return;
+#endif  // GOOGLE_JAPANESE_INPUT_BUILD
   // On windows, usage_stats flag is managed by
   // administration_dialog. http://b/2889759
 #ifndef _WIN32
@@ -1016,9 +1052,9 @@ void ConfigDialog::EnableApplyButton() {
 bool ConfigDialog::eventFilter(QObject *obj, QEvent *event) {
   if (event->type() == QEvent::MouseButtonRelease) {
     if (obj == usageStatsMessage) {
-#ifndef CHANNEL_DEV
+#if defined(GOOGLE_JAPANESE_INPUT_BUILD) && !defined(CHANNEL_DEV)
       usageStatsCheckBox->toggle();
-#endif  // CHANNEL_DEV
+#endif  // GOOGLE_JAPANESE_INPUT_BUILD && !CHANNEL_DEV
     } else if (obj == incognitoModeMessage) {
       incognitoModeCheckBox->toggle();
     }

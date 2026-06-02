@@ -1,6 +1,6 @@
-# marinaMozc macOS port plan
+# marinaMoji macOS port plan
 
-Planning and status for the **macOS** build of marinaMozc (Input Method Kit + floating toolbar). Linux/IBus behavior is the reference; this document tracks macOS-specific gaps and work.
+Planning and status for the **macOS** build of **marinaMoji** (Input Method Kit + floating toolbar). The installed bundle is still named `marinaMozc.app` (see [MARINAMOZC.md](MARINAMOZC.md)). Linux/IBus behavior is the reference; this document tracks macOS-specific gaps and work.
 
 For full setup (Xcode, Qt, Bazelisk, `.pkg` installer), see [build_mozc_in_osx.md](build_mozc_in_osx.md). For fork branding on Linux, see [MARINAMOZC.md](MARINAMOZC.md).
 
@@ -9,7 +9,7 @@ For full setup (Xcode, Qt, Bazelisk, `.pkg` installer), see [build_mozc_in_osx.m
 Run from your clone’s **`src/`** directory (where `MODULE.bazel` lives), for example:
 
 ```bash
-cd ~/Code/marinaMozc/src
+cd ~/Code/marinaMoji/src
 ```
 
 ### Compile
@@ -49,7 +49,7 @@ open bazel-bin/mac/Mozc.pkg
 
 ### Install over an existing copy
 
-From `~/Code/marinaMozc/src` (after a successful build):
+From `~/Code/marinaMoji/src` (after a successful build):
 
 ```bash
 sudo rm -rf "/Library/Input Methods/marinaMozc.app"
@@ -79,7 +79,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/org.mozc.inputmethod.Jap
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/org.mozc.inputmethod.Japanese.Renderer.plist
 ```
 
-Then toggle marinaMozc off and on in **System Settings → Keyboard → Input Sources**, or log out and back in.
+Then toggle **marinaMoji** off and on in **System Settings → Keyboard → Input Sources**, or log out and back in.
 
 ## Goals
 

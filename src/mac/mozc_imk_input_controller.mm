@@ -428,6 +428,7 @@ const char *CompositionModeName(CompositionMode mode) {
       @"Traditional kanji (Kyūjitai)" : @"伝統漢字（旧字体）",
       @"Odoriji (iteration marks)" : @"踊り字（繰り返し記号）",
       @"Toolbar" : @"ツールバー",
+      @"Privacy mode" : @"プライバシーモード",
     };
   });
   NSString *key = [NSString stringWithUTF8String:english];
@@ -508,6 +509,13 @@ const char *CompositionModeName(CompositionMode mode) {
   toolbarMenuItem_.target = self;
   [menu_ insertItem:toolbarMenuItem_ atIndex:insertIndex++];
 
+  privacyModeMenuItem_ = [[NSMenuItem alloc]
+      initWithTitle:[self imeMenuTitle:"Privacy mode"]
+             action:@selector(privacyModeMenuClicked:)
+      keyEquivalent:@""];
+  privacyModeMenuItem_.target = self;
+  [menu_ insertItem:privacyModeMenuItem_ atIndex:insertIndex++];
+
   [menu_ insertItem:[NSMenuItem separatorItem] atIndex:insertIndex];
   [self updateImeMenuState:nullptr];
 }
@@ -531,6 +539,20 @@ const char *CompositionModeName(CompositionMode mode) {
     }
     traditionalKanjiMenuItem_.state =
         use_trad ? NSControlStateValueOn : NSControlStateValueOff;
+  }
+
+  if (privacyModeMenuItem_) {
+    bool privacy_on = false;
+    if (output != nullptr && output->has_config()) {
+      privacy_on = output->config().incognito_mode();
+    } else if (mozcClient_ != nullptr) {
+      Config config;
+      if (mozcClient_->GetConfig(&config)) {
+        privacy_on = config.incognito_mode();
+      }
+    }
+    privacyModeMenuItem_.state =
+        privacy_on ? NSControlStateValueOn : NSControlStateValueOff;
   }
 
   if (!inputModeMenuItems_) {
@@ -1616,6 +1638,13 @@ const char *CompositionModeName(CompositionMode mode) {
   (void)sender;
   SessionCommand command;
   command.set_type(SessionCommand::SHOW_ODORIJI_PALETTE);
+  [self sendCommand:command];
+}
+
+- (IBAction)privacyModeMenuClicked:(id)sender {
+  (void)sender;
+  SessionCommand command;
+  command.set_type(SessionCommand::TOGGLE_PRIVACY_MODE);
   [self sendCommand:command];
 }
 

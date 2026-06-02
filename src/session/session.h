@@ -203,6 +203,7 @@ class Session {
   bool ToggleAlphanumericMode(mozc::commands::Command* command);
   bool ToggleHiraganaDirect(mozc::commands::Command* command);
   bool ToggleTraditionalKanji(mozc::commands::Command* command);
+  bool TogglePrivacyMode(mozc::commands::Command* command);
   // Show odoriji (iteration marks) palette in the candidate window; user
   // selects with 1-8, Enter, or click. Escape cancels.
   bool ShowOdorijiPalette(mozc::commands::Command* command);

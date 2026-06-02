@@ -65,13 +65,6 @@ AdministrationDialog::AdministrationDialog()
   usageStatsMessage->installEventFilter(this);
 
 #ifdef _WIN32
-
-#ifdef CHANNEL_DEV
-  usageStatsCheckBox->setEnabled(false);
-#endif  // CHANNEL_DEV
-
-  usageStatsCheckBox->setChecked(StatsConfigUtil::IsEnabled());
-
   ElevatedProcessDisabledcheckBox->setChecked(
       RunLevel::GetElevatedProcessDisabled());
 
@@ -79,6 +72,25 @@ AdministrationDialog::AdministrationDialog()
                                           CacheServiceManager::IsRunning());
 #endif  // _WIN32
   GuiUtil::ReplaceWidgetLabels(this);
+
+#ifdef GOOGLE_JAPANESE_INPUT_BUILD
+#ifdef _WIN32
+#ifdef CHANNEL_DEV
+  usageStatsCheckBox->setEnabled(false);
+#endif  // CHANNEL_DEV
+  usageStatsCheckBox->setChecked(StatsConfigUtil::IsEnabled());
+#endif  // _WIN32
+#else   // GOOGLE_JAPANESE_INPUT_BUILD
+#ifdef _WIN32
+  usageStatsCheckBox->setChecked(false);
+  usageStatsCheckBox->setEnabled(false);
+  usageStatsMessage->setText(
+      tr("%1 does not send usage statistics or crash reports to Google or "
+         "to the marinaMoji developers. Upstream Mozc includes an optional "
+         "telemetry setting; that setting is permanently disabled here.")
+          .arg(GuiUtil::ProductName()));
+#endif  // _WIN32
+#endif  // GOOGLE_JAPANESE_INPUT_BUILD
 }
 
 bool AdministrationDialog::CanStartService() {
@@ -104,6 +116,7 @@ void AdministrationDialog::clicked(QAbstractButton *button) {
   switch (AdministrationDialogbuttonBox->buttonRole(button)) {
     case QDialogButtonBox::ApplyRole:
     case QDialogButtonBox::AcceptRole:
+#ifdef GOOGLE_JAPANESE_INPUT_BUILD
       if (!StatsConfigUtil::SetEnabled(usageStatsCheckBox->isChecked())) {
         QMessageBox::critical(
             this, dialog_title_,
@@ -112,6 +125,7 @@ void AdministrationDialog::clicked(QAbstractButton *button) {
                "Administrator privilege is required to change the "
                "configuration."));
       }
+#endif  // GOOGLE_JAPANESE_INPUT_BUILD
 
       if (CanStartService()) {
         bool result = false;
@@ -155,9 +169,9 @@ void AdministrationDialog::clicked(QAbstractButton *button) {
 bool AdministrationDialog::eventFilter(QObject *obj, QEvent *event) {
   if (event->type() == QEvent::MouseButtonRelease) {
     if (obj == usageStatsMessage) {
-#ifndef CHANNEL_DEV
+#if defined(GOOGLE_JAPANESE_INPUT_BUILD) && !defined(CHANNEL_DEV)
       usageStatsCheckBox->toggle();
-#endif  // CHANNEL_DEV
+#endif  // GOOGLE_JAPANESE_INPUT_BUILD && !CHANNEL_DEV
     }
   }
   return QObject::eventFilter(obj, event);

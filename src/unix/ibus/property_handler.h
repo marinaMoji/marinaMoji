@@ -108,6 +108,7 @@ class PropertyHandler {
   // Appends Traditional kanji (Shin/Kyu) toggle property into panel
   void AppendTraditionalKanjiPropertyToPanel();
   void AppendOdorijiPalettePropertyToPanel();
+  void AppendPrivacyModePropertyToPanel();
   void AppendToolbarPropertyToPanel();
   // Appends switch properties into panel
   void UpdateCompositionModeIcon(
@@ -120,6 +121,7 @@ class PropertyHandler {
   IbusPropertyWrapper prop_mozc_tool_;
   IbusPropertyWrapper prop_traditional_kanji_;
   IbusPropertyWrapper prop_odoriji_palette_;
+  IbusPropertyWrapper prop_privacy_mode_;
   IbusPropertyWrapper prop_toolbar_;
   client::ClientInterface* client_;
   std::unique_ptr<MessageTranslatorInterface> translator_;
