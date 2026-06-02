@@ -102,7 +102,8 @@ The `--recursive` option is required; the build depends on submodules.
 From the **`marinaMoji/src`** directory (not the repo root), run:
 
 ```bash
-bazelisk build package --config oss_linux --config release_build
+bazelisk build package --config oss_linux --config release_build \
+  --repo_env=CC=clang --repo_env=CXX=clang++
 ```
 
 The first run can take a long time (tens of minutes) while dependencies are downloaded and compiled. When it finishes successfully, the installable archive is:
