@@ -138,9 +138,9 @@ bazelisk build package --config release_build
 `package` is an alias to build Mozc executables and archive them into
 `mozc.zip`.
 
-### Install and register with IBus (marinaMozc)
+### Install and register with IBus (marinaMoji)
 
-After building, install the package and make marinaMozc appear in your input method list:
+After building, install the package and make marinaMoji appear in your input method list:
 
 1. **Install files** (from `src/` directory):
    ```bash
@@ -149,8 +149,8 @@ After building, install the package and make marinaMozc appear in your input met
 
 2. **Verify** the component and engine are in place:
    ```bash
-   test -f /usr/share/ibus/component/marinamozc.xml && echo "Component OK"
-   test -x /usr/lib/ibus-marinamozc/ibus-engine-marinamozc && echo "Engine OK"
+   test -f /usr/share/ibus/component/marinamoji.xml && echo "Component OK"
+   test -x /usr/lib/ibus-marinamoji/ibus-engine-marinamoji && echo "Engine OK"
    ```
 
 3. **Reload IBus** so it picks up the new component:
@@ -160,17 +160,17 @@ After building, install the package and make marinaMozc appear in your input met
    ```
    If you use a desktop session, logging out and back in is an alternative.
 
-4. **Add marinaMozc** in your system input settings:
-   - **GNOME:** Settings → Keyboard → Input Sources → Add (+) → select **Japanese** → choose **marinaMozc** (or “marinaMozc (Japanese Input Method)”).
-   - **Other (IBus):** Add input method and pick the engine named **marinaMozc** / **Japanese (marinaMozc)**.
+4. **Add marinaMoji** in your system input settings:
+   - **GNOME:** Settings → Keyboard → Input Sources → Add (+) → select **Japanese** → choose **marinaMoji** (or “marinaMoji (Japanese Input Method)”).
+   - **Other (IBus):** Add input method and pick the engine named **marinaMoji** / **Japanese (marinaMoji)**.
 
 If it still does not appear, confirm that `ibus-daemon` is running and that no errors show when running `ibus engine` or when opening the input method configuration.
 
-**Display name:** marinaMozc uses its own config directory (`~/.config/marinamozc/`), so it appears as **Japanese (marinaMozc)** and does not share settings with stock Mozc. After reinstalling, run `ibus write-cache && ibus restart` and add the input source again; the new config will show "marinaMozc" in the list.
+**Display name:** marinaMoji uses its own config directory (`~/.config/marinamoji/`), so it appears as **Japanese (marinaMoji)** and does not share settings with stock Mozc. After reinstalling, run `ibus write-cache && ibus restart` and add the input source again; the new config will show "marinaMoji" in the list.
 
 ### Usage and known behavior
 
-- **Toolbar:** When you focus a text field, the marinaMozc toolbar window shows the current schema (あ, ア, etc.), Shin/Kyū (traditional kanji) toggle, Odoriji button, and Half/Full button. If the window was empty before, rebuild and reinstall so the fix (showing all widgets) is applied.
+- **Toolbar:** When you focus a text field, the marinaMoji toolbar window shows the current schema (あ, ア, etc.), Shin/Kyū (traditional kanji) toggle, Odoriji button, and Half/Full button. If the window was empty before, rebuild and reinstall so the fix (showing all widgets) is applied.
 
 - **Keyboard shortcuts** (from the keymap, e.g. MS-IME / ATOK style):
   - **Ctrl+Shift+1 / !** – Insert default odoriji
@@ -207,23 +207,23 @@ bazelisk build package --config no_sframe
 
 ### How to customize installation locations
 
-This fork is branded **marinaMozc** and uses distinct paths so it can be
+This fork is branded **marinaMoji** and uses distinct paths so it can be
 installed **next to** stock Mozc (e.g. for testing). The IBus component is
-registered as **marinaMozc** and uses `marinamozc.xml` so it does not
+registered as **marinaMoji** and uses `marinamoji.xml` so it does not
 overwrite `mozc.xml`.
 
 Here is a table of contents in `mozc.zip` and their installation locations for
-marinaMozc:
+marinaMoji:
 
-build target                     | installation location (marinaMozc)
+build target                     | installation location (marinaMoji)
 -------------------------------- | ----------------------------------
-`//server:mozc_server`           | `/usr/lib/marinamozc/mozc_server`
-`//gui/tool:mozc_tool`           | `/usr/lib/marinamozc/mozc_tool`
-`//renderer:mozc_renderer`       | `/usr/lib/marinamozc/mozc_renderer`
-`//unix/ibus/ibus_mozc`          | `/usr/lib/ibus-marinamozc/ibus-engine-marinamozc`
-`//unix/ibus:gen_mozc_xml`       | `/usr/share/ibus/component/marinamozc.xml`
-`//unix:icons`                   | `/usr/share/ibus-marinamozc/...`
-`//unix:icons`                   | `/usr/share/icons/marinamozc/...`
+`//server:mozc_server`           | `/usr/lib/marinamoji/mozc_server`
+`//gui/tool:mozc_tool`           | `/usr/lib/marinamoji/mozc_tool`
+`//renderer:mozc_renderer`       | `/usr/lib/marinamoji/mozc_renderer`
+`//unix/ibus/ibus_mozc`          | `/usr/lib/ibus-marinamoji/ibus-engine-marinamoji`
+`//unix/ibus:gen_mozc_xml`       | `/usr/share/ibus/component/marinamoji.xml`
+`//unix:icons`                   | `/usr/share/ibus-marinamoji/...`
+`//unix:icons`                   | `/usr/share/icons/marinamoji/...`
 `//unix/emacs:mozc.el`           | `/usr/share/emacs/site-lisp/emacs-mozc/mozc.el`
 `//unix/emacs:mozc_emacs_helper` | `/usr/bin/mozc_emacs_helper`
 

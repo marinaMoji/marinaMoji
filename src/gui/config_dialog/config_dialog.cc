@@ -389,7 +389,7 @@ ConfigDialog::ConfigDialog()
   usageStatsCheckBox->setVisible(false);
 #endif  // __linux__
 #else   // GOOGLE_JAPANESE_INPUT_BUILD
-  // marinaMozc / OSS: show the section but permanently disabled with an
+  // marinaMoji / OSS: show the section but permanently disabled with an
   // explicit privacy statement (all platforms).
   launchAdministrationDialogButtonForUsageStats->setEnabled(false);
   launchAdministrationDialogButtonForUsageStats->setVisible(false);

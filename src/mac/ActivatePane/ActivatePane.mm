@@ -32,6 +32,8 @@
 #import <Carbon/Carbon.h>
 #import <Foundation/Foundation.h>
 
+#include "base/const.h"
+
 // Set kUseUsageStats to control usage stats.
 #ifdef GOOGLE_JAPANESE_INPUT_BUILD
 constexpr bool kUseUsageStats = true;
@@ -46,7 +48,8 @@ static NSString *kLaunchdPlistFiles[] = {
     @"/Library/LaunchAgents/com.google.inputmethod.Japanese.Renderer.plist", nil};
 static NSString *const kSourceID = @"com.google.inputmethod.Japanese";
 #else   // GOOGLE_JAPANESE_INPUT_BUILD
-static const unsigned char kInstalledLocation[] = "/Library/Input Methods/Mozc.app";
+static const unsigned char kInstalledLocation[] =
+    "/Library/Input Methods/" kProductPrefix ".app";
 static NSString *kLaunchdPlistFiles[] = {
     @"/Library/LaunchAgents/org.mozc.inputmethod.Japanese.Converter.plist",
     @"/Library/LaunchAgents/org.mozc.inputmethod.Japanese.Renderer.plist", nil};

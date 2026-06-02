@@ -65,7 +65,7 @@ filegroup(
         "//unix:__pkg__",
     ],
 )
-# For marinaMozc about dialog (Qt resource).
+# For marinaMoji about dialog (Qt resource).
 exports_files(["toolbar_icons/logo_long_light.svg"], visibility = ["//gui/about_dialog:__pkg__"])
 
 mozc_py_binary(
@@ -75,11 +75,11 @@ mozc_py_binary(
 
 genrule(
     name = "gen_mozc_xml",
-    outs = ["marinamozc.xml"],
+    outs = ["marinamoji.xml"],
     cmd = " ".join([
         "LANG=C",
         "$(location :gen_mozc_xml_main)",
-        "--branding=marinaMozc",
+        "--branding=marinaMoji",
         "--server_dir=" + LINUX_MOZC_SERVER_DIR,
         "--ibus_mozc_path=" + IBUS_MOZC_PATH,
         "--ibus_mozc_icon_path=" + IBUS_MOZC_ICON_PATH,
@@ -95,7 +95,7 @@ genrule(
     cmd = " ".join([
         "LANG=C",
         "$(location :gen_mozc_xml_main)",
-        "--branding=marinaMozc",
+        "--branding=marinaMoji",
         "--output_cpp",
         "--server_dir=" + LINUX_MOZC_SERVER_DIR,
         "--ibus_mozc_path=" + IBUS_MOZC_PATH,
@@ -136,7 +136,7 @@ mozc_cc_library(
     name = "ibus_property_handler",
     srcs = mozc_select(linux = ["property_handler.cc"]),
     hdrs = mozc_select(linux = ["property_handler.h"]),
-    local_defines = ["MARINAMOZC"],
+    local_defines = ["MARINAMOJI"],
     deps = [
         ":ibus_header",
         ":ibus_utils",
@@ -167,7 +167,7 @@ mozc_cc_library(
         "path_util.h",
     ],
     local_defines = [
-        "MARINAMOZC",
+        "MARINAMOJI",
         'MOZC_IBUS_INSTALL_DIR=\\"' + IBUS_MOZC_INSTALL_DIR + '\\"',
     ],
     deps = [
@@ -342,7 +342,7 @@ mozc_cc_library(
         ":gen_main_h",
     ],
     copts = ["-Wno-unused-variable"],
-    local_defines = ["MARINAMOZC"],
+    local_defines = ["MARINAMOJI"],
     deps = [
         ":ibus_config_cc_proto",
         "//base:file_util",

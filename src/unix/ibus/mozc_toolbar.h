@@ -1,7 +1,7 @@
 // Copyright 2010-2021, Google Inc.
 // All rights reserved.
 //
-// marinaMozc: GTK toolbar (schema, shin/kyu, symbols palette, dict, shortcuts).
+// marinaMoji: GTK toolbar (schema, shin/kyu, symbols palette, dict, shortcuts).
 // Optional: only built when GTK is available (MOZC_HAVE_GTK_TOOLBAR).
 
 #ifndef MOZC_UNIX_IBUS_MOZC_TOOLBAR_H_

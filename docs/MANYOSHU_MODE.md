@@ -14,7 +14,7 @@
 ## Keybinding
 
 - **Right Shift** → `ToggleManyoshuHiragana` (Precomposition, Composition, Conversion)
-- **Ctrl+Shift+4 / $** → `ToggleManyoshuHiragana` on keymaps that use marinaMozc's number-row shortcut set (including current MS-IME/ATOK/Kotoeri mappings).
+- **Ctrl+Shift+4 / $** → `ToggleManyoshuHiragana` on keymaps that use marinaMoji's number-row shortcut set (including current MS-IME/ATOK/Kotoeri mappings).
 
 Defined in all keymap TSV files (e.g. `ms-ime.tsv`). If Right Shift alone is not delivered by your environment, you can change the binding in the keymap data.
 

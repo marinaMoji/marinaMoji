@@ -39,8 +39,8 @@ To keep **upstream merges** easy, odoriji logic is isolated in a single module; 
 - Number-row bindings now commonly use:
   - **Ctrl+Shift+1 / !** → `InsertOdorijiDefault`
   - **Ctrl+Shift+2 / @** → `ShowOdorijiPalette`
-  - **Ctrl+Shift+3 / #** → `ToggleTraditionalKanji` (MS-IME / ATOK / Kotoeri in marinaMozc)
-  - **Ctrl+Shift+4 / $** → `ToggleManyoshuHiragana` (MS-IME / ATOK / Kotoeri in marinaMozc)
+  - **Ctrl+Shift+3 / #** → `ToggleTraditionalKanji` (MS-IME / ATOK / Kotoeri in marinaMoji)
+  - **Ctrl+Shift+4 / $** → `ToggleManyoshuHiragana` (MS-IME / ATOK / Kotoeri in marinaMoji)
   - **Ctrl+Shift+5 / %** → `ToggleHiraganaDirect`
 - `Ctrl+Shift+\`` / `Ctrl+Shift+²` (AZERTY) remains `ToggleAlphanumericMode` where defined.
 - Exact command assignment for 3/4 may differ by layout; check `src/data/keymap/*.tsv` for the active keymap.

@@ -280,7 +280,7 @@ bool MarinaImkTraceEnabled() {
     return false;
   }
   const std::string flag =
-      std::string(home) + "/Library/Application Support/marinaMozc/imk_trace";
+      std::string(home) + "/Library/Application Support/marinaMoji/imk_trace";
   return ::access(flag.c_str(), F_OK) == 0;
 }
 

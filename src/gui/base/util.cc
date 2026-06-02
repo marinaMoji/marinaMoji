@@ -128,13 +128,13 @@ void GuiUtil::InstallTranslator(absl::string_view resource_name) {
 
 // static
 QString GuiUtil::ProductName() {
-#ifdef MARINAMOZC
+#ifdef MARINAMOJI
   const QString name = QObject::tr("marinaMoji");
 #elif defined(GOOGLE_JAPANESE_INPUT_BUILD)
   const QString name = QObject::tr("Google Japanese Input");
 #else   // GOOGLE_JAPANESE_INPUT_BUILD
   const QString name = QObject::tr("Mozc");
-#endif  // MARINAMOZC / GOOGLE_JAPANESE_INPUT_BUILD
+#endif  // MARINAMOJI / GOOGLE_JAPANESE_INPUT_BUILD
   return name;
 }
 

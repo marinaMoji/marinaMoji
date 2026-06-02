@@ -43,7 +43,7 @@ import sys
 # properties above.
 PRODUCT_NAMES = {
     'Mozc': 'Mozc',
-    'marinaMozc': 'marinaMozc',
+    'marinaMoji': 'marinaMoji',
     'GoogleJapaneseInput': 'Google Japanese Input',
 }
 
@@ -103,7 +103,7 @@ def GetIbusConfigTextProto(engines, branding=None):
 
   Args:
     engines: A list of engine dicts. For example, [{'name': 'mozc-jp', ...}].
-    branding: Optional branding string ('marinaMozc', etc.) for defaults.
+    branding: Optional branding string ('marinaMoji', etc.) for defaults.
 
   Returns:
     output string in TextProto.
@@ -116,8 +116,8 @@ def GetIbusConfigTextProto(engines, branding=None):
     for key, value in engine.items():
       output.append(GetTextProtoElement(key, value))
     output.append('}')
-  # marinaMozc: start in Hiragana (IME on). Stock Mozc keeps IBus recommendation (False).
-  active_on_launch = 'True' if (branding == 'marinaMozc') else 'False'
+  # marinaMoji: start in Hiragana (IME on). Stock Mozc keeps IBus recommendation (False).
+  active_on_launch = 'True' if (branding == 'marinaMoji') else 'False'
   output.append('active_on_launch: ' + active_on_launch)
   output.append('mozc_renderer {')
   output.append("  # Candidate window: True = IBus (default), False = Mozc when available.")
@@ -176,7 +176,7 @@ def OutputCpp(component, engine_common, engines, branding=None):
       are commonly used in all engines. For example, {'language': 'ja'}.
     engines: A dictionary from a property name to a list of property values of
       engines. For example, [{'name': 'mozc-jp',...}, {'name': 'mozc'},...]
-    branding: Optional branding string for default config (e.g. 'marinaMozc').
+    branding: Optional branding string for default config (e.g. 'marinaMoji').
   """
   guard_name = 'MOZC_UNIX_IBUS_MAIN_H_'
   print(CPP_HEADER % (guard_name, guard_name))
@@ -208,7 +208,7 @@ def main():
       '--branding',
       dest='branding',
       default=None,
-      help='Branding: Mozc, marinaMozc, or GoogleJapaneseInput.',
+      help='Branding: Mozc, marinaMoji, or GoogleJapaneseInput.',
   )
   parser.add_option(
       '--ibus_mozc_path',
@@ -235,19 +235,19 @@ def main():
   ibus_mozc_icon_path = options.ibus_mozc_icon_path
   setup_path = os.path.join(options.server_dir, 'mozc_tool')
 
-  # Component identity: unique name and textdomain for marinaMozc (install next to Mozc)
-  if options.branding == 'marinaMozc':
-    component_name = 'com.marinamozc.IBus.Mozc'
-    textdomain = 'ibus-marinamozc'
-    author = 'marinaMozc'
-    homepage = 'https://github.com/google/mozc'
+  # Component identity: unique name and textdomain for marinaMoji (install next to Mozc)
+  if options.branding == 'marinaMoji':
+    component_name = 'com.marinamoji.IBus.Mozc'
+    textdomain = 'ibus-marinamoji'
+    author = 'marinaMoji'
+    homepage = 'https://github.com/marinaMoji/marinaMoji'
   else:
     component_name = 'com.google.IBus.Mozc'
     textdomain = 'ibus-mozc'
     author = 'Google LLC'
     homepage = 'https://github.com/google/mozc'
 
-  # Information to generate <component> part of mozc.xml / marinamozc.xml.
+  # Information to generate <component> part of mozc.xml / marinamoji.xml.
   component = {
       'name': component_name,
       'description': product_name + ' Component',
@@ -272,10 +272,10 @@ def main():
 
   # DO NOT change the engine name 'mozc-jp'. The name is referenced by
   # unix/ibus/mozc_engine.cc.
-  # marinaMozc: register only the main engine so one entry appears in the
-  # input method list (Japonais (marinaMozc)). Stock Mozc may show three
+  # marinaMoji: register only the main engine so one entry appears in the
+  # input method list (Japonais (marinaMoji)). Stock Mozc may show three
   # (mozc-jp, mozc-on, mozc-off) on some setups.
-  if options.branding == 'marinaMozc':
+  if options.branding == 'marinaMoji':
     engines = [
         {
             'name': 'mozc-jp',

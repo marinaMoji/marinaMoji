@@ -37,7 +37,7 @@ inline constexpr char kProductNameInEnglish[] = "Google Japanese Input";
 #else  // GOOGLE_JAPANESE_INPUT_BUILD
 #if defined(__APPLE__)
 inline constexpr char kProductNameInEnglish[] = "marinaMoji";
-#define kProductPrefix "marinaMozc"
+#define kProductPrefix "marinaMoji"
 #else
 inline constexpr char kProductNameInEnglish[] = "Mozc";
 #define kProductPrefix "Mozc"

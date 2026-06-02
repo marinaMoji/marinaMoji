@@ -57,7 +57,7 @@
 											<key>GID</key>
 											<integer>0</integer>
 											<key>PATH</key>
-											<string>${BUILD_DIR}/UninstallMozc.app</string>
+											<string>${BUILD_DIR}/UninstallmarinaMoji.app</string>
 											<key>PATH_TYPE</key>
 											<integer>0</integer>
 											<key>PERMISSIONS</key>
@@ -71,7 +71,7 @@
 									<key>GID</key>
 									<integer>0</integer>
 									<key>PATH</key>
-									<string>Mozc</string>
+									<string>marinaMoji</string>
 									<key>PATH_TYPE</key>
 									<integer>0</integer>
 									<key>PERMISSIONS</key>
@@ -187,7 +187,7 @@
 											<key>GID</key>
 											<integer>0</integer>
 											<key>PATH</key>
-											<string>${BUILD_DIR}/Mozc.app</string>
+											<string>${BUILD_DIR}/marinaMoji.app</string>
 											<key>PATH_TYPE</key>
 											<integer>0</integer>
 											<key>PERMISSIONS</key>
@@ -580,7 +580,7 @@
 				<key>IDENTIFIER</key>
 				<string>org.mozc.pkg.JapaneseInput</string>
 				<key>NAME</key>
-				<string>Mozc</string>
+				<string>marinaMoji</string>
 				<key>OVERWRITE_PERMISSIONS</key>
 				<false/>
 				<key>VERSION</key>
@@ -763,7 +763,7 @@
 						<key>LANGUAGE</key>
 						<string>English</string>
 						<key>VALUE</key>
-						<string>Mozc</string>
+						<string>marinaMoji</string>
 					</dict>
 				</array>
 			</dict>
@@ -794,7 +794,7 @@
 							<key>LANGUAGE</key>
 							<string>English</string>
 							<key>VALUE</key>
-							<string>Mozc requires macOS 12 or later.</string>
+							<string>marinaMoji requires macOS 12 or later.</string>
 						</dict>
 						<dict>
 							<key>LANGUAGE</key>
@@ -802,7 +802,7 @@
 							<key>SECONDARY_VALUE</key>
 							<string></string>
 							<key>VALUE</key>
-							<string>Mozc は macOS 12 以降で動作します。</string>
+							<string>marinaMoji は macOS 12 以降で動作します。</string>
 						</dict>
 					</array>
 					<key>NAME</key>
@@ -986,7 +986,7 @@
 				</dict>
 			</array>
 			<key>NAME</key>
-			<string>Mozc</string>
+			<string>marinaMoji</string>
 		</dict>
 	</dict>
 	<key>TYPE</key>

@@ -1,7 +1,7 @@
 // Copyright 2010-2021, Google Inc.
 // All rights reserved.
 //
-// marinaMozc: macOS floating toolbar.  A non-activating NSPanel with branded
+// marinaMoji: macOS floating toolbar.  A non-activating NSPanel with branded
 // SVG icons for mode switching, shin/kyu toggle, odoriji, dictionary, and
 // keyboard shortcuts.  Mirrors the Linux GTK toolbar in functionality.
 

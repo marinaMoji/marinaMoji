@@ -41,9 +41,9 @@
 #include "base/version.h"
 #include "gui/base/util.h"
 
-#ifdef MARINAMOZC
+#ifdef MARINAMOJI
 #include <QImageReader>
-#endif  // MARINAMOZC
+#endif  // MARINAMOJI
 
 namespace mozc {
 namespace gui {
@@ -66,7 +66,7 @@ QString ReplaceString(const QString &str) {
   QString replaced(str);
   Replace(replaced, "[ProductName]", GuiUtil::ProductName());
 
-#ifdef MARINAMOZC
+#ifdef MARINAMOJI
   Replace(replaced, "[ProductUrl]", "https://github.com/marinaMoji/marinaMoji");
   Replace(replaced, "[ForumUrl]", "https://github.com/marinaMoji/marinaMoji/issues");
   Replace(replaced, "[ForumName]", QObject::tr("issues"));
@@ -79,7 +79,7 @@ QString ReplaceString(const QString &str) {
   Replace(replaced, "[ProductUrl]", "https://github.com/google/mozc");
   Replace(replaced, "[ForumUrl]", "https://github.com/google/mozc/issues");
   Replace(replaced, "[ForumName]", QObject::tr("issues"));
-#endif  // MARINAMOZC / GOOGLE_JAPANESE_INPUT_BUILD
+#endif  // MARINAMOJI / GOOGLE_JAPANESE_INPUT_BUILD
 
   const std::string credit_filepath =
       FileUtil::JoinPath(SystemUtil::GetDocumentDirectory(), "credits_en.html");
@@ -109,15 +109,15 @@ AboutDialog::AboutDialog(QWidget *parent)
   GuiUtil::ReplaceWidgetLabels(this);
 
   QPalette palette;
-#ifdef MARINAMOZC
+#ifdef MARINAMOJI
   palette.setColor(QPalette::Window, white);
 #else
   palette.setColor(QPalette::Window, QColor(236, 233, 216));
-#endif  // MARINAMOZC
+#endif  // MARINAMOJI
   color_frame->setPalette(palette);
   color_frame->setAutoFillBackground(true);
 
-#ifdef MARINAMOZC
+#ifdef MARINAMOJI
   // marinaMoji: logo on left only (includes product name); credit on two lines.
   label->setVisible(false);
   label_credits->setVisible(false);  // We use only label_6 for credit.
@@ -132,7 +132,7 @@ AboutDialog::AboutDialog(QWidget *parent)
   label_6->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
   gridLayout_3->setColumnStretch(0, 1);
   // Load toolbar logo SVG and render at ~2x line height (keep aspect ratio).
-  QImageReader reader(QLatin1String(":/marinamozc_logo.svg"));
+  QImageReader reader(QLatin1String(":/marinamoji_logo.svg"));
   QImage svgImage = reader.read();
   if (!svgImage.isNull()) {
     const int line_height = version_label->fontMetrics().height();
@@ -164,14 +164,14 @@ AboutDialog::AboutDialog(QWidget *parent)
 
   product_image_ =
       std::make_unique<QImage>(QLatin1String(":/product_logo.png"));
-#endif  // MARINAMOZC
+#endif  // MARINAMOJI
 }
 
 void AboutDialog::paintEvent(QPaintEvent *event) {
   QPainter painter(this);
   const QRect image_rect = product_image_->rect();
   if (image_rect.isEmpty()) return;
-#ifdef MARINAMOZC
+#ifdef MARINAMOJI
   // Logo on left only (same vertical zone as version_label).
   const int left_margin = 10;
   const int top_align = 20;
@@ -184,7 +184,7 @@ void AboutDialog::paintEvent(QPaintEvent *event) {
                         std::max(0, color_frame->y() - image_rect.height()),
                         image_rect.width(), image_rect.height());
   painter.drawImage(draw_rect, *product_image_);
-#endif  // MARINAMOZC
+#endif  // MARINAMOJI
 }
 
 void AboutDialog::SetLinkCallback(LinkCallbackInterface *callback) {

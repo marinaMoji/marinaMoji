@@ -1,6 +1,6 @@
 # Symbols Palette (macOS and GTK toolbars)
 
-This document describes the toolbar Symbols Palette in marinaMozc (macOS and Linux IBus).
+This document describes the toolbar Symbols Palette in marinaMoji (macOS and Linux IBus).
 
 ## Overview
 
@@ -41,10 +41,10 @@ A multiline editor opens (one symbol per line). Entries are saved to a text file
 
 - Per-device UI state (pin + last tab) is stored in `toolbar.conf`:
   - macOS: app support directory (same folder as other toolbar prefs)
-  - Linux: `~/.config/ibus/marinamozc/toolbar.conf`
+  - Linux: `~/.config/ibus/marinamoji/toolbar.conf`
 - User symbol lines:
   - macOS: app support `user_symbols.txt`
-  - Linux: `~/.config/ibus/marinamozc/user_symbols.txt`
+  - Linux: `~/.config/ibus/marinamoji/user_symbols.txt`
 
 ## Key files
 

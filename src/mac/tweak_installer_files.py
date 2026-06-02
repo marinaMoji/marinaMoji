@@ -55,6 +55,11 @@ def ParseArguments() -> argparse.Namespace:
   # https://github.com/bazelbuild/rules_apple/blob/3.5.1/apple/internal/codesigning_support.bzl#L42
   # https://developer.apple.com/documentation/security/seccodesignatureflags/1397793-adhoc
   parser.add_argument('--codesign_identity', default='-')
+  parser.add_argument(
+      '--branding',
+      default='Mozc',
+      help='OSS product folder and .app name (e.g. marinaMoji).',
+  )
   return parser.parse_args()
 
 
@@ -110,9 +115,15 @@ def SymlinkQtFrameworks(app_dir: str) -> None:
     os.symlink('Versions/Current/Resources', framework_dir + 'Resources')
 
 
-def TweakQtApps(top_dir: str, oss: bool) -> None:
+def OssProductName(oss: bool, branding: str) -> str:
+  if not oss:
+    return 'GoogleJapaneseInput'
+  return branding
+
+
+def TweakQtApps(top_dir: str, oss: bool, branding: str) -> None:
   """Tweak the resource files for the Qt applications."""
-  name = 'Mozc' if oss else 'GoogleJapaneseInput'
+  name = OssProductName(oss, branding)
   sub_qt_apps = [
       'AboutDialog',
       'DictionaryTool',
@@ -134,7 +145,7 @@ def TweakQtApps(top_dir: str, oss: bool) -> None:
 
 
 def TweakForProductbuild(
-    top_dir: str, tweak_qt: bool, oss: bool, channel: str
+    top_dir: str, tweak_qt: bool, oss: bool, channel: str, branding: str
 ) -> None:
   """Tweak file paths for the productbuild command."""
   orig_dir = os.getcwd()
@@ -142,8 +153,8 @@ def TweakForProductbuild(
 
   if oss:
     is_dev_channel = False
-    name = 'Mozc'
-    folder = 'Mozc'
+    name = branding
+    folder = branding
   else:
     is_dev_channel = channel == 'dev'
     name = 'GoogleJapaneseInput'
@@ -191,8 +202,8 @@ def TweakForProductbuild(
 
   if tweak_qt:
     resources_dir = f'/Library/Input Methods/{name}.app/Contents/Resources/'
-    # /Applications/Mozc/ConfigDialog.app is a symlink to
-    # /Library/Input Method/Mozc.app/Contents/Resources/ConfigDialog.app
+    # /Applications/{name}/ConfigDialog.app is a symlink to
+    # /Library/Input Methods/{name}.app/Contents/Resources/ConfigDialog.app
     os.symlink(
         resources_dir + 'ConfigDialog.app/',
         f'root/Applications/{folder}/ConfigDialog.app',
@@ -257,10 +268,10 @@ def TweakInstallerFiles(args: argparse.Namespace, work_dir: str) -> None:
   tweak_qt = not args.noqt
 
   if tweak_qt:
-    TweakQtApps(top_dir, args.oss)
+    TweakQtApps(top_dir, args.oss, args.branding)
 
   if args.productbuild:
-    TweakForProductbuild(top_dir, tweak_qt, args.oss, args.channel)
+    TweakForProductbuild(top_dir, tweak_qt, args.oss, args.channel, args.branding)
     Codesign(top_dir, args.codesign_identity)
 
   # Create a zip file with the zip command.

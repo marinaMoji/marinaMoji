@@ -22,7 +22,7 @@ directory are ignored. For more control, you may want to use
 **Branded product names** (e.g. Latin spellings like `marinaMoji`) should use
 `aux_dictionary.tsv` with a negative `cost_offset`, not `words.tsv` alone.
 Otherwise the IME may prefer a split reading such as マリナ + モジ over the
-whole word. See `marinaMoji` / `marinaMozc` in `data/dictionary_oss/aux_dictionary.tsv`.
+whole word. See `marinaMoji` / `marinaMoji` in `data/dictionary_oss/aux_dictionary.tsv`.
 
 *   https://github.com/google/mozc/blob/master/src/data/dictionary_oss/aux_dictionary.tsv
 *   https://github.com/google/mozc/blob/master/src/data/dictionary_oss/dictionary_filter.tsv

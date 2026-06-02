@@ -23,7 +23,7 @@ This document is implementation-oriented and intentionally phased so changes can
 - Editing `user_dictionary.db` directly in a shared folder.
 - Solving every historical Apple export variant in v1 (start with current macOS format + compatibility fallback).
 
-## Current baseline in marinaMozc
+## Current baseline in marinaMoji
 
 - The dictionary importer already supports multiple IME formats, including `KOTOERI`.
 - Configuration already includes privacy-related controls:

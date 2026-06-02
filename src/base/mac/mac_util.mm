@@ -166,7 +166,19 @@ std::string MacUtil::GetOSVersionString() {
   return version;
 }
 
-std::string MacUtil::GetServerDirectory() { return kServerDirectory; }
+std::string MacUtil::GetServerDirectory() {
+  // Resolve from the running bundle so renames (e.g. marinaMozc.app → marinaMoji.app)
+  // do not require every hard-coded kServerDirectory string to match install path.
+  const std::string resources = GetResourcesDirectory();
+  if (!resources.empty()) {
+    constexpr absl::string_view kImeResourcesSuffix = ".app/Contents/Resources";
+    const size_t pos = resources.find(kImeResourcesSuffix);
+    if (pos != std::string::npos) {
+      return resources.substr(0, pos + kImeResourcesSuffix.size());
+    }
+  }
+  return kServerDirectory;
+}
 
 std::string MacUtil::GetResourcesDirectory() {
   std::string result;

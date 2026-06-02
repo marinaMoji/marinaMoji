@@ -55,6 +55,11 @@ def ParseArguments():
       help='Code signing identity. Use "-" to skip codesigning.',
   )
   parser.add_argument('--keychain')
+  parser.add_argument(
+      '--branding',
+      default='Mozc',
+      help='OSS product name used for the inner .pkg filename.',
+  )
   return parser.parse_args()
 
 
@@ -63,7 +68,7 @@ def main():
 
   if args.oss:
     identifier = 'org.mozc.pkg.JapaneseInput'
-    pkg_name = 'Mozc.pkg'
+    pkg_name = f'{args.branding}.pkg'
   else:
     identifier = 'com.google.pkg.GoogleJapaneseInput'
     pkg_name = 'GoogleJapaneseInput.pkg'

@@ -1,7 +1,7 @@
 // Copyright 2010-2021, Google Inc.
 // All rights reserved.
 //
-// marinaMozc: GTK toolbar (marinaMoji-style: white/rounded, draggable,
+// marinaMoji: GTK toolbar (marinaMoji-style: white/rounded, draggable,
 // bottom-right, icon-only: logo, shin/kyū, symbols).
 // Build with MOZC_HAVE_GTK_TOOLBAR and link GTK to enable.
 
@@ -123,16 +123,16 @@ static bool IsX11() {
   return n && n[0] == ':';
 }
 
-// Config path: ~/.config/ibus/marinamozc/toolbar.conf
+// Config path: ~/.config/ibus/marinamoji/toolbar.conf
 static gchar* GetToolbarConfigPath() {
   gchar* config_dir =
-      g_build_filename(g_get_user_config_dir(), "ibus", "marinamozc", nullptr);
+      g_build_filename(g_get_user_config_dir(), "ibus", "marinamoji", nullptr);
   gchar* path = g_build_filename(config_dir, "toolbar.conf", nullptr);
   g_free(config_dir);
   return path;
 }
 
-// marinaMoji-style: read toolbar_hide_on_focus_loss from ~/.config/ibus/marinamozc/toolbar.conf
+// marinaMoji-style: read toolbar_hide_on_focus_loss from ~/.config/ibus/marinamoji/toolbar.conf
 static bool LoadHideOnFocusLossPreference() {
   gchar* path = GetToolbarConfigPath();
   GKeyFile* keyfile = g_key_file_new();
@@ -693,22 +693,22 @@ static void EnsureToolbarCSS(bool dark) {
         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
   }
   std::string css =
-      "#marinamozc-toolbar-window { background-color: transparent; }"
-      "#marinamozc-toolbar {"
+      "#marinamoji-toolbar-window { background-color: transparent; }"
+      "#marinamoji-toolbar {"
       "  background-color: " + std::string(bg) + ";"
       "  color: " + std::string(fg) + ";"
       "  border-radius: 10px;"
       "  border: 1px solid " + std::string(border) + ";"
       "  padding: 6px 10px;"
       "}"
-      "#marinamozc-mode-indicator,"
-      "#marinamozc-trad-btn, #marinamozc-trad-btn:hover, #marinamozc-trad-btn:active,"
-      "#marinamozc-symbols-btn, #marinamozc-symbols-btn:hover,"
-      "#marinamozc-symbols-btn:active,"
-      "#marinamozc-dict-btn, #marinamozc-dict-btn:hover,"
-      "#marinamozc-dict-btn:active,"
-      "#marinamozc-shortcuts-btn, #marinamozc-shortcuts-btn:hover,"
-      "#marinamozc-shortcuts-btn:active {"
+      "#marinamoji-mode-indicator,"
+      "#marinamoji-trad-btn, #marinamoji-trad-btn:hover, #marinamoji-trad-btn:active,"
+      "#marinamoji-symbols-btn, #marinamoji-symbols-btn:hover,"
+      "#marinamoji-symbols-btn:active,"
+      "#marinamoji-dict-btn, #marinamoji-dict-btn:hover,"
+      "#marinamoji-dict-btn:active,"
+      "#marinamoji-shortcuts-btn, #marinamoji-shortcuts-btn:hover,"
+      "#marinamoji-shortcuts-btn:active {"
       "  background-color: transparent; border: none; box-shadow: none;"
       "  padding: 0; margin: 0; outline: none;"
       "}";
@@ -1508,7 +1508,7 @@ void EnsureToolbarCreated() {
   // TOPLEVEL + DOCK (marinaMoji-style) for bottom-right placement; skip_taskbar still set.
   // keep_above + accept_focus/focus_on_map/can_focus false; draggable via gtk_window_begin_move_drag.
   g_toolbar_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_title(GTK_WINDOW(g_toolbar_window), "marinaMozc");
+  gtk_window_set_title(GTK_WINDOW(g_toolbar_window), "marinaMoji");
   gtk_window_set_decorated(GTK_WINDOW(g_toolbar_window), FALSE);
   gtk_window_set_resizable(GTK_WINDOW(g_toolbar_window), FALSE);
   gtk_window_set_keep_above(GTK_WINDOW(g_toolbar_window), TRUE);
@@ -1521,7 +1521,7 @@ void EnsureToolbarCreated() {
   gtk_window_set_default_size(GTK_WINDOW(g_toolbar_window), 380, kToolbarHeight);
   gtk_container_set_border_width(GTK_CONTAINER(g_toolbar_window), 0);
   gtk_widget_set_app_paintable(g_toolbar_window, TRUE);
-  gtk_widget_set_name(g_toolbar_window, "marinamozc-toolbar-window");
+  gtk_widget_set_name(g_toolbar_window, "marinamoji-toolbar-window");
 
   GdkScreen* screen = gtk_widget_get_screen(g_toolbar_window);
   GdkVisual* visual = gdk_screen_get_rgba_visual(screen);
@@ -1559,7 +1559,7 @@ void EnsureToolbarCreated() {
   g_toolbar_frame = gtk_event_box_new();
   gtk_event_box_set_visible_window(GTK_EVENT_BOX(g_toolbar_frame), TRUE);
   gtk_widget_set_can_focus(g_toolbar_frame, FALSE);
-  gtk_widget_set_name(g_toolbar_frame, "marinamozc-toolbar");
+  gtk_widget_set_name(g_toolbar_frame, "marinamoji-toolbar");
   gtk_widget_add_events(g_toolbar_frame, GDK_BUTTON_PRESS_MASK);
   g_signal_connect(g_toolbar_frame, "button-press-event",
                    G_CALLBACK(OnButtonPress), nullptr);
@@ -1602,7 +1602,7 @@ void EnsureToolbarCreated() {
   gtk_widget_set_halign(g_mode_indicator_image, GTK_ALIGN_CENTER);
   gtk_widget_set_valign(g_mode_indicator_image, GTK_ALIGN_CENTER);
   g_mode_indicator_cell = gtk_event_box_new();
-  gtk_widget_set_name(g_mode_indicator_cell, "marinamozc-mode-indicator");
+  gtk_widget_set_name(g_mode_indicator_cell, "marinamoji-mode-indicator");
   gtk_widget_set_size_request(g_mode_indicator_cell, 32, 32);
   gtk_widget_set_halign(g_mode_indicator_cell, GTK_ALIGN_CENTER);
   gtk_widget_set_valign(g_mode_indicator_cell, GTK_ALIGN_CENTER);
@@ -1618,7 +1618,7 @@ void EnsureToolbarCreated() {
   gtk_widget_set_focus_on_click(g_trad_btn, FALSE);
   gtk_widget_set_can_focus(g_trad_btn, FALSE);
   gtk_widget_set_size_request(g_trad_btn, 32, 32);
-  gtk_widget_set_name(g_trad_btn, "marinamozc-trad-btn");
+  gtk_widget_set_name(g_trad_btn, "marinamoji-trad-btn");
   gtk_button_set_label(GTK_BUTTON(g_trad_btn), "");
   SetButtonIcon(GTK_BUTTON(g_trad_btn),
                 g_toolbar_dark_theme ? "toolbar_shin_dark.svg" : "toolbar_shin_light.svg");
@@ -1630,7 +1630,7 @@ void EnsureToolbarCreated() {
   gtk_widget_set_focus_on_click(g_symbols_btn, FALSE);
   gtk_widget_set_can_focus(g_symbols_btn, FALSE);
   gtk_widget_set_size_request(g_symbols_btn, 32, 32);
-  gtk_widget_set_name(g_symbols_btn, "marinamozc-symbols-btn");
+  gtk_widget_set_name(g_symbols_btn, "marinamoji-symbols-btn");
   gtk_button_set_label(GTK_BUTTON(g_symbols_btn), "");
   SetButtonIcon(GTK_BUTTON(g_symbols_btn),
                 g_toolbar_dark_theme ? "toolbar_symbols_dark.svg" : "toolbar_symbols_light.svg");
@@ -1645,7 +1645,7 @@ void EnsureToolbarCreated() {
   gtk_widget_set_halign(dict_img, GTK_ALIGN_CENTER);
   gtk_widget_set_valign(dict_img, GTK_ALIGN_CENTER);
   g_dict_cell = gtk_event_box_new();
-  gtk_widget_set_name(g_dict_cell, "marinamozc-dict-btn");
+  gtk_widget_set_name(g_dict_cell, "marinamoji-dict-btn");
   gtk_widget_set_size_request(g_dict_cell, 32, 32);
   gtk_widget_set_halign(g_dict_cell, GTK_ALIGN_CENTER);
   gtk_widget_set_valign(g_dict_cell, GTK_ALIGN_CENTER);
@@ -1661,7 +1661,7 @@ void EnsureToolbarCreated() {
   gtk_widget_set_focus_on_click(g_shortcuts_btn, FALSE);
   gtk_widget_set_can_focus(g_shortcuts_btn, FALSE);
   gtk_widget_set_size_request(g_shortcuts_btn, 32, 32);
-  gtk_widget_set_name(g_shortcuts_btn, "marinamozc-shortcuts-btn");
+  gtk_widget_set_name(g_shortcuts_btn, "marinamoji-shortcuts-btn");
   gtk_button_set_label(GTK_BUTTON(g_shortcuts_btn), "");
   SetButtonIcon(GTK_BUTTON(g_shortcuts_btn),
                 g_toolbar_dark_theme ? "toolbar_shortcuts_dark.svg" : "toolbar_shortcuts_light.svg");
@@ -1729,7 +1729,7 @@ bool MozcToolbarAvailable() { return true; }
 // Load toolbar visibility. Default true (on) for first install; thereafter use saved value.
 bool MozcToolbarLoadVisiblePreference() {
   gchar* config_dir =
-      g_build_filename(g_get_user_config_dir(), "ibus", "marinamozc", nullptr);
+      g_build_filename(g_get_user_config_dir(), "ibus", "marinamoji", nullptr);
   gchar* path = g_build_filename(config_dir, "toolbar.conf", nullptr);
   g_free(config_dir);
   GKeyFile* keyfile = g_key_file_new();
@@ -1755,7 +1755,7 @@ bool MozcToolbarLoadVisiblePreference() {
 // Persist toolbar visibility so it stays off/on until user toggles again.
 void MozcToolbarSaveVisiblePreference(bool visible) {
   gchar* config_dir =
-      g_build_filename(g_get_user_config_dir(), "ibus", "marinamozc", nullptr);
+      g_build_filename(g_get_user_config_dir(), "ibus", "marinamoji", nullptr);
   gchar* path = g_build_filename(config_dir, "toolbar.conf", nullptr);
   g_free(config_dir);
   GKeyFile* keyfile = g_key_file_new();

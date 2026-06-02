@@ -33,19 +33,19 @@
 # The following command reverts it.
 # % git update-index --no-assume-unchanged config.bzl
 
-# marinaMozc: fork branding and install paths (install next to stock Mozc)
-BRANDING = "marinaMozc"
+# marinaMoji: fork branding and install paths (install next to stock Mozc)
+BRANDING = "marinaMoji"
 
 BAZEL_TOOLS_PREFIX = "@bazel_tools"
 
 LINUX_MOZC_BROWSER_COMMAND = "/usr/bin/xdg-open"
-LINUX_MOZC_ICONS_DIR = "/usr/share/icons/marinamozc"
-LINUX_MOZC_SERVER_DIR = "/usr/lib/marinamozc"
+LINUX_MOZC_ICONS_DIR = "/usr/share/icons/marinamoji"
+LINUX_MOZC_SERVER_DIR = "/usr/lib/marinamoji"
 LINUX_MOZC_DOCUMENT_DIR = LINUX_MOZC_SERVER_DIR + "/documents"
 IBUS_COMPONENT_DIR = "/usr/share/ibus/component"
-IBUS_MOZC_INSTALL_DIR = "/usr/share/ibus-marinamozc"
+IBUS_MOZC_INSTALL_DIR = "/usr/share/ibus-marinamoji"
 IBUS_MOZC_ICON_PATH = IBUS_MOZC_INSTALL_DIR + "/product_icon.png"
-IBUS_MOZC_PATH = "/usr/lib/ibus-marinamozc/ibus-engine-marinamozc"
+IBUS_MOZC_PATH = "/usr/lib/ibus-marinamoji/ibus-engine-marinamoji"
 EMACS_MOZC_CLIENT_DIR = "/usr/share/emacs/site-lisp/emacs-mozc"
 EMACS_MOZC_HELPER_DIR = "/usr/bin"
 

@@ -65,13 +65,13 @@ const TranslationMap kUTF8JapaneseMap[] = {
     {"Traditional kanji (Kyūjitai)", "伝統漢字（旧字体）"},
     {"Odoriji (iteration marks)", "踊り字（繰り返し記号）"},
     {"Privacy mode", "プライバシーモード"},
-#ifdef MARINAMOZC
+#ifdef MARINAMOJI
     {"About marinaMoji", "marinaMoji について"},
 #elif defined(GOOGLE_JAPANESE_INPUT_BUILD)
     {"About Mozc", "Google 日本語入力について"},
 #else   // GOOGLE_JAPANESE_INPUT_BUILD
     {"About Mozc", "Mozc について"},
-#endif  // MARINAMOZC / GOOGLE_JAPANESE_INPUT_BUILD
+#endif  // MARINAMOJI / GOOGLE_JAPANESE_INPUT_BUILD
 };
 
 }  // namespace

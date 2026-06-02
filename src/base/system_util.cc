@@ -308,13 +308,14 @@ std::string UserProfileDirectoryImpl::GetUserProfileDirectory() const {
     ::mkdir(dir.c_str(), 0755);
     return FileUtil::JoinPath(dir, "JapaneseInput");
 #else   //  GOOGLE_JAPANESE_INPUT_BUILD
-    return FileUtil::JoinPath(dir, "Mozc");
+    return FileUtil::JoinPath(dir, kProductPrefix);
 #endif  //  GOOGLE_JAPANESE_INPUT_BUILD
 
 #elif defined(__linux__)
-    // marinaMozc uses a separate config dir so it doesn't share with stock Mozc.
-#ifdef MARINAMOZC
-    const char* profile_dir_name = "marinamozc";
+    // marinaMoji uses a separate config dir so it doesn't share with stock Mozc.
+#ifdef MARINAMOJI
+    const char* profile_dir_name = "marinamoji";
+    constexpr const char* kLegacyProfileDirName = "marinamoji";
 #else
     const char* profile_dir_name = "mozc";
 #endif
@@ -324,6 +325,29 @@ std::string UserProfileDirectoryImpl::GetUserProfileDirectory() const {
     // 3. Otherwise use "$HOME/.config/<profile_dir_name>"
     // https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
     const std::string home = Environ::GetEnv("HOME");
+#ifdef MARINAMOJI
+    if (!home.empty()) {
+      const std::string legacy_dot =
+          FileUtil::JoinPath(home, std::string(".") + kLegacyProfileDirName);
+      if (FileUtil::DirectoryExists(legacy_dot).ok()) {
+        return legacy_dot;
+      }
+      const std::string xdg_config_home = Environ::GetEnv("XDG_CONFIG_HOME");
+      if (!xdg_config_home.empty()) {
+        const std::string legacy_xdg =
+            FileUtil::JoinPath(xdg_config_home, kLegacyProfileDirName);
+        if (FileUtil::DirectoryExists(legacy_xdg).ok()) {
+          return legacy_xdg;
+        }
+      } else {
+        const std::string legacy_config = FileUtil::JoinPath(
+            home, std::string(".config/") + kLegacyProfileDirName);
+        if (FileUtil::DirectoryExists(legacy_config).ok()) {
+          return legacy_config;
+        }
+      }
+    }
+#endif  // MARINAMOJI
     if (home.empty()) {
       char buf[1024];
       struct passwd pw, *ppw;

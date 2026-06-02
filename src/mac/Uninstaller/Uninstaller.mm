@@ -33,6 +33,8 @@
 
 #import "DialogsController.h"
 
+#include "base/const.h"
+
 #include <string>
 
 #include "base/mac/mac_util.h"
@@ -81,10 +83,10 @@ bool DeleteFiles(const AuthorizationRef &auth) {
       "/Applications/GoogleJapaneseInput.localized", nullptr};
 #else   // GOOGLE_JAPANESE_INPUT_BUILD
   const char *kRemovePaths[] = {
-      "/Library/Input Methods/Mozc.app",
+      "/Library/Input Methods/" kProductPrefix ".app",
       "/Library/LaunchAgents/org.mozc.inputmethod.Japanese.Converter.plist",
-      "/Library/LaunchAgents/org.mozc.inputmethod.Japanese.Renderer.plist", "/Applications/Mozc",
-      nullptr};
+      "/Library/LaunchAgents/org.mozc.inputmethod.Japanese.Renderer.plist",
+      "/Applications/" kProductPrefix, nullptr};
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD
   for (int i = 0; kRemovePaths[i] != nullptr; ++i) {
     rmArgs[1] = kRemovePaths[i];

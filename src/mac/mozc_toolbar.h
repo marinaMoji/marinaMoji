@@ -1,7 +1,7 @@
 // Copyright 2010-2021, Google Inc.
 // All rights reserved.
 //
-// marinaMozc: macOS floating toolbar (mode indicator, shin/kyu, odoriji, dict,
+// marinaMoji: macOS floating toolbar (mode indicator, shin/kyu, odoriji, dict,
 // shortcuts).  Mirrors the Linux GTK toolbar API.
 
 #ifndef MOZC_MAC_MOZC_TOOLBAR_H_

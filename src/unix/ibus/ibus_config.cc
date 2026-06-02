@@ -177,8 +177,8 @@ ibus::Engine::CompositionMode IbusConfig::GetCompositionMode(
   for (const ibus::Engine& engine : config_.engines()) {
     if (engine.name() == engine_name) {
       ibus::Engine::CompositionMode mode = engine.composition_mode();
-#ifdef MARINAMOZC
-      // marinaMozc: default to Hiragana when not set (e.g. old config file).
+#ifdef MARINAMOJI
+      // marinaMoji: default to Hiragana when not set (e.g. old config file).
       if (mode == ibus::Engine::NONE) {
         return ibus::Engine::HIRAGANA;
       }
@@ -190,8 +190,8 @@ ibus::Engine::CompositionMode IbusConfig::GetCompositionMode(
 }
 
 bool IbusConfig::IsActiveOnLaunch() const {
-#ifdef MARINAMOZC
-  // marinaMozc: always start in Hiragana (IME on).
+#ifdef MARINAMOJI
+  // marinaMoji: always start in Hiragana (IME on).
   return true;
 #else
   if (config_.has_active_on_launch()) {

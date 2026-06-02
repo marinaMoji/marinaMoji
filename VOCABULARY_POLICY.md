@@ -51,7 +51,7 @@ Japanese language models and vocabularies (dictionary data).
 This repository is a **fork** of Mozc for the marinaMoji input method. It
 maintains its own supplementary dictionary in
 [`src/data/dictionary_manual/`](src/data/dictionary_manual/) (for example
-product names such as **marinaMoji** and **marinaMozc**). Those entries are
+product names such as **marinaMoji** and **marinaMoji**). Those entries are
 added deliberately for this project; they are not submitted through Google's
 upstream vocabulary feedback forms above.
 
@@ -97,7 +97,7 @@ Mozc プロジェクトでは、日本語の言語モデルおよび語彙集合
 
 本リポジトリは marinaMoji 入力メソッド向けの **Mozc フォーク** です。
 [`src/data/dictionary_manual/`](src/data/dictionary_manual/) に、本プロジェクト用の
-補足辞書（**marinaMoji** や **marinaMozc** などの製品名など）を意図的に収録しています。
+補足辞書（**marinaMoji** や **marinaMoji** などの製品名など）を意図的に収録しています。
 これらは上記の Mozc 本家向け専用フォームではなく、フォーク内で管理します。
 
 **本フォーク** の変換に関するフィードバックは、本リポジトリの Issue 等をご利用ください

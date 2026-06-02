@@ -341,6 +341,7 @@ mozc_objc_library(
         "InstallerPlugins",
     ],
     tags = ["manual"],
+    deps = ["//base:const"],
 )
 
 mozc_macos_bundle(
@@ -404,6 +405,7 @@ mozc_objc_library(
     ],
     tags = ["manual"],
     deps = [
+        "//base:const",
         "//base:init_mozc",
         "//base:url",
         "//base:version",
@@ -417,7 +419,7 @@ mozc_macos_application(
     bundle_name = "Uninstall" +
                   mozc_select(
                       default = "GoogleJapaneseInput",
-                      oss = "Mozc",
+                      oss = BRANDING,
                       prod = "GoogleJapaneseInput",
                   ),
     infoplists = ["Uninstaller/Info.plist"],
@@ -537,7 +539,7 @@ genrule(
           " --output $@" +
           mozc_select(
               default = " --noqt",
-              oss_macos = " --oss",
+              oss_macos = " --oss --branding " + BRANDING,
               prod_macos = "",
           ) +
           ' --codesign_identity "' + CODESIGN_IDENTITY_SELECT + '"' +
@@ -578,14 +580,14 @@ mozc_py_binary(
 genrule(
     name = "package",
     srcs = [":package_files"],
-    outs = ["Mozc.pkg"],
+    outs = [BRANDING + ".pkg"],
     cmd = "$(location :build_package) --input $(location :package_files)" +
           " --output $@" +
           ' --codesign_identity "' + CODESIGN_IDENTITY_INSTALLER_SELECT + '"' +
           ' --keychain "' + KEYCHAIN_INSTALLER_SELECT + '"' +
           mozc_select(
               default = "",
-              oss = " --oss",
+              oss = " --oss --branding " + BRANDING,
               prod = "",
           ),
     exec_compatible_with = ["@platforms//os:macos"],
@@ -605,7 +607,7 @@ genrule(
         ":keystone_install",
         ":package",
     ],
-    outs = ["Mozc.dmg"],
+    outs = [BRANDING + ".dmg"],
     cmd = " ".join([
         "$(location //build_tools:build_diskimage_mac)",
         "--output $@",
@@ -614,7 +616,7 @@ genrule(
     ]) +
     # mozc_select cannot be in join, as it's treated as a function rather than a string.
     mozc_select(
-        default = " --volname Mozc",
+        default = " --volname " + BRANDING,
         prod = " --volname GoogleJapaneseInput",
     ),
     exec_compatible_with = ["@platforms//os:macos"],
@@ -627,7 +629,7 @@ genrule(
 genrule(
     name = "diskimage_signed",
     srcs = [":diskimage"],
-    outs = ["Mozc_signed.dmg"],
+    outs = [BRANDING + "_signed.dmg"],
     cmd = " ".join([
         "cp $(location :diskimage) $@ &&",
         "chmod u+w $@ &&",
@@ -639,7 +641,7 @@ genrule(
     ]) +
     # mozc_select cannot be in join, as it's treated as a function rather than a string.
     mozc_select(
-        default = " --identifier Mozc",
+        default = " --identifier " + BRANDING,
         prod = " --identifier GoogleJapaneseInput",
     ) + ' --sign "' + CODESIGN_IDENTITY_SELECT + '"' + " $@",
     exec_compatible_with = ["@platforms//os:macos"],

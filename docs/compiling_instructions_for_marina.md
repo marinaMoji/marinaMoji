@@ -1,6 +1,6 @@
-# Compiling marinaMozc on Ubuntu
+# Compiling marinaMoji on Ubuntu
 
-This guide is for building **marinaMozc** (this Mozc fork) from source on **Ubuntu**. It covers the packages you need, how to install Bazelisk, how to compile, and how to install the result.
+This guide is for building **marinaMoji** (this Mozc fork) from source on **Ubuntu**. It covers the packages you need, how to install Bazelisk, how to compile, and how to install the result.
 
 ---
 
@@ -34,7 +34,7 @@ sudo apt install -y \
 | `openjdk-17-jdk` | Java JDK required by Bazel. If the build complains about “javabase”, set `JAVA_HOME` (see Troubleshooting). |
 | `libibus-1.0-dev` | IBus input method framework (glib, gobject, ibus headers/libs). |
 | `qt6-base-dev` | Qt6 (core, gui, widgets) for the config dialog and candidate window. |
-| `libgtk-3-dev` | GTK3 for the marinaMozc floating toolbar. |
+| `libgtk-3-dev` | GTK3 for the marinaMoji floating toolbar. |
 | `librsvg2-dev` | Renders SVG icons in the toolbar. |
 | `libopencc-dev` | **Optional but recommended.** Enables the Shin/Kyū (traditional vs modern kanji) conversion. Without it, the build still succeeds but that feature has no effect. |
 
@@ -88,18 +88,18 @@ Ensure `$GOPATH/bin` or `$HOME/go/bin` is in your `PATH`, then use `bazelisk` as
 
 ### 3.1 Clone the repository (with submodules)
 
-Use the **marinaMozc** fork URL (replace with the actual repo URL if different):
+Use the **marinaMoji** fork URL (replace with the actual repo URL if different):
 
 ```bash
-git clone https://github.com/YOUR_ORG_OR_USER/mozc.git marinaMozc --recursive
-cd marinaMozc/src
+git clone https://github.com/marinaMoji/marinaMoji.git --recursive
+cd marinaMoji/src
 ```
 
 The `--recursive` option is required; the build depends on submodules.
 
 ### 3.2 Build the package
 
-From the **`marinaMozc/src`** directory (not the repo root), run:
+From the **`marinaMoji/src`** directory (not the repo root), run:
 
 ```bash
 bazelisk build package --config oss_linux --config release_build
@@ -111,23 +111,23 @@ The first run can take a long time (tens of minutes) while dependencies are down
 
 ---
 
-## 4. Install and use marinaMozc
+## 4. Install and use marinaMoji
 
 ### 4.1 Install the built files
 
-From the **`marinaMozc/src`** directory:
+From the **`marinaMoji/src`** directory:
 
 ```bash
 sudo unzip -o bazel-bin/unix/mozc.zip -d /
 ```
 
-This unpacks the engine, server, icons, and IBus component into system directories (e.g. `/usr/lib/marinamozc/`, `/usr/lib/ibus-marinamozc/`, `/usr/share/ibus/component/marinamozc.xml`).
+This unpacks the engine, server, icons, and IBus component into system directories (e.g. `/usr/lib/marinamoji/`, `/usr/lib/ibus-marinamoji/`, `/usr/share/ibus/component/marinamoji.xml`).
 
 ### 4.2 Verify installation
 
 ```bash
-test -f /usr/share/ibus/component/marinamozc.xml && echo "Component OK"
-test -x /usr/lib/ibus-marinamozc/ibus-engine-marinamozc && echo "Engine OK"
+test -f /usr/share/ibus/component/marinamoji.xml && echo "Component OK"
+test -x /usr/lib/ibus-marinamoji/ibus-engine-marinamoji && echo "Engine OK"
 ```
 
 Both lines should print “OK”.
@@ -143,10 +143,10 @@ ibus restart
 
 If you use a full desktop session, logging out and back in is an alternative.
 
-### 4.4 Add marinaMozc as an input method
+### 4.4 Add marinaMoji as an input method
 
-- **GNOME:** **Settings → Keyboard → Input Sources → Add (+)** → choose **Japanese** → select **marinaMozc** (or “marinaMozc (Japanese Input Method)”).
-- **Other (IBus):** In your input method settings, add the engine named **marinaMozc** / **Japanese (marinaMozc)**.
+- **GNOME:** **Settings → Keyboard → Input Sources → Add (+)** → choose **Japanese** → select **marinaMoji** (or “marinaMoji (Japanese Input Method)”).
+- **Other (IBus):** In your input method settings, add the engine named **marinaMoji** / **Japanese (marinaMoji)**.
 
 If it does not appear, make sure `ibus-daemon` is running and check for errors when opening input settings or running `ibus engine`.
 
@@ -154,7 +154,7 @@ If it does not appear, make sure `ibus-daemon` is running and check for errors w
 
 ## 5. Candidate window (IBus vs Mozc)
 
-By default, marinaMozc uses the **IBus** candidate window (equivalent to `MOZC_IBUS_CANDIDATE_WINDOW=ibus`). The Mozc candidate window offers more detail but can have positioning issues on some setups.
+By default, marinaMoji uses the **IBus** candidate window (equivalent to `MOZC_IBUS_CANDIDATE_WINDOW=ibus`). The Mozc candidate window offers more detail but can have positioning issues on some setups.
 
 You can change this in **Properties → Misc → Candidate window** (dropdown: IBus / Mozc). The choice is stored in `~/.config/mozc/ibus_config.textproto` and applies after switching input method away and back, or restarting IBus.
 
@@ -190,7 +190,7 @@ Install a JDK (e.g. `openjdk-17-jdk` as above), then point Bazel to it, for exam
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ```
 
-Adjust the path to match your system (`/usr/lib/jvm/` and `ls` there to see the exact name). Then run the build again from `marinaMozc/src`.
+Adjust the path to match your system (`/usr/lib/jvm/` and `ls` there to see the exact name). Then run the build again from `marinaMoji/src`.
 
 ### “required_aspect_providers, got element of type NoneType” (rules_swift)
 
@@ -201,18 +201,18 @@ Use **bazelisk** (not the system `bazel`) and run it from the **`src`** director
 Try cleaning Bazel’s cache and rebuilding:
 
 ```bash
-cd marinaMozc/src
+cd marinaMoji/src
 bazelisk clean --expunge
 bazelisk build package --config oss_linux --config release_build
 ```
 
-### marinaMozc does not appear in the input method list
+### marinaMoji does not appear in the input method list
 
 - Run `ibus write-cache` and `ibus restart` again.
 - Confirm the component file exists:  
-  `ls -l /usr/share/ibus/component/marinamozc.xml`
+  `ls -l /usr/share/ibus/component/marinamoji.xml`
 - Check that the engine is executable:  
-  `ls -l /usr/lib/ibus-marinamozc/ibus-engine-marinamozc`
+  `ls -l /usr/lib/ibus-marinamoji/ibus-engine-marinamoji`
 
 ---
 
@@ -220,10 +220,10 @@ bazelisk build package --config oss_linux --config release_build
 
 1. **Packages:** `git`, `unzip`, `zip`, `openjdk-17-jdk`, `libibus-1.0-dev`, `qt6-base-dev`, `libgtk-3-dev`, `librsvg2-dev`, and (optional) `libopencc-dev`.
 2. **Bazelisk:** Download the Linux binary from GitHub, put it in `PATH` as `bazelisk`, and run `bazelisk version`.
-3. **Clone:** `git clone ... marinaMozc --recursive` and `cd marinaMozc/src`.
+3. **Clone:** `git clone ... marinaMoji --recursive` and `cd marinaMoji/src`.
 4. **Build:** `bazelisk build package --config oss_linux --config release_build`.
 5. **Install:** `sudo unzip -o bazel-bin/unix/mozc.zip -d /`.
 6. **Reload:** `ibus write-cache` and `ibus restart`.
-7. **Add input method:** In Settings, add **Japanese → marinaMozc**.
+7. **Add input method:** In Settings, add **Japanese → marinaMoji**.
 
-Config is stored under `~/.config/marinamozc/` and is separate from stock Mozc, so you can install marinaMozc alongside it for testing.
+Config is stored under `~/.config/marinamoji/` and is separate from stock Mozc, so you can install marinaMoji alongside it for testing.

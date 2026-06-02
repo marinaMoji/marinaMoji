@@ -90,7 +90,7 @@ def main():
   if options.branding == 'GoogleJapaneseInput':
     domain_prefix = 'com.google'
     product_name = 'Google Japanese Input'
-  elif options.branding == 'marinaMozc':
+  elif options.branding == 'marinaMoji':
     domain_prefix = 'org.mozc'
     product_name = 'marinaMoji'
   else:

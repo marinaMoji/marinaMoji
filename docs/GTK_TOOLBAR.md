@@ -1,4 +1,4 @@
-# marinaMozc GTK Toolbar
+# marinaMoji GTK Toolbar
 
 Floating GTK toolbar in **marinaMoji style**: white (or dark) rounded panel, **bottom-right** of the primary monitor where possible, **draggable** by clicking on the background (not on buttons). It avoids grabbing focus to reduce flashing/vibration.
 
@@ -23,7 +23,7 @@ The toolbar is shown when the engine has focus and hidden on focus loss. State i
 
 ## Build
 
-On Linux the toolbar is **enabled by default**: `ibus_mozc_lib` is built with `MOZC_HAVE_GTK_TOOLBAR` and links GTK3 and librsvg-2. Install GTK3 and librsvg development packages (e.g. `libgtk-3-dev`, `librsvg-2-dev`). Toolbar SVG icons in `src/unix/ibus/toolbar_icons/*.svg` are included and installed to the IBus icon dir (e.g. `/usr/share/ibus-marinamozc/`). Icons fall back to text labels if loading fails.
+On Linux the toolbar is **enabled by default**: `ibus_mozc_lib` is built with `MOZC_HAVE_GTK_TOOLBAR` and links GTK3 and librsvg-2. Install GTK3 and librsvg development packages (e.g. `libgtk-3-dev`, `librsvg-2-dev`). Toolbar SVG icons in `src/unix/ibus/toolbar_icons/*.svg` are included and installed to the IBus icon dir (e.g. `/usr/share/ibus-marinamoji/`). Icons fall back to text labels if loading fails.
 
 ### Optional: Wayland layer-shell
 

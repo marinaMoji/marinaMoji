@@ -1,5 +1,7 @@
 # How to build Mozc on macOS
 
+> **marinaMoji fork:** Use `--config oss_macos`, build outputs are `marinaMoji.app` and `bazel-bin/mac/marinaMoji.pkg`. See [MACOS_PORT_PLAN.md](./MACOS_PORT_PLAN.md) for install and LaunchAgent details.
+
 <!-- disableFinding(LINK_RELATIVE_G3DOC) -->
 
 [![macOS](https://github.com/google/mozc/actions/workflows/macos.yaml/badge.svg)](https://github.com/google/mozc/actions/workflows/macos.yaml)
@@ -207,9 +209,9 @@ https://github.com/google/mozc/blob/3.33.6089/docs/build_mozc_in_osx.md#build-wi
 
 --------------------------------------------------------------------------------
 
-## marinaMozc feature notes
+## marinaMoji feature notes
 
-For marinaMozc-specific macOS behavior and toolbar features (including odoriji, symbols palette, and custom symbol settings), see:
+For marinaMoji-specific macOS behavior and toolbar features (including odoriji, symbols palette, and custom symbol settings), see:
 
 - [MACOS_PORT_PLAN.md](MACOS_PORT_PLAN.md)
 - [SYMBOLS_PALETTE.md](SYMBOLS_PALETTE.md)

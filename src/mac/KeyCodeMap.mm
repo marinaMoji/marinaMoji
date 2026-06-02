@@ -154,7 +154,7 @@ static const unichar kYenMark = 0xA5;
   nsModifiers &= (~NSEventModifierFlagCapsLock & NSEventModifierFlagDeviceIndependentFlagsMask);
   const unsigned short keyCode = [event keyCode];
 
-  // marinaMozc: map Ctrl+Shift+number-row *physical* keys to US digit codes so
+  // marinaMoji: map Ctrl+Shift+number-row *physical* keys to US digit codes so
   // shortcuts work on Dvorak, AZERTY, and custom layouts (dvorak-dpm, etc.).
   // Must run before the empty-|characters| check: Ctrl+Shift+digits often have
   // no printable |characters| on non-QWERTY layouts (that was causing beeps).

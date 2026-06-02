@@ -40,6 +40,43 @@
 
 namespace mozc {
 namespace ibus {
+namespace {
+
+constexpr char kIbusConfigSubdir[] = "marinamoji";
+constexpr char kLegacyIbusConfigSubdir[] = "marinamoji";
+
+std::string JoinIbusConfigDir(const std::string& base, const char* subdir) {
+  return FileUtil::JoinPath(FileUtil::JoinPath(base, "ibus"), subdir);
+}
+
+std::string ResolveIbusUserConfigDir(const std::string& home,
+                                     const std::string& xdg_config_home) {
+  if (!xdg_config_home.empty()) {
+    const std::string primary = JoinIbusConfigDir(xdg_config_home, kIbusConfigSubdir);
+    if (FileUtil::DirectoryExists(primary).ok()) {
+      return primary;
+    }
+    const std::string legacy =
+        JoinIbusConfigDir(xdg_config_home, kLegacyIbusConfigSubdir);
+    if (FileUtil::DirectoryExists(legacy).ok()) {
+      return legacy;
+    }
+    return primary;
+  }
+  const std::string primary =
+      JoinIbusConfigDir(FileUtil::JoinPath(home, ".config"), kIbusConfigSubdir);
+  if (FileUtil::DirectoryExists(primary).ok()) {
+    return primary;
+  }
+  const std::string legacy =
+      JoinIbusConfigDir(FileUtil::JoinPath(home, ".config"), kLegacyIbusConfigSubdir);
+  if (FileUtil::DirectoryExists(legacy).ok()) {
+    return legacy;
+  }
+  return primary;
+}
+
+}  // namespace
 
 std::string GetIconPath(const std::string& icon_file) {
   return std::string(MOZC_IBUS_INSTALL_DIR) + "/" + icon_file;
@@ -47,15 +84,12 @@ std::string GetIconPath(const std::string& icon_file) {
 
 std::string GetUserDataDirectory() {
   const std::string xdg_config_home = Environ::GetEnv("XDG_CONFIG_HOME");
-  if (!xdg_config_home.empty()) {
-    return FileUtil::JoinPath(
-        FileUtil::JoinPath(xdg_config_home, "ibus"), "marinamozc");
-  }
   const std::string home = Environ::GetEnv("HOME");
+  if (!xdg_config_home.empty()) {
+    return ResolveIbusUserConfigDir(home, xdg_config_home);
+  }
   if (!home.empty()) {
-    return FileUtil::JoinPath(
-        FileUtil::JoinPath(FileUtil::JoinPath(home, ".config"), "ibus"),
-        "marinamozc");
+    return ResolveIbusUserConfigDir(home, "");
   }
   return "";
 }
