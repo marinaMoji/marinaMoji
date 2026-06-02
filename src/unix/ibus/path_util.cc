@@ -31,6 +31,9 @@
 
 #include <string>
 
+#include "base/environ.h"
+#include "base/file_util.h"
+
 #ifndef MOZC_IBUS_INSTALL_DIR
 #define MOZC_IBUS_INSTALL_DIR "/usr/share/ibus-mozc"
 #endif  // MOZC_IBUS_INSTALL_DIR
@@ -40,6 +43,21 @@ namespace ibus {
 
 std::string GetIconPath(const std::string& icon_file) {
   return std::string(MOZC_IBUS_INSTALL_DIR) + "/" + icon_file;
+}
+
+std::string GetUserDataDirectory() {
+  const std::string xdg_config_home = Environ::GetEnv("XDG_CONFIG_HOME");
+  if (!xdg_config_home.empty()) {
+    return FileUtil::JoinPath(
+        FileUtil::JoinPath(xdg_config_home, "ibus"), "marinamozc");
+  }
+  const std::string home = Environ::GetEnv("HOME");
+  if (!home.empty()) {
+    return FileUtil::JoinPath(
+        FileUtil::JoinPath(FileUtil::JoinPath(home, ".config"), "ibus"),
+        "marinamozc");
+  }
+  return "";
 }
 
 }  // namespace ibus

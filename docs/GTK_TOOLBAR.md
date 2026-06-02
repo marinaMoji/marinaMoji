@@ -11,8 +11,7 @@ Floating GTK toolbar in **marinaMoji style**: white (or dark) rounded panel, **b
   - **Wayland without layer-shell** (e.g. GNOME): Bottom-right via `MoveToBottomRight()` in `configure-event` or `map-event`, same as marinaMoji. User can drag; position is restored on next show (window is reused).
 - **Schema (input mode)** – Label: あ (Hiragana), ア (Katakana), 万 (Manyōshū), _A / Ａ (half/full ASCII), _ｱ (half Katakana), A (Direct).
 - **Shin/Kyū** – Toggle traditional (kyūjitai) / modern (shinjitai) kanji (same as Ctrl+Shift+F). Checked = traditional.
-- **Odoriji** – Opens the odoriji palette (same as Ctrl+Shift+2).
-- **Half/Full** – Toggles half-width / full-width. Keyboard shortcut depends on active keymap (do not assume Ctrl+Shift+3 on all layouts). Only active in ASCII modes; label shows "Half", "Full", or "Half/Full".
+- **Symbols** – Opens the tabbed Symbols palette (Odoriji / Kaeriten / Symbols / User). See [SYMBOLS_PALETTE.md](SYMBOLS_PALETTE.md). The dedicated Odoriji toolbar button was removed; odoriji are in the palette’s Odoriji tab.
 
 The toolbar is shown when the engine has focus and hidden on focus loss. State is updated from engine output after each command.
 
@@ -46,4 +45,4 @@ Without `gtk_layer_shell`, the toolbar uses the same strategy as marinaMoji on W
 ## Implementation
 
 - **`mozc_toolbar.{h,cc}`** – GTK **TOPLEVEL** window, type hint **UTILITY** (not shown in dock/taskbar), accept_focus/focus_on_map/can_focus false. Runtime detection: **IsWayland()** / **IsX11()**. **X11 and Wayland (no layer-shell)**: `configure-event` or `map-event` → `MoveToBottomRight()` once size is known; margin from workarea uses `kToolbarMargin`. **Wayland with layer-shell**: `SetupLayerShellBottomRight()` anchors bottom-right and sets `KEYBOARD_MODE_NONE`. Drag: `button-press` on non-button widgets calls `gtk_window_begin_move_drag`. Logo and icons from `GetIconPath()`; `MozcToolbarUpdate(output)` syncs schema, traditional-kanji, half/full.
-- **`mozc_engine.{h,cc}`** – `MozcToolbarShow(engine)`, `MozcToolbarHide()`, `MozcToolbarUpdate(output)`, `SendToolbarSessionCommand(type)`.
+- **`mozc_engine.{h,cc}`** – `MozcToolbarShow(engine)`, `MozcToolbarHide()`, `MozcToolbarUpdate(output)`, `SendToolbarSessionCommand(type, id)`, `CommitToolbarText(text)`.

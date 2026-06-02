@@ -231,6 +231,7 @@ mozc_cc_qt_library(
         linux = [
             "//base/protobuf:text_format",
             "//unix/ibus:ibus_config_cc_proto",
+            "//unix/ibus:ibus_utils",
         ],
         macos = [
             "//base/mac:mac_util",

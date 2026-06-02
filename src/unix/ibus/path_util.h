@@ -38,6 +38,10 @@ namespace ibus {
 // Returns the icon file path used by ibus_mozc.
 std::string GetIconPath(const std::string& icon_file);
 
+// Returns ~/.config/ibus/marinamozc (or $XDG_CONFIG_HOME/ibus/marinamozc).
+// Toolbar prefs, user_symbols.txt, and related IBus-side files live here.
+std::string GetUserDataDirectory();
+
 }  // namespace ibus
 }  // namespace mozc
 

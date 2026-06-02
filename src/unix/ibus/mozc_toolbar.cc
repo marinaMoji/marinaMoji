@@ -2,11 +2,12 @@
 // All rights reserved.
 //
 // marinaMozc: GTK toolbar (marinaMoji-style: white/rounded, draggable,
-// bottom-right, icon-only: logo, shin/kyū, odoriji).
+// bottom-right, icon-only: logo, shin/kyū, symbols).
 // Build with MOZC_HAVE_GTK_TOOLBAR and link GTK to enable.
 
 #include "unix/ibus/mozc_toolbar.h"
 
+#include "base/file_util.h"
 #include "unix/ibus/mozc_engine.h"
 #include "unix/ibus/path_util.h"
 #include "protocol/commands.pb.h"
@@ -23,6 +24,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <map>
+#include <set>
 #include <cstring>
 #include <fstream>
 #include <sstream>
@@ -54,7 +56,7 @@ GtkWidget* g_trail_cell = nullptr;
 GtkWidget* g_mode_indicator_cell = nullptr;
 GtkWidget* g_mode_indicator_image = nullptr;
 GtkWidget* g_trad_btn = nullptr;
-GtkWidget* g_odoriji_btn = nullptr;
+GtkWidget* g_symbols_btn = nullptr;
 GtkWidget* g_dict_cell = nullptr;
 GtkWidget* g_shortcuts_btn = nullptr;
 MozcEngine* g_engine = nullptr;
@@ -78,6 +80,7 @@ int g_drag_offset_y = 0;
 int g_window_x = 0;
 int g_window_y = 0;
 static unsigned g_drag_motion_count = 0;
+static bool g_symbols_palette_visible = false;
 
 // Theme: follow system light/dark (e.g. Linux Mint, GNOME, Cinnamon).
 static bool g_toolbar_dark_theme = false;
@@ -227,10 +230,10 @@ static void SetButtonIcon(GtkButton* btn, const char* svg_name) {
 
 static bool IsButtonWidget(GtkWidget* widget) {
   if (!widget) return false;
-  return (widget == g_trad_btn || widget == g_odoriji_btn ||
+  return (widget == g_trad_btn || widget == g_symbols_btn ||
           widget == g_dict_cell || widget == g_shortcuts_btn ||
           gtk_widget_is_ancestor(widget, g_trad_btn) ||
-          gtk_widget_is_ancestor(widget, g_odoriji_btn) ||
+          gtk_widget_is_ancestor(widget, g_symbols_btn) ||
           gtk_widget_is_ancestor(widget, g_dict_cell) ||
           gtk_widget_is_ancestor(widget, g_shortcuts_btn));
 }
@@ -453,6 +456,9 @@ static void RequestRaise(bool immediate) {
 
 static gboolean PendingHideTimeoutCb(gpointer /*data*/) {
   g_pending_hide_timeout_id = 0;
+  if (g_symbols_palette_visible) {
+    return G_SOURCE_REMOVE;
+  }
   if (g_toolbar_window) {
     ClearRaiseSource();
     if (g_reposition_timeout_id != 0) {
@@ -465,6 +471,9 @@ static gboolean PendingHideTimeoutCb(gpointer /*data*/) {
 }
 
 static gboolean HideIdleCb(gpointer /*data*/) {
+  if (g_symbols_palette_visible) {
+    return G_SOURCE_REMOVE;
+  }
   if (g_toolbar_window) {
     ClearRaiseSource();
     if (g_reposition_timeout_id != 0) {
@@ -480,6 +489,7 @@ static gboolean HideIdleCb(gpointer /*data*/) {
 static void EnsureToolbarCreated();  // defined below
 static void SetToolbarPosition(int x, int y);  // defined below
 static void RefreshToolbarTheme();  // defined below
+static void ShowSymbolsPalette();  // defined below
 
 static gboolean ShowIdleCb(gpointer data) {
   MozcEngine* engine = static_cast<MozcEngine*>(data);
@@ -693,8 +703,8 @@ static void EnsureToolbarCSS(bool dark) {
       "}"
       "#marinamozc-mode-indicator,"
       "#marinamozc-trad-btn, #marinamozc-trad-btn:hover, #marinamozc-trad-btn:active,"
-      "#marinamozc-odoriji-btn, #marinamozc-odoriji-btn:hover,"
-      "#marinamozc-odoriji-btn:active,"
+      "#marinamozc-symbols-btn, #marinamozc-symbols-btn:hover,"
+      "#marinamozc-symbols-btn:active,"
       "#marinamozc-dict-btn, #marinamozc-dict-btn:hover,"
       "#marinamozc-dict-btn:active,"
       "#marinamozc-shortcuts-btn, #marinamozc-shortcuts-btn:hover,"
@@ -734,9 +744,9 @@ static void RefreshToolbarTheme() {
                   use_trad ? (g_toolbar_dark_theme ? "toolbar_kyu_dark.svg" : "toolbar_kyu_light.svg")
                           : (g_toolbar_dark_theme ? "toolbar_shin_dark.svg" : "toolbar_shin_light.svg"));
   }
-  if (g_odoriji_btn) {
-    SetButtonIcon(GTK_BUTTON(g_odoriji_btn),
-                  g_toolbar_dark_theme ? "toolbar_marks_dark.svg" : "toolbar_marks_light.svg");
+  if (g_symbols_btn) {
+    SetButtonIcon(GTK_BUTTON(g_symbols_btn),
+                  g_toolbar_dark_theme ? "toolbar_symbols_dark.svg" : "toolbar_symbols_light.svg");
   }
   if (g_dict_cell) {
     GList* children = gtk_container_get_children(GTK_CONTAINER(g_dict_cell));
@@ -772,7 +782,7 @@ static void RegisterToolbarThemeObserver() {
                                             G_CALLBACK(OnThemeChanged), nullptr);
 }
 
-// Shin/kyū: regular button (like odoriji); icon is updated from output, not toggle state.
+// Shin/kyū: regular button; icon is updated from output, not toggle state.
 void OnTradClicked(GtkWidget* /*widget*/, gpointer /*data*/) {
   if (g_engine) {
     g_engine->SendToolbarSessionCommand(
@@ -780,11 +790,8 @@ void OnTradClicked(GtkWidget* /*widget*/, gpointer /*data*/) {
   }
 }
 
-void OnOdorijiClicked(GtkWidget* /*widget*/, gpointer /*data*/) {
-  if (g_engine) {
-    g_engine->SendToolbarSessionCommand(
-        commands::SessionCommand::SHOW_ODORIJI_PALETTE);
-  }
+void OnSymbolsClicked(GtkWidget* /*widget*/, gpointer /*data*/) {
+  ShowSymbolsPalette();
 }
 
 // Left click = Add Word, right click = Dictionary tool.
@@ -1018,6 +1025,263 @@ static void FillDefaultKaeritenShortcuts(std::vector<ShortcutEntry>* kaeriten) {
       {";,", "\xe3\x80\x81"},    // 、
   };
   for (const auto& p : kDefault) kaeriten->emplace_back(p.first, p.second);
+}
+
+static std::vector<std::string> BuildDefaultOdorijiSymbols() {
+  return {"々", "ゝ", "ゞ", "ヽ", "ヾ", "〻", "〱", "〲"};
+}
+
+static std::vector<std::string> BuildDefaultKaeritenSymbols() {
+  std::vector<ShortcutEntry> kaeriten_entries;
+  ParseKaeritenTsv(GetIconPath("kaeriten.tsv"), &kaeriten_entries);
+  FillDefaultKaeritenShortcuts(&kaeriten_entries);
+  std::vector<std::string> symbols;
+  std::set<std::string> seen;
+  for (const auto& entry : kaeriten_entries) {
+    if (!entry.second.empty() && seen.insert(entry.second).second) {
+      symbols.push_back(entry.second);
+    }
+  }
+  return symbols;
+}
+
+static std::vector<std::string> BuildDefaultGeneralSymbols() {
+  return {"〔", "〕", "［", "］", "【", "】", "〈", "〉", "《", "》", "（", "）",
+          "｛", "｝", "□", "■", "○", "△", "×", "※", "〓", "◆", "◇", "◎",
+          "▲", "▽", "…", "—"};
+}
+
+static std::string UserSymbolsFilePath() {
+  return FileUtil::JoinPath(ibus::GetUserDataDirectory(), "user_symbols.txt");
+}
+
+static std::vector<std::string> LoadUserSymbolsFromFile() {
+  std::vector<std::string> result;
+  std::ifstream ifs(UserSymbolsFilePath());
+  if (!ifs) return result;
+  std::string line;
+  while (std::getline(ifs, line)) {
+    if (!line.empty() && line.back() == '\r') {
+      line.pop_back();
+    }
+    if (!line.empty()) {
+      result.push_back(line);
+    }
+  }
+  return result;
+}
+
+struct SymbolButtonData {
+  bool is_odoriji = false;
+  int odoriji_index = 0;
+  std::string text;
+};
+
+static GtkWidget* g_symbols_window = nullptr;
+static GtkWidget* g_symbols_notebook = nullptr;
+static GtkWidget* g_symbols_pin_check = nullptr;
+
+constexpr int kSymbolsTabOdoriji = 0;
+constexpr int kSymbolsGridColumns = 8;
+
+static void SaveSymbolsPalettePref(const char* key, int value) {
+  gchar* path = GetToolbarConfigPath();
+  GKeyFile* keyfile = g_key_file_new();
+  GError* error = nullptr;
+  g_key_file_load_from_file(keyfile, path, G_KEY_FILE_NONE, &error);
+  if (error) g_error_free(error);
+  g_key_file_set_integer(keyfile, "ui", key, value);
+  gchar* dir = g_path_get_dirname(path);
+  if (g_mkdir_with_parents(dir, 0755) == 0) {
+    error = nullptr;
+    if (!g_key_file_save_to_file(keyfile, path, &error) && error) {
+      g_error_free(error);
+    }
+  }
+  g_free(dir);
+  g_free(path);
+  g_key_file_free(keyfile);
+}
+
+static int LoadSymbolsPalettePref(const char* key, int default_value) {
+  gchar* path = GetToolbarConfigPath();
+  GKeyFile* keyfile = g_key_file_new();
+  GError* error = nullptr;
+  gboolean loaded = g_key_file_load_from_file(keyfile, path, G_KEY_FILE_NONE, &error);
+  g_free(path);
+  if (!loaded) {
+    if (error) g_error_free(error);
+    g_key_file_free(keyfile);
+    return default_value;
+  }
+  error = nullptr;
+  int value = g_key_file_get_integer(keyfile, "ui", key, &error);
+  if (error) {
+    g_error_free(error);
+    value = default_value;
+  }
+  g_key_file_free(keyfile);
+  return value;
+}
+
+static void FreeSymbolButtonData(gpointer data) {
+  delete static_cast<SymbolButtonData*>(data);
+}
+
+static void OnSymbolButtonClicked(GtkButton* /*button*/, gpointer user_data) {
+  SymbolButtonData* data = static_cast<SymbolButtonData*>(user_data);
+  if (!data || !g_engine) return;
+  if (data->is_odoriji) {
+    g_engine->SendToolbarSessionCommand(
+        commands::SessionCommand::SHOW_ODORIJI_PALETTE);
+    g_engine->SendToolbarSessionCommand(
+        commands::SessionCommand::SUBMIT_CANDIDATE, data->odoriji_index);
+  } else {
+    g_engine->CommitToolbarText(data->text);
+  }
+  if (g_symbols_pin_check &&
+      !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_symbols_pin_check))) {
+    gtk_widget_hide(g_symbols_window);
+    g_symbols_palette_visible = false;
+  }
+}
+
+static GtkWidget* CreateSymbolsTabPage(const std::vector<std::string>& symbols,
+                                       const char* hint, bool is_odoriji) {
+  GtkWidget* outer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+  gtk_container_set_border_width(GTK_CONTAINER(outer), 8);
+  if (hint && hint[0] != '\0') {
+    GtkWidget* hint_label = gtk_label_new(hint);
+    gtk_label_set_line_wrap(GTK_LABEL(hint_label), TRUE);
+    gtk_label_set_xalign(GTK_LABEL(hint_label), 0.0f);
+    gtk_box_pack_start(GTK_BOX(outer), hint_label, FALSE, FALSE, 0);
+  }
+  GtkWidget* scroll = gtk_scrolled_window_new(nullptr, nullptr);
+  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER,
+                                 GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll), 260);
+  GtkWidget* grid = gtk_grid_new();
+  gtk_grid_set_row_spacing(GTK_GRID(grid), 6);
+  gtk_grid_set_column_spacing(GTK_GRID(grid), 6);
+  int col = 0;
+  int row = 0;
+  int odoriji_index = 0;
+  for (const std::string& symbol : symbols) {
+    if (symbol.empty()) continue;
+    GtkWidget* btn = gtk_button_new_with_label(symbol.c_str());
+    gtk_widget_set_size_request(btn, 40, 32);
+    auto* data = new SymbolButtonData();
+    data->is_odoriji = is_odoriji;
+    data->odoriji_index = odoriji_index;
+    data->text = symbol;
+    g_object_set_data_full(G_OBJECT(btn), "symbol-button-data", data,
+                           FreeSymbolButtonData);
+    g_signal_connect(btn, "clicked", G_CALLBACK(OnSymbolButtonClicked), data);
+    gtk_grid_attach(GTK_GRID(grid), btn, col, row, 1, 1);
+    col++;
+    if (col >= kSymbolsGridColumns) {
+      col = 0;
+      row++;
+    }
+    if (is_odoriji) {
+      odoriji_index++;
+    }
+  }
+  gtk_container_add(GTK_CONTAINER(scroll), grid);
+  gtk_box_pack_start(GTK_BOX(outer), scroll, TRUE, TRUE, 0);
+  return outer;
+}
+
+static void OnSymbolsPinToggled(GtkToggleButton* /*button*/, gpointer /*data*/) {
+  if (!g_symbols_pin_check) return;
+  SaveSymbolsPalettePref(
+      "symbols_palette_pinned",
+      gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_symbols_pin_check)) ? 1
+                                                                          : 0);
+}
+
+static void OnSymbolsNotebookSwitch(GtkNotebook* /*notebook*/, GtkWidget* /*page*/,
+                                    guint page_num, gpointer /*data*/) {
+  SaveSymbolsPalettePref("symbols_palette_last_tab",
+                           static_cast<int>(page_num));
+}
+
+static void OnSymbolsWindowDestroy(GtkWidget* /*widget*/, gpointer /*data*/) {
+  g_symbols_window = nullptr;
+  g_symbols_notebook = nullptr;
+  g_symbols_pin_check = nullptr;
+  g_symbols_palette_visible = false;
+}
+
+static void ShowSymbolsPalette() {
+  CancelPendingHide();
+  if (g_symbols_window) {
+    gtk_window_present(GTK_WINDOW(g_symbols_window));
+    g_symbols_palette_visible = true;
+    return;
+  }
+
+  g_symbols_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title(GTK_WINDOW(g_symbols_window), "Symbols Palette");
+  gtk_window_set_resizable(GTK_WINDOW(g_symbols_window), TRUE);
+  gtk_window_set_default_size(GTK_WINDOW(g_symbols_window), 520, 380);
+  gtk_window_set_position(GTK_WINDOW(g_symbols_window), GTK_WIN_POS_CENTER);
+  gtk_window_set_keep_above(GTK_WINDOW(g_symbols_window), TRUE);
+  gtk_window_set_skip_taskbar_hint(GTK_WINDOW(g_symbols_window), TRUE);
+
+  GtkWidget* content = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+  gtk_container_set_border_width(GTK_CONTAINER(content), 8);
+  gtk_container_add(GTK_CONTAINER(g_symbols_window), content);
+
+  g_symbols_notebook = gtk_notebook_new();
+  gtk_box_pack_start(GTK_BOX(content), g_symbols_notebook, TRUE, TRUE, 0);
+
+  const char* odoriji_hint =
+      "Clicking an odoriji inserts it and sets it as your default (same as the "
+      "main Odoriji palette). Shortcuts are available in your keymap "
+      "(Ctrl+Shift+1/2 on common layouts).";
+  GtkWidget* odoriji_page =
+      CreateSymbolsTabPage(BuildDefaultOdorijiSymbols(), odoriji_hint, true);
+  gtk_notebook_append_page(GTK_NOTEBOOK(g_symbols_notebook), odoriji_page,
+                           gtk_label_new("Odoriji"));
+
+  GtkWidget* kaeriten_page = CreateSymbolsTabPage(
+      BuildDefaultKaeritenSymbols(),
+      "Shortcuts are available in your keymap.", false);
+  gtk_notebook_append_page(GTK_NOTEBOOK(g_symbols_notebook), kaeriten_page,
+                           gtk_label_new("Kaeriten"));
+
+  GtkWidget* symbols_page =
+      CreateSymbolsTabPage(BuildDefaultGeneralSymbols(), nullptr, false);
+  gtk_notebook_append_page(GTK_NOTEBOOK(g_symbols_notebook), symbols_page,
+                           gtk_label_new("Symbols"));
+
+  GtkWidget* user_page = CreateSymbolsTabPage(
+      LoadUserSymbolsFromFile(), "Edit user symbols in Preferences.", false);
+  gtk_notebook_append_page(GTK_NOTEBOOK(g_symbols_notebook), user_page,
+                           gtk_label_new("User"));
+
+  int last_tab = LoadSymbolsPalettePref("symbols_palette_last_tab", kSymbolsTabOdoriji);
+  if (last_tab < 0 || last_tab >= 4) {
+    last_tab = kSymbolsTabOdoriji;
+  }
+  gtk_notebook_set_current_page(GTK_NOTEBOOK(g_symbols_notebook), last_tab);
+
+  g_symbols_pin_check = gtk_check_button_new_with_label("Pin palette");
+  gtk_toggle_button_set_active(
+      GTK_TOGGLE_BUTTON(g_symbols_pin_check),
+      LoadSymbolsPalettePref("symbols_palette_pinned", 0) != 0);
+  g_signal_connect(g_symbols_pin_check, "toggled", G_CALLBACK(OnSymbolsPinToggled),
+                   nullptr);
+  gtk_box_pack_start(GTK_BOX(content), g_symbols_pin_check, FALSE, FALSE, 0);
+
+  g_signal_connect(g_symbols_notebook, "switch-page",
+                   G_CALLBACK(OnSymbolsNotebookSwitch), nullptr);
+  g_signal_connect(g_symbols_window, "destroy", G_CALLBACK(OnSymbolsWindowDestroy),
+                   nullptr);
+
+  gtk_widget_show_all(g_symbols_window);
+  g_symbols_palette_visible = true;
 }
 
 static GtkWidget* g_shortcuts_window = nullptr;
@@ -1361,17 +1625,17 @@ void EnsureToolbarCreated() {
   g_signal_connect(g_trad_btn, "clicked", G_CALLBACK(OnTradClicked), nullptr);
   gtk_box_pack_start(GTK_BOX(g_toolbar_box), g_trad_btn, FALSE, FALSE, 0);
 
-  g_odoriji_btn = gtk_button_new();
-  gtk_button_set_relief(GTK_BUTTON(g_odoriji_btn), GTK_RELIEF_NONE);
-  gtk_widget_set_focus_on_click(g_odoriji_btn, FALSE);
-  gtk_widget_set_can_focus(g_odoriji_btn, FALSE);
-  gtk_widget_set_size_request(g_odoriji_btn, 32, 32);
-  gtk_widget_set_name(g_odoriji_btn, "marinamozc-odoriji-btn");
-  gtk_button_set_label(GTK_BUTTON(g_odoriji_btn), "");
-  SetButtonIcon(GTK_BUTTON(g_odoriji_btn),
-                g_toolbar_dark_theme ? "toolbar_marks_dark.svg" : "toolbar_marks_light.svg");
-  g_signal_connect(g_odoriji_btn, "clicked", G_CALLBACK(OnOdorijiClicked), nullptr);
-  gtk_box_pack_start(GTK_BOX(g_toolbar_box), g_odoriji_btn, FALSE, FALSE, 0);
+  g_symbols_btn = gtk_button_new();
+  gtk_button_set_relief(GTK_BUTTON(g_symbols_btn), GTK_RELIEF_NONE);
+  gtk_widget_set_focus_on_click(g_symbols_btn, FALSE);
+  gtk_widget_set_can_focus(g_symbols_btn, FALSE);
+  gtk_widget_set_size_request(g_symbols_btn, 32, 32);
+  gtk_widget_set_name(g_symbols_btn, "marinamozc-symbols-btn");
+  gtk_button_set_label(GTK_BUTTON(g_symbols_btn), "");
+  SetButtonIcon(GTK_BUTTON(g_symbols_btn),
+                g_toolbar_dark_theme ? "toolbar_symbols_dark.svg" : "toolbar_symbols_light.svg");
+  g_signal_connect(g_symbols_btn, "clicked", G_CALLBACK(OnSymbolsClicked), nullptr);
+  gtk_box_pack_start(GTK_BOX(g_toolbar_box), g_symbols_btn, FALSE, FALSE, 0);
 
   // Dict button: left click = Add Word, right click = Dictionary tool.
   const char* dict_icon = g_toolbar_dark_theme ? "toolbar_dict_dark.svg" : "toolbar_dict_light.svg";
@@ -1413,7 +1677,7 @@ void EnsureToolbarCreated() {
 }
 
 void ApplyOutputToToolbar(const commands::Output& output) {
-  if (!g_trad_btn || !g_odoriji_btn) return;
+  if (!g_trad_btn || !g_symbols_btn) return;
   if (output.has_config()) {
     bool use_trad = output.config().use_traditional_kanji();
     const char* kyu = g_toolbar_dark_theme ? "toolbar_kyu_dark.svg" : "toolbar_kyu_light.svg";
@@ -1457,6 +1721,8 @@ void MozcToolbarUpdate(const commands::Output& output) {
   if (!g_toolbar_window || !gtk_widget_get_visible(g_toolbar_window)) return;
   ApplyOutputToToolbar(output);
 }
+
+bool MozcToolbarIsSymbolsPaletteVisible() { return g_symbols_palette_visible; }
 
 bool MozcToolbarAvailable() { return true; }
 
@@ -1516,6 +1782,7 @@ void MozcToolbarHide() {}
 bool MozcToolbarShouldHideOnFocusLoss() { return false; }
 void MozcToolbarScheduleHideDelayed(unsigned int /*delay_ms*/) {}
 void MozcToolbarUpdate(const commands::Output& /*output*/) {}
+bool MozcToolbarIsSymbolsPaletteVisible() { return false; }
 bool MozcToolbarAvailable() { return false; }
 bool MozcToolbarLoadVisiblePreference() { return true; }
 void MozcToolbarSaveVisiblePreference(bool /*visible*/) {}

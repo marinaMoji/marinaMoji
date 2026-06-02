@@ -1,7 +1,7 @@
 // Copyright 2010-2021, Google Inc.
 // All rights reserved.
 //
-// marinaMozc: GTK toolbar (schema, shin/kyu, odoriji, half/full).
+// marinaMozc: GTK toolbar (schema, shin/kyu, symbols palette, dict, shortcuts).
 // Optional: only built when GTK is available (MOZC_HAVE_GTK_TOOLBAR).
 
 #ifndef MOZC_UNIX_IBUS_MOZC_TOOLBAR_H_
@@ -39,6 +39,9 @@ bool MozcToolbarLoadVisiblePreference();
 
 // Save toolbar visibility so it persists across restarts (off until user toggles on again).
 void MozcToolbarSaveVisiblePreference(bool visible);
+
+// True while the symbols palette window is open (toolbar should stay visible).
+bool MozcToolbarIsSymbolsPaletteVisible();
 
 }  // namespace ibus
 }  // namespace mozc

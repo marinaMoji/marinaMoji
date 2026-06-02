@@ -99,7 +99,11 @@ class MozcEngine : public EngineInterface {
 
   // Called by the GTK toolbar when a button is clicked. Sends the session
   // command and updates UI using the last focused engine.
-  void SendToolbarSessionCommand(commands::SessionCommand::CommandType type);
+  void SendToolbarSessionCommand(commands::SessionCommand::CommandType type,
+                                int32_t candidate_id = -1);
+
+  // Inserts |text| into the focused application via the last focused IBus engine.
+  void CommitToolbarText(absl::string_view text);
 
   // Called by the toolbar when the user picks a composition mode from the
   // mode-indicator menu. Switches mode and updates panel/toolbar.

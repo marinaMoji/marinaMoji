@@ -368,7 +368,7 @@ void MozcEngine::FocusIn(IbusEngineWrapper* engine) {
 }
 
 void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
-  if (MozcToolbarAvailable()) {
+  if (MozcToolbarAvailable() && !MozcToolbarIsSymbolsPaletteVisible()) {
     // Always hide toolbar when engine loses focus (e.g. switching to another IME).
     MozcToolbarScheduleHideDelayed(150);
   }
@@ -561,9 +561,12 @@ void MozcEngine::SetContentType(IbusEngineWrapper* engine, uint purpose,
 }
 
 void MozcEngine::SendToolbarSessionCommand(
-    commands::SessionCommand::CommandType type) {
+    commands::SessionCommand::CommandType type, int32_t candidate_id) {
   commands::SessionCommand command;
   command.set_type(type);
+  if (candidate_id >= 0) {
+    command.set_id(candidate_id);
+  }
   commands::Output output;
   if (!client_->SendCommand(command, &output)) {
     LOG(ERROR) << "SendToolbarSessionCommand failed";
@@ -573,6 +576,16 @@ void MozcEngine::SendToolbarSessionCommand(
     IbusEngineWrapper wrapper(current_engine_);
     UpdateAll(&wrapper, output);
   }
+}
+
+void MozcEngine::CommitToolbarText(absl::string_view text) {
+  if (text.empty() || current_engine_ == nullptr) {
+    return;
+  }
+  commands::Output output;
+  output.mutable_result()->set_value(std::string(text));
+  IbusEngineWrapper wrapper(current_engine_);
+  UpdateAll(&wrapper, output);
 }
 
 void MozcEngine::SetCompositionModeFromToolbar(

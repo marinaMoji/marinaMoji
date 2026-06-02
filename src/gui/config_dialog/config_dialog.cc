@@ -78,6 +78,7 @@
 #include "base/protobuf/text_format.h"
 #include "base/system_util.h"
 #include "unix/ibus/ibus_config.pb.h"
+#include "unix/ibus/path_util.h"
 #endif  // __linux__
 
 namespace {
@@ -89,10 +90,15 @@ void Connect(const QList<T *> &objects, const char *signal,
     QObject::connect(*itr, signal, receiver, slot);
   }
 }
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__linux__)
 std::string UserSymbolsPath() {
+#if defined(__APPLE__)
   return mozc::FileUtil::JoinPath(mozc::MacUtil::GetApplicationSupportDirectory(),
-                            "user_symbols.txt");
+                                 "user_symbols.txt");
+#else
+  return mozc::FileUtil::JoinPath(mozc::ibus::GetUserDataDirectory(),
+                                  "user_symbols.txt");
+#endif
 }
 
 std::vector<std::string> LoadUserSymbolsFromFile() {
@@ -114,7 +120,12 @@ std::vector<std::string> LoadUserSymbolsFromFile() {
 }
 
 void SaveUserSymbolsToFile(const std::vector<std::string> &values) {
-  std::ofstream ofs(UserSymbolsPath(), std::ios::out | std::ios::trunc);
+  const std::string path = UserSymbolsPath();
+  const std::string dir = mozc::FileUtil::Dirname(path);
+  if (!dir.empty()) {
+    (void)mozc::FileUtil::CreateDirectory(dir);
+  }
+  std::ofstream ofs(path, std::ios::out | std::ios::trunc);
   if (!ofs) {
     return;
   }
@@ -124,7 +135,7 @@ void SaveUserSymbolsToFile(const std::vector<std::string> &values) {
     }
   }
 }
-#endif  // __APPLE__
+#endif  // __APPLE__ || __linux__
 }  // namespace
 
 namespace mozc {
@@ -881,7 +892,7 @@ void ConfigDialog::EditUserDictionary() {
 }
 
 void ConfigDialog::EditUserSymbols() {
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__linux__)
   const std::vector<std::string> current_values = LoadUserSymbolsFromFile();
   QStringList lines;
   for (const std::string &value : current_values) {
@@ -908,10 +919,11 @@ void ConfigDialog::EditUserSymbols() {
     }
   }
   SaveUserSymbolsToFile(updated_values);
-#else   // __APPLE__
-  QMessageBox::information(this, windowTitle(),
-                           tr("User symbols editor is currently available on macOS only."));
-#endif  // __APPLE__
+#else
+  QMessageBox::information(
+      this, windowTitle(),
+      tr("User symbols editor is not available on this platform."));
+#endif
 }
 
 void ConfigDialog::EditKeymap() {
