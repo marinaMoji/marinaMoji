@@ -16,6 +16,18 @@ For full setup (Xcode, Qt, Bazelisk, `.pkg` installer), see [build_mozc_in_osx.m
 
 ## Rebuild and reinstall (quick reference)
 
+Full process:
+
+```bash
+cd ~/Code/marinaMozc/src
+export MOZC_QT_PATH=/opt/homebrew/opt/qt
+bazelisk build --config oss_macos //mac:mozc_macos
+sudo ditto bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app "/Library/Input Methods/marinaMoji.app"
+bash ./mac/install_launchagents.sh
+killall marinaMojiRenderer 2>/dev/null
+killall marinaMoji 2>/dev/null
+```
+
 Run from your clone’s **`src/`** directory (where `MODULE.bazel` lives), for example:
 
 ```bash
@@ -195,6 +207,9 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
    - [ ] `Ctrl+Shift+4` / `$` Manyōshū toggle, `Ctrl+Shift+5` / `%` hiragana/direct
    - [ ] Candidate window F5/F6 behavior unchanged
    - [ ] Preferences → General → Appearance: candidate font size 14 vs 36 updates the candidate list (and usage examples) after OK, without restarting the IME
+   - [ ] Candidate window: **rounded** panel, **toolbar-matched** border (1pt `rgba(0,0,0,0.08)`), **opaque white** background, rounded scrollbar track
+   - [ ] Footer logo loads from `toolbar_icons/logo_long_light.svg` (sharp at 14 pt and 36 pt font)
+   - [ ] Infolist (“用例”) panel matches candidate rounding and white/toolbar-border theme
 5. Logs: `~/Library/Logs/marinaMoji/marinaMoji.log`
 
 ## Known issues / backlog
@@ -207,6 +222,9 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
 | M1 | **Kotoeri Conversion: `Ctrl+Shift+2` duplicate** — both `ShowOdorijiPalette` and `ToggleFullHalfWidth`; last line in TSV wins (palette blocked on keyboard) | **Resolved**: number-row mappings now use `1` odoriji default, `2` palette, `3` shin/kyū, `4` Manyōshū, `5` hiragana/direct in Kotoeri/MS-IME/ATOK keymaps. |
 | M1b | **`Ctrl+Shift+5` freeze when returning from Direct** — `setValue:` / `handleConfig` / `selectInputMode` re-entry | Mitigations: no `switchDisplayMode` from keys; `setValue:` skips server + `handleConfig`; 200ms `setValue` suppress after keyboard mode change; `processOutput` depth limit. **Debug:** `MARINA_IMK_TRACE=1` → `~/Library/Logs/marinaMoji/marinaMoji.log` |
 | M1c | **Ctrl+Shift+1–4 beep on Dvorak/AZERTY** | Fixed: physical number-row mapping runs before empty-`characters` check in `KeyCodeMap.mm` |
+| M1e | **Shin/kyū shortcut or toolbar toggle “loops”** (rapid flip / freeze after “start in shin”) | Fixed: ignore `isARepeat` for Ctrl+Shift keys; `Ctrl+Shift+3` toggles config without `TURN_ON_IME` first; toolbar shin/kyū uses active controller `sendCommand:` and loads `use_traditional_kanji` on first show. |
+| M1f | **`Ctrl+Shift+` ` won’t return to hiragana** after “direct” | Fixed: dedicated `` dispatchMarinaBacktickShortcut`` (`SendKey` when session active, `TURN_ON_IME` when off); grave/tilde in `KeyCodeMap`. **Note:** `` ` `` = hiragana ↔ half-width; `` Ctrl+Shift+5 `` = full IME off/on. |
+| M1g | **Shin/kyū “sticks”** (toolbar click or shortcuts; freeze/loop) | Fixed: ``TOGGLE_TRADITIONAL_KANJI`` uses ``OutputComposition`` only; Mac ``processOutput`` skips preedit/candidate refresh when absent; toolbar icon from server only (no optimistic flip); ``g_active_controller`` ``sendCommand:``. Idle session: ``PopOutput`` was already a no-op (converter inactive). |
 | M2 | ~~Installer LaunchAgents / `.pkg` paths~~ | **Done:** plists, postflight, `tweak_installer_files.py`, and `marinaMoji.pkg` use `marinaMoji` paths |
 
 ### Medium

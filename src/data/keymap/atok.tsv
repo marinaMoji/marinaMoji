@@ -220,6 +220,7 @@ DirectInput	Ctrl AltGr Shift O	InsertMacronVowel
 DirectInput	Ctrl AltGr Shift U	InsertMacronVowel
 DirectInput	RightAlt ¨	SetMacronDeadKey
 DirectInput	RightAlt ^	SetMacronDeadKey
+DirectInput	Ctrl Shift `	IMEOn
 DirectInput	Ctrl Shift 5	IMEOn
 DirectInput	Ctrl Shift %	IMEOn
 DirectInput	Ctrl Shift ²	IMEOn

@@ -55,7 +55,6 @@ constexpr uint32_t kMinCandidateWindowFontSize = 14;
 constexpr uint32_t kMaxCandidateWindowFontSize = 36;
 
 uint32_t GetCandidateWindowFontSizeFromConfig() {
-  config::ConfigHandler::Reload();
   const uint32_t font_size =
       config::ConfigHandler::GetSharedConfig()->candidate_window_font_size();
   return std::clamp(font_size, kMinCandidateWindowFontSize,

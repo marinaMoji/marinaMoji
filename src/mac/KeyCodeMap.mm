@@ -196,6 +196,9 @@ static const unichar kYenMark = 0xA5;
       case kVK_ANSI_0:
         digit = '0';
         break;
+      case kVK_ANSI_Grave:
+        digit = '`';
+        break;
       default:
         break;
     }

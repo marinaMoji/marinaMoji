@@ -2586,7 +2586,9 @@ bool Session::ToggleTraditionalKanji(commands::Command* command) {
   // Return updated config so clients (e.g. IBus property) can sync UI state.
   *command->mutable_output()->mutable_config() =
       config::ConfigHandler::GetCopiedConfig();
-  OutputFromState(command);
+  // Kyū/shin applies on the next conversion; avoid PopOutput/OpenCC here (can
+  // freeze clients when the toolbar or Ctrl+Shift+3/F toggles during conversion).
+  OutputComposition(command);
   return true;
 }
 

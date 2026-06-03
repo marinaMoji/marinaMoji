@@ -28,7 +28,11 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "renderer/mac/mac_view_util.h"
+
+#include <algorithm>
+
 #include "base/coordinates.h"
+#include "base/mac/mac_util.h"
 #include "protocol/renderer_style.pb.h"
 
 namespace mozc {
@@ -87,6 +91,122 @@ NSAttributedString *MacViewUtil::ToNSAttributedString(const std::string &str,
   }
   return [[NSAttributedString alloc] initWithString:nsstr attributes:attr];
 }
+
+namespace {
+
+NSBezierPath *RoundedRectPath(NSRect rect, CGFloat corner_radius) {
+  const CGFloat radius = std::max(0.0, std::min(corner_radius, std::min(rect.size.width, rect.size.height) / 2.0));
+  return [NSBezierPath bezierPathWithRoundedRect:rect xRadius:radius yRadius:radius];
+}
+
+NSRect InsetStrokeRect(NSRect rect) {
+  rect.origin.x += 0.5;
+  rect.origin.y += 0.5;
+  rect.size.width -= 1.0;
+  rect.size.height -= 1.0;
+  return rect;
+}
+
+}  // namespace
+
+void MacViewUtil::FillRoundedRect(NSRect rect, CGFloat corner_radius) {
+  NSBezierPath *path = RoundedRectPath(rect, corner_radius);
+  [path fill];
+}
+
+void MacViewUtil::StrokeRoundedRect(NSRect rect, CGFloat corner_radius) {
+  NSBezierPath *path = RoundedRectPath(InsetStrokeRect(rect), corner_radius);
+  [path stroke];
+}
+
+void MacViewUtil::ClipToRoundedRect(NSRect rect, CGFloat corner_radius) {
+  NSBezierPath *path = RoundedRectPath(rect, corner_radius);
+  [path addClip];
+}
+
+NSImage *MacViewUtil::LoadImageFromResources(NSString *relative_path) {
+  if (relative_path.length == 0) {
+    return nil;
+  }
+  const std::string resource_dir = mozc::MacUtil::GetServerDirectory();
+  NSString *dir = [NSString stringWithUTF8String:resource_dir.c_str()];
+  NSString *path = [dir stringByAppendingPathComponent:relative_path];
+  if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
+    return nil;
+  }
+  return [[NSImage alloc] initWithContentsOfFile:path];
+}
+
+namespace {
+
+void SetPreservesVectorOnScaling(NSImage *image, BOOL preserve) {
+  SEL sel = NSSelectorFromString(@"setPreservesVectorRepresentationOnScaling:");
+  if (![image respondsToSelector:sel]) {
+    return;
+  }
+  void (*setter)(id, SEL, BOOL) =
+      reinterpret_cast<void (*)(id, SEL, BOOL)>([image methodForSelector:sel]);
+  setter(image, sel, preserve);
+}
+
+// Draw |source| into a bitmap at Retina pixel dimensions, return points-sized NSImage.
+NSImage *RasterizeLogoAtDisplaySize(NSImage *source, NSSize point_size, CGFloat backing_scale) {
+  const CGFloat scale = std::max<CGFloat>(1.0, backing_scale);
+  const NSInteger px =
+      std::max<NSInteger>(1, static_cast<NSInteger>(point_size.width * scale + 0.5));
+  const NSInteger py =
+      std::max<NSInteger>(1, static_cast<NSInteger>(point_size.height * scale + 0.5));
+
+  NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc]
+      initWithBitmapDataPlanes:NULL
+                    pixelsWide:px
+                    pixelsHigh:py
+                 bitsPerSample:8
+               samplesPerPixel:4
+                      hasAlpha:YES
+                      isPlanar:NO
+                colorSpaceName:NSDeviceRGBColorSpace
+                   bytesPerRow:0
+                  bitsPerPixel:0];
+  if (!bitmap) {
+    source.size = point_size;
+    return source;
+  }
+
+  // Hint the source size so SVG/PDF rasterize at target resolution (not ~16×16).
+  const NSSize source_points =
+      NSMakeSize(static_cast<CGFloat>(px) / scale, static_cast<CGFloat>(py) / scale);
+  source.size = source_points;
+
+  NSGraphicsContext *bitmap_ctx = [NSGraphicsContext graphicsContextWithBitmapImageRep:bitmap];
+  [NSGraphicsContext saveGraphicsState];
+  [NSGraphicsContext setCurrentContext:bitmap_ctx];
+  [[NSGraphicsContext currentContext] setImageInterpolation:NSImageInterpolationHigh];
+  [source drawInRect:NSMakeRect(0, 0, px, py)
+            fromRect:NSZeroRect
+           operation:NSCompositingOperationSourceOver
+            fraction:1.0
+      respectFlipped:YES
+              hints:nil];
+  [NSGraphicsContext restoreGraphicsState];
+
+  NSImage *result = [[NSImage alloc] initWithSize:point_size];
+  [result addRepresentation:bitmap];
+  return result;
+}
+
+}  // namespace
+
+NSImage *MacViewUtil::LoadLogoImageFromResources(NSString *relative_path, NSSize point_size,
+                                                 CGFloat backing_scale) {
+  NSImage *source = LoadImageFromResources(relative_path);
+  if (!source || point_size.width <= 0 || point_size.height <= 0) {
+    return nil;
+  }
+  SetPreservesVectorOnScaling(source, YES);
+  return RasterizeLogoAtDisplaySize(source, point_size, backing_scale);
+}
+
 }  // namespace mozc::renderer::mac
 }  // namespace mozc::renderer
 }  // namespace mozc

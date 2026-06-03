@@ -30,8 +30,12 @@
 // Qt component of configure dialog for Mozc
 #include "gui/config_dialog/config_dialog.h"
 
-#include <QMessageBox>
+#include <QFontMetrics>
 #include <QInputDialog>
+#include <QMessageBox>
+#include <QTabBar>
+#include <QTabWidget>
+#include <QTimer>
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
@@ -44,6 +48,7 @@
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "base/config_file_stream.h"
 #include "base/file_util.h"
 #include "client/client.h"
@@ -82,6 +87,32 @@
 #endif  // __linux__
 
 namespace {
+
+void AdjustTabBarForDescenders(QTabWidget *tab_widget) {
+  if (tab_widget == nullptr) {
+    return;
+  }
+  QTabBar *const tab_bar = tab_widget->tabBar();
+  if (tab_bar == nullptr) {
+    return;
+  }
+  const QFontMetrics fm(tab_bar->font());
+  const int pad_top = 5;
+  const int pad_bottom = 7;
+  const int min_height =
+      fm.boundingRect(QStringLiteral("SgyjpQ")).height() + pad_top + pad_bottom;
+  tab_bar->setMinimumHeight(min_height);
+  tab_bar->setStyleSheet(QStringLiteral(
+                             "QTabBar::tab {"
+                             "  padding-top: %1px;"
+                             "  padding-bottom: %2px;"
+                             "  padding-left: 12px;"
+                             "  padding-right: 12px;"
+                             "}")
+                             .arg(pad_top)
+                             .arg(pad_bottom));
+}
+
 template <typename T>
 void Connect(const QList<T *> &objects, const char *signal,
              const QObject *receiver, const char *slot) {
@@ -155,13 +186,23 @@ QFrame[class="setting-group-line"] {
 }
 )";
 
+namespace {
+// Preferences may trigger a slow server-side config write; use the same
+// generous IPC timeout as dictionary_tool (100s), not the 30s client default.
+constexpr absl::Duration kConfigDialogTimeout = absl::Milliseconds(100000);
+}  // namespace
+
 ConfigDialog::ConfigDialog()
     : client_(client::ClientFactory::NewClient()),
       initial_preedit_method_(0),
       initial_use_keyboard_to_change_preedit_method_(false),
       initial_use_mode_indicator_(true) {
+  client_->set_timeout(kConfigDialogTimeout);
+  // Avoid spawning ErrorMessageDialog.app on IPC errors during shutdown.
+  client_->set_suppress_error_dialog(true);
   setupUi(this);
   setStyleSheet(QString::fromUtf8(kQss.data(), kQss.size()));
+  AdjustTabBarForDescenders(configDialogTabWidget);
 
   // Remove the context help button (question mark button) from the window.
   Qt::WindowFlags flags = windowFlags();
@@ -516,6 +557,7 @@ bool ConfigDialog::Update() {
 
   if (!SetConfig(config)) {
     QMessageBox::critical(this, windowTitle(), tr("Failed to update config"));
+    return false;
   }
 
 #if defined(__linux__)
@@ -872,14 +914,16 @@ void ConfigDialog::clicked(QAbstractButton *button) {
   switch (configDialogButtonBox->buttonRole(button)) {
     case QDialogButtonBox::AcceptRole:
       if (Update()) {
-        QWidget::close();
+        // Defer accept() so we are not destroying the dialog from inside the
+        // button signal handler (avoids macOS "quit unexpectedly" reports).
+        QTimer::singleShot(0, this, &QDialog::accept);
       }
       break;
     case QDialogButtonBox::ApplyRole:
       Update();
       break;
     case QDialogButtonBox::RejectRole:
-      QWidget::close();
+      QTimer::singleShot(0, this, &QDialog::reject);
       break;
     default:
       break;

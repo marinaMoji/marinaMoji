@@ -46,7 +46,8 @@ void ScaleRendererStyle(RendererStyle* style, double scale_factor) {
     return;
   }
 
-  // style->window_border is non-scalable.
+  style->set_window_border(style->window_border() * scale_factor);
+  style->set_corner_radius(style->corner_radius() * scale_factor);
   style->set_scrollbar_width(style->scrollbar_width() * scale_factor);
   style->set_row_rect_padding(style->row_rect_padding() * scale_factor);
 
@@ -59,7 +60,8 @@ void ScaleRendererStyle(RendererStyle* style, double scale_factor) {
   ScaleTextStyle(style->mutable_footer_sub_label_style(), scale_factor);
 
   RendererStyle::InfolistStyle* info_style = style->mutable_infolist_style();
-  // info_style->window_border and info_style->caption_padding are non-scalable.
+  // info_style->caption_padding is non-scalable.
+  info_style->set_window_border(info_style->window_border() * scale_factor);
   info_style->set_caption_height(info_style->caption_height() * scale_factor);
   info_style->set_row_rect_padding(info_style->row_rect_padding() *
                                    scale_factor);

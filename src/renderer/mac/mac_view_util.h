@@ -66,6 +66,17 @@ class MacViewUtil {
   static NSSize applyTheme(const NSSize &size,
                            const RendererStyle::TextStyle &style);
 
+  static void FillRoundedRect(NSRect rect, CGFloat corner_radius);
+  static void StrokeRoundedRect(NSRect rect, CGFloat corner_radius);
+  static void ClipToRoundedRect(NSRect rect, CGFloat corner_radius);
+
+  // Loads Resources/<relative_path> (e.g. toolbar_icons/foo.svg). Caller retains.
+  static NSImage *LoadImageFromResources(NSString *relative_path);
+
+  // Footer/toolbar logo at |point_size| (points), rasterized for |backing_scale| (e.g. 2.0).
+  static NSImage *LoadLogoImageFromResources(NSString *relative_path, NSSize point_size,
+                                             CGFloat backing_scale);
+
   // Do not allow instantiation
  private:
   MacViewUtil() {}

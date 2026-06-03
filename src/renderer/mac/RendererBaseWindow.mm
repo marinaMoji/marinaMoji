@@ -43,7 +43,8 @@ namespace mozc {
 namespace renderer {
 namespace mac {
 
-RendererBaseWindow::RendererBaseWindow() : window_level_(NSPopUpMenuWindowLevel) {}
+RendererBaseWindow::RendererBaseWindow()
+    : window_(nil), view_(nil), window_level_(NSPopUpMenuWindowLevel) {}
 
 void RendererBaseWindow::InitWindow() {
   if (window_) {
@@ -103,6 +104,9 @@ void RendererBaseWindow::ResetView() {
 }
 
 void RendererBaseWindow::MoveWindow(const NSPoint &point) {
+  if (!window_) {
+    return;
+  }
   NSRect rect = [window_ frame];
   rect.origin.x = point.x;
   rect.origin.y = point.y;
@@ -110,6 +114,9 @@ void RendererBaseWindow::MoveWindow(const NSPoint &point) {
 }
 
 void RendererBaseWindow::ResizeWindow(int32_t width, int32_t height) {
+  if (!window_) {
+    return;
+  }
   NSRect rect = [window_ frame];
   rect.size.width = width;
   rect.size.height = height;
@@ -119,7 +126,9 @@ void RendererBaseWindow::ResizeWindow(int32_t width, int32_t height) {
 void RendererBaseWindow::SetWindowLevel(NSInteger window_level) {
   if (window_level_ != window_level) {
     window_level_ = window_level;
-    [window_ setLevel:window_level_];
+    if (window_) {
+      [window_ setLevel:window_level_];
+    }
   }
 }
 

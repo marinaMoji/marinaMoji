@@ -62,6 +62,7 @@ class InfolistWindow : public RendererBaseWindow {
   InfolistWindowTimerHandler *timer_handler_;
   NSTimer *lasttimer_;
   bool visible_;
+  void InitWindow();
   void ResetView();
   mozc::client::SendCommandInterface *command_sender_;
 };

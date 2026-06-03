@@ -259,6 +259,9 @@ void CandidateController::AlignWindows() {
   // 1. starting position is at the focused row
   const commands::CandidateWindow &candidate_window = command_.output().candidate_window();
   const int focused_row = candidate_window.focused_index() - candidate_window.candidate(0).index();
+  if (focused_row < 0 || focused_row >= candidate_window.candidate_size()) {
+    return;
+  }
   mozc::Rect focused_rect = candidate_layout->GetRowRect(focused_row);
   // move the focused_rect to the monitor's coordinates
   focused_rect.origin.x += candidate_rect.origin.x;

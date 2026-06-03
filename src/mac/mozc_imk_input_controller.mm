@@ -237,6 +237,23 @@ bool IsMarinaNumberRowShortcut(const KeyEvent &key) {
          IsMarinaNumberRowSlot(key, '5');
 }
 
+// Ctrl+Shift+` / ~ (ToggleAlphanumericMode in keymap).
+bool IsMarinaBacktickShortcut(const KeyEvent &key) {
+  if (!KeyEventHasCtrlShift(key) || !key.has_key_code()) {
+    return false;
+  }
+  const uint32_t code = key.key_code();
+  return code == static_cast<uint32_t>('`') || code == static_cast<uint32_t>('~');
+}
+
+// Ctrl+Shift+3, F, or f (ToggleTraditionalKanji); always SessionCommand, not keymap.
+bool IsMarinaTraditionalKanjiShortcut(const KeyEvent &key) {
+  return IsMarinaNumberRowSlot(key, '3') ||
+         (KeyEventHasCtrlShift(key) && key.has_key_code() &&
+          (key.key_code() == static_cast<uint32_t>('f') ||
+           key.key_code() == static_cast<uint32_t>('F')));
+}
+
 bool IsMacronVowelLetter(unichar c) {
   const unichar lower = (c >= 'A' && c <= 'Z') ? (c - 'A' + 'a') : c;
   return lower == 'a' || lower == 'e' || lower == 'i' || lower == 'o' || lower == 'u';
@@ -312,6 +329,7 @@ const char *CompositionModeName(CompositionMode mode) {
 - (BOOL)tryMacronVowelChord:(NSEvent *)event client:(id)sender;
 - (void)setupMarinaImeMenuIfNeeded;
 - (void)updateImeMenuState:(const Output *)output;
+- (void)syncCandidatesWithOutput:(const Output *)output;
 @end
 
 @implementation MozcImkInputController
@@ -795,12 +813,6 @@ const char *CompositionModeName(CompositionMode mode) {
     [self sendCommand:command];
     return YES;
   }
-  if (IsMarinaNumberRowSlot(keyEvent, '3')) {
-    SessionCommand command;
-    command.set_type(SessionCommand::TOGGLE_TRADITIONAL_KANJI);
-    [self sendCommand:command];
-    return YES;
-  }
   if (IsMarinaNumberRowSlot(keyEvent, '1')) {
     SessionCommand command;
     command.set_type(SessionCommand::INSERT_ODORIJI_DEFAULT);
@@ -819,6 +831,35 @@ const char *CompositionModeName(CompositionMode mode) {
     return YES;
   }
 
+  return YES;
+}
+
+- (BOOL)dispatchMarinaTraditionalKanjiShortcut:(id)sender {
+  (void)sender;
+  SessionCommand command;
+  command.set_type(SessionCommand::TOGGLE_TRADITIONAL_KANJI);
+  [self sendCommand:command];
+  return YES;
+}
+
+- (BOOL)dispatchMarinaBacktickShortcut:(const KeyEvent &)keyEvent client:(id)sender {
+  // Keymap: ToggleAlphanumericMode (hiragana ↔ half-width). ⌃⇧` after ⌃⇧5 (direct)
+  // must turn the IME back on; use client mode_, not a separate GET_STATUS round-trip.
+  if (mode_ == mozc::commands::DIRECT) {
+    SessionCommand command;
+    command.set_type(SessionCommand::TURN_ON_IME);
+    command.set_composition_mode(mozc::commands::HIRAGANA);
+    [self sendCommand:command];
+    return YES;
+  }
+
+  KeyEvent key = keyEvent;
+  key.set_mode(mode_);
+  Output output;
+  if (!mozcClient_->SendKey(key, &output)) {
+    return NO;
+  }
+  [self processOutput:&output client:sender];
   return YES;
 }
 
@@ -1080,6 +1121,22 @@ const char *CompositionModeName(CompositionMode mode) {
   }
 }
 
+- (void)syncCandidatesWithOutput:(const Output *)output {
+  if (output == nullptr) {
+    [self clearCandidates];
+    return;
+  }
+  if (output->has_candidate_window()) {
+    [self updateCandidates:output];
+    return;
+  }
+  // Commit (and similar) returns result without candidate_window; hide the list.
+  // Config-only commands (shin/kyū) also omit candidate_window — leave UI as-is.
+  if (output->has_result()) {
+    [self clearCandidates];
+  }
+}
+
 - (void)processOutput:(const mozc::commands::Output *)output client:(id)sender {
   if (output == nullptr) {
     return;
@@ -1107,7 +1164,7 @@ const char *CompositionModeName(CompositionMode mode) {
     if (output->has_preedit()) {
       [self updateComposedString:&(output->preedit())];
     }
-    [self updateCandidates:output];
+    [self syncCandidatesWithOutput:output];
     mozc::mac::MozcToolbarUpdate(*output, mode_);
     [self updateImeMenuState:output];
     --processOutputDepth_;
@@ -1148,8 +1205,10 @@ const char *CompositionModeName(CompositionMode mode) {
     }
   }
 
-  [self updateComposedString:&(output->preedit())];
-  [self updateCandidates:output];
+  if (output->has_preedit()) {
+    [self updateComposedString:&(output->preedit())];
+  }
+  [self syncCandidatesWithOutput:output];
 
   if (output->has_mode() || output->has_status()) {
     CompositionMode new_mode = NormalizeModeForEmptyHalfAscii(
@@ -1518,6 +1577,20 @@ const char *CompositionModeName(CompositionMode mode) {
   mozc::commands::Context context;
   if (suppressSuggestion_) {
     context.add_experimental_features("google_search_box");
+  }
+
+  // Swallow autorepeat for marina Ctrl+Shift shortcuts (shin/kyū, odoriji, etc.).
+  // Otherwise one key hold fires ToggleTraditionalKanji many times (rapid flip / freeze).
+  if ([event isARepeat] && KeyEventHasCtrlShift(keyEvent)) {
+    return YES;
+  }
+
+  if (IsMarinaTraditionalKanjiShortcut(keyEvent)) {
+    return [self dispatchMarinaTraditionalKanjiShortcut:sender];
+  }
+
+  if (IsMarinaBacktickShortcut(keyEvent)) {
+    return [self dispatchMarinaBacktickShortcut:keyEvent client:sender];
   }
 
   if (IsMarinaNumberRowShortcut(keyEvent)) {

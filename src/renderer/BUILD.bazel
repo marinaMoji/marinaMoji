@@ -251,11 +251,11 @@ mozc_cc_library(
 
 mozc_cc_library(
     name = "renderer_style_handler",
-    srcs = [
-        "renderer_style_handler.cc",
-        ":renderer_style_data",
-    ],
+    srcs = ["renderer_style_handler.cc"],
     hdrs = ["renderer_style_handler.h"],
+    # Recompile handler when renderer_style.textproto changes (include alone is
+    # not tracked reliably when the embed output was listed only in srcs).
+    additional_compiler_inputs = [":renderer_style_data"],
     visibility = ["//renderer:__subpackages__"],
     deps = [
         ":renderer_style_scale",
@@ -302,6 +302,9 @@ mozc_cc_test(
 # macOS
 mozc_macos_application(
     name = "mozc_renderer_macos",
+    additional_contents = {
+        "//unix/ibus:toolbar_icons": "Resources",
+    },
     app_icons = ["//data/images/mac:product_icon.icns"],
     bundle_id = MACOS_BUNDLE_ID_PREFIX + ".Renderer",
     bundle_name = BRANDING + "Renderer",

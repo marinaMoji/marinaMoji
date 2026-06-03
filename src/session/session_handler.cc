@@ -412,7 +412,11 @@ void SessionHandler::MaybeUpdateConfig(commands::Command* command) {
   }
 
   config::ConfigHandler::SetConfig(command->output().config());
-  Reload(command);
+  // Push new config into active sessions. Do not run engine_->Reload() here:
+  // that reloads user dictionaries and predictors synchronously and can
+  // exceed the config dialog IPC timeout even though the config file is
+  // already saved. Use the RELOAD command when a full engine reload is needed.
+  UpdateSessions();
 }
 
 bool SessionHandler::SendKey(commands::Command* command) {

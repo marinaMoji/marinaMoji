@@ -62,6 +62,7 @@ filegroup(
     srcs = glob(["toolbar_icons/*.svg"]),
     visibility = [
         "//mac:__pkg__",
+        "//renderer:__pkg__",
         "//unix:__pkg__",
     ],
 )

@@ -30,6 +30,8 @@
 #include <Carbon/Carbon.h>
 #include <objc/message.h>
 
+#import <Cocoa/Cocoa.h>
+
 #import "InfolistView.h"
 
 #include "absl/log/log.h"
@@ -87,7 +89,7 @@ void InfolistWindow::SetCandidateWindow(const CandidateWindow& candidate_window)
   if (!window_) {
     InitWindow();
   }
-  InfolistView* infolist_view = (InfolistView*)view_;
+  InfolistView *infolist_view = (InfolistView *)view_;
   [infolist_view setCandidateWindow:&candidate_window];
   [infolist_view setNeedsDisplay:YES];
   NSSize size = [infolist_view updateLayout];
@@ -140,6 +142,14 @@ void InfolistWindow::onTimer(NSTimer* timer) {
     Hide();
   }
   lasttimer_ = nil;
+}
+
+void InfolistWindow::InitWindow() {
+  RendererBaseWindow::InitWindow();
+  [window_ setBackgroundColor:NSColor.clearColor];
+  window_.opaque = NO;
+  InfolistView *infolist_view = (InfolistView *)view_;
+  [infolist_view applyViewChrome];
 }
 
 void InfolistWindow::ResetView() {

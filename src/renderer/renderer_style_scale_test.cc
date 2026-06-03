@@ -58,5 +58,25 @@ TEST(RendererStyleScaleTest, ScaleFactorOneIsNoOp) {
   EXPECT_DOUBLE_EQ(style.candidate_style().font_size(), base_candidate_size);
 }
 
+TEST(RendererStyleScaleTest, ScalesCornerRadius) {
+  RendererStyle style;
+  RendererStyleHandler::GetRendererStyle(&style);
+  const double base_radius = style.corner_radius();
+  ASSERT_GT(base_radius, 0);
+
+  ScaleRendererStyle(&style, 2.0);
+  EXPECT_DOUBLE_EQ(style.corner_radius(), base_radius * 2.0);
+}
+
+TEST(RendererStyleScaleTest, ScalesWindowBorder) {
+  RendererStyle style;
+  RendererStyleHandler::GetRendererStyle(&style);
+  const int base_border = style.window_border();
+  ASSERT_GT(base_border, 0);
+
+  ScaleRendererStyle(&style, 2.0);
+  EXPECT_EQ(style.window_border(), base_border * 2);
+}
+
 }  // namespace renderer
 }  // namespace mozc

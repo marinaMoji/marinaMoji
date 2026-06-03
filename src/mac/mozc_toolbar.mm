@@ -1011,10 +1011,20 @@ std::string GetKeymapPath(const std::string &filename) {
 }
 
 - (void)tradClicked:(id)sender {
-  if (!client_) return;
+  (void)sender;
+  // Icon updates from server output only (same as Linux toolbar), via
+  // MozcToolbarUpdate or the fallback SendCommand path below.
   mozc::commands::SessionCommand command;
   command.set_type(
       mozc::commands::SessionCommand::TOGGLE_TRADITIONAL_KANJI);
+
+  id<ControllerCallback> controller = g_active_controller;
+  if (controller) {
+    [controller sendCommand:command];
+    return;
+  }
+
+  if (!client_) return;
   mozc::commands::Output output;
   if (client_->SendCommand(command, &output)) {
     if (output.has_config()) {
@@ -1151,6 +1161,10 @@ static void EnsureToolbar(mozc::client::ClientInterface *client,
   }
 
   g_toolbar_view = [[MozcToolbarView alloc] initWithClient:client mode:mode];
+  mozc::config::Config config;
+  if (client->GetConfig(&config)) {
+    [g_toolbar_view updateTraditionalKanji:config.use_traditional_kanji()];
+  }
 
   NSRect contentRect = g_toolbar_view.bounds;
   const NSUInteger styleMask =

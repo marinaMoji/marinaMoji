@@ -71,4 +71,7 @@ enum ColumnType {
 
 // Returns the table layout of the current candidates.
 - (const mozc::renderer::TableLayout *)tableLayout;
+
+// Transparent panel + rounded layer chrome (called after window creation).
+- (void)applyViewChrome;
 @end

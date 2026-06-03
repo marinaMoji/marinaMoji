@@ -28,6 +28,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <Carbon/Carbon.h>
+#include <Cocoa/Cocoa.h>
 #include <objc/message.h>
 
 #import "CandidateView.h"
@@ -49,15 +50,18 @@ void CandidateWindow::SetSendCommandInterface(
     client::SendCommandInterface* send_command_interface) {
   DLOG(INFO) << "CandidateWindow::SetSendCommandInterface()";
   command_sender_ = send_command_interface;
-
-  const CandidateView* candidate_view = (CandidateView*)view_;
-  [candidate_view setSendCommandInterface:send_command_interface];
+  if (view_) {
+    [(CandidateView*)view_ setSendCommandInterface:send_command_interface];
+  }
 }
 
 void CandidateWindow::InitWindow() {
   RendererBaseWindow::InitWindow();
-  const CandidateView* candidate_view = (CandidateView*)view_;
+  [window_ setBackgroundColor:NSColor.clearColor];
+  window_.opaque = NO;
+  CandidateView* candidate_view = (CandidateView*)view_;
   [candidate_view setSendCommandInterface:command_sender_];
+  [candidate_view applyViewChrome];
 }
 const mozc::renderer::TableLayout* CandidateWindow::GetTableLayout() const {
   const CandidateView* candidate_view = (CandidateView*)view_;

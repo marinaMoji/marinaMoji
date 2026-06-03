@@ -57,6 +57,8 @@ class RendererStyle;
 // Checks the |candidates_| and recalculates the layout.
 // It also returns the size which is necessary to draw all GUI elements.
 - (NSSize)updateLayout;
+
+- (void)applyViewChrome;
 @end
 
 #endif  // MOZC_RENDERER_MAC_INFOLIST_VIEW_H_

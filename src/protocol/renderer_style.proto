@@ -116,9 +116,18 @@ message RendererStyle {
   optional RGBAColor footer_top_color = 15;
   optional RGBAColor footer_bottom_color = 16;
 
-  // Logo file name
+  // Logo file name (TIFF in bundle, or fallback when logo_svg_file_name fails)
   optional string logo_file_name = 17;
 
   // Infolist Style
   optional InfolistStyle infolist_style = 18;
+
+  // Panel fill inside rounded clip (macOS renderer).
+  optional RGBAColor window_background_color = 24;
+
+  // Corner radius in points at default 14pt font (macOS renderer).
+  optional double corner_radius = 25 [default = 10.0];
+
+  // SVG under Resources/, e.g. toolbar_icons/logo_square_light.svg
+  optional string logo_svg_file_name = 26;
 }

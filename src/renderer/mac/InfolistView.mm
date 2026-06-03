@@ -33,6 +33,7 @@
 
 #include "absl/log/log.h"
 #include "client/client_interface.h"
+#include "config/config_handler.h"
 #include "protocol/commands.pb.h"
 #include "protocol/renderer_style.pb.h"
 #include "renderer/mac/mac_view_util.h"
@@ -48,6 +49,10 @@ using mozc::renderer::mac::MacViewUtil;
 
 // Private method declarations.
 @interface InfolistView ()
+- (CGFloat)cornerRadius;
+- (NSColor *)panelBackgroundColor;
+- (void)applyViewChrome;
+
 // Draw the |row|-th row and return the height of it.
 // If draw_flag is true, it does not draw but only calculate the size.
 - (CGFloat)drawRow:(int)row ypos:(CGFloat)ypos draw_flag:(bool)draw_flag;
@@ -82,6 +87,27 @@ using mozc::renderer::mac::MacViewUtil;
 
 - (BOOL)isFlipped {
   return YES;
+}
+
+- (CGFloat)cornerRadius {
+  if (style_ && style_->has_corner_radius()) {
+    return static_cast<CGFloat>(style_->corner_radius());
+  }
+  return 10.0;
+}
+
+- (NSColor *)panelBackgroundColor {
+  if (style_ && style_->has_window_background_color()) {
+    return MacViewUtil::ToNSColor(style_->window_background_color());
+  }
+  return [NSColor whiteColor];
+}
+
+- (void)applyViewChrome {
+  if (self.window) {
+    [self.window setBackgroundColor:NSColor.clearColor];
+    self.window.opaque = NO;
+  }
 }
 
 #pragma mark drawing
@@ -166,34 +192,48 @@ using mozc::renderer::mac::MacViewUtil;
   const InformationList &usages = candidate_window_.usages();
 
   int ypos = infostyle.window_border();
-
-  if (draw_flag && infostyle.has_caption_string()) {
-    const RendererStyle::TextStyle &caption_style = infostyle.caption_style();
-    const int caption_height = infostyle.caption_height();
-    NSAttributedString *caption_string =
-        MacViewUtil::ToNSAttributedString(infostyle.caption_string(), caption_style);
-    NSRect rect =
-        NSMakeRect(infostyle.window_border(), ypos,
-                   infostyle.window_width() - infostyle.window_border() * 2, caption_height);
-    [MacViewUtil::ToNSColor(infostyle.caption_background_color()) set];
-    [NSBezierPath fillRect:rect];
-    rect = NSMakeRect(
-        infostyle.window_border() + infostyle.caption_padding() + caption_style.left_padding(),
-        ypos + infostyle.caption_padding(),
-        infostyle.window_width() - infostyle.window_border() * 2, caption_height);
-    [caption_string drawWithRect:rect options:NSStringDrawingUsesLineFragmentOrigin];
-  }
   ypos += infostyle.caption_height();
   for (int i = 0; i < usages.information_size(); ++i) {
-    ypos += [self drawRow:i ypos:ypos draw_flag:draw_flag];
+    ypos += [self drawRow:i ypos:ypos draw_flag:false];
   }
   ypos += infostyle.window_border();
 
   if (draw_flag) {
+    const NSRect bounds = NSMakeRect(0, 0, infostyle.window_width(), ypos);
+    const CGFloat radius = [self cornerRadius];
+    [[NSGraphicsContext currentContext] saveGraphicsState];
+    MacViewUtil::ClipToRoundedRect(bounds, radius);
+    [[self panelBackgroundColor] set];
+    MacViewUtil::FillRoundedRect(bounds, radius);
+
+    int content_ypos = infostyle.window_border();
+    if (infostyle.has_caption_string()) {
+      const RendererStyle::TextStyle &caption_style = infostyle.caption_style();
+      const int caption_height = infostyle.caption_height();
+      NSAttributedString *caption_string =
+          MacViewUtil::ToNSAttributedString(infostyle.caption_string(), caption_style);
+      NSRect rect = NSMakeRect(infostyle.window_border(), content_ypos,
+                               infostyle.window_width() - infostyle.window_border() * 2,
+                               caption_height);
+      [MacViewUtil::ToNSColor(infostyle.caption_background_color()) set];
+      [NSBezierPath fillRect:rect];
+      rect = NSMakeRect(infostyle.window_border() + infostyle.caption_padding() +
+                            caption_style.left_padding(),
+                        content_ypos + infostyle.caption_padding(),
+                        infostyle.window_width() - infostyle.window_border() * 2, caption_height);
+      [caption_string drawWithRect:rect options:NSStringDrawingUsesLineFragmentOrigin];
+      content_ypos += infostyle.caption_height();
+    }
+    for (int i = 0; i < usages.information_size(); ++i) {
+      content_ypos += [self drawRow:i ypos:content_ypos draw_flag:true];
+    }
+
+    [[NSGraphicsContext currentContext] restoreGraphicsState];
     [MacViewUtil::ToNSColor(infostyle.border_color()) set];
-    [NSBezierPath setDefaultLineWidth:infostyle.window_border()];
+    // 1pt outline; window_border is content inset, not stroke width.
+    [NSBezierPath setDefaultLineWidth:1.0];
     [NSBezierPath setDefaultLineJoinStyle:NSLineJoinStyleMiter];
-    [NSBezierPath strokeRect:NSMakeRect(0.5, 0.5, infostyle.window_width() - 1, ypos - 1)];
+    MacViewUtil::StrokeRoundedRect(bounds, radius);
   }
 
   return NSMakeSize(infostyle.window_width(), ypos);
@@ -201,7 +241,11 @@ using mozc::renderer::mac::MacViewUtil;
 
 - (NSSize)updateLayout {
   if (style_ != nullptr) {
+#ifdef __APPLE__
+    mozc::config::ConfigHandler::Reload();
+#endif  // __APPLE__
     RendererStyleHandler::GetRendererStyle(style_);
+    [self applyViewChrome];
   }
   return [self drawView:false];
 }
