@@ -27,36 +27,36 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef MOZC_RENDERER_MAC_INFOLIST_VIEW_H_
-#define MOZC_RENDERER_MAC_INFOLIST_VIEW_H_
+#include "renderer/renderer_style_handler.h"
+#include "renderer/renderer_style_scale.h"
 
-#import <Cocoa/Cocoa.h>
-
-#include "protocol/candidate_window.pb.h"
-#include "protocol/renderer_command.pb.h"
+#include "protocol/renderer_style.pb.h"
+#include "testing/gunit.h"
 
 namespace mozc {
 namespace renderer {
-class RendererStyle;
-}  // namespace mozc::renderer
-}  // namespace mozc
 
-// InfolistView is an NSView subclass to draw the infolist window
-// according to the current candidates.
-@interface InfolistView : NSView {
- @private
-  mozc::commands::CandidateWindow candidate_window_;
-  mozc::renderer::RendererStyle *style_;
-  // The row which has focused background.
-  int focusedRow_;
+TEST(RendererStyleScaleTest, ScaleRendererStyleDoublesFontSize) {
+  RendererStyle style;
+  RendererStyleHandler::GetRendererStyle(&style);
+  const double base_candidate_size = style.candidate_style().font_size();
+  const double base_description_size = style.description_style().font_size();
+  ASSERT_GT(base_candidate_size, 0);
+
+  ScaleRendererStyle(&style, 2.0);
+  EXPECT_DOUBLE_EQ(style.candidate_style().font_size(), base_candidate_size * 2.0);
+  EXPECT_DOUBLE_EQ(style.description_style().font_size(),
+                   base_description_size * 2.0);
 }
 
-// setCandidateWindow: sets the candidate window to be rendered.
-- (void)setCandidateWindow:(const mozc::commands::CandidateWindow *)candidate_window;
+TEST(RendererStyleScaleTest, ScaleFactorOneIsNoOp) {
+  RendererStyle style;
+  RendererStyleHandler::GetRendererStyle(&style);
+  const double base_candidate_size = style.candidate_style().font_size();
 
-// Checks the |candidates_| and recalculates the layout.
-// It also returns the size which is necessary to draw all GUI elements.
-- (NSSize)updateLayout;
-@end
+  ScaleRendererStyle(&style, 1.0);
+  EXPECT_DOUBLE_EQ(style.candidate_style().font_size(), base_candidate_size);
+}
 
-#endif  // MOZC_RENDERER_MAC_INFOLIST_VIEW_H_
+}  // namespace renderer
+}  // namespace mozc

@@ -364,6 +364,9 @@ message Config {
   // Use mode indicator feature.
   optional bool use_mode_indicator = 120 [default = true];
 
+  // Candidate window font size in points (macOS Mozc renderer only).
+  optional uint32 candidate_window_font_size = 121 [default = 14];
+
   //////////////////////////////////////////////////////////////
   //
   // Cloud (300-319)

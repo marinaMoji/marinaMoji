@@ -16,7 +16,9 @@
 #include <utility>
 #include <vector>
 
+#include "base/file_util.h"
 #include "base/mac/mac_util.h"
+#include "base/system_util.h"
 #include "client/client_interface.h"
 #include "mac/common.h"
 #include "mac/mozc_toolbar.h"
@@ -38,6 +40,13 @@ constexpr CGFloat kCornerRadius = 10.0;
 constexpr int kSymbolsTabOdoriji = 0;
 NSString *const kPrefsSymbolsPinnedKey = @"symbols_palette_pinned";
 NSString *const kPrefsSymbolsLastTabKey = @"symbols_palette_last_tab";
+
+static NSString *ToolbarPrefsPath() {
+  const std::string path =
+      mozc::FileUtil::JoinPath(mozc::SystemUtil::GetUserProfileDirectory(),
+                               "toolbar.conf");
+  return [NSString stringWithUTF8String:path.c_str()];
+}
 
 using ShortcutEntry = std::pair<std::string, std::string>;
 using GroupedShortcutRow = std::pair<std::string, std::string>;
@@ -607,9 +616,7 @@ std::string GetKeymapPath(const std::string &filename) {
 }
 
 - (NSString *)prefsPath {
-  NSString *dir = [NSString
-      stringWithUTF8String:mozc::MacUtil::GetApplicationSupportDirectory().c_str()];
-  return [dir stringByAppendingPathComponent:@"toolbar.conf"];
+  return ToolbarPrefsPath();
 }
 
 - (NSMutableDictionary *)mutablePrefs {
@@ -782,10 +789,11 @@ std::string GetKeymapPath(const std::string &filename) {
   [self addSubview:dictButton_];
   // Right-click menu for dictionary tool
   NSMenu *dictMenu = [[NSMenu alloc] initWithTitle:@"Dict"];
-  [dictMenu addItemWithTitle:@"Dictionary Tool..."
-                      action:@selector(dictToolClicked:)
-               keyEquivalent:@""];
-  dictMenu.itemArray.lastObject.target = self;
+  NSMenuItem *dictToolItem =
+      [dictMenu addItemWithTitle:@"Dictionary Tool..."
+                          action:@selector(dictToolClicked:)
+                   keyEquivalent:@""];
+  dictToolItem.target = self;
   dictButton_.menu = dictMenu;
   x += kButtonWidth;
 
@@ -794,14 +802,7 @@ std::string GetKeymapPath(const std::string &filename) {
   shortcutsButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_shortcuts_dark" : @"toolbar_shortcuts_light"];
   [self addSubview:shortcutsButton_];
 
-  // Fetch initial shin/kyu state
-  if (client_) {
-    mozc::config::Config config;
-    if (client_->GetConfig(&config)) {
-      useTraditionalKanji_ = config.use_traditional_kanji();
-      [self updateTradIcon];
-    }
-  }
+  // Shin/kyu state is applied via MozcToolbarUpdate after the controller is active.
 
   return self;
 }
@@ -1079,9 +1080,7 @@ std::string GetKeymapPath(const std::string &filename) {
 #pragma mark - Position Persistence
 
 - (NSString *)prefsPath {
-  NSString *dir = [NSString
-      stringWithUTF8String:mozc::MacUtil::GetApplicationSupportDirectory().c_str()];
-  return [dir stringByAppendingPathComponent:@"toolbar.conf"];
+  return ToolbarPrefsPath();
 }
 
 - (NSMutableDictionary *)mutablePrefs {
@@ -1136,12 +1135,6 @@ std::string GetKeymapPath(const std::string &filename) {
 static NSPanel *g_toolbar_panel = nil;
 static MozcToolbarView *g_toolbar_view = nil;
 
-static NSString *ToolbarPrefsPath() {
-  NSString *dir = [NSString
-      stringWithUTF8String:mozc::MacUtil::GetApplicationSupportDirectory().c_str()];
-  return [dir stringByAppendingPathComponent:@"toolbar.conf"];
-}
-
 static void EnsureToolbarPrefsDirectory() {
   NSString *path = ToolbarPrefsPath();
   [[NSFileManager defaultManager] createDirectoryAtPath:[path stringByDeletingLastPathComponent]
@@ -1187,12 +1180,27 @@ static void EnsureToolbar(mozc::client::ClientInterface *client,
 namespace mozc {
 namespace mac {
 
+static void RunOnMainThread(void (^block)(void)) {
+  if ([NSThread isMainThread]) {
+    block();
+  } else {
+    dispatch_sync(dispatch_get_main_queue(), block);
+  }
+}
+
 void MozcToolbarShow(client::ClientInterface *client,
                      commands::CompositionMode mode) {
   if (!MozcToolbarLoadVisiblePreference()) {
     return;
   }
+  if (!client) {
+    return;
+  }
   dispatch_async(dispatch_get_main_queue(), ^{
+    // deactivateServer: may clear the controller before this block runs.
+    if (!g_active_controller) {
+      return;
+    }
     EnsureToolbar(client, mode);
     [g_toolbar_view updateMode:mode];
     [g_toolbar_panel orderFront:nil];
@@ -1200,7 +1208,7 @@ void MozcToolbarShow(client::ClientInterface *client,
 }
 
 void MozcToolbarHide() {
-  dispatch_async(dispatch_get_main_queue(), ^{
+  RunOnMainThread(^{
     if (g_symbols_palette_visible) return;
     [g_toolbar_panel orderOut:nil];
   });

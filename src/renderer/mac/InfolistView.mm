@@ -200,6 +200,9 @@ using mozc::renderer::mac::MacViewUtil;
 }
 
 - (NSSize)updateLayout {
+  if (style_ != nullptr) {
+    RendererStyleHandler::GetRendererStyle(style_);
+  }
   return [self drawView:false];
 }
 

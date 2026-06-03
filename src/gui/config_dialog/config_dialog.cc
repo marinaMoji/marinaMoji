@@ -178,6 +178,10 @@ ConfigDialog::ConfigDialog()
   miscDefaultIMEWidget->setVisible(false);
   miscAdministrationWidget->setVisible(false);
   setWindowTitle(tr("%1 Preferences").arg(GuiUtil::ProductName()));
+  candidateWindowFontSizeSpinBox->setRange(14, 36);
+#else
+  appearanceHeader->setVisible(false);
+  appearanceGroup->setVisible(false);
 #endif  // __APPLE__
 
 #if defined(__linux__)
@@ -633,6 +637,10 @@ void ConfigDialog::SaveIbusCandidateWindowToFile() const {
 
 namespace {
 static constexpr int kPreeditMethodSize = 2;
+#ifdef __APPLE__
+static constexpr int kMinCandidateWindowFontSize = 14;
+static constexpr int kMaxCandidateWindowFontSize = 36;
+#endif  // __APPLE__
 
 void SetComboboxForPreeditMethod(const config::Config &config,
                                  QComboBox *combobox) {
@@ -679,6 +687,12 @@ void ConfigDialog::ConvertFromProto(const config::Config &config) {
   SET_COMBOBOX(numpadCharacterFormComboBox, NumpadCharacterForm,
                numpad_character_form);
   SET_COMBOBOX(keymapSettingComboBox, SessionKeymap, session_keymap);
+
+#ifdef __APPLE__
+  candidateWindowFontSizeSpinBox->setValue(std::clamp<int>(
+      static_cast<int>(config.candidate_window_font_size()),
+      kMinCandidateWindowFontSize, kMaxCandidateWindowFontSize));
+#endif  // __APPLE__
 
   custom_keymap_table_ = config.custom_keymap_table();
   custom_roman_table_ = config.custom_roman_table();
@@ -766,6 +780,12 @@ void ConfigDialog::ConvertToProto(config::Config *config) const {
   GET_COMBOBOX(numpadCharacterFormComboBox, NumpadCharacterForm,
                numpad_character_form);
   GET_COMBOBOX(keymapSettingComboBox, SessionKeymap, session_keymap);
+
+#ifdef __APPLE__
+  config->set_candidate_window_font_size(static_cast<uint32_t>(std::clamp<int>(
+      candidateWindowFontSizeSpinBox->value(), kMinCandidateWindowFontSize,
+      kMaxCandidateWindowFontSize)));
+#endif  // __APPLE__
 
   config->set_custom_keymap_table(custom_keymap_table_);
 

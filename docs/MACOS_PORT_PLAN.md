@@ -101,7 +101,7 @@ unzip -o mozc_macos.zip
 sudo rm -rf "/Library/Input Methods/marinaMoji.app"
 sudo ditto marinaMoji.app "/Library/Input Methods/marinaMoji.app"
 cd ../..   # back to src/
-./mac/install_launchagents.sh
+bash ./mac/install_launchagents.sh
 ```
 
 ### Restart background services
@@ -112,9 +112,10 @@ Use LaunchAgents whose `Program` paths point at
 From `src/` after install:
 
 ```bash
-chmod +x mac/install_launchagents.sh
 ./mac/install_launchagents.sh
 ```
+
+If you see `permission denied`, either run `chmod +x mac/install_launchagents.sh` once, or use `bash mac/install_launchagents.sh` (do **not** use `sudo`).
 
 Or install `marinaMoji.pkg` (places plists under `/Library/LaunchAgents/`), then log out/in or bootstrap manually:
 
@@ -193,6 +194,7 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
    - [ ] `Ctrl+Shift+1` default odoriji, `Ctrl+Shift+2` palette while composing
    - [ ] `Ctrl+Shift+4` / `$` Manyōshū toggle, `Ctrl+Shift+5` / `%` hiragana/direct
    - [ ] Candidate window F5/F6 behavior unchanged
+   - [ ] Preferences → General → Appearance: candidate font size 14 vs 36 updates the candidate list (and usage examples) after OK, without restarting the IME
 5. Logs: `~/Library/Logs/marinaMoji/marinaMoji.log`
 
 ## Known issues / backlog
@@ -201,6 +203,7 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
 
 | ID | Issue | Suggested fix |
 |----|--------|----------------|
+| M1d | **Toolbar crash on activate** (macOS 26; `MozcToolbarView initWithClient`) — can take down CotEditor / System Settings via TSM when IME dies | **Workaround:** `~/Library/Application Support/marinaMoji/toolbar.conf` with `toolbar_visible` = false (must match profile dir; not `Application Support/toolbar.conf` alone). **Fix:** toolbar prefs path + guard async show; sync hide on deactivate. |
 | M1 | **Kotoeri Conversion: `Ctrl+Shift+2` duplicate** — both `ShowOdorijiPalette` and `ToggleFullHalfWidth`; last line in TSV wins (palette blocked on keyboard) | **Resolved**: number-row mappings now use `1` odoriji default, `2` palette, `3` shin/kyū, `4` Manyōshū, `5` hiragana/direct in Kotoeri/MS-IME/ATOK keymaps. |
 | M1b | **`Ctrl+Shift+5` freeze when returning from Direct** — `setValue:` / `handleConfig` / `selectInputMode` re-entry | Mitigations: no `switchDisplayMode` from keys; `setValue:` skips server + `handleConfig`; 200ms `setValue` suppress after keyboard mode change; `processOutput` depth limit. **Debug:** `MARINA_IMK_TRACE=1` → `~/Library/Logs/marinaMoji/marinaMoji.log` |
 | M1c | **Ctrl+Shift+1–4 beep on Dvorak/AZERTY** | Fixed: physical number-row mapping runs before empty-`characters` check in `KeyCodeMap.mm` |

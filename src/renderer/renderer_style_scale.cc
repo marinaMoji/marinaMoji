@@ -27,53 +27,47 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "renderer/renderer_style_handler.h"
-
-#include <algorithm>
-#include <cstdint>
-
-#include "absl/log/check.h"
-#include "absl/strings/string_view.h"
-#include "base/protobuf/text_format.h"
-#include "protocol/renderer_style.pb.h"
 #include "renderer/renderer_style_scale.h"
-
-#ifdef __APPLE__
-#include "config/config_handler.h"
-#endif  // __APPLE__
 
 namespace mozc {
 namespace renderer {
-
 namespace {
-// absl::string_view kStyleTextProto is defined in renderer_style.inc.
-#include "renderer/renderer_style.inc"
 
-#ifdef __APPLE__
-constexpr uint32_t kDefaultCandidateWindowFontSize = 14;
-constexpr uint32_t kMinCandidateWindowFontSize = 14;
-constexpr uint32_t kMaxCandidateWindowFontSize = 36;
-
-uint32_t GetCandidateWindowFontSizeFromConfig() {
-  config::ConfigHandler::Reload();
-  const uint32_t font_size =
-      config::ConfigHandler::GetSharedConfig()->candidate_window_font_size();
-  return std::clamp(font_size, kMinCandidateWindowFontSize,
-                    kMaxCandidateWindowFontSize);
+void ScaleTextStyle(RendererStyle::TextStyle* text_style, double scale_factor) {
+  text_style->set_font_size(text_style->font_size() * scale_factor);
+  text_style->set_left_padding(text_style->left_padding() * scale_factor);
+  text_style->set_right_padding(text_style->right_padding() * scale_factor);
 }
-#endif  // __APPLE__
 
 }  // namespace
 
-void RendererStyleHandler::GetRendererStyle(RendererStyle* style) {
-  CHECK(mozc::protobuf::TextFormat::ParseFromString(kStyleTextProto, style));
+void ScaleRendererStyle(RendererStyle* style, double scale_factor) {
+  if (scale_factor == 1.0) {
+    return;
+  }
 
-#ifdef __APPLE__
-  const uint32_t font_size = GetCandidateWindowFontSizeFromConfig();
-  const double scale_factor =
-      static_cast<double>(font_size) / kDefaultCandidateWindowFontSize;
-  ScaleRendererStyle(style, scale_factor);
-#endif  // __APPLE__
+  // style->window_border is non-scalable.
+  style->set_scrollbar_width(style->scrollbar_width() * scale_factor);
+  style->set_row_rect_padding(style->row_rect_padding() * scale_factor);
+
+  ScaleTextStyle(style->mutable_shortcut_style(), scale_factor);
+  ScaleTextStyle(style->mutable_gap1_style(), scale_factor);
+  ScaleTextStyle(style->mutable_candidate_style(), scale_factor);
+  ScaleTextStyle(style->mutable_description_style(), scale_factor);
+
+  ScaleTextStyle(style->mutable_footer_style(), scale_factor);
+  ScaleTextStyle(style->mutable_footer_sub_label_style(), scale_factor);
+
+  RendererStyle::InfolistStyle* info_style = style->mutable_infolist_style();
+  // info_style->window_border and info_style->caption_padding are non-scalable.
+  info_style->set_caption_height(info_style->caption_height() * scale_factor);
+  info_style->set_row_rect_padding(info_style->row_rect_padding() *
+                                   scale_factor);
+  info_style->set_window_width(info_style->window_width() * scale_factor);
+
+  ScaleTextStyle(info_style->mutable_caption_style(), scale_factor);
+  ScaleTextStyle(info_style->mutable_title_style(), scale_factor);
+  ScaleTextStyle(info_style->mutable_description_style(), scale_factor);
 }
 
 }  // namespace renderer

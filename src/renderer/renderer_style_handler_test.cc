@@ -32,6 +32,11 @@
 #include "protocol/renderer_style.pb.h"
 #include "testing/gunit.h"
 
+#ifdef __APPLE__
+#include "config/config_handler.h"
+#include "protocol/config.pb.h"
+#endif  // __APPLE__
+
 namespace mozc {
 namespace renderer {
 
@@ -42,6 +47,20 @@ TEST(RendererStyleHandlerTest, GetRendererStyle) {
   EXPECT_TRUE(style.has_infolist_style());
   EXPECT_TRUE(style.infolist_style().has_focused_border_color());
 }
+
+#ifdef __APPLE__
+TEST(RendererStyleHandlerTest, CandidateWindowFontSizeFromConfig) {
+  config::ConfigHandler::SetConfigFileNameForTesting(
+      "memory://renderer_style_handler_font_test.db");
+  config::Config config = config::ConfigHandler::GetCopiedConfig();
+  config.set_candidate_window_font_size(28);
+  config::ConfigHandler::SetConfig(config);
+
+  RendererStyle style;
+  RendererStyleHandler::GetRendererStyle(&style);
+  EXPECT_DOUBLE_EQ(style.candidate_style().font_size(), 28.0);
+}
+#endif  // __APPLE__
 
 }  // namespace renderer
 }  // namespace mozc

@@ -22,6 +22,15 @@ from PIL import Image
 SCRIPT_DIR = Path(__file__).resolve().parent
 MAC_DIR = SCRIPT_DIR / "mac"
 ICONSET_DIR = MAC_DIR / "product_icon.iconset"
+LOGO_SQUARE_SVG = (
+    SCRIPT_DIR.parent.parent
+    / "unix"
+    / "ibus"
+    / "toolbar_icons"
+    / "logo_square_light.svg"
+)
+# Candidate footer logo height at default 14 pt text (square, matches legacy bar height).
+CANDIDATE_WINDOW_LOGO_SIZE = 19
 
 # SVG basenames that map to mac/*.tiff (rendered at 32×32 RGBA).
 # Keep this aligned with the historical Google Mozc assets, which are 32×32
@@ -121,6 +130,26 @@ def build_icns(iconset_dir: Path, icns_path: Path) -> None:
 # Generation steps
 # ---------------------------------------------------------------------------
 
+def generate_candidate_window_logo_tiff() -> None:
+    """logo_square_light.svg → candidate_window_logo.tiff (footer branding)."""
+    print("Generating candidate_window_logo.tiff …")
+    tiff_path = MAC_DIR / "candidate_window_logo.tiff"
+    if not LOGO_SQUARE_SVG.exists():
+        print(f"  WARNING: {LOGO_SQUARE_SVG.name} not found, skipping")
+        return
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+        tmp_png = Path(tmp.name)
+    try:
+        svg_to_png(LOGO_SQUARE_SVG, tmp_png, CANDIDATE_WINDOW_LOGO_SIZE)
+        png_to_tiff(tmp_png, tiff_path)
+        print(
+            f"  {LOGO_SQUARE_SVG.name} → {tiff_path.relative_to(SCRIPT_DIR)}"
+            f"  ({CANDIDATE_WINDOW_LOGO_SIZE}×{CANDIDATE_WINDOW_LOGO_SIZE})"
+        )
+    finally:
+        tmp_png.unlink(missing_ok=True)
+
+
 def generate_marinamoji_mode_tiff() -> None:
     """icon.svg → marinamoji.tiff (32×32 menu icon for the visible input source)."""
     print("Generating marinamoji.tiff …")
@@ -218,6 +247,7 @@ def main() -> None:
         )
 
     generate_mode_tiffs()
+    generate_candidate_window_logo_tiff()
     generate_marinamoji_mode_tiff()
     generate_iconset()
     generate_icns()

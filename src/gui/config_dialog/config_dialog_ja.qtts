@@ -75,6 +75,16 @@
         <translation>キー設定</translation>
     </message>
     <message>
+        <location filename="config_dialog.ui" line="287"/>
+        <source>Appearance</source>
+        <translation>表示</translation>
+    </message>
+    <message>
+        <location filename="config_dialog.ui" line="322"/>
+        <source>Candidate window font size</source>
+        <translation>候補ウィンドウの文字サイズ</translation>
+    </message>
+    <message>
         <location filename="config_dialog.ui" line="1213"/>
         <source>Cloud</source>
         <translation>クラウド</translation>

@@ -63,7 +63,7 @@ using mozc::renderer::mac::MacViewUtil;
 
 // Private method declarations.
 @interface CandidateView ()
-- (void)initializeDefaultStyle;
+- (void)reloadStyle;
 
 // Draw the |row|-th row.
 - (void)drawRow:(int)row;
@@ -98,38 +98,35 @@ using mozc::renderer::mac::MacViewUtil;
 - (id)initWithFrame:(NSRect)frame {
   self = [super initWithFrame:frame];
   if (self) {
-    [self initializeDefaultStyle];
+    RendererStyleHandler::GetRendererStyle(&style_);
+    const std::string &logo_file_name = style_.logo_file_name();
+    logoImage_ = [NSImage imageNamed:[NSString stringWithUTF8String:logo_file_name.c_str()]];
+    [self reloadStyle];
     focusedRow_ = -1;
+    // default line width is specified as 1.0 *pt*, but we want to draw
+    // it as 1.0 px.
+    [NSBezierPath setDefaultLineWidth:1.0];
+    [NSBezierPath setDefaultLineJoinStyle:NSLineJoinStyleMiter];
   }
   return self;
 }
 
-- (void)initializeDefaultStyle {
+- (void)reloadStyle {
   RendererStyleHandler::GetRendererStyle(&style_);
 
-  const std::string &logo_file_name = style_.logo_file_name();
-  logoImage_ = [NSImage imageNamed:[NSString stringWithUTF8String:logo_file_name.c_str()]];
+  const NSAttributedString *minimumWidthString = MacViewUtil::ToNSAttributedString(
+      style_.column_minimum_width_string(), style_.shortcut_style());
+  columnMinimumWidth_ = [minimumWidthString size].width;
+
   if (logoImage_) {
-    // Fix the image size.  Sometimes the size can be smaller than the
-    // actual size because of blank margin.
     const NSArray *logoReps = [logoImage_ representations];
     if (logoReps && [logoReps count] > 0) {
       const NSImageRep *representation = [logoReps objectAtIndex:0];
-      [logoImage_ setSize:NSMakeSize([representation pixelsWide], [representation pixelsHigh])];
+      const double scale = style_.candidate_style().font_size() / 14.0;
+      [logoImage_ setSize:NSMakeSize([representation pixelsWide] * scale,
+                                     [representation pixelsHigh] * scale)];
     }
   }
-
-  NSString *nsstr = [NSString stringWithUTF8String:style_.column_minimum_width_string().c_str()];
-  NSDictionary *attr = [NSDictionary dictionaryWithObject:[NSFont messageFontOfSize:14]
-                                                   forKey:NSFontAttributeName];
-  const NSAttributedString *defaultMessage = [[NSAttributedString alloc] initWithString:nsstr
-                                                                             attributes:attr];
-  columnMinimumWidth_ = [defaultMessage size].width;
-
-  // default line width is specified as 1.0 *pt*, but we want to draw
-  // it as 1.0 px.
-  [NSBezierPath setDefaultLineWidth:1.0];
-  [NSBezierPath setDefaultLineJoinStyle:NSLineJoinStyleMiter];
 }
 
 - (void)setCandidateWindow:(const CandidateWindow *)candidate_window {
@@ -156,6 +153,7 @@ using mozc::renderer::mac::MacViewUtil;
 #pragma mark drawing
 
 - (NSSize)updateLayout {
+  [self reloadStyle];
   candidateStringsCache_ = nil;
   tableLayout_.Initialize(candidate_window_.candidate_size(), kNumberOfColumns);
   tableLayout_.SetWindowBorder(style_.window_border());
@@ -379,8 +377,9 @@ using mozc::renderer::mac::MacViewUtil;
 
   // Draw logo
   if (footer.logo_visible() && logoImage_) {
-    const NSPoint logoPoint = footerRect.origin;
     const NSSize logoSize = logoImage_.size;
+    NSPoint logoPoint = footerRect.origin;
+    logoPoint.y += (footerRect.size.height - logoSize.height) / 2;
     const NSRect logoRect = NSMakeRect(logoPoint.x, logoPoint.y, logoSize.width, logoSize.height);
     [logoImage_ drawInRect:logoRect
                     fromRect:NSZeroRect   // Draw the entire image

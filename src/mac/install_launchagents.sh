@@ -3,6 +3,12 @@
 # Required after manual `ditto` install (the .pkg does this under /Library/LaunchAgents).
 set -e
 
+if [ "$(id -u)" -eq 0 ]; then
+  echo "Do not run this script with sudo. Run as your normal user:" >&2
+  echo "  ./mac/install_launchagents.sh" >&2
+  exit 1
+fi
+
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 AGENT_SRC="${SCRIPT_DIR}/installer/LaunchAgents"
 UID_NUM=$(id -u)
@@ -21,6 +27,8 @@ for plist in org.mozc.inputmethod.Japanese.Converter.plist \
     "${HOME}/Library/LaunchAgents/${plist}" 2>/dev/null || true
   launchctl bootstrap "${GUI_DOMAIN}" \
     "${HOME}/Library/LaunchAgents/${plist}"
+  label=$(basename "${plist}" .plist)
+  launchctl kickstart -k "${GUI_DOMAIN}/${label}" 2>/dev/null || true
 done
 
 echo "LaunchAgents installed. Checking processes..."

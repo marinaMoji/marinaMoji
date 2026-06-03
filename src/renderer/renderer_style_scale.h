@@ -27,36 +27,19 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef MOZC_RENDERER_MAC_INFOLIST_VIEW_H_
-#define MOZC_RENDERER_MAC_INFOLIST_VIEW_H_
+#ifndef MOZC_RENDERER_RENDERER_STYLE_SCALE_H_
+#define MOZC_RENDERER_RENDERER_STYLE_SCALE_H_
 
-#import <Cocoa/Cocoa.h>
-
-#include "protocol/candidate_window.pb.h"
-#include "protocol/renderer_command.pb.h"
+#include "protocol/renderer_style.pb.h"
 
 namespace mozc {
 namespace renderer {
-class RendererStyle;
-}  // namespace mozc::renderer
+
+// Scales font sizes, paddings, and layout dimensions in |style| by
+// |scale_factor| (1.0 = default baked-in sizes).
+void ScaleRendererStyle(RendererStyle* style, double scale_factor);
+
+}  // namespace renderer
 }  // namespace mozc
 
-// InfolistView is an NSView subclass to draw the infolist window
-// according to the current candidates.
-@interface InfolistView : NSView {
- @private
-  mozc::commands::CandidateWindow candidate_window_;
-  mozc::renderer::RendererStyle *style_;
-  // The row which has focused background.
-  int focusedRow_;
-}
-
-// setCandidateWindow: sets the candidate window to be rendered.
-- (void)setCandidateWindow:(const mozc::commands::CandidateWindow *)candidate_window;
-
-// Checks the |candidates_| and recalculates the layout.
-// It also returns the size which is necessary to draw all GUI elements.
-- (NSSize)updateLayout;
-@end
-
-#endif  // MOZC_RENDERER_MAC_INFOLIST_VIEW_H_
+#endif  // MOZC_RENDERER_RENDERER_STYLE_SCALE_H_

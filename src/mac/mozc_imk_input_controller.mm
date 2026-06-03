@@ -616,8 +616,8 @@ const char *CompositionModeName(CompositionMode mode) {
   if (imkClientForTest_) {
     return;
   }
-  mozc::mac::MozcToolbarHide();
   mozc::mac::MozcToolbarSetActiveController(nullptr);
+  mozc::mac::MozcToolbarHide();
 
   RendererCommand clearCommand;
   clearCommand.set_type(RendererCommand::UPDATE);

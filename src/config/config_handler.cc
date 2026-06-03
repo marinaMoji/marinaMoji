@@ -30,6 +30,7 @@
 // Handler of mozc configuration.
 #include "config/config_handler.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <istream>
@@ -153,6 +154,15 @@ void NormalizeConfig(Config* config) {
       !config->has_use_emoji_conversion()) {
     config->set_use_emoji_conversion(true);
   }
+
+#ifdef __APPLE__
+  constexpr uint32_t kMinCandidateWindowFontSize = 14;
+  constexpr uint32_t kMaxCandidateWindowFontSize = 36;
+  const uint32_t font_size = config->candidate_window_font_size();
+  config->set_candidate_window_font_size(
+      std::clamp(font_size, kMinCandidateWindowFontSize,
+                 kMaxCandidateWindowFontSize));
+#endif  // __APPLE__
 }
 
 class ConfigHandlerImpl final {
