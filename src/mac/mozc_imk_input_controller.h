@@ -87,6 +87,9 @@
   /** Nesting depth guard for |-processOutput:client:|. */
   int processOutputDepth_;
 
+  /** False after |-deactivateServer:| (e.g. user switched to Dvorak); blocks stale delayed UI. */
+  bool imeServerActive_;
+
   /** Last mode id passed to |selectInputMode:| (skip redundant macOS sync). */
   std::string lastDisplayModeId_;
 

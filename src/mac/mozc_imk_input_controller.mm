@@ -330,6 +330,8 @@ const char *CompositionModeName(CompositionMode mode) {
 - (void)setupMarinaImeMenuIfNeeded;
 - (void)updateImeMenuState:(const Output *)output;
 - (void)syncCandidatesWithOutput:(const Output *)output;
+- (void)cancelPendingCandidateUpdate;
+- (void)applyCommitAndPreeditFromOutput:(const Output *)output client:(id)sender;
 @end
 
 @implementation MozcImkInputController
@@ -380,6 +382,7 @@ const char *CompositionModeName(CompositionMode mode) {
   handlingKeyboardEvent_ = false;
   suppressSetValueUntil_ = 0;
   processOutputDepth_ = 0;
+  imeServerActive_ = false;
   yenSignCharacter_ = mozc::config::Config::YEN_SIGN;
   mozcRenderer_ = mozc::renderer::RendererClient::Create();
   mozcClient_ = mozc::client::ClientFactory::NewClient();
@@ -606,6 +609,7 @@ const char *CompositionModeName(CompositionMode mode) {
     return;
   }
   [super activateServer:sender];
+  imeServerActive_ = true;
   [self setupClientBundle:sender];
   if (rendererCommand_.visible() && mozcRenderer_) {
     mozcRenderer_->ExecCommand(rendererCommand_);
@@ -634,16 +638,15 @@ const char *CompositionModeName(CompositionMode mode) {
   if (imkClientForTest_) {
     return;
   }
+  imeServerActive_ = false;
   mozc::mac::MozcToolbarSetActiveController(nullptr);
   mozc::mac::MozcToolbarHide();
-
-  RendererCommand clearCommand;
-  clearCommand.set_type(RendererCommand::UPDATE);
-  clearCommand.set_visible(false);
-  clearCommand.clear_output();
-  if (mozcRenderer_) {
-    mozcRenderer_->ExecCommand(clearCommand);
+  if ([composedString_ length] > 0) {
+    [self updateComposedString:nullptr];
   }
+  // Sync local |rendererCommand_| and cancel a queued |-delayedUpdateCandidates| (typing
+  // schedules it on the next run loop; switching to Dvorak can run it after deactivate).
+  [self clearCandidates];
   DLOG(INFO) << kProductNameInEnglish << " client (" << self << "): deactivated";
   DLOG(INFO) << "sender bundleID: " << clientBundle_;
   [super deactivateServer:sender];
@@ -1121,8 +1124,42 @@ const char *CompositionModeName(CompositionMode mode) {
   }
 }
 
+namespace {
+// Shin/kyū, privacy mode, etc. return config without touching the candidate list.
+bool IsConfigOnlySessionOutput(const Output &output) {
+  return output.has_config() && !output.has_result() && !output.has_candidate_window();
+}
+}  // namespace
+
+- (void)applyCommitAndPreeditFromOutput:(const Output *)output client:(id)sender {
+  if (output == nullptr) {
+    return;
+  }
+  if (output->has_result()) {
+    [self commitText:output->result().value().c_str() client:sender];
+  }
+  if (output->has_preedit()) {
+    [self updateComposedString:&(output->preedit())];
+  } else if (output->has_result()) {
+    // Server commit with no preedit field: clear marked text. Otherwise switching
+    // input (e.g. to Dvorak) can flush composedString_ and insert a duplicate.
+    [self updateComposedString:nullptr];
+    [self clearCandidates];
+  }
+}
+
 - (void)syncCandidatesWithOutput:(const Output *)output {
   if (output == nullptr) {
+    [self clearCandidates];
+    return;
+  }
+  // IME off (e.g. after commit then Ctrl+Shift+5): server may still attach zero-query
+  // candidates in the same output; always hide the renderer.
+  if (output->has_status() && !output->status().activated()) {
+    [self clearCandidates];
+    return;
+  }
+  if (output->has_mode() && output->mode() == mozc::commands::DIRECT) {
     [self clearCandidates];
     return;
   }
@@ -1130,11 +1167,12 @@ const char *CompositionModeName(CompositionMode mode) {
     [self updateCandidates:output];
     return;
   }
-  // Commit (and similar) returns result without candidate_window; hide the list.
-  // Config-only commands (shin/kyū) also omit candidate_window — leave UI as-is.
-  if (output->has_result()) {
-    [self clearCandidates];
+  // Shin/kyū and similar: do not dismiss an open conversion list.
+  if (IsConfigOnlySessionOutput(*output)) {
+    return;
   }
+  // Commit, Escape, delete-to-empty: response omits candidate_window — hide stale UI.
+  [self clearCandidates];
 }
 
 - (void)processOutput:(const mozc::commands::Output *)output client:(id)sender {
@@ -1152,17 +1190,12 @@ const char *CompositionModeName(CompositionMode mode) {
   }
 
   if (!output->consumed()) {
-    if (output->has_result()) {
-      [self commitText:output->result().value().c_str() client:sender];
-    }
+    [self applyCommitAndPreeditFromOutput:output client:sender];
     if (output->has_status() || output->has_mode()) {
       const CompositionMode new_mode = NormalizeModeForEmptyHalfAscii(
           EffectiveCompositionMode(*output, mode_), *output);
       mode_ = new_mode;
       mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
-    }
-    if (output->has_preedit()) {
-      [self updateComposedString:&(output->preedit())];
     }
     [self syncCandidatesWithOutput:output];
     mozc::mac::MozcToolbarUpdate(*output, mode_);
@@ -1177,9 +1210,7 @@ const char *CompositionModeName(CompositionMode mode) {
     [self openLink:[NSURL URLWithString:url]];
   }
 
-  if (output->has_result()) {
-    [self commitText:output->result().value().c_str() client:sender];
-  }
+  [self applyCommitAndPreeditFromOutput:output client:sender];
 
   // Handles deletion range.  We do not even handle it for some
   // applications to prevent application crashes.
@@ -1205,9 +1236,6 @@ const char *CompositionModeName(CompositionMode mode) {
     }
   }
 
-  if (output->has_preedit()) {
-    [self updateComposedString:&(output->preedit())];
-  }
   [self syncCandidatesWithOutput:output];
 
   if (output->has_mode() || output->has_status()) {
@@ -1342,7 +1370,14 @@ const char *CompositionModeName(CompositionMode mode) {
   return composedString_;
 }
 
+- (void)cancelPendingCandidateUpdate {
+  [NSObject cancelPreviousPerformRequestsWithTarget:self
+                                           selector:@selector(delayedUpdateCandidates)
+                                             object:nil];
+}
+
 - (void)clearCandidates {
+  [self cancelPendingCandidateUpdate];
   rendererCommand_.set_type(RendererCommand::UPDATE);
   rendererCommand_.set_visible(false);
   rendererCommand_.clear_output();
@@ -1364,7 +1399,7 @@ const char *CompositionModeName(CompositionMode mode) {
 }
 
 - (void)delayedUpdateCandidates {
-  if (!mozcRenderer_) {
+  if (!imeServerActive_ || !mozcRenderer_) {
     return;
   }
 
@@ -1435,6 +1470,7 @@ const char *CompositionModeName(CompositionMode mode) {
   // Runs delayedUpdateCandidates in the next event loop.
   // This is because some applications like Google Docs with Chrome returns
   // incorrect cursor position if we call attributesForCharacterIndex here.
+  [self cancelPendingCandidateUpdate];
   [self performSelector:@selector(delayedUpdateCandidates) withObject:nil afterDelay:0];
 }
 
