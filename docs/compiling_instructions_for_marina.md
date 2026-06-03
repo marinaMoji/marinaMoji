@@ -114,6 +114,34 @@ The first run can take a long time (tens of minutes) while dependencies are down
 
 ## 4. Install and use marinaMoji
 
+### 4.0 Remove a previous install (optional)
+
+If you installed an older build with `sudo unzip … mozc.zip -d /` and/or the **Rime** marinaMoji from `marinaMoji_Repo`, remove them before installing again.
+
+**Mozc fork only** (zip install):
+
+```bash
+sudo docs/uninstall_linux_marinamozc.sh
+```
+
+**Mozc fork + Rime marinaMoji** (recommended clean slate before a new Mozc build):
+
+```bash
+sudo docs/uninstall_linux_marinamozc.sh --all-marina --remove-config
+```
+
+**Rime marinaMoji only** (keep nothing from the old Mozc zip):
+
+```bash
+sudo docs/uninstall_linux_marinamozc.sh --rime-only --remove-config
+```
+
+This removes system files such as `marina.xml`, `/usr/libexec/ibus-marinamoji`, `/usr/share/marinamoji`, and `/usr/share/ibus-marinamoji`. It does **not** uninstall pacman packages (`librime`, `ibus`, etc.).
+
+To also delete user settings (`~/.config/marinamozc`, `~/.config/ibus/marinaMoji`, Fontconfig fallback), add **`--remove-config`** (included in the commands above).
+
+Then run `ibus write-cache` and `ibus restart`, and remove old entries in **Settings → Keyboard → Input Sources**.
+
 ### 4.1 Install the built files
 
 From the **`marinaMoji/src`** directory:

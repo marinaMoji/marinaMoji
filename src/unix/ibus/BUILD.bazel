@@ -166,6 +166,7 @@ mozc_cc_library(
         "message_translator.h",
         "path_util.h",
     ],
+    visibility = ["//gui/config_dialog:__pkg__"],
     local_defines = [
         "MARINAMOJI",
         'MOZC_IBUS_INSTALL_DIR=\\"' + IBUS_MOZC_INSTALL_DIR + '\\"',
