@@ -6,6 +6,20 @@
 Qt 5.12 or later Qt5 versions are recommended.
 We have not tested Qt6 yet.
 
+## Locales
+
+Committed translations: **English** (`*_en`), **Japanese** (`*_ja`), **French** (`*_fr`).
+
+To refresh French drafts from English sources:
+
+```sh
+cd src/gui
+python3 tools/generate_fr_qtts.py
+lrelease config_dialog_fr.qtts -qm config_dialog_fr.qm   # repeat per component
+```
+
+See [docs/LOCALIZATION.md](../../../docs/LOCALIZATION.md).
+
 ## .qtts files
 
 `.qtts` files are translation resources.

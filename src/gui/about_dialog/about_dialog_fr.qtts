@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TS version="2.0" language="fr">
+<context>
+    <name>AboutDialog</name>
+    <message>
+        <location filename="about_dialog.ui" line="32" />
+        <source>About [ProductName]</source>
+        <translation>À propos de [ProductName]</translation>
+    </message>
+    <message>
+        <location filename="about_dialog.ui" line="59" />
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message utf8="true">
+        <location filename="about_dialog.ui" line="80" />
+        <source>Copyright 2026 Google LLC. All rights reserved.</source>
+        <translation>Copyright 2026 Google LLC. All rights reserved.</translation>
+    </message>
+    <message>
+        <location filename="about_dialog.ui" line="95" />
+        <source>&lt;html&gt;&lt;body&gt;[ProductName] is made possible by &lt;a href="file://credits_en.html"&gt;&lt;span style=" text-decoration: underline; color:#0000ff;"&gt;open source software&lt;/span&gt;&lt;/a&gt;.&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;body&gt;[ProductName] is made possible by &lt;a href="file://credits_en.html"&gt;&lt;span style=" text-decoration: underline; color:#0000ff;"&gt;logiciels open source&lt;/span&gt;&lt;/a&gt;.&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="about_dialog.ui" line="133" />
+        <source>&lt;html&gt;&lt;body&gt;[ProductName] &lt;a href="[ProductUrl]"&gt;&lt;span style=" text-decoration: underline; color:#0000ff;"&gt;website&lt;/span&gt;&lt;/a&gt; &lt;a href="[ForumUrl]"&gt;&lt;span style=" text-decoration: underline; color:#0000ff;"&gt;[ForumName]&lt;/span&gt;&lt;/a&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;body&gt;[ProductName] &lt;a href="[ProductUrl]"&gt;&lt;span style=" text-decoration: underline; color:#0000ff;"&gt;site Web&lt;/span&gt;&lt;/a&gt; &lt;a href="[ForumUrl]"&gt;&lt;span style=" text-decoration: underline; color:#0000ff;"&gt;[ForumName]&lt;/span&gt;&lt;/a&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="about_dialog.ui" line="174" />
+        <source>[ProductName]</source>
+        <translation>[ProductName]</translation>
+    </message>
+    <message>
+        <location filename="about_dialog.ui" line="197" />
+        <source>0.0.0.0</source>
+        <translation>0.0.0.0</translation>
+    </message>
+</context>
+</TS>

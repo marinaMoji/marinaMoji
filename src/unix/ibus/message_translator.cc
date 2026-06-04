@@ -74,6 +74,62 @@ const TranslationMap kUTF8JapaneseMap[] = {
 #endif  // MARINAMOJI / GOOGLE_JAPANESE_INPUT_BUILD
 };
 
+const TranslationMap kUTF8FrenchMap[] = {
+    {"Direct input", "Saisie directe"},
+    {"Hiragana", "Hiragana"},
+    {"Katakana", "Katakana"},
+    {"Latin", "Alphanumérique demi-chasse"},
+    {"Wide Latin", "Alphanumérique pleine chasse"},
+    {"Half width katakana", "Katakana demi-chasse"},
+    {"Tools", "Outils"},
+    {"Properties", "Propriétés"},
+    {"Dictionary Tool", "Outil dictionnaire"},
+    {"Add Word", "Ajouter un mot"},
+    {"Input Mode", "Mode de saisie"},
+    {"Show toolbar", "Afficher la barre d'outils"},
+    {"Hide toolbar", "Masquer la barre d'outils"},
+    {"Toolbar", "Barre d'outils"},
+    {"Traditional kanji (Kyūjitai)", "Kanji traditionnels (kyūjitai)"},
+    {"Odoriji (iteration marks)", "Odoriji (marques d'itération)"},
+    {"Privacy mode", "Mode confidentialité"},
+#ifdef MARINAMOJI
+    {"About marinaMoji", "À propos de marinaMoji"},
+#elif defined(GOOGLE_JAPANESE_INPUT_BUILD)
+    {"About Mozc", "À propos de Google Japanese Input"},
+#else   // GOOGLE_JAPANESE_INPUT_BUILD
+    {"About Mozc", "À propos de Mozc"},
+#endif  // MARINAMOJI / GOOGLE_JAPANESE_INPUT_BUILD
+};
+
+bool IsUtf8Charset(absl::string_view charset) {
+  std::string lowered(charset);
+  Util::LowerString(&lowered);
+  return lowered == "utf-8" || lowered == "utf8";
+}
+
+void LoadTranslationMap(const TranslationMap* entries, size_t count,
+                        std::map<std::string, std::string>* out) {
+  for (size_t i = 0; i < count; ++i) {
+    const TranslationMap& mapping = entries[i];
+    DCHECK(mapping.message);
+    DCHECK(mapping.translated);
+    out->insert(std::make_pair(mapping.message, mapping.translated));
+  }
+}
+
+const TranslationMap* GetMapForLanguage(const std::string& language_code,
+                                        size_t* out_count) {
+  if (language_code == "ja_JP") {
+    *out_count = std::size(kUTF8JapaneseMap);
+    return kUTF8JapaneseMap;
+  }
+  if (language_code == "fr_FR" || language_code == "fr") {
+    *out_count = std::size(kUTF8FrenchMap);
+    return kUTF8FrenchMap;
+  }
+  return nullptr;
+}
+
 }  // namespace
 
 namespace mozc {
@@ -90,37 +146,29 @@ std::string NullMessageTranslator::MaybeTranslate(
 
 LocaleBasedMessageTranslator::LocaleBasedMessageTranslator(
     const std::string& locale_name) {
-  // Currently we support ja_JP.UTF-8 and ja_JP.utf8 only.
   std::vector<std::string> tokens =
       absl::StrSplit(locale_name, '.', absl::SkipEmpty());
-  if (tokens.size() != 2) {
+  if (tokens.empty()) {
     return;
   }
   const std::string& language_code = tokens[0];
-  if (language_code != "ja_JP") {
+  if (tokens.size() >= 2 && !IsUtf8Charset(tokens[1])) {
     return;
   }
 
-  Util::LowerString(&tokens[1]);
-  const std::string& lowser_char_set_name = tokens[1];
-  if (lowser_char_set_name != "utf-8" && lowser_char_set_name != "utf8") {
+  size_t count = 0;
+  const TranslationMap* entries = GetMapForLanguage(language_code, &count);
+  if (entries == nullptr) {
     return;
   }
-
-  for (size_t i = 0; i < std::size(kUTF8JapaneseMap); ++i) {
-    const TranslationMap& mapping = kUTF8JapaneseMap[i];
-    DCHECK(mapping.message);
-    DCHECK(mapping.translated);
-    utf8_japanese_map_.insert(
-        std::make_pair(mapping.message, mapping.translated));
-  }
+  LoadTranslationMap(entries, count, &translation_map_);
 }
 
 std::string LocaleBasedMessageTranslator::MaybeTranslate(
     const std::string& message) const {
   std::map<std::string, std::string>::const_iterator itr =
-      utf8_japanese_map_.find(message);
-  if (itr == utf8_japanese_map_.end()) {
+      translation_map_.find(message);
+  if (itr == translation_map_.end()) {
     return message;
   }
 

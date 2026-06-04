@@ -112,8 +112,10 @@ mozc_qt_rcc(
     name = "qrc_dictionary_tool",
     srcs = [
         "dictionary_tool_en.qm",
+        "dictionary_tool_fr.qm",
         "dictionary_tool_ja.qm",
         "//gui/base:tr_en.qm",
+        "//gui/base:tr_fr.qm",
         "//gui/base:tr_ja.qm",
     ],
     outs = ["qrc_dictionary_tool.cc"],

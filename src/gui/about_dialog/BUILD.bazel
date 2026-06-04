@@ -55,9 +55,11 @@ mozc_qt_rcc(
     name = "qrc_about_dialog",
     srcs = [
         "about_dialog_en.qm",
+        "about_dialog_fr.qm",
         "about_dialog_ja.qm",
         "//data/images:product_icon_32bpp-128.png",
         "//gui/base:tr_en.qm",
+        "//gui/base:tr_fr.qm",
         "//gui/base:tr_ja.qm",
         "//unix/ibus:toolbar_icons/logo_long_light.svg",
     ],

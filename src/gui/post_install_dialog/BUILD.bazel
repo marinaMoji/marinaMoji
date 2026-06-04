@@ -56,8 +56,10 @@ mozc_qt_rcc(
     name = "qrc_post_install_dialog",
     srcs = [
         "post_install_dialog_en.qm",
+        "post_install_dialog_fr.qm",
         "post_install_dialog_ja.qm",
         "//gui/base:tr_en.qm",
+        "//gui/base:tr_fr.qm",
         "//gui/base:tr_ja.qm",
     ],
     outs = ["qrc_post_install_dialog.cc"],

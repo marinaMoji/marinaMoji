@@ -15,9 +15,12 @@
 <qresource>
   <file>config_dialog_ja.qm</file>
   <file>config_dialog_en.qm</file>
+  <file>config_dialog_fr.qm</file>
   <file>keymap_ja.qm</file>
   <file>keymap_en.qm</file>
+  <file>keymap_fr.qm</file>
   <file alias="tr_ja.qm">../base/tr_ja.qm</file>
   <file alias="tr_en.qm">../base/tr_en.qm</file>
+  <file alias="tr_fr.qm">../base/tr_fr.qm</file>
 </qresource>
 </RCC>

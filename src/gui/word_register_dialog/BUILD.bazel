@@ -56,8 +56,10 @@ mozc_qt_rcc(
     name = "qrc_word_register_dialog",
     srcs = [
         "word_register_dialog_en.qm",
+        "word_register_dialog_fr.qm",
         "word_register_dialog_ja.qm",
         "//gui/base:tr_en.qm",
+        "//gui/base:tr_fr.qm",
         "//gui/base:tr_ja.qm",
     ],
     outs = ["qrc_word_register_dialog.cc"],

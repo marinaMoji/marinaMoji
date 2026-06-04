@@ -176,6 +176,10 @@ def TweakForProductbuild(
           'Resources/ja.lproj/Localizable.strings',
           f'root/Applications/{folder}/.localized/ja.strings',
       ),
+      (
+          'Resources/fr.lproj/Localizable.strings',
+          f'root/Applications/{folder}/.localized/fr.strings',
+      ),
   ]
 
   # For the dev channel, add the dev confirm section to the installer.

@@ -14,5 +14,6 @@
 <qresource>
   <file>tr_ja.qm</file>
   <file>tr_en.qm</file>
+  <file>tr_fr.qm</file>
 </qresource>
 </RCC>

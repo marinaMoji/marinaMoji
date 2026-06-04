@@ -1,0 +1,10 @@
+/* 
+   Localizable.strings
+   ActivatePane (French)
+ */
+"Title" = "Activer ${CF_BUNDLE_NAME_FR}";
+"mainMessage" = "Voulez-vous activer ${CF_BUNDLE_NAME_FR} ?";
+"activateLabel" = "Oui";
+"doNotActivateLabel" = "Non, je l'activerai plus tard.";
+"upgradeMessage" = "${CF_BUNDLE_NAME_FR} a été mis à jour. Certaines fonctionnalités ne seront disponibles qu'après une déconnexion et une reconnexion.";
+"usageStatsMessage" = "Aidez à améliorer ${CF_BUNDLE_NAME_FR} en envoyant automatiquement des statistiques d'utilisation et des rapports de plantage à Google.";

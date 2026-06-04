@@ -21,6 +21,7 @@
 #include "base/system_util.h"
 #include "client/client_interface.h"
 #include "mac/common.h"
+#include "mac/marina_localized_string.h"
 #include "mac/mozc_toolbar.h"
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
@@ -316,7 +317,7 @@ std::string GetKeymapPath(const std::string &filename) {
                                             NSWindowStyleMaskResizable
                                     backing:NSBackingStoreBuffered
                                       defer:YES];
-  window.title = @"Keyboard Shortcuts";
+  window.title = MarinaLocalizedString(@"MM.KeyboardShortcuts");
   window.releasedWhenClosed = NO;
   [window center];
 
@@ -328,21 +329,21 @@ std::string GetKeymapPath(const std::string &filename) {
   tabView_ = [[NSTabView alloc] initWithFrame:NSMakeRect(10, 10, 420, 380)];
   tabView_.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
 
-  NSTabViewItem *scriptTab = [self makeTabWithTitle:@"Script"
-                                        funcHeader:@"Function"
-                                         keyHeader:@"Keys"];
+  NSTabViewItem *scriptTab = [self makeTabWithTitle:MarinaLocalizedString(@"MM.Script")
+                                        funcHeader:MarinaLocalizedString(@"MM.Function")
+                                         keyHeader:MarinaLocalizedString(@"MM.Keys")];
   scriptTable_ = ((NSScrollView *)scriptTab.view).documentView;
   [tabView_ addTabViewItem:scriptTab];
 
-  NSTabViewItem *compTab = [self makeTabWithTitle:@"Composition"
-                                      funcHeader:@"Function"
-                                       keyHeader:@"Keys"];
+  NSTabViewItem *compTab = [self makeTabWithTitle:MarinaLocalizedString(@"MM.Composition")
+                                      funcHeader:MarinaLocalizedString(@"MM.Function")
+                                       keyHeader:MarinaLocalizedString(@"MM.Keys")];
   compositionTable_ = ((NSScrollView *)compTab.view).documentView;
   [tabView_ addTabViewItem:compTab];
 
-  NSTabViewItem *kaeritenTab = [self makeTabWithTitle:@"Kaeriten"
-                                          funcHeader:@"Result"
-                                           keyHeader:@"Input"];
+  NSTabViewItem *kaeritenTab = [self makeTabWithTitle:MarinaLocalizedString(@"MM.Kaeriten")
+                                          funcHeader:MarinaLocalizedString(@"MM.Result")
+                                           keyHeader:MarinaLocalizedString(@"MM.Input")];
   kaeritenTable_ = ((NSScrollView *)kaeritenTab.view).documentView;
   [tabView_ addTabViewItem:kaeritenTab];
 
@@ -480,7 +481,7 @@ std::string GetKeymapPath(const std::string &filename) {
                                            NSWindowStyleMaskNonactivatingPanel
                                    backing:NSBackingStoreBuffered
                                      defer:YES];
-  window.title = @"Symbols Palette";
+  window.title = MarinaLocalizedString(@"MM.SymbolsPalette");
   window.releasedWhenClosed = NO;
   [window setFloatingPanel:YES];
   [window setLevel:NSPopUpMenuWindowLevel];
@@ -504,29 +505,33 @@ std::string GetKeymapPath(const std::string &filename) {
   pinCheckbox_ =
       [[NSButton alloc] initWithFrame:NSMakeRect(12, 14, 200, 24)];
   pinCheckbox_.buttonType = NSButtonTypeSwitch;
-  pinCheckbox_.title = @"Pin palette";
+  pinCheckbox_.title = MarinaLocalizedString(@"MM.PinPalette");
   pinCheckbox_.target = self;
   pinCheckbox_.action = @selector(pinCheckboxChanged:);
   pinCheckbox_.state = [self loadPinnedPreference] ? NSControlStateValueOn
                                                    : NSControlStateValueOff;
   [content addSubview:pinCheckbox_];
 
-  [self addSymbolsTabWithTitle:@"Odoriji"
-                      symbols:BuildDefaultOdorijiSymbols()
-                  hintMessage:@"Clicking an odoriji inserts it and sets it as your default (same behavior as the main Odoriji palette). Shortcuts are available in your keymap (Ctrl+Shift+1/2 on common layouts)."
-                      outView:&odorijiStack_];
-  [self addSymbolsTabWithTitle:@"Kaeriten"
-                      symbols:BuildDefaultKaeritenSymbols()
-                  hintMessage:@"Shortcuts are available in your keymap."
-                      outView:&kaeritenStack_];
-  [self addSymbolsTabWithTitle:@"Symbols"
-                      symbols:BuildDefaultGeneralSymbols()
-                  hintMessage:nil
-                      outView:&symbolsStack_];
-  [self addSymbolsTabWithTitle:@"User"
-                      symbols:[self loadUserSymbols]
-                  hintMessage:@"Edit user symbols in Preferences."
-                      outView:&userStack_];
+  [self addSymbolsTabWithIdentifier:@"MM.Odoriji"
+                              title:MarinaLocalizedString(@"MM.Odoriji")
+                            symbols:BuildDefaultOdorijiSymbols()
+                        hintMessage:MarinaLocalizedString(@"MM.OdorijiHint")
+                            outView:&odorijiStack_];
+  [self addSymbolsTabWithIdentifier:@"MM.Kaeriten"
+                              title:MarinaLocalizedString(@"MM.Kaeriten")
+                            symbols:BuildDefaultKaeritenSymbols()
+                        hintMessage:MarinaLocalizedString(@"MM.KaeritenHint")
+                            outView:&kaeritenStack_];
+  [self addSymbolsTabWithIdentifier:@"MM.Symbols"
+                              title:MarinaLocalizedString(@"MM.Symbols")
+                            symbols:BuildDefaultGeneralSymbols()
+                        hintMessage:nil
+                            outView:&symbolsStack_];
+  [self addSymbolsTabWithIdentifier:@"MM.User"
+                              title:MarinaLocalizedString(@"MM.User")
+                            symbols:[self loadUserSymbols]
+                        hintMessage:MarinaLocalizedString(@"MM.UserSymbolsHint")
+                            outView:&userStack_];
 
   NSInteger saved_tab = [self loadLastTabPreference];
   if (saved_tab >= 0 && saved_tab < tabView_.numberOfTabViewItems) {
@@ -538,11 +543,12 @@ std::string GetKeymapPath(const std::string &filename) {
   return self;
 }
 
-- (void)addSymbolsTabWithTitle:(NSString *)title
-                       symbols:(const std::vector<std::string> &)symbols
-                   hintMessage:(NSString *)hintMessage
-                       outView:(NSStackView * __strong *)outView {
-  NSTabViewItem *item = [[NSTabViewItem alloc] initWithIdentifier:title];
+- (void)addSymbolsTabWithIdentifier:(NSString *)identifier
+                              title:(NSString *)title
+                            symbols:(const std::vector<std::string> &)symbols
+                        hintMessage:(NSString *)hintMessage
+                            outView:(NSStackView * __strong *)outView {
+  NSTabViewItem *item = [[NSTabViewItem alloc] initWithIdentifier:identifier];
   item.label = title;
 
   NSScrollView *scroll = [[NSScrollView alloc] initWithFrame:NSZeroRect];
@@ -587,7 +593,7 @@ std::string GetKeymapPath(const std::string &filename) {
     NSButton *button = [NSButton buttonWithTitle:text
                                           target:self
                                           action:@selector(symbolClicked:)];
-    if ([title isEqualToString:@"Odoriji"]) {
+    if ([identifier isEqualToString:@"MM.Odoriji"]) {
       button.identifier = @"odorijiSymbolButton";
       button.tag = symbolIndex;
     }
@@ -788,9 +794,9 @@ std::string GetKeymapPath(const std::string &filename) {
   dictButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_dict_dark" : @"toolbar_dict_light"];
   [self addSubview:dictButton_];
   // Right-click menu for dictionary tool
-  NSMenu *dictMenu = [[NSMenu alloc] initWithTitle:@"Dict"];
+  NSMenu *dictMenu = [[NSMenu alloc] initWithTitle:MarinaLocalizedString(@"MM.Dict")];
   NSMenuItem *dictToolItem =
-      [dictMenu addItemWithTitle:@"Dictionary Tool..."
+      [dictMenu addItemWithTitle:MarinaLocalizedString(@"MM.DictionaryTool")
                           action:@selector(dictToolClicked:)
                    keyEquivalent:@""];
   dictToolItem.target = self;
@@ -951,19 +957,19 @@ std::string GetKeymapPath(const std::string &filename) {
 #pragma mark - Button Actions
 
 - (void)modeClicked:(id)sender {
-  NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Mode"];
+  NSMenu *menu = [[NSMenu alloc] initWithTitle:MarinaLocalizedString(@"MM.Mode")];
 
   struct ModeEntry {
     NSString *title;
     mozc::commands::CompositionMode mode;
   };
   ModeEntry modes[] = {
-      {@"Hiragana", mozc::commands::HIRAGANA},
-      {@"Katakana (Manyōshū)", mozc::commands::MANYOSHU},
-      {@"Half-width Katakana", mozc::commands::HALF_KATAKANA},
-      {@"Full-width Roman", mozc::commands::FULL_ASCII},
-      {@"Half-width Roman", mozc::commands::HALF_ASCII},
-      {@"Direct Input", mozc::commands::DIRECT},
+      {MarinaLocalizedString(@"MM.Hiragana"), mozc::commands::HIRAGANA},
+      {MarinaLocalizedString(@"MM.KatakanaManyoshu"), mozc::commands::MANYOSHU},
+      {MarinaLocalizedString(@"MM.HalfWidthKatakana"), mozc::commands::HALF_KATAKANA},
+      {MarinaLocalizedString(@"MM.FullWidthRoman"), mozc::commands::FULL_ASCII},
+      {MarinaLocalizedString(@"MM.HalfWidthRoman"), mozc::commands::HALF_ASCII},
+      {MarinaLocalizedString(@"MM.DirectInputMode"), mozc::commands::DIRECT},
   };
 
   for (const auto &entry : modes) {

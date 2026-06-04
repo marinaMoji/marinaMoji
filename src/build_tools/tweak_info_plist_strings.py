@@ -78,6 +78,7 @@ def main():
     variables = {
         'CF_BUNDLE_NAME_EN': 'Google Japanese Input',
         'CF_BUNDLE_NAME_JA': 'Google 日本語入力',
+        'CF_BUNDLE_NAME_FR': 'Google Japanese Input',
         'NS_HUMAN_READABLE_COPYRIGHT': copyright_message,
         'INPUT_MODE_ANNOTATION': 'Google',
         }
@@ -85,6 +86,7 @@ def main():
     variables = {
         'CF_BUNDLE_NAME_EN': 'marinaMoji',
         'CF_BUNDLE_NAME_JA': 'marinaMoji',
+        'CF_BUNDLE_NAME_FR': 'marinaMoji',
         'NS_HUMAN_READABLE_COPYRIGHT': copyright_message,
         'INPUT_MODE_ANNOTATION': 'marinaMoji',
         }
@@ -92,6 +94,7 @@ def main():
     variables = {
         'CF_BUNDLE_NAME_EN': 'Mozc',
         'CF_BUNDLE_NAME_JA': 'Mozc',
+        'CF_BUNDLE_NAME_FR': 'Mozc',
         'NS_HUMAN_READABLE_COPYRIGHT': copyright_message,
         'INPUT_MODE_ANNOTATION': 'Mozc',
         }

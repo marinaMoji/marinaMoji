@@ -136,10 +136,13 @@ mozc_qt_rcc(
     name = "qrc_config_dialog",
     srcs = [
         "config_dialog_en.qm",
+        "config_dialog_fr.qm",
         "config_dialog_ja.qm",
         "keymap_en.qm",
+        "keymap_fr.qm",
         "keymap_ja.qm",
         "//gui/base:tr_en.qm",
+        "//gui/base:tr_fr.qm",
         "//gui/base:tr_ja.qm",
     ],
     outs = ["qrc_config_dialog.cc"],

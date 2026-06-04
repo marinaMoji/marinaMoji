@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TS version="2.0" language="fr">
+<context>
+    <name>PostInstallDialog</name>
+    <message>
+        <location filename="post_install_dialog.ui" line="32" />
+        <source>[ProductName]</source>
+        <translation>[ProductName]</translation>
+    </message>
+    <message>
+        <location filename="post_install_dialog.ui" line="63" />
+        <source>Migrate MSIME's user dictionary to [ProductName]</source>
+        <translation>Migrate MSIME's user dictionnaire to [ProductName]</translation>
+    </message>
+    <message>
+        <location filename="post_install_dialog.ui" line="73" />
+        <source>Set [ProductName] as the default IME</source>
+        <translation>Set [ProductName] as the default IME</translation>
+    </message>
+    <message>
+        <location filename="post_install_dialog.ui" line="56" />
+        <source>&amp;OK</source>
+        <translation>&amp;OK</translation>
+    </message>
+    <message>
+        <location filename="post_install_dialog.ui" line="83" />
+        <source>Disable Keyboard layout hotkey (Ctrl+Shift)</source>
+        <translation>Désactiver Clavier layout hotkey (Ctrl+Shift)</translation>
+    </message>
+</context>
+</TS>

@@ -59,8 +59,7 @@ class NullMessageTranslator : public MessageTranslatorInterface {
   std::string MaybeTranslate(const std::string& message) const override;
 };
 
-// Locale based translator. Currently only "ja_JP.UTF-8" is
-// supported.
+// Locale based translator. Supports ja_JP and fr_FR (UTF-8) system locales.
 class LocaleBasedMessageTranslator : public MessageTranslatorInterface {
  public:
   LocaleBasedMessageTranslator(const LocaleBasedMessageTranslator&) = delete;
@@ -70,7 +69,7 @@ class LocaleBasedMessageTranslator : public MessageTranslatorInterface {
   std::string MaybeTranslate(const std::string& message) const override;
 
  private:
-  std::map<std::string, std::string> utf8_japanese_map_;
+  std::map<std::string, std::string> translation_map_;
 };
 
 }  // namespace ibus

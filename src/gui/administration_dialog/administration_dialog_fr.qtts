@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TS version="2.0" language="fr">
+<context>
+    <name>AdministrationDialog</name>
+    <message>
+        <location filename="administration_dialog.ui" line="32" />
+        <source>[ProductName] administrator settings</source>
+        <translation>[ProductName] administrator settings</translation>
+    </message>
+    <message>
+        <location filename="administration_dialog.ui" line="60" />
+        <source>Help make [ProductName] better by automatically sending usage statistics and crash reports to Google (changes will take effect after you log out and log back in)</source>
+        <translation>Aide make [ProductName] better by automatiquement sending usage statistics and rapports de plantage to Google (changes will take effect after you log out and log back in)</translation>
+    </message>
+    <message>
+        <location filename="administration_dialog.ui" line="108" />
+        <source>Disable [ProductName] for UAC-elevated applications</source>
+        <translation>Désactiver [ProductName] for UAC-elevated applications</translation>
+    </message>
+    <message>
+        <location filename="administration_dialog.ui" line="89" />
+        <source>Always allocate conversion dictionary into physical memory</source>
+        <translation>Toujours allouer le dictionnaire de conversion en mémoire physique</translation>
+    </message>
+</context>
+<context>
+    <name>mozc::gui::AdministrationDialog</name>
+    <message>
+        <location filename="administration_dialog.cc" line="55" />
+        <location filename="administration_dialog.cc" line="74" />
+        <location filename="administration_dialog.cc" line="91" />
+        <location filename="administration_dialog.cc" line="105" />
+        <source>[ProductName] administration settings</source>
+        <translation>[ProductName] administration settings</translation>
+    </message>
+    <message>
+        <location filename="administration_dialog.cc" line="56" />
+        <source>This computer does not have enough memory to load dictionary into physical memory.</source>
+        <translation>This computer does not have enough memory to load dictionnaire into physical memory.</translation>
+    </message>
+    <message>
+        <location filename="administration_dialog.cc" line="92" />
+        <source>Failed to change the configuration of on-memory dictionary. Administrator privilege is required to change the configuration.</source>
+        <translation>Failed to change the configuration of on-memory dictionnaire. Administrator privilege is required to change the configuration.</translation>
+    </message>
+    <message>
+        <location filename="administration_dialog.cc" line="106" />
+        <source>Failed to save the UAC policy setting. Administrator privilege is required to change UAC settings.</source>
+        <translation>Failed to save the UAC policy setting. Administrator privilege is required to change UAC settings.</translation>
+    </message>
+</context>
+</TS>

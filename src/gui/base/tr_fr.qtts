@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TS version="2.1" language="fr">
+<context>
+    <name>QObject</name>
+    <message>
+        <location filename="util.cc" line="21" />
+        <source>Google Japanese Input</source>
+        <translation>Google Japanese Input</translation>
+    </message>
+    <message>
+        <location filename="util.cc" line="23" />
+        <source>Mozc</source>
+        <translation>Mozc</translation>
+    </message>
+    <message>
+        <location filename="../about_dialog/about_dialog.cc" line="39" />
+        <source>product forum</source>
+        <translation>forum du produit</translation>
+    </message>
+</context>
+</TS>

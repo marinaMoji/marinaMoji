@@ -54,6 +54,7 @@ pkg_zip(
     name = "resources",
     srcs = [
         "Resources/en.lproj/Localizable.strings",
+        "Resources/fr.lproj/Localizable.strings",
         "Resources/ja.lproj/Localizable.strings",
     ],
     out = "resources.zip",

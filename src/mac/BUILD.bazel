@@ -122,8 +122,19 @@ mozc_macos_application(
     strings = [
         "English.lproj/InfoPlist.strings",
         "Japanese.lproj/InfoPlist.strings",
+        "Resources/en.lproj/Localizable.strings",
+        "Resources/fr.lproj/Localizable.strings",
+        "Resources/ja.lproj/Localizable.strings",
     ],
     deps = ["mozc_macos_main_lib"],
+)
+
+mozc_objc_library(
+    name = "marina_localized_string",
+    srcs = ["marina_localized_string.mm"],
+    hdrs = ["marina_localized_string.h"],
+    sdk_frameworks = ["Foundation"],
+    visibility = ["//mac:__subpackages__"],
 )
 
 mozc_objc_library(
@@ -170,6 +181,7 @@ mozc_objc_library(
     tags = ["manual"],
     deps = [
         ":common",
+        ":marina_localized_string",
         "//base:file_util",
         "//base:system_util",
         "//base/mac:mac_util",
@@ -196,6 +208,7 @@ mozc_objc_library(
     deps = [
         ":common",
         ":keycode_map",
+        ":marina_localized_string",
         ":mozc_toolbar",
         ":renderer_receiver",
         "//base:const",
@@ -353,6 +366,8 @@ mozc_macos_bundle(
     strings = [
         "ActivatePane/English.lproj/InfoPlist.strings",
         "ActivatePane/English.lproj/Localizable.strings",
+        "ActivatePane/fr.lproj/InfoPlist.strings",
+        "ActivatePane/fr.lproj/Localizable.strings",
         "ActivatePane/Japanese.lproj/InfoPlist.strings",
         "ActivatePane/Japanese.lproj/Localizable.strings",
     ],

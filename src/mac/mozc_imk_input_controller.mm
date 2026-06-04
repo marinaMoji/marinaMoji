@@ -27,6 +27,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#import "mac/marina_localized_string.h"
 #import "mac/mozc_imk_input_controller.h"
 
 #import <Carbon/Carbon.h>
@@ -434,34 +435,6 @@ const char *CompositionModeName(CompositionMode mode) {
   return [super client];
 }
 
-- (NSString *)imeMenuTitle:(const char *)english {
-  static NSDictionary<NSString *, NSString *> *kJapaneseTitles;
-  static dispatch_once_t once;
-  dispatch_once(&once, ^{
-    kJapaneseTitles = @{
-      @"Input Mode" : @"入力モード",
-      @"Direct input" : @"直接入力",
-      @"Hiragana" : @"ひらがな",
-      @"Katakana" : @"カタカナ",
-      @"Latin" : @"半角英数",
-      @"Wide Latin" : @"全角英数",
-      @"Half width katakana" : @"半角カタカナ",
-      @"Traditional kanji (Kyūjitai)" : @"伝統漢字（旧字体）",
-      @"Odoriji (iteration marks)" : @"踊り字（繰り返し記号）",
-      @"Toolbar" : @"ツールバー",
-      @"Privacy mode" : @"プライバシーモード",
-    };
-  });
-  NSString *key = [NSString stringWithUTF8String:english];
-  if ([[[NSLocale currentLocale] languageCode] isEqualToString:@"ja"]) {
-    NSString *localized = kJapaneseTitles[key];
-    if (localized != nil) {
-      return localized;
-    }
-  }
-  return key;
-}
-
 - (void)setupMarinaImeMenuIfNeeded {
   if (!menu_ || traditionalKanjiMenuItem_ != nil) {
     return;
@@ -471,24 +444,24 @@ const char *CompositionModeName(CompositionMode mode) {
   NSInteger insertIndex = 0;
 
   struct ModeMenuEntry {
-    const char *title;
+    NSString *titleKey;
     CompositionMode mode;
   };
-  constexpr ModeMenuEntry kModeEntries[] = {
-      {"Direct input", mozc::commands::DIRECT},
-      {"Hiragana", mozc::commands::HIRAGANA},
-      {"Katakana", mozc::commands::FULL_KATAKANA},
-      {"Latin", mozc::commands::HALF_ASCII},
-      {"Wide Latin", mozc::commands::FULL_ASCII},
-      {"Half width katakana", mozc::commands::HALF_KATAKANA},
+  ModeMenuEntry kModeEntries[] = {
+      {@"MM.DirectInput", mozc::commands::DIRECT},
+      {@"MM.Hiragana", mozc::commands::HIRAGANA},
+      {@"MM.Katakana", mozc::commands::FULL_KATAKANA},
+      {@"MM.Latin", mozc::commands::HALF_ASCII},
+      {@"MM.WideLatin", mozc::commands::FULL_ASCII},
+      {@"MM.HalfWidthKatakana", mozc::commands::HALF_KATAKANA},
   };
 
   NSMenu *modeMenu =
-      [[NSMenu alloc] initWithTitle:[self imeMenuTitle:"Input Mode"]];
+      [[NSMenu alloc] initWithTitle:MarinaLocalizedString(@"MM.InputMode")];
   NSMutableArray<NSMenuItem *> *modeItems = [NSMutableArray array];
   for (const ModeMenuEntry &entry : kModeEntries) {
     NSMenuItem *item = [[NSMenuItem alloc]
-        initWithTitle:[self imeMenuTitle:entry.title]
+        initWithTitle:MarinaLocalizedString(entry.titleKey)
                action:@selector(inputModeMenuClicked:)
         keyEquivalent:@""];
     item.target = self;
@@ -499,7 +472,7 @@ const char *CompositionModeName(CompositionMode mode) {
   inputModeMenuItems_ = [modeItems copy];
 
   NSMenuItem *modeMenuItem = [[NSMenuItem alloc]
-      initWithTitle:[self imeMenuTitle:"Input Mode"]
+      initWithTitle:MarinaLocalizedString(@"MM.InputMode")
              action:nil
       keyEquivalent:@""];
   modeMenuItem.submenu = modeMenu;
@@ -507,14 +480,14 @@ const char *CompositionModeName(CompositionMode mode) {
   [menu_ insertItem:[NSMenuItem separatorItem] atIndex:insertIndex++];
 
   traditionalKanjiMenuItem_ = [[NSMenuItem alloc]
-      initWithTitle:[self imeMenuTitle:"Traditional kanji (Kyūjitai)"]
+      initWithTitle:MarinaLocalizedString(@"MM.TraditionalKanji")
              action:@selector(traditionalKanjiMenuClicked:)
       keyEquivalent:@""];
   traditionalKanjiMenuItem_.target = self;
   [menu_ insertItem:traditionalKanjiMenuItem_ atIndex:insertIndex++];
 
   NSMenuItem *odorijiItem = [[NSMenuItem alloc]
-      initWithTitle:[self imeMenuTitle:"Odoriji (iteration marks)"]
+      initWithTitle:MarinaLocalizedString(@"MM.Odoriji")
              action:@selector(odorijiPaletteMenuClicked:)
       keyEquivalent:@""];
   odorijiItem.target = self;
@@ -524,14 +497,14 @@ const char *CompositionModeName(CompositionMode mode) {
     [menu_ removeItem:toolbarMenuItem_];
   }
   toolbarMenuItem_ = [[NSMenuItem alloc]
-      initWithTitle:[self imeMenuTitle:"Toolbar"]
+      initWithTitle:MarinaLocalizedString(@"MM.Toolbar")
              action:@selector(toolbarVisibilityMenuClicked:)
       keyEquivalent:@""];
   toolbarMenuItem_.target = self;
   [menu_ insertItem:toolbarMenuItem_ atIndex:insertIndex++];
 
   privacyModeMenuItem_ = [[NSMenuItem alloc]
-      initWithTitle:[self imeMenuTitle:"Privacy mode"]
+      initWithTitle:MarinaLocalizedString(@"MM.PrivacyMode")
              action:@selector(privacyModeMenuClicked:)
       keyEquivalent:@""];
   privacyModeMenuItem_.target = self;

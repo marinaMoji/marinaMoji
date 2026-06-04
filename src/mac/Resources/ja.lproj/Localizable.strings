@@ -1,0 +1,36 @@
+/* marinaMoji IME menu */
+"MM.InputMode" = "入力モード";
+"MM.DirectInput" = "直接入力";
+"MM.Hiragana" = "ひらがな";
+"MM.Katakana" = "カタカナ";
+"MM.Latin" = "半角英数";
+"MM.WideLatin" = "全角英数";
+"MM.HalfWidthKatakana" = "半角カタカナ";
+"MM.TraditionalKanji" = "伝統漢字（旧字体）";
+"MM.Odoriji" = "踊り字（繰り返し記号）";
+"MM.Toolbar" = "ツールバー";
+"MM.PrivacyMode" = "プライバシーモード";
+
+/* Toolbar */
+"MM.KeyboardShortcuts" = "キーボードショートカット";
+"MM.Script" = "スクリプト";
+"MM.Composition" = "変換";
+"MM.Kaeriten" = "返り点";
+"MM.Function" = "機能";
+"MM.Keys" = "キー";
+"MM.Result" = "結果";
+"MM.Input" = "入力";
+"MM.SymbolsPalette" = "記号パレット";
+"MM.PinPalette" = "パレットを固定";
+"MM.Symbols" = "記号";
+"MM.User" = "ユーザー";
+"MM.OdorijiHint" = "踊り字をクリックすると挿入され、既定の踊り字として設定されます（メインの踊り字パレットと同じ動作）。ショートカットはキーマップで設定できます（一般的な配列では Ctrl+Shift+1/2）。";
+"MM.KaeritenHint" = "ショートカットはキーマップで設定できます。";
+"MM.UserSymbolsHint" = "ユーザー記号は環境設定で編集できます。";
+"MM.Dict" = "辞書";
+"MM.DictionaryTool" = "辞書ツール...";
+"MM.Mode" = "モード";
+"MM.KatakanaManyoshu" = "カタカナ（万葉仮名）";
+"MM.HalfWidthRoman" = "半角ローマ字";
+"MM.FullWidthRoman" = "全角ローマ字";
+"MM.DirectInputMode" = "直接入力";

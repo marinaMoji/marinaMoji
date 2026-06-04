@@ -42,7 +42,6 @@ TEST(NullMessageTranslatorTest, BasicTest) {
 }
 
 TEST(LocaleBasedMessageTranslatorTest, UnknownLocaleName) {
-  // Note: any other locale name is not supported yet.
   LocaleBasedMessageTranslator translator("ja_JP");
 
   // For unknown key.
@@ -79,6 +78,13 @@ TEST(LocaleBasedMessageTranslatorTest, KnownJapaneseLocaleName) {
     // For known key.
     EXPECT_EQ(translator.MaybeTranslate("Properties"), "プロパティ");
   }
+}
+
+TEST(LocaleBasedMessageTranslatorTest, KnownFrenchLocaleName) {
+  LocaleBasedMessageTranslator translator("fr_FR.UTF-8");
+  EXPECT_EQ(translator.MaybeTranslate("foobar"), "foobar");
+  EXPECT_EQ(translator.MaybeTranslate("Properties"), "Propriétés");
+  EXPECT_EQ(translator.MaybeTranslate("Input Mode"), "Mode de saisie");
 }
 
 }  // namespace ibus

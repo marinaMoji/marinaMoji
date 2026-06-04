@@ -1,0 +1,36 @@
+/* marinaMoji IME menu */
+"MM.InputMode" = "Mode de saisie";
+"MM.DirectInput" = "Saisie directe";
+"MM.Hiragana" = "Hiragana";
+"MM.Katakana" = "Katakana";
+"MM.Latin" = "Alphanumérique demi-chasse";
+"MM.WideLatin" = "Alphanumérique pleine chasse";
+"MM.HalfWidthKatakana" = "Katakana demi-chasse";
+"MM.TraditionalKanji" = "Kanji traditionnels (kyūjitai)";
+"MM.Odoriji" = "Odoriji (marques d'itération)";
+"MM.Toolbar" = "Barre d'outils";
+"MM.PrivacyMode" = "Mode confidentialité";
+
+/* Toolbar */
+"MM.KeyboardShortcuts" = "Raccourcis clavier";
+"MM.Script" = "Script";
+"MM.Composition" = "Composition";
+"MM.Kaeriten" = "Kaeriten";
+"MM.Function" = "Fonction";
+"MM.Keys" = "Touches";
+"MM.Result" = "Résultat";
+"MM.Input" = "Saisie";
+"MM.SymbolsPalette" = "Palette de symboles";
+"MM.PinPalette" = "Épingler la palette";
+"MM.Symbols" = "Symboles";
+"MM.User" = "Utilisateur";
+"MM.OdorijiHint" = "Un clic sur un odoriji l'insère et le définit par défaut (comme la palette Odoriji principale). Les raccourcis sont disponibles dans votre table de touches (Ctrl+Maj+1/2 sur les dispositions courantes).";
+"MM.KaeritenHint" = "Les raccourcis sont disponibles dans votre table de touches.";
+"MM.UserSymbolsHint" = "Modifiez les symboles utilisateur dans les Préférences.";
+"MM.Dict" = "Dict.";
+"MM.DictionaryTool" = "Outil dictionnaire...";
+"MM.Mode" = "Mode";
+"MM.KatakanaManyoshu" = "Katakana (Manyōshū)";
+"MM.HalfWidthRoman" = "Romain demi-chasse";
+"MM.FullWidthRoman" = "Romain pleine chasse";
+"MM.DirectInputMode" = "Saisie directe";

@@ -1,0 +1,36 @@
+/* marinaMoji IME menu */
+"MM.InputMode" = "Input Mode";
+"MM.DirectInput" = "Direct input";
+"MM.Hiragana" = "Hiragana";
+"MM.Katakana" = "Katakana";
+"MM.Latin" = "Latin";
+"MM.WideLatin" = "Wide Latin";
+"MM.HalfWidthKatakana" = "Half width katakana";
+"MM.TraditionalKanji" = "Traditional kanji (Kyūjitai)";
+"MM.Odoriji" = "Odoriji (iteration marks)";
+"MM.Toolbar" = "Toolbar";
+"MM.PrivacyMode" = "Privacy mode";
+
+/* Toolbar */
+"MM.KeyboardShortcuts" = "Keyboard Shortcuts";
+"MM.Script" = "Script";
+"MM.Composition" = "Composition";
+"MM.Kaeriten" = "Kaeriten";
+"MM.Function" = "Function";
+"MM.Keys" = "Keys";
+"MM.Result" = "Result";
+"MM.Input" = "Input";
+"MM.SymbolsPalette" = "Symbols Palette";
+"MM.PinPalette" = "Pin palette";
+"MM.Symbols" = "Symbols";
+"MM.User" = "User";
+"MM.OdorijiHint" = "Clicking an odoriji inserts it and sets it as your default (same behavior as the main Odoriji palette). Shortcuts are available in your keymap (Ctrl+Shift+1/2 on common layouts).";
+"MM.KaeritenHint" = "Shortcuts are available in your keymap.";
+"MM.UserSymbolsHint" = "Edit user symbols in Preferences.";
+"MM.Dict" = "Dict";
+"MM.DictionaryTool" = "Dictionary Tool...";
+"MM.Mode" = "Mode";
+"MM.KatakanaManyoshu" = "Katakana (Manyōshū)";
+"MM.HalfWidthRoman" = "Half-width Roman";
+"MM.FullWidthRoman" = "Full-width Roman";
+"MM.DirectInputMode" = "Direct Input";
