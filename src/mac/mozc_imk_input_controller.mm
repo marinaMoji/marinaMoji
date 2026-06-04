@@ -334,6 +334,7 @@ const char *CompositionModeName(CompositionMode mode) {
 - (void)syncCandidatesWithOutput:(const Output *)output;
 - (void)cancelPendingCandidateUpdate;
 - (void)applyCommitAndPreeditFromOutput:(const Output *)output client:(id)sender;
+- (void)flushCompositionBeforeDeactivate:(id)sender;
 @end
 
 @implementation MozcImkInputController
@@ -608,10 +609,28 @@ const char *CompositionModeName(CompositionMode mode) {
   DLOG(INFO) << "sender bundleID: " << clientBundle_;
 }
 
+- (void)flushCompositionBeforeDeactivate:(id)sender {
+  if (imkClientForTest_ || [composedString_ length] == 0) {
+    return;
+  }
+  if ([self isConverterSessionActivated]) {
+    KeyEvent keyEvent;
+    Output output;
+    keyEvent.set_special_key(mozc::commands::KeyEvent::ESCAPE);
+    if (mozcClient_->SendKey(keyEvent, &output)) {
+      [self processOutput:&output client:sender];
+    }
+  }
+  if ([composedString_ length] > 0) {
+    [self updateComposedString:nullptr];
+  }
+}
+
 - (void)deactivateServer:(id)sender {
   if (imkClientForTest_) {
     return;
   }
+  [self flushCompositionBeforeDeactivate:sender];
   imeServerActive_ = false;
   mozc::mac::MozcToolbarSetActiveController(nullptr);
   mozc::mac::MozcToolbarHide();
@@ -1132,12 +1151,20 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     [self commitText:output->result().value().c_str() client:sender];
   }
   if (output->has_preedit()) {
-    [self updateComposedString:&(output->preedit())];
+    if (output->preedit().segment_size() == 0) {
+      [self updateComposedString:nullptr];
+    } else {
+      [self updateComposedString:&(output->preedit())];
+    }
   } else if (output->has_result()) {
     // Server commit with no preedit field: clear marked text. Otherwise switching
     // input (e.g. to Dvorak) can flush composedString_ and insert a duplicate.
     [self updateComposedString:nullptr];
     [self clearCandidates];
+  } else if (!IsConfigOnlySessionOutput(*output)) {
+    // Escape/Cancel: server clears composition but often omits preedit; drop stale
+    // marked text so Word does not keep a ghost character or commit on IME off.
+    [self updateComposedString:nullptr];
   }
 }
 
