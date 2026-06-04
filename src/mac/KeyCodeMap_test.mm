@@ -99,7 +99,10 @@ class KeyCodeMapTest : public testing::Test {
     return output;
   }
 
- private:
+  bool TryRightShiftAlone(NSEvent *event, KeyEvent *mozcKeyEvent) {
+    return [keyCodeMap_ tryRightShiftAloneKeyFromEvent:event toMozcKeyEvent:mozcKeyEvent];
+  }
+
   KeyCodeMap *keyCodeMap_;
 };
 
@@ -230,4 +233,41 @@ TEST_F(KeyCodeMapTest, Modifiers) {
   // Release control key -> Doesn't emit any key events
   event.Clear();
   EXPECT_FALSE(CreateKeyEvent(nullptr, nullptr, 0, kVK_Control, &event));
+}
+
+TEST_F(KeyCodeMapTest, RightShiftAloneToggle) {
+  KeyEvent event;
+
+  NSEvent *press = [NSEvent keyEventWithType:NSEventTypeFlagsChanged
+                                    location:NSZeroPoint
+                               modifierFlags:NSEventModifierFlagShift
+                                   timestamp:0.0
+                                windowNumber:0
+                                     context:nil
+                                  characters:@""
+                 charactersIgnoringModifiers:@""
+                                   isARepeat:NO
+                                     keyCode:kVK_RightShift];
+  EXPECT_FALSE(TryRightShiftAlone(press, &event));
+
+  NSEvent *release = [NSEvent keyEventWithType:NSEventTypeFlagsChanged
+                                      location:NSZeroPoint
+                                 modifierFlags:0
+                                     timestamp:0.0
+                                  windowNumber:0
+                                       context:nil
+                                    characters:@""
+                   charactersIgnoringModifiers:@""
+                                     isARepeat:NO
+                                       keyCode:kVK_RightShift];
+  event.Clear();
+  EXPECT_TRUE(TryRightShiftAlone(release, &event));
+  EXPECT_EQ(GetDebugString(event), "modifier_keys: RIGHT_SHIFT\n");
+
+  // Press, type a, release: no toggle (used to capitalize).
+  EXPECT_FALSE(TryRightShiftAlone(press, &event));
+  KeyEvent typed;
+  EXPECT_TRUE(CreateKeyEvent("A", "a", NSEventModifierFlagShift, kVK_ANSI_A, &typed));
+  event.Clear();
+  EXPECT_FALSE(TryRightShiftAlone(release, &event));
 }

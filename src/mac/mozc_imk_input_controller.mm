@@ -327,6 +327,7 @@ const char *CompositionModeName(CompositionMode mode) {
 @interface MozcImkInputController (MarinaPrivate)
 - (BOOL)isConverterSessionActivated;
 - (BOOL)dispatchMarinaNumberRowShortcut:(const KeyEvent &)keyEvent client:(id)sender;
+- (BOOL)dispatchRightShiftAlone:(const KeyEvent &)keyEvent client:(id)sender;
 - (BOOL)tryMacronVowelChord:(NSEvent *)event client:(id)sender;
 - (void)setupMarinaImeMenuIfNeeded;
 - (void)updateImeMenuState:(const Output *)output;
@@ -816,6 +817,25 @@ const char *CompositionModeName(CompositionMode mode) {
   command.set_type(SessionCommand::TOGGLE_TRADITIONAL_KANJI);
   [self sendCommand:command];
   return YES;
+}
+
+- (BOOL)dispatchRightShiftAlone:(const KeyEvent &)keyEvent client:(id)sender {
+  if (![self isConverterSessionActivated]) {
+    SessionCommand command;
+    command.set_type(SessionCommand::TURN_ON_IME);
+    command.set_composition_mode(mozc::commands::HIRAGANA);
+    [self sendCommand:command];
+  }
+
+  KeyEvent key = keyEvent;
+  key.set_mode(mode_);
+  Output output;
+  if (!mozcClient_->SendKey(key, &output)) {
+    return NO;
+  }
+  [self processOutput:&output client:sender];
+  // Session leaves consumed=false so Shift modifier state clears in the app.
+  return output.consumed() ? YES : NO;
 }
 
 - (BOOL)dispatchMarinaBacktickShortcut:(const KeyEvent &)keyEvent client:(id)sender {
@@ -1550,6 +1570,15 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     // Special hack for Eisu/Kana keys.  Sometimes those key events
     // come to this method but we should ignore them because some
     // applications like PhotoShop is stuck.
+    return YES;
+  }
+
+  // Right Shift alone on release → ToggleManyoshuHiragana (Linux IBus parity).
+  if ([event keyCode] == kVK_RightShift && [event type] == NSEventTypeFlagsChanged) {
+    KeyEvent rightShiftKey;
+    if ([keyCodeMap_ tryRightShiftAloneKeyFromEvent:event toMozcKeyEvent:&rightShiftKey]) {
+      return [self dispatchRightShiftAlone:rightShiftKey client:sender];
+    }
     return YES;
   }
 

@@ -42,6 +42,10 @@ enum InputMode { ASCII, KANA };
   // |modifierFlags_| stores the current modifiers
   NSUInteger modifierFlags_;
   InputMode inputMode_;
+  // Right Shift alone → ToggleManyoshuHiragana (Linux IBUS_Shift_R parity).
+  BOOL rightShiftDown_;
+  BOOL typedWhileRightShiftDown_;
+  BOOL otherModifiersWhileRightShift_;
 }
 @property(assign, nonatomic) InputMode inputMode;
 
@@ -54,4 +58,8 @@ enum InputMode { ASCII, KANA };
 // Otherwise, returns NO.
 - (BOOL)getMozcKeyCodeFromKeyEvent:(NSEvent *)event
                     toMozcKeyEvent:(mozc::commands::KeyEvent *)keyEvent;
+
+// FlagsChanged on kVK_RightShift: on release without typing, sets RIGHT_SHIFT only.
+- (BOOL)tryRightShiftAloneKeyFromEvent:(NSEvent *)event
+                        toMozcKeyEvent:(mozc::commands::KeyEvent *)keyEvent;
 @end

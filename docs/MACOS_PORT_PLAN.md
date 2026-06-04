@@ -205,6 +205,7 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
    - [ ] `Ctrl+Shift+3` / `#` shin/kyū while composing (Kotoeri / MS-IME / ATOK)
    - [ ] `Ctrl+Shift+1` default odoriji, `Ctrl+Shift+2` palette while composing
    - [ ] `Ctrl+Shift+4` / `$` Manyōshū toggle, `Ctrl+Shift+5` / `%` hiragana/direct
+   - [ ] **Right Shift** alone toggles hiragana ↔ Manyōshū (release without typing)
    - [ ] Candidate window F5/F6 behavior unchanged
    - [ ] Preferences → General → Appearance: candidate font size 14 vs 36 updates the candidate list (and usage examples) after OK, without restarting the IME
    - [ ] Candidate window: **rounded** panel, **toolbar-matched** border (1pt `rgba(0,0,0,0.08)`), **opaque white** background, rounded scrollbar track
@@ -233,7 +234,7 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
 
 | ID | Issue | Suggested fix |
 |----|--------|----------------|
-| M3 | **Right Shift → Manyōshū** — keymap has `RightShift`; Mac `KeyCodeMap` does not set `RIGHT_SHIFT` | Map right shift key in `KeyCodeMap.mm` (see Linux `IBUS_Shift_R`) |
+| M3 | ~~**Right Shift → Manyōshū**~~ | **Done:** `KeyCodeMap` tracks `kVK_RightShift` release; IMK dispatches `RIGHT_SHIFT` to session (Linux `IBUS_Shift_R` parity) |
 | M4 | **Toolbar mode menu** uses `client_->SendCommand` only | Route through active controller `sendCommand:` for full `processOutput` sync |
 | M5 | **Macron `Ctrl+Alt+Shift+Letter`** — TSV may use uppercase; Mac sends lowercase with modifiers | Add lowercase aliases (same pattern as `Ctrl Shift f`) |
 
@@ -253,6 +254,7 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
 - **Digits with Shift** on US layout: bind both `Ctrl Shift 1` and `Ctrl Shift !` (and `2` / `@`) so IBus-style and Mac-style key codes match.
 - **Number-row shortcuts (macOS):** `KeyCodeMap` maps **physical** `kVK_ANSI_1`..`0` + Ctrl+Shift to digit `1`..`0` so Dvorak / AZERTY / custom layouts match QWERTY keymap rows (`Ctrl Shift 1` = odoriji, `3` = shin/kyū, `4` = Manyōshū, `5` = hiragana/direct).
 - **marinaMoji (Kotoeri):** `Ctrl+Shift+3` / `#` → shin/kyū (`ToggleTraditionalKanji`); `Ctrl+Shift+4` / `$` → hiragana/Manyōshū (`ToggleManyoshuHiragana`). `Ctrl+Shift+5` / `%` → hiragana/direct toggle.
+- **Right Shift alone (macOS):** `KeyCodeMap` emits `RIGHT_SHIFT` on `kVK_RightShift` release when no other key was typed with it held (same idea as Linux IBus `IBUS_Shift_R`).
 - **Aligned keymaps:** `ms-ime.tsv` and `atok.tsv` now follow the same number-row mapping (`1` odoriji default, `2` palette, `3` shin/kyū, `4` Manyōshū, `5` hiragana/direct, with shifted symbol variants).
 
 ## File map (macOS-specific)

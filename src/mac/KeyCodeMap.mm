@@ -71,7 +71,55 @@ static const unichar kYenMark = 0xA5;
   if (!self) {
     inputMode_ = ASCII;
   }
+  rightShiftDown_ = NO;
+  typedWhileRightShiftDown_ = NO;
+  otherModifiersWhileRightShift_ = NO;
   return self;
+}
+
+namespace {
+
+NSUInteger DeviceIndependentModifierFlags(NSUInteger flags) {
+  return flags & (~NSEventModifierFlagCapsLock & NSEventModifierFlagDeviceIndependentFlagsMask);
+}
+
+BOOL HasNonShiftChordModifiers(NSUInteger flags) {
+  return (flags & (NSEventModifierFlagControl | NSEventModifierFlagOption |
+                    NSEventModifierFlagCommand)) != 0;
+}
+
+}  // namespace
+
+- (BOOL)tryRightShiftAloneKeyFromEvent:(NSEvent *)event
+                        toMozcKeyEvent:(KeyEvent *)keyEvent {
+  if ([event type] != NSEventTypeFlagsChanged || [event keyCode] != kVK_RightShift) {
+    return NO;
+  }
+
+  const NSUInteger flags = DeviceIndependentModifierFlags([event modifierFlags]);
+  const BOOL shiftDown = (flags & NSEventModifierFlagShift) != 0;
+
+  if (shiftDown) {
+    rightShiftDown_ = YES;
+    typedWhileRightShiftDown_ = NO;
+    otherModifiersWhileRightShift_ = HasNonShiftChordModifiers(flags);
+    return NO;
+  }
+
+  const BOOL shouldToggle = rightShiftDown_ && !typedWhileRightShiftDown_ &&
+                            !otherModifiersWhileRightShift_ &&
+                            !HasNonShiftChordModifiers(flags);
+  rightShiftDown_ = NO;
+  typedWhileRightShiftDown_ = NO;
+  otherModifiersWhileRightShift_ = NO;
+
+  if (!shouldToggle) {
+    return NO;
+  }
+
+  keyEvent->Clear();
+  keyEvent->add_modifier_keys(KeyEvent::RIGHT_SHIFT);
+  return YES;
 }
 
 - (void)addModifierFlags:(NSUInteger)flags toMozcKeyEvent:(KeyEvent *)keyEvent {
@@ -147,6 +195,10 @@ static const unichar kYenMark = 0xA5;
     return [self handleModifierFlagsChange:event toMozcKeyEvent:keyEvent];
   } else {
     modifierFlags_ = 0;
+  }
+
+  if (rightShiftDown_ && [event type] == NSEventTypeKeyDown) {
+    typedWhileRightShiftDown_ = YES;
   }
 
   NSUInteger nsModifiers = [event modifierFlags];
