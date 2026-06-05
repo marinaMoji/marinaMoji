@@ -103,7 +103,7 @@ const TranslationMap kUTF8FrenchMap[] = {
 
 bool IsUtf8Charset(absl::string_view charset) {
   std::string lowered(charset);
-  Util::LowerString(&lowered);
+  mozc::Util::LowerString(&lowered);
   return lowered == "utf-8" || lowered == "utf8";
 }
 

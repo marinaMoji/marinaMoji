@@ -15,6 +15,8 @@ Open a terminal and run:
 ```bash
 sudo apt update
 sudo apt install -y \
+  build-essential \
+  clang \
   git \
   unzip zip \
   openjdk-17-jdk \
@@ -29,6 +31,8 @@ sudo apt install -y \
 
 | Package | Purpose |
 |--------|--------|
+| `build-essential` | GCC, G++, and `make` — Bazel needs a C/C++ toolchain on the system. |
+| `clang` | Clang compiler; the Linux build command below passes `CC=clang` / `CXX=clang++`. |
 | `git` | Clone the repository (including submodules). |
 | `unzip` `zip` | Unpack the built `mozc.zip` when installing. |
 | `openjdk-17-jdk` | Java JDK required by Bazel. If the build complains about “javabase”, set `JAVA_HOME` (see Troubleshooting). |
@@ -225,6 +229,10 @@ Adjust the path to match your system (`/usr/lib/jvm/` and `ls` there to see the 
 
 Use **bazelisk** (not the system `bazel`) and run it from the **`src`** directory. The repo pins Bazel and dependency versions via `src/.bazeliskrc`; using system Bazel can cause this error.
 
+### “Cannot find gcc or CC (clang)”
+
+Bazel needs a C/C++ compiler on your system. Install **`build-essential`** (GCC/G++) and **`clang`** (used by the build command below), then run the build again.
+
 ### Build or dependency errors after system updates
 
 Try cleaning Bazel’s cache and rebuilding:
@@ -247,7 +255,7 @@ bazelisk build package --config oss_linux --config release_build
 
 ## 8. Summary checklist
 
-1. **Packages:** `git`, `unzip`, `zip`, `openjdk-17-jdk`, `libibus-1.0-dev`, `qt6-base-dev`, `libgtk-3-dev`, `librsvg2-dev`, and (optional) `libopencc-dev`.
+1. **Packages:** `build-essential`, `clang`, `git`, `unzip`, `zip`, `openjdk-17-jdk`, `libibus-1.0-dev`, `qt6-base-dev`, `libgtk-3-dev`, `librsvg2-dev`, and (optional) `libopencc-dev`.
 2. **Bazelisk:** Download the Linux binary from GitHub, put it in `PATH` as `bazelisk`, and run `bazelisk version`.
 3. **Clone:** `git clone ... marinaMoji --recursive` and `cd marinaMoji/src`.
 4. **Build:** `bazelisk build package --config oss_linux --config release_build`.

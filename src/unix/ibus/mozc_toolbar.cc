@@ -1170,6 +1170,8 @@ static GtkWidget* CreateSymbolsTabPage(const std::vector<std::string>& symbols,
     if (symbol.empty()) continue;
     GtkWidget* btn = gtk_button_new_with_label(symbol.c_str());
     gtk_widget_set_size_request(btn, 40, 32);
+    gtk_widget_set_focus_on_click(btn, FALSE);
+    gtk_widget_set_can_focus(btn, FALSE);
     auto* data = new SymbolButtonData();
     data->is_odoriji = is_odoriji;
     data->odoriji_index = odoriji_index;
@@ -1213,10 +1215,17 @@ static void OnSymbolsWindowDestroy(GtkWidget* /*widget*/, gpointer /*data*/) {
   g_symbols_palette_visible = false;
 }
 
+static void RaiseSymbolsPaletteWithoutFocus() {
+  if (!g_symbols_window) return;
+  gtk_widget_show_all(g_symbols_window);
+  GdkWindow* gw = gtk_widget_get_window(g_symbols_window);
+  if (gw) gdk_window_raise(gw);
+}
+
 static void ShowSymbolsPalette() {
   CancelPendingHide();
   if (g_symbols_window) {
-    gtk_window_present(GTK_WINDOW(g_symbols_window));
+    RaiseSymbolsPaletteWithoutFocus();
     g_symbols_palette_visible = true;
     return;
   }
@@ -1228,6 +1237,11 @@ static void ShowSymbolsPalette() {
   gtk_window_set_position(GTK_WINDOW(g_symbols_window), GTK_WIN_POS_CENTER);
   gtk_window_set_keep_above(GTK_WINDOW(g_symbols_window), TRUE);
   gtk_window_set_skip_taskbar_hint(GTK_WINDOW(g_symbols_window), TRUE);
+  gtk_window_set_type_hint(GTK_WINDOW(g_symbols_window), GDK_WINDOW_TYPE_HINT_UTILITY);
+  // Same as the main toolbar: do not grab focus so IBUS keeps the text editor.
+  gtk_window_set_accept_focus(GTK_WINDOW(g_symbols_window), FALSE);
+  gtk_window_set_focus_on_map(GTK_WINDOW(g_symbols_window), FALSE);
+  gtk_widget_set_can_focus(g_symbols_window, FALSE);
 
   GtkWidget* content = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
   gtk_container_set_border_width(GTK_CONTAINER(content), 8);
@@ -1268,6 +1282,8 @@ static void ShowSymbolsPalette() {
   gtk_notebook_set_current_page(GTK_NOTEBOOK(g_symbols_notebook), last_tab);
 
   g_symbols_pin_check = gtk_check_button_new_with_label("Pin palette");
+  gtk_widget_set_focus_on_click(g_symbols_pin_check, FALSE);
+  gtk_widget_set_can_focus(g_symbols_pin_check, FALSE);
   gtk_toggle_button_set_active(
       GTK_TOGGLE_BUTTON(g_symbols_pin_check),
       LoadSymbolsPalettePref("symbols_palette_pinned", 0) != 0);
@@ -1280,7 +1296,7 @@ static void ShowSymbolsPalette() {
   g_signal_connect(g_symbols_window, "destroy", G_CALLBACK(OnSymbolsWindowDestroy),
                    nullptr);
 
-  gtk_widget_show_all(g_symbols_window);
+  RaiseSymbolsPaletteWithoutFocus();
   g_symbols_palette_visible = true;
 }
 
