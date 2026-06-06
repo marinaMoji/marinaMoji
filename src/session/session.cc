@@ -2594,18 +2594,9 @@ bool Session::ToggleTraditionalKanji(commands::Command* command) {
 
 bool Session::TogglePrivacyMode(commands::Command* command) {
   command->mutable_output()->set_consumed(true);
-  config::Config config = config::ConfigHandler::GetCopiedConfig();
-  const bool enable_privacy = !config.incognito_mode();
-  config.set_incognito_mode(enable_privacy);
-  // Learning is gated by incognito_mode at conversion time; do not persist
-  // history_learning_level = NO_HISTORY here. The old path wrote NO_HISTORY to
-  // config1.db and only restored it via in-memory statics in the same converter
-  // process — after restart, turning privacy off left learning disabled forever.
-  if (!enable_privacy &&
-      config.history_learning_level() == config::Config::NO_HISTORY) {
-    config.set_history_learning_level(config::Config::DEFAULT_HISTORY);
-  }
-  config::ConfigHandler::SetConfig(std::move(config));
+  const bool enable_privacy =
+      !config::ConfigHandler::GetSharedConfig()->incognito_mode();
+  config::ConfigHandler::SetIncognitoModeInMemory(enable_privacy);
   context_->SetConfig(config::ConfigHandler::GetSharedConfig());
   *command->mutable_output()->mutable_config() =
       config::ConfigHandler::GetCopiedConfig();

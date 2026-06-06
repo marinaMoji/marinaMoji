@@ -442,6 +442,7 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
 | M1j | **Ghost character / late ``あの`` after Esc then IME off** (e.g. ``ano`` + Space, Esc leaves ``◊`` in Word; switching IME inserts ``あの``) | Fixed: ``applyCommitAndPreeditFromOutput`` clears marked text when response has no ``preedit``/``result`` (Escape); ``flushCompositionBeforeDeactivate`` sends Esc + clears before ``deactivateServer``. |
 | M1k | **Backspace wipes entire preedit** (e.g. ``daigenk`` → Backspace clears all, not one char; commits may not learn) | Fixed: M1j clear-without-preedit must not run on ``consumed=false`` echo-back (Kotoeri Precomposition Backspace → ``Revert``). Use ``allowClearWithoutPreedit`` only for consumed Escape/Cancel. |
 | M1l | **History still off after privacy mode disabled** (e.g. ``daigenguu`` → 大元宮 never ranks up) | Fixed: ``TogglePrivacyMode`` no longer persists ``history_learning_level = NO_HISTORY``; turning privacy off migrates stuck ``NO_HISTORY`` back to ``DEFAULT_HISTORY``. **Workaround now:** Preferences → General → “Adjust conversion based on previous input” → not “No history”. |
+| M1m | **Privacy mode on after every restart** | Fixed: IME-menu privacy is **session-only** (``SetIncognitoModeInMemory``); ``Reload`` clears a leftover ``incognito_mode`` in ``config1.db``. Fresh defaults: incognito off, ``DEFAULT_HISTORY``. |
 | M2 | ~~Installer LaunchAgents / `.pkg` paths~~ | **Done:** plists, postflight, `tweak_installer_files.py`, and `marinaMoji.pkg` use `marinaMoji` paths |
 
 ### Medium
