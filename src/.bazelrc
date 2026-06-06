@@ -1,6 +1,11 @@
 ## Startup options
 startup  --windows_enable_symlinks  # ignored on non-Windows platforms
 
+## Xcode discovery runs during repo mapping (before --config oss_macos).
+## Without DEVELOPER_DIR here, bazel clean --expunge can leave a broken
+## local_config_xcode that breaks all macOS builds.
+common --repo_env=DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+
 ## If target platform is not specified, linux, macos, or windows will be used
 ## considering the host platform.
 common --enable_platform_specific_config
@@ -70,6 +75,9 @@ test:linux_env   --test_tag_filters=-nolinux
 ## macOS specific options
 build:macos_env --build_tag_filters=-nomac --objccopt "-fsigned-char"
 build:macos_env --macos_minimum_os=12.0 --host_macos_minimum_os=12.0
+build:macos_env --xcode_version_config=//tools/local_xcode:host_xcodes
+build:macos_env --repo_env=DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+build:macos_env --action_env=DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 test:macos_env   --test_tag_filters=-nomac
 
 ## Windows specific options

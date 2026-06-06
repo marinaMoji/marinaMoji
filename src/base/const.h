@@ -136,6 +136,8 @@ inline constexpr wchar_t kElevatedProcessDisabledKey[] =
 #elif defined(__APPLE__)
 inline constexpr char kMozcServerName[] = kProductPrefix "Converter.app";
 inline constexpr char kMozcRenderer[] = kProductPrefix "Renderer.app";
+inline constexpr char kMozcSyncName[] = kProductPrefix "Sync.app";
+inline constexpr char kMozcSyncExecutable[] = kProductPrefix "Sync";
 inline constexpr char kMozcTool[] = kProductPrefix "Tool.app";
 #ifdef GOOGLE_JAPANESE_INPUT_BUILD
 inline constexpr char kEventPathPrefix[] = "GoogleJapaneseInput.event.";

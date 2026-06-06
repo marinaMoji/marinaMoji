@@ -168,6 +168,13 @@ class ClientInterface {
   // Reload server data, e.g., (user dictionary, prediction data)
   virtual bool Reload() = 0;
 
+  virtual bool ReloadAndWait() = 0;
+
+  // Sync lock coordination (marinaMojiSync).
+  virtual bool GetSyncState(commands::SyncState* state) = 0;
+  virtual bool BeginSyncLock() = 0;
+  virtual bool EndSyncLock() = 0;
+
   // Cleanup un-used sessions
   virtual bool Cleanup() = 0;
 

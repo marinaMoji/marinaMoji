@@ -33,6 +33,7 @@
 
 #import "mac/mozc_imk_input_controller.h"
 #import "mac/renderer_receiver.h"
+#import "mac/sync_overlay.h"
 
 #include <memory>
 
@@ -74,6 +75,7 @@ int main(int argc, char *argv[]) {
     std::unique_ptr<mozc::client::Client> client(new mozc::client::Client);
     client->PingServer();
   }
+  mozc::mac::SyncOverlayStartWatcher();
   NSApplicationMain(argc, (const char **)argv);
   return 0;
 }

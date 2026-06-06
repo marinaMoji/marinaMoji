@@ -1,0 +1,301 @@
+# Copyright 2010-2021, Google Inc.
+# marinaMoji encrypted user data sync module.
+
+load(
+    "//:build_defs.bzl",
+    "MOZC_TAGS",
+    "mozc_cc_binary",
+    "mozc_cc_library",
+    "mozc_cc_test",
+    "mozc_macos_application",
+    "mozc_select",
+)
+load(
+    "//:config.bzl",
+    "BRANDING",
+    "MACOS_BUNDLE_ID_PREFIX",
+)
+
+package(default_visibility = ["//visibility:private"])
+
+mozc_cc_library(
+    name = "sync_crypto",
+    srcs = ["sync_crypto.cc"],
+    hdrs = ["sync_crypto.h"],
+    deps = [
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@libsodium//:libsodium",
+    ],
+)
+
+mozc_cc_library(
+    name = "sync_bundle",
+    srcs = ["sync_bundle.cc"],
+    hdrs = ["sync_bundle.h"],
+    deps = [
+        "//sync/vendor/miniz",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_library(
+    name = "sync_key",
+    srcs = ["sync_key.cc"],
+    hdrs = ["sync_key.h"],
+    visibility = [
+        "//gui:__subpackages__",
+        "//mac:__pkg__",
+        "//sync:__pkg__",
+    ],
+    deps = [
+        "//base:file_util",
+        "//base:random",
+        "//base:system_util",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_library(
+    name = "sync_config",
+    srcs = ["sync_config.cc"],
+    hdrs = ["sync_config.h"],
+    visibility = [
+        "//gui:__subpackages__",
+        "//mac:__pkg__",
+        "//sync:__pkg__",
+    ],
+    deps = [
+        ":sync_key",
+        "//base:file_util",
+        "//base:random",
+        "//base:system_util",
+        "//protocol:commands_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_library(
+    name = "sync_status",
+    srcs = ["sync_status.cc"],
+    hdrs = ["sync_status.h"],
+    visibility = [
+        "//gui:__subpackages__",
+        "//mac:__pkg__",
+        "//sync:__pkg__",
+    ],
+    deps = [
+        "//base:file_util",
+        "//base:system_util",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+mozc_cc_library(
+    name = "sync_activity",
+    srcs = ["sync_activity.cc"],
+    hdrs = ["sync_activity.h"],
+    visibility = [
+        "//mac:__pkg__",
+        "//sync:__pkg__",
+    ],
+    deps = [
+        "//base:file_util",
+        "//base:system_util",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+mozc_cc_library(
+    name = "sync_merge",
+    srcs = ["sync_merge.cc"],
+    hdrs = ["sync_merge.h"],
+    deps = [
+        "//protocol:config_cc_proto",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/hash",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_library(
+    name = "sync_service",
+    srcs = ["sync_service.cc"],
+    hdrs = ["sync_service.h"],
+    visibility = ["//sync:__pkg__"],
+    deps = [
+        ":sync_bundle",
+        ":sync_config",
+        ":sync_crypto",
+        ":sync_merge",
+        "//base:file_util",
+        "//config:config_handler",
+        "//dictionary:user_dictionary_importer",
+        "//dictionary:user_dictionary_storage",
+        "//dictionary:user_pos",
+        "//prediction:user_history_storage",
+        "//protocol:commands_cc_proto",
+        "//protocol:config_cc_proto",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/hash",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+mozc_cc_library(
+    name = "sync_runner",
+    srcs = ["sync_runner.cc"],
+    hdrs = ["sync_runner.h"],
+    visibility = ["//sync:__pkg__"],
+    deps = [
+        ":sync_activity",
+        ":sync_config",
+        ":sync_key",
+        ":sync_service",
+        ":sync_status",
+        "//client:client_interface",
+        "//config:config_handler",
+        "//protocol:commands_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+mozc_cc_library(
+    name = "sync_util",
+    srcs = ["sync_util.cc"],
+    hdrs = ["sync_util.h"],
+    visibility = [
+        "//gui:__subpackages__",
+        "//sync:__pkg__",
+    ],
+    deps = [
+        "//base:const",
+        "//base:file_util",
+        "//base:process",
+        "//base:system_util",
+    ] + mozc_select(
+        macos = ["//base/mac:mac_util"],
+    ),
+)
+
+mozc_cc_library(
+    name = "sync_main_lib",
+    srcs = ["sync_main.cc"],
+    deps = [
+        ":sync_config",
+        ":sync_runner",
+        ":sync_status",
+        "//base:init_mozc",
+        "//base:run_level",
+        "//client",
+        "//protocol:commands_cc_proto",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_binary(
+    name = "marinaMojiSync_bin",
+    deps = [":sync_main_lib"],
+)
+
+mozc_macos_application(
+    name = "marinaMojiSync_macos",
+    app_icons = ["//data/images/mac:product_icon.icns"],
+    bundle_id = MACOS_BUNDLE_ID_PREFIX + ".Sync",
+    bundle_name = BRANDING + "Sync",
+    infoplists = ["Info.plist"],
+    visibility = [
+        "//mac:__pkg__",
+    ],
+    deps = [":sync_main_lib"],
+)
+
+mozc_cc_test(
+    name = "sync_crypto_test",
+    srcs = ["sync_crypto_test.cc"],
+    deps = [
+        ":sync_crypto",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+mozc_cc_test(
+    name = "sync_bundle_test",
+    srcs = ["sync_bundle_test.cc"],
+    deps = [
+        ":sync_bundle",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+mozc_cc_test(
+    name = "sync_merge_test",
+    srcs = ["sync_merge_test.cc"],
+    deps = [
+        ":sync_merge",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+mozc_cc_test(
+    name = "sync_config_test",
+    srcs = ["sync_config_test.cc"],
+    deps = [
+        ":sync_config",
+        "//base:file_util",
+        "//testing:mozctest",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+mozc_cc_test(
+    name = "sync_status_test",
+    srcs = ["sync_status_test.cc"],
+    deps = [
+        ":sync_status",
+        "//base:file_util",
+        "//base:system_util",
+        "//testing:mozctest",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+mozc_cc_test(
+    name = "sync_runner_test",
+    srcs = ["sync_runner_test.cc"],
+    deps = [
+        ":sync_config",
+        ":sync_key",
+        ":sync_runner",
+        "//client:client_mock",
+        "//testing:mozctest",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

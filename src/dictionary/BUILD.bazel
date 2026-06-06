@@ -412,6 +412,7 @@ mozc_cc_library(
     textual_hdrs = [":pos_map"],
     visibility = [
         "//gui:__subpackages__",
+        "//sync:__pkg__",
     ],
     deps = [
         ":user_dictionary_storage",
@@ -511,6 +512,7 @@ mozc_cc_library(
         "//engine:__pkg__",
         "//gui:__subpackages__",
         "//rewriter:__pkg__",
+        "//sync:__pkg__",
     ],
     deps = [
         "//base:bits",

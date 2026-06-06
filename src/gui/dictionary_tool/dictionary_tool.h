@@ -77,6 +77,7 @@ class DictionaryTool : public QMainWindow, private Ui::DictionaryTool {
   void ImportAndAppendDictionary();
   void ImportFromDefaultIME();
   void ExportDictionary();
+  void SyncNow();
   void AddWord();
   void DeleteWord();
   void CloseWindow();
@@ -201,6 +202,7 @@ class DictionaryTool : public QMainWindow, private Ui::DictionaryTool {
   QAction* import_create_action_;
   QAction* import_append_action_;
   QAction* export_action_;
+  QAction* sync_now_action_;
   QAction* import_default_ime_action_;
 
   // status message

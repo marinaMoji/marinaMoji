@@ -380,6 +380,15 @@ bool SessionHandler::EvalCommand(commands::Command* command) {
     case commands::Input::GET_SERVER_VERSION:
       eval_succeeded = GetServerVersion(command);
       break;
+    case commands::Input::GET_SYNC_STATE:
+      eval_succeeded = GetSyncState(command);
+      break;
+    case commands::Input::BEGIN_SYNC_LOCK:
+      eval_succeeded = BeginSyncLock(command);
+      break;
+    case commands::Input::END_SYNC_LOCK:
+      eval_succeeded = EndSyncLock(command);
+      break;
     default:
       eval_succeeded = false;
   }
@@ -392,8 +401,10 @@ bool SessionHandler::EvalCommand(commands::Command* command) {
     }
   } else {
     command->mutable_output()->set_id(0);
-    command->mutable_output()->set_error_code(
-        commands::Output::SESSION_FAILURE);
+    if (command->output().error_code() != commands::Output::SYNC_LOCKED) {
+      command->mutable_output()->set_error_code(
+          commands::Output::SESSION_FAILURE);
+    }
   }
 
   stopwatch.Stop();
@@ -420,6 +431,10 @@ void SessionHandler::MaybeUpdateConfig(commands::Command* command) {
 }
 
 bool SessionHandler::SendKey(commands::Command* command) {
+  if (sync_locked_) {
+    command->mutable_output()->set_error_code(commands::Output::SYNC_LOCKED);
+    return false;
+  }
   const SessionID id = command->input().id();
   std::unique_ptr<session::Session>* session = session_map_->MutableLookup(id);
   if (session == nullptr || !*session) {
@@ -432,6 +447,10 @@ bool SessionHandler::SendKey(commands::Command* command) {
 }
 
 bool SessionHandler::TestSendKey(commands::Command* command) {
+  if (sync_locked_) {
+    command->mutable_output()->set_error_code(commands::Output::SYNC_LOCKED);
+    return false;
+  }
   const SessionID id = command->input().id();
   std::unique_ptr<session::Session>* session = session_map_->MutableLookup(id);
   if (session == nullptr || !*session) {
@@ -443,6 +462,10 @@ bool SessionHandler::TestSendKey(commands::Command* command) {
 }
 
 bool SessionHandler::SendCommand(commands::Command* command) {
+  if (sync_locked_) {
+    command->mutable_output()->set_error_code(commands::Output::SYNC_LOCKED);
+    return false;
+  }
   const SessionID id = command->input().id();
   std::unique_ptr<session::Session>* session = session_map_->MutableLookup(id);
   if (session == nullptr || !*session) {
@@ -478,6 +501,39 @@ bool SessionHandler::GetServerVersion(mozc::commands::Command* command) const {
   version_info->set_mozc_version(Version::GetMozcVersion());
   version_info->set_data_version(engine_->GetDataVersion());
   return true;
+}
+
+bool SessionHandler::GetSyncState(commands::Command* command) {
+  commands::SyncState* state = command->mutable_output()->mutable_sync_state();
+  state->set_sync_locked(sync_locked_);
+  int32_t session_count = 0;
+  bool any_composing = false;
+  for (const auto& element : *session_map_) {
+    if (!element.value) {
+      continue;
+    }
+    ++session_count;
+    if (!element.value->context().composer().Empty()) {
+      any_composing = true;
+    }
+  }
+  state->set_active_session_count(session_count);
+  state->set_any_composing(any_composing);
+  return true;
+}
+
+bool SessionHandler::BeginSyncLock(commands::Command* command) {
+  if (sync_locked_) {
+    return false;
+  }
+  sync_locked_ = true;
+  SyncData(command);
+  return GetSyncState(command);
+}
+
+bool SessionHandler::EndSyncLock(commands::Command* command) {
+  sync_locked_ = false;
+  return GetSyncState(command);
 }
 
 bool SessionHandler::CreateSession(commands::Command* command) {

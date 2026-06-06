@@ -40,8 +40,10 @@
 #include <vector>
 
 #include "client/client_interface.h"
+#include "gui/config_dialog/config_dialog_sync_tab.h"
 #include "gui/config_dialog/ui_config_dialog.h"
 #include "protocol/config.pb.h"
+#include "protocol/commands.pb.h"
 
 namespace mozc {
 namespace gui {
@@ -107,6 +109,8 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   bool initial_use_mode_indicator_;
   std::map<QString, config::Config::SessionKeymap>
       keymapname_sessionkeymap_map_;
+
+  std::unique_ptr<ConfigDialogSyncTab> sync_tab_;
 };
 
 }  // namespace gui

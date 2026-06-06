@@ -40,6 +40,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "base/const.h"
+#include "base/file_util.h"
 #include "base/mac/scoped_cftyperef.h"
 
 #if TARGET_OS_IPHONE
@@ -167,15 +168,20 @@ std::string MacUtil::GetOSVersionString() {
 }
 
 std::string MacUtil::GetServerDirectory() {
-  // Resolve from the running bundle so renames (e.g. marinaMozc.app → marinaMoji.app)
-  // do not require every hard-coded kServerDirectory string to match install path.
-  const std::string resources = GetResourcesDirectory();
-  if (!resources.empty()) {
-    constexpr absl::string_view kImeResourcesSuffix = ".app/Contents/Resources";
-    const size_t pos = resources.find(kImeResourcesSuffix);
-    if (pos != std::string::npos) {
-      return resources.substr(0, pos + kImeResourcesSuffix.size());
+  // Walk up from nested tool bundles (ConfigDialog.app, etc.) to the IME
+  // Resources directory that contains marinaMojiConverter.app.
+  std::string dir = GetResourcesDirectory();
+  while (!dir.empty()) {
+    if (FileUtil::DirectoryExists(
+            FileUtil::JoinPath(dir, std::string(kMozcServerName)))
+        .ok()) {
+      return dir;
     }
+    const size_t pos = dir.rfind(".app/Contents/Resources");
+    if (pos == std::string::npos) {
+      break;
+    }
+    dir = dir.substr(0, pos);
   }
   return kServerDirectory;
 }

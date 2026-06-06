@@ -64,7 +64,9 @@
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
+#include "sync/sync_activity.h"
 #include "mac/mozc_toolbar.h"
+#include "mac/sync_overlay.h"
 #include "renderer/renderer_client.h"
 
 using mozc::kProductNameInEnglish;
@@ -642,6 +644,7 @@ const char *CompositionModeName(CompositionMode mode) {
   [self clearCandidates];
   DLOG(INFO) << kProductNameInEnglish << " client (" << self << "): deactivated";
   DLOG(INFO) << "sender bundleID: " << clientBundle_;
+  mozc::sync::RecordImeDeactivated();
   [super deactivateServer:sender];
 }
 
@@ -1361,6 +1364,7 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     }
   }
   if ([composedString_ length] == 0) {
+    mozc::sync::RecordCompositionEnd();
     [originalString_ setString:@""];
     replacementRange_ = NSMakeRange(NSNotFound, 0);
   }
@@ -1544,6 +1548,14 @@ bool IsConfigOnlySessionOutput(const Output &output) {
 }
 
 - (BOOL)handleEventBody:(NSEvent *)event client:(id)sender {
+  if (mozc::mac::SyncOverlayIsActive()) {
+    if (rendererCommand_.visible() && mozcRenderer_) {
+      rendererCommand_.set_visible(false);
+      mozcRenderer_->ExecCommand(rendererCommand_);
+    }
+    mozc::mac::SyncOverlayFlashBlockedInput();
+    return YES;
+  }
   if ([event type] == NSEventTypeCursorUpdate) {
     [[self client] setMarkedText:composedString_
                   selectionRange:[self selectionRange]

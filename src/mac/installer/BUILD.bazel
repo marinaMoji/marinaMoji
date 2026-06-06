@@ -45,6 +45,7 @@ pkg_zip(
     srcs = [
         "LaunchAgents/org.mozc.inputmethod.Japanese.Converter.plist",
         "LaunchAgents/org.mozc.inputmethod.Japanese.Renderer.plist",
+        "LaunchAgents/org.mozc.inputmethod.Japanese.Sync.plist",
     ],
     out = "launch_agents.zip",
     strip_prefix = ".",

@@ -178,7 +178,7 @@
 		</array>
 	</dict>
 	<key>InputMethodConnectionName</key>
-	<string>${PRODUCT_NAME}_1_Connection</string>
+	<string>org.mozc.inputmethod.Japanese_Connection</string>
 	<key>InputMethodServerControllerClass</key>
 	<string>MozcImkInputController</string>
 	<key>InputMethodServerDelegateClass</key>
