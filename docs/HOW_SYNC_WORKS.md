@@ -22,13 +22,13 @@ marinaMoji does not provide cloud transport. It only reads and writes a local fi
    - Settings
    - User dictionary
    - Commit / learning history
-6. Click **Generate sync key** and copy the key to a safe place.
+6. Click **Generate sync key** once and copy it (or **Show sync key** on the primary device later).
 
 ## Step 2: Set up device B
 
 1. Open the same **Sync** tab on device B.
 2. Select the exact same sync file path.
-3. Click **Enter sync key** and paste the key from device A.
+3. Click **Enter sync key** and paste the key from device A (after the first successful sync on A, that button becomes **Show sync key** so you can copy it again).
 4. Click **Sync now**.
 
 Both devices now share the same encrypted bundle.
@@ -58,12 +58,38 @@ When interval mode is enabled, marinaMoji also checks bundle file modification t
 
 ## Troubleshooting
 
-- **"Sync key not set"**: generate or enter a key first.
+- **"Sync key not set"**: generate or enter a key first (see key path below).
 - **"Invalid sync file magic" / decryption error**: wrong key or corrupted file.
+- **`PERMISSION_DENIED: Cannot write sync file`**: marinaMoji could read the bundle but **cannot write** to the sync file path. Common on a second Mac / VM:
+  - Sync file path points at a folder that is **read-only** (shared folder mounted read-only).
+  - Path is copied from the other machine (e.g. `/Users/daniel/...` on the VM where that home folder does not exist).
+  - Parent folder does not exist — create it first.
+  - **Fix:** On the VM, set the sync path to **that machine’s** path to the shared file (e.g. the VM mount of your shared folder), then test:
+    ```bash
+    touch "/path/to/your/marinamoji_sync.mmz.enc"
+    ```
+    For a first pull only, set direction to **Download only**, sync once, then switch back to **Bidirectional**.
+- **`PERMISSION_DENIED: Cannot write sync key`** or **`Cannot write sync.conf`**: profile folder missing or not writable. On macOS the profile is `~/Library/Application Support/marinaMoji/` — use **Enter sync key** in Preferences (do not only copy a file to `~/.sync_key`; that path is wrong on macOS).
 - **No updates from other device**:
-  - verify both devices use the same file path and key,
+  - verify both devices use the same **logical** cloud/shared file and the **same key**,
   - verify cloud sync finished copying the file,
   - click **Sync now** once on each device.
+
+### macOS file locations (important)
+
+| Item | Path |
+|------|------|
+| Sync settings | `~/Library/Application Support/marinaMoji/sync.conf` |
+| Sync key | `~/Library/Application Support/marinaMoji/.sync_key` |
+| Sync status | `~/Library/Application Support/marinaMoji/sync.status.json` |
+
+The sync key is **not** stored in `~/.sync_key` on macOS (that path is Linux / legacy docs only).
+
+To inspect the last error on either machine:
+
+```bash
+cat ~/Library/Application\ Support/marinaMoji/sync.status.json
+```
 
 ## Safety notes
 

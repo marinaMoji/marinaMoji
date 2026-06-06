@@ -335,7 +335,9 @@ const char *CompositionModeName(CompositionMode mode) {
 - (void)updateImeMenuState:(const Output *)output;
 - (void)syncCandidatesWithOutput:(const Output *)output;
 - (void)cancelPendingCandidateUpdate;
-- (void)applyCommitAndPreeditFromOutput:(const Output *)output client:(id)sender;
+- (void)applyCommitAndPreeditFromOutput:(const Output *)output
+                                 client:(id)sender
+                allowClearWithoutPreedit:(BOOL)allowClearWithoutPreedit;
 - (void)flushCompositionBeforeDeactivate:(id)sender;
 @end
 
@@ -1146,7 +1148,9 @@ bool IsConfigOnlySessionOutput(const Output &output) {
 }
 }  // namespace
 
-- (void)applyCommitAndPreeditFromOutput:(const Output *)output client:(id)sender {
+- (void)applyCommitAndPreeditFromOutput:(const Output *)output
+                                 client:(id)sender
+                allowClearWithoutPreedit:(BOOL)allowClearWithoutPreedit {
   if (output == nullptr) {
     return;
   }
@@ -1164,9 +1168,12 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     // input (e.g. to Dvorak) can flush composedString_ and insert a duplicate.
     [self updateComposedString:nullptr];
     [self clearCandidates];
-  } else if (!IsConfigOnlySessionOutput(*output)) {
-    // Escape/Cancel: server clears composition but often omits preedit; drop stale
-    // marked text so Word does not keep a ghost character or commit on IME off.
+  } else if (allowClearWithoutPreedit && !IsConfigOnlySessionOutput(*output)) {
+    // Escape/Cancel (consumed): server clears composition but often omits preedit;
+    // drop stale marked text so Word does not keep a ghost character on IME off.
+    // Do not run this for consumed=false echo-back (e.g. Precomposition Backspace
+    // → Revert): upstream Mozc leaves marked text alone and returns NO from
+    // handleEvent so one character is removed, not the whole preedit.
     [self updateComposedString:nullptr];
   }
 }
@@ -1213,7 +1220,9 @@ bool IsConfigOnlySessionOutput(const Output &output) {
   }
 
   if (!output->consumed()) {
-    [self applyCommitAndPreeditFromOutput:output client:sender];
+    [self applyCommitAndPreeditFromOutput:output
+                                   client:sender
+                  allowClearWithoutPreedit:NO];
     if (output->has_status() || output->has_mode()) {
       const CompositionMode new_mode = NormalizeModeForEmptyHalfAscii(
           EffectiveCompositionMode(*output, mode_), *output);
@@ -1233,7 +1242,9 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     [self openLink:[NSURL URLWithString:url]];
   }
 
-  [self applyCommitAndPreeditFromOutput:output client:sender];
+  [self applyCommitAndPreeditFromOutput:output
+                                 client:sender
+                allowClearWithoutPreedit:YES];
 
   // Handles deletion range.  We do not even handle it for some
   // applications to prevent application crashes.

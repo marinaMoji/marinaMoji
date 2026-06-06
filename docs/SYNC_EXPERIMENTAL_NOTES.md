@@ -1,20 +1,21 @@
-## Sync Experiment Snapshot (June 2026)
+# Sync experimental notes
 
-This document records the current experimental sync integration state before rollback.
+The separate-process sync design described in [SYNC_PLAN.md](SYNC_PLAN.md) superseded the earlier in-converter `PERFORM_USER_SYNC` / `SyncScheduler` experiment.
 
-### What is included in this snapshot
+## What changed
 
-- New encrypted user sync module under `src/sync/` (crypto, bundle, merge, config, scheduler).
-- Session/client/proto wiring for sync operations.
-- Config dialog + dictionary tool UI integration for sync controls.
-- Documentation drafts for sync behavior, plan, and manual QA.
+- Sync runs in **`marinaMojiSync`**, not inside `mozc_server` / `SessionHandler`.
+- Converter exposes only **lock + idle state + flush/reload** IPC.
+- IMK watches **`sync.status.json`** and blocks input with an overlay during sync.
+- Cooldown after typing/IME off is configurable in **`sync.conf`** (default 60 s).
+- GUI reads/writes config files directly and spawns `marinaMojiSync --now`.
 
-### Why this snapshot is being preserved
+## Preserved from the experiment
 
-- Recent macOS IMK startup behavior became unstable during this integration window.
-- We want to keep all sync work for later reuse while restoring the main branch to a known-working baseline.
+- `src/sync/` crypto, bundle, merge, and config modules
+- Encrypted `.mmz.enc` bundle format and merge rules
+- Config dialog and dictionary tool sync UI (rewired to file I/O + spawn)
 
-### Intended next step
+## Rollback reference
 
-- Return local working tree to the previous stable commit.
-- Reintegrate sync incrementally from this experimental branch, validating macOS IMK behavior at each step.
+The June 2026 snapshot documented unstable IMK startup when sync lived in the converter hot path. The separate-process architecture keeps sync work off the typing path while reusing the same crypto/merge code.

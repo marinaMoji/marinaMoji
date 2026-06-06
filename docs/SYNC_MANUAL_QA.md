@@ -18,7 +18,7 @@ Estimated time: 30–45 minutes.
 4. [ ] Enable: Settings, User dictionary, Commit / learning history.
 5. [ ] Set direction to **Bidirectional**.
 6. [ ] Set auto-sync to **Manual only** for the first test run.
-7. [ ] Click **Generate sync key**; copy the key to a password manager or secure note.
+7. [ ] Click **Generate sync key** once; copy the key (or use **Show sync key** on this device later).
 8. [ ] Click **Sync now**; confirm success dialog (no error message).
 9. [ ] Confirm the `.mmz.enc` file exists in the shared folder and has non-zero size.
 
@@ -27,7 +27,7 @@ Estimated time: 30–45 minutes.
 1. [ ] Wait until the cloud folder shows the new sync file on Device B.
 2. [ ] Open **Preferences / Properties → Sync** on Device B.
 3. [ ] Enable sync; use the **same logical file** (path on B that maps to the same cloud file as on A).
-4. [ ] Click **Enter sync key**; paste the key from Device A.
+4. [ ] Click **Enter sync key** on device B; paste the key from device A (on A, after a successful sync, use **Show sync key** to copy it again).
 5. [ ] Match checkboxes and direction with Device A.
 6. [ ] Click **Sync now**; confirm success.
 
@@ -142,7 +142,7 @@ On **Device A**:
 | Item | macOS | Linux |
 |------|-------|-------|
 | Sync settings | `~/Library/Application Support/marinaMoji/sync.conf` | `~/.config/marinamoji/sync.conf` |
-| Sync key (local) | `~/.sync_key` | `~/.sync_key` |
+| Sync key (local) | `~/Library/Application Support/marinaMoji/.sync_key` | `~/.config/marinamoji/.sync_key` or `~/.sync_key` |
 | User profile | `~/Library/Application Support/marinaMoji/` | `~/.config/marinamoji/` |
 
 User guide: [HOW_SYNC_WORKS.md](HOW_SYNC_WORKS.md)  

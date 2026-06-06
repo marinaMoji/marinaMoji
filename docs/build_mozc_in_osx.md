@@ -1,6 +1,6 @@
 # How to build Mozc on macOS
 
-> **marinaMoji fork:** Use `--config oss_macos`, build outputs are `marinaMoji.app` and `bazel-bin/mac/marinaMoji.pkg`. See [MACOS_PORT_PLAN.md](./MACOS_PORT_PLAN.md) for install and LaunchAgent details.
+> **marinaMoji fork:** Use `--config oss_macos`, build outputs are under `src/bazel-bin/mac/` (`marinaMoji.app` via `mozc_macos_archive-root/`, installer as `marinaMoji.pkg`). See [MACOS_PORT_PLAN.md](./MACOS_PORT_PLAN.md) for install, LaunchAgent, and **finding `bazel-bin`** details.
 
 <!-- disableFinding(LINK_RELATIVE_G3DOC) -->
 

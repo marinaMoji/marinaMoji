@@ -25,14 +25,24 @@ marinaMoji provides the following features for scholarly Japanese text input:
 6. **Floating toolbar** - Visual mode indicator showing current input mode, shin/kyu,  with quick access to historical marks
 7. **Macron vowels** - Input of macron vowels (ā, ē, ī, ō, ū) for scholarly transliteration in ASCII mode
 8. **Quick dictionary injection:** type `ctrl+shift+0` in compose mode to immediately save kanji phrase and pronunciation to user dictionary.
+9. **Encrypted cross-device sync:** sync settings, user dictionary, and learning history via one encrypted file in a folder you choose (Nextcloud, Syncthing, iCloud Drive, etc.). Opt-in; see [How sync works](docs/HOW_SYNC_WORKS.md).
+
+## Synchronisation
+
+marinaMoji stores sync configuration in a local sidecar file (`sync.conf`), not in the main IME database. You pick a path for a single encrypted bundle (e.g. `marinamoji_sync.mmz.enc`) inside a cloud-synced folder and share a **sync key** between devices.
+
+- **User guide:** [docs/HOW_SYNC_WORKS.md](docs/HOW_SYNC_WORKS.md) — enable sync, generate/copy key, Sync now, auto-sync intervals.
+- **Developer reference:** [docs/SYNC_PLAN.md](docs/SYNC_PLAN.md) — bundle format, merge rules, IPC commands.
+- **Manual QA checklist:** [docs/SYNC_MANUAL_QA.md](docs/SYNC_MANUAL_QA.md) — two-device verification steps.
+
+Sync uses [libsodium](https://github.com/jedisct1/libsodium) and [miniz](https://github.com/richgel999/miniz); see Acknowledgements in the About dialog.
 
 ## Planned features
 
-1. User dictionary synchronisation
-2. Toggle historical kana orthography
-3. Integrate Jim Breen dictionaries
-4. Build additional dictionary modules
-5. Character composer
+1. Toggle historical kana orthography
+2. Integrate Jim Breen dictionaries
+3. Build additional dictionary modules
+4. Character composer
 
 For policies on vocabulary and conversion results, see
 [Vocabulary Policy](VOCABULARY_POLICY.md).

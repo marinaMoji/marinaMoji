@@ -1,6 +1,6 @@
 # Encrypted user data sync (implementation reference)
 
-This document describes the shipped v1 sync implementation for marinaMoji on macOS and Linux.
+This document describes the shipped v1 sync implementation for marinaMoji on **macOS**. Linux sync daemon and IBus notice are deferred.
 
 ## Scope
 
@@ -12,15 +12,42 @@ v1 sync covers:
 
 Data is stored in one encrypted bundle file chosen by the user (for example, in a Nextcloud folder). Transport is out of scope: marinaMoji only reads and writes a local file path.
 
+## Process architecture (macOS v1)
+
+| Process | Role |
+|---------|------|
+| `marinaMojiSync` | Scheduler, cooldown, crypto/merge, status file, orchestrates converter IPC |
+| `marinaMojiConverter` | Lock/unlock, idle query, flush, reload only — no UI, no sync logic |
+| `marinaMoji` (IMK) | Watch status file, block keys, center-screen overlay + beep |
+
+Sync does **not** run inside `SessionHandler` via `PERFORM_USER_SYNC`. Config is read/written directly from `sync.conf` by the sync daemon and GUI tools.
+
 ## Files and storage
 
 - Sync sidecar config:
   - macOS: `~/Library/Application Support/marinaMoji/sync.conf`
-  - Linux: `~/.config/marinamoji/sync.conf`
+  - Linux: `~/.config/marinamoji/sync.conf` (config I/O exists; daemon not shipped in v1)
+- Live status (atomic JSON): `sync.status.json` in the same profile directory
+- Activity timestamps (written by IMK): `sync.activity.json` (`last_composition_end`, `last_ime_deactivated`)
 - Encrypted sync bundle: user-chosen path (recommended suffix `.mmz.enc`)
 - Local key storage:
-  - currently stored locally as `~/.sync_key` with mode `0600`
+  - macOS: `~/Library/Application Support/marinaMoji/.sync_key` (mode `0600`)
+  - Linux: `~/.config/marinamoji/.sync_key` (or legacy `~/.sync_key`)
   - never stored in the cloud bundle
+
+### sync.conf fields (selected)
+
+- `enabled`, `sync_file_path`, merge toggles, direction, auto-sync mode/interval
+- `sync_cooldown_seconds` (default **60**) — minimum idle time after typing or IME deactivation before auto-sync
+- `last_sync_time`, `last_sync_status`, `last_sync_message`
+
+### sync.status.json
+
+```json
+{"state":"running","phase":"merge","progress":0.42,"message":"…","updated_at_unix":…}
+```
+
+States: `idle`, `running`, `done`, `error`.
 
 ## Bundle format
 
@@ -63,39 +90,51 @@ This is intentionally separate from Mozc machine-bound encryption, so synced fil
 
 If incognito mode is enabled, history export is skipped.
 
-## IPC commands
+## Converter IPC (lock protocol)
 
 Added to `commands.proto`:
 
-- `GET_USER_SYNC_CONFIG`
-- `SET_USER_SYNC_CONFIG`
-- `PERFORM_USER_SYNC`
-- `GENERATE_USER_SYNC_KEY`
+- `GET_SYNC_STATE = 37` — returns `SyncState` (`sync_locked`, `any_composing`, `active_session_count`)
+- `BEGIN_SYNC_LOCK = 38` — sets lock; rejects new keys/commands with `Output::SYNC_LOCKED`
+- `END_SYNC_LOCK = 39` — clears lock (sync daemon must call even on error)
 
-Messages:
+Legacy sync config IPC (`GET_USER_SYNC_CONFIG`, `PERFORM_USER_SYNC`, etc.) is **not** handled by the converter in v1.
 
-- `UserSyncConfig`
-- `UserSyncRequest`
-- `UserSyncReport`
+## Main flow (`RunSync` in `marinaMojiSync`)
 
-## Main flow (`PERFORM_USER_SYNC`)
-
-1. Sync local engine state to disk.
-2. Load config and sync key.
-3. Export selected local sections.
-4. If remote exists and direction allows: decrypt and merge.
-5. If direction allows upload: encrypt and atomically write merged bundle.
-6. If direction allows download: import merged data locally.
-7. Reload engine and update sync status fields.
+1. `GET_SYNC_STATE` → abort if any session is composing (unless `--force`).
+2. Check cooldown vs `sync.activity.json` + `sync_cooldown_seconds` (unless forced).
+3. Write `sync.status.json` state `running`.
+4. `BEGIN_SYNC_LOCK` → `SYNC_DATA` (flush) → file export/merge/encrypt/import → `RELOAD_AND_WAIT` → `END_SYNC_LOCK`.
+5. Write status `done` / `error`; update `sync.conf` last-sync fields.
 
 ## Background scheduling
 
-`SyncScheduler` runs in `mozc_server` and supports:
+`marinaMojiSync --daemon` runs as a LaunchAgent (`org.mozc.inputmethod.Japanese.Sync`):
 
-- interval sync (`EVERY_N_MINUTES`)
-- shutdown sync (`ON_SHUTDOWN`)
-- remote file mtime polling per interval
-- composition-aware skip (scheduled sync does not run while active preedit/candidate state exists)
+- Poll interval: `max(60, auto_sync_interval_minutes * 60)` seconds
+- Also triggers when remote bundle mtime changes
+- Skips when composing, cooldown not met, or sync already running
+- `KeepAlive=false` (no persistent respawn loop beyond `RunAtLoad`)
+
+Manual sync: `marinaMojiSync --now` or `--force` (GUI “Sync now” spawns this).
+
+## IMK behavior during sync
+
+- Polls `sync.status.json` (~250 ms) while IME is active
+- Shows centered non-activating overlay: “marinaMoji synchronising…”
+- Blocks keyboard events to the converter; beeps and flashes overlay if user types (rate-limited)
+- Hides candidate window while sync is active
+- Writes `last_ime_deactivated` on `deactivateServer`
+- Writes `last_composition_end` when preedit clears
+
+## GUI integration
+
+Config dialog Sync tab and Dictionary Tool “Sync now”:
+
+- Read/write `sync.conf` and sync key directly (no converter sync IPC)
+- Cooldown spinbox (seconds)
+- Spawn `marinaMojiSync --now --force` and poll `sync.status.json`
 
 ## Test coverage
 
@@ -103,9 +142,28 @@ Unit tests in `src/sync/`:
 
 - `sync_crypto_test` (round-trip + wrong key),
 - `sync_bundle_test` (pack/unpack),
-- `sync_merge_test` (dictionary/history merge behavior).
+- `sync_merge_test` (dictionary/history merge behavior),
+- `sync_status_test` (atomic JSON read/write),
+- `sync_runner_test` (lock order, composition/cooldown gating).
+
+Session tests:
+
+- `SyncLockRejectsSendKey`, `GetSyncStateReportsSessionCount` in `session_handler_test`.
 
 Build/test command:
 
-`bazel test //sync:all --config=macos`
+```bash
+bazel test //sync:all --config=macos
+bazel test //session:session_handler_test --config=macos
+```
 
+## Manual QA checklist (macOS)
+
+1. Enable sync in Config dialog, set bundle path, generate key, save.
+2. Copy key to second machine; enter key; verify bidirectional merge.
+3. Auto-sync after typing: type, wait for cooldown, confirm sync runs without blocking keys beforehand.
+4. Manual “Sync now” from Config dialog and Dictionary Tool; confirm status updates.
+5. During sync: type in TextEdit → beep + overlay flash; keys must not reach converter.
+6. Turn IME off → confirm `sync.activity.json` updates; auto-sync respects cooldown.
+7. Verify converter and IMK survive sync; dictionary/history changes appear after reload.
+8. LaunchAgent: after install, `pgrep marinaMojiSync` shows daemon; scrub script removes Sync agent.

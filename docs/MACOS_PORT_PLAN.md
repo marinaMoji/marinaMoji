@@ -16,22 +16,32 @@ For full setup (Xcode, Qt, Bazelisk, `.pkg` installer), see [build_mozc_in_osx.m
 
 ## Rebuild and reinstall (quick reference)
 
-Full process:
+From your clone’s **`src/`** directory (where `MODULE.bazel` lives):
 
 ```bash
 cd ~/Code/marinaMozc/src
 export MOZC_QT_PATH=/opt/homebrew/opt/qt
-bazelisk build --config oss_macos //mac:mozc_macos
-sudo ditto bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app "/Library/Input Methods/marinaMoji.app"
-bash ./mac/install_launchagents.sh
-killall marinaMojiRenderer 2>/dev/null
-killall marinaMoji 2>/dev/null
+bazelisk build --config=oss_macos //mac:mozc_macos
+bash mac/install_marinamoji.sh
 ```
 
-Run from your clone’s **`src/`** directory (where `MODULE.bazel` lives), for example:
+`install_marinamoji.sh` copies `bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app`, installs LaunchAgents, registers the IME, runs the Qt path/sign fix (`fix_qt_bundled_paths.sh`), verifies the converter binary changed, and restarts IMK/converter processes.
+
+Manual equivalent (not recommended — easy to skip Qt fix or registration):
 
 ```bash
-cd ~/Code/marinaMoji/src
+sudo ditto bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app "/Library/Input Methods/marinaMoji.app"
+bash mac/install_launchagents.sh
+bash mac/register_marinamoji.sh
+sudo bash mac/fix_qt_bundled_paths.sh "/Library/Input Methods/marinaMoji.app" "-"
+killall imklaunchagent TextInputMenuAgent marinaMoji marinaMojiConverter marinaMojiRenderer 2>/dev/null || true
+```
+
+For a **VM or second Mac**, build and install the pkg instead (bundles Qt deps for machines without Homebrew):
+
+```bash
+bazelisk build --config=oss_macos --spawn_strategy=local //mac:package
+open bazel-bin/mac/marinaMoji.pkg
 ```
 
 ### Compile
@@ -52,22 +62,135 @@ bazel sync --configure
 
 Output (this repo’s Bazel rule packages the IME as a zip):
 
-| Artifact | Path |
-|----------|------|
+| Artifact | Path (relative to `src/`) |
+|----------|---------------------------|
 | Zip | `bazel-bin/mac/mozc_macos.zip` |
 | Unpacked `.app` (use for install) | `bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app` |
+| Installer `.pkg` (separate build; see below) | `bazel-bin/mac/marinaMoji.pkg` |
 
 There is no `bazel-bin/mac/marinaMoji.app` symlink; `ditto` must use the **archive-root** path (or unzip the zip first).
 
-Optional: build the signed `.pkg` installer instead of copying the `.app` by hand:
+**`bazel-bin/` is easy to miss:** it lives under **`src/`** (same directory as `MODULE.bazel`), not at the repo root. It is listed in `.gitignore`, so **Cursor and most project file trees will not show it** — use Terminal to list or open artifacts.
+
+### `.pkg` installer (optional)
+
+The app build (`//mac:mozc_macos`) does **not** produce the installer. Build the pkg separately:
 
 ```bash
-export MOZC_QT_PATH=/opt/homebrew/opt/qt   # if using Qt tools
-bazelisk build package --config oss_macos --config release_build
+cd ~/Code/marinaMozc/src   # must be src/ — adjust clone path
+export MOZC_QT_PATH=/opt/homebrew/opt/qt   # if using Homebrew Qt
+bazelisk build --config=oss_macos --spawn_strategy=local //mac:package
+```
+
+On macOS 26+, if Bazel fails with an `xcode-locator` error, run `bash mac/fix_bazel_xcode_config.sh` once, then rebuild from **Terminal.app** (see [build_mozc_in_osx.md](build_mozc_in_osx.md)).
+
+| Artifact | Path (relative to `src/`) |
+|----------|---------------------------|
+| Installer pkg | `bazel-bin/mac/marinaMoji.pkg` |
+
+Example absolute path:
+
+```text
+~/Code/marinaMozc/src/bazel-bin/mac/marinaMoji.pkg
+```
+
+Verify and install:
+
+```bash
+cd ~/Code/marinaMozc/src
+ls -lh bazel-bin/mac/marinaMoji.pkg
 open bazel-bin/mac/marinaMoji.pkg
 ```
 
-The `.pkg` installs `marinaMoji.app`, LaunchAgents for `marinaMojiConverter` / `marinaMojiRenderer`, and helper symlinks under `/Applications/marinaMoji/`.
+Copy somewhere visible (optional):
+
+```bash
+cp bazel-bin/mac/marinaMoji.pkg ~/Desktop/
+```
+
+The `.pkg` installs `marinaMoji.app`, LaunchAgents for `marinaMojiConverter`, `marinaMojiRenderer`, and `marinaMojiSync`, plus helper symlinks under `/Applications/marinaMoji/`.
+
+**Dev install without the pkg:** from `src/`, after `//mac:mozc_macos` succeeds:
+
+```bash
+bash mac/install_marinamoji.sh
+```
+
+That copies `bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app`, runs `install_launchagents.sh`, `register_marinamoji.sh`, and `fix_qt_bundled_paths.sh` (required for Preferences / Dictionary Tool on a clean Mac).
+
+### Second Mac / VM: Preferences / Qt GUI tools
+
+OSS builds are **not notarized** and use **ad-hoc signing** (`codesign -s -`). That is normal for local development. Installing from a **shared folder or USB** usually avoids Gatekeeper quarantine; you typically do **not** need the Apple Developer Program for your own dev Mac and VM.
+
+**Three different checks (don’t confuse them):**
+
+| Check | What it blocks |
+|-------|----------------|
+| **Gatekeeper / quarantine** | First open of software **downloaded from the internet** |
+| **Runtime signature (AMFI/dyld)** | Loading a **tampered** library (common Preferences crash on VM) |
+| **Developer ID + notarization** | Smooth installs for **strangers** downloading your pkg |
+
+#### Build the pkg (recommended for VM)
+
+From `src/`:
+
+```bash
+export MOZC_QT_PATH=/opt/homebrew/opt/qt
+bazelisk build --config=oss_macos --spawn_strategy=local //mac:package
+```
+
+Output: `bazel-bin/mac/marinaMoji.pkg`. The pkg pipeline runs `bundle_qt_deps.sh` (ICU, glib, QtDBus, …) and `fix_qt_bundled_paths.sh` (paths + **framework re-sign**).
+
+#### “Can’t be opened because of a problem” / immediate crash
+
+**Cause A — missing libraries (no Homebrew on VM):** Qt binaries still pointed at `/opt/homebrew/...`. Fixed by bundling in the pkg (2026-06).
+
+**Cause B — invalid signature:** Crash report shows `SIGKILL (Code Signature Invalid)` or `codesign --verify` fails on `QtGui.framework`. `install_name_tool` invalidates signatures; frameworks must be re-signed individually, not only the outer `.app`.
+
+**Verify on the VM:**
+
+```bash
+CD="/Library/Input Methods/marinaMoji.app/Contents/Resources/ConfigDialog.app"
+codesign --verify --deep --strict --verbose=2 "$CD"
+```
+
+**Re-sign on the VM without reinstalling** (temporary test fix):
+
+```bash
+CD="/Library/Input Methods/marinaMoji.app/Contents/Resources/ConfigDialog.app"
+FW="$CD/Contents/Frameworks"
+find "$FW" -name "_CodeSignature" -exec rm -rf {} + 2>/dev/null
+for fw in QtCore QtDBus QtGui QtPrintSupport QtWidgets; do
+  codesign --force --sign - "$FW/${fw}.framework/Versions/A/${fw}" 2>/dev/null
+  codesign --force --sign - "$FW/${fw}.framework"
+done
+for dylib in "$FW"/*.dylib; do [[ -f "$dylib" ]] && codesign --force --sign - "$dylib"; done
+codesign --force --sign - "$CD/Contents/Resources/plugins/platforms/libqcocoa.dylib"
+codesign --force --sign - "$CD"
+```
+
+**Fix after install from older builds:**
+
+```bash
+sudo bash "/Library/Input Methods/marinaMoji.app/Contents/Resources/fix_qt_bundled_paths.sh" \
+  "/Library/Input Methods/marinaMoji.app" "-"
+```
+
+Dev install (`install_marinamoji.sh`) and pkg postinstall run the same script automatically on new builds.
+
+**Also check:**
+
+- **Architecture:** pkg built on Apple Silicon is `arm64` only. An Intel VM needs an Intel build, or an Apple Silicon VM with arm64 macOS.
+- **Quarantine** (if you downloaded the pkg in a browser on the VM): `xattr -dr com.apple.quarantine ~/Downloads/marinaMoji.pkg` before installing.
+- **Launch Preferences from Terminal:**
+
+```bash
+"/Library/Input Methods/marinaMoji.app/Contents/Resources/ConfigDialog.app/Contents/MacOS/ConfigDialog"
+```
+
+**One-time Gatekeeper bypass:** Control-click `ConfigDialog.app` in Finder → **Open** → confirm.
+
+For production installs on other people’s Macs you would need Apple Developer ID signing, notarization, and stapling. Long-term we may switch from Homebrew Qt to `build_qt.py` (upstream Mozc path); framework re-sign after deploy remains required either way.
 
 ### Install over an existing copy
 
@@ -139,6 +262,94 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/org.mozc.inputmethod.Jap
 ```
 
 Then toggle **marinaMoji** off and on in **System Settings → Keyboard → Input Sources**, or log out and back in.
+
+### macOS 26+ `InputMethodConnectionName` (IMK “Refusing connection name”)
+
+On **macOS 26+**, `imklaunchagent` rejects the legacy Mozc name `marinaMoji_1_Connection` / `Mozc_1_Connection`.  
+`Info.plist` must use the **bundle-ID form**:
+
+```xml
+<key>InputMethodConnectionName</key>
+<string>org.mozc.inputmethod.Japanese_Connection</string>
+```
+
+Symptoms if wrong: `Refusing connection name for bundle: unrecognized 'InputMethodConnectionName' value`, `LaunchInputMethod() Error, status=-50`, no conversion. Rebuild and reinstall after changing `src/mac/Info.plist`.
+
+### HIToolbox reset (IMK “Refusing connection name” / NO Endpoint)
+
+**Warning:** `defaults delete com.apple.HIToolbox` removes **your entire Input Sources list** — U.S./ABC, Dvorak, Chinese, emoji palette, everything — not just marinaMoji. macOS stores all keyboard/IME choices in that one domain. Export a backup first (`defaults export com.apple.HIToolbox ~/Desktop/hitoolbox.backup.plist`).
+
+Adding marinaMoji **once** registers **six internal modes** (hiragana, katakana, half-width kana, etc.) in `com.apple.inputsources`. Only **one** should appear in the menu (`tsInputModeIsVisibleKey`). If you add marinaMoji repeatedly while debugging, System Settings can show **many duplicate rows** (e.g. 13) — remove **all** of them, clear `inputsources`, then add **once**.
+
+Symptoms: spinning wheel, no conversion, toolbar stuck, and logs like:
+
+```bash
+/usr/bin/log show --last 2m --style compact --predicate 'process == "imklaunchagent"' \
+  | rg -i 'Refusing connection name|NO Endpoint'
+```
+
+This is **macOS input-source state**, not marinaMoji source code. A partial reset (only `com.apple.HIToolbox.plist`) is **not enough**:
+
+- **`com.apple.inputsources.plist`** holds third-party IME entries separately; stale marinaMoji rows can remain while HIToolbox no longer lists marinaMoji as enabled.
+- **`~/Library/Keyboard Layouts/dpm.bundle`** is auto-discovered on every login. macOS re-adds **dpm** to Input Sources until that bundle is moved aside.
+
+From `src/` (recommended — **deletes marinaMoji.app**, scrubs org.mozc registry, quarantines dpm, wipes all Input Sources prefs):
+
+```bash
+bash ./mac/reset_hitoolbox_for_marinamoji.sh --full
+```
+
+**Critical:** `--full` removes `marinaMoji.app` from `/Library/Input Methods/`. If the app stays installed across logout, macOS re-discovers it and System Settings can show many duplicate rows (e.g. 13). Do **not** reinstall until **after** logout; use `post_reset_marinamoji.sh`.
+
+Scrub marinaMoji only (keep other Input Sources prefs):
+
+```bash
+bash ./mac/scrub_marinamoji.sh
+```
+
+**Then log out and back in** (required — do not skip). After login:
+
+```bash
+bash ./mac/post_reset_marinamoji.sh
+# add marinaMoji ONCE in System Settings, then:
+bash ./mac/activate_marinamoji.sh
+```
+
+Light reset (HIToolbox wipe only — app stays; dpm may return):
+
+```bash
+bash ./mac/reset_hitoolbox_for_marinamoji.sh
+```
+
+If the converter still crashes after IMK logs are clean, move user data aside (backup) and retry:
+
+```bash
+mv ~/Library/Application\ Support/marinaMoji \
+   ~/Library/Application\ Support/marinaMoji.bak.$(date +%Y%m%d-%H%M%S)
+```
+
+### Clean up duplicate marinaMoji rows (e.g. 13 entries)
+
+Do **not** restore an old HIToolbox backup wholesale — backups from this session may already contain corrupted state (dpm + marinaMoji modes split across plists).
+
+1. System Settings → Keyboard → Input Sources → remove **every** marinaMoji row.
+2. Re-add other sources you need: **U.S.** or **ABC**, **Dvorak**, etc.
+3. Terminal:
+
+```bash
+killall marinaMoji marinaMojiConverter marinaMojiRenderer imklaunchagent TextInputMenuAgent cfprefsd 2>/dev/null || true
+defaults delete com.apple.inputsources
+killall cfprefsd 2>/dev/null || true
+```
+
+4. Log out and back in.
+5. Add **marinaMoji once** (expect **one** menu entry, not a dozen).
+6. Verify: `defaults read com.apple.HIToolbox AppleSelectedInputSources | rg -i 'org.mozc|Japanese'`  
+   (`AppleEnabledInputSources` is often empty for third-party IMEs on recent macOS — that alone is not a failure.)
+7. `bash ./mac/activate_marinamoji.sh` then `bash ./mac/install_marinamoji.sh`
+
+Restore **dpm** only after marinaMoji works:  
+`mv ~/Library/Keyboard\ Layouts/dpm.bundle.off ~/Library/Keyboard\ Layouts/dpm.bundle` then add dpm once in Input Sources.
 
 ## Goals
 
@@ -229,6 +440,8 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
 | M1h | **History / zero-query window stays after Esc, delete-all, or switch to Dvorak** | Fixed: ``syncCandidatesWithOutput`` + ``deactivateServer`` uses ``clearCandidates``; cancel ``delayedUpdateCandidates``; ``imeServerActive_`` guard when input source is not marinaMoji. |
 | M1i | **Duplicate character when switching input after commit** (e.g. type ``x``, commit, switch to Dvorak → ``xx``) | Fixed: after commit with no ``preedit`` field, ``applyCommitAndPreeditFromOutput`` clears marked text; ``deactivateServer`` clears stale ``composedString_``. Regression from gating ``updateComposedString`` on ``has_preedit()`` only. |
 | M1j | **Ghost character / late ``あの`` after Esc then IME off** (e.g. ``ano`` + Space, Esc leaves ``◊`` in Word; switching IME inserts ``あの``) | Fixed: ``applyCommitAndPreeditFromOutput`` clears marked text when response has no ``preedit``/``result`` (Escape); ``flushCompositionBeforeDeactivate`` sends Esc + clears before ``deactivateServer``. |
+| M1k | **Backspace wipes entire preedit** (e.g. ``daigenk`` → Backspace clears all, not one char; commits may not learn) | Fixed: M1j clear-without-preedit must not run on ``consumed=false`` echo-back (Kotoeri Precomposition Backspace → ``Revert``). Use ``allowClearWithoutPreedit`` only for consumed Escape/Cancel. |
+| M1l | **History still off after privacy mode disabled** (e.g. ``daigenguu`` → 大元宮 never ranks up) | Fixed: ``TogglePrivacyMode`` no longer persists ``history_learning_level = NO_HISTORY``; turning privacy off migrates stuck ``NO_HISTORY`` back to ``DEFAULT_HISTORY``. **Workaround now:** Preferences → General → “Adjust conversion based on previous input” → not “No history”. |
 | M2 | ~~Installer LaunchAgents / `.pkg` paths~~ | **Done:** plists, postflight, `tweak_installer_files.py`, and `marinaMoji.pkg` use `marinaMoji` paths |
 
 ### Medium

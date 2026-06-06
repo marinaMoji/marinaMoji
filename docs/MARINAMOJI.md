@@ -19,6 +19,16 @@ The [marinaMoji](https://github.com/marinaMoji/marinaMoji) fork installs **next 
 
 **Legacy paths** (`marinamozc`, `~/.config/marinamozc/`, `~/.config/ibus/marinamozc/`) are still read if the new directory does not exist yet.
 
+## Sync sidecar config
+
+- macOS: `~/Library/Application Support/marinaMoji/sync.conf`
+- Linux: `~/.config/marinamoji/sync.conf`
+
+For setup and behavior details, see:
+
+- `docs/HOW_SYNC_WORKS.md` (user guide)
+- `docs/SYNC_PLAN.md` (implementation reference)
+
 ## Configuration
 
 - **`src/config.bzl`** — `BRANDING = "marinaMoji"` and install paths above.
