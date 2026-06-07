@@ -238,6 +238,9 @@ DirectInput	Hiragana	IMEOn
 DirectInput	Kanji	IMEOn
 DirectInput	Katakana	IMEOn
 DirectInput	ON	IMEOn
+DirectInput	Ctrl 0	LaunchWordRegisterDialog
+DirectInput	Ctrl Shift 0	LaunchWordRegisterDialog
+DirectInput	Ctrl Shift )	LaunchWordRegisterDialog
 DirectInput	Ctrl Alt a	InsertMacronVowel
 DirectInput	Ctrl Alt e	InsertMacronVowel
 DirectInput	Ctrl Alt i	InsertMacronVowel

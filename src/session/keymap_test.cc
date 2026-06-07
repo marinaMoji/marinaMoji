@@ -988,7 +988,30 @@ TEST_F(KeyMapTest, ShiftTabToConvertPrev) {
 
 TEST_F(KeyMapTest, LaunchToolTest) {
   commands::KeyEvent key_event;
+  DirectInputState::Commands direct_command;
   PrecompositionState::Commands conv_command;
+
+  for (const config::Config::SessionKeymap keymap :
+       {config::Config::ATOK, config::Config::CHROMEOS,
+        config::Config::KOTOERI, config::Config::MOBILE,
+        config::Config::MSIME}) {
+    KeyMapManager manager(GetDefaultConfig(keymap));
+
+    KeyParser::ParseKey("Ctrl 0", &key_event);
+    EXPECT_TRUE(manager.GetCommandDirect(key_event, &direct_command));
+    EXPECT_EQ(direct_command,
+              DirectInputState::LAUNCH_WORD_REGISTER_DIALOG);
+
+    KeyParser::ParseKey("Ctrl Shift 0", &key_event);
+    EXPECT_TRUE(manager.GetCommandDirect(key_event, &direct_command));
+    EXPECT_EQ(direct_command,
+              DirectInputState::LAUNCH_WORD_REGISTER_DIALOG);
+
+    KeyParser::ParseKey("Ctrl Shift )", &key_event);
+    EXPECT_TRUE(manager.GetCommandDirect(key_event, &direct_command));
+    EXPECT_EQ(direct_command,
+              DirectInputState::LAUNCH_WORD_REGISTER_DIALOG);
+  }
 
   {  // ATOK
     KeyMapManager manager(GetDefaultConfig(config::Config::ATOK));

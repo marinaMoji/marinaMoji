@@ -30,6 +30,9 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#if defined(GDK_WINDOWING_WAYLAND)
+#include <gdk/gdkwayland.h>
+#endif
 #ifdef MOZC_HAVE_GTK_LAYER_SHELL
 #include <gtk-layer-shell.h>
 #endif
@@ -96,8 +99,10 @@ static void MaybeForceX11OnGnomeWayland() {
   const char* session = g_getenv("XDG_SESSION_TYPE");
   if (!session || g_ascii_strcasecmp(session, "wayland") != 0) return;
   const char* desktop = g_getenv("XDG_CURRENT_DESKTOP");
-  const bool is_gnome = desktop && g_strrstr(desktop, "GNOME");
-  if (!is_gnome || g_getenv("GDK_BACKEND")) return;
+  const bool gnome_like =
+      desktop &&
+      (g_strrstr(desktop, "GNOME") || g_strrstr(desktop, "ubuntu"));
+  if (!gnome_like || g_getenv("GDK_BACKEND")) return;
   g_setenv("GDK_BACKEND", "x11", TRUE);
 }
 
@@ -407,11 +412,48 @@ static gboolean DelayedRepositionCb(gpointer /*data*/) {
   return G_SOURCE_REMOVE;
 }
 
-// On X11/XWayland: unmanaged overlay so no taskbar entry and no WM focus animations.
-static void OnRealize(GtkWidget* w, gpointer /*data*/) {
-  if (!IsX11()) return;
+// Hide helper windows from the Ubuntu/GNOME dock (WM_CLASS / app_id + override_redirect).
+static void OnNoDockRealize(GtkWidget* w, gpointer /*data*/) {
   GdkWindow* gw = gtk_widget_get_window(w);
-  if (gw) gdk_window_set_override_redirect(gw, TRUE);
+  if (!gw) return;
+  if (IsX11()) {
+    gdk_window_set_override_redirect(gw, TRUE);
+    return;
+  }
+#if defined(GDK_WINDOWING_WAYLAND)
+  if (GDK_IS_WAYLAND_DISPLAY(gdk_window_get_display(gw))) {
+    // No matching .desktop → should not appear as ibus-engine-marinamoji in the dock.
+    gdk_wayland_window_set_application_id(gw, "io.marinamoji.toolbar");
+  }
+#endif
+}
+
+static void ApplyNoDockWindowHints(GtkWidget* window, bool keep_above) {
+  gtk_window_set_wmclass(GTK_WINDOW(window), "marinamoji-toolbar",
+                         "marinamoji-toolbar");
+  gtk_window_set_skip_taskbar_hint(GTK_WINDOW(window), TRUE);
+  gtk_window_set_skip_pager_hint(GTK_WINDOW(window), TRUE);
+  gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_UTILITY);
+  gtk_window_set_accept_focus(GTK_WINDOW(window), FALSE);
+  gtk_window_set_focus_on_map(GTK_WINDOW(window), FALSE);
+  gtk_widget_set_can_focus(window, FALSE);
+  if (keep_above) {
+    gtk_window_set_keep_above(GTK_WINDOW(window), TRUE);
+  }
+  g_signal_connect(window, "realize", G_CALLBACK(OnNoDockRealize), nullptr);
+}
+
+static void ApplyToolbarWindowHints(GtkWidget* window) {
+  gtk_window_set_wmclass(GTK_WINDOW(window), "marinamoji-toolbar",
+                         "marinamoji-toolbar");
+  gtk_window_set_keep_above(GTK_WINDOW(window), TRUE);
+  gtk_window_set_skip_taskbar_hint(GTK_WINDOW(window), TRUE);
+  gtk_window_set_skip_pager_hint(GTK_WINDOW(window), TRUE);
+  gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_DOCK);
+  gtk_window_set_accept_focus(GTK_WINDOW(window), FALSE);
+  gtk_window_set_focus_on_map(GTK_WINDOW(window), FALSE);
+  gtk_widget_set_can_focus(window, FALSE);
+  g_signal_connect(window, "realize", G_CALLBACK(OnNoDockRealize), nullptr);
 }
 
 static guint32 GetPresentTime() {
@@ -1235,13 +1277,7 @@ static void ShowSymbolsPalette() {
   gtk_window_set_resizable(GTK_WINDOW(g_symbols_window), TRUE);
   gtk_window_set_default_size(GTK_WINDOW(g_symbols_window), 520, 380);
   gtk_window_set_position(GTK_WINDOW(g_symbols_window), GTK_WIN_POS_CENTER);
-  gtk_window_set_keep_above(GTK_WINDOW(g_symbols_window), TRUE);
-  gtk_window_set_skip_taskbar_hint(GTK_WINDOW(g_symbols_window), TRUE);
-  gtk_window_set_type_hint(GTK_WINDOW(g_symbols_window), GDK_WINDOW_TYPE_HINT_UTILITY);
-  // Same as the main toolbar: do not grab focus so IBUS keeps the text editor.
-  gtk_window_set_accept_focus(GTK_WINDOW(g_symbols_window), FALSE);
-  gtk_window_set_focus_on_map(GTK_WINDOW(g_symbols_window), FALSE);
-  gtk_widget_set_can_focus(g_symbols_window, FALSE);
+  ApplyNoDockWindowHints(g_symbols_window, /*keep_above=*/TRUE);
 
   GtkWidget* content = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
   gtk_container_set_border_width(GTK_CONTAINER(content), 8);
@@ -1394,6 +1430,25 @@ static void OnShortcutsNext(GtkButton* /*btn*/, gpointer data) {
   ShortcutsPopupRefreshPage(g_shortcuts_page, static_cast<ShortcutsData*>(data));
 }
 
+static void CloseShortcutsPopup() {
+  if (g_shortcuts_window) {
+    gtk_widget_destroy(g_shortcuts_window);
+  }
+}
+
+static void OnShortcutsClose(GtkButton* /*btn*/, gpointer /*data*/) {
+  CloseShortcutsPopup();
+}
+
+static gboolean OnShortcutsKeyPress(GtkWidget* /*widget*/, GdkEventKey* event,
+                                    gpointer /*data*/) {
+  if (event && event->keyval == GDK_KEY_Escape) {
+    CloseShortcutsPopup();
+    return TRUE;
+  }
+  return FALSE;
+}
+
 static void OnShortcutsPopupDestroy(GtkWidget* /*w*/, gpointer data) {
   g_shortcuts_window = nullptr;
   g_shortcuts_stack = nullptr;
@@ -1446,9 +1501,17 @@ static void ShowShortcutsPopup() {
   }
   g_shortcuts_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_title(GTK_WINDOW(g_shortcuts_window), "Keyboard shortcuts");
+  gtk_window_set_decorated(GTK_WINDOW(g_shortcuts_window), TRUE);
   gtk_window_set_resizable(GTK_WINDOW(g_shortcuts_window), TRUE);
   gtk_window_set_default_size(GTK_WINDOW(g_shortcuts_window), 420, 380);
   gtk_window_set_position(GTK_WINDOW(g_shortcuts_window), GTK_WIN_POS_CENTER);
+  gtk_window_set_wmclass(GTK_WINDOW(g_shortcuts_window), "marinamoji-toolbar",
+                         "marinamoji-toolbar");
+  gtk_window_set_keep_above(GTK_WINDOW(g_shortcuts_window), TRUE);
+  gtk_window_set_skip_taskbar_hint(GTK_WINDOW(g_shortcuts_window), TRUE);
+  gtk_window_set_skip_pager_hint(GTK_WINDOW(g_shortcuts_window), TRUE);
+  gtk_window_set_type_hint(GTK_WINDOW(g_shortcuts_window),
+                           GDK_WINDOW_TYPE_HINT_UTILITY);
   GtkWidget* content = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
   gtk_container_set_border_width(GTK_CONTAINER(content), 12);
   gtk_container_add(GTK_CONTAINER(g_shortcuts_window), content);
@@ -1496,12 +1559,20 @@ static void ShowShortcutsPopup() {
   gtk_container_add(GTK_CONTAINER(kaeriten_frame), kaeriten_sw);
   gtk_stack_add_titled(GTK_STACK(g_shortcuts_stack), kaeriten_frame, "kaeriten", "Kaeriten");
   gtk_box_pack_start(GTK_BOX(content), g_shortcuts_stack, TRUE, TRUE, 0);
+  GtkWidget* footer = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
+  gtk_button_box_set_layout(GTK_BUTTON_BOX(footer), GTK_BUTTONBOX_END);
+  GtkWidget* close_btn = gtk_button_new_with_label("Close");
+  g_signal_connect(close_btn, "clicked", G_CALLBACK(OnShortcutsClose), nullptr);
+  gtk_container_add(GTK_CONTAINER(footer), close_btn);
+  gtk_box_pack_start(GTK_BOX(content), footer, FALSE, FALSE, 0);
   g_shortcuts_page = 0;
   gtk_stack_set_visible_child_name(GTK_STACK(g_shortcuts_stack), "script");
   ShortcutsPopupUpdateHeader();
   g_signal_connect(g_shortcuts_prev_btn, "clicked", G_CALLBACK(OnShortcutsPrev), data);
   g_signal_connect(g_shortcuts_next_btn, "clicked", G_CALLBACK(OnShortcutsNext), data);
   g_signal_connect(g_shortcuts_window, "destroy", G_CALLBACK(OnShortcutsPopupDestroy), data);
+  g_signal_connect(g_shortcuts_window, "key-press-event",
+                   G_CALLBACK(OnShortcutsKeyPress), nullptr);
   ShortcutsPopupRefreshPage(kPageScript, data);
   ShortcutsPopupRefreshPage(kPageComposition, data);
   ShortcutsPopupRefreshPage(kPageKaeriten, data);
@@ -1521,19 +1592,13 @@ void EnsureToolbarCreated() {
   EnsureToolbarCSS(g_toolbar_dark_theme);
   RegisterToolbarThemeObserver();
 
-  // TOPLEVEL + DOCK (marinaMoji-style) for bottom-right placement; skip_taskbar still set.
-  // keep_above + accept_focus/focus_on_map/can_focus false; draggable via gtk_window_begin_move_drag.
+  // TOPLEVEL + DOCK hint keeps the toolbar dock-like: above normal windows,
+  // movable, and outside normal focus/task switching.
   g_toolbar_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_title(GTK_WINDOW(g_toolbar_window), "marinaMoji");
   gtk_window_set_decorated(GTK_WINDOW(g_toolbar_window), FALSE);
   gtk_window_set_resizable(GTK_WINDOW(g_toolbar_window), FALSE);
-  gtk_window_set_keep_above(GTK_WINDOW(g_toolbar_window), TRUE);
-  gtk_window_set_skip_taskbar_hint(GTK_WINDOW(g_toolbar_window), TRUE);
-  gtk_window_set_skip_pager_hint(GTK_WINDOW(g_toolbar_window), TRUE);
-  gtk_window_set_type_hint(GTK_WINDOW(g_toolbar_window), GDK_WINDOW_TYPE_HINT_DOCK);
-  gtk_window_set_accept_focus(GTK_WINDOW(g_toolbar_window), FALSE);
-  gtk_window_set_focus_on_map(GTK_WINDOW(g_toolbar_window), FALSE);
-  gtk_widget_set_can_focus(g_toolbar_window, FALSE);
+  ApplyToolbarWindowHints(g_toolbar_window);
   gtk_window_set_default_size(GTK_WINDOW(g_toolbar_window), 380, kToolbarHeight);
   gtk_container_set_border_width(GTK_CONTAINER(g_toolbar_window), 0);
   gtk_widget_set_app_paintable(g_toolbar_window, TRUE);
@@ -1555,7 +1620,6 @@ void EnsureToolbarCreated() {
                    G_CALLBACK(OnFocusIn), nullptr);
   g_signal_connect(g_toolbar_window, "focus-out-event",
                    G_CALLBACK(OnFocusOut), nullptr);
-  g_signal_connect(g_toolbar_window, "realize", G_CALLBACK(OnRealize), nullptr);
   g_signal_connect(g_toolbar_window, "configure-event",
                    G_CALLBACK(OnConfigure), nullptr);
   g_signal_connect(g_toolbar_window, "map-event", G_CALLBACK(OnMap), nullptr);

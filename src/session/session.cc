@@ -696,6 +696,8 @@ bool Session::SendKeyDirectInputState(commands::Command* command) {
       return EchoBackAndClearUndoContext(command);
     case keymap::DirectInputState::RECONVERT:
       return RequestConvertReverse(command);
+    case keymap::DirectInputState::LAUNCH_WORD_REGISTER_DIALOG:
+      return LaunchWordRegisterDialog(command);
     case keymap::DirectInputState::INSERT_MACRON_VOWEL:
       return InsertMacronVowel(command);
     case keymap::DirectInputState::SET_MACRON_DEAD_KEY:
@@ -2367,6 +2369,21 @@ bool Session::CompositionModeManyoshu(commands::Command* command) {
 }
 
 bool Session::ToggleManyoshuHiragana(commands::Command* command) {
+  // Right Shift alone toggles Hiragana ↔ Manyōshū only during Japanese input.
+  // In Latin / wide Latin (or direct input), pass Shift through to the app.
+  if (context_->state() == ImeContext::DIRECT) {
+    command->mutable_output()->set_consumed(false);
+    OutputFromState(command);
+    return true;
+  }
+  const transliteration::TransliterationType input_mode =
+      context_->composer().GetInputMode();
+  if (input_mode == transliteration::HALF_ASCII ||
+      input_mode == transliteration::FULL_ASCII) {
+    command->mutable_output()->set_consumed(false);
+    OutputFromState(command);
+    return true;
+  }
   if (manyoshu_mode_) {
     CompositionModeHiragana(command);
   } else {

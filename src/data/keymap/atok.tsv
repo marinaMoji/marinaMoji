@@ -89,6 +89,9 @@ Composition	Tab	PredictAndConvert
 Composition	VirtualLeft	MoveCursorLeft
 Composition	VirtualRight	MoveCursorRight
 Composition	VirtualEnter	Commit
+Composition	Ctrl 0	LaunchWordRegisterDialog
+Composition	Ctrl Shift 0	LaunchWordRegisterDialog
+Composition	Ctrl Shift )	LaunchWordRegisterDialog
 Conversion	Backspace	Cancel
 Conversion	Ctrl [	Cancel
 Conversion	Ctrl @	ConvertToHalfAlphanumeric
@@ -182,6 +185,9 @@ Conversion	Up	ConvertPrev
 Conversion	VirtualLeft	SegmentWidthShrink
 Conversion	VirtualRight	SegmentWidthExpand
 Conversion	VirtualEnter	CommitOnlyFirstSegment
+Conversion	Ctrl 0	LaunchWordRegisterDialog
+Conversion	Ctrl Shift 0	LaunchWordRegisterDialog
+Conversion	Ctrl Shift )	LaunchWordRegisterDialog
 DirectInput	Hankaku/Zenkaku	IMEOn
 DirectInput	Henkan	IMEOn
 DirectInput	Kanji	IMEOn
@@ -224,6 +230,9 @@ DirectInput	Ctrl Shift `	IMEOn
 DirectInput	Ctrl Shift 5	IMEOn
 DirectInput	Ctrl Shift %	IMEOn
 DirectInput	Ctrl Shift ²	IMEOn
+DirectInput	Ctrl 0	LaunchWordRegisterDialog
+DirectInput	Ctrl Shift 0	LaunchWordRegisterDialog
+DirectInput	Ctrl Shift )	LaunchWordRegisterDialog
 Precomposition	Backspace	Revert
 Precomposition	Ctrl Backspace	Undo
 Precomposition	Ctrl F12	LaunchConfigDialog
@@ -286,11 +295,17 @@ Precomposition	Shift Henkan	Reconvert
 Precomposition	Shift Muhenkan	ToggleAlphanumericMode
 Precomposition	Shift Space	InsertAlternateSpace
 Precomposition	Space	InsertSpace
+Precomposition	Ctrl 0	LaunchWordRegisterDialog
+Precomposition	Ctrl Shift 0	LaunchWordRegisterDialog
+Precomposition	Ctrl Shift )	LaunchWordRegisterDialog
 Prediction	Ctrl Down	ConvertNext
 Prediction	Ctrl Up	ConvertPrev
 Prediction	Down	ConvertNext
 Prediction	Up	ConvertPrev
 Prediction	Ctrl Delete	DeleteSelectedCandidate
+Prediction	Ctrl 0	LaunchWordRegisterDialog
+Prediction	Ctrl Shift 0	LaunchWordRegisterDialog
+Prediction	Ctrl Shift )	LaunchWordRegisterDialog
 Suggestion	Ctrl Down	PredictAndConvert
 Suggestion	Ctrl Enter	CommitFirstSuggestion
 Suggestion	Down	PredictAndConvert

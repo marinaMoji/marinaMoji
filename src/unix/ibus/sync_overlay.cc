@@ -2,6 +2,9 @@
 
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
+#if defined(GDK_WINDOWING_WAYLAND)
+#include <gdk/gdkwayland.h>
+#endif
 
 #include "sync/sync_status.h"
 
@@ -15,9 +18,40 @@ bool g_sync_active = false;
 guint g_status_timer_id = 0;
 guint64 g_last_flash_ms = 0;
 
+void MaybeForceX11OnGnomeWayland() {
+  const char* session = g_getenv("XDG_SESSION_TYPE");
+  if (!session || g_ascii_strcasecmp(session, "wayland") != 0) {
+    return;
+  }
+  const char* desktop = g_getenv("XDG_CURRENT_DESKTOP");
+  const bool gnome_like =
+      desktop &&
+      (g_strrstr(desktop, "GNOME") || g_strrstr(desktop, "ubuntu"));
+  if (!gnome_like || g_getenv("GDK_BACKEND")) {
+    return;
+  }
+  g_setenv("GDK_BACKEND", "x11", TRUE);
+}
+
 bool EnsureGtkReady() {
+  MaybeForceX11OnGnomeWayland();
   static bool gtk_ready = gtk_init_check(nullptr, nullptr);
   return gtk_ready;
+}
+
+void OnOverlayRealize(GtkWidget* w, gpointer /*data*/) {
+  GdkWindow* gw = gtk_widget_get_window(w);
+  if (!gw) return;
+  const char* session = g_getenv("XDG_SESSION_TYPE");
+  if (session && g_ascii_strcasecmp(session, "x11") == 0) {
+    gdk_window_set_override_redirect(gw, TRUE);
+    return;
+  }
+#if defined(GDK_WINDOWING_WAYLAND)
+  if (GDK_IS_WAYLAND_DISPLAY(gdk_window_get_display(gw))) {
+    gdk_wayland_window_set_application_id(gw, "io.marinamoji.toolbar");
+  }
+#endif
 }
 
 void EnsureOverlay() {
@@ -26,12 +60,16 @@ void EnsureOverlay() {
   }
 
   g_sync_window = gtk_window_new(GTK_WINDOW_POPUP);
+  gtk_window_set_wmclass(GTK_WINDOW(g_sync_window), "marinamoji-toolbar",
+                         "marinamoji-toolbar");
   gtk_window_set_decorated(GTK_WINDOW(g_sync_window), FALSE);
   gtk_window_set_keep_above(GTK_WINDOW(g_sync_window), TRUE);
   gtk_window_set_skip_taskbar_hint(GTK_WINDOW(g_sync_window), TRUE);
   gtk_window_set_skip_pager_hint(GTK_WINDOW(g_sync_window), TRUE);
+  gtk_window_set_type_hint(GTK_WINDOW(g_sync_window), GDK_WINDOW_TYPE_HINT_UTILITY);
   gtk_window_set_accept_focus(GTK_WINDOW(g_sync_window), FALSE);
   gtk_widget_set_app_paintable(g_sync_window, TRUE);
+  g_signal_connect(g_sync_window, "realize", G_CALLBACK(OnOverlayRealize), nullptr);
 
   GtkCssProvider* provider = gtk_css_provider_new();
   gtk_css_provider_load_from_data(

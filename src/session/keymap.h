@@ -57,6 +57,7 @@ struct DirectInputState {
     COMPOSITION_MODE_FULL_ALPHANUMERIC,
     COMPOSITION_MODE_HALF_ALPHANUMERIC,
     RECONVERT,
+    LAUNCH_WORD_REGISTER_DIALOG,
     INSERT_MACRON_VOWEL,  // Ctrl+Alt+vowel → ā ē ī ō ū (also in direct input)
     SET_MACRON_DEAD_KEY,  // AltGr+umlaut (¨): next vowel → macron (ā ē ī ō ū)
   };

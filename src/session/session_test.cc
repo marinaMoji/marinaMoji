@@ -946,6 +946,38 @@ TEST_F(SessionTest, SwitchCompositionMode) {
   }
 }
 
+TEST_F(SessionTest, RightShiftAloneIgnoresAsciiCompositionMode) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+  commands::Command command;
+
+  SwitchCompositionMode(commands::HALF_ASCII, &session);
+  EXPECT_TRUE(SendKeyWithMode("RightShift", commands::HALF_ASCII, &session,
+                              &command));
+  EXPECT_FALSE(command.output().consumed());
+  EXPECT_EQ(command.output().status().mode(), commands::HALF_ASCII);
+
+  SwitchCompositionMode(commands::HIRAGANA, &session);
+  EXPECT_TRUE(SendKeyWithMode("RightShift", commands::HIRAGANA, &session,
+                              &command));
+  EXPECT_FALSE(command.output().consumed());
+  EXPECT_EQ(command.output().status().mode(), commands::MANYOSHU);
+}
+
+TEST_F(SessionTest, LaunchWordRegisterDialogFromDirectInput) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToDirect(&session);
+
+  commands::Command command;
+  EXPECT_TRUE(SendKey("Ctrl Shift 0", &session, &command));
+  EXPECT_EQ(command.output().launch_tool_mode(),
+            commands::Output::WORD_REGISTER_DIALOG);
+}
+
 TEST_F(SessionTest, SwitchCompositionModeWithCandidateList) {
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);

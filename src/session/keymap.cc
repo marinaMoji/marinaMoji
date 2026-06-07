@@ -482,6 +482,8 @@ void KeyMapManager::InitCommandData() {
                           DirectInputState::NONE);
   }
   RegisterDirectCommand("Reconvert", DirectInputState::RECONVERT);
+  RegisterDirectCommand("LaunchWordRegisterDialog",
+                        DirectInputState::LAUNCH_WORD_REGISTER_DIALOG);
   RegisterDirectCommand("InsertMacronVowel", DirectInputState::INSERT_MACRON_VOWEL);
   RegisterDirectCommand("SetMacronDeadKey", DirectInputState::SET_MACRON_DEAD_KEY);
 

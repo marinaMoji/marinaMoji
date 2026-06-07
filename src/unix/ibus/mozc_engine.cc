@@ -413,6 +413,18 @@ bool HasNonemptyPreedit(const commands::Output& output) {
   return false;
 }
 
+bool IsRightShiftAlone(const commands::KeyEvent& key) {
+  if (key.has_key_code() || key.has_special_key()) {
+    return false;
+  }
+  for (int i = 0; i < key.modifier_keys_size(); ++i) {
+    if (key.modifier_keys(i) == commands::KeyEvent::RIGHT_SHIFT) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
 bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
@@ -467,6 +479,10 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
   if (switch_key &&
       property_handler_->GetOriginalCompositionMode() == commands::DIRECT) {
     return true;  // Consume; do not send to server.
+  }
+  if (property_handler_->GetOriginalCompositionMode() == commands::DIRECT &&
+      IsRightShiftAlone(key)) {
+    return false;  // Direct input: Right Shift is just a modifier key.
   }
 
   if (!property_handler_->IsActivated() && !client_->IsDirectModeCommand(key)) {
