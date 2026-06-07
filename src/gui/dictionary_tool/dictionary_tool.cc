@@ -35,6 +35,7 @@
 #include <QMessageBox>
 #include <QProgressDialog>
 #include <QShortcut>
+#include <QThread>
 #include <QTimer>
 #include <QtGui>
 #include <algorithm>
@@ -66,7 +67,12 @@
 #include "gui/config_dialog/combobox_delegate.h"
 #include "gui/dictionary_tool/find_dialog.h"
 #include "gui/dictionary_tool/import_dialog.h"
+#include "protocol/commands.pb.h"
 #include "protocol/user_dictionary_storage.pb.h"
+#include "sync/sync_config.h"
+#include "sync/sync_dictionary_tombstones.h"
+#include "sync/sync_status.h"
+#include "sync/sync_util.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -458,6 +464,8 @@ DictionaryTool::DictionaryTool(QWidget* parent)
   import_append_action_ =
       dic_menu_->addAction(tr("Import to current dictionary..."));
   export_action_ = dic_menu_->addAction(tr("Export current dictionary..."));
+  dic_menu_->addSeparator();
+  sync_now_action_ = dic_menu_->addAction(tr("Sync now..."));
 
   // add Import from MS-IME's dictionary
 #ifdef _WIN32
@@ -476,6 +484,7 @@ DictionaryTool::DictionaryTool(QWidget* parent)
   connect(import_append_action_, SIGNAL(triggered()), this,
           SLOT(ImportAndAppendDictionary()));
   connect(export_action_, SIGNAL(triggered()), this, SLOT(ExportDictionary()));
+  connect(sync_now_action_, SIGNAL(triggered()), this, SLOT(SyncNow()));
 
 #ifdef _WIN32
   connect(import_default_ime_action_, SIGNAL(triggered()), this,
@@ -991,6 +1000,78 @@ void DictionaryTool::ExportDictionary() {
                            tr("Dictionary export finished."));
 }
 
+void DictionaryTool::SyncNow() {
+  SyncToStorage();
+  const absl::Status save_status = SaveAndReloadServer();
+  if (!save_status.ok() && !absl::IsResourceExhausted(save_status)) {
+    ReportError(save_status);
+    return;
+  }
+
+  if (!storage_->UnLock()) {
+    QMessageBox::critical(
+        this, window_title_,
+        tr("Could not release the user dictionary lock for sync."));
+    return;
+  }
+
+  struct DictionaryLockGuard {
+    UserDictionaryStorage* storage;
+    ~DictionaryLockGuard() {
+      if (storage != nullptr && !storage->Lock()) {
+        LOG(ERROR) << "Failed to re-lock user dictionary after sync";
+      }
+    }
+  } lock_guard{storage_.get()};
+
+  if (!sync::SpawnSyncNow(/*force=*/true)) {
+    QMessageBox::critical(
+        this, window_title_,
+        tr("Could not start sync process. Is marinaMoji installed?"));
+    return;
+  }
+
+  auto reload_dictionary_view = [this]() {
+    if (!storage_->Load().ok()) {
+      LOG(WARNING) << "UserDictionaryStorage::Load() failed after sync";
+      return;
+    }
+    const DictionaryInfo dic_info = current_dictionary();
+    if (dic_info.item != nullptr) {
+      SetupDicContentEditor(dic_info);
+    }
+  };
+
+  for (int i = 0; i < 600; ++i) {
+    QThread::msleep(500);
+    const auto status_or = sync::ReadSyncStatus();
+    if (!status_or.ok()) {
+      continue;
+    }
+    if (status_or->state == "running") {
+      continue;
+    }
+    if (status_or->state == "done") {
+      reload_dictionary_view();
+      client::Client* client = static_cast<client::Client*>(client_.get());
+      client->CheckVersionOrRestartServer();
+      client->Reload();
+      QMessageBox::information(this, window_title_, tr("Sync completed."));
+      return;
+    }
+    if (status_or->state == "error") {
+      reload_dictionary_view();
+      QMessageBox::warning(this, window_title_,
+                           QString::fromStdString(status_or->message));
+      return;
+    }
+  }
+  QMessageBox::warning(
+      this, window_title_,
+      tr("Sync timed out. Run marinaMojiSync --now --force in Terminal and "
+         "check ~/Library/Application Support/marinaMoji/sync.status.json."));
+}
+
 void DictionaryTool::AddWord() {
   const int row = dic_content_->rowCount();
   if (row >= max_entry_size_) {
@@ -1389,6 +1470,9 @@ void DictionaryTool::SyncToStorage() {
     return;
   }
 
+  user_dictionary::UserDictionary previous;
+  previous.CopyFrom(*dic);
+
   dic->clear_entries();
 
   for (int i = 0; i < dic_content_->rowCount(); ++i) {
@@ -1402,6 +1486,16 @@ void DictionaryTool::SyncToStorage() {
     entry->set_comment(dic_content_->item(i, 3)->text().toStdString());
     user_dictionary::SanitizeEntry(entry);
   }
+
+  const absl::StatusOr<commands::UserSyncConfig> sync_config =
+      sync::LoadSyncConfig();
+  const commands::UserSyncConfig config_with_device =
+      sync::EnsureDeviceId(sync_config.ok() ? *sync_config
+                                            : commands::UserSyncConfig());
+  sync::RecordDictionaryEntryRemovals(previous, *dic,
+                                      config_with_device.device_id(),
+                                      absl::Now())
+      .IgnoreError();
 
   modified_ = false;
 }

@@ -121,6 +121,16 @@ def OssProductName(oss: bool, branding: str) -> str:
   return branding
 
 
+def FixQtBundledPaths(app_path: str, codesign_identity: str) -> None:
+  """Point Qt GUI tools at bundled frameworks instead of Homebrew paths."""
+  script = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        'fix_qt_bundled_paths.sh')
+  cmd = ['/bin/bash', script, app_path]
+  if codesign_identity:
+    cmd.append(codesign_identity)
+  util.RunOrDie(cmd)
+
+
 def TweakQtApps(top_dir: str, oss: bool, branding: str) -> None:
   """Tweak the resource files for the Qt applications."""
   name = OssProductName(oss, branding)
@@ -229,12 +239,13 @@ def Codesign(top_dir: str, identity: str) -> None:
       shutil.rmtree(os.path.join(cur_dir, dir_name))
       dirs.remove(dir_name)  # skip walking the removed directory.
 
-  args = ['--force', '--sign', identity, '--keychain', 'login.keychain']
+  args = ['--force', '--sign', identity]
 
-  # --option=runtime is required for notarization.
-  # On the other hand, do not add the option for the pseudo identity ('-').
+  # Ad-hoc signing ('-') must not pass --keychain; macOS rejects that combo.
   # https://github.com/google/mozc/issues/1412
   if identity != '-':
+    args.extend(['--keychain', 'login.keychain'])
+    # --option=runtime is required for notarization.
     args.append('--option=runtime')
 
   # codesign libqcocoa.dylib
@@ -273,10 +284,16 @@ def TweakInstallerFiles(args: argparse.Namespace, work_dir: str) -> None:
 
   if tweak_qt:
     TweakQtApps(top_dir, args.oss, args.branding)
+    name = OssProductName(args.oss, args.branding)
+    FixQtBundledPaths(os.path.join(top_dir, f'{name}.app'),
+                      args.codesign_identity)
 
   if args.productbuild:
     TweakForProductbuild(top_dir, tweak_qt, args.oss, args.channel, args.branding)
-    Codesign(top_dir, args.codesign_identity)
+    # Re-sign release/test builds after layout tweaks. Qt path fix re-signs GUI
+    # bundles itself (including ad-hoc '-') so skip duplicate work here.
+    if args.codesign_identity != '-' and not tweak_qt:
+      Codesign(top_dir, args.codesign_identity)
 
   # Create a zip file with the zip command.
   # It's not easy to contain symlinks with shutil.make_archive.

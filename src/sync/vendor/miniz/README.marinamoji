@@ -1,0 +1,10 @@
+# miniz (vendored)
+
+Upstream: https://github.com/richgel999/miniz
+
+Pinned from the master branch miniz.c / miniz.h amalgamation.
+
+Used by marinaMoji sync to pack settings, dictionary, and history into a zip
+bundle before libsodium encryption.
+
+License: MIT — see LICENSE in this directory.

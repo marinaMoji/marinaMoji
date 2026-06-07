@@ -2592,31 +2592,11 @@ bool Session::ToggleTraditionalKanji(commands::Command* command) {
   return true;
 }
 
-namespace {
-// Saved while privacy mode is on so we can restore history learning on disable.
-config::Config::HistoryLearningLevel g_history_learning_before_privacy =
-    config::Config::DEFAULT_HISTORY;
-bool g_has_saved_history_learning = false;
-}  // namespace
-
 bool Session::TogglePrivacyMode(commands::Command* command) {
   command->mutable_output()->set_consumed(true);
-  config::Config config = config::ConfigHandler::GetCopiedConfig();
-  const bool enable_privacy = !config.incognito_mode();
-  config.set_incognito_mode(enable_privacy);
-  if (enable_privacy) {
-    if (config.history_learning_level() != config::Config::NO_HISTORY) {
-      g_history_learning_before_privacy = config.history_learning_level();
-      g_has_saved_history_learning = true;
-    }
-    config.set_history_learning_level(config::Config::NO_HISTORY);
-  } else {
-    if (g_has_saved_history_learning) {
-      config.set_history_learning_level(g_history_learning_before_privacy);
-      g_has_saved_history_learning = false;
-    }
-  }
-  config::ConfigHandler::SetConfig(std::move(config));
+  const bool enable_privacy =
+      !config::ConfigHandler::GetSharedConfig()->incognito_mode();
+  config::ConfigHandler::SetIncognitoModeInMemory(enable_privacy);
   context_->SetConfig(config::ConfigHandler::GetSharedConfig());
   *command->mutable_output()->mutable_config() =
       config::ConfigHandler::GetCopiedConfig();

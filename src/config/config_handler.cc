@@ -117,6 +117,10 @@ Config CreateDefaultConfig() {
     config.set_use_emoji_conversion(true);
   }
 
+  // marinaMoji: privacy mode is off by default; learning enabled.
+  config.set_incognito_mode(false);
+  config.set_history_learning_level(Config::DEFAULT_HISTORY);
+
   return config;
 }
 
@@ -163,6 +167,14 @@ void NormalizeConfig(Config* config) {
       std::clamp(font_size, kMinCandidateWindowFontSize,
                  kMaxCandidateWindowFontSize));
 #endif  // __APPLE__
+
+  // Recover from the legacy IME-menu privacy toggle that persisted incognito +
+  // NO_HISTORY together (see MACOS_PORT_PLAN M1l).
+  if (config->incognito_mode() &&
+      config->history_learning_level() == Config::NO_HISTORY) {
+    config->set_incognito_mode(false);
+    config->set_history_learning_level(Config::DEFAULT_HISTORY);
+  }
 }
 
 class ConfigHandlerImpl final {
@@ -178,6 +190,7 @@ class ConfigHandlerImpl final {
   std::shared_ptr<const Config> GetSharedDefaultConfig() const;
 
   void SetConfig(Config config);
+  void SetIncognitoModeInMemory(bool incognito);
   void Reload();
 
   void SetConfigFileName(absl::string_view filename)
@@ -213,6 +226,17 @@ std::shared_ptr<const Config> ConfigHandlerImpl::GetSharedDefaultConfig()
 // update internal data
 void ConfigHandlerImpl::SetConfigInternal(std::shared_ptr<Config> config) {
   config_.store(std::move(config));
+}
+
+void ConfigHandlerImpl::SetIncognitoModeInMemory(bool incognito) {
+  auto config = std::make_shared<Config>(*GetSharedConfig());
+  config->set_incognito_mode(incognito);
+  if (!incognito &&
+      config->history_learning_level() == Config::NO_HISTORY) {
+    config->set_history_learning_level(Config::DEFAULT_HISTORY);
+  }
+  NormalizeConfig(config.get());
+  SetConfigInternal(config);
 }
 
 void ConfigHandlerImpl::SetConfig(Config config) {
@@ -281,6 +305,15 @@ void ConfigHandlerImpl::Reload() {
   // we set default config when file is broken
   NormalizeConfig(input_config.get());
 
+  // marinaMoji: do not restore privacy mode from disk across converter restarts.
+  // The IME-menu toggle is session-only; a leftover incognito flag in config1.db
+  // (from older builds) is cleared once here.
+  if (input_config->incognito_mode()) {
+    input_config->set_incognito_mode(false);
+    SetConfig(std::move(*input_config));
+    return;
+  }
+
   SetConfigInternal(input_config);
 }
 
@@ -307,6 +340,10 @@ std::shared_ptr<const Config> ConfigHandler::GetSharedConfig() {
 
 void ConfigHandler::SetConfig(Config config) {
   GetConfigHandlerImpl()->SetConfig(std::move(config));
+}
+
+void ConfigHandler::SetIncognitoModeInMemory(bool incognito) {
+  GetConfigHandlerImpl()->SetIncognitoModeInMemory(incognito);
 }
 
 // static

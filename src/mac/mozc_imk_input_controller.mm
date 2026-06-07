@@ -37,6 +37,7 @@
 
 #include <unistd.h>
 
+#include <optional>
 #include <string>
 
 #include <cstdint>
@@ -53,8 +54,11 @@
 #import "mac/renderer_receiver.h"
 
 #include "absl/log/log.h"
+#include "absl/strings/strip.h"
 #include "absl/strings/string_view.h"
 #include "base/const.h"
+#include "base/file_util.h"
+#include "base/system_util.h"
 #include "base/mac/mac_process.h"
 #include "base/mac/mac_util.h"
 #include "base/process.h"
@@ -64,7 +68,9 @@
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
+#include "sync/sync_activity.h"
 #include "mac/mozc_toolbar.h"
+#include "mac/sync_overlay.h"
 #include "renderer/renderer_client.h"
 
 using mozc::kProductNameInEnglish;
@@ -322,6 +328,51 @@ const char *CompositionModeName(CompositionMode mode) {
       return "?";
   }
 }
+
+std::optional<CompositionMode> ParseCompositionModeName(absl::string_view name) {
+  name = absl::StripAsciiWhitespace(name);
+  if (name == "DIRECT") {
+    return mozc::commands::DIRECT;
+  }
+  if (name == "HIRAGANA") {
+    return mozc::commands::HIRAGANA;
+  }
+  if (name == "FULL_KATAKANA") {
+    return mozc::commands::FULL_KATAKANA;
+  }
+  if (name == "MANYOSHU") {
+    return mozc::commands::MANYOSHU;
+  }
+  if (name == "HALF_KATAKANA") {
+    return mozc::commands::HALF_KATAKANA;
+  }
+  if (name == "FULL_ASCII") {
+    return mozc::commands::FULL_ASCII;
+  }
+  if (name == "HALF_ASCII") {
+    return mozc::commands::HALF_ASCII;
+  }
+  return std::nullopt;
+}
+
+std::string LastCompositionModePath() {
+  return mozc::FileUtil::JoinPath(mozc::SystemUtil::GetUserProfileDirectory(),
+                                  "last_composition_mode.txt");
+}
+
+void PersistLastCompositionMode(CompositionMode mode) {
+  mozc::FileUtil::SetContents(LastCompositionModePath(), CompositionModeName(mode))
+      .IgnoreError();
+}
+
+std::optional<CompositionMode> LoadLastCompositionMode() {
+  const absl::StatusOr<std::string> contents =
+      mozc::FileUtil::GetContents(LastCompositionModePath());
+  if (!contents.ok()) {
+    return std::nullopt;
+  }
+  return ParseCompositionModeName(*contents);
+}
 }  // namespace
 
 @interface MozcImkInputController (MarinaPrivate)
@@ -333,7 +384,9 @@ const char *CompositionModeName(CompositionMode mode) {
 - (void)updateImeMenuState:(const Output *)output;
 - (void)syncCandidatesWithOutput:(const Output *)output;
 - (void)cancelPendingCandidateUpdate;
-- (void)applyCommitAndPreeditFromOutput:(const Output *)output client:(id)sender;
+- (void)applyCommitAndPreeditFromOutput:(const Output *)output
+                                 client:(id)sender
+                allowClearWithoutPreedit:(BOOL)allowClearWithoutPreedit;
 - (void)flushCompositionBeforeDeactivate:(id)sender;
 @end
 
@@ -602,6 +655,10 @@ const char *CompositionModeName(CompositionMode mode) {
   }
 
   mozc::mac::MozcToolbarSetActiveController((__bridge void *)self);
+  if (const std::optional<CompositionMode> persisted = LoadLastCompositionMode();
+      persisted.has_value()) {
+    mode_ = *persisted;
+  }
   [self refreshModeFromServer:sender];
   [self syncServerActivationIfNeeded:sender];
 
@@ -642,6 +699,7 @@ const char *CompositionModeName(CompositionMode mode) {
   [self clearCandidates];
   DLOG(INFO) << kProductNameInEnglish << " client (" << self << "): deactivated";
   DLOG(INFO) << "sender bundleID: " << clientBundle_;
+  mozc::sync::RecordImeDeactivated();
   [super deactivateServer:sender];
 }
 
@@ -670,29 +728,34 @@ const char *CompositionModeName(CompositionMode mode) {
     return;
   }
 
-  // macOS calls this when the input-mode picker changes.  Do not call the full
-  // |-switchMode:| / |-handleConfig| path (freeze risk).  Do sync IME ON/OFF with
-  // the converter when the user picks Hiragana vs Direct — otherwise mode_ says
-  // HIRAGANA while the session stays DIRECT and Ctrl+Shift+1..4 return
-  // consumed=false (beep) even though the user turned hiragana on.
+  // macOS calls this on focus changes and the input-mode picker.  Honour only
+  // transitions to DIRECT (IME off / 英数).  Ignore composition-mode resyncs
+  // (e.g. Spotlight refocus forcing hiragana) so |mode_| stays where the user
+  // left it via toolbar or shortcuts (see macOS_mode_persistence.md).
   CompositionMode new_mode = [value isKindOfClass:[NSString class]]
                                  ? GetCompositionMode([value UTF8String])
                                  : mozc::commands::DIRECT;
   if (new_mode == mozc::commands::HALF_ASCII && [composedString_ length] == 0) {
     new_mode = mozc::commands::DIRECT;
   }
-  if (new_mode != mode_) {
-    if (MarinaImkTraceEnabled()) {
-      LOG(INFO) << "[marinaImk] setValue mode " << CompositionModeName(mode_) << " -> "
+  if (new_mode != mozc::commands::DIRECT) {
+    if (MarinaImkTraceEnabled() && new_mode != mode_) {
+      LOG(INFO) << "[marinaImk] setValue ignored (composition resync) "
+                << CompositionModeName(mode_) << " <- "
                 << CompositionModeName(new_mode);
     }
-    mode_ = new_mode;
-    mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
-    if (new_mode == mozc::commands::DIRECT) {
-      [self syncServerDeactivationIfNeeded:sender];
-    } else {
-      [self syncServerActivationIfNeeded:sender];
+    [super setValue:value forTag:tag client:sender];
+    return;
+  }
+  if (mode_ != mozc::commands::DIRECT) {
+    if (MarinaImkTraceEnabled()) {
+      LOG(INFO) << "[marinaImk] setValue mode " << CompositionModeName(mode_)
+                << " -> DIRECT";
     }
+    mode_ = mozc::commands::DIRECT;
+    PersistLastCompositionMode(mode_);
+    mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+    [self syncServerDeactivationIfNeeded:sender];
   }
   // Do not call |-handleConfig| here: |-overrideKeyboardWithKeyboardNamed:| can
   // re-enter the input system and contributed to post-shortcut freezes.
@@ -707,6 +770,15 @@ const char *CompositionModeName(CompositionMode mode) {
   Output output;
   if (!mozcClient_->SendCommand(command, &output)) {
     mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+    return;
+  }
+
+  if (mode_ == mozc::commands::DIRECT) {
+    if (output.has_status() && output.status().activated()) {
+      [self syncServerDeactivationIfNeeded:sender];
+    }
+    mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+    [self updateImeMenuState:&output];
     return;
   }
 
@@ -976,6 +1048,7 @@ const char *CompositionModeName(CompositionMode mode) {
 // Mode changes to direct and clean up the status.
 - (void)switchModeToDirect:(id)sender {
   mode_ = mozc::commands::DIRECT;
+  PersistLastCompositionMode(mode_);
   DLOG(INFO) << "Mode switch: HIRAGANA, KATAKANA, etc. -> DIRECT";
   KeyEvent keyEvent;
   Output output;
@@ -1010,6 +1083,7 @@ const char *CompositionModeName(CompositionMode mode) {
       [self clearCandidates];
     }
     mode_ = mozc::commands::DIRECT;
+    PersistLastCompositionMode(mode_);
     return;
   }
 
@@ -1030,6 +1104,7 @@ const char *CompositionModeName(CompositionMode mode) {
   Output output;
   mozcClient_->SendCommand(command, &output);
   mode_ = new_mode;
+  PersistLastCompositionMode(mode_);
 }
 
 - (void)switchDisplayMode {
@@ -1143,7 +1218,9 @@ bool IsConfigOnlySessionOutput(const Output &output) {
 }
 }  // namespace
 
-- (void)applyCommitAndPreeditFromOutput:(const Output *)output client:(id)sender {
+- (void)applyCommitAndPreeditFromOutput:(const Output *)output
+                                 client:(id)sender
+                allowClearWithoutPreedit:(BOOL)allowClearWithoutPreedit {
   if (output == nullptr) {
     return;
   }
@@ -1161,9 +1238,12 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     // input (e.g. to Dvorak) can flush composedString_ and insert a duplicate.
     [self updateComposedString:nullptr];
     [self clearCandidates];
-  } else if (!IsConfigOnlySessionOutput(*output)) {
-    // Escape/Cancel: server clears composition but often omits preedit; drop stale
-    // marked text so Word does not keep a ghost character or commit on IME off.
+  } else if (allowClearWithoutPreedit && !IsConfigOnlySessionOutput(*output)) {
+    // Escape/Cancel (consumed): server clears composition but often omits preedit;
+    // drop stale marked text so Word does not keep a ghost character on IME off.
+    // Do not run this for consumed=false echo-back (e.g. Precomposition Backspace
+    // → Revert): upstream Mozc leaves marked text alone and returns NO from
+    // handleEvent so one character is removed, not the whole preedit.
     [self updateComposedString:nullptr];
   }
 }
@@ -1210,7 +1290,9 @@ bool IsConfigOnlySessionOutput(const Output &output) {
   }
 
   if (!output->consumed()) {
-    [self applyCommitAndPreeditFromOutput:output client:sender];
+    [self applyCommitAndPreeditFromOutput:output
+                                   client:sender
+                  allowClearWithoutPreedit:NO];
     if (output->has_status() || output->has_mode()) {
       const CompositionMode new_mode = NormalizeModeForEmptyHalfAscii(
           EffectiveCompositionMode(*output, mode_), *output);
@@ -1230,7 +1312,9 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     [self openLink:[NSURL URLWithString:url]];
   }
 
-  [self applyCommitAndPreeditFromOutput:output client:sender];
+  [self applyCommitAndPreeditFromOutput:output
+                                 client:sender
+                allowClearWithoutPreedit:YES];
 
   // Handles deletion range.  We do not even handle it for some
   // applications to prevent application crashes.
@@ -1269,6 +1353,7 @@ bool IsConfigOnlySessionOutput(const Output &output) {
                   << " -> " << CompositionModeName(new_mode);
       }
       mode_ = new_mode;
+      PersistLastCompositionMode(mode_);
       if (handlingKeyboardEvent_) {
         suppressSetValueUntil_ = [[NSDate date] timeIntervalSinceReferenceDate] + 0.2;
       }
@@ -1361,6 +1446,7 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     }
   }
   if ([composedString_ length] == 0) {
+    mozc::sync::RecordCompositionEnd();
     [originalString_ setString:@""];
     replacementRange_ = NSMakeRange(NSNotFound, 0);
   }
@@ -1544,6 +1630,14 @@ bool IsConfigOnlySessionOutput(const Output &output) {
 }
 
 - (BOOL)handleEventBody:(NSEvent *)event client:(id)sender {
+  if (mozc::mac::SyncOverlayIsActive()) {
+    if (rendererCommand_.visible() && mozcRenderer_) {
+      rendererCommand_.set_visible(false);
+      mozcRenderer_->ExecCommand(rendererCommand_);
+    }
+    mozc::mac::SyncOverlayFlashBlockedInput();
+    return YES;
+  }
   if ([event type] == NSEventTypeCursorUpdate) {
     [[self client] setMarkedText:composedString_
                   selectionRange:[self selectionRange]

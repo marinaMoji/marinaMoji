@@ -118,6 +118,9 @@ class SessionHandler {
   bool NoOperation(commands::Command* command);
   bool ReloadSupplementalModel(commands::Command* command);
   bool GetServerVersion(commands::Command* command) const;
+  bool GetSyncState(commands::Command* command);
+  bool BeginSyncLock(commands::Command* command);
+  bool EndSyncLock(commands::Command* command);
 
   // Replaces engine_ with a new instance if it is ready.
   void MaybeReloadEngine(commands::Command* command);
@@ -152,6 +155,8 @@ class SessionHandler {
   std::shared_ptr<const commands::Request> request_;
   std::shared_ptr<const config::Config> config_;
   std::shared_ptr<keymap::KeyMapManager> key_map_manager_;
+
+  bool sync_locked_ = false;
 
   absl::BitGen bitgen_;
 };

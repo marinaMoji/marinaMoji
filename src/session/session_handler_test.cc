@@ -801,4 +801,45 @@ TEST_F(SessionHandlerTest, ReloadFromMinimalEngine) {
   EXPECT_EQ(handler.GetDataVersion(), mock_version_);
 }
 
+TEST_F(SessionHandlerTest, SyncLockRejectsSendKey) {
+  std::unique_ptr<Engine> engine = Engine::CreateEngine();
+  SessionHandler handler(std::move(engine));
+  uint64_t id = 0;
+  ASSERT_TRUE(CreateSession(handler, &id));
+
+  commands::Command lock;
+  lock.mutable_input()->set_type(commands::Input::BEGIN_SYNC_LOCK);
+  ASSERT_TRUE(handler.EvalCommand(&lock));
+  EXPECT_TRUE(lock.output().sync_state().sync_locked());
+
+  commands::Command key;
+  key.mutable_input()->set_id(id);
+  key.mutable_input()->set_type(commands::Input::SEND_KEY);
+  key.mutable_input()->mutable_key()->set_special_key(commands::KeyEvent::SPACE);
+  handler.EvalCommand(&key);
+  EXPECT_EQ(key.output().error_code(), commands::Output::SYNC_LOCKED);
+
+  commands::Command unlock;
+  unlock.mutable_input()->set_type(commands::Input::END_SYNC_LOCK);
+  ASSERT_TRUE(handler.EvalCommand(&unlock));
+  EXPECT_FALSE(unlock.output().sync_state().sync_locked());
+
+  handler.EvalCommand(&key);
+  EXPECT_EQ(key.output().error_code(), commands::Output::SESSION_SUCCESS);
+}
+
+TEST_F(SessionHandlerTest, GetSyncStateReportsSessionCount) {
+  std::unique_ptr<Engine> engine = Engine::CreateEngine();
+  SessionHandler handler(std::move(engine));
+  uint64_t id = 0;
+  ASSERT_TRUE(CreateSession(handler, &id));
+
+  commands::Command state;
+  state.mutable_input()->set_type(commands::Input::GET_SYNC_STATE);
+  ASSERT_TRUE(handler.EvalCommand(&state));
+  EXPECT_FALSE(state.output().sync_state().sync_locked());
+  EXPECT_FALSE(state.output().sync_state().any_composing());
+  EXPECT_EQ(state.output().sync_state().active_session_count(), 1);
+}
+
 }  // namespace mozc

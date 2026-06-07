@@ -113,61 +113,60 @@ When disabled:
 - Verify no history growth during privacy mode sessions.
 - Verify normal learning resumes after disabling mode.
 
-## Workstream C: Nextcloud sync
+## Workstream C: Encrypted cross-device sync
 
 ### Key architecture decision
 
-Do **not** make Nextcloud sync target `user_dictionary.db` directly.
+Do **not** sync `user_dictionary.db` directly.
 
 Reasons:
 
-- `user_dictionary.db` is a binary protobuf store.
-- Concurrent writes across devices can corrupt or overwrite data.
-- File-level locking is local-process oriented, not multi-device conflict-safe.
+- it is a local protobuf store,
+- concurrent writes across devices are unsafe,
+- process-level lock files are not conflict-safe for cloud replication.
 
-### Recommended sync model
+### v1 sync model
 
-Use a portable text exchange file in shared folder, for example:
+Use one encrypted bundle file in a user-selected shared folder (for example Nextcloud):
 
-- `marina_user_dictionary.tsv`
+- `marinamoji_sync.mmz.enc`
 
-Columns (v1):
+Bundle contents are merged and encrypted as one unit:
 
-1. reading
-2. surface
-3. pos
-4. comment (optional)
-5. locale (optional)
-6. updated_at (optional for future conflict policies)
+- `manifest.txt`
+- `settings.pb`
+- `dictionary.tsv`
+- `history.tsv`
 
 ### Sync flow (v1)
 
-1. Local export task writes current dictionary entries to TSV snapshot.
-2. Import task reads shared TSV and merges into local dictionary.
-3. Deduplicate by `(reading, surface, pos, locale)`.
-4. Save merge report (added/skipped/invalid counts).
+1. Export local settings/dictionary/history snapshot.
+2. Decrypt remote bundle if present.
+3. Merge by section:
+   - dictionary dedupe key `(reading, surface, pos, locale)`,
+   - settings whitelist merge,
+   - history frequency merge by fingerprint.
+4. Re-encrypt and atomically write bundle.
+5. Import merged snapshot back to local state.
 
 ### Conflict strategy (v1)
 
-- Last-writer-wins at row level is acceptable initially.
-- Prefer additive merge (never auto-delete local entries in v1).
-- Keep manual cleanup path via Dictionary Tool.
+- Dictionary merge is additive union with tombstone deletes (see `dictionary_tombstones.tsv` in `SYNC_PLAN.md`).
+- History merge sums frequencies and preserves newest access time.
+- Settings sync only applies a vetted whitelist.
 
 ### Trigger model
 
-Start simple:
-
-- Manual actions:
-  - `Sync now (pull)`
-  - `Sync now (push)`
-- Later:
-  - timed background sync with backoff.
+- Manual **Sync now** from Preferences and Dictionary Tool.
+- Optional interval scheduler and shutdown sync in `mozc_server`.
+- File mtime polling to notice remote updates.
 
 ### Security and privacy notes
 
-- Nextcloud folder permissions remain user-managed.
-- For highly sensitive users, recommend pairing with Privacy mode.
-- Consider optional encryption-at-rest for sync file in later phase.
+- Bundle encryption uses libsodium passphrase-based encryption.
+- Sync key is stored locally and is never uploaded in plaintext.
+- When privacy mode is on, history export is skipped.
+- See `docs/SYNC_PLAN.md` and `docs/HOW_SYNC_WORKS.md` for details.
 
 ## Milestones
 
@@ -199,7 +198,7 @@ Start simple:
 
 - Which exact Apple export formats should be "required" in v1?
 - Should privacy mode hide user dictionary candidates (strict mode) or only stop new learning?
-- Should sync ever support deletions, or stay additive-only long term?
+- ~~Should sync ever support deletions?~~ Tombstone deletes shipped (v2); compaction retains 90-day window.
 - Where should sync controls live first (Dictionary Tool, toolbar, or config dialog)?
 
 ## Implementation checklist (starter)

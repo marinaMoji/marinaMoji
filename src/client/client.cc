@@ -556,7 +556,88 @@ bool Client::SyncData() { return CallCommand(commands::Input::SYNC_DATA); }
 
 bool Client::Reload() { return CallCommand(commands::Input::RELOAD); }
 
+bool Client::ReloadAndWait() {
+  return CallCommand(commands::Input::RELOAD_AND_WAIT);
+}
+
+bool Client::GetSyncState(commands::SyncState* state) {
+  commands::Input input;
+  InitInput(&input);
+  input.set_type(commands::Input::GET_SYNC_STATE);
+  commands::Output output;
+  if (!Call(input, &output) || !output.has_sync_state()) {
+    return false;
+  }
+  *state = output.sync_state();
+  return true;
+}
+
+bool Client::BeginSyncLock() {
+  return CallCommand(commands::Input::BEGIN_SYNC_LOCK);
+}
+
+bool Client::EndSyncLock() {
+  return CallCommand(commands::Input::END_SYNC_LOCK);
+}
+
 bool Client::Cleanup() { return CallCommand(commands::Input::CLEANUP); }
+
+bool Client::GetUserSyncConfig(commands::UserSyncConfig* config) {
+  commands::Input input;
+  InitInput(&input);
+  input.set_type(commands::Input::GET_USER_SYNC_CONFIG);
+  commands::Output output;
+  if (!Call(input, &output) || !output.has_user_sync_config()) {
+    return false;
+  }
+  *config = output.user_sync_config();
+  return true;
+}
+
+bool Client::SetUserSyncConfig(const commands::UserSyncConfig& config) {
+  commands::Input input;
+  InitInput(&input);
+  input.set_type(commands::Input::SET_USER_SYNC_CONFIG);
+  *input.mutable_user_sync_config() = config;
+  commands::Output output;
+  return Call(input, &output);
+}
+
+bool Client::PerformUserSync(commands::UserSyncReport* report,
+                             const commands::UserSyncRequest* request,
+                             const commands::UserSyncConfig* config_override,
+                             absl::string_view sync_key) {
+  commands::Input input;
+  InitInput(&input);
+  input.set_type(commands::Input::PERFORM_USER_SYNC);
+  if (request != nullptr) {
+    *input.mutable_user_sync_request() = *request;
+  }
+  if (config_override != nullptr) {
+    *input.mutable_user_sync_config() = *config_override;
+  }
+  if (!sync_key.empty()) {
+    input.set_user_sync_key(std::string(sync_key));
+  }
+  commands::Output output;
+  if (!Call(input, &output) || !output.has_user_sync_report()) {
+    return false;
+  }
+  *report = output.user_sync_report();
+  return true;
+}
+
+bool Client::GenerateUserSyncKey(std::string* generated_key) {
+  commands::Input input;
+  InitInput(&input);
+  input.set_type(commands::Input::GENERATE_USER_SYNC_KEY);
+  commands::Output output;
+  if (!Call(input, &output) || !output.has_generated_sync_key()) {
+    return false;
+  }
+  *generated_key = output.generated_sync_key();
+  return true;
+}
 
 bool Client::NoOperation() {
   return CallCommand(commands::Input::NO_OPERATION);

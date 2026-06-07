@@ -1049,6 +1049,57 @@ message UserHistoryData {
   optional string value = 2;
 }
 
+// Encrypted cross-device user data sync (marinaMoji).
+message UserSyncConfig {
+  optional bool enabled = 1 [default = false];
+  optional string sync_file_path = 2;
+  optional bool sync_settings = 3 [default = true];
+  optional bool sync_dictionary = 4 [default = true];
+  optional bool sync_history = 5 [default = true];
+  enum Direction {
+    BIDIRECTIONAL = 0;
+    UPLOAD = 1;
+    DOWNLOAD = 2;
+  }
+  optional Direction direction = 6 [default = BIDIRECTIONAL];
+  enum AutoSyncMode {
+    NEVER = 0;
+    MANUAL = 1;
+    EVERY_N_MINUTES = 2;
+    ON_SHUTDOWN = 3;
+  }
+  optional AutoSyncMode auto_sync_mode = 7 [default = NEVER];
+  optional int32 auto_sync_interval_minutes = 8 [default = 30];
+  optional string last_sync_time = 9;
+  optional string last_sync_status = 10;
+  optional string last_sync_message = 11;
+  optional string device_id = 12;
+  optional bool has_sync_key = 13 [default = false];
+  // Seconds to wait after composition ends or IME deactivates before auto-sync.
+  optional int32 sync_cooldown_seconds = 14 [default = 60];
+}
+
+// Converter sync lock / idle state (marinaMojiSync).
+message SyncState {
+  optional bool sync_locked = 1 [default = false];
+  optional bool any_composing = 2 [default = false];
+  optional int32 active_session_count = 3 [default = 0];
+}
+
+message UserSyncRequest {
+  optional UserSyncConfig.Direction direction = 1;
+  optional bool force = 2 [default = false];
+}
+
+message UserSyncReport {
+  optional bool success = 1 [default = false];
+  optional string status = 2;
+  optional int32 dictionary_added = 3;
+  optional int32 dictionary_skipped = 4;
+  optional int32 history_merged = 5;
+  optional string error_message = 6;
+}
+
 message Input {
   enum CommandType {
     NONE = 0;
@@ -1140,10 +1191,21 @@ message Input {
     // Add a specific entry to the user history storage.
     ADD_USER_HISTORY = 32;
 
+    // marinaMoji encrypted user data sync.
+    GET_USER_SYNC_CONFIG = 33;
+    SET_USER_SYNC_CONFIG = 34;
+    PERFORM_USER_SYNC = 35;
+    GENERATE_USER_SYNC_KEY = 36;
+
+    // marinaMoji sync lock (marinaMojiSync process).
+    GET_SYNC_STATE = 37;
+    BEGIN_SYNC_LOCK = 38;
+    END_SYNC_LOCK = 39;
+
     // Number of commands.
     // When new command is added, the command should use below number
     // and NUM_OF_COMMANDS should be incremented.
-    NUM_OF_COMMANDS = 33;
+    NUM_OF_COMMANDS = 40;
   }
   required CommandType type = 1;
 
@@ -1206,6 +1268,10 @@ message Input {
 
   optional mozc.user_dictionary.UserDictionaryImportData
       user_dictionary_import_data = 17;
+
+  optional UserSyncConfig user_sync_config = 33;
+  optional UserSyncRequest user_sync_request = 34;
+  optional string user_sync_key = 35;
 
   // A flag to control if the server should return suggest-results or not.
   // If this is set to false, regardless of other configurations,
@@ -1395,6 +1461,7 @@ message Output {
   enum ErrorCode {
     SESSION_SUCCESS = 0;
     SESSION_FAILURE = 1;
+    SYNC_LOCKED = 2;
   }
   optional ErrorCode error_code = 11 [default = SESSION_SUCCESS];
 
@@ -1460,6 +1527,11 @@ message Output {
   // optional reading candidates so the user can pick instead of typing.
   optional string word_register_expression = 27;
   repeated string word_register_reading_candidates = 28;
+
+  optional UserSyncConfig user_sync_config = 29;
+  optional UserSyncReport user_sync_report = 30;
+  optional string generated_sync_key = 31;
+  optional SyncState sync_state = 32;
 }
 
 message Command {

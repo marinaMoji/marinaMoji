@@ -1,5 +1,5 @@
 #!/bin/sh
-# Install LaunchAgents for marinaMojiConverter and marinaMojiRenderer.
+# Install LaunchAgents for marinaMojiConverter, marinaMojiRenderer, and marinaMojiSync.
 # Required after manual `ditto` install (the .pkg does this under /Library/LaunchAgents).
 set -e
 
@@ -21,7 +21,8 @@ fi
 
 mkdir -p "${HOME}/Library/LaunchAgents"
 for plist in org.mozc.inputmethod.Japanese.Converter.plist \
-             org.mozc.inputmethod.Japanese.Renderer.plist; do
+             org.mozc.inputmethod.Japanese.Renderer.plist \
+             org.mozc.inputmethod.Japanese.Sync.plist; do
   cp "${AGENT_SRC}/${plist}" "${HOME}/Library/LaunchAgents/${plist}"
   launchctl bootout "${GUI_DOMAIN}" \
     "${HOME}/Library/LaunchAgents/${plist}" 2>/dev/null || true
@@ -34,3 +35,4 @@ done
 echo "LaunchAgents installed. Checking processes..."
 pgrep -lf marinaMojiConverter || echo "  (converter not listed yet; toggle marinaMoji in Input Sources)"
 pgrep -lf marinaMojiRenderer || echo "  (renderer not listed yet)"
+pgrep -lf marinaMojiSync || echo "  (sync daemon not listed yet)"

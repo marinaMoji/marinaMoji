@@ -73,6 +73,7 @@ mozc_cc_library(
     hdrs = ["user_history_storage.h"],
     visibility = [
         "//engine:__pkg__",
+        "//sync:__pkg__",
     ],
     deps = [
         ":user_history_predictor_cc_proto",

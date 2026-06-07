@@ -137,6 +137,10 @@ class Client : public ClientInterface {
   bool Shutdown() override;
   bool SyncData() override;
   bool Reload() override;
+  bool ReloadAndWait() override;
+  bool GetSyncState(commands::SyncState* state) override;
+  bool BeginSyncLock() override;
+  bool EndSyncLock() override;
   bool Cleanup() override;
 
   bool NoOperation() override;
@@ -159,6 +163,14 @@ class Client : public ClientInterface {
                                              std::string* mode);
 
   bool OpenBrowser(absl::string_view url) override;
+
+  bool GetUserSyncConfig(commands::UserSyncConfig* config);
+  bool SetUserSyncConfig(const commands::UserSyncConfig& config);
+  bool PerformUserSync(commands::UserSyncReport* report,
+                       const commands::UserSyncRequest* request = nullptr,
+                       const commands::UserSyncConfig* config_override = nullptr,
+                       absl::string_view sync_key = {});
+  bool GenerateUserSyncKey(std::string* generated_key);
 
  private:
   friend class ClientTestPeer;

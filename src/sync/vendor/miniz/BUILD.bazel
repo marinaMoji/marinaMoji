@@ -1,0 +1,28 @@
+# miniz - MIT licensed zip library (https://github.com/richgel999/miniz)
+# Vendored for marinaMoji encrypted sync bundle format.
+
+load("//:build_defs.bzl", "mozc_cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+mozc_cc_library(
+    name = "miniz",
+    srcs = [
+        "miniz.c",
+        "miniz_tdef.c",
+        "miniz_tinfl.c",
+        "miniz_zip.c",
+    ],
+    hdrs = [
+        "miniz.h",
+        "miniz_common.h",
+        "miniz_export.h",
+        "miniz_tdef.h",
+        "miniz_tinfl.h",
+        "miniz_zip.h",
+    ],
+    copts = [
+        "-DMINIZ_NO_STDIO",
+        "-DMINIZ_NO_TIME",
+    ],
+)

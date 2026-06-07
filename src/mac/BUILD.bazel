@@ -88,6 +88,7 @@ mozc_macos_application(
         macos = {
             "//renderer:mozc_renderer_macos": "Resources",
             "//server:mozc_server_macos": "Resources",
+            "//sync:marinaMojiSync_macos": "Resources",
         },
         # prod_macos also refers to oss_macos settings.
         oss_macos = {
@@ -99,6 +100,7 @@ mozc_macos_application(
             "//gui/word_register_dialog:word_register_dialog_macos": "Resources",
             "//renderer:mozc_renderer_macos": "Resources",
             "//server:mozc_server_macos": "Resources",
+            "//sync:marinaMojiSync_macos": "Resources",
             "@opencc_source//:jp2t_data": "Resources/opencc",
             "//unix/ibus:toolbar_icons": "Resources",
             "//data/keymap:keymap_files": "Resources/keymap",
@@ -118,6 +120,8 @@ mozc_macos_application(
         "//data/images/mac:hiragana.tiff",
         "//data/images/mac:marinamoji.tiff",
         "//data/installer:credits_en.html",
+        "bundle_qt_deps.sh",
+        "fix_qt_bundled_paths.sh",
     ],
     strings = [
         "English.lproj/InfoPlist.strings",
@@ -160,6 +164,7 @@ mozc_objc_library(
     deps = [
         ":mozc_imk_input_controller",
         ":renderer_receiver",
+        ":sync_overlay",
         "//base:const",
         "//base:init_mozc",
         "//base:run_level",
@@ -192,6 +197,19 @@ mozc_objc_library(
 )
 
 mozc_objc_library(
+    name = "sync_overlay",
+    srcs = ["sync_overlay.mm"],
+    hdrs = ["sync_overlay.h"],
+    sdk_frameworks = [
+        "Cocoa",
+    ],
+    tags = ["manual"],
+    deps = [
+        "//sync:sync_status",
+    ],
+)
+
+mozc_objc_library(
     name = "mozc_imk_input_controller",
     srcs = ["mozc_imk_input_controller.mm"],
     hdrs = ["mozc_imk_input_controller.h"],
@@ -211,8 +229,11 @@ mozc_objc_library(
         ":marina_localized_string",
         ":mozc_toolbar",
         ":renderer_receiver",
+        ":sync_overlay",
         "//base:const",
+        "//base:file_util",
         "//base:process",
+        "//base:system_util",
         "//base:util",
         "//base/mac:mac_process",
         "//base/mac:mac_util",
@@ -225,6 +246,7 @@ mozc_objc_library(
         "//protocol:renderer_cc_proto",
         "//renderer:renderer_client",
         "//renderer:renderer_interface",
+        "//sync:sync_activity",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
     ],
@@ -543,6 +565,10 @@ genrule(
 mozc_py_binary(
     name = "tweak_installer_files",
     srcs = ["tweak_installer_files.py"],
+    data = [
+        "bundle_qt_deps.sh",
+        "fix_qt_bundled_paths.sh",
+    ],
     test_lib = False,
     deps = ["//build_tools:util"],
 )

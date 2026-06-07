@@ -69,6 +69,10 @@ class ConfigHandler {
   // Sets config.
   static void SetConfig(Config config);
 
+  // Toggles incognito (privacy mode) in the live config only — not written to
+  // config1.db. marinaMoji IME-menu privacy is session-only; see Reload().
+  static void SetIncognitoModeInMemory(bool incognito);
+
   // Gets default config value.
   //
   // Using these functions are safer than using an uninitialized config value.

@@ -78,6 +78,10 @@ class ClientMock : public client::ClientInterface {
   MOCK_METHOD(bool, Shutdown, (), (override));
   MOCK_METHOD(bool, SyncData, (), (override));
   MOCK_METHOD(bool, Reload, (), (override));
+  MOCK_METHOD(bool, ReloadAndWait, (), (override));
+  MOCK_METHOD(bool, GetSyncState, (commands::SyncState * state), (override));
+  MOCK_METHOD(bool, BeginSyncLock, (), (override));
+  MOCK_METHOD(bool, EndSyncLock, (), (override));
   MOCK_METHOD(bool, Cleanup, (), (override));
   MOCK_METHOD(void, Reset, (), (override));
   MOCK_METHOD(bool, PingServer, (), (const, override));

@@ -30,6 +30,8 @@
 // Qt component of configure dialog for Mozc
 #include "gui/config_dialog/config_dialog.h"
 
+#include "gui/config_dialog/config_dialog_sync_tab.h"
+
 #include <QFontMetrics>
 #include <QInputDialog>
 #include <QMessageBox>
@@ -459,6 +461,10 @@ ConfigDialog::ConfigDialog()
           .arg(GuiUtil::ProductName()));
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD
 
+  sync_tab_ = std::make_unique<ConfigDialogSyncTab>(
+      static_cast<client::Client*>(client_.get()), this);
+  sync_tab_->AddToTabWidget(configDialogTabWidget);
+
   Reload();
 
 #ifdef _WIN32
@@ -518,6 +524,10 @@ void ConfigDialog::Reload() {
   initial_use_keyboard_to_change_preedit_method_ =
       config.use_keyboard_to_change_preedit_method();
   initial_use_mode_indicator_ = config.use_mode_indicator();
+
+  if (sync_tab_) {
+    sync_tab_->LoadFromServer();
+  }
 }
 
 bool ConfigDialog::Update() {
@@ -584,6 +594,10 @@ bool ConfigDialog::Update() {
     }
   }
 #endif  // __APPLE__
+
+  if (sync_tab_) {
+    sync_tab_->SaveToServer();
+  }
 
   return true;
 }
