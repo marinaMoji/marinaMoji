@@ -45,7 +45,7 @@ Auto-sync:
 
 - **Never**
 - **Manual only**
-- **Every N minutes**
+- **Every N minutes** — wake every N minutes, compare SHA-256 fingerprints of the remote bundle and local sync data; sync only if something changed
 - **On shutdown**
 
 When interval mode is enabled, marinaMoji also checks bundle file modification time and can pull updates from another device.
@@ -59,6 +59,9 @@ When interval mode is enabled, marinaMoji also checks bundle file modification t
 ## Troubleshooting
 
 - **"Sync key not set"**: generate or enter a key first (see key path below).
+- **Dictionary syncs but settings / history do not**: rebuild after the converter reload fix (`SessionHandler::ReloadAndWait` must call `ConfigHandler::Reload()`). Until then, settings were written to `config1.db` but the running converter kept the old in-memory config.
+- **Settings that sync (whitelist only)**: traditional kanji (`use_traditional_kanji`), history learning level, dictionary/history suggestions, auto/realtime conversion, preedit method, keymap, punctuation/symbol/space forms, selection shortcut — not toolbar layout or every Preferences field.
+- **History not exported**: skipped while **Privacy mode / incognito** is on, or if **Commit / learning history** is unchecked in Sync. Commit a phrase several times on the source machine, sync, then sync on the other device.
 - **"Invalid sync file magic" / decryption error**: wrong key or corrupted file.
 - **`PERMISSION_DENIED: Cannot write sync file`**: marinaMoji could read the bundle but **cannot write** to the sync file path. Common on a second Mac / VM:
   - Sync file path points at a folder that is **read-only** (shared folder mounted read-only).

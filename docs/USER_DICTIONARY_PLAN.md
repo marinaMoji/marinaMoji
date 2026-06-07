@@ -151,7 +151,7 @@ Bundle contents are merged and encrypted as one unit:
 
 ### Conflict strategy (v1)
 
-- Dictionary merge is additive (no auto-delete).
+- Dictionary merge is additive union with tombstone deletes (see `dictionary_tombstones.tsv` in `SYNC_PLAN.md`).
 - History merge sums frequencies and preserves newest access time.
 - Settings sync only applies a vetted whitelist.
 
@@ -198,7 +198,7 @@ Bundle contents are merged and encrypted as one unit:
 
 - Which exact Apple export formats should be "required" in v1?
 - Should privacy mode hide user dictionary candidates (strict mode) or only stop new learning?
-- Should sync ever support deletions, or stay additive-only long term?
+- ~~Should sync ever support deletions?~~ Tombstone deletes shipped (v2); compaction retains 90-day window.
 - Where should sync controls live first (Dictionary Tool, toolbar, or config dialog)?
 
 ## Implementation checklist (starter)

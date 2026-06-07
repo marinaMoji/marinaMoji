@@ -61,6 +61,20 @@ On **Device A**:
 
 **Pass:** bidirectional dictionary merge works.
 
+## Test 2b — Dictionary delete propagates
+
+On **Device A** (after Test 1 or 2 added entries):
+
+1. [ ] Delete `試験同期A` (or another test entry) in Dictionary Tool and save (close tool, switch dictionary, or **Sync now**).
+2. [ ] **Sync now**.
+
+On **Device B**:
+
+3. [ ] Wait for cloud replication; **Sync now**.
+4. [ ] Confirm the deleted entry is gone from Dictionary Tool and no longer appears as a strong candidate.
+
+**Pass:** delete on A removes the entry on B after sync.
+
 ## Test 3 — Settings sync
 
 On **Device A**:

@@ -56,6 +56,7 @@ Plaintext bundle (zip) includes:
 - `manifest.txt`
 - `settings.pb`
 - `dictionary.tsv`
+- `dictionary_tombstones.tsv` (delete log; compacted after merge)
 - `history.tsv`
 
 Encrypted container:
@@ -79,7 +80,10 @@ This is intentionally separate from Mozc machine-bound encryption, so synced fil
 
 - **Dictionary**
   - key: `(reading, surface, pos, locale)`
-  - additive merge (no automatic delete in v1)
+  - additive union of live rows, then tombstones remove stale rows from one side
+  - tombstone row: `reading\tsurface\tpos\tlocale\tdeleted_at_unix\tdevice_id`
+  - local tombstone log: `dictionary_tombstones.local.tsv` in the profile directory (written when Dictionary Tool saves deletions)
+  - compaction: drop tombstones for re-added keys; drop tombstones older than 90 days when the key is absent from the merged dictionary
 - **Settings**
   - whitelist-only merge in `sync_merge`
   - local defaults preserved when remote values are missing
@@ -105,7 +109,7 @@ Legacy sync config IPC (`GET_USER_SYNC_CONFIG`, `PERFORM_USER_SYNC`, etc.) is **
 1. `GET_SYNC_STATE` → abort if any session is composing (unless `--force`).
 2. Check cooldown vs `sync.activity.json` + `sync_cooldown_seconds` (unless forced).
 3. Write `sync.status.json` state `running`.
-4. `BEGIN_SYNC_LOCK` → `SYNC_DATA` (flush) → file export/merge/encrypt/import → `RELOAD_AND_WAIT` → `END_SYNC_LOCK`.
+4. `BEGIN_SYNC_LOCK` → `SYNC_DATA` (flush) → file export/merge/encrypt/import → `RELOAD_AND_WAIT` (reload `config1.db` + dictionary + history in converter) → `END_SYNC_LOCK`.
 5. Write status `done` / `error`; update `sync.conf` last-sync fields.
 
 ## Background scheduling
@@ -113,7 +117,7 @@ Legacy sync config IPC (`GET_USER_SYNC_CONFIG`, `PERFORM_USER_SYNC`, etc.) is **
 `marinaMojiSync --daemon` runs as a LaunchAgent (`org.mozc.inputmethod.Japanese.Sync`):
 
 - Poll interval: `max(60, auto_sync_interval_minutes * 60)` seconds
-- Also triggers when remote bundle mtime changes
+- **Every N minutes** mode: compute SHA-256 of the remote bundle and local sync data; sync only when either fingerprint changed since the last successful sync (first poll records a baseline without syncing)
 - Skips when composing, cooldown not met, or sync already running
 - `KeepAlive=false` (no persistent respawn loop beyond `RunAtLoad`)
 

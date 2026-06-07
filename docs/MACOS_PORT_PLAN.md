@@ -443,6 +443,7 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
 | M1k | **Backspace wipes entire preedit** (e.g. ``daigenk`` → Backspace clears all, not one char; commits may not learn) | Fixed: M1j clear-without-preedit must not run on ``consumed=false`` echo-back (Kotoeri Precomposition Backspace → ``Revert``). Use ``allowClearWithoutPreedit`` only for consumed Escape/Cancel. |
 | M1l | **History still off after privacy mode disabled** (e.g. ``daigenguu`` → 大元宮 never ranks up) | Fixed: ``TogglePrivacyMode`` no longer persists ``history_learning_level = NO_HISTORY``; turning privacy off migrates stuck ``NO_HISTORY`` back to ``DEFAULT_HISTORY``. **Workaround now:** Preferences → General → “Adjust conversion based on previous input” → not “No history”. |
 | M1m | **Privacy mode on after every restart** | Fixed: IME-menu privacy is **session-only** (``SetIncognitoModeInMemory``); ``Reload`` clears a leftover ``incognito_mode`` in ``config1.db``. Fresh defaults: incognito off, ``DEFAULT_HISTORY``. |
+| M1n | **Mode resets to hiragana on window/focus change** (e.g. Spotlight direct → refocus) | Fixed: ``setValue:`` honours DIRECT/off only (ignores macOS composition resync); ``refreshModeFromServer`` keeps DIRECT when user left IME off; last mode persisted in ``last_composition_mode.txt``. See ShareDocs ``macOS_mode_persistence.md``. |
 | M2 | ~~Installer LaunchAgents / `.pkg` paths~~ | **Done:** plists, postflight, `tweak_installer_files.py`, and `marinaMoji.pkg` use `marinaMoji` paths |
 
 ### Medium
