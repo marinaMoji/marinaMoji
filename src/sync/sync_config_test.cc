@@ -47,6 +47,35 @@ TEST_F(SyncConfigTest, SaveAndLoadRoundTrip) {
   EXPECT_EQ(loaded.sync_cooldown_seconds(), 90);
 }
 
+TEST_F(SyncConfigTest, SaveAndLoadBaselinesRoundTrip) {
+  SyncFingerprintSnapshot baselines;
+  baselines.remote_bundle_sha256 = "remote123";
+  baselines.local_data_sha256 = "local456";
+  ASSERT_TRUE(SaveSyncBaselines(baselines).ok());
+
+  const auto loaded_or = LoadSyncBaselines();
+  ASSERT_TRUE(loaded_or.ok());
+  EXPECT_EQ(loaded_or->remote_bundle_sha256, "remote123");
+  EXPECT_EQ(loaded_or->local_data_sha256, "local456");
+}
+
+TEST_F(SyncConfigTest, SaveConfigPreservesBaselines) {
+  SyncFingerprintSnapshot baselines;
+  baselines.remote_bundle_sha256 = "keep-remote";
+  baselines.local_data_sha256 = "keep-local";
+  ASSERT_TRUE(SaveSyncBaselines(baselines).ok());
+
+  commands::UserSyncConfig config;
+  config.set_enabled(true);
+  config.set_sync_file_path("/tmp/sync.mmz.enc");
+  ASSERT_TRUE(SaveSyncConfig(config).ok());
+
+  const auto loaded_or = LoadSyncBaselines();
+  ASSERT_TRUE(loaded_or.ok());
+  EXPECT_EQ(loaded_or->remote_bundle_sha256, "keep-remote");
+  EXPECT_EQ(loaded_or->local_data_sha256, "keep-local");
+}
+
 TEST_F(SyncConfigTest, LoadPrettyPrintedJson) {
   const std::string json = R"({
   "enabled": true,

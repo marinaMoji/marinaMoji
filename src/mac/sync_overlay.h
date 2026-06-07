@@ -4,13 +4,14 @@
 namespace mozc {
 namespace mac {
 
-// Shows or hides the center-screen "marinaMoji synchronising" overlay.
+// Center-screen "marinaMoji synchronising" overlay (shown only on blocked input).
 void SyncOverlaySetVisible(bool visible);
 
-// Brief flash when the user types during sync (rate-limited internally).
+// Beep and briefly show the overlay when the user types during sync
+// (rate-limited internally).
 void SyncOverlayFlashBlockedInput();
 
-// True while sync.status.json reports state=running.
+// True while sync.status.json reports state=running (keys are blocked).
 bool SyncOverlayIsActive();
 
 // Start/stop polling sync.status.json (call from IMK main).

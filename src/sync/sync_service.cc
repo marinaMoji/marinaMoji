@@ -25,6 +25,7 @@
 #include "sync/sync_bundle.h"
 #include "sync/sync_config.h"
 #include "sync/sync_crypto.h"
+#include "sync/sync_dictionary_tombstones.h"
 #include "sync/sync_merge.h"
 
 namespace mozc {
@@ -87,9 +88,26 @@ absl::Status ImportDictionaryTsv(absl::string_view tsv) {
     storage.GetProto().Clear();
   }
 
-  user_dictionary::UserDictionary* dic = nullptr;
+  const absl::flat_hash_set<std::string> desired_keys =
+      CollectDictionarySyncKeysFromTsv(tsv);
+
+  for (int d = 0; d < storage.GetProto().dictionaries_size(); ++d) {
+    user_dictionary::UserDictionary* dic =
+        storage.GetProto().mutable_dictionaries(d);
+    google::protobuf::RepeatedPtrField<user_dictionary::UserDictionary::Entry>
+        kept;
+    for (int i = 0; i < dic->entries_size(); ++i) {
+      const auto& entry = dic->entries(i);
+      if (desired_keys.contains(DictionaryEntrySyncKey(entry))) {
+        *kept.Add() = entry;
+      }
+    }
+    dic->mutable_entries()->Swap(&kept);
+  }
+
+  user_dictionary::UserDictionary* target_dic = nullptr;
   if (storage.GetProto().dictionaries_size() > 0) {
-    dic = storage.GetProto().mutable_dictionaries(0);
+    target_dic = storage.GetProto().mutable_dictionaries(0);
   } else {
     const auto id_or = storage.CreateDictionary("User dictionary");
     if (!id_or.ok()) {
@@ -98,19 +116,22 @@ absl::Status ImportDictionaryTsv(absl::string_view tsv) {
     }
     for (int i = 0; i < storage.GetProto().dictionaries_size(); ++i) {
       if (storage.GetProto().dictionaries(i).id() == *id_or) {
-        dic = storage.GetProto().mutable_dictionaries(i);
+        target_dic = storage.GetProto().mutable_dictionaries(i);
         break;
       }
     }
   }
-  if (dic == nullptr) {
+  if (target_dic == nullptr) {
     storage.UnLock();
     return absl::InternalError("Cannot access user dictionary");
   }
 
   absl::flat_hash_set<size_t> existing;
-  for (int i = 0; i < dic->entries_size(); ++i) {
-    existing.insert(DictionaryEntryHash(dic->entries(i)));
+  for (int d = 0; d < storage.GetProto().dictionaries_size(); ++d) {
+    const auto& dic = storage.GetProto().dictionaries(d);
+    for (int i = 0; i < dic.entries_size(); ++i) {
+      existing.insert(DictionaryEntryHash(dic.entries(i)));
+    }
   }
 
   user_dictionary::StringTextLineIterator line_iter(tsv);
@@ -127,7 +148,7 @@ absl::Status ImportDictionaryTsv(absl::string_view tsv) {
       continue;
     }
     existing.insert(h);
-    *dic->add_entries() = entry;
+    *target_dic->add_entries() = entry;
   }
 
   const absl::Status save_status = storage.Save();
@@ -257,7 +278,17 @@ absl::StatusOr<commands::UserSyncReport> PerformSync(
   }
 
   if (config.sync_dictionary()) {
-    local_files[std::string(kDictionaryFile)] = ExportDictionaryTsv();
+    const std::string local_dict = ExportDictionaryTsv();
+    local_files[std::string(kDictionaryFile)] = local_dict;
+    const absl::StatusOr<std::vector<DictionaryTombstone>> local_tombstones =
+        LoadLocalDictionaryTombstones();
+    if (!local_tombstones.ok()) {
+      report.set_success(false);
+      report.set_error_message(local_tombstones.status().ToString());
+      return report;
+    }
+    local_files[std::string(kDictionaryTombstonesFile)] =
+        ExportDictionaryTombstonesTsv(*local_tombstones, local_dict);
   }
 
   if (config.sync_history() &&
@@ -314,7 +345,9 @@ absl::StatusOr<commands::UserSyncReport> PerformSync(
 
       if (config.sync_dictionary()) {
         DictionaryMergeStats dict_stats;
+        DictionaryTombstoneMergeStats tomb_stats;
         std::string merged_dict;
+        std::vector<DictionaryTombstone> merged_tombstones;
         const std::string local_dict =
             local_files.contains(kDictionaryFile)
                 ? local_files[kDictionaryFile]
@@ -323,16 +356,31 @@ absl::StatusOr<commands::UserSyncReport> PerformSync(
             remote_files->contains(kDictionaryFile)
                 ? (*remote_files)[kDictionaryFile]
                 : "# marinaMoji sync dictionary\n";
-        const absl::Status merge_status =
-            MergeDictionaryTsv(remote_dict, local_dict, &merged_dict, &dict_stats);
+        const std::string local_tombstones_tsv =
+            local_files.contains(kDictionaryTombstonesFile)
+                ? local_files[kDictionaryTombstonesFile]
+                : std::string(kDictionaryTombstonesHeader);
+        const std::string remote_tombstones_tsv =
+            remote_files->contains(kDictionaryTombstonesFile)
+                ? (*remote_files)[kDictionaryTombstonesFile]
+                : std::string(kDictionaryTombstonesHeader);
+        const absl::Status merge_status = MergeDictionaryWithTombstones(
+            remote_dict, local_dict,
+            ParseDictionaryTombstonesTsv(remote_tombstones_tsv),
+            ParseDictionaryTombstonesTsv(local_tombstones_tsv),
+            config.device_id(), &merged_dict, &merged_tombstones, &dict_stats,
+            &tomb_stats);
         if (!merge_status.ok()) {
           report.set_success(false);
           report.set_error_message(merge_status.ToString());
           return report;
         }
         merged[kDictionaryFile] = std::move(merged_dict);
+        merged[kDictionaryTombstonesFile] =
+            SerializeDictionaryTombstonesTsv(merged_tombstones);
         report.set_dictionary_added(dict_stats.added);
         report.set_dictionary_skipped(dict_stats.skipped);
+        SaveLocalDictionaryTombstones(merged_tombstones).IgnoreError();
       }
 
       if (config.sync_history()) {

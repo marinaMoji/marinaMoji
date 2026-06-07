@@ -134,6 +134,29 @@ mozc_cc_library(
 )
 
 mozc_cc_library(
+    name = "sync_dictionary_tombstones",
+    srcs = ["sync_dictionary_tombstones.cc"],
+    hdrs = ["sync_dictionary_tombstones.h"],
+    visibility = [
+        "//gui:__subpackages__",
+        "//sync:__pkg__",
+    ],
+    deps = [
+        ":sync_merge",
+        "//base:file_util",
+        "//base:system_util",
+        "//dictionary:user_pos",
+        "//protocol:user_dictionary_storage_cc_proto",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+mozc_cc_library(
     name = "sync_service",
     srcs = ["sync_service.cc"],
     hdrs = ["sync_service.h"],
@@ -142,6 +165,7 @@ mozc_cc_library(
         ":sync_bundle",
         ":sync_config",
         ":sync_crypto",
+        ":sync_dictionary_tombstones",
         ":sync_merge",
         "//base:file_util",
         "//config:config_handler",
@@ -161,6 +185,23 @@ mozc_cc_library(
 )
 
 mozc_cc_library(
+    name = "sync_poll",
+    srcs = ["sync_poll.cc"],
+    hdrs = ["sync_poll.h"],
+    deps = [
+        ":sync_config",
+        "//base:config_file_stream",
+        "//base:file_util",
+        "//config:config_handler",
+        "//protocol:commands_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@libsodium//:libsodium",
+    ],
+)
+
+mozc_cc_library(
     name = "sync_runner",
     srcs = ["sync_runner.cc"],
     hdrs = ["sync_runner.h"],
@@ -168,7 +209,9 @@ mozc_cc_library(
     deps = [
         ":sync_activity",
         ":sync_config",
+        ":sync_dictionary_tombstones",
         ":sync_key",
+        ":sync_poll",
         ":sync_service",
         ":sync_status",
         "//client:client_interface",
@@ -204,6 +247,7 @@ mozc_cc_library(
     srcs = ["sync_main.cc"],
     deps = [
         ":sync_config",
+        ":sync_poll",
         ":sync_runner",
         ":sync_status",
         "//base:init_mozc",
@@ -262,6 +306,17 @@ mozc_cc_test(
 )
 
 mozc_cc_test(
+    name = "sync_dictionary_tombstones_test",
+    srcs = ["sync_dictionary_tombstones_test.cc"],
+    deps = [
+        ":sync_dictionary_tombstones",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+mozc_cc_test(
     name = "sync_config_test",
     srcs = ["sync_config_test.cc"],
     deps = [
@@ -280,6 +335,19 @@ mozc_cc_test(
         ":sync_status",
         "//base:file_util",
         "//base:system_util",
+        "//testing:mozctest",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+mozc_cc_test(
+    name = "sync_poll_test",
+    srcs = ["sync_poll_test.cc"],
+    deps = [
+        ":sync_poll",
+        "//base:config_file_stream",
+        "//base:file_util",
         "//testing:mozctest",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",

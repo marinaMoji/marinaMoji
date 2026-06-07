@@ -3,6 +3,7 @@
 #include "sync/sync_activity.h"
 #include "sync/sync_config.h"
 #include "sync/sync_key.h"
+#include "sync/sync_poll.h"
 #include "sync/sync_service.h"
 #include "sync/sync_status.h"
 
@@ -168,6 +169,9 @@ absl::StatusOr<commands::UserSyncReport> RunSync(
   config.set_last_sync_message(absl::StrCat(
       "Dictionary +", report_or->dictionary_added(),
       ", history merged ", report_or->history_merged()));
+  if (const auto snapshot_or = CaptureSyncFingerprints(config); snapshot_or.ok()) {
+    SaveSyncBaselines(*snapshot_or).IgnoreError();
+  }
   SaveSyncConfig(config).IgnoreError();
 
   SyncStatus done;

@@ -232,6 +232,7 @@ bool SessionHandler::Shutdown(commands::Command* command) {
 
 bool SessionHandler::Reload(commands::Command* command) {
   MOZC_VLOG(1) << "Reloading server";
+  config::ConfigHandler::Reload();
   UpdateSessions();
   engine_->Reload();
   return true;
@@ -239,6 +240,7 @@ bool SessionHandler::Reload(commands::Command* command) {
 
 bool SessionHandler::ReloadAndWait(commands::Command* command) {
   MOZC_VLOG(1) << "Reloading server and wait for reloader";
+  config::ConfigHandler::Reload();
   UpdateSessions();
   engine_->ReloadAndWait();
   return true;

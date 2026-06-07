@@ -176,6 +176,9 @@ absl::StatusOr<commands::UserSyncConfig> LoadSyncConfig() {
 }
 
 absl::Status SaveSyncConfig(const commands::UserSyncConfig& config) {
+  const auto baselines_or = LoadSyncBaselines();
+  const SyncFingerprintSnapshot baselines =
+      baselines_or.ok() ? *baselines_or : SyncFingerprintSnapshot{};
   const commands::UserSyncConfig normalized = EnsureDeviceId(config);
   const std::string json = absl::StrCat(
       "{\n"
@@ -201,7 +204,76 @@ absl::Status SaveSyncConfig(const commands::UserSyncConfig& config) {
       JsonEscape(normalized.last_sync_message()), "\",\n"
       "  \"device_id\": \"", JsonEscape(normalized.device_id()), "\",\n"
       "  \"sync_cooldown_seconds\": ",
-      normalized.sync_cooldown_seconds(), "\n"
+      normalized.sync_cooldown_seconds(), ",\n"
+      "  \"last_remote_bundle_sha256\": \"",
+      JsonEscape(baselines.remote_bundle_sha256), "\",\n"
+      "  \"last_local_data_sha256\": \"",
+      JsonEscape(baselines.local_data_sha256), "\"\n"
+      "}\n");
+  const std::string path = GetSyncConfigPath();
+  const std::string tmp = path + ".tmp";
+  {
+    std::ofstream ofs(tmp, std::ios::binary | std::ios::trunc);
+    if (!ofs) {
+      return absl::PermissionDeniedError("Cannot write sync.conf");
+    }
+    ofs << json;
+  }
+  return FileUtil::AtomicRename(tmp, path);
+}
+
+absl::StatusOr<SyncFingerprintSnapshot> LoadSyncBaselines() {
+  const std::string path = GetSyncConfigPath();
+  std::ifstream ifs(path);
+  SyncFingerprintSnapshot baselines;
+  if (!ifs) {
+    return baselines;
+  }
+  std::ostringstream oss;
+  oss << ifs.rdbuf();
+  const std::string json = oss.str();
+  baselines.remote_bundle_sha256 =
+      ExtractJsonString(json, "last_remote_bundle_sha256");
+  baselines.local_data_sha256 =
+      ExtractJsonString(json, "last_local_data_sha256");
+  return baselines;
+}
+
+absl::Status SaveSyncBaselines(const SyncFingerprintSnapshot& baselines) {
+  const auto config_or = LoadSyncConfig();
+  if (!config_or.ok()) {
+    return config_or.status();
+  }
+  const commands::UserSyncConfig normalized = EnsureDeviceId(*config_or);
+  const std::string json = absl::StrCat(
+      "{\n"
+      "  \"enabled\": ",
+      normalized.enabled() ? "true" : "false", ",\n"
+      "  \"sync_file_path\": \"", JsonEscape(normalized.sync_file_path()),
+      "\",\n"
+      "  \"sync_settings\": ",
+      normalized.sync_settings() ? "true" : "false", ",\n"
+      "  \"sync_dictionary\": ",
+      normalized.sync_dictionary() ? "true" : "false", ",\n"
+      "  \"sync_history\": ",
+      normalized.sync_history() ? "true" : "false", ",\n"
+      "  \"direction\": ", normalized.direction(), ",\n"
+      "  \"auto_sync_mode\": ", normalized.auto_sync_mode(), ",\n"
+      "  \"auto_sync_interval_minutes\": ",
+      normalized.auto_sync_interval_minutes(), ",\n"
+      "  \"last_sync_time\": \"", JsonEscape(normalized.last_sync_time()),
+      "\",\n"
+      "  \"last_sync_status\": \"",
+      JsonEscape(normalized.last_sync_status()), "\",\n"
+      "  \"last_sync_message\": \"",
+      JsonEscape(normalized.last_sync_message()), "\",\n"
+      "  \"device_id\": \"", JsonEscape(normalized.device_id()), "\",\n"
+      "  \"sync_cooldown_seconds\": ",
+      normalized.sync_cooldown_seconds(), ",\n"
+      "  \"last_remote_bundle_sha256\": \"",
+      JsonEscape(baselines.remote_bundle_sha256), "\",\n"
+      "  \"last_local_data_sha256\": \"",
+      JsonEscape(baselines.local_data_sha256), "\"\n"
       "}\n");
   const std::string path = GetSyncConfigPath();
   const std::string tmp = path + ".tmp";

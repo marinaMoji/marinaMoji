@@ -1,8 +1,6 @@
 #include <chrono>
 #include <cstdlib>
-#include <filesystem>
 #include <iostream>
-#include <optional>
 #include <string>
 #include <thread>
 
@@ -12,6 +10,7 @@
 #include "base/run_level.h"
 #include "client/client.h"
 #include "sync/sync_config.h"
+#include "sync/sync_poll.h"
 #include "sync/sync_runner.h"
 #include "sync/sync_status.h"
 
@@ -65,12 +64,31 @@ int RunOnce(bool force) {
   return 0;
 }
 
+bool HandleIntervalPoll(const commands::UserSyncConfig& config) {
+  if (config.auto_sync_mode() != commands::UserSyncConfig::EVERY_N_MINUTES) {
+    return false;
+  }
+  const auto baseline_or = LoadSyncBaselines();
+  const auto current_or = CaptureSyncFingerprints(config);
+  if (!baseline_or.ok() || !current_or.ok()) {
+    return false;
+  }
+  switch (EvaluateIntervalSync(*baseline_or, *current_or)) {
+    case IntervalSyncDecision::kBaselineOnly:
+      SaveSyncBaselines(*current_or).IgnoreError();
+      return false;
+    case IntervalSyncDecision::kSync:
+      return true;
+    case IntervalSyncDecision::kSkip:
+      return false;
+  }
+  return false;
+}
+
 int RunDaemon() {
   if (!RunLevel::IsValidClientRunLevel()) {
     return 1;
   }
-  std::string tracked_path;
-  std::optional<std::filesystem::file_time_type> tracked_mtime;
 
   while (true) {
     const auto config_or = LoadSyncConfig();
@@ -79,36 +97,13 @@ int RunDaemon() {
       const commands::UserSyncConfig& config = *config_or;
       sleep_sec =
           std::max(1, config.auto_sync_interval_minutes() * 60);
-      if (config.enabled() && config.has_sync_key()) {
-        bool should_sync = false;
-        if (config.auto_sync_mode() ==
-            commands::UserSyncConfig::EVERY_N_MINUTES) {
-          should_sync = true;
-        }
-        if (!config.sync_file_path().empty()) {
-          if (tracked_path != config.sync_file_path()) {
-            tracked_path = config.sync_file_path();
-            tracked_mtime.reset();
-          }
-          std::error_code ec;
-          const auto current_mtime =
-              std::filesystem::last_write_time(tracked_path, ec);
-          if (!ec) {
-            if (!tracked_mtime.has_value()) {
-              tracked_mtime = current_mtime;
-            } else if (*tracked_mtime != current_mtime) {
-              tracked_mtime = current_mtime;
-              should_sync = true;
-            }
-          }
-        }
-        if (should_sync) {
-          client::Client client;
-          client.set_timeout(absl::Minutes(5));
-          if (CanAutoSync(&client, config.sync_cooldown_seconds())) {
-            RunSyncOptions options;
-            RunSync(&client, options);
-          }
+      if (config.enabled() && config.has_sync_key() &&
+          HandleIntervalPoll(config)) {
+        client::Client client;
+        client.set_timeout(absl::Minutes(5));
+        if (CanAutoSync(&client, config.sync_cooldown_seconds())) {
+          RunSyncOptions options;
+          RunSync(&client, options);
         }
       }
     }

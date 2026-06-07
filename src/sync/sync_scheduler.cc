@@ -2,13 +2,12 @@
 
 #include <algorithm>
 #include <chrono>
-#include <filesystem>
-#include <optional>
 #include <string>
 #include <thread>
 
 #include "absl/time/time.h"
 #include "sync/sync_config.h"
+#include "sync/sync_poll.h"
 
 namespace mozc {
 namespace sync {
@@ -24,40 +23,25 @@ void SyncScheduler::Start() {
   }
   stop_ = false;
   thread_ = std::make_unique<std::thread>([this]() {
-    std::string tracked_path;
-    std::optional<std::filesystem::file_time_type> tracked_mtime;
-
     while (!stop_) {
       const auto config_or = LoadSyncConfig();
       if (config_or.ok()) {
         const commands::UserSyncConfig& config = *config_or;
-        if (config.enabled() && config.has_sync_key()) {
-          bool should_sync = false;
-          if (config.auto_sync_mode() ==
-              commands::UserSyncConfig::EVERY_N_MINUTES) {
-            should_sync = true;
-          }
-
-          if (!config.sync_file_path().empty()) {
-            if (tracked_path != config.sync_file_path()) {
-              tracked_path = config.sync_file_path();
-              tracked_mtime.reset();
+        if (config.enabled() && config.has_sync_key() &&
+            config.auto_sync_mode() == commands::UserSyncConfig::EVERY_N_MINUTES) {
+          const auto baseline_or = LoadSyncBaselines();
+          const auto current_or = CaptureSyncFingerprints(config);
+          if (baseline_or.ok() && current_or.ok()) {
+            switch (EvaluateIntervalSync(*baseline_or, *current_or)) {
+              case IntervalSyncDecision::kBaselineOnly:
+                SaveSyncBaselines(*current_or).IgnoreError();
+                break;
+              case IntervalSyncDecision::kSync:
+                callback_();
+                break;
+              case IntervalSyncDecision::kSkip:
+                break;
             }
-            std::error_code ec;
-            const auto current_mtime =
-                std::filesystem::last_write_time(tracked_path, ec);
-            if (!ec) {
-              if (!tracked_mtime.has_value()) {
-                tracked_mtime = current_mtime;
-              } else if (*tracked_mtime != current_mtime) {
-                tracked_mtime = current_mtime;
-                should_sync = true;
-              }
-            }
-          }
-
-          if (should_sync) {
-            callback_();
           }
         }
       }

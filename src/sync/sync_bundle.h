@@ -16,6 +16,7 @@ using SyncBundleFiles = absl::flat_hash_map<std::string, std::string>;
 constexpr absl::string_view kManifestFile = "manifest.txt";
 constexpr absl::string_view kSettingsFile = "settings.pb";
 constexpr absl::string_view kDictionaryFile = "dictionary.tsv";
+constexpr absl::string_view kDictionaryTombstonesFile = "dictionary_tombstones.tsv";
 constexpr absl::string_view kHistoryFile = "history.tsv";
 
 // Pack named files into an uncompressed zip archive in memory.

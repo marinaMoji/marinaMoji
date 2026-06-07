@@ -54,16 +54,7 @@ static void UpdateFromStatusOnMainQueue() {
   const bool running =
       status_or.ok() && status_or->state == "running";
   g_sync_active = running;
-  if (running) {
-    EnsureOverlayOnMainQueue();
-    if (status_or->message.empty()) {
-      g_sync_label.stringValue = @"marinaMoji synchronising…";
-    } else {
-      g_sync_label.stringValue =
-          [NSString stringWithUTF8String:status_or->message.c_str()];
-    }
-    [g_sync_panel orderFront:nil];
-  } else if (g_sync_panel) {
+  if (!running && g_sync_panel) {
     [g_sync_panel orderOut:nil];
   }
 }
@@ -98,13 +89,19 @@ void SyncOverlayFlashBlockedInput() {
     g_last_flash_time = now;
     NSBeep();
     EnsureOverlayOnMainQueue();
-    g_sync_label.stringValue = @"marinaMoji synchronising…";
+    const auto status_or = sync::ReadSyncStatus();
+    if (status_or.ok() && !status_or->message.empty()) {
+      g_sync_label.stringValue =
+          [NSString stringWithUTF8String:status_or->message.c_str()];
+    } else {
+      g_sync_label.stringValue = @"marinaMoji synchronising…";
+    }
     [g_sync_panel orderFront:nil];
     dispatch_after(
         dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.8 * NSEC_PER_SEC)),
         dispatch_get_main_queue(), ^{
-          if (g_sync_active && g_sync_panel) {
-            [g_sync_panel orderFront:nil];
+          if (g_sync_panel) {
+            [g_sync_panel orderOut:nil];
           }
         });
   });

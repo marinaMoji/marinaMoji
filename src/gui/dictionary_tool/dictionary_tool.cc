@@ -69,6 +69,8 @@
 #include "gui/dictionary_tool/import_dialog.h"
 #include "protocol/commands.pb.h"
 #include "protocol/user_dictionary_storage.pb.h"
+#include "sync/sync_config.h"
+#include "sync/sync_dictionary_tombstones.h"
 #include "sync/sync_status.h"
 #include "sync/sync_util.h"
 
@@ -1468,6 +1470,9 @@ void DictionaryTool::SyncToStorage() {
     return;
   }
 
+  user_dictionary::UserDictionary previous;
+  previous.CopyFrom(*dic);
+
   dic->clear_entries();
 
   for (int i = 0; i < dic_content_->rowCount(); ++i) {
@@ -1481,6 +1486,16 @@ void DictionaryTool::SyncToStorage() {
     entry->set_comment(dic_content_->item(i, 3)->text().toStdString());
     user_dictionary::SanitizeEntry(entry);
   }
+
+  const absl::StatusOr<commands::UserSyncConfig> sync_config =
+      sync::LoadSyncConfig();
+  const commands::UserSyncConfig config_with_device =
+      sync::EnsureDeviceId(sync_config.ok() ? *sync_config
+                                            : commands::UserSyncConfig());
+  sync::RecordDictionaryEntryRemovals(previous, *dic,
+                                      config_with_device.device_id(),
+                                      absl::Now())
+      .IgnoreError();
 
   modified_ = false;
 }
