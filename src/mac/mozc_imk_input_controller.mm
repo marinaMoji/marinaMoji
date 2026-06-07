@@ -159,6 +159,7 @@ CompositionMode NormalizeModeForEmptyHalfAscii(CompositionMode mode,
   return mode;
 }
 
+#if 0  // Input Mode submenu disabled (see setupMarinaImeMenuIfNeeded).
 // Maps server mode to the IBUS-style input-mode menu (Manyōshū → Katakana).
 CompositionMode CompositionModeForImeMenu(CompositionMode mode) {
   if (mode == mozc::commands::MANYOSHU) {
@@ -166,6 +167,7 @@ CompositionMode CompositionModeForImeMenu(CompositionMode mode) {
   }
   return mode;
 }
+#endif
 
 absl::string_view GetModeId(CompositionMode mode) {
   switch (mode) {
@@ -498,6 +500,10 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   // IBUS panel order: Input Mode, Traditional kanji, Odoriji, Toolbar (property_handler.cc).
   NSInteger insertIndex = 0;
 
+  // Input Mode submenu disabled: mode changes from the IME menu no longer work
+  // reliably after M1n mode-persistence (setValue ignores composition resync).
+  // Use toolbar or keyboard shortcuts until menu switching is fixed.
+#if 0
   struct ModeMenuEntry {
     NSString *titleKey;
     CompositionMode mode;
@@ -533,6 +539,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   modeMenuItem.submenu = modeMenu;
   [menu_ insertItem:modeMenuItem atIndex:insertIndex++];
   [menu_ insertItem:[NSMenuItem separatorItem] atIndex:insertIndex++];
+#endif
 
   traditionalKanjiMenuItem_ = [[NSMenuItem alloc]
       initWithTitle:MarinaLocalizedString(@"MM.TraditionalKanji")
@@ -604,6 +611,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
         privacy_on ? NSControlStateValueOn : NSControlStateValueOff;
   }
 
+#if 0  // Input Mode submenu disabled (see setupMarinaImeMenuIfNeeded).
   if (!inputModeMenuItems_) {
     return;
   }
@@ -618,6 +626,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
     const auto item_mode = static_cast<CompositionMode>(item.tag);
     item.state = (item_mode == menu_mode) ? NSControlStateValueOn : NSControlStateValueOff;
   }
+#endif
 }
 
 - (NSMenu *)menu {
@@ -1844,6 +1853,7 @@ bool IsConfigOnlySessionOutput(const Output &output) {
 }
 
 - (IBAction)inputModeMenuClicked:(NSMenuItem *)sender {
+#if 0  // Input Mode submenu disabled (see setupMarinaImeMenuIfNeeded).
   const auto mode = static_cast<CompositionMode>(sender.tag);
   SessionCommand command;
   if (mode == mozc::commands::DIRECT) {
@@ -1857,6 +1867,8 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     command.set_composition_mode(server_mode);
   }
   [self sendCommand:command];
+#endif
+  (void)sender;
 }
 
 - (IBAction)traditionalKanjiMenuClicked:(id)sender {

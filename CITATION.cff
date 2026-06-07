@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use marinaMoji, please cite it as below."
+type: software
+title: marinaMoji
+abstract: >-
+  Open-source Japanese input method (IME) for scholars of classical and
+  premodern Japanese. Fork of Mozc with historical kana, kyūjitai/shinjitai
+  conversion, odoriji and kaeriten marks, floating toolbar, and optional
+  encrypted cross-device sync. macOS (Input Method Kit) and Linux (IBus).
+authors:
+  - family-names: Morgan
+    given-names: Daniel Patrick
+    affiliation: >-
+      Centre de recherche sur les civilisations de l'Asie orientale (CRCAO),
+      CNRS
+    orcid: https://orcid.org/0000-0001-9115-3931
+  - family-names: Pandolfino
+    given-names: Marina
+    affiliation: >-
+      Centre de recherche sur les civilisations de l'Asie orientale (CRCAO),
+      École pratique des hautes études (EPHE)
+repository-code: https://github.com/marinaMoji/marinaMoji
+url: https://norbert.huma-num.fr/marinamoji
+license: BSD-3-Clause
+keywords:
+  - Japanese input method
+  - IME
+  - Mozc
+  - premodern Japanese
+  - digital humanities
+  - kanbun
