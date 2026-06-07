@@ -6,11 +6,14 @@
 namespace mozc {
 namespace sync {
 
-// Full path to the marinaMojiSync executable (macOS app bundle binary).
+// Full path to the sync executable (macOS app bundle or Linux mozc_sync).
 std::string GetSyncProgramPath();
 
-// Spawn marinaMojiSync --now (or --force). Returns false on failure.
+// Spawn sync --now (or --force). Returns false on failure.
 bool SpawnSyncNow(bool force = false);
+
+// CLI hint for timeout/error dialogs (e.g. "mozc_sync --now --force").
+std::string GetSyncManualCliHint();
 
 }  // namespace sync
 }  // namespace mozc

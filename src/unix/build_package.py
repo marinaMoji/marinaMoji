@@ -54,6 +54,9 @@ class Packager:
         'mozc_server': os.path.join(args.mozc_dir, 'mozc_server'),
         'mozc_tool': os.path.join(args.mozc_dir, 'mozc_tool'),
         'mozc_renderer': os.path.join(args.mozc_dir, 'mozc_renderer'),
+        'mozc_sync': os.path.join(args.mozc_dir, 'mozc_sync'),
+        'marinamoji-sync.service': os.path.join(
+            args.mozc_dir, 'marinamoji-sync.service'),
         'mozc_emacs_helper': os.path.join(args.emacs_helper_dir,
                                           'mozc_emacs_helper'),
         'mozc.el': os.path.join(args.emacs_client_dir, 'mozc.el'),

@@ -70,6 +70,8 @@
 #include "unix/ibus/preedit_handler.h"
 #include "unix/ibus/property_handler.h"
 #include "unix/ibus/surrounding_text_util.h"
+#include "unix/ibus/sync_overlay.h"
+#include "sync/sync_activity.h"
 
 ABSL_FLAG(bool, use_mozc_renderer, true,
           "The engine tries to use mozc_renderer if available.");
@@ -291,6 +293,7 @@ void MozcEngine::Disable(IbusEngineWrapper* engine) {
   if (MozcToolbarAvailable()) {
     MozcToolbarHide();
   }
+  sync::RecordImeDeactivated();
   RevertSession(engine);
   GetCandidateWindowHandler(engine)->Hide(engine);
   key_event_handler_->Clear();
@@ -396,12 +399,34 @@ void MozcEngine::PageUp(IbusEngineWrapper* engine) {
   // candidate window.
 }
 
+namespace {
+
+bool HasNonemptyPreedit(const commands::Output& output) {
+  if (!output.has_preedit()) {
+    return false;
+  }
+  for (int i = 0; i < output.preedit().segment_size(); ++i) {
+    if (!output.preedit().segment(i).value().empty()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+}  // namespace
+
 bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
                                  uint keycode, uint modifiers) {
   MOZC_VLOG(2) << "keyval: " << keyval << ", keycode: " << keycode
                << ", modifiers: " << modifiers;
   if (property_handler_->IsDisabled()) {
     return false;
+  }
+
+  if (SyncOverlayIsActive()) {
+    SyncOverlayFlashBlockedInput();
+    GetCandidateWindowHandler(engine)->Hide(engine);
+    return true;
   }
 
   // Consume Hiragana/ON key in Direct before GetKeyEvent so we catch the ghost
@@ -464,6 +489,12 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
   }
 
   MOZC_VLOG(2) << output;
+
+  if (output.error_code() == commands::Output::SYNC_LOCKED) {
+    SyncOverlayFlashBlockedInput();
+    GetCandidateWindowHandler(engine)->Hide(engine);
+    return true;
+  }
 
   UpdateAll(engine, output);
 
@@ -639,6 +670,13 @@ bool MozcEngine::UpdateAll(IbusEngineWrapper* engine,
   UpdateDeletionRange(engine, output);
   UpdateResult(engine, output);
   preedit_handler_->Update(engine, output);
+
+  const bool has_preedit = HasNonemptyPreedit(output);
+  if (had_preedit_ && !has_preedit) {
+    sync::RecordCompositionEnd();
+  }
+  had_preedit_ = has_preedit;
+
   GetCandidateWindowHandler(engine)->Update(engine, output);
   UpdateCandidateIDMapping(output);
 

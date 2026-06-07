@@ -10,6 +10,25 @@ Estimated time: 30–45 minutes.
 - [x] Both devices can read and write the same folder path (or equivalent synced path on each machine).
 - [x] Cloud/desktop sync for that folder is working independently (copy a test file both ways before starting).
 
+### Linux-only (before setup)
+
+After installing `mozc.zip`:
+
+```bash
+chmod +x unix/install_sync_daemon.sh
+./unix/install_sync_daemon.sh
+ibus write-cache && ibus restart
+```
+
+Confirm:
+
+```bash
+test -x /usr/lib/marinamoji/mozc_sync && echo OK
+systemctl --user is-active marinamoji-sync.service
+```
+
+Manual CLI fallback: `mozc_sync --now --force`
+
 ## Setup (Device A — primary)
 
 1. [x] Open **Preferences / Properties → Sync**.
@@ -137,7 +156,17 @@ On **Device B**:
 
 **Pass:** change appears without manual Sync on A.
 
-## Test 8 — Composition skip (smoke test)
+## Test 8 — Sync overlay blocks input (Linux / macOS)
+
+On **Device A** during an active sync (click **Sync now** with a large dictionary, or watch `sync.status.json` for `state=running`):
+
+1. [ ] Type in compose mode in any app.
+2. [ ] Confirm keys do not reach the converter (no preedit growth).
+3. [ ] Confirm audible beep and brief center-screen “synchronising” overlay.
+
+**Pass:** input blocked during sync; overlay/beep on blocked keystrokes.
+
+## Test 9 — Composition skip (smoke test)
 
 On **Device A**:
 
@@ -157,6 +186,10 @@ On **Device A**:
 |------|-------|-------|
 | Sync settings | `~/Library/Application Support/marinaMoji/sync.conf` | `~/.config/marinamoji/sync.conf` |
 | Sync key (local) | `~/Library/Application Support/marinaMoji/.sync_key` | `~/.config/marinamoji/.sync_key` or `~/.sync_key` |
+| Live status | `…/sync.status.json` | `~/.config/marinamoji/sync.status.json` |
+| Activity (cooldown) | `…/sync.activity.json` | `~/.config/marinamoji/sync.activity.json` |
+| Sync binary | `marinaMojiSync` (app bundle) | `/usr/lib/marinamoji/mozc_sync` |
+| Background daemon | LaunchAgent | `systemctl --user status marinamoji-sync` |
 | User profile | `~/Library/Application Support/marinaMoji/` | `~/.config/marinamoji/` |
 
 User guide: [HOW_SYNC_WORKS.md](HOW_SYNC_WORKS.md)  

@@ -42,6 +42,7 @@
 #include "unix/ibus/ibus_config.h"
 #include "unix/ibus/mozc_engine.h"
 #include "unix/ibus/path_util.h"
+#include "unix/ibus/sync_overlay.h"
 
 ABSL_FLAG(bool, ibus, false, "The engine is started by ibus-daemon");
 ABSL_FLAG(bool, xml, false, "Output xml data for the engine.");
@@ -109,11 +110,13 @@ void OutputXml() {
 
 void RunIbus() {
   IbusWrapper::Init();
+  SyncOverlayStartWatcher();
   IbusBusWrapper bus;
   MozcEngine engine;
   InitIbusComponent(&bus, &engine, absl::GetFlag(FLAGS_ibus));
   IgnoreSigChild();
   IbusWrapper::Main();
+  SyncOverlayStopWatcher();
 }
 
 }  // namespace

@@ -178,6 +178,9 @@ class MozcEngine : public EngineInterface {
   // Default true (on) for first install; thereafter loaded/saved via toolbar.conf.
   bool toolbar_visible_ = true;
 
+  // Tracks preedit for sync activity timestamps (composition end).
+  bool had_preedit_ = false;
+
   friend class MozcEngineTestPeer;
 };
 

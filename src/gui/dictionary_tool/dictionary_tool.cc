@@ -1068,8 +1068,9 @@ void DictionaryTool::SyncNow() {
   }
   QMessageBox::warning(
       this, window_title_,
-      tr("Sync timed out. Run marinaMojiSync --now --force in Terminal and "
-         "check ~/Library/Application Support/marinaMoji/sync.status.json."));
+      tr("Sync timed out. Run %1 in Terminal and check %2.")
+          .arg(QString::fromStdString(sync::GetSyncManualCliHint()))
+          .arg(QString::fromStdString(sync::GetSyncStatusPath())));
 }
 
 void DictionaryTool::AddWord() {

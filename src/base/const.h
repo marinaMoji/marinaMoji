@@ -147,6 +147,7 @@ inline constexpr char kEventPathPrefix[] = "Mozc.event.";
 #else   // __linux__ including __ANDROID__
 inline constexpr char kMozcServerName[] = "mozc_server";
 inline constexpr char kMozcRenderer[] = "mozc_renderer";
+inline constexpr char kMozcSyncExecutable[] = "mozc_sync";
 inline constexpr char kEventPathPrefix[] = "mozc.event.";
 inline constexpr char kMozcTool[] = "mozc_tool";
 #endif  // _WIN32, __APPLE__, or else

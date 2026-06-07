@@ -154,9 +154,27 @@ From the **`marinaMoji/src`** directory:
 sudo unzip -o bazel-bin/unix/mozc.zip -d /
 ```
 
-This unpacks the engine, server, icons, and IBus component into system directories (e.g. `/usr/lib/marinamoji/`, `/usr/lib/ibus-marinamoji/`, `/usr/share/ibus/component/marinamoji.xml`).
+This unpacks the engine, server, icons, sync daemon, and IBus component into system directories (e.g. `/usr/lib/marinamoji/`, `/usr/lib/ibus-marinamoji/`, `/usr/share/ibus/component/marinamoji.xml`).
 
-### 4.2 Verify installation
+### 4.2 Enable the sync daemon (optional but recommended)
+
+Encrypted user-data sync uses `mozc_sync`. After installing the zip, enable the background scheduler as your normal user (not root):
+
+```bash
+chmod +x unix/install_sync_daemon.sh
+./unix/install_sync_daemon.sh
+```
+
+This installs a systemd **user** unit (`marinamoji-sync.service`) that runs `/usr/lib/marinamoji/mozc_sync --daemon`. Configure sync in **Properties → Sync** before expecting automatic sync.
+
+Verify:
+
+```bash
+test -x /usr/lib/marinamoji/mozc_sync && echo "Sync binary OK"
+systemctl --user is-active marinamoji-sync.service
+```
+
+### 4.3 Verify installation
 
 ```bash
 test -f /usr/share/ibus/component/marinamoji.xml && echo "Component OK"
@@ -165,7 +183,7 @@ test -x /usr/lib/ibus-marinamoji/ibus-engine-marinamoji && echo "Engine OK"
 
 Both lines should print “OK”.
 
-### 4.3 Reload IBus
+### 4.4 Reload IBus
 
 So that IBus picks up the new component:
 
@@ -176,7 +194,7 @@ ibus restart
 
 If you use a full desktop session, logging out and back in is an alternative.
 
-### 4.4 Add marinaMoji as an input method
+### 4.5 Add marinaMoji as an input method
 
 - **GNOME:** **Settings → Keyboard → Input Sources → Add (+)** → choose **Japanese** → select **marinaMoji** (or “marinaMoji (Japanese Input Method)”).
 - **Other (IBus):** In your input method settings, add the engine named **marinaMoji** / **Japanese (marinaMoji)**.

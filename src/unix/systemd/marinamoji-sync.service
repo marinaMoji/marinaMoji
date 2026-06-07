@@ -1,0 +1,10 @@
+[Unit]
+Description=marinaMoji encrypted sync daemon
+After=network.target
+
+[Service]
+ExecStart=/usr/lib/marinamoji/mozc_sync --daemon
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

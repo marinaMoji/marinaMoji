@@ -98,6 +98,36 @@ remove_user_config() {
   fi
 }
 
+stop_sync_daemon() {
+  if ! command -v systemctl >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local run_user="${SUDO_USER:-}"
+  if [[ -n "$run_user" && "$run_user" != "root" ]]; then
+    echo "==> Stopping sync daemon (as ${run_user})…"
+    local uid
+    uid="$(id -u "$run_user")"
+    local runtime_dir="/run/user/${uid}"
+    if [[ -d "$runtime_dir" ]]; then
+      sudo -u "$run_user" env XDG_RUNTIME_DIR="$runtime_dir" \
+        systemctl --user disable --now marinamoji-sync.service 2>/dev/null || true
+      sudo -u "$run_user" rm -f \
+        "$(eval echo "~${run_user}")/.config/systemd/user/marinamoji-sync.service" \
+        2>/dev/null || true
+      sudo -u "$run_user" env XDG_RUNTIME_DIR="$runtime_dir" \
+        systemctl --user daemon-reload 2>/dev/null || true
+    else
+      echo "    Skipped sync daemon stop (no session at ${runtime_dir})."
+      echo "    Run as yourself: systemctl --user disable --now marinamoji-sync.service"
+    fi
+  elif [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
+    systemctl --user disable --now marinamoji-sync.service 2>/dev/null || true
+    rm -f "${HOME}/.config/systemd/user/marinamoji-sync.service" 2>/dev/null || true
+    systemctl --user daemon-reload 2>/dev/null || true
+  fi
+}
+
 refresh_ibus() {
   if ! command -v ibus >/dev/null 2>&1; then
     return 0
@@ -128,6 +158,7 @@ refresh_ibus() {
   fi
 }
 
+[[ "$REMOVE_MOZC" -eq 1 ]] && stop_sync_daemon
 [[ "$REMOVE_MOZC" -eq 1 ]] && remove_mozc_fork
 [[ "$REMOVE_RIME" -eq 1 ]] && remove_rime_marinamoji
 [[ "$REMOVE_USER_CONFIG" -eq 1 ]] && remove_user_config

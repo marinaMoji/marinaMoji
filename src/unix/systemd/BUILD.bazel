@@ -1,0 +1,5 @@
+# marinaMoji systemd user unit for encrypted sync daemon.
+
+package(default_visibility = ["//unix:__pkg__"])
+
+exports_files(["marinamoji-sync.service"])

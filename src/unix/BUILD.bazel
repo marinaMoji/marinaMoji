@@ -87,9 +87,18 @@ mozc_py_binary(
 )
 
 genrule(
+    name = "mozc_sync",
+    srcs = ["//sync:marinaMojiSync_bin"],
+    outs = ["mozc_sync"],
+    cmd = "cp $< $@ && chmod +x $@",
+    visibility = ["//unix:__pkg__"],
+)
+
+genrule(
     name = "package",
     srcs = [
         ":icons",
+        ":mozc_sync",
         "//gui/tool:mozc_tool",
         "//server:mozc_server",
         "//unix/emacs:mozc_emacs_helper",
@@ -98,6 +107,7 @@ genrule(
         "//unix/ibus:toolbar_icons",
         "//unix/emacs:mozc.el",
         "//renderer/qt:mozc_renderer",
+        "//unix/systemd:marinamoji-sync.service",
     ],
     outs = ["mozc.zip"],
     cmd = " ".join([

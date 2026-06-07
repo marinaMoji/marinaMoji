@@ -1,6 +1,6 @@
 # Encrypted user data sync (implementation reference)
 
-This document describes the shipped v1 sync implementation for marinaMoji on **macOS**. Linux sync daemon and IBus notice are deferred.
+This document describes the shipped v1 sync implementation for marinaMoji on **macOS** and **Linux (IBus)**.
 
 ## Scope
 
@@ -12,7 +12,9 @@ v1 sync covers:
 
 Data is stored in one encrypted bundle file chosen by the user (for example, in a Nextcloud folder). Transport is out of scope: marinaMoji only reads and writes a local file path.
 
-## Process architecture (macOS v1)
+## Process architecture
+
+### macOS
 
 | Process | Role |
 |---------|------|
@@ -20,15 +22,25 @@ Data is stored in one encrypted bundle file chosen by the user (for example, in 
 | `marinaMojiConverter` | Lock/unlock, idle query, flush, reload only — no UI, no sync logic |
 | `marinaMoji` (IMK) | Watch status file, block keys, center-screen overlay + beep |
 
+### Linux (IBus)
+
+| Process | Role |
+|---------|------|
+| `mozc_sync` (`/usr/lib/marinamoji/mozc_sync`) | Same as `marinaMojiSync` on macOS |
+| `mozc_server` | Lock/unlock, idle query, flush, reload only |
+| `ibus-engine-marinamoji` | Watch status file, block keys, GTK center-screen overlay + beep |
+
+Background daemon: systemd **user** unit `marinamoji-sync.service` (install via `src/unix/install_sync_daemon.sh` after `mozc.zip`).
+
 Sync does **not** run inside `SessionHandler` via `PERFORM_USER_SYNC`. Config is read/written directly from `sync.conf` by the sync daemon and GUI tools.
 
 ## Files and storage
 
 - Sync sidecar config:
   - macOS: `~/Library/Application Support/marinaMoji/sync.conf`
-  - Linux: `~/.config/marinamoji/sync.conf` (config I/O exists; daemon not shipped in v1)
+  - Linux: `~/.config/marinamoji/sync.conf`
 - Live status (atomic JSON): `sync.status.json` in the same profile directory
-- Activity timestamps (written by IMK): `sync.activity.json` (`last_composition_end`, `last_ime_deactivated`)
+- Activity timestamps (written by IMK / IBus): `sync.activity.json` (`last_composition_end`, `last_ime_deactivated`)
 - Encrypted sync bundle: user-chosen path (recommended suffix `.mmz.enc`)
 - Local key storage:
   - macOS: `~/Library/Application Support/marinaMoji/.sync_key` (mode `0600`)
@@ -104,7 +116,7 @@ Added to `commands.proto`:
 
 Legacy sync config IPC (`GET_USER_SYNC_CONFIG`, `PERFORM_USER_SYNC`, etc.) is **not** handled by the converter in v1.
 
-## Main flow (`RunSync` in `marinaMojiSync`)
+## Main flow (`RunSync` in `marinaMojiSync` / `mozc_sync`)
 
 1. `GET_SYNC_STATE` → abort if any session is composing (unless `--force`).
 2. Check cooldown vs `sync.activity.json` + `sync_cooldown_seconds` (unless forced).
@@ -114,22 +126,25 @@ Legacy sync config IPC (`GET_USER_SYNC_CONFIG`, `PERFORM_USER_SYNC`, etc.) is **
 
 ## Background scheduling
 
-`marinaMojiSync --daemon` runs as a LaunchAgent (`org.mozc.inputmethod.Japanese.Sync`):
+**macOS:** `marinaMojiSync --daemon` runs as a LaunchAgent (`org.mozc.inputmethod.Japanese.Sync`).
+
+**Linux:** `mozc_sync --daemon` runs as a systemd user service (`marinamoji-sync.service`).
+
+Both:
 
 - Poll interval: `max(60, auto_sync_interval_minutes * 60)` seconds
 - **Every N minutes** mode: compute SHA-256 of the remote bundle and local sync data; sync only when either fingerprint changed since the last successful sync (first poll records a baseline without syncing)
 - Skips when composing, cooldown not met, or sync already running
-- `KeepAlive=false` (no persistent respawn loop beyond `RunAtLoad`)
 
-Manual sync: `marinaMojiSync --now` or `--force` (GUI “Sync now” spawns this).
+Manual sync: `marinaMojiSync --now` / `mozc_sync --now` or `--force` (GUI “Sync now” spawns the platform binary).
 
-## IMK behavior during sync
+## IME behavior during sync (IMK / IBus)
 
-- Polls `sync.status.json` (~250 ms) while IME is active
-- Shows centered non-activating overlay: “marinaMoji synchronising…”
+- Polls `sync.status.json` (~250 ms) while the engine is running
+- Shows centered non-activating overlay: “marinaMoji synchronising…” (AppKit on macOS, GTK on Linux)
 - Blocks keyboard events to the converter; beeps and flashes overlay if user types (rate-limited)
 - Hides candidate window while sync is active
-- Writes `last_ime_deactivated` on `deactivateServer`
+- Writes `last_ime_deactivated` on IME disable / deactivate
 - Writes `last_composition_end` when preedit clears
 
 ## GUI integration
@@ -138,7 +153,7 @@ Config dialog Sync tab and Dictionary Tool “Sync now”:
 
 - Read/write `sync.conf` and sync key directly (no converter sync IPC)
 - Cooldown spinbox (seconds)
-- Spawn `marinaMojiSync --now --force` and poll `sync.status.json`
+- Spawn sync `--now --force` (`marinaMojiSync` or `mozc_sync`) and poll `sync.status.json`
 
 ## Test coverage
 
@@ -157,17 +172,32 @@ Session tests:
 Build/test command:
 
 ```bash
+# macOS
 bazel test //sync:all --config=macos
 bazel test //session:session_handler_test --config=macos
+
+# Linux
+bazel test //sync:all
+bazel build package --config oss_linux --config release_build
 ```
 
-## Manual QA checklist (macOS)
+## Linux install (summary)
 
-1. Enable sync in Config dialog, set bundle path, generate key, save.
-2. Copy key to second machine; enter key; verify bidirectional merge.
-3. Auto-sync after typing: type, wait for cooldown, confirm sync runs without blocking keys beforehand.
-4. Manual “Sync now” from Config dialog and Dictionary Tool; confirm status updates.
-5. During sync: type in TextEdit → beep + overlay flash; keys must not reach converter.
-6. Turn IME off → confirm `sync.activity.json` updates; auto-sync respects cooldown.
-7. Verify converter and IMK survive sync; dictionary/history changes appear after reload.
-8. LaunchAgent: after install, `pgrep marinaMojiSync` shows daemon; scrub script removes Sync agent.
+1. `sudo unzip -o bazel-bin/unix/mozc.zip -d /`
+2. `./unix/install_sync_daemon.sh` (as your user)
+3. `ibus write-cache && ibus restart`
+
+Verify: `test -x /usr/lib/marinamoji/mozc_sync` and `systemctl --user is-active marinamoji-sync.service`.
+
+## Manual QA checklist
+
+See [SYNC_MANUAL_QA.md](SYNC_MANUAL_QA.md). Platform-specific checks:
+
+**macOS**
+
+1. LaunchAgent: after install, `pgrep marinaMojiSync` shows daemon; scrub script removes Sync agent.
+
+**Linux**
+
+1. After install, `pgrep mozc_sync` shows daemon; `docs/uninstall_linux_marinamozc.sh` stops the user systemd unit.
+2. During sync: type in any app → GDK beep + GTK overlay; keys must not reach converter.

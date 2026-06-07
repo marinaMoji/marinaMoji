@@ -352,10 +352,11 @@ void ConfigDialogSyncTab::OnSyncNow() {
   QMessageBox::warning(
       tab_, QObject::tr("Sync"),
       QObject::tr("Sync timed out (last state: %1).\n%2\n\nTry running "
-                  "marinaMojiSync --now --force in Terminal and check "
-                  "sync.status.json.")
+                  "%3 in Terminal and check %4.")
           .arg(last_state.isEmpty() ? QStringLiteral("idle") : last_state)
-          .arg(last_message));
+          .arg(last_message)
+          .arg(QString::fromStdString(sync::GetSyncManualCliHint()))
+          .arg(QString::fromStdString(sync::GetSyncStatusPath())));
 }
 
 }  // namespace gui
