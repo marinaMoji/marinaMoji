@@ -91,6 +91,7 @@ mozc_cc_library(
         "//gui:__subpackages__",
         "//mac:__pkg__",
         "//sync:__pkg__",
+        "//unix/ibus:__pkg__",
     ],
     deps = [
         "//base:file_util",
@@ -261,6 +262,7 @@ mozc_cc_library(
 
 mozc_cc_binary(
     name = "marinaMojiSync_bin",
+    visibility = ["//unix:__pkg__"],
     deps = [":sync_main_lib"],
 )
 
