@@ -15,7 +15,6 @@ TEST_F(SyncConfigTest, SaveAndLoadRoundTrip) {
   config.set_enabled(true);
   config.set_sync_file_path(
       "/Users/test/Library/Application Support/sync.mmz.enc");
-  config.set_sync_settings(true);
   config.set_sync_dictionary(false);
   config.set_sync_history(true);
   config.set_direction(commands::UserSyncConfig::UPLOAD);
@@ -34,7 +33,6 @@ TEST_F(SyncConfigTest, SaveAndLoadRoundTrip) {
   const commands::UserSyncConfig& loaded = *loaded_or;
   EXPECT_TRUE(loaded.enabled());
   EXPECT_EQ(loaded.sync_file_path(), config.sync_file_path());
-  EXPECT_TRUE(loaded.sync_settings());
   EXPECT_FALSE(loaded.sync_dictionary());
   EXPECT_TRUE(loaded.sync_history());
   EXPECT_EQ(loaded.direction(), commands::UserSyncConfig::UPLOAD);
@@ -80,7 +78,6 @@ TEST_F(SyncConfigTest, LoadPrettyPrintedJson) {
   const std::string json = R"({
   "enabled": true,
   "sync_file_path": "/Users/daniel/Documents/vm_share/marinamoji_sync.mmz.enc",
-  "sync_settings": true,
   "sync_dictionary": true,
   "sync_history": false,
   "direction": 0,

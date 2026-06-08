@@ -34,7 +34,7 @@ Manual CLI fallback: `mozc_sync --now --force`
 1. [x] Open **Preferences / Properties → Sync**.
 2. [x] Enable **encrypted sync**.
 3. [x] Set sync file path, e.g. `~/Nextcloud/marinamoji/marinamoji_sync.mmz.enc`.
-4. [x] Enable: Settings, User dictionary, Commit / learning history.
+4. [x] Enable: User dictionary and Commit / learning history.
 5. [x] Set direction to **Bidirectional**.
 6. [x] Set auto-sync to **Manual only** for the first test run.
 7. [x] Click **Generate sync key** once; copy the key (or use **Show sync key** on this device later).
@@ -84,30 +84,17 @@ On **Device A**:
 
 On **Device A** (after Test 1 or 2 added entries):
 
-1. [ ] Delete `試験同期A` (or another test entry) in Dictionary Tool and save (close tool, switch dictionary, or **Sync now**).
-2. [ ] **Sync now**.
+1. [x] Delete `試験同期A` (or another test entry) in Dictionary Tool and save (close tool, switch dictionary, or **Sync now**).
+2. [x] **Sync now**.
 
 On **Device B**:
 
-3. [ ] Wait for cloud replication; **Sync now**.
-4. [ ] Confirm the deleted entry is gone from Dictionary Tool and no longer appears as a strong candidate.
+3. [x] Wait for cloud replication; **Sync now**.
+4. [x] Confirm the deleted entry is gone from Dictionary Tool and no longer appears as a strong candidate.
 
 **Pass:** delete on A removes the entry on B after sync.
 
-## Test 3 — Settings sync
-
-On **Device A**:
-
-1. [ ] Change a whitelisted setting (e.g. toggle **Traditional kanji** / `use_traditional_kanji` if exposed in General or toolbar).
-2. [ ] **Sync now**.
-
-On **Device B**:
-
-3. [ ] **Sync now**; verify the same setting took effect (toolbar or Preferences).
-
-**Pass:** setting matches on B without manual reconfiguration.
-
-## Test 4 — History / learning (optional)
+## Test 3 — History / learning (optional)
 
 Skip if **Privacy mode** is on (history is not exported).
 
@@ -124,16 +111,16 @@ On **Device B**:
 
 **Pass:** history merge reported in sync dialog (`history merged` > 0) or visible ranking change.
 
-## Test 5 — Privacy mode skips history
+## Test 4 — Privacy mode skips history
 
 On **Device A**:
 
 1. [ ] Enable **Privacy mode**.
 2. [ ] **Sync now** (note: history section should not overwrite remote learning while incognito).
 
-**Pass:** no unexpected history export; dictionary/settings still sync if enabled.
+**Pass:** no unexpected history export; dictionary sync still works if enabled.
 
-## Test 6 — Wrong key rejected
+## Test 5 — Wrong key rejected
 
 On **Device B**:
 
@@ -142,21 +129,21 @@ On **Device B**:
 
 **Pass:** error message (decryption / wrong key); local data not corrupted.
 
-## Test 7 — Auto-sync interval (optional)
+## Test 6 — Auto-sync interval (optional)
 
 On **Device A**:
 
-1. [ ] Set auto-sync to **Every N minutes** (e.g. 5 for testing).
-2. [ ] Add a dictionary entry; do **not** click Sync now.
-3. [ ] Wait one interval; confirm bundle file mtime updates.
+1. [x] Set auto-sync to **Every N minutes** (e.g. 5 for testing).
+2. [x] Add a dictionary entry; do **not** click Sync now.
+3. [x] Wait one interval; confirm bundle file mtime updates.
 
 On **Device B**:
 
-4. [ ] Wait for cloud sync + interval (or mtime poll); pull via **Sync now** or wait for scheduler.
+4. [x] Wait for cloud sync + interval (or mtime poll); pull via **Sync now** or wait for scheduler.
 
 **Pass:** change appears without manual Sync on A.
 
-## Test 8 — Sync overlay blocks input (Linux / macOS)
+## Test 7 — Sync overlay blocks input (Linux / macOS)
 
 On **Device A** during an active sync (click **Sync now** with a large dictionary, or watch `sync.status.json` for `state=running`):
 
@@ -166,7 +153,7 @@ On **Device A** during an active sync (click **Sync now** with a large dictionar
 
 **Pass:** input blocked during sync; overlay/beep on blocked keystrokes.
 
-## Test 9 — Composition skip (smoke test)
+## Test 8 — Composition skip (smoke test)
 
 On **Device A**:
 
@@ -177,14 +164,14 @@ On **Device A**:
 
 ## Cleanup
 
-- [ ] Remove test dictionary entries (`試験同期A`, `試験同期B`) from both devices and sync once.
-- [ ] Document any failures with: OS, build version, sync file path, error text, and whether cloud file mtime changed.
+- [x] Remove test dictionary entries (`試験同期A`, `試験同期B`) from both devices and sync once.
+- [x] Document any failures with: OS, build version, sync file path, error text, and whether cloud file mtime changed.
 
 ## Quick reference — file locations
 
 | Item | macOS | Linux |
 |------|-------|-------|
-| Sync settings | `~/Library/Application Support/marinaMoji/sync.conf` | `~/.config/marinamoji/sync.conf` |
+| Sync configuration | `~/Library/Application Support/marinaMoji/sync.conf` | `~/.config/marinamoji/sync.conf` |
 | Sync key (local) | `~/Library/Application Support/marinaMoji/.sync_key` | `~/.config/marinamoji/.sync_key` or `~/.sync_key` |
 | Live status | `…/sync.status.json` | `~/.config/marinamoji/sync.status.json` |
 | Activity (cooldown) | `…/sync.activity.json` | `~/.config/marinamoji/sync.activity.json` |

@@ -1,0 +1,9 @@
+/* Localized input-mode names (required for System Settings → Japanese picker). */
+
+CFBundleDisplayName = "Mode Lab";
+CFBundleName = "Mode Lab";
+com.apple.inputmethod.Japanese = "Mode Lab";
+com.apple.inputmethod.Japanese.Katakana = "カタカナ (Mode Lab)";
+com.apple.inputmethod.Japanese.HalfWidthKana = "半角カナ (Mode Lab)";
+com.apple.inputmethod.Japanese.FullWidthRoman = "全角英数 (Mode Lab)";
+com.apple.inputmethod.Roman = "英数 (Mode Lab)";

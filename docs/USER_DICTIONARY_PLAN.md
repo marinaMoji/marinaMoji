@@ -134,17 +134,15 @@ Use one encrypted bundle file in a user-selected shared folder (for example Next
 Bundle contents are merged and encrypted as one unit:
 
 - `manifest.txt`
-- `settings.pb`
 - `dictionary.tsv`
 - `history.tsv`
 
 ### Sync flow (v1)
 
-1. Export local settings/dictionary/history snapshot.
+1. Export local dictionary/history snapshot.
 2. Decrypt remote bundle if present.
 3. Merge by section:
    - dictionary dedupe key `(reading, surface, pos, locale)`,
-   - settings whitelist merge,
    - history frequency merge by fingerprint.
 4. Re-encrypt and atomically write bundle.
 5. Import merged snapshot back to local state.
@@ -153,7 +151,6 @@ Bundle contents are merged and encrypted as one unit:
 
 - Dictionary merge is additive union with tombstone deletes (see `dictionary_tombstones.tsv` in `SYNC_PLAN.md`).
 - History merge sums frequencies and preserves newest access time.
-- Settings sync only applies a vetted whitelist.
 
 ### Trigger model
 

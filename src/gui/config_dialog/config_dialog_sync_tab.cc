@@ -30,8 +30,7 @@ ConfigDialogSyncTab::ConfigDialogSyncTab(client::Client* client,
   auto* layout = new QVBoxLayout(tab_);
 
   enabled_ = new QCheckBox(
-      QObject::tr("Enable encrypted sync (settings, dictionary, history)"),
-      tab_);
+      QObject::tr("Enable encrypted sync (dictionary and history)"), tab_);
   layout->addWidget(enabled_);
 
   auto* file_row = new QHBoxLayout();
@@ -52,14 +51,11 @@ ConfigDialogSyncTab::ConfigDialogSyncTab(client::Client* client,
 
   auto* what_group = new QGroupBox(QObject::tr("What to sync"), tab_);
   auto* what_layout = new QVBoxLayout(what_group);
-  sync_settings_ = new QCheckBox(QObject::tr("Settings"), what_group);
   sync_dictionary_ = new QCheckBox(QObject::tr("User dictionary"), what_group);
   sync_history_ =
       new QCheckBox(QObject::tr("Commit / learning history"), what_group);
-  sync_settings_->setChecked(true);
   sync_dictionary_->setChecked(true);
   sync_history_->setChecked(true);
-  what_layout->addWidget(sync_settings_);
   what_layout->addWidget(sync_dictionary_);
   what_layout->addWidget(sync_history_);
   layout->addWidget(what_group);
@@ -132,7 +128,6 @@ void ConfigDialogSyncTab::LoadFromServer() {
   config_ = *config_or;
   enabled_->setChecked(config_.enabled());
   file_path_->setText(QString::fromStdString(config_.sync_file_path()));
-  sync_settings_->setChecked(config_.sync_settings());
   sync_dictionary_->setChecked(config_.sync_dictionary());
   sync_history_->setChecked(config_.sync_history());
   direction_->setCurrentIndex(direction_->findData(config_.direction()));
@@ -192,7 +187,6 @@ void ConfigDialogSyncTab::OnShowKey() {
 bool ConfigDialogSyncTab::SaveToServer() {
   config_.set_enabled(enabled_->isChecked());
   config_.set_sync_file_path(file_path_->text().toStdString());
-  config_.set_sync_settings(sync_settings_->isChecked());
   config_.set_sync_dictionary(sync_dictionary_->isChecked());
   config_.set_sync_history(sync_history_->isChecked());
   config_.set_direction(static_cast<commands::UserSyncConfig::Direction>(
@@ -218,7 +212,6 @@ void ConfigDialogSyncTab::UpdateUiState() {
         "Paste the sync key from your other device, or after changing the "
         "sync file path."));
   }
-  sync_settings_->setEnabled(ready);
   sync_dictionary_->setEnabled(ready);
   sync_history_->setEnabled(ready);
   direction_->setEnabled(ready);
@@ -311,7 +304,7 @@ void ConfigDialogSyncTab::OnSyncNow() {
   }
   if (!SaveToServer()) {
     QMessageBox::warning(tab_, QObject::tr("Sync"),
-                         QObject::tr("Could not save sync settings."));
+                         QObject::tr("Could not save sync configuration."));
     return;
   }
   if (!sync::SpawnSyncNow(/*force=*/true)) {

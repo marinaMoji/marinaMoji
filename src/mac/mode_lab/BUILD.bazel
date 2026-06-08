@@ -1,0 +1,102 @@
+# Copyright 2026 marinaMoji contributors.
+# Mode Lab — minimal IMK harness for debugging macOS input-mode sync.
+
+load(
+    "//:build_defs.bzl",
+    "MOZC_TAGS",
+    "mozc_macos_application",
+    "mozc_objc_library",
+)
+
+package(default_visibility = ["//visibility:public"])
+
+MODE_LAB_BUNDLE_PREFIX = "org.mozc.inputmethod.ModeLab"
+
+mozc_objc_library(
+    name = "mode_lab_common",
+    srcs = [
+        "mode_lab_command.m",
+        "mode_lab_event.m",
+        "mode_lab_log.m",
+        "mode_lab_mode.m",
+        "mode_lab_policy.m",
+        "mode_lab_tis.m",
+    ],
+    hdrs = [
+        "mode_lab_command.h",
+        "mode_lab_event.h",
+        "mode_lab_log.h",
+        "mode_lab_mode.h",
+        "mode_lab_policy.h",
+        "mode_lab_tis.h",
+    ],
+    sdk_frameworks = [
+        "Carbon",
+        "Cocoa",
+        "Foundation",
+    ],
+    tags = ["manual"],
+)
+
+mozc_objc_library(
+    name = "mode_lab_ime_lib",
+    srcs = [
+        "mode_lab_input_controller.m",
+        "mode_lab_main.m",
+    ],
+    hdrs = ["mode_lab_input_controller.h"],
+    sdk_frameworks = [
+        "Carbon",
+        "Cocoa",
+        "Foundation",
+        "InputMethodKit",
+    ],
+    tags = ["manual"],
+    deps = [":mode_lab_common"],
+)
+
+mozc_macos_application(
+    name = "mode_lab_ime",
+    bundle_id = MODE_LAB_BUNDLE_PREFIX,
+    bundle_name = "ModeLab",
+    infoplists = ["ModeLabIME-Info.plist"],
+    strings = [
+        "English.lproj/InfoPlist.strings",
+        "Japanese.lproj/InfoPlist.strings",
+    ],
+    app_icons = ["//data/images/mac:product_icon.icns"],
+    resources = [
+        "//data/images/mac:direct.tiff",
+        "//data/images/mac:full_ascii.tiff",
+        "//data/images/mac:full_katakana.tiff",
+        "//data/images/mac:half_katakana.tiff",
+        "//data/images/mac:hiragana.tiff",
+    ],
+    tags = ["manual"],
+    deps = [":mode_lab_ime_lib"],
+)
+
+mozc_objc_library(
+    name = "mode_lab_host_lib",
+    srcs = [
+        "mode_lab_host.m",
+        "mode_lab_sequencer.m",
+    ],
+    hdrs = ["mode_lab_sequencer.h"],
+    sdk_frameworks = [
+        "Carbon",
+        "Cocoa",
+        "Foundation",
+    ],
+    tags = ["manual"],
+    deps = [":mode_lab_common"],
+)
+
+mozc_macos_application(
+    name = "mode_lab_host",
+    bundle_id = MODE_LAB_BUNDLE_PREFIX + "Host",
+    bundle_name = "ModeLabHost",
+    infoplists = ["ModeLabHost-Info.plist"],
+    tags = ["manual"],
+    deps = [":mode_lab_host_lib"],
+)

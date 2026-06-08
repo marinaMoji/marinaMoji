@@ -144,6 +144,11 @@
 @property(readwrite, assign) NSRange replacementRange;
 @property(readwrite, retain) id imkClientForTest;
 
+/** Test-only: candidate drawing in |-delayedUpdateCandidates| is gated on the
+ * server being active.  Unit tests run without |-activateServer:|, so they set
+ * this directly to exercise the candidate-window path. */
+@property(readwrite, assign) bool imeServerActive;
+
 /** Sets the RendererReceiver used by all instances of the controller.
  * the RendererReceiver is a singleton object used as a proxy to receive messages from
  * the renderer process and propage it to the active controller instance.

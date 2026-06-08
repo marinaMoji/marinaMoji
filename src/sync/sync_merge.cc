@@ -1,15 +1,15 @@
 #include "sync/sync_merge.h"
 
 #include <algorithm>
-#include <set>
 #include <string>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/hash/hash.h"
+#include "absl/strings/numbers.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/strip.h"
-#include "protocol/config.pb.h"
 
 namespace mozc {
 namespace sync {
@@ -32,63 +32,7 @@ std::string HistoryEntryKey(absl::string_view line) {
   return absl::StrCat(fields[0], "\t", fields[1]);
 }
 
-void AppendLines(absl::string_view text, std::vector<std::string>* lines) {
-  for (absl::string_view line : absl::StrSplit(text, '\n')) {
-    line = absl::StripAsciiWhitespace(line);
-    if (line.empty() || absl::StartsWith(line, "#")) {
-      continue;
-    }
-    lines->push_back(std::string(line));
-  }
-}
-
-config::Config CopyWhitelistedFields(const config::Config& from) {
-  config::Config out;
-  out.set_use_traditional_kanji(from.use_traditional_kanji());
-  out.set_incognito_mode(from.incognito_mode());
-  out.set_history_learning_level(from.history_learning_level());
-  out.set_use_dictionary_suggest(from.use_dictionary_suggest());
-  out.set_use_history_suggest(from.use_history_suggest());
-  out.set_use_auto_conversion(from.use_auto_conversion());
-  out.set_use_realtime_conversion(from.use_realtime_conversion());
-  out.set_preedit_method(from.preedit_method());
-  out.set_session_keymap(from.session_keymap());
-  out.set_punctuation_method(from.punctuation_method());
-  out.set_symbol_method(from.symbol_method());
-  out.set_space_character_form(from.space_character_form());
-  out.set_selection_shortcut(from.selection_shortcut());
-  return out;
-}
-
 }  // namespace
-
-config::Config ExtractSyncSettings(const config::Config& config) {
-  return CopyWhitelistedFields(config);
-}
-
-config::Config ApplySyncSettings(const config::Config& local,
-                                 const config::Config& sync_subset) {
-  config::Config out = local;
-  out.set_use_traditional_kanji(sync_subset.use_traditional_kanji());
-  out.set_incognito_mode(sync_subset.incognito_mode());
-  out.set_history_learning_level(sync_subset.history_learning_level());
-  out.set_use_dictionary_suggest(sync_subset.use_dictionary_suggest());
-  out.set_use_history_suggest(sync_subset.use_history_suggest());
-  out.set_use_auto_conversion(sync_subset.use_auto_conversion());
-  out.set_use_realtime_conversion(sync_subset.use_realtime_conversion());
-  out.set_preedit_method(sync_subset.preedit_method());
-  out.set_session_keymap(sync_subset.session_keymap());
-  out.set_punctuation_method(sync_subset.punctuation_method());
-  out.set_symbol_method(sync_subset.symbol_method());
-  out.set_space_character_form(sync_subset.space_character_form());
-  out.set_selection_shortcut(sync_subset.selection_shortcut());
-  return out;
-}
-
-config::Config MergeSettingsConfig(const config::Config& local,
-                                   const config::Config& remote) {
-  return ApplySyncSettings(local, CopyWhitelistedFields(remote));
-}
 
 absl::Status MergeDictionaryTsv(absl::string_view remote_tsv,
                                 absl::string_view local_tsv,

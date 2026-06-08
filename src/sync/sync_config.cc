@@ -154,7 +154,6 @@ absl::StatusOr<commands::UserSyncConfig> LoadSyncConfig() {
   commands::UserSyncConfig config;
   config.set_enabled(ExtractJsonBool(json, "enabled", false));
   config.set_sync_file_path(ExtractJsonString(json, "sync_file_path"));
-  config.set_sync_settings(ExtractJsonBool(json, "sync_settings", true));
   config.set_sync_dictionary(ExtractJsonBool(json, "sync_dictionary", true));
   config.set_sync_history(ExtractJsonBool(json, "sync_history", true));
   config.set_direction(static_cast<commands::UserSyncConfig::Direction>(
@@ -186,8 +185,6 @@ absl::Status SaveSyncConfig(const commands::UserSyncConfig& config) {
       normalized.enabled() ? "true" : "false", ",\n"
       "  \"sync_file_path\": \"", JsonEscape(normalized.sync_file_path()),
       "\",\n"
-      "  \"sync_settings\": ",
-      normalized.sync_settings() ? "true" : "false", ",\n"
       "  \"sync_dictionary\": ",
       normalized.sync_dictionary() ? "true" : "false", ",\n"
       "  \"sync_history\": ",
@@ -251,8 +248,6 @@ absl::Status SaveSyncBaselines(const SyncFingerprintSnapshot& baselines) {
       normalized.enabled() ? "true" : "false", ",\n"
       "  \"sync_file_path\": \"", JsonEscape(normalized.sync_file_path()),
       "\",\n"
-      "  \"sync_settings\": ",
-      normalized.sync_settings() ? "true" : "false", ",\n"
       "  \"sync_dictionary\": ",
       normalized.sync_dictionary() ? "true" : "false", ",\n"
       "  \"sync_history\": ",

@@ -3,10 +3,8 @@
 #include <fstream>
 #include <string>
 
-#include "absl/strings/str_cat.h"
 #include "base/config_file_stream.h"
 #include "base/file_util.h"
-#include "config/config_handler.h"
 #include "sodium/crypto_hash_sha256.h"
 
 namespace mozc {
@@ -70,12 +68,6 @@ absl::StatusOr<std::string> LocalSyncDataSha256(
     const commands::UserSyncConfig& config) {
   crypto_hash_sha256_state state;
   crypto_hash_sha256_init(&state);
-
-  if (config.sync_settings()) {
-    const std::string config_path = ConfigFileStream::GetFileName(
-        absl::StrCat("user://config", config::kConfigVersion, ".db"));
-    MaybeHashFile(&state, config_path, "settings:");
-  }
 
   if (config.sync_dictionary()) {
     const std::string dict_path =

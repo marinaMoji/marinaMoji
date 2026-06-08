@@ -6,7 +6,6 @@ This document describes the shipped v1 sync implementation for marinaMoji on **m
 
 v1 sync covers:
 
-- selected user settings (`config.proto` whitelist),
 - user dictionary entries (TSV merge),
 - user history (portable TSV merge).
 
@@ -66,7 +65,6 @@ States: `idle`, `running`, `done`, `error`.
 Plaintext bundle (zip) includes:
 
 - `manifest.txt`
-- `settings.pb`
 - `dictionary.tsv`
 - `dictionary_tombstones.tsv` (delete log; compacted after merge)
 - `history.tsv`
@@ -96,9 +94,6 @@ This is intentionally separate from Mozc machine-bound encryption, so synced fil
   - tombstone row: `reading\tsurface\tpos\tlocale\tdeleted_at_unix\tdevice_id`
   - local tombstone log: `dictionary_tombstones.local.tsv` in the profile directory (written when Dictionary Tool saves deletions)
   - compaction: drop tombstones for re-added keys; drop tombstones older than 90 days when the key is absent from the merged dictionary
-- **Settings**
-  - whitelist-only merge in `sync_merge`
-  - local defaults preserved when remote values are missing
 - **History**
   - key: `Fingerprint(key, value)`
   - sum `suggestion_freq` and `shown_freq`
@@ -121,7 +116,7 @@ Legacy sync config IPC (`GET_USER_SYNC_CONFIG`, `PERFORM_USER_SYNC`, etc.) is **
 1. `GET_SYNC_STATE` → abort if any session is composing (unless `--force`).
 2. Check cooldown vs `sync.activity.json` + `sync_cooldown_seconds` (unless forced).
 3. Write `sync.status.json` state `running`.
-4. `BEGIN_SYNC_LOCK` → `SYNC_DATA` (flush) → file export/merge/encrypt/import → `RELOAD_AND_WAIT` (reload `config1.db` + dictionary + history in converter) → `END_SYNC_LOCK`.
+4. `BEGIN_SYNC_LOCK` → `SYNC_DATA` (flush) → file export/merge/encrypt/import → `RELOAD_AND_WAIT` (reload dictionary + history in converter) → `END_SYNC_LOCK`.
 5. Write status `done` / `error`; update `sync.conf` last-sync fields.
 
 ## Background scheduling

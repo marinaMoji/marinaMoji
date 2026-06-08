@@ -42,7 +42,6 @@ class ConfigDialogSyncTab {
   QPushButton* generate_key_;
   QPushButton* enter_key_;
   QPushButton* sync_now_;
-  QCheckBox* sync_settings_;
   QCheckBox* sync_dictionary_;
   QCheckBox* sync_history_;
   QComboBox* direction_;

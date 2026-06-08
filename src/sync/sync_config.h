@@ -18,7 +18,7 @@ struct SyncFingerprintSnapshot {
 // Path to sync.conf in the user profile directory.
 std::string GetSyncConfigPath();
 
-// Load/save sync settings from sync.conf (JSON sidecar).
+// Load/save sync configuration from sync.conf (JSON sidecar).
 absl::StatusOr<commands::UserSyncConfig> LoadSyncConfig();
 absl::Status SaveSyncConfig(const commands::UserSyncConfig& config);
 

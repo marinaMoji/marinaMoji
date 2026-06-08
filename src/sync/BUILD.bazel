@@ -127,7 +127,6 @@ mozc_cc_library(
     srcs = ["sync_merge.cc"],
     hdrs = ["sync_merge.h"],
     deps = [
-        "//protocol:config_cc_proto",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/hash",
         "@com_google_absl//absl/status",
@@ -194,7 +193,6 @@ mozc_cc_library(
         ":sync_config",
         "//base:config_file_stream",
         "//base:file_util",
-        "//config:config_handler",
         "//protocol:commands_cc_proto",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

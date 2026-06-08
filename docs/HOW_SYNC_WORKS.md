@@ -1,6 +1,6 @@
 # How encrypted sync works (user guide)
 
-marinaMoji can sync your settings, user dictionary, and learning history across devices using one encrypted file.
+marinaMoji can sync your user dictionary and learning history across devices using one encrypted file.
 
 ## Before you start
 
@@ -19,7 +19,6 @@ marinaMoji does not provide cloud transport. It only reads and writes a local fi
 3. Enable encrypted sync.
 4. Pick a sync file path (for example `.../marinamoji_sync.mmz.enc` in your synced folder).
 5. Choose what to sync:
-   - Settings
    - User dictionary
    - Commit / learning history
 6. Click **Generate sync key** once and copy it (or **Show sync key** on the primary device later).
@@ -59,8 +58,7 @@ When interval mode is enabled, marinaMoji also checks bundle file modification t
 ## Troubleshooting
 
 - **"Sync key not set"**: generate or enter a key first (see key path below).
-- **Dictionary syncs but settings / history do not**: rebuild after the converter reload fix (`SessionHandler::ReloadAndWait` must call `ConfigHandler::Reload()`). Until then, settings were written to `config1.db` but the running converter kept the old in-memory config.
-- **Settings that sync (whitelist only)**: traditional kanji (`use_traditional_kanji`), history learning level, dictionary/history suggestions, auto/realtime conversion, preedit method, keymap, punctuation/symbol/space forms, selection shortcut — not toolbar layout or every Preferences field.
+- **Dictionary syncs but history does not**: confirm **Commit / learning history** is enabled on both devices and **Privacy mode / incognito** is off.
 - **History not exported**: skipped while **Privacy mode / incognito** is on, or if **Commit / learning history** is unchecked in Sync. Commit a phrase several times on the source machine, sync, then sync on the other device.
 - **"Invalid sync file magic" / decryption error**: wrong key or corrupted file.
 - **`PERMISSION_DENIED: Cannot write sync file`**: marinaMoji could read the bundle but **cannot write** to the sync file path. Common on a second Mac / VM:
@@ -82,7 +80,7 @@ When interval mode is enabled, marinaMoji also checks bundle file modification t
 
 | Item | Path |
 |------|------|
-| Sync settings | `~/Library/Application Support/marinaMoji/sync.conf` |
+| Sync configuration | `~/Library/Application Support/marinaMoji/sync.conf` |
 | Sync key | `~/Library/Application Support/marinaMoji/.sync_key` |
 | Sync status | `~/Library/Application Support/marinaMoji/sync.status.json` |
 

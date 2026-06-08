@@ -1051,9 +1051,9 @@ message UserHistoryData {
 
 // Encrypted cross-device user data sync (marinaMoji).
 message UserSyncConfig {
+  reserved 3;  // deprecated
   optional bool enabled = 1 [default = false];
   optional string sync_file_path = 2;
-  optional bool sync_settings = 3 [default = true];
   optional bool sync_dictionary = 4 [default = true];
   optional bool sync_history = 5 [default = true];
   enum Direction {

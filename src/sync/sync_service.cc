@@ -21,7 +21,6 @@
 #include "dictionary/user_dictionary_storage.h"
 #include "dictionary/user_pos.h"
 #include "prediction/user_history_storage.h"
-#include "protocol/config.pb.h"
 #include "sync/sync_bundle.h"
 #include "sync/sync_config.h"
 #include "sync/sync_crypto.h"
@@ -265,18 +264,6 @@ absl::StatusOr<commands::UserSyncReport> PerformSync(
   SyncBundleFiles local_files;
   local_files[std::string(kManifestFile)] = BuildManifest(config);
 
-  if (config.sync_settings()) {
-    config::Config settings =
-        ExtractSyncSettings(*config::ConfigHandler::GetSharedConfig());
-    std::string settings_pb;
-    if (!settings.SerializeToString(&settings_pb)) {
-      report.set_success(false);
-      report.set_error_message("Failed to serialize settings");
-      return report;
-    }
-    local_files[std::string(kSettingsFile)] = std::move(settings_pb);
-  }
-
   if (config.sync_dictionary()) {
     const std::string local_dict = ExportDictionaryTsv();
     local_files[std::string(kDictionaryFile)] = local_dict;
@@ -317,30 +304,6 @@ absl::StatusOr<commands::UserSyncReport> PerformSync(
         report.set_success(false);
         report.set_error_message(remote_files.status().ToString());
         return report;
-      }
-
-      if (config.sync_settings() && remote_files->contains(kSettingsFile)) {
-        config::Config remote_settings;
-        config::Config local_settings;
-        if (!local_settings.ParseFromString(local_files[kSettingsFile])) {
-          report.set_success(false);
-          report.set_error_message("Failed to parse local settings payload");
-          return report;
-        }
-        if (!remote_settings.ParseFromString((*remote_files)[kSettingsFile])) {
-          report.set_success(false);
-          report.set_error_message("Failed to parse remote settings payload");
-          return report;
-        }
-        const config::Config merged_settings =
-            MergeSettingsConfig(local_settings, remote_settings);
-        std::string settings_pb;
-        if (!merged_settings.SerializeToString(&settings_pb)) {
-          report.set_success(false);
-          report.set_error_message("Failed to serialize merged settings");
-          return report;
-        }
-        merged[kSettingsFile] = std::move(settings_pb);
       }
 
       if (config.sync_dictionary()) {
@@ -440,17 +403,6 @@ absl::StatusOr<commands::UserSyncReport> PerformSync(
 
   if (direction != commands::UserSyncConfig::UPLOAD) {
     notify("import", 0.8, "Importing merged data…");
-    if (config.sync_settings() && merged.contains(kSettingsFile)) {
-      config::Config remote_settings;
-      if (!remote_settings.ParseFromString(merged[kSettingsFile])) {
-        report.set_success(false);
-        report.set_error_message("Failed to parse merged settings payload");
-        return report;
-      }
-      config::Config applied = ApplySyncSettings(
-          *config::ConfigHandler::GetSharedConfig(), remote_settings);
-      config::ConfigHandler::SetConfig(applied);
-    }
     if (config.sync_dictionary() && merged.contains(kDictionaryFile)) {
       const absl::Status import_status = ImportDictionaryTsv(merged[kDictionaryFile]);
       if (!import_status.ok()) {

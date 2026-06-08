@@ -400,6 +400,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
 @synthesize rendererCommand = rendererCommand_;
 @synthesize replacementRange = replacementRange_;
 @synthesize imkClientForTest = imkClientForTest_;
+@synthesize imeServerActive = imeServerActive_;
 - (mozc::client::ClientInterface *)mozcClient {
   return mozcClient_.get();
 }

@@ -429,6 +429,10 @@ TEST_F(MozcImkInputControllerTest, ClearCandidates) {
 }
 
 TEST_F(MozcImkInputControllerTest, UpdateCandidates) {
+  // Candidates are only drawn while the server is active. In production this is
+  // set by -activateServer:, which is a no-op in test mode, so set it directly.
+  controller_.imeServerActive = true;
+
   // When output is null, same as ClearCandidate
   [controller_ updateCandidates:nullptr];
   // Run the runloop so "delayedUpdateCandidates" can be called
