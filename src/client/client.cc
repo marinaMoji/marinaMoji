@@ -924,6 +924,85 @@ bool Client::TranslateProtoBufToMozcToolArg(const commands::Output &output,
   return true;
 }
 
+namespace {
+
+#ifdef __APPLE__
+bool WriteWordRegisterBootstrapFile(const commands::Output &output) {
+  commands::Output bootstrap;
+  if (output.has_word_register_expression()) {
+    bootstrap.set_word_register_expression(output.word_register_expression());
+  }
+  for (int i = 0; i < output.word_register_reading_candidates_size(); ++i) {
+    bootstrap.add_word_register_reading_candidates(
+        output.word_register_reading_candidates(i));
+  }
+  const std::string profile_dir = SystemUtil::GetUserProfileDirectory();
+  const std::string path =
+      FileUtil::JoinPath(profile_dir, kWordRegisterBootstrapFileName);
+  if (!bootstrap.has_word_register_expression() &&
+      bootstrap.word_register_reading_candidates_size() == 0) {
+    FileUtil::UnlinkIfExists(path);
+    return true;
+  }
+  return FileUtil::SetContents(path, bootstrap.SerializeAsString()).ok();
+}
+#endif  // __APPLE__
+
+#ifndef __APPLE__
+void ApplyWordRegisterLaunchEnvToProcess(const commands::Output &output) {
+  if (output.has_word_register_expression()) {
+#ifdef _WIN32
+    SetEnvironmentVariableA(kWordRegisterEnvironmentName,
+                            output.word_register_expression().c_str(), 1);
+#else
+    ::setenv(kWordRegisterEnvironmentName,
+             output.word_register_expression().c_str(), 1);
+#endif
+  } else {
+#ifdef _WIN32
+    SetEnvironmentVariableA(kWordRegisterEnvironmentName, nullptr, 1);
+#else
+    ::unsetenv(kWordRegisterEnvironmentName);
+#endif
+  }
+  if (output.word_register_reading_candidates_size() > 0) {
+#ifdef _WIN32
+    SetEnvironmentVariableA(
+        kWordRegisterEnvironmentReadingName,
+        output.word_register_reading_candidates(0).c_str(), 1);
+#else
+    ::setenv(kWordRegisterEnvironmentReadingName,
+             output.word_register_reading_candidates(0).c_str(), 1);
+#endif
+    std::string candidates;
+    for (int i = 0; i < output.word_register_reading_candidates_size(); ++i) {
+      if (i > 0) {
+        candidates += '\n';
+      }
+      candidates += output.word_register_reading_candidates(i);
+    }
+#ifdef _WIN32
+    SetEnvironmentVariableA(kWordRegisterEnvironmentReadingCandidatesName,
+                            candidates.c_str(), 1);
+#else
+    ::setenv(kWordRegisterEnvironmentReadingCandidatesName, candidates.c_str(),
+             1);
+#endif
+  } else {
+#ifdef _WIN32
+    SetEnvironmentVariableA(kWordRegisterEnvironmentReadingName, nullptr, 1);
+    SetEnvironmentVariableA(kWordRegisterEnvironmentReadingCandidatesName,
+                            nullptr, 1);
+#else
+    ::unsetenv(kWordRegisterEnvironmentReadingName);
+    ::unsetenv(kWordRegisterEnvironmentReadingCandidatesName);
+#endif
+  }
+}
+#endif  // !__APPLE__
+
+}  // namespace
+
 bool Client::LaunchToolWithProtoBuf(const commands::Output &output) {
   std::string mode;
   if (!TranslateProtoBufToMozcToolArg(output, &mode)) {
@@ -931,56 +1010,17 @@ bool Client::LaunchToolWithProtoBuf(const commands::Output &output) {
   }
 
   if (mode == "word_register_dialog") {
-    if (output.has_word_register_expression()) {
-#ifdef _WIN32
-      SetEnvironmentVariableA(kWordRegisterEnvironmentName,
-                             output.word_register_expression().c_str(), 1);
-#else
-      ::setenv(kWordRegisterEnvironmentName,
-               output.word_register_expression().c_str(), 1);
-#endif
-    } else {
-#ifdef _WIN32
-      SetEnvironmentVariableA(kWordRegisterEnvironmentName, nullptr, 1);
-#else
-      ::unsetenv(kWordRegisterEnvironmentName);
-#endif
+#ifdef __APPLE__
+    if (!IsValidRunLevel()) {
+      return false;
     }
-    if (output.word_register_reading_candidates_size() > 0) {
-#ifdef _WIN32
-      SetEnvironmentVariableA(
-          kWordRegisterEnvironmentReadingName,
-          output.word_register_reading_candidates(0).c_str(), 1);
-#else
-      ::setenv(kWordRegisterEnvironmentReadingName,
-               output.word_register_reading_candidates(0).c_str(), 1);
-#endif
-      std::string candidates;
-      for (int i = 0; i < output.word_register_reading_candidates_size();
-           ++i) {
-        if (i > 0) {
-          candidates += '\n';
-        }
-        candidates += output.word_register_reading_candidates(i);
-      }
-#ifdef _WIN32
-      SetEnvironmentVariableA(
-          kWordRegisterEnvironmentReadingCandidatesName, candidates.c_str(),
-          1);
-#else
-      ::setenv(kWordRegisterEnvironmentReadingCandidatesName,
-               candidates.c_str(), 1);
-#endif
-    } else {
-#ifdef _WIN32
-      SetEnvironmentVariableA(kWordRegisterEnvironmentReadingName, nullptr, 1);
-      SetEnvironmentVariableA(
-          kWordRegisterEnvironmentReadingCandidatesName, nullptr, 1);
-#else
-      ::unsetenv(kWordRegisterEnvironmentReadingName);
-      ::unsetenv(kWordRegisterEnvironmentReadingCandidatesName);
-#endif
+    if (!WriteWordRegisterBootstrapFile(output)) {
+      LOG(WARNING) << "Failed to write word register bootstrap file";
     }
+    return MacProcess::LaunchMozcTool(mode);
+#else
+    ApplyWordRegisterLaunchEnvToProcess(output);
+#endif
   }
 
   return LaunchTool(mode, "");

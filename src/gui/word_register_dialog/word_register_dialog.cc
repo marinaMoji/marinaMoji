@@ -33,6 +33,7 @@
 #include <QtGui>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -41,7 +42,10 @@
 #include "absl/status/status.h"
 #include "absl/time/time.h"
 #include "base/const.h"
+#include "base/file_util.h"
+#include "base/system_util.h"
 #include "client/client.h"
+#include "protocol/commands.pb.h"
 #include "data_manager/pos_list_provider.h"
 #include "dictionary/user_dictionary_storage.h"
 #include "dictionary/user_dictionary_util.h"
@@ -99,7 +103,11 @@ QString GetEnv(const char* envname) {
   return QLatin1String("");
 #endif  // _WIN32
 #if defined(__APPLE__) || defined(__linux__)
-  return QString::fromUtf8(::getenv(envname));
+  const char *value = ::getenv(envname);
+  if (value == nullptr) {
+    return QLatin1String("");
+  }
+  return QString::fromUtf8(value);
 #endif  // __APPLE__ or __linux__
   // TODO(team): Support other platforms.
   return QLatin1String("");
@@ -122,7 +130,12 @@ WordRegisterDialog::WordRegisterDialog()
   }
   WordlineEdit->setMaxLength(kMaxEditLength);
 
+#if defined(__APPLE__)
+  if (!SetDefaultEntryFromBootstrapFile() &&
+      !SetDefaultEntryFromEnvironmentVariable()) {
+#else
   if (!SetDefaultEntryFromEnvironmentVariable()) {
+#endif
 #ifdef _WIN32
     // On Windows, try to use clipboard as a fallback.
     SetDefaultEntryFromClipboard();
@@ -445,6 +458,38 @@ void WordRegisterDialog::CopyCurrentSelectionToClipboard() {
 #endif  // _WIN32
 }
 
+namespace {
+
+void ApplyWordRegisterReadingCandidates(
+    const QString& candidates_str, const QString& primary_reading,
+    const QString& entry, QComboBox* reading_line_edit,
+    const std::function<QString(const QString&)>& get_reading) {
+  if (!candidates_str.isEmpty()) {
+    reading_line_edit->clear();
+    const QStringList parts = candidates_str.split('\n', Qt::SkipEmptyParts);
+    for (const QString& part : parts) {
+      const QString trimmed = part.trimmed();
+      if (!trimmed.isEmpty()) {
+        reading_line_edit->addItem(trimmed);
+      }
+    }
+    if (reading_line_edit->count() > 0) {
+      reading_line_edit->setCurrentIndex(0);
+    }
+  }
+  if (reading_line_edit->currentText().isEmpty()) {
+    QString reading_string = primary_reading;
+    if (reading_string.isEmpty()) {
+      reading_string = get_reading(entry);
+    }
+    if (!reading_string.isEmpty()) {
+      reading_line_edit->setCurrentText(reading_string);
+    }
+  }
+}
+
+}  // namespace
+
 bool WordRegisterDialog::SetDefaultEntryFromEnvironmentVariable() {
   const QString entry = TrimValue(GetEnv(mozc::kWordRegisterEnvironmentName));
   if (entry.isEmpty()) {
@@ -452,35 +497,61 @@ bool WordRegisterDialog::SetDefaultEntryFromEnvironmentVariable() {
   }
   WordlineEdit->setText(entry);
 
-  // Do not use TrimValue here so newline-separated candidates are preserved.
   const QString candidates_str =
       GetEnv(mozc::kWordRegisterEnvironmentReadingCandidatesName).trimmed();
-  if (!candidates_str.isEmpty()) {
-    ReadinglineEdit->clear();
-    const QStringList parts = candidates_str.split('\n', Qt::SkipEmptyParts);
-    for (const QString& part : parts) {
-      const QString trimmed = part.trimmed();
-      if (!trimmed.isEmpty()) {
-        ReadinglineEdit->addItem(trimmed);
-      }
-    }
-    if (ReadinglineEdit->count() > 0) {
-      ReadinglineEdit->setCurrentIndex(0);
-    }
-  }
-  if (ReadinglineEdit->currentText().isEmpty()) {
-    QString reading_string =
-        TrimValue(GetEnv(mozc::kWordRegisterEnvironmentReadingName));
-    if (reading_string.isEmpty()) {
-      reading_string = GetReading(entry);
-    }
-    if (!reading_string.isEmpty()) {
-      ReadinglineEdit->setCurrentText(reading_string);
-    }
-  }
+  const QString primary_reading =
+      TrimValue(GetEnv(mozc::kWordRegisterEnvironmentReadingName));
+  ApplyWordRegisterReadingCandidates(
+      candidates_str, primary_reading, entry, ReadinglineEdit,
+      [this](const QString& value) { return GetReading(value); });
 
   return true;
 }
+
+#if defined(__APPLE__)
+bool WordRegisterDialog::SetDefaultEntryFromBootstrapFile() {
+  const std::string path = FileUtil::JoinPath(
+      SystemUtil::GetUserProfileDirectory(), kWordRegisterBootstrapFileName);
+  const absl::StatusOr<std::string> content = FileUtil::GetContents(path);
+  static_cast<void>(FileUtil::UnlinkIfExists(path));
+  if (!content.ok() || content->empty()) {
+    return false;
+  }
+
+  commands::Output output;
+  if (!output.ParseFromString(*content)) {
+    return false;
+  }
+  if (!output.has_word_register_expression() ||
+      output.word_register_expression().empty()) {
+    return false;
+  }
+
+  const QString entry =
+      QString::fromUtf8(output.word_register_expression().c_str());
+  WordlineEdit->setText(entry);
+
+  QString candidates_str;
+  for (int i = 0; i < output.word_register_reading_candidates_size(); ++i) {
+    if (i > 0) {
+      candidates_str += QLatin1Char('\n');
+    }
+    candidates_str += QString::fromUtf8(
+        output.word_register_reading_candidates(i).c_str());
+  }
+  QString primary_reading;
+  if (output.word_register_reading_candidates_size() > 0) {
+    primary_reading = QString::fromUtf8(
+        output.word_register_reading_candidates(0).c_str());
+  }
+  ApplyWordRegisterReadingCandidates(
+      candidates_str.trimmed(), primary_reading.trimmed(), entry,
+      ReadinglineEdit,
+      [this](const QString& value) { return GetReading(value); });
+
+  return true;
+}
+#endif  // __APPLE__
 
 QString WordRegisterDialog::TrimValue(const QString& str) const {
   return str.trimmed()

@@ -1194,19 +1194,50 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   replacementRange_ = NSMakeRange(NSNotFound, 0);
 }
 
+- (void)launchWordRegisterDialog {
+  [self launchWordRegisterTool:[self client] output:nullptr];
+}
+
 - (void)launchWordRegisterTool:(id)client {
+  [self launchWordRegisterTool:client output:nullptr];
+}
+
+- (void)launchWordRegisterTool:(id)client
+                        output:(const mozc::commands::Output *)output {
   mozc::mac::MozcImkNotifyToolLaunchStarting();
-  ::setenv(mozc::kWordRegisterEnvironmentName, "", 1);
+
   if (CanSelectedRange(clientBundle_)) {
     NSRange selectedRange = [client selectedRange];
     if (selectedRange.location != NSNotFound && selectedRange.length != NSNotFound &&
         selectedRange.length > 0) {
       NSString *text = [[client attributedSubstringFromRange:selectedRange] string];
-      if (text != nil) {
-        ::setenv(mozc::kWordRegisterEnvironmentName, [text UTF8String], 1);
+      if (text != nil && [text length] > 0) {
+        mozc::commands::Output selection_output;
+        selection_output.set_launch_tool_mode(
+            mozc::commands::Output::WORD_REGISTER_DIALOG);
+        selection_output.set_word_register_expression([text UTF8String]);
+        mozcClient_->LaunchToolWithProtoBuf(selection_output);
+        return;
       }
     }
   }
+
+  if (output != nullptr && output->has_launch_tool_mode()) {
+    mozcClient_->LaunchToolWithProtoBuf(*output);
+    return;
+  }
+
+  mozc::commands::KeyEvent key;
+  key.set_key_code('0');
+  key.add_modifier_keys(mozc::commands::KeyEvent::CTRL);
+  key.add_modifier_keys(mozc::commands::KeyEvent::SHIFT);
+  mozc::commands::Output launch_output;
+  if (mozcClient_->SendKey(key, &launch_output) &&
+      launch_output.has_launch_tool_mode()) {
+    mozcClient_->LaunchToolWithProtoBuf(launch_output);
+    return;
+  }
+
   MacProcess::LaunchMozcTool("word_register_dialog");
 }
 
@@ -1448,7 +1479,7 @@ bool IsConfigOnlySessionOutput(const Output &output) {
         MacProcess::LaunchMozcTool("dictionary_tool");
         break;
       case mozc::commands::Output::WORD_REGISTER_DIALOG:
-        [self launchWordRegisterTool:sender];
+        [self launchWordRegisterTool:sender output:output];
         break;
       default:
         // do nothing

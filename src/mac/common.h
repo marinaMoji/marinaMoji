@@ -55,6 +55,9 @@
  * @param data an Output protobuf message.
  */
 - (void)outputResult:(const mozc::commands::Output &)output;
+
+/** Opens the word register dialog with server-side prefill when available. */
+- (void)launchWordRegisterDialog;
 @end
 
 /** ServerCallback is a protocol to send the events (e.g. mouse click of a candidate word)

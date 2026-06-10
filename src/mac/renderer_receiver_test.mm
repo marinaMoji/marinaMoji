@@ -66,6 +66,8 @@ class RendererReceiverTest : public testing::Test {
   _receivedOutput = output;
   ++_numOutputResult;
 }
+
+- (void)launchWordRegisterDialog {}
 @end
 
 TEST_F(RendererReceiverTest, sendData) {

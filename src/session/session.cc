@@ -2511,6 +2511,21 @@ bool Session::LaunchDictionaryTool(commands::Command* command) {
   return DoNothing(command);
 }
 
+namespace {
+void AddWordRegisterReadingCandidateIfNew(
+    commands::Output* output, const std::string& reading) {
+  if (reading.empty()) {
+    return;
+  }
+  for (int i = 0; i < output->word_register_reading_candidates_size(); ++i) {
+    if (output->word_register_reading_candidates(i) == reading) {
+      return;
+    }
+  }
+  output->add_word_register_reading_candidates(reading);
+}
+}  // namespace
+
 bool Session::LaunchWordRegisterDialog(commands::Command* command) {
   commands::Output* const output = command->mutable_output();
   output->set_launch_tool_mode(commands::Output::WORD_REGISTER_DIALOG);
@@ -2523,23 +2538,21 @@ bool Session::LaunchWordRegisterDialog(commands::Command* command) {
     // Prefer the user's typed reading (preedit with boundary "|" stripped).
     std::string preedit = context_->composer().GetStringForPreedit();
     preedit.erase(std::remove(preedit.begin(), preedit.end(), '|'), preedit.end());
-    if (!preedit.empty()) {
-      output->add_word_register_reading_candidates(preedit);
-    }
+    AddWordRegisterReadingCandidateIfNew(output, preedit);
     // Add reverse-conversion result as an alternative (e.g. dictionary reading).
     std::string reading;
-    if (context_->mutable_converter()->GetReadingText(expression, &reading) &&
-        !reading.empty()) {
-      output->add_word_register_reading_candidates(reading);
+    if (context_->mutable_converter()->GetReadingText(expression, &reading)) {
+      AddWordRegisterReadingCandidateIfNew(output, reading);
     }
-  } else if (context_->state() == ImeContext::PRECOMPOSITION &&
-             !last_committed_expression_.empty()) {
+  } else if (!last_committed_expression_.empty()) {
     output->set_word_register_expression(last_committed_expression_);
-    std::string reading;
-    if (context_->mutable_converter()->GetReadingText(last_committed_expression_,
-                                                     &reading) &&
-        !reading.empty()) {
-      output->add_word_register_reading_candidates(reading);
+    AddWordRegisterReadingCandidateIfNew(output, last_committed_reading_);
+    if (last_committed_reading_.empty()) {
+      std::string reading;
+      if (context_->mutable_converter()->GetReadingText(
+              last_committed_expression_, &reading)) {
+        AddWordRegisterReadingCandidateIfNew(output, reading);
+      }
     }
   }
 

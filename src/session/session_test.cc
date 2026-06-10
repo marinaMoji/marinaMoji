@@ -980,6 +980,42 @@ TEST_F(SessionTest, LaunchWordRegisterDialogFromDirectInput) {
             commands::Output::WORD_REGISTER_DIALOG);
 }
 
+TEST_F(SessionTest, LaunchWordRegisterDialogPrefillFromCommitBuffer) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  SessionTestPeer peer(session);
+  peer.last_committed_expression_() = "東京";
+  peer.last_committed_reading_() = "とうきょう";
+
+  commands::Command command;
+  EXPECT_TRUE(session.LaunchWordRegisterDialog(&command));
+  EXPECT_EQ(command.output().launch_tool_mode(),
+            commands::Output::WORD_REGISTER_DIALOG);
+  EXPECT_EQ(command.output().word_register_expression(), "東京");
+  ASSERT_EQ(command.output().word_register_reading_candidates_size(), 1);
+  EXPECT_EQ(command.output().word_register_reading_candidates(0), "とうきょう");
+}
+
+TEST_F(SessionTest, LaunchWordRegisterDialogPrefillFromDirectAfterCommit) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToDirect(&session);
+
+  SessionTestPeer peer(session);
+  peer.last_committed_expression_() = "google";
+  peer.last_committed_reading_() = "google";
+
+  commands::Command command;
+  EXPECT_TRUE(SendKey("Ctrl Shift 0", &session, &command));
+  EXPECT_EQ(command.output().word_register_expression(), "google");
+  ASSERT_EQ(command.output().word_register_reading_candidates_size(), 1);
+  EXPECT_EQ(command.output().word_register_reading_candidates(0), "google");
+}
+
 TEST_F(SessionTest, StoreLastCommitBufferOnCompositionCommit) {
   MockEngine engine;
   CreateEngineConverterMock(&engine);

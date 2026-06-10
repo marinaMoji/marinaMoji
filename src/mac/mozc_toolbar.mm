@@ -1043,6 +1043,11 @@ std::string GetKeymapPath(const std::string &filename) {
 
 - (void)dictClicked:(id)sender {
   if (!client_) return;
+  id<ControllerCallback> controller = g_active_controller;
+  if (controller) {
+    [controller launchWordRegisterDialog];
+    return;
+  }
   mozc::mac::MozcImkNotifyToolLaunchStarting();
   client_->LaunchTool("word_register_dialog", "");
 }
