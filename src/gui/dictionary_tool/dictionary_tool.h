@@ -236,6 +236,9 @@ class DictionaryTool : public QMainWindow, private Ui::DictionaryTool {
   bool monitoring_user_edit_;
 
   bool is_available_;
+
+  // closeEvent already ran SaveAndReloadServer; skip duplicate OnDeactivate.
+  bool reloaded_on_close_ = false;
 };
 
 }  // namespace gui

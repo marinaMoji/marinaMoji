@@ -159,6 +159,21 @@ CompositionMode NormalizeModeForEmptyHalfAscii(CompositionMode mode,
   return mode;
 }
 
+bool OutputLaunchesMozcTool(const Output &output) {
+  return output.has_launch_tool_mode() &&
+         output.launch_tool_mode() != Output::NO_TOOL;
+}
+
+// Server |status.activated() == false| means the converter session is off
+// (e.g. focus left the host), not that the user chose DIRECT composition mode.
+bool ShouldPreserveClientCompositionMode(const Output &output,
+                                         CompositionMode current_mode,
+                                         CompositionMode new_mode) {
+  return output.has_status() && !output.status().activated() &&
+         current_mode != mozc::commands::DIRECT &&
+         new_mode == mozc::commands::DIRECT;
+}
+
 #if 0  // Input Mode submenu disabled (see setupMarinaImeMenuIfNeeded).
 // Maps server mode to the IBUS-style input-mode menu (Manyōshū → Katakana).
 CompositionMode CompositionModeForImeMenu(CompositionMode mode) {
@@ -442,6 +457,9 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   suppressSetValueUntil_ = 0;
   processOutputDepth_ = 0;
   imeServerActive_ = false;
+  cachedMenuConfigValid_ = false;
+  cachedUseTraditionalKanji_ = false;
+  cachedPrivacyMode_ = false;
   yenSignCharacter_ = mozc::config::Config::YEN_SIGN;
   mozcRenderer_ = mozc::renderer::RendererClient::Create();
   mozcClient_ = mozc::client::ClientFactory::NewClient();
@@ -588,10 +606,20 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
     bool use_trad = false;
     if (output != nullptr && output->has_config()) {
       use_trad = output->config().use_traditional_kanji();
+      cachedMenuConfigValid_ = true;
+      cachedUseTraditionalKanji_ = use_trad;
+      if (output->config().has_incognito_mode()) {
+        cachedPrivacyMode_ = output->config().incognito_mode();
+      }
+    } else if (cachedMenuConfigValid_) {
+      use_trad = cachedUseTraditionalKanji_;
     } else if (mozcClient_ != nullptr) {
       Config config;
       if (mozcClient_->GetConfig(&config)) {
         use_trad = config.use_traditional_kanji();
+        cachedMenuConfigValid_ = true;
+        cachedUseTraditionalKanji_ = use_trad;
+        cachedPrivacyMode_ = config.incognito_mode();
       }
     }
     traditionalKanjiMenuItem_.state =
@@ -602,10 +630,20 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
     bool privacy_on = false;
     if (output != nullptr && output->has_config()) {
       privacy_on = output->config().incognito_mode();
+      cachedMenuConfigValid_ = true;
+      cachedPrivacyMode_ = privacy_on;
+      if (output->config().has_use_traditional_kanji()) {
+        cachedUseTraditionalKanji_ = output->config().use_traditional_kanji();
+      }
+    } else if (cachedMenuConfigValid_) {
+      privacy_on = cachedPrivacyMode_;
     } else if (mozcClient_ != nullptr) {
       Config config;
       if (mozcClient_->GetConfig(&config)) {
         privacy_on = config.incognito_mode();
+        cachedMenuConfigValid_ = true;
+        cachedPrivacyMode_ = privacy_on;
+        cachedUseTraditionalKanji_ = config.use_traditional_kanji();
       }
     }
     privacyModeMenuItem_.state =
@@ -757,6 +795,10 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
     [super setValue:value forTag:tag client:sender];
     return;
   }
+  if (mozc::mac::MozcImkShouldSuppressSetValueDirect()) {
+    [super setValue:value forTag:tag client:sender];
+    return;
+  }
   if (mode_ != mozc::commands::DIRECT) {
     if (MarinaImkTraceEnabled()) {
       LOG(INFO) << "[marinaImk] setValue mode " << CompositionModeName(mode_)
@@ -794,6 +836,9 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
 
   CompositionMode new_mode = NormalizeModeForEmptyHalfAscii(
       EffectiveCompositionMode(output, mode_), output);
+  if (ShouldPreserveClientCompositionMode(output, mode_, new_mode)) {
+    new_mode = mode_;
+  }
   mode_ = new_mode;
   mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
   mozc::mac::MozcToolbarUpdate(output, mode_);
@@ -1020,6 +1065,9 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
     LOG(ERROR) << "Cannot obtain the current config";
     return;
   }
+  cachedMenuConfigValid_ = true;
+  cachedUseTraditionalKanji_ = config.use_traditional_kanji();
+  cachedPrivacyMode_ = config.incognito_mode();
 
   InputMode input_mode = ASCII;
   if (config.preedit_method() == Config::KANA) {
@@ -1147,6 +1195,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
 }
 
 - (void)launchWordRegisterTool:(id)client {
+  mozc::mac::MozcImkNotifyToolLaunchStarting();
   ::setenv(mozc::kWordRegisterEnvironmentName, "", 1);
   if (CanSelectedRange(clientBundle_)) {
     NSRange selectedRange = [client selectedRange];
@@ -1299,18 +1348,30 @@ bool IsConfigOnlySessionOutput(const Output &output) {
               << " consumed=" << output->consumed() << " mode_=" << CompositionModeName(mode_);
   }
 
+  const bool launching_tool = OutputLaunchesMozcTool(*output);
+  if (launching_tool) {
+    mozc::mac::MozcImkNotifyToolLaunchStarting();
+  }
+
   if (!output->consumed()) {
     [self applyCommitAndPreeditFromOutput:output
                                    client:sender
                   allowClearWithoutPreedit:NO];
-    if (output->has_status() || output->has_mode()) {
-      const CompositionMode new_mode = NormalizeModeForEmptyHalfAscii(
+    if (!launching_tool && (output->has_status() || output->has_mode())) {
+      CompositionMode new_mode = NormalizeModeForEmptyHalfAscii(
           EffectiveCompositionMode(*output, mode_), *output);
+      if (ShouldPreserveClientCompositionMode(*output, mode_, new_mode)) {
+        new_mode = mode_;
+      }
       mode_ = new_mode;
       mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
     }
     [self syncCandidatesWithOutput:output];
-    mozc::mac::MozcToolbarUpdate(*output, mode_);
+    if (launching_tool) {
+      mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+    } else {
+      mozc::mac::MozcToolbarUpdate(*output, mode_);
+    }
     [self updateImeMenuState:output];
     --processOutputDepth_;
     return;
@@ -1352,9 +1413,12 @@ bool IsConfigOnlySessionOutput(const Output &output) {
 
   [self syncCandidatesWithOutput:output];
 
-  if (output->has_mode() || output->has_status()) {
+  if (!launching_tool && (output->has_mode() || output->has_status())) {
     CompositionMode new_mode = NormalizeModeForEmptyHalfAscii(
         EffectiveCompositionMode(*output, mode_), *output);
+    if (ShouldPreserveClientCompositionMode(*output, mode_, new_mode)) {
+      new_mode = mode_;
+    }
     // Do not allow HALF_ASCII with empty composition.  This should be
     // handled in the converter, but just in case.
     if (new_mode != mode_) {
@@ -1375,7 +1439,7 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     }
   }
 
-  if (output->has_launch_tool_mode()) {
+  if (launching_tool) {
     switch (output->launch_tool_mode()) {
       case mozc::commands::Output::CONFIG_DIALOG:
         MacProcess::LaunchMozcTool("config_dialog");
@@ -1392,7 +1456,11 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     }
   }
 
-  mozc::mac::MozcToolbarUpdate(*output, mode_);
+  if (launching_tool) {
+    mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+  } else {
+    mozc::mac::MozcToolbarUpdate(*output, mode_);
+  }
   [self updateImeMenuState:output];
 
   // Handle callbacks.
@@ -1826,10 +1894,12 @@ bool IsConfigOnlySessionOutput(const Output &output) {
 }
 
 - (IBAction)configClicked:(id)sender {
+  mozc::mac::MozcImkNotifyToolLaunchStarting();
   MacProcess::LaunchMozcTool("config_dialog");
 }
 
 - (IBAction)dictionaryToolClicked:(id)sender {
+  mozc::mac::MozcImkNotifyToolLaunchStarting();
   MacProcess::LaunchMozcTool("dictionary_tool");
 }
 

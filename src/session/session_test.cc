@@ -87,6 +87,8 @@ class SessionTestPeer : testing::TestPeer<Session> {
 
   PEER_VARIABLE(context_);
   PEER_VARIABLE(undo_contexts_);
+  PEER_VARIABLE(last_committed_expression_);
+  PEER_VARIABLE(last_committed_reading_);
 };
 
 namespace {
@@ -976,6 +978,60 @@ TEST_F(SessionTest, LaunchWordRegisterDialogFromDirectInput) {
   EXPECT_TRUE(SendKey("Ctrl Shift 0", &session, &command));
   EXPECT_EQ(command.output().launch_tool_mode(),
             commands::Output::WORD_REGISTER_DIALOG);
+}
+
+TEST_F(SessionTest, StoreLastCommitBufferOnCompositionCommit) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  commands::Command command;
+  InsertCharacterChars("google", &session, &command);
+  command.Clear();
+  session.Commit(&command);
+  EXPECT_EQ(command.output().result().value(), "google");
+
+  SessionTestPeer peer(session);
+  EXPECT_EQ(peer.last_committed_expression_(), "google");
+  EXPECT_EQ(peer.last_committed_reading_(), "google");
+}
+
+TEST_F(SessionTest, StoreLastCommitBufferOnConversionCommit) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToConversionWithAiueo(&session, converter.get());
+
+  commands::Command command;
+  session.Commit(&command);
+  EXPECT_TRUE(command.output().has_result());
+  EXPECT_EQ(command.output().result().value(), "あいうえお");
+
+  SessionTestPeer peer(session);
+  EXPECT_EQ(peer.last_committed_expression_(), "あいうえお");
+  EXPECT_EQ(peer.last_committed_reading_(), "あいうえお");
+}
+
+TEST_F(SessionTest, ClearLastCommitBufferOnResetContext) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  commands::Command command;
+  InsertCharacterChars("google", &session, &command);
+  command.Clear();
+  session.Commit(&command);
+
+  SessionTestPeer peer(session);
+  EXPECT_EQ(peer.last_committed_expression_(), "google");
+  EXPECT_EQ(peer.last_committed_reading_(), "google");
+
+  command.Clear();
+  session.ResetContext(&command);
+  EXPECT_TRUE(peer.last_committed_expression_().empty());
+  EXPECT_TRUE(peer.last_committed_reading_().empty());
 }
 
 TEST_F(SessionTest, SwitchCompositionModeWithCandidateList) {

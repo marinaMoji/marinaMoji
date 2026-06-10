@@ -35,6 +35,12 @@ void MozcToolbarUpdate(const commands::Output &output,
 bool MozcToolbarLoadVisiblePreference();
 void MozcToolbarSaveVisiblePreference(bool visible);
 
+// Call immediately before launching a marinaMoji tool window (dictionary, word
+// register, etc.).  macOS may send |-setValue:| DIRECT when focus leaves the
+// host app; suppress that transient signal so composition mode is preserved.
+void MozcImkNotifyToolLaunchStarting();
+bool MozcImkShouldSuppressSetValueDirect();
+
 }  // namespace mac
 }  // namespace mozc
 

@@ -132,6 +132,11 @@
 
   /** Toggle for privacy mode (incognito + no history learning). */
   NSMenuItem *privacyModeMenuItem_;
+
+  /** Cached menu checkmark state; avoids GetConfig IPC on every menu refresh. */
+  bool cachedMenuConfigValid_;
+  bool cachedUseTraditionalKanji_;
+  bool cachedPrivacyMode_;
 }
 
 /** These are externally accessible to achieve tests. */

@@ -41,6 +41,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <functional>
 #include <ios>
 #include <iosfwd>
@@ -555,6 +556,7 @@ void DictionaryTool::closeEvent(QCloseEvent* event) {
   SyncToStorage();
 
   absl::Status status = SaveAndReloadServer();
+  reloaded_on_close_ = true;
 
   if (absl::IsResourceExhausted(status)) {
     QMessageBox::warning(
@@ -567,6 +569,10 @@ void DictionaryTool::closeEvent(QCloseEvent* event) {
 }
 
 void DictionaryTool::OnDeactivate() {
+  if (reloaded_on_close_) {
+    reloaded_on_close_ = false;
+    return;
+  }
   SyncToStorage();
   SaveAndReloadServer().IgnoreError();
 }
@@ -1615,20 +1621,23 @@ absl::Status DictionaryTool::SaveAndReloadServer() {
 
   // If server is not running, we don't need to
   // execute Reload command.
-  if (!client_->PingServer()) {
+  const bool ping_ok = client_->PingServer();
+  if (!ping_ok) {
     LOG(WARNING) << "Server is not running. Do nothing";
     return status;
   }
 
   // Update server version if need be.
-  if (!client_->CheckVersionOrRestartServer()) {
+  const bool version_ok = client_->CheckVersionOrRestartServer();
+  if (!version_ok) {
     LOG(ERROR) << "CheckVersionOrRestartServer failed";
     return status;
   }
 
   // We don't show any dialog even when an error happens, since
   // dictionary serialization is finished correctly.
-  if (!client_->Reload()) {
+  const bool reload_ok = client_->Reload();
+  if (!reload_ok) {
     LOG(ERROR) << "Reload command failed";
   }
 

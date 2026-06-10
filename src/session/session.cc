@@ -33,6 +33,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdio>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -1333,6 +1334,7 @@ bool Session::ResetContext(commands::Command* command) {
 
   context_->mutable_converter()->Reset();
   last_committed_expression_.clear();
+  last_committed_reading_.clear();
   macron_dead_key_pending_ = false;
 
   SetStateToPredompositionAndCancel(context_.get());
@@ -1963,6 +1965,17 @@ bool Session::CommitInternal(commands::Command* command,
   }
   command->mutable_output()->set_consumed(true);
 
+  // Capture typed reading before Commit clears the composer.
+  std::string reading_before_commit =
+      context_->composer().GetQueryForConversion();
+  if (reading_before_commit.empty()) {
+    reading_before_commit = context_->composer().GetStringForPreedit();
+    reading_before_commit.erase(
+        std::remove(reading_before_commit.begin(), reading_before_commit.end(),
+                    '|'),
+        reading_before_commit.end());
+  }
+
   PushUndoContext();
 
   if (context_->state() == ImeContext::COMPOSITION) {
@@ -1982,9 +1995,10 @@ bool Session::CommitInternal(commands::Command* command,
   Output(command);
   // Copy the previous output for Undo.
   *context_->mutable_output() = command->output();
-  // Store committed value for word register dialog prefill (Ctrl+0 in Precomposition).
+  // Store last commit buffer for word register prefill (retrieved in a later step).
   if (command->output().has_result() && !command->output().result().value().empty()) {
     last_committed_expression_ = command->output().result().value();
+    last_committed_reading_ = reading_before_commit;
   }
   return true;
 }

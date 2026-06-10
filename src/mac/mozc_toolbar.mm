@@ -28,6 +28,7 @@
 
 // Declared before @implementation MozcToolbarView.
 static __weak id<ControllerCallback> g_active_controller = nil;
+static NSTimeInterval g_suppress_set_value_direct_until = 0;
 static bool g_symbols_palette_visible = false;
 
 namespace {
@@ -1042,16 +1043,19 @@ std::string GetKeymapPath(const std::string &filename) {
 
 - (void)dictClicked:(id)sender {
   if (!client_) return;
+  mozc::mac::MozcImkNotifyToolLaunchStarting();
   client_->LaunchTool("word_register_dialog", "");
 }
 
 - (void)dictToolClicked:(id)sender {
   if (!client_) return;
+  mozc::mac::MozcImkNotifyToolLaunchStarting();
   client_->LaunchTool("dictionary_tool", "");
 }
 
 - (void)shortcutsClicked:(id)sender {
   if (!client_) return;
+  mozc::mac::MozcImkNotifyToolLaunchStarting();
   MozcShortcutsWindowController *ctrl =
       [[MozcShortcutsWindowController alloc] initWithClient:client_];
   [ctrl showWindow:nil];
@@ -1062,6 +1066,7 @@ std::string GetKeymapPath(const std::string &filename) {
 
 - (void)symbolsClicked:(id)sender {
   if (!client_) return;
+  mozc::mac::MozcImkNotifyToolLaunchStarting();
   MozcSymbolsPaletteWindowController *ctrl =
       [[MozcSymbolsPaletteWindowController alloc] initWithClient:client_
                                                       controller:g_active_controller];
@@ -1237,6 +1242,16 @@ void MozcToolbarHide() {
 void MozcToolbarSetActiveController(void *controller) {
   // Called from activateServer:/deactivateServer: on the main thread.
   g_active_controller = (__bridge id<ControllerCallback>)controller;
+}
+
+void MozcImkNotifyToolLaunchStarting() {
+  g_suppress_set_value_direct_until =
+      [[NSDate date] timeIntervalSinceReferenceDate] + 5.0;
+}
+
+bool MozcImkShouldSuppressSetValueDirect() {
+  return [[NSDate date] timeIntervalSinceReferenceDate] <
+         g_suppress_set_value_direct_until;
 }
 
 void MozcToolbarUpdate(const commands::Output &output,

@@ -304,9 +304,11 @@ class Session {
   // preedit is shown as katakana and candidates are deduplicated.
   bool manyoshu_mode_ = false;
 
-  // Last committed string (result value), used to prefill the word register
-  // dialog when Ctrl+0 is pressed in Precomposition (e.g. right after commit).
+  // Last commit buffer for word-register prefill (surface + typed reading).
+  // Populated in CommitInternal before the composer is cleared; reading is
+  // captured from the live preedit so callers need not reverse-convert later.
   std::string last_committed_expression_;
+  std::string last_committed_reading_;
 
   // When true, next key that is a/e/i/o/u (or shifted) will insert macron vowel
   // (ā ē ī ō ū). Set by AltGr+umlaut (SetMacronDeadKey), cleared after use or

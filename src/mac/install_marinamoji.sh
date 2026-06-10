@@ -52,6 +52,8 @@ killall TextInputMenuAgent 2>/dev/null || true
 killall marinaMoji 2>/dev/null || true
 killall marinaMojiConverter 2>/dev/null || true
 killall marinaMojiRenderer 2>/dev/null || true
+killall DictionaryTool 2>/dev/null || true
+killall WordRegisterDialog 2>/dev/null || true
 
 echo "Done. Select marinaMoji in Input Sources, then verify registration:"
 echo '  defaults read com.apple.HIToolbox AppleSelectedInputSources | rg -i "org.mozc|Japanese"'
