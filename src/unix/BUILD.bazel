@@ -87,7 +87,7 @@ mozc_py_binary(
 )
 
 genrule(
-    name = "mozc_sync",
+    name = "mozc_sync_bin",
     srcs = ["//sync:marinaMojiSync_bin"],
     outs = ["mozc_sync"],
     cmd = "cp $< $@ && chmod +x $@",
@@ -98,7 +98,7 @@ genrule(
     name = "package",
     srcs = [
         ":icons",
-        ":mozc_sync",
+        ":mozc_sync_bin",
         "//gui/tool:mozc_tool",
         "//server:mozc_server",
         "//unix/emacs:mozc_emacs_helper",
