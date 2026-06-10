@@ -74,6 +74,13 @@ static const unichar kYenMark = 0xA5;
   rightShiftDown_ = NO;
   typedWhileRightShiftDown_ = NO;
   otherModifiersWhileRightShift_ = NO;
+  leftShiftDown_ = NO;
+  typedWhileLeftShiftDown_ = NO;
+  otherModifiersWhileLeftShift_ = NO;
+  leftShiftPhysicallyDown_ = NO;
+  ctrlPhysicallyDown_ = NO;
+  ctrlLeftShiftChordArmed_ = NO;
+  typedDuringCtrlLeftShiftChord_ = NO;
   return self;
 }
 
@@ -120,6 +127,122 @@ BOOL HasNonShiftChordModifiers(NSUInteger flags) {
   keyEvent->Clear();
   keyEvent->add_modifier_keys(KeyEvent::RIGHT_SHIFT);
   return YES;
+}
+
+- (BOOL)tryLeftShiftAloneKeyFromEvent:(NSEvent *)event
+                       toMozcKeyEvent:(KeyEvent *)keyEvent {
+  if ([event type] != NSEventTypeFlagsChanged || [event keyCode] != kVK_Shift) {
+    return NO;
+  }
+
+  const NSUInteger flags = DeviceIndependentModifierFlags([event modifierFlags]);
+  const BOOL shiftDown = (flags & NSEventModifierFlagShift) != 0;
+
+  if (shiftDown) {
+    leftShiftDown_ = YES;
+    typedWhileLeftShiftDown_ = NO;
+    otherModifiersWhileLeftShift_ = HasNonShiftChordModifiers(flags);
+    ctrlHeldDuringLeftShiftPress_ =
+        (flags & NSEventModifierFlagControl) != 0 || ctrlPhysicallyDown_;
+    return NO;
+  }
+
+  const BOOL shouldToggle = leftShiftDown_ && !typedWhileLeftShiftDown_ &&
+                            !otherModifiersWhileLeftShift_ &&
+                            !HasNonShiftChordModifiers(flags) &&
+                            !ctrlLeftShiftChordArmed_ && !typedDuringCtrlLeftShiftChord_ &&
+                            !ctrlHeldDuringLeftShiftPress_;
+  leftShiftDown_ = NO;
+  typedWhileLeftShiftDown_ = NO;
+  otherModifiersWhileLeftShift_ = NO;
+  ctrlHeldDuringLeftShiftPress_ = NO;
+
+  if (!shouldToggle) {
+    return NO;
+  }
+
+  keyEvent->Clear();
+  keyEvent->add_modifier_keys(KeyEvent::LEFT_SHIFT);
+  return YES;
+}
+
+- (BOOL)tryCtrlLeftShiftModeLockFromEvent:(NSEvent *)event
+                           toMozcKeyEvent:(KeyEvent *)keyEvent {
+  if ([event type] != NSEventTypeFlagsChanged) {
+    return NO;
+  }
+
+  const NSUInteger flags = DeviceIndependentModifierFlags([event modifierFlags]);
+  const unsigned short keyCode = [event keyCode];
+  const BOOL hasCtrl = (flags & NSEventModifierFlagControl) != 0;
+  const BOOL hasShift = (flags & NSEventModifierFlagShift) != 0;
+
+  if (keyCode == kVK_Shift) {
+    if (hasShift) {
+      leftShiftPhysicallyDown_ = YES;
+      if (hasCtrl) {
+        ctrlPhysicallyDown_ = YES;
+      }
+      if (ctrlPhysicallyDown_ || hasCtrl) {
+        ctrlLeftShiftChordArmed_ = YES;
+        ctrlHeldDuringLeftShiftPress_ = YES;
+      }
+    } else {
+      // Fire when the chord was armed, even if the other modifier was already
+      // released (macOS often delivers both key-ups without either held alone).
+      if (ctrlLeftShiftChordArmed_ && !typedDuringCtrlLeftShiftChord_ &&
+          !HasNonShiftChordModifiers(flags)) {
+        keyEvent->Clear();
+        keyEvent->add_modifier_keys(KeyEvent::CTRL);
+        keyEvent->add_modifier_keys(KeyEvent::LEFT_SHIFT);
+        ctrlLeftShiftChordArmed_ = NO;
+        typedDuringCtrlLeftShiftChord_ = NO;
+        ctrlPhysicallyDown_ = NO;
+        leftShiftPhysicallyDown_ = NO;
+        return YES;
+      }
+      leftShiftPhysicallyDown_ = NO;
+      if (!ctrlPhysicallyDown_) {
+        ctrlLeftShiftChordArmed_ = NO;
+        typedDuringCtrlLeftShiftChord_ = NO;
+      }
+    }
+    return NO;
+  }
+
+  if (keyCode == kVK_Control || keyCode == kVK_RightControl) {
+    if (hasCtrl) {
+      ctrlPhysicallyDown_ = YES;
+      if (leftShiftPhysicallyDown_ || leftShiftDown_ || hasShift) {
+        ctrlLeftShiftChordArmed_ = YES;
+        ctrlHeldDuringLeftShiftPress_ = YES;
+      }
+    } else {
+      if (ctrlLeftShiftChordArmed_ && !typedDuringCtrlLeftShiftChord_ &&
+          !HasNonShiftChordModifiers(flags)) {
+        keyEvent->Clear();
+        keyEvent->add_modifier_keys(KeyEvent::CTRL);
+        keyEvent->add_modifier_keys(KeyEvent::LEFT_SHIFT);
+        ctrlLeftShiftChordArmed_ = NO;
+        typedDuringCtrlLeftShiftChord_ = NO;
+        ctrlPhysicallyDown_ = NO;
+        leftShiftPhysicallyDown_ = NO;
+        return YES;
+      }
+      ctrlPhysicallyDown_ = NO;
+      if (!leftShiftPhysicallyDown_) {
+        ctrlLeftShiftChordArmed_ = NO;
+        typedDuringCtrlLeftShiftChord_ = NO;
+      }
+    }
+    return NO;
+  }
+
+  if (HasNonShiftChordModifiers(flags) && (leftShiftPhysicallyDown_ || ctrlPhysicallyDown_)) {
+    ctrlLeftShiftChordArmed_ = NO;
+    typedDuringCtrlLeftShiftChord_ = NO;
+  }
+  return NO;
 }
 
 - (void)addModifierFlags:(NSUInteger)flags toMozcKeyEvent:(KeyEvent *)keyEvent {
@@ -199,6 +322,14 @@ BOOL HasNonShiftChordModifiers(NSUInteger flags) {
 
   if (rightShiftDown_ && [event type] == NSEventTypeKeyDown) {
     typedWhileRightShiftDown_ = YES;
+  }
+  if (leftShiftDown_ && [event type] == NSEventTypeKeyDown) {
+    typedWhileLeftShiftDown_ = YES;
+  }
+  if (leftShiftPhysicallyDown_ && ctrlPhysicallyDown_ &&
+      [event type] == NSEventTypeKeyDown) {
+    typedDuringCtrlLeftShiftChord_ = YES;
+    ctrlLeftShiftChordArmed_ = NO;
   }
 
   NSUInteger nsModifiers = [event modifierFlags];

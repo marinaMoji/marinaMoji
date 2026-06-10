@@ -368,9 +368,11 @@ bool KeyTranslator::Translate(uint keyval, uint keycode, uint modifiers,
              mask != nullptr) {
     // Convert Ibus modifier key to mask (e.g. IBUS_Shift_L to IBUS_SHIFT_MASK)
     modifiers |= *mask;
-    // Record which physical key so keymap can match "RightShift" for toggle.
+    // Record which physical key so keymap can match "RightShift"/"LeftShift".
     if (keyval == IBUS_Shift_R) {
       out_event->add_modifier_keys(commands::KeyEvent::RIGHT_SHIFT);
+    } else if (keyval == IBUS_Shift_L) {
+      out_event->add_modifier_keys(commands::KeyEvent::LEFT_SHIFT);
     }
   } else if (const commands::KeyEvent::SpecialKey* key =
                  kSpecialKeyMap.FindOrNull(keyval);

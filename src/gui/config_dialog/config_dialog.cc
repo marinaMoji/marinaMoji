@@ -30,6 +30,7 @@
 // Qt component of configure dialog for Mozc
 #include "gui/config_dialog/config_dialog.h"
 
+#include "gui/config_dialog/config_dialog_shortcuts_tab.h"
 #include "gui/config_dialog/config_dialog_sync_tab.h"
 
 #include <QFontMetrics>
@@ -461,6 +462,10 @@ ConfigDialog::ConfigDialog()
           .arg(GuiUtil::ProductName()));
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD
 
+  shortcuts_tab_ = std::make_unique<ConfigDialogShortcutsTab>(this);
+  shortcuts_tab_->AddToTabWidget(configDialogTabWidget);
+  shortcuts_tab_->ConnectApplyButton(this, SLOT(EnableApplyButton()));
+
   sync_tab_ = std::make_unique<ConfigDialogSyncTab>(
       static_cast<client::Client*>(client_.get()), this);
   sync_tab_->AddToTabWidget(configDialogTabWidget);
@@ -816,6 +821,10 @@ void ConfigDialog::ConvertFromProto(const config::Config &config) {
 
   characterFormEditor->Load(config);
 
+  if (shortcuts_tab_) {
+    shortcuts_tab_->LoadFromConfig(config);
+  }
+
 #ifdef __APPLE__
   startupCheckBox->setChecked(MacUtil::CheckPrelauncherLoginItemStatus());
 #endif  // __APPLE__
@@ -917,6 +926,10 @@ void ConfigDialog::ConvertToProto(config::Config *config) const {
 #endif
 
   characterFormEditor->Save(config);
+
+  if (shortcuts_tab_) {
+    shortcuts_tab_->ApplyToConfig(config);
+  }
 }
 
 #undef SET_COMBOBOX

@@ -46,6 +46,16 @@ enum InputMode { ASCII, KANA };
   BOOL rightShiftDown_;
   BOOL typedWhileRightShiftDown_;
   BOOL otherModifiersWhileRightShift_;
+  // Left Shift alone → ToggleLeftShiftDirect (Linux IBUS_Shift_L parity).
+  BOOL leftShiftDown_;
+  BOOL typedWhileLeftShiftDown_;
+  BOOL otherModifiersWhileLeftShift_;
+  BOOL ctrlHeldDuringLeftShiftPress_;
+  // Ctrl+Left Shift alone → ToggleLeftShiftModeLock.
+  BOOL leftShiftPhysicallyDown_;
+  BOOL ctrlPhysicallyDown_;
+  BOOL ctrlLeftShiftChordArmed_;
+  BOOL typedDuringCtrlLeftShiftChord_;
 }
 @property(assign, nonatomic) InputMode inputMode;
 
@@ -62,4 +72,12 @@ enum InputMode { ASCII, KANA };
 // FlagsChanged on kVK_RightShift: on release without typing, sets RIGHT_SHIFT only.
 - (BOOL)tryRightShiftAloneKeyFromEvent:(NSEvent *)event
                         toMozcKeyEvent:(mozc::commands::KeyEvent *)keyEvent;
+
+// FlagsChanged on kVK_Shift (left): on release without typing, sets LEFT_SHIFT only.
+- (BOOL)tryLeftShiftAloneKeyFromEvent:(NSEvent *)event
+                       toMozcKeyEvent:(mozc::commands::KeyEvent *)keyEvent;
+
+// Ctrl+Left Shift chord released without typing: sets CTRL+LEFT_SHIFT.
+- (BOOL)tryCtrlLeftShiftModeLockFromEvent:(NSEvent *)event
+                           toMozcKeyEvent:(mozc::commands::KeyEvent *)keyEvent;
 @end

@@ -103,6 +103,15 @@ class KeyCodeMapTest : public testing::Test {
     return [keyCodeMap_ tryRightShiftAloneKeyFromEvent:event toMozcKeyEvent:mozcKeyEvent];
   }
 
+  bool TryLeftShiftAlone(NSEvent *event, KeyEvent *mozcKeyEvent) {
+    return [keyCodeMap_ tryLeftShiftAloneKeyFromEvent:event toMozcKeyEvent:mozcKeyEvent];
+  }
+
+  bool TryCtrlLeftShiftModeLock(NSEvent *event, KeyEvent *mozcKeyEvent) {
+    return [keyCodeMap_ tryCtrlLeftShiftModeLockFromEvent:event
+                                          toMozcKeyEvent:mozcKeyEvent];
+  }
+
   KeyCodeMap *keyCodeMap_;
 };
 
@@ -233,6 +242,126 @@ TEST_F(KeyCodeMapTest, Modifiers) {
   // Release control key -> Doesn't emit any key events
   event.Clear();
   EXPECT_FALSE(CreateKeyEvent(nullptr, nullptr, 0, kVK_Control, &event));
+}
+
+TEST_F(KeyCodeMapTest, LeftShiftAloneToggle) {
+  KeyEvent event;
+
+  NSEvent *press = [NSEvent keyEventWithType:NSEventTypeFlagsChanged
+                                    location:NSZeroPoint
+                               modifierFlags:NSEventModifierFlagShift
+                                   timestamp:0.0
+                                windowNumber:0
+                                     context:nil
+                                  characters:@""
+                 charactersIgnoringModifiers:@""
+                                   isARepeat:NO
+                                     keyCode:kVK_Shift];
+  EXPECT_FALSE(TryLeftShiftAlone(press, &event));
+
+  NSEvent *release = [NSEvent keyEventWithType:NSEventTypeFlagsChanged
+                                      location:NSZeroPoint
+                                 modifierFlags:0
+                                     timestamp:0.0
+                                  windowNumber:0
+                                       context:nil
+                                    characters:@""
+                   charactersIgnoringModifiers:@""
+                                     isARepeat:NO
+                                       keyCode:kVK_Shift];
+  event.Clear();
+  EXPECT_TRUE(TryLeftShiftAlone(release, &event));
+  EXPECT_EQ(GetDebugString(event), "modifier_keys: LEFT_SHIFT\n");
+}
+
+TEST_F(KeyCodeMapTest, CtrlLeftShiftModeLockChord) {
+  KeyEvent event;
+
+  NSEvent *ctrlPress = [NSEvent keyEventWithType:NSEventTypeFlagsChanged
+                                        location:NSZeroPoint
+                                   modifierFlags:NSEventModifierFlagControl
+                                       timestamp:0.0
+                                    windowNumber:0
+                                         context:nil
+                                      characters:@""
+                     charactersIgnoringModifiers:@""
+                                       isARepeat:NO
+                                         keyCode:kVK_Control];
+  EXPECT_FALSE(TryCtrlLeftShiftModeLock(ctrlPress, &event));
+
+  NSEvent *shiftPress = [NSEvent keyEventWithType:NSEventTypeFlagsChanged
+                                         location:NSZeroPoint
+                                    modifierFlags:NSEventModifierFlagControl |
+                                                  NSEventModifierFlagShift
+                                        timestamp:0.0
+                                     windowNumber:0
+                                          context:nil
+                                       characters:@""
+                      charactersIgnoringModifiers:@""
+                                        isARepeat:NO
+                                          keyCode:kVK_Shift];
+  EXPECT_FALSE(TryCtrlLeftShiftModeLock(shiftPress, &event));
+
+  NSEvent *shiftRelease = [NSEvent keyEventWithType:NSEventTypeFlagsChanged
+                                           location:NSZeroPoint
+                                      modifierFlags:NSEventModifierFlagControl
+                                          timestamp:0.0
+                                       windowNumber:0
+                                            context:nil
+                                         characters:@""
+                        charactersIgnoringModifiers:@""
+                                          isARepeat:NO
+                                            keyCode:kVK_Shift];
+  event.Clear();
+  EXPECT_TRUE(TryCtrlLeftShiftModeLock(shiftRelease, &event));
+  EXPECT_EQ(GetDebugString(event),
+            "modifier_keys: CTRL\n"
+            "modifier_keys: LEFT_SHIFT\n");
+}
+
+TEST_F(KeyCodeMapTest, CtrlLeftShiftModeLockChordCtrlReleasedFirst) {
+  KeyEvent event;
+
+  NSEvent *shiftPress = [NSEvent keyEventWithType:NSEventTypeFlagsChanged
+                                         location:NSZeroPoint
+                                    modifierFlags:NSEventModifierFlagControl |
+                                                  NSEventModifierFlagShift
+                                        timestamp:0.0
+                                     windowNumber:0
+                                          context:nil
+                                       characters:@""
+                      charactersIgnoringModifiers:@""
+                                        isARepeat:NO
+                                          keyCode:kVK_Shift];
+  EXPECT_FALSE(TryCtrlLeftShiftModeLock(shiftPress, &event));
+
+  NSEvent *ctrlRelease = [NSEvent keyEventWithType:NSEventTypeFlagsChanged
+                                          location:NSZeroPoint
+                                     modifierFlags:NSEventModifierFlagShift
+                                         timestamp:0.0
+                                      windowNumber:0
+                                           context:nil
+                                        characters:@""
+                       charactersIgnoringModifiers:@""
+                                         isARepeat:NO
+                                           keyCode:kVK_Control];
+  event.Clear();
+  EXPECT_TRUE(TryCtrlLeftShiftModeLock(ctrlRelease, &event));
+  EXPECT_EQ(GetDebugString(event),
+            "modifier_keys: CTRL\n"
+            "modifier_keys: LEFT_SHIFT\n");
+
+  NSEvent *shiftRelease = [NSEvent keyEventWithType:NSEventTypeFlagsChanged
+                                           location:NSZeroPoint
+                                      modifierFlags:0
+                                          timestamp:0.0
+                                       windowNumber:0
+                                            context:nil
+                                         characters:@""
+                        charactersIgnoringModifiers:@""
+                                          isARepeat:NO
+                                            keyCode:kVK_Shift];
+  EXPECT_FALSE(TryCtrlLeftShiftModeLock(shiftRelease, &event));
 }
 
 TEST_F(KeyCodeMapTest, RightShiftAloneToggle) {

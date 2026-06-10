@@ -97,6 +97,7 @@ void KeyEventHandler::Clear() {
   is_non_modifier_key_pressed_ = false;
   currently_pressed_modifiers_.clear();
   modifiers_to_be_sent_.clear();
+  left_shift_in_chord_ = false;
 }
 
 bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
@@ -191,11 +192,17 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
          it != modifiers_to_be_sent_.end(); ++it) {
       key_event->add_modifier_keys(*it);
     }
+    if (left_shift_in_chord_) {
+      key_event->add_modifier_keys(commands::KeyEvent::LEFT_SHIFT);
+    }
     modifiers_to_be_sent_.clear();
+    left_shift_in_chord_ = false;
   } else if (is_modifier_only) {
-    // Right Shift alone: send on key up (when released) so ToggleManyoshuHiragana
-    // fires only when released by itself, not when used to capitalize another key.
-    // (No early return here; it is sent on key up like other modifier-only keys.)
+    if (keyval == IBUS_Shift_L) {
+      left_shift_in_chord_ = true;
+    }
+    // Right/Left Shift alone: send on key up so toggles fire only when released
+    // by themselves, not when used to capitalize another key.
     // TODO(hsumita): Supports a key sequence below.
     // - Ctrl down
     // - a down

@@ -301,6 +301,10 @@ message Config {
   // When true, candidates and committed text are converted from shinjitai to kyūjitai.
   optional bool use_traditional_kanji = 69 [default = false];
 
+  // When false (default), Left Shift alone toggles Japanese input and direct
+  // input; Ctrl+Left Shift alone toggles a mode lock. Set true to disable both.
+  optional bool disable_left_shift_direct_toggle = 70 [default = false];
+
   //////////////////////////////////////////////////////////////
   //
   // Dictionary (80-99)

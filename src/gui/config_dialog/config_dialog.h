@@ -40,6 +40,7 @@
 #include <vector>
 
 #include "client/client_interface.h"
+#include "gui/config_dialog/config_dialog_shortcuts_tab.h"
 #include "gui/config_dialog/config_dialog_sync_tab.h"
 #include "gui/config_dialog/ui_config_dialog.h"
 #include "protocol/config.pb.h"
@@ -110,6 +111,7 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   std::map<QString, config::Config::SessionKeymap>
       keymapname_sessionkeymap_map_;
 
+  std::unique_ptr<ConfigDialogShortcutsTab> shortcuts_tab_;
   std::unique_ptr<ConfigDialogSyncTab> sync_tab_;
 };
 

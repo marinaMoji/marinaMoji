@@ -396,6 +396,8 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
 - (BOOL)isConverterSessionActivated;
 - (BOOL)dispatchMarinaNumberRowShortcut:(const KeyEvent &)keyEvent client:(id)sender;
 - (BOOL)dispatchRightShiftAlone:(const KeyEvent &)keyEvent client:(id)sender;
+- (BOOL)dispatchLeftShiftAlone:(const KeyEvent &)keyEvent client:(id)sender;
+- (BOOL)dispatchCtrlLeftShiftModeLock:(const KeyEvent &)keyEvent client:(id)sender;
 - (BOOL)tryMacronVowelChord:(NSEvent *)event client:(id)sender;
 - (void)setupMarinaImeMenuIfNeeded;
 - (void)updateImeMenuState:(const Output *)output;
@@ -981,6 +983,46 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   }
   [self processOutput:&output client:sender];
   // Session leaves consumed=false so Shift modifier state clears in the app.
+  return output.consumed() ? YES : NO;
+}
+
+- (BOOL)dispatchLeftShiftAlone:(const KeyEvent &)keyEvent client:(id)sender {
+  const BOOL serverActivated = [self isConverterSessionActivated];
+  const BOOL inDirect =
+      (mode_ == mozc::commands::DIRECT) || !serverActivated;
+  if (!inDirect) {
+    PersistLastCompositionMode(mode_);
+  }
+
+  KeyEvent key = keyEvent;
+  key.set_mode(mode_);
+  Output output;
+  if (!mozcClient_->SendKey(key, &output)) {
+    return NO;
+  }
+  [self processOutput:&output client:sender];
+
+  // ToggleLeftShiftDirect leaves consumed=false when going direct so the app
+  // receives Shift key-up. ShouldPreserveClientCompositionMode then blocks
+  // mode_ from updating; sync client mode only (no syncServerDeactivation here —
+  // nested TURN_OFF_IME during handleEvent caused IME switch stalls).
+  if (output.has_mode() && output.mode() == mozc::commands::DIRECT &&
+      mode_ != mozc::commands::DIRECT) {
+    mode_ = mozc::commands::DIRECT;
+    PersistLastCompositionMode(mode_);
+    mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+  }
+  return output.consumed() ? YES : NO;
+}
+
+- (BOOL)dispatchCtrlLeftShiftModeLock:(const KeyEvent &)keyEvent client:(id)sender {
+  KeyEvent key = keyEvent;
+  key.set_mode(mode_);
+  Output output;
+  if (!mozcClient_->SendKey(key, &output)) {
+    return NO;
+  }
+  [self processOutput:&output client:sender];
   return output.consumed() ? YES : NO;
 }
 
@@ -1851,6 +1893,24 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     return YES;
   }
 
+  // Ctrl+Left Shift alone → ToggleLeftShiftModeLock (Linux IBus parity).
+  if ([event type] == NSEventTypeFlagsChanged) {
+    KeyEvent ctrlLeftShiftKey;
+    if ([keyCodeMap_ tryCtrlLeftShiftModeLockFromEvent:event
+                                       toMozcKeyEvent:&ctrlLeftShiftKey]) {
+      return [self dispatchCtrlLeftShiftModeLock:ctrlLeftShiftKey client:sender];
+    }
+  }
+
+  // Left Shift alone on release → ToggleLeftShiftDirect (Linux IBus parity).
+  if ([event keyCode] == kVK_Shift && [event type] == NSEventTypeFlagsChanged) {
+    KeyEvent leftShiftKey;
+    if ([keyCodeMap_ tryLeftShiftAloneKeyFromEvent:event toMozcKeyEvent:&leftShiftKey]) {
+      return [self dispatchLeftShiftAlone:leftShiftKey client:sender];
+    }
+    return YES;
+  }
+
   // Right Shift alone on release → ToggleManyoshuHiragana (Linux IBus parity).
   if ([event keyCode] == kVK_RightShift && [event type] == NSEventTypeFlagsChanged) {
     KeyEvent rightShiftKey;
@@ -1935,6 +1995,12 @@ bool IsConfigOnlySessionOutput(const Output &output) {
   }
 
   keyEvent.set_mode(mode_);
+
+  if (mode_ != mozc::commands::DIRECT && ![self isConverterSessionActivated]) {
+    if (![self ensureConverterActivated:sender context:&context]) {
+      return NO;
+    }
+  }
 
   if ([composedString_ length] == 0 && CanSelectedRange(clientBundle_) &&
       CanSurroundingText(clientBundle_)) {

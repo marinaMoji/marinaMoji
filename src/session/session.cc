@@ -556,6 +556,46 @@ bool IsRightShiftAlone(const commands::KeyEvent& key) {
   return (KeyEventUtil::GetModifiers(key) &
           static_cast<uint32_t>(commands::KeyEvent::RIGHT_SHIFT)) != 0;
 }
+
+// Left Shift alone (modifier-only with LEFT_SHIFT): toggle Japanese/direct input.
+bool IsLeftShiftAlone(const commands::KeyEvent& key) {
+  if (key.has_key_code() || key.has_special_key()) {
+    return false;
+  }
+  bool has_left_shift = false;
+  bool has_ctrl = false;
+  for (int i = 0; i < key.modifier_keys_size(); ++i) {
+    const commands::KeyEvent::ModifierKey mod = key.modifier_keys(i);
+    if (mod == commands::KeyEvent::LEFT_SHIFT) {
+      has_left_shift = true;
+    }
+    if (mod == commands::KeyEvent::CTRL || mod == commands::KeyEvent::LEFT_CTRL ||
+        mod == commands::KeyEvent::RIGHT_CTRL) {
+      has_ctrl = true;
+    }
+  }
+  return has_left_shift && !has_ctrl;
+}
+
+// Ctrl+Left Shift alone: toggle mode lock for Left Shift direct toggle.
+bool IsCtrlLeftShiftAlone(const commands::KeyEvent& key) {
+  if (key.has_key_code() || key.has_special_key()) {
+    return false;
+  }
+  bool has_left_shift = false;
+  bool has_ctrl = false;
+  for (int i = 0; i < key.modifier_keys_size(); ++i) {
+    const commands::KeyEvent::ModifierKey mod = key.modifier_keys(i);
+    if (mod == commands::KeyEvent::LEFT_SHIFT) {
+      has_left_shift = true;
+    }
+    if (mod == commands::KeyEvent::CTRL || mod == commands::KeyEvent::LEFT_CTRL ||
+        mod == commands::KeyEvent::RIGHT_CTRL) {
+      has_ctrl = true;
+    }
+  }
+  return has_left_shift && has_ctrl;
+}
 }  // namespace
 
 bool Session::SendKey(commands::Command* command) {
@@ -587,6 +627,13 @@ bool Session::SendKey(commands::Command* command) {
   // level so it works in all states and regardless of keymap/client encoding.
   if (IsRightShiftAlone(command->input().key())) {
     return ToggleManyoshuHiragana(command);
+  }
+
+  if (IsCtrlLeftShiftAlone(command->input().key())) {
+    return ToggleLeftShiftModeLock(command);
+  }
+  if (IsLeftShiftAlone(command->input().key())) {
+    return ToggleLeftShiftDirect(command);
   }
 
   // Macron dead key (AltGr+umlaut): next key a/e/i/o/u → ā ē ī ō ū
@@ -2648,6 +2695,63 @@ bool Session::ToggleHiraganaDirect(commands::Command* command) {
     return CompositionModeHiragana(command);
   }
   return IMEOff(command);
+}
+
+bool Session::ToggleLeftShiftDirect(commands::Command* command) {
+  if (context_->GetConfig().disable_left_shift_direct_toggle()) {
+    command->mutable_output()->set_consumed(false);
+    OutputFromState(command);
+    return true;
+  }
+  if (left_shift_mode_lock_) {
+    command->mutable_output()->set_consumed(false);
+    OutputFromState(command);
+    return true;
+  }
+
+  if (context_->state() == ImeContext::DIRECT) {
+    command->mutable_output()->set_consumed(true);
+    ClearUndoContext();
+    SetSessionState(ImeContext::PRECOMPOSITION, context_.get());
+    if (saved_japanese_mode_ == commands::MANYOSHU) {
+      manyoshu_mode_ = true;
+      SwitchInputMode(transliteration::HIRAGANA, context_->mutable_composer());
+    } else {
+      manyoshu_mode_ = false;
+      ApplyCompositionMode(saved_japanese_mode_, context_->mutable_composer());
+    }
+    OutputFromState(command);
+    return true;
+  }
+
+  if (manyoshu_mode_) {
+    saved_japanese_mode_ = commands::MANYOSHU;
+  } else if (command->input().key().has_mode() &&
+             command->input().key().mode() != commands::DIRECT) {
+    // Prefer client composition mode (macOS |mode_|) over composer input mode so
+    // katakana / half-width toolbar states restore correctly after direct toggle.
+    saved_japanese_mode_ = command->input().key().mode();
+  } else {
+    saved_japanese_mode_ =
+        ToCompositionMode(context_->composer().GetInputMode());
+  }
+  manyoshu_mode_ = false;
+  IMEOff(command);
+  // Do not consume Left Shift release so the app receives the key-up.
+  command->mutable_output()->set_consumed(false);
+  return true;
+}
+
+bool Session::ToggleLeftShiftModeLock(commands::Command* command) {
+  if (context_->GetConfig().disable_left_shift_direct_toggle()) {
+    command->mutable_output()->set_consumed(false);
+    OutputFromState(command);
+    return true;
+  }
+  command->mutable_output()->set_consumed(true);
+  left_shift_mode_lock_ = !left_shift_mode_lock_;
+  OutputFromState(command);
+  return true;
 }
 
 bool Session::ToggleTraditionalKanji(commands::Command* command) {

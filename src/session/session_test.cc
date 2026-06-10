@@ -89,6 +89,8 @@ class SessionTestPeer : testing::TestPeer<Session> {
   PEER_VARIABLE(undo_contexts_);
   PEER_VARIABLE(last_committed_expression_);
   PEER_VARIABLE(last_committed_reading_);
+  PEER_VARIABLE(saved_japanese_mode_);
+  PEER_VARIABLE(left_shift_mode_lock_);
 };
 
 namespace {
@@ -946,6 +948,99 @@ TEST_F(SessionTest, SwitchCompositionMode) {
     // FULL_ASCII was set at the SWITCH_COMPOSITION_MODE testcase.
     EXPECT_EQ(command.output().mode(), commands::HIRAGANA);
   }
+}
+
+TEST_F(SessionTest, LeftShiftAloneTogglesJapaneseAndDirect) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+  commands::Command command;
+
+  config::Config cfg;
+  cfg.set_disable_left_shift_direct_toggle(false);
+  session.SetConfig(cfg);
+
+  EXPECT_TRUE(SwitchCompositionModeCommand(commands::FULL_KATAKANA, &session,
+                                           &command));
+  EXPECT_EQ(command.output().status().mode(), commands::FULL_KATAKANA);
+
+  EXPECT_TRUE(SendKey("LeftShift", &session, &command));
+  EXPECT_FALSE(command.output().consumed());
+  EXPECT_EQ(command.output().status().mode(), commands::DIRECT);
+  EXPECT_FALSE(command.output().status().activated());
+
+  SessionTestPeer peer(session);
+  EXPECT_EQ(peer.saved_japanese_mode_(), commands::FULL_KATAKANA);
+
+  EXPECT_TRUE(SendKey("LeftShift", &session, &command));
+  EXPECT_TRUE(command.output().consumed());
+  EXPECT_EQ(command.output().status().mode(), commands::FULL_KATAKANA);
+  EXPECT_TRUE(command.output().status().activated());
+}
+
+TEST_F(SessionTest, LeftShiftAloneRestoresManyoshuMode) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+  commands::Command command;
+
+  config::Config cfg;
+  cfg.set_disable_left_shift_direct_toggle(false);
+  session.SetConfig(cfg);
+
+  SwitchCompositionMode(commands::HIRAGANA, &session);
+  EXPECT_TRUE(SendKeyWithMode("RightShift", commands::HIRAGANA, &session,
+                              &command));
+  EXPECT_EQ(command.output().status().mode(), commands::MANYOSHU);
+
+  EXPECT_TRUE(SendKey("LeftShift", &session, &command));
+  EXPECT_EQ(command.output().status().mode(), commands::DIRECT);
+
+  EXPECT_TRUE(SendKey("LeftShift", &session, &command));
+  EXPECT_EQ(command.output().status().mode(), commands::MANYOSHU);
+}
+
+TEST_F(SessionTest, LeftShiftModeLockBlocksToggle) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+  commands::Command command;
+
+  config::Config cfg;
+  cfg.set_disable_left_shift_direct_toggle(false);
+  session.SetConfig(cfg);
+
+  EXPECT_TRUE(SendKey("Ctrl LeftShift", &session, &command));
+  SessionTestPeer peer(session);
+  EXPECT_TRUE(peer.left_shift_mode_lock_());
+
+  EXPECT_TRUE(SendKey("LeftShift", &session, &command));
+  EXPECT_FALSE(command.output().consumed());
+  EXPECT_EQ(command.output().status().mode(), commands::HIRAGANA);
+
+  EXPECT_TRUE(SendKey("Ctrl LeftShift", &session, &command));
+  EXPECT_FALSE(peer.left_shift_mode_lock_());
+}
+
+TEST_F(SessionTest, LeftShiftDirectToggleDisabledByConfig) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  config::Config config;
+  config.CopyFrom(session.context().GetConfig());
+  config.set_disable_left_shift_direct_toggle(true);
+  session.SetConfig(config);
+  ASSERT_TRUE(session.context().GetConfig().disable_left_shift_direct_toggle());
+
+  commands::Command command;
+  EXPECT_TRUE(SendKey("LeftShift", &session, &command));
+  EXPECT_FALSE(command.output().consumed());
+  EXPECT_EQ(command.output().status().mode(), commands::HIRAGANA);
 }
 
 TEST_F(SessionTest, RightShiftAloneIgnoresAsciiCompositionMode) {

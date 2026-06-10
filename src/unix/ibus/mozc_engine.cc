@@ -425,6 +425,40 @@ bool IsRightShiftAlone(const commands::KeyEvent& key) {
   return false;
 }
 
+bool IsLeftShiftAlone(const commands::KeyEvent& key) {
+  if (key.has_key_code() || key.has_special_key()) {
+    return false;
+  }
+  bool has_left_shift = false;
+  bool has_ctrl = false;
+  for (int i = 0; i < key.modifier_keys_size(); ++i) {
+    if (key.modifier_keys(i) == commands::KeyEvent::LEFT_SHIFT) {
+      has_left_shift = true;
+    }
+    if (key.modifier_keys(i) == commands::KeyEvent::CTRL) {
+      has_ctrl = true;
+    }
+  }
+  return has_left_shift && !has_ctrl;
+}
+
+bool IsCtrlLeftShiftAlone(const commands::KeyEvent& key) {
+  if (key.has_key_code() || key.has_special_key()) {
+    return false;
+  }
+  bool has_left_shift = false;
+  bool has_ctrl = false;
+  for (int i = 0; i < key.modifier_keys_size(); ++i) {
+    if (key.modifier_keys(i) == commands::KeyEvent::LEFT_SHIFT) {
+      has_left_shift = true;
+    }
+    if (key.modifier_keys(i) == commands::KeyEvent::CTRL) {
+      has_ctrl = true;
+    }
+  }
+  return has_left_shift && has_ctrl;
+}
+
 }  // namespace
 
 bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
@@ -530,13 +564,13 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
     }
   }
 
-  // Do not consume Right Shift release so IBus forwards the key-up to the app;
-  // otherwise the app never sees the release and Shift stays stuck (capitals,
-  // arrow keys extend selection). Failsafe if session ever marks this consumed.
-  if (output.consumed() && !key.has_key_code() && !key.has_special_key() &&
-      key.modifier_keys_size() == 1 &&
-      key.modifier_keys(0) == commands::KeyEvent::RIGHT_SHIFT) {
-    return false;
+  // Do not consume Right/Left Shift release so IBus forwards the key-up to the
+  // app; otherwise Shift stays stuck (capitals, selection). Failsafe if the
+  // session marks these consumed.
+  if (output.consumed() && !key.has_key_code() && !key.has_special_key()) {
+    if (IsRightShiftAlone(key) || IsLeftShiftAlone(key)) {
+      return false;
+    }
   }
   return output.consumed();
 }

@@ -70,6 +70,8 @@ class KeyEventHandler {
   std::set<uint> currently_pressed_modifiers_;
   // Pending modifier keys.
   std::set<commands::KeyEvent::ModifierKey> modifiers_to_be_sent_;
+  // True when Left Shift was pressed in the current modifier chord.
+  bool left_shift_in_chord_ = false;
 };
 
 }  // namespace ibus

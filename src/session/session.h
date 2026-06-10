@@ -202,6 +202,8 @@ class Session {
   bool TranslateHalfWidth(mozc::commands::Command* command);
   bool ToggleAlphanumericMode(mozc::commands::Command* command);
   bool ToggleHiraganaDirect(mozc::commands::Command* command);
+  bool ToggleLeftShiftDirect(mozc::commands::Command* command);
+  bool ToggleLeftShiftModeLock(mozc::commands::Command* command);
   bool ToggleTraditionalKanji(mozc::commands::Command* command);
   bool TogglePrivacyMode(mozc::commands::Command* command);
   // Show odoriji (iteration marks) palette in the candidate window; user
@@ -314,6 +316,10 @@ class Session {
   // (ā ē ī ō ū). Set by AltGr+umlaut (SetMacronDeadKey), cleared after use or
   // on non-vowel / ResetContext.
   bool macron_dead_key_pending_ = false;
+
+  // Left Shift alone: Japanese ↔ direct input (restores saved_japanese_mode_).
+  commands::CompositionMode saved_japanese_mode_ = commands::HIRAGANA;
+  bool left_shift_mode_lock_ = false;
 
   std::unique_ptr<ImeContext> CreateContext(
       const EngineInterface& engine) const;
