@@ -1202,10 +1202,59 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   [self launchWordRegisterTool:client output:nullptr];
 }
 
+- (void)flushCompositionForToolLaunch:(id)sender {
+  if (!imkClientForTest_) {
+    mozc::commands::KeyEvent keyEvent;
+    mozc::commands::Output output;
+    keyEvent.set_special_key(mozc::commands::KeyEvent::ESCAPE);
+    if (mozcClient_->SendKey(keyEvent, &output)) {
+      [self processOutput:&output client:sender];
+    }
+  }
+  [self updateComposedString:nullptr];
+  [self clearCandidates];
+  [originalString_ setString:@""];
+  cursorPosition_ = -1;
+}
+
+- (void)clearClientCompositionUI {
+  [self updateComposedString:nullptr];
+  [self clearCandidates];
+  [originalString_ setString:@""];
+  cursorPosition_ = -1;
+}
+
 - (void)launchWordRegisterTool:(id)client
                         output:(const mozc::commands::Output *)output {
   mozc::mac::MozcImkNotifyToolLaunchStarting();
 
+  // Toolbar, menu, and Ctrl+Shift+0 must share one path: ask the session for
+  // prefill while converter state is still active. Do not flush (Escape) first.
+  mozc::commands::Output launch_output;
+  const mozc::commands::Output *prefill_output = nullptr;
+  if (output != nullptr && output->has_launch_tool_mode() &&
+      output->launch_tool_mode() == mozc::commands::Output::WORD_REGISTER_DIALOG &&
+      (output->has_word_register_expression() ||
+       output->word_register_reading_candidates_size() > 0)) {
+    prefill_output = output;
+  } else {
+    mozc::commands::KeyEvent key;
+    key.set_key_code('0');
+    key.add_modifier_keys(mozc::commands::KeyEvent::CTRL);
+    key.add_modifier_keys(mozc::commands::KeyEvent::SHIFT);
+    if (mozcClient_->SendKey(key, &launch_output) &&
+        launch_output.has_launch_tool_mode()) {
+      prefill_output = &launch_output;
+    }
+  }
+
+  if (prefill_output != nullptr) {
+    [self clearClientCompositionUI];
+    mozcClient_->LaunchToolWithProtoBuf(*prefill_output);
+    return;
+  }
+
+  // Fallback when IME has no active prefill: use document selection.
   if (CanSelectedRange(clientBundle_)) {
     NSRange selectedRange = [client selectedRange];
     if (selectedRange.location != NSNotFound && selectedRange.length != NSNotFound &&
@@ -1216,28 +1265,14 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
         selection_output.set_launch_tool_mode(
             mozc::commands::Output::WORD_REGISTER_DIALOG);
         selection_output.set_word_register_expression([text UTF8String]);
+        [self clearClientCompositionUI];
         mozcClient_->LaunchToolWithProtoBuf(selection_output);
         return;
       }
     }
   }
 
-  if (output != nullptr && output->has_launch_tool_mode()) {
-    mozcClient_->LaunchToolWithProtoBuf(*output);
-    return;
-  }
-
-  mozc::commands::KeyEvent key;
-  key.set_key_code('0');
-  key.add_modifier_keys(mozc::commands::KeyEvent::CTRL);
-  key.add_modifier_keys(mozc::commands::KeyEvent::SHIFT);
-  mozc::commands::Output launch_output;
-  if (mozcClient_->SendKey(key, &launch_output) &&
-      launch_output.has_launch_tool_mode()) {
-    mozcClient_->LaunchToolWithProtoBuf(launch_output);
-    return;
-  }
-
+  [self clearClientCompositionUI];
   MacProcess::LaunchMozcTool("word_register_dialog");
 }
 
@@ -1378,6 +1413,19 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     LOG(INFO) << "[marinaImk] processOutput depth=" << processOutputDepth_
               << " consumed=" << output->consumed() << " mode_=" << CompositionModeName(mode_);
   }
+  // LaunchWordRegisterDialog returns DoNothing + Output(); applying that here
+  // clears marked text without committing and leaves candidates stuck open.
+  if (output->consumed() && output->has_launch_tool_mode() &&
+      output->launch_tool_mode() == mozc::commands::Output::WORD_REGISTER_DIALOG) {
+    [self launchWordRegisterTool:sender output:output];
+    --processOutputDepth_;
+    return;
+  }
+
+  if (output->consumed() && output->has_launch_tool_mode() &&
+      output->launch_tool_mode() == mozc::commands::Output::DICTIONARY_TOOL) {
+    [self flushCompositionForToolLaunch:sender];
+  }
 
   const bool launching_tool = OutputLaunchesMozcTool(*output);
   if (launching_tool) {
@@ -1479,7 +1527,7 @@ bool IsConfigOnlySessionOutput(const Output &output) {
         MacProcess::LaunchMozcTool("dictionary_tool");
         break;
       case mozc::commands::Output::WORD_REGISTER_DIALOG:
-        [self launchWordRegisterTool:sender output:output];
+        // Handled above before applyCommitAndPreedit.
         break;
       default:
         // do nothing
@@ -1931,6 +1979,7 @@ bool IsConfigOnlySessionOutput(const Output &output) {
 
 - (IBAction)dictionaryToolClicked:(id)sender {
   mozc::mac::MozcImkNotifyToolLaunchStarting();
+  [self flushCompositionForToolLaunch:[self client]];
   MacProcess::LaunchMozcTool("dictionary_tool");
 }
 

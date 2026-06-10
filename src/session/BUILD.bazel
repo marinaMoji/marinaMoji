@@ -68,6 +68,7 @@ mozc_cc_library(
         "//composer",
         "//composer:key_event_util",
         "//composer:table",
+        "//engine:engine_converter",
         "//engine:engine_converter_interface",
         "//engine:engine_interface",
         "//protocol:commands_cc_proto",

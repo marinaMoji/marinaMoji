@@ -208,19 +208,59 @@ bool EngineConverter::GetReadingText(absl::string_view source_text,
 
 bool EngineConverter::GetCurrentConversionResult(std::string* result) const {
   DCHECK(result);
-  if (!CheckState(CONVERSION) || segments_.conversion_segments_size() == 0) {
+  if (!IsActive() || segments_.conversion_segments_size() == 0) {
     return false;
   }
   result->clear();
-  for (size_t i = 0; i < segments_.conversion_segments_size(); ++i) {
-    const Segment& segment = segments_.conversion_segment(i);
-    const int idx = GetCandidateIndexForConverter(i);
-    if (!segment.is_valid_index(idx)) {
+  if (CheckState(CONVERSION)) {
+    for (size_t i = 0; i < segments_.conversion_segments_size(); ++i) {
+      const Segment& segment = segments_.conversion_segment(i);
+      const int idx = GetCandidateIndexForConverter(i);
+      if (!segment.is_valid_index(idx)) {
+        return false;
+      }
+      result->append(segment.candidate(idx).value);
+    }
+    return true;
+  }
+  if (CheckState(SUGGESTION | PREDICTION)) {
+    const std::string value = GetSelectedCandidateValue(segment_index_);
+    if (value.empty()) {
       return false;
     }
-    result->append(segment.candidate(idx).value);
+    *result = value;
+    return true;
   }
-  return true;
+  return false;
+}
+
+bool EngineConverter::GetFocusedCandidateReadingKey(std::string* key) const {
+  DCHECK(key);
+  if (!IsActive() || segments_.conversion_segments_size() == 0) {
+    return false;
+  }
+  key->clear();
+  if (segment_index_ >= segments_.conversion_segments_size()) {
+    return false;
+  }
+  const Segment& segment = segments_.conversion_segment(segment_index_);
+  const converter::Candidate& candidate =
+      GetSelectedCandidate(segment_index_);
+  if (CheckState(CONVERSION)) {
+    *key = segment.key();
+    if (key->empty()) {
+      *key = candidate.key;
+    }
+  } else {
+    DCHECK(CheckState(SUGGESTION | PREDICTION));
+    // History/prediction palette: use the reading stored with the candidate
+    // (same source as user history), not segment.key or reverse conversion.
+    *key = candidate.key;
+    if (key->empty()) {
+      *key = candidate.content_key;
+    }
+  }
+  return !key->empty();
 }
 
 namespace {

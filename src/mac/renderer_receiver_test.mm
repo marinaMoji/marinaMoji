@@ -68,6 +68,7 @@ class RendererReceiverTest : public testing::Test {
 }
 
 - (void)launchWordRegisterDialog {}
+- (void)flushCompositionForToolLaunch:(id)sender { (void)sender; }
 @end
 
 TEST_F(RendererReceiverTest, sendData) {

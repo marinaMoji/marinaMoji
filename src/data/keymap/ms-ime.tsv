@@ -343,6 +343,7 @@ Precomposition	Space	InsertSpace
 Precomposition	Ctrl 0	LaunchWordRegisterDialog
 Precomposition	Ctrl Shift 0	LaunchWordRegisterDialog
 Precomposition	Ctrl Shift )	LaunchWordRegisterDialog
+Prediction	Enter	Commit
 Prediction	Ctrl 0	LaunchWordRegisterDialog
 Prediction	Ctrl Shift 0	LaunchWordRegisterDialog
 Prediction	Ctrl Shift )	LaunchWordRegisterDialog

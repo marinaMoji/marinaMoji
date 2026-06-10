@@ -54,6 +54,7 @@
 #include "composer/composer.h"
 #include "composer/key_event_util.h"
 #include "composer/table.h"
+#include "engine/engine_converter.h"
 #include "engine/engine_converter_interface.h"
 #include "engine/engine_interface.h"
 #include "protocol/commands.pb.h"
@@ -2508,7 +2509,15 @@ bool Session::LaunchConfigDialog(commands::Command* command) {
 bool Session::LaunchDictionaryTool(commands::Command* command) {
   command->mutable_output()->set_launch_tool_mode(
       commands::Output::DICTIONARY_TOOL);
-  return DoNothing(command);
+  ClearUndoContext();
+  context_->mutable_converter()->Reset();
+  context_->mutable_composer()->Reset();
+  if (context_->state() != ImeContext::DIRECT) {
+    SetSessionState(ImeContext::PRECOMPOSITION, context_.get());
+  }
+  command->mutable_output()->set_consumed(true);
+  OutputMode(command);
+  return true;
 }
 
 namespace {
@@ -2528,35 +2537,55 @@ void AddWordRegisterReadingCandidateIfNew(
 
 bool Session::LaunchWordRegisterDialog(commands::Command* command) {
   commands::Output* const output = command->mutable_output();
-  output->set_launch_tool_mode(commands::Output::WORD_REGISTER_DIALOG);
 
   std::string expression;
-  if (context_->state() == ImeContext::CONVERSION &&
+  std::string stored_reading;
+  std::string composer_preedit;
+  bool from_history_palette = false;
+  if (context_->converter().IsActive() &&
       context_->converter().GetCurrentConversionResult(&expression) &&
       !expression.empty()) {
-    output->set_word_register_expression(expression);
-    // Prefer the user's typed reading (preedit with boundary "|" stripped).
-    std::string preedit = context_->composer().GetStringForPreedit();
-    preedit.erase(std::remove(preedit.begin(), preedit.end(), '|'), preedit.end());
-    AddWordRegisterReadingCandidateIfNew(output, preedit);
-    // Add reverse-conversion result as an alternative (e.g. dictionary reading).
-    std::string reading;
-    if (context_->mutable_converter()->GetReadingText(expression, &reading)) {
-      AddWordRegisterReadingCandidateIfNew(output, reading);
+    from_history_palette = context_->converter().CheckState(
+        EngineConverterInterface::SUGGESTION |
+        EngineConverterInterface::PREDICTION);
+    if (auto* converter = dynamic_cast<engine::EngineConverter*>(
+            context_->mutable_converter())) {
+      converter->GetFocusedCandidateReadingKey(&stored_reading);
     }
+    composer_preedit = context_->composer().GetStringForPreedit();
+    composer_preedit.erase(std::remove(composer_preedit.begin(),
+                                       composer_preedit.end(), '|'),
+                            composer_preedit.end());
   } else if (!last_committed_expression_.empty()) {
-    output->set_word_register_expression(last_committed_expression_);
-    AddWordRegisterReadingCandidateIfNew(output, last_committed_reading_);
-    if (last_committed_reading_.empty()) {
-      std::string reading;
-      if (context_->mutable_converter()->GetReadingText(
-              last_committed_expression_, &reading)) {
-        AddWordRegisterReadingCandidateIfNew(output, reading);
-      }
-    }
+    expression = last_committed_expression_;
+    stored_reading = last_committed_reading_;
   }
 
-  return DoNothing(command);
+  ClearUndoContext();
+  context_->mutable_converter()->Reset();
+  context_->mutable_composer()->Reset();
+  if (context_->state() != ImeContext::DIRECT) {
+    SetSessionState(ImeContext::PRECOMPOSITION, context_.get());
+  }
+
+  output->set_launch_tool_mode(commands::Output::WORD_REGISTER_DIALOG);
+  output->set_consumed(true);
+  if (!expression.empty()) {
+    output->set_word_register_expression(expression);
+    if (from_history_palette) {
+      // History/prediction palette: use the reading stored with the candidate,
+      // not the partial query the user is currently typing (e.g. "だい").
+      AddWordRegisterReadingCandidateIfNew(output, stored_reading);
+      if (stored_reading.empty()) {
+        AddWordRegisterReadingCandidateIfNew(output, composer_preedit);
+      }
+    } else {
+      AddWordRegisterReadingCandidateIfNew(output, composer_preedit);
+      AddWordRegisterReadingCandidateIfNew(output, stored_reading);
+    }
+  }
+  OutputMode(command);
+  return true;
 }
 
 bool Session::UndoOrRewind(commands::Command* command) {

@@ -58,6 +58,9 @@
 
 /** Opens the word register dialog with server-side prefill when available. */
 - (void)launchWordRegisterDialog;
+
+/** Clears in-progress composition before launching a tool. */
+- (void)flushCompositionForToolLaunch:(id)sender;
 @end
 
 /** ServerCallback is a protocol to send the events (e.g. mouse click of a candidate word)

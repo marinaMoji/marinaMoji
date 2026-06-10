@@ -100,7 +100,8 @@ class EngineConverterInterface {
 
   // When in CONVERSION state, appends the current conversion result (concatenation
   // of all segments' selected candidate values) to |result| and returns true.
-  // Returns false when not in conversion or when there are no segments.
+  // When in SUGGESTION or PREDICTION state, returns the focused candidate value.
+  // Returns false when the converter is inactive or there are no segments.
   virtual bool GetCurrentConversionResult(std::string* result) const = 0;
 
   // Send a transliteration request to the converter.

@@ -87,8 +87,12 @@ class EngineConverter : public EngineConverterInterface {
                       std::string* reading) override;
 
   // Appends current conversion result (all segments' selected values) when in
-  // CONVERSION state. Returns false otherwise.
+  // CONVERSION state, or the focused candidate when in SUGGESTION/PREDICTION.
   bool GetCurrentConversionResult(std::string* result) const override;
+
+  // Returns segment key or focused candidate key. Not on the interface to
+  // avoid changing the vtable layout (client/server ABI stability).
+  bool GetFocusedCandidateReadingKey(std::string* key) const;
 
   // Sends a transliteration request to the converter.
   bool ConvertToTransliteration(

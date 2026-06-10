@@ -1048,12 +1048,28 @@ std::string GetKeymapPath(const std::string &filename) {
     [controller launchWordRegisterDialog];
     return;
   }
+  // No active IMK controller: same prefill path as Ctrl+Shift+0 via session.
+  mozc::commands::KeyEvent key;
+  key.set_key_code('0');
+  key.add_modifier_keys(mozc::commands::KeyEvent::CTRL);
+  key.add_modifier_keys(mozc::commands::KeyEvent::SHIFT);
+  mozc::commands::Output launch_output;
+  if (client_->SendKey(key, &launch_output) &&
+      launch_output.has_launch_tool_mode()) {
+    mozc::mac::MozcImkNotifyToolLaunchStarting();
+    client_->LaunchToolWithProtoBuf(launch_output);
+    return;
+  }
   mozc::mac::MozcImkNotifyToolLaunchStarting();
   client_->LaunchTool("word_register_dialog", "");
 }
 
 - (void)dictToolClicked:(id)sender {
   if (!client_) return;
+  id<ControllerCallback> controller = g_active_controller;
+  if (controller) {
+    [controller flushCompositionForToolLaunch:controller];
+  }
   mozc::mac::MozcImkNotifyToolLaunchStarting();
   client_->LaunchTool("dictionary_tool", "");
 }

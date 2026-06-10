@@ -544,10 +544,10 @@ bool WordRegisterDialog::SetDefaultEntryFromBootstrapFile() {
     primary_reading = QString::fromUtf8(
         output.word_register_reading_candidates(0).c_str());
   }
-  ApplyWordRegisterReadingCandidates(
-      candidates_str.trimmed(), primary_reading.trimmed(), entry,
-      ReadinglineEdit,
-      [this](const QString& value) { return GetReading(value); });
+  ApplyWordRegisterReadingCandidates(candidates_str.trimmed(),
+                                     primary_reading.trimmed(), entry,
+                                     ReadinglineEdit,
+                                     [](const QString&) { return QString(); });
 
   return true;
 }

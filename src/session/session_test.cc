@@ -1016,6 +1016,60 @@ TEST_F(SessionTest, LaunchWordRegisterDialogPrefillFromDirectAfterCommit) {
   EXPECT_EQ(command.output().word_register_reading_candidates(0), "google");
 }
 
+TEST_F(SessionTest, LaunchWordRegisterDialogPrefillFromZeroQuerySuggestion) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+  Session session(engine);
+  commands::Request request;
+  commands::Command command;
+  SetupZeroQuerySuggestion(&session, &request, &command, converter.get());
+
+  command.Clear();
+  EXPECT_TRUE(session.LaunchWordRegisterDialog(&command));
+  EXPECT_EQ(command.output().launch_tool_mode(),
+            commands::Output::WORD_REGISTER_DIALOG);
+  EXPECT_EQ(command.output().word_register_expression(), "search");
+  ASSERT_GE(command.output().word_register_reading_candidates_size(), 1);
+  EXPECT_EQ(command.output().word_register_reading_candidates(0), "search");
+}
+
+TEST_F(SessionTest, LaunchWordRegisterDialogPrefillFromHighlightedHistoryCandidate) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+  Session session(engine);
+  commands::Request request;
+  SetupZeroQuerySuggestionReady(true, &session, &request, converter.get());
+
+  {
+    Segments segments;
+    Segment* segment = segments.add_segment();
+    segment->set_key("");
+    AddCandidate("とうきょう", "東京", segment);
+    AddCandidate("おおさか", "大阪", segment);
+    EXPECT_CALL(*converter, StartPrediction(_, _))
+        .WillRepeatedly(DoAll(SetArgPointee<1>(segments), Return(true)));
+    EXPECT_CALL(*converter, StartPredictionWithPreviousSuggestion(_, _, _))
+        .WillRepeatedly(DoAll(SetArgPointee<2>(segments), Return(true)));
+    EXPECT_CALL(*converter, PrependCandidates(_, _, _))
+        .WillRepeatedly(SetArgPointee<2>(segments));
+  }
+
+  commands::Command command;
+  session.Commit(&command);
+  ASSERT_EQ(command.output().candidate_window().candidate_size(), 2);
+
+  const int second_id = command.output().candidate_window().candidate(1).id();
+  SetSendCommandCommand(commands::SessionCommand::HIGHLIGHT_CANDIDATE, &command);
+  command.mutable_input()->mutable_command()->set_id(second_id);
+  EXPECT_TRUE(session.SendCommand(&command));
+
+  command.Clear();
+  EXPECT_TRUE(session.LaunchWordRegisterDialog(&command));
+  EXPECT_EQ(command.output().word_register_expression(), "大阪");
+  ASSERT_GE(command.output().word_register_reading_candidates_size(), 1);
+  EXPECT_EQ(command.output().word_register_reading_candidates(0), "おおさか");
+}
+
 TEST_F(SessionTest, StoreLastCommitBufferOnCompositionCommit) {
   MockEngine engine;
   CreateEngineConverterMock(&engine);
