@@ -50,6 +50,26 @@ bool IsModifierToBeSentOnKeyUp(const commands::KeyEvent& key_event) {
 
   return true;
 }
+
+bool IsControlKeyval(uint keyval) {
+  return keyval == IBUS_Control_L || keyval == IBUS_Control_R;
+}
+
+bool HasNonShiftNonCtrlModifierKeyval(const std::set<uint>& pressed) {
+  for (uint keyval : pressed) {
+    if (keyval != IBUS_Shift_L && keyval != IBUS_Shift_R &&
+        keyval != IBUS_Control_L && keyval != IBUS_Control_R) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void SetCtrlLeftShiftModeLockKey(commands::KeyEvent* key_event) {
+  key_event->Clear();
+  key_event->add_modifier_keys(commands::KeyEvent::CTRL);
+  key_event->add_modifier_keys(commands::KeyEvent::LEFT_SHIFT);
+}
 }  // namespace
 
 KeyEventHandler::KeyEventHandler() : key_translator_(new KeyTranslator) {
@@ -98,6 +118,10 @@ void KeyEventHandler::Clear() {
   currently_pressed_modifiers_.clear();
   modifiers_to_be_sent_.clear();
   left_shift_in_chord_ = false;
+  ctrl_physically_down_ = false;
+  ctrl_left_shift_chord_armed_ = false;
+  typed_during_ctrl_left_shift_chord_ = false;
+  ctrl_held_during_left_shift_press_ = false;
 }
 
 bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
@@ -165,6 +189,10 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
 
   if (!currently_pressed_modifiers_.empty() && !is_modifier_only) {
     is_non_modifier_key_pressed_ = true;
+    if (ctrl_left_shift_chord_armed_) {
+      typed_during_ctrl_left_shift_chord_ = true;
+      ctrl_left_shift_chord_armed_ = false;
+    }
   }
   if (is_non_modifier_key_pressed_) {
     modifiers_to_be_sent_.clear();
@@ -172,15 +200,48 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
 
   if (is_key_up) {
     currently_pressed_modifiers_.erase(keyval);
+
+    if (is_modifier_only &&
+        ((keyval == IBUS_Shift_L &&
+          ctrl_left_shift_chord_armed_ && !typed_during_ctrl_left_shift_chord_ &&
+          !HasNonShiftNonCtrlModifierKeyval(currently_pressed_modifiers_)) ||
+         (IsControlKeyval(keyval) &&
+          ctrl_left_shift_chord_armed_ && !typed_during_ctrl_left_shift_chord_ &&
+          !HasNonShiftNonCtrlModifierKeyval(currently_pressed_modifiers_)))) {
+      SetCtrlLeftShiftModeLockKey(key_event);
+      ctrl_left_shift_chord_armed_ = false;
+      typed_during_ctrl_left_shift_chord_ = false;
+      ctrl_physically_down_ = false;
+      ctrl_held_during_left_shift_press_ = false;
+      left_shift_in_chord_ = false;
+      modifiers_to_be_sent_.clear();
+      is_non_modifier_key_pressed_ = false;
+      currently_pressed_modifiers_.clear();
+      return true;
+    }
+
     if (!is_modifier_only) {
       return false;
     }
     if (!currently_pressed_modifiers_.empty() ||
         modifiers_to_be_sent_.empty()) {
       is_non_modifier_key_pressed_ = false;
+      if (IsControlKeyval(keyval)) {
+        ctrl_physically_down_ = false;
+      }
+      if (keyval == IBUS_Shift_L) {
+        left_shift_in_chord_ = false;
+        ctrl_held_during_left_shift_press_ = false;
+      }
       return false;
     }
     if (is_non_modifier_key_pressed_) {
+      return false;
+    }
+    if (keyval == IBUS_Shift_L && ctrl_held_during_left_shift_press_) {
+      left_shift_in_chord_ = false;
+      ctrl_held_during_left_shift_press_ = false;
+      modifiers_to_be_sent_.clear();
       return false;
     }
     DCHECK(!is_non_modifier_key_pressed_);
@@ -197,9 +258,25 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
     }
     modifiers_to_be_sent_.clear();
     left_shift_in_chord_ = false;
+    ctrl_held_during_left_shift_press_ = false;
   } else if (is_modifier_only) {
     if (keyval == IBUS_Shift_L) {
       left_shift_in_chord_ = true;
+      ctrl_held_during_left_shift_press_ =
+          ctrl_physically_down_ ||
+          currently_pressed_modifiers_.count(IBUS_Control_L) != 0 ||
+          currently_pressed_modifiers_.count(IBUS_Control_R) != 0;
+      if (ctrl_held_during_left_shift_press_) {
+        ctrl_left_shift_chord_armed_ = true;
+      }
+    }
+    if (IsControlKeyval(keyval)) {
+      ctrl_physically_down_ = true;
+      if (left_shift_in_chord_ ||
+          currently_pressed_modifiers_.count(IBUS_Shift_L) != 0) {
+        ctrl_left_shift_chord_armed_ = true;
+        ctrl_held_during_left_shift_press_ = true;
+      }
     }
     // Right/Left Shift alone: send on key up so toggles fire only when released
     // by themselves, not when used to capitalize another key.

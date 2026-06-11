@@ -503,7 +503,8 @@ TEST_F(KeyTranslatorTest, MultipleShiftKeysTest) {
   // Hit Shift_L with shift modifier (typically Shift_R).
   EXPECT_TRUE(translator_->Translate(IBUS_Shift_L, 0, IBUS_SHIFT_MASK,
                                      config::Config::ROMAN, true, &out));
-  EXPECT_EQ(out.modifier_keys_size(), 1);
+  EXPECT_EQ(out.modifier_keys_size(), 2);
+  IsContained(commands::KeyEvent::LEFT_SHIFT, out.modifier_keys());
   IsContained(commands::KeyEvent::SHIFT, out.modifier_keys());
 }
 
@@ -543,15 +544,17 @@ TEST_F(KeyTranslatorTest, TranslateModiferOnly) {
   // Just tap left_shift key
   EXPECT_TRUE(translator_->Translate(IBUS_Shift_L, 0, 0, config::Config::ROMAN,
                                      true, &out));
-  EXPECT_EQ(out.modifier_keys_size(), 1);
-  EXPECT_EQ(out.modifier_keys(0), commands::KeyEvent::SHIFT);
+  EXPECT_EQ(out.modifier_keys_size(), 2);
+  IsContained(commands::KeyEvent::LEFT_SHIFT, out.modifier_keys());
+  IsContained(commands::KeyEvent::SHIFT, out.modifier_keys());
 
   // Just tap right_shift key
   out.Clear();
   EXPECT_TRUE(translator_->Translate(IBUS_Shift_R, 0, 0, config::Config::ROMAN,
                                      true, &out));
-  EXPECT_EQ(out.modifier_keys_size(), 1);
-  EXPECT_EQ(out.modifier_keys(0), commands::KeyEvent::SHIFT);
+  EXPECT_EQ(out.modifier_keys_size(), 2);
+  IsContained(commands::KeyEvent::RIGHT_SHIFT, out.modifier_keys());
+  IsContained(commands::KeyEvent::SHIFT, out.modifier_keys());
 
   // Just tap left_ctrl key
   out.Clear();

@@ -392,6 +392,43 @@ TEST_F(KeyEventHandlerTest, RightShiftAloneSentOnKeyUp) {
   EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);
 }
 
+TEST_F(KeyEventHandlerTest, LeftShiftAloneSentOnKeyUp) {
+  commands::KeyEvent key;
+  EXPECT_FALSE(handler_->GetKeyEvent(IBUS_Shift_L, kDummyKeycode, 0,
+                                     config::Config::ROMAN, true, &key));
+  key.Clear();
+  EXPECT_TRUE(handler_->GetKeyEvent(IBUS_Shift_L, kDummyKeycode,
+                                    IBUS_RELEASE_MASK, config::Config::ROMAN,
+                                    true, &key));
+  EXPECT_NO_MODIFIERS_PRESSED();
+  bool has_left_shift = false;
+  for (int i = 0; i < key.modifier_keys_size(); ++i) {
+    if (key.modifier_keys(i) == commands::KeyEvent::LEFT_SHIFT) {
+      has_left_shift = true;
+    }
+  }
+  EXPECT_TRUE(has_left_shift);
+}
+
+TEST_F(KeyEventHandlerTest, CtrlLeftShiftModeLockSentOnKeyUp) {
+  commands::KeyEvent key;
+  EXPECT_FALSE(handler_->GetKeyEvent(IBUS_Control_L, kDummyKeycode,
+                                     IBUS_CONTROL_MASK, config::Config::ROMAN,
+                                     true, &key));
+  key.Clear();
+  EXPECT_FALSE(handler_->GetKeyEvent(IBUS_Shift_L, kDummyKeycode,
+                                     (IBUS_SHIFT_MASK | IBUS_CONTROL_MASK),
+                                     config::Config::ROMAN, true, &key));
+  key.Clear();
+  EXPECT_TRUE(handler_->GetKeyEvent(IBUS_Shift_L, kDummyKeycode,
+                                    (IBUS_SHIFT_MASK | IBUS_CONTROL_MASK |
+                                     IBUS_RELEASE_MASK),
+                                    config::Config::ROMAN, true, &key));
+  EXPECT_EQ(key.modifier_keys_size(), 2);
+  EXPECT_EQ(key.modifier_keys(0), commands::KeyEvent::CTRL);
+  EXPECT_EQ(key.modifier_keys(1), commands::KeyEvent::LEFT_SHIFT);
+}
+
 TEST_F(KeyEventHandlerTest, ProcessModifiers) {
   commands::KeyEvent key;
 

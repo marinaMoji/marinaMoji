@@ -1690,7 +1690,8 @@ void EnsureToolbarCreated() {
   // Mode indicator (marinaMoji-style: あ/ア/roma etc.) — same vertical alignment as other toolbar icons.
   bool light = !g_toolbar_dark_theme;
   GdkPixbuf* mode_pixbuf =
-      LoadSvgIcon(GetModeIndicatorIconName(commands::HIRAGANA, light),
+      LoadSvgIcon(GetModeIndicatorIconName(commands::HIRAGANA, light,
+                                           g_left_shift_direct_lock),
                   kIconSize, kIconSize);
   g_mode_indicator_image = gtk_image_new_from_pixbuf(mode_pixbuf);
   if (mode_pixbuf) g_object_unref(mode_pixbuf);

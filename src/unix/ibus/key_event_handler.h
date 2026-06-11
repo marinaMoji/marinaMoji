@@ -72,6 +72,11 @@ class KeyEventHandler {
   std::set<commands::KeyEvent::ModifierKey> modifiers_to_be_sent_;
   // True when Left Shift was pressed in the current modifier chord.
   bool left_shift_in_chord_ = false;
+  // Ctrl+Left Shift alone → ToggleLeftShiftModeLock (macOS/Linux parity).
+  bool ctrl_physically_down_ = false;
+  bool ctrl_left_shift_chord_armed_ = false;
+  bool typed_during_ctrl_left_shift_chord_ = false;
+  bool ctrl_held_during_left_shift_press_ = false;
 };
 
 }  // namespace ibus

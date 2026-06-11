@@ -218,6 +218,24 @@ MOZC_IBUS_CANDIDATE_WINDOW=ibus ibus-daemon -d
 
 ---
 
+## 5.1 Shift shortcuts and Properties
+
+Open marinaMoji settings from the IBus input-method menu: **marinaMoji → Properties** (this runs `mozc_tool --mode=config_dialog`). You can also run:
+
+```bash
+/usr/lib/marinamoji/mozc_tool --mode=config_dialog
+```
+
+The **Shortcuts** tab controls Left Shift toggling between Japanese input and Direct input. By default:
+
+- **Left Shift alone** (press and release without typing) switches hiragana, full katakana, or Manyōshū ↔ Direct input.
+- **Ctrl+Left Shift alone** locks or unlocks the current mode (toolbar shows a lock icon).
+- **Right Shift alone** toggles hiragana ↔ Manyōshū.
+
+After installing a new build, restart IBus (`ibus write-cache && ibus restart`) so the engine picks up shortcut changes.
+
+---
+
 ## 6. Optional: Wayland and gtk-layer-shell
 
 On **Wayland**, the toolbar is positioned like marinaMoji (bottom-right) without extra packages. If you want to use **gtk-layer-shell** (e.g. on Sway/Hyprland) for layer-shell positioning:

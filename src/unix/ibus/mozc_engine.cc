@@ -519,7 +519,10 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
     return false;  // Direct input: Right Shift is just a modifier key.
   }
 
-  if (!property_handler_->IsActivated() && !client_->IsDirectModeCommand(key)) {
+  const bool is_left_shift_toggle =
+      IsLeftShiftAlone(key) || IsCtrlLeftShiftAlone(key);
+  if (!property_handler_->IsActivated() && !client_->IsDirectModeCommand(key) &&
+      !is_left_shift_toggle) {
     return false;
   }
 
@@ -568,7 +571,8 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
   // app; otherwise Shift stays stuck (capitals, selection). Failsafe if the
   // session marks these consumed.
   if (output.consumed() && !key.has_key_code() && !key.has_special_key()) {
-    if (IsRightShiftAlone(key) || IsLeftShiftAlone(key)) {
+    if (IsRightShiftAlone(key) || IsLeftShiftAlone(key) ||
+        IsCtrlLeftShiftAlone(key)) {
       return false;
     }
   }
