@@ -82,7 +82,7 @@ export MOZC_QT_PATH=/opt/homebrew/opt/qt   # if using Homebrew Qt
 bazelisk build --config=oss_macos --spawn_strategy=local //mac:package
 ```
 
-On macOS 26+, if Bazel fails with an `xcode-locator` error, run `bash mac/fix_bazel_xcode_config.sh` once, then rebuild from **Terminal.app** (see [build_mozc_in_osx.md](build_mozc_in_osx.md)).
+On macOS 26+, if Bazel fails with an `xcode-locator` / `kLSExecutableIncorrectFormat` error, `tools/local_xcode/BUILD` should pin `version` to the absolute developer dir (e.g. `/Applications/Xcode.app/Contents/Developer`), not only `26.5.0.17F42`. Regenerate with `bash mac/fix_bazel_xcode_config.sh --write-local`, then rebuild.
 
 | Artifact | Path (relative to `src/`) |
 |----------|---------------------------|

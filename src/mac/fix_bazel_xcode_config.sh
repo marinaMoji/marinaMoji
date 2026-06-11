@@ -37,6 +37,9 @@ fi
 
 IFS=: read -r VERSION _ALIASES DEVDIR <<< "${LOCATOR_LINE}"
 TARGET_NAME="version${VERSION//./_}"
+# Use the developer-dir path as |version| so Bazel skips xcode-locator at action time
+# (LaunchServices fails in Bazel's darwin sandbox on macOS 26+).
+VERSION_FIELD="${DEVDIR}"
 
 SDK_OUT="$(env DEVELOPER_DIR="${DEVELOPER_DIR}" xcrun xcodebuild -version -sdk 2>/dev/null)"
 ios_sdk="$(echo "${SDK_OUT}" | sed -n 's/.*iphoneos\([0-9.]*\).*/\1/p' | head -1)"
@@ -53,7 +56,7 @@ load("@apple_support//xcode:xcode_version.bzl", "xcode_version")
 
 xcode_version(
     name = "${TARGET_NAME}",
-    version = "${VERSION}",
+    version = "${VERSION_FIELD}",
 $( [[ -n "${ios_sdk}" ]] && echo "    default_ios_sdk_version = \"${ios_sdk}\"," )
 $( [[ -n "${tvos_sdk}" ]] && echo "    default_tvos_sdk_version = \"${tvos_sdk}\"," )
 $( [[ -n "${macos_sdk}" ]] && echo "    default_macos_sdk_version = \"${macos_sdk}\"," )
@@ -79,7 +82,9 @@ echo "Repaired Bazel Xcode config at:"
 echo "  ${XCODE_REPO}/BUILD"
 echo "  Xcode ${VERSION}"
 echo
-echo "Run the build immediately in the same shell (do not run bazel shutdown first):"
+echo "Run the build immediately in the same shell:"
+echo "  bash mac/build_oss_macos.sh"
+echo "Or manually:"
 echo "  cd ${ROOT} && export MOZC_QT_PATH=/opt/homebrew/opt/qt && bazelisk build --config oss_macos //mac:mozc_macos"
 echo
 echo "If build still fails with 'Could not determine Xcode version', open Terminal.app"

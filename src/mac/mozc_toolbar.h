@@ -21,10 +21,17 @@ void MozcToolbarShow(client::ClientInterface *client,
 // Hides the toolbar.  Call from deactivateServer:.
 void MozcToolbarHide();
 
+// Re-show the toolbar after the symbols palette closes (deactivateServer may hide it).
+void MozcToolbarReshowAfterPaletteClose();
+bool MozcToolbarNeedsReshowAfterPaletteClose();
+
 // Registers the active IMK controller (id<ControllerCallback>) so toolbar
 // actions that open the candidate window can route output through processOutput.
-// Pass nullptr on deactivateServer:.
 void MozcToolbarSetActiveController(void *controller);
+
+// Clears the active controller and hides the toolbar only when |controller| is
+// still the active one (avoids palette / IME-bundle focus churn hiding the bar).
+void MozcToolbarClearActiveControllerIfMatches(void *controller);
 
 // Updates toolbar state from server output (composition mode, shin/kyu).
 // Call after processOutput:.

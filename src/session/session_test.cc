@@ -979,7 +979,7 @@ TEST_F(SessionTest, LeftShiftAloneTogglesJapaneseAndDirect) {
   EXPECT_TRUE(command.output().status().activated());
 }
 
-TEST_F(SessionTest, LeftShiftAloneRestoresManyoshuMode) {
+TEST_F(SessionTest, LeftShiftTogglesManyoshuAndDirect) {
   MockEngine engine;
   CreateEngineConverterMock(&engine);
   Session session(engine);
@@ -991,15 +991,70 @@ TEST_F(SessionTest, LeftShiftAloneRestoresManyoshuMode) {
   session.SetConfig(cfg);
 
   SwitchCompositionMode(commands::HIRAGANA, &session);
-  EXPECT_TRUE(SendKeyWithMode("RightShift", commands::HIRAGANA, &session,
-                              &command));
+  EXPECT_TRUE(SendKey("Ctrl Shift 4", &session, &command));
   EXPECT_EQ(command.output().status().mode(), commands::MANYOSHU);
 
-  EXPECT_TRUE(SendKey("LeftShift", &session, &command));
+  EXPECT_TRUE(SendKeyWithMode("LeftShift", commands::MANYOSHU, &session,
+                              &command));
+  EXPECT_FALSE(command.output().consumed());
+  EXPECT_EQ(command.output().status().mode(), commands::DIRECT);
+  EXPECT_FALSE(command.output().status().activated());
+
+  SessionTestPeer peer(session);
+  EXPECT_EQ(peer.saved_japanese_mode_(), commands::MANYOSHU);
+
+  EXPECT_TRUE(SendKeyWithMode("LeftShift", commands::DIRECT, &session,
+                              &command));
+  EXPECT_TRUE(command.output().consumed());
+  EXPECT_EQ(command.output().status().mode(), commands::MANYOSHU);
+  EXPECT_TRUE(command.output().status().activated());
+}
+
+TEST_F(SessionTest, LeftShiftAloneTogglesHiraganaKatakanaAndDirect) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+  commands::Command command;
+
+  config::Config cfg;
+  cfg.set_disable_left_shift_direct_toggle(false);
+  session.SetConfig(cfg);
+
+  SwitchCompositionMode(commands::FULL_KATAKANA, &session);
+  EXPECT_TRUE(SendKeyWithMode("LeftShift", commands::FULL_KATAKANA, &session,
+                              &command));
   EXPECT_EQ(command.output().status().mode(), commands::DIRECT);
 
   EXPECT_TRUE(SendKey("LeftShift", &session, &command));
-  EXPECT_EQ(command.output().status().mode(), commands::MANYOSHU);
+  EXPECT_EQ(command.output().status().mode(), commands::FULL_KATAKANA);
+}
+
+TEST_F(SessionTest, LeftShiftModeLockPersistsAcrossSessions) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  commands::Command command;
+
+  config::Config cfg;
+  cfg.set_disable_left_shift_direct_toggle(false);
+
+  {
+    Session session(engine);
+    InitSessionToPrecomposition(&session);
+    session.SetConfig(cfg);
+    EXPECT_TRUE(SendKey("Ctrl LeftShift", &session, &command));
+    SessionTestPeer peer(session);
+    EXPECT_TRUE(peer.left_shift_mode_lock_());
+  }
+
+  Session session2(engine);
+  InitSessionToPrecomposition(&session2);
+  session2.SetConfig(cfg);
+  SessionTestPeer peer2(session2);
+  EXPECT_TRUE(peer2.left_shift_mode_lock_());
+
+  EXPECT_TRUE(SendKey("Ctrl LeftShift", &session2, &command));
+  EXPECT_FALSE(peer2.left_shift_mode_lock_());
 }
 
 TEST_F(SessionTest, LeftShiftModeLockBlocksToggle) {
@@ -1061,6 +1116,41 @@ TEST_F(SessionTest, RightShiftAloneIgnoresAsciiCompositionMode) {
                               &command));
   EXPECT_FALSE(command.output().consumed());
   EXPECT_EQ(command.output().status().mode(), commands::MANYOSHU);
+
+  EXPECT_TRUE(SendKeyWithMode("RightShift", commands::MANYOSHU, &session,
+                              &command));
+  EXPECT_FALSE(command.output().consumed());
+  EXPECT_EQ(command.output().status().mode(), commands::HIRAGANA);
+}
+
+TEST_F(SessionTest, ManyoshuPreeditShowsKatakanaWhileTyping) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  commands::Command command;
+  SwitchCompositionMode(commands::MANYOSHU, &session);
+  for (const char key : {'k', 'o', 't', 'o'}) {
+    EXPECT_TRUE(SendKeyWithMode(std::string(1, key), commands::MANYOSHU,
+                                &session, &command));
+  }
+  EXPECT_EQ(GetComposition(command), "コト");
+}
+
+TEST_F(SessionTest, FullKatakanaPreeditShowsKatakanaWhileTyping) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  commands::Command command;
+  SwitchCompositionMode(commands::FULL_KATAKANA, &session);
+  for (const char key : {'k', 'o', 't', 'o'}) {
+    EXPECT_TRUE(SendKeyWithMode(std::string(1, key), commands::FULL_KATAKANA,
+                                &session, &command));
+  }
+  EXPECT_EQ(GetComposition(command), "コト");
 }
 
 TEST_F(SessionTest, LaunchWordRegisterDialogFromDirectInput) {

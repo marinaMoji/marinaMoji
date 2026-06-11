@@ -314,15 +314,26 @@ static void ShowModeIndicatorMenu(GdkEventButton* event) {
   gtk_menu_popup_at_pointer(GTK_MENU(menu), ev);
 }
 
+static bool g_left_shift_direct_lock = false;
+
 // MarinaMoji-style mode indicator: map composition mode to toolbar SVG (light theme).
 static const char* GetModeIndicatorIconName(commands::CompositionMode mode,
-                                             bool light) {
+                                             bool light, bool locked) {
   switch (mode) {
     case commands::DIRECT:
+      if (locked) {
+        return light ? "toolbar_roman_light_lock.svg" : "toolbar_roman_dark_lock.svg";
+      }
       return light ? "toolbar_roman_light.svg" : "toolbar_roman_dark.svg";
     case commands::HIRAGANA:
+      if (locked) {
+        return light ? "toolbar_hira_light_lock.svg" : "toolbar_hira_dark_lock.svg";
+      }
       return light ? "toolbar_hira_light.svg" : "toolbar_hira_dark.svg";
     case commands::FULL_KATAKANA:
+      if (locked) {
+        return light ? "toolbar_kata_light_lock.svg" : "toolbar_kata_dark_lock.svg";
+      }
       return light ? "toolbar_kata_light.svg" : "toolbar_kata_dark.svg";
     case commands::HALF_ASCII:
       return light ? "toolbar_roma_half_light.svg" : "toolbar_roma_half_dark.svg";
@@ -331,7 +342,9 @@ static const char* GetModeIndicatorIconName(commands::CompositionMode mode,
     case commands::HALF_KATAKANA:
       return light ? "toolbar_kata_half_light.svg" : "toolbar_kata_half_dark.svg";
     case commands::MANYOSHU:
-      // Show full katakana icon for Manyōshū (same as FULL_KATAKANA).
+      if (locked) {
+        return light ? "toolbar_kata_light_lock.svg" : "toolbar_kata_dark_lock.svg";
+      }
       return light ? "toolbar_kata_light.svg" : "toolbar_kata_dark.svg";
     default:
       return light ? "toolbar_hira_light.svg" : "toolbar_hira_dark.svg";
@@ -341,7 +354,8 @@ static const char* GetModeIndicatorIconName(commands::CompositionMode mode,
 static void UpdateModeIndicatorIcon(commands::CompositionMode mode) {
   if (!g_mode_indicator_image) return;
   bool light = !g_toolbar_dark_theme;
-  const char* icon_name = GetModeIndicatorIconName(mode, light);
+  const char* icon_name =
+      GetModeIndicatorIconName(mode, light, g_left_shift_direct_lock);
   GdkPixbuf* pixbuf = LoadSvgIcon(icon_name, kIconSize, kIconSize);
   if (pixbuf) {
     gtk_image_set_from_pixbuf(GTK_IMAGE(g_mode_indicator_image), pixbuf);
@@ -882,7 +896,8 @@ static std::string KeymapFilenameFromSessionKeymap(
 
 static const char* const kScriptCommands[] = {
     "ToggleAlphanumericMode", "ToggleHiraganaDirect", "ToggleTraditionalKanji",
-    "ToggleManyoshuHiragana", "ConvertToFullKatakana", "ConvertToHalfWidth",
+    "ToggleManyoshuHiragana", "ToggleHiraganaKatakana", "ConvertToFullKatakana",
+    "ConvertToHalfWidth",
     "ConvertToFullAlphanumeric", "ConvertToHiragana", nullptr};
 static const char* const kCompositionCommands[] = {
     "Commit", "LaunchWordRegisterDialog", "SegmentWidthShrink",
@@ -1769,6 +1784,7 @@ void ApplyOutputToToolbar(const commands::Output& output) {
                                          ? output.status().mode()
                                          : commands::DIRECT;
     g_last_toolbar_mode = mode;
+    g_left_shift_direct_lock = output.status().left_shift_direct_lock();
     UpdateModeIndicatorIcon(mode);
   }
 }

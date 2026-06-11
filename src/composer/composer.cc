@@ -190,6 +190,9 @@ transliteration::TransliterationType GetTransliterationTypeFromCompositionMode(
       return transliteration::FULL_ASCII;
     case commands::HALF_KATAKANA:
       return transliteration::HALF_KATAKANA;
+    case commands::MANYOSHU:
+      // Manyōshū types in hiragana; katakana display is applied in session.
+      return transliteration::HIRAGANA;
     default:
       // commands::DIRECT or invalid mode.
       LOG(ERROR) << "Invalid CompositionMode: " << mode;

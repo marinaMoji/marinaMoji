@@ -30,6 +30,7 @@
 static __weak id<ControllerCallback> g_active_controller = nil;
 static NSTimeInterval g_suppress_set_value_direct_until = 0;
 static bool g_symbols_palette_visible = false;
+static bool g_toolbar_reshow_after_palette_close = false;
 
 namespace {
 
@@ -55,7 +56,8 @@ using GroupedShortcutRow = std::pair<std::string, std::string>;
 
 const char *const kScriptCommands[] = {
     "ToggleAlphanumericMode", "ToggleHiraganaDirect", "ToggleTraditionalKanji",
-    "ToggleManyoshuHiragana", "ConvertToFullKatakana",  "ConvertToHalfWidth",
+    "ToggleManyoshuHiragana", "ToggleHiraganaKatakana", "ConvertToFullKatakana",
+    "ConvertToHalfWidth",
     "ConvertToFullAlphanumeric", "ConvertToHiragana", nullptr};
 const char *const kCompositionCommands[] = {
     "Commit", "LaunchWordRegisterDialog", "SegmentWidthShrink",
@@ -695,6 +697,8 @@ std::string GetKeymapPath(const std::string &filename) {
   if (pinCheckbox_.state != NSControlStateValueOn) {
     g_symbols_palette_visible = false;
     [[self window] orderOut:nil];
+    g_toolbar_reshow_after_palette_close = true;
+    mozc::mac::MozcToolbarReshowAfterPaletteClose();
   }
 }
 
@@ -719,6 +723,7 @@ std::string GetKeymapPath(const std::string &filename) {
   mozc::client::ClientInterface *client_;
   mozc::commands::CompositionMode currentMode_;
   bool useTraditionalKanji_;
+  bool leftShiftDirectLock_;
   bool isDarkMode_;
 
   NSPoint dragStartPoint_;
@@ -727,10 +732,14 @@ std::string GetKeymapPath(const std::string &filename) {
 
 - (instancetype)initWithClient:(mozc::client::ClientInterface *)client
                           mode:(mozc::commands::CompositionMode)mode;
-- (void)updateMode:(mozc::commands::CompositionMode)mode;
+- (void)updateMode:(mozc::commands::CompositionMode)mode
+            locked:(bool)locked;
 - (void)updateTraditionalKanji:(bool)useTrad;
 - (void)setClient:(mozc::client::ClientInterface *)client;
 - (void)applyToolbarChrome;
+- (mozc::client::ClientInterface *)mozcClient;
+- (mozc::commands::CompositionMode)compositionMode;
+- (bool)leftShiftDirectLocked;
 
 @end
 
@@ -748,6 +757,7 @@ std::string GetKeymapPath(const std::string &filename) {
   client_ = client;
   currentMode_ = mode;
   useTraditionalKanji_ = false;
+  leftShiftDirectLock_ = false;
   isDarkMode_ = [self isDarkAppearance];
 
   // Solid chrome (matches Linux GTK toolbar: white / dark gray, not vibrancy).
@@ -773,7 +783,7 @@ std::string GetKeymapPath(const std::string &filename) {
 
   // Mode indicator
   modeButton_ = [self makeButtonAt:x action:@selector(modeClicked:)];
-  modeButton_.image = [self modeIconForMode:currentMode_];
+  modeButton_.image = [self modeIconForMode:currentMode_ locked:leftShiftDirectLock_];
   [self addSubview:modeButton_];
   x += kButtonWidth;
 
@@ -866,20 +876,41 @@ std::string GetKeymapPath(const std::string &filename) {
   return image;
 }
 
-- (NSImage *)modeIconForMode:(mozc::commands::CompositionMode)mode {
+- (NSImage *)modeIconForMode:(mozc::commands::CompositionMode)mode
+                      locked:(bool)locked {
   NSString *name;
   bool dark = isDarkMode_;
   switch (mode) {
     case mozc::commands::DIRECT:
+      if (locked) {
+        name = dark ? @"toolbar_roman_dark_lock" : @"toolbar_roman_light_lock";
+      } else {
+        name = dark ? @"toolbar_roman_dark" : @"toolbar_roman_light";
+      }
+      break;
     case mozc::commands::HALF_ASCII:
       name = dark ? @"toolbar_roma_half_dark" : @"toolbar_roma_half_light";
       break;
     case mozc::commands::HIRAGANA:
-      name = dark ? @"toolbar_hira_dark" : @"toolbar_hira_light";
+      if (locked) {
+        name = dark ? @"toolbar_hira_dark_lock" : @"toolbar_hira_light_lock";
+      } else {
+        name = dark ? @"toolbar_hira_dark" : @"toolbar_hira_light";
+      }
       break;
     case mozc::commands::FULL_KATAKANA:
+      if (locked) {
+        name = dark ? @"toolbar_kata_dark_lock" : @"toolbar_kata_light_lock";
+      } else {
+        name = dark ? @"toolbar_kata_dark" : @"toolbar_kata_light";
+      }
+      break;
     case mozc::commands::MANYOSHU:
-      name = dark ? @"toolbar_kata_dark" : @"toolbar_kata_light";
+      if (locked) {
+        name = dark ? @"toolbar_kata_dark_lock" : @"toolbar_kata_light_lock";
+      } else {
+        name = dark ? @"toolbar_kata_dark" : @"toolbar_kata_light";
+      }
       break;
     case mozc::commands::FULL_ASCII:
       name = dark ? @"toolbar_roma_full_dark" : @"toolbar_roma_full_light";
@@ -933,9 +964,10 @@ std::string GetKeymapPath(const std::string &filename) {
 
 #pragma mark - State Updates
 
-- (void)updateMode:(mozc::commands::CompositionMode)mode {
+- (void)updateMode:(mozc::commands::CompositionMode)mode locked:(bool)locked {
   currentMode_ = mode;
-  modeButton_.image = [self modeIconForMode:mode];
+  leftShiftDirectLock_ = locked;
+  modeButton_.image = [self modeIconForMode:mode locked:locked];
 }
 
 - (void)updateTraditionalKanji:(bool)useTrad {
@@ -944,15 +976,28 @@ std::string GetKeymapPath(const std::string &filename) {
 }
 
 - (void)updateTradIcon {
-  if (useTraditionalKanji_) {
-    tradButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_kyu_dark" : @"toolbar_kyu_light"];
-  } else {
-    tradButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_shin_dark" : @"toolbar_shin_light"];
-  }
+  NSString *iconName =
+      useTraditionalKanji_
+          ? (isDarkMode_ ? @"toolbar_kyu_dark" : @"toolbar_kyu_light")
+          : (isDarkMode_ ? @"toolbar_shin_dark" : @"toolbar_shin_light");
+  NSImage *img = [self loadSvg:iconName];
+  tradButton_.image = img;
 }
 
 - (void)setClient:(mozc::client::ClientInterface *)client {
   client_ = client;
+}
+
+- (mozc::client::ClientInterface *)mozcClient {
+  return client_;
+}
+
+- (mozc::commands::CompositionMode)compositionMode {
+  return currentMode_;
+}
+
+- (bool)leftShiftDirectLocked {
+  return leftShiftDirectLock_;
 }
 
 #pragma mark - Button Actions
@@ -1014,7 +1059,7 @@ std::string GetKeymapPath(const std::string &filename) {
     return;
   }
   currentMode_ = mode;
-  modeButton_.image = [self modeIconForMode:mode];
+  modeButton_.image = [self modeIconForMode:mode locked:leftShiftDirectLock_];
 }
 
 - (void)tradClicked:(id)sender {
@@ -1161,7 +1206,7 @@ std::string GetKeymapPath(const std::string &filename) {
 
   [self applyToolbarChrome];
   logoView_.image = [self loadLogoSvg:isDarkMode_ ? @"logo_long_dark" : @"logo_long_light"];
-  modeButton_.image = [self modeIconForMode:currentMode_];
+  modeButton_.image = [self modeIconForMode:currentMode_ locked:leftShiftDirectLock_];
   [self updateTradIcon];
   symbolsButton_.image =
       [self loadSvg:isDarkMode_ ? @"toolbar_symbols_dark" : @"toolbar_symbols_light"];
@@ -1234,6 +1279,22 @@ static void RunOnMainThread(void (^block)(void)) {
   }
 }
 
+bool MozcToolbarNeedsReshowAfterPaletteClose() {
+  return g_toolbar_reshow_after_palette_close;
+}
+
+void MozcToolbarReshowAfterPaletteClose() {
+  dispatch_async(dispatch_get_main_queue(), ^{
+    dispatch_async(dispatch_get_main_queue(), ^{
+      if (!g_active_controller || g_symbols_palette_visible || !g_toolbar_view) {
+        return;
+      }
+      MozcToolbarShow([g_toolbar_view mozcClient], [g_toolbar_view compositionMode]);
+      g_toolbar_reshow_after_palette_close = false;
+    });
+  });
+}
+
 void MozcToolbarShow(client::ClientInterface *client,
                      commands::CompositionMode mode) {
   if (!MozcToolbarLoadVisiblePreference()) {
@@ -1242,27 +1303,42 @@ void MozcToolbarShow(client::ClientInterface *client,
   if (!client) {
     return;
   }
-  dispatch_async(dispatch_get_main_queue(), ^{
-    // deactivateServer: may clear the controller before this block runs.
+  RunOnMainThread(^{
     if (!g_active_controller) {
       return;
     }
     EnsureToolbar(client, mode);
-    [g_toolbar_view updateMode:mode];
+    const bool locked =
+        g_toolbar_view ? [g_toolbar_view leftShiftDirectLocked] : false;
+    [g_toolbar_view updateMode:mode locked:locked];
     [g_toolbar_panel orderFront:nil];
+    g_toolbar_reshow_after_palette_close = false;
   });
 }
 
 void MozcToolbarHide() {
   RunOnMainThread(^{
-    if (g_symbols_palette_visible) return;
+    if (g_symbols_palette_visible) {
+      return;
+    }
+    if (g_toolbar_reshow_after_palette_close) {
+      return;
+    }
     [g_toolbar_panel orderOut:nil];
   });
 }
 
 void MozcToolbarSetActiveController(void *controller) {
-  // Called from activateServer:/deactivateServer: on the main thread.
+  // Called from activateServer: on the main thread.
   g_active_controller = (__bridge id<ControllerCallback>)controller;
+}
+
+void MozcToolbarClearActiveControllerIfMatches(void *controller) {
+  if (g_active_controller != (__bridge id<ControllerCallback>)controller) {
+    return;
+  }
+  g_active_controller = nullptr;
+  MozcToolbarHide();
 }
 
 void MozcImkNotifyToolLaunchStarting() {
@@ -1287,10 +1363,11 @@ void MozcToolbarUpdate(const commands::Output &output,
       output.has_config() && output.config().has_use_traditional_kanji();
   bool use_trad =
       has_trad ? output.config().use_traditional_kanji() : false;
+  bool locked = output.has_status() && output.status().left_shift_direct_lock();
 
-  dispatch_async(dispatch_get_main_queue(), ^{
+  RunOnMainThread(^{
     if (!g_toolbar_view) return;
-    [g_toolbar_view updateMode:display_mode];
+    [g_toolbar_view updateMode:display_mode locked:locked];
     if (has_trad) {
       [g_toolbar_view updateTraditionalKanji:use_trad];
     }

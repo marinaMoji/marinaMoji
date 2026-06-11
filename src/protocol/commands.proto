@@ -1396,6 +1396,10 @@ message Status {
   // Whether Undo operation is available.
   // The client may enable/disable the Undo key based on this value.
   optional bool undo_available = 26;
+
+  // Left Shift direct toggle is locked (Ctrl+Left Shift chord). Toolbar may show
+  // a lock badge on hiragana, katakana, or direct-input mode icons.
+  optional bool left_shift_direct_lock = 27 [default = false];
 }
 
 // This message contains which characters are to be deleted by client.

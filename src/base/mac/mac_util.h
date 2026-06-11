@@ -93,6 +93,11 @@ class MacUtil {
   // the window specified by |name| and |owner|.
   static bool IsSuppressSuggestionWindow(const std::string &name,
                                          const std::string &owner);
+
+  // Returns true for overlay search hosts (Spotlight, etc.) where the IME should
+  // stay active but suggestion UI and the floating toolbar are suppressed.
+  static bool IsSpotlightLikeHost(const std::string &bundle_id,
+                                  const std::string &window_name);
 #endif  // !TARGET_OS_IPHONE
 };
 }  // namespace mozc

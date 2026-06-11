@@ -62,6 +62,15 @@ TEST(MacUtil, IsSuppressSuggestionWindow) {
   EXPECT_TRUE(MacUtil::IsSuppressSuggestionWindow("ABC - Google Search", "Safari"));
   EXPECT_FALSE(MacUtil::IsSuppressSuggestionWindow("ABC - Google Search", "Firefox"));
 }
+
+TEST(MacUtil, IsSpotlightLikeHost) {
+  EXPECT_TRUE(MacUtil::IsSpotlightLikeHost("com.apple.Spotlight", ""));
+  EXPECT_TRUE(MacUtil::IsSpotlightLikeHost("com.apple.CoreSpotlightUI", ""));
+  EXPECT_TRUE(MacUtil::IsSpotlightLikeHost("", "Spotlight"));
+  EXPECT_TRUE(MacUtil::IsSpotlightLikeHost("com.example.app", "Spotlight "));
+  EXPECT_FALSE(MacUtil::IsSpotlightLikeHost("com.apple.TextEdit", "Untitled"));
+  EXPECT_FALSE(MacUtil::IsSpotlightLikeHost("", ""));
+}
 #endif  // TARGET_OS_OSX
 
 }  // namespace mozc

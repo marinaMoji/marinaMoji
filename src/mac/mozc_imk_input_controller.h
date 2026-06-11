@@ -75,6 +75,9 @@
   /** |suppressSuggestion_| indicates whether to suppress the suggestion. */
   bool suppressSuggestion_;
 
+  /** True when the active host is an overlay search field (Spotlight, etc.). */
+  bool spotlightHost_;
+
   /** True while |-switchDisplayMode| is calling |selectInputMode:| (avoids setValue: loops). */
   bool syncingDisplayMode_;
 

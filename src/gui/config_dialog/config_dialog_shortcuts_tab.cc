@@ -19,11 +19,13 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
   left_shift_help_ = new QLabel(
       QObject::tr(
           "When enabled (default), press and release Left Shift alone to switch "
-          "between Japanese input and direct input. From direct input, Left Shift "
-          "returns to the Japanese mode you were using before (hiragana, "
-          "katakana, etc.). Press and release Ctrl+Left Shift alone to lock the "
-          "current mode and prevent accidental toggles; use the same chord again "
-          "to unlock. Shift still works for capitals and shortcuts while locked."),
+          "between hiragana and direct input only (Manyōshū, half-width, and "
+          "other modes are unaffected). From direct input, Left Shift returns "
+          "to the hiragana or full-katakana mode you were using before. Press "
+          "and release Ctrl+Left Shift alone to lock the current mode and "
+          "prevent accidental toggles; use the same chord again to unlock. "
+          "Right Shift alone toggles hiragana and Manyōshū (katakana). Shift "
+          "still works for capitals and shortcuts while locked."),
       tab_);
   left_shift_help_->setWordWrap(true);
   layout->addWidget(left_shift_help_);

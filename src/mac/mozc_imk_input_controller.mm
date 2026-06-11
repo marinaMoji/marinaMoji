@@ -169,6 +169,10 @@ bool OutputLaunchesMozcTool(const Output &output) {
 bool ShouldPreserveClientCompositionMode(const Output &output,
                                          CompositionMode current_mode,
                                          CompositionMode new_mode) {
+  // Left Shift → direct sets output.mode() to DIRECT with consumed=false.
+  if (output.has_mode() && output.mode() == mozc::commands::DIRECT) {
+    return false;
+  }
   return output.has_status() && !output.status().activated() &&
          current_mode != mozc::commands::DIRECT &&
          new_mode == mozc::commands::DIRECT;
@@ -454,6 +458,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   cursorPosition_ = -1;
   mode_ = mozc::commands::DIRECT;
   suppressSuggestion_ = false;
+  spotlightHost_ = false;
   syncingDisplayMode_ = false;
   handlingKeyboardEvent_ = false;
   suppressSetValueUntil_ = 0;
@@ -698,10 +703,19 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   [gRendererReceiver setCurrentController:self];
 
   std::string window_name, window_owner;
+  spotlightHost_ = false;
   if (mozc::MacUtil::GetFrontmostWindowNameAndOwner(&window_name, &window_owner)) {
     DLOG(INFO) << "frontmost window name: \"" << window_name << "\" " << "owner: \"" << window_owner
                << "\"";
     suppressSuggestion_ = mozc::MacUtil::IsSuppressSuggestionWindow(window_name, window_owner);
+    spotlightHost_ =
+        mozc::MacUtil::IsSpotlightLikeHost(clientBundle_, window_name);
+  } else {
+    spotlightHost_ = mozc::MacUtil::IsSpotlightLikeHost(clientBundle_, "");
+  }
+  if (spotlightHost_) {
+    // Spotlight: suppress suggestion UI only; keep Japanese composition and toolbar.
+    suppressSuggestion_ = true;
   }
 
   mozc::mac::MozcToolbarSetActiveController((__bridge void *)self);
@@ -711,6 +725,9 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   }
   [self refreshModeFromServer:sender];
   [self syncServerActivationIfNeeded:sender];
+  if (mozc::mac::MozcToolbarNeedsReshowAfterPaletteClose()) {
+    mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+  }
 
   DLOG(INFO) << kProductNameInEnglish << " client (" << self << "): activated for " << sender;
   DLOG(INFO) << "sender bundleID: " << clientBundle_;
@@ -739,8 +756,8 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   }
   [self flushCompositionBeforeDeactivate:sender];
   imeServerActive_ = false;
-  mozc::mac::MozcToolbarSetActiveController(nullptr);
-  mozc::mac::MozcToolbarHide();
+  mozc::mac::MozcToolbarClearActiveControllerIfMatches((__bridge void *)self);
+  spotlightHost_ = false;
   if ([composedString_ length] > 0) {
     [self updateComposedString:nullptr];
   }
@@ -832,6 +849,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
       [self syncServerDeactivationIfNeeded:sender];
     }
     mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+    mozc::mac::MozcToolbarUpdate(output, mode_);
     [self updateImeMenuState:&output];
     return;
   }
@@ -968,11 +986,15 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
 }
 
 - (BOOL)dispatchRightShiftAlone:(const KeyEvent &)keyEvent client:(id)sender {
+  // Direct input: Right Shift is just a modifier key (Linux IBus parity).
+  if (mode_ == mozc::commands::DIRECT) {
+    return NO;
+  }
+
   if (![self isConverterSessionActivated]) {
-    SessionCommand command;
-    command.set_type(SessionCommand::TURN_ON_IME);
-    command.set_composition_mode(mozc::commands::HIRAGANA);
-    [self sendCommand:command];
+    if (![self ensureConverterActivated:sender context:nullptr]) {
+      return NO;
+    }
   }
 
   KeyEvent key = keyEvent;
@@ -1011,6 +1033,15 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
     mode_ = mozc::commands::DIRECT;
     PersistLastCompositionMode(mode_);
     mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+  } else if (output.consumed() && output.has_status() &&
+             output.status().activated() &&
+             mode_ == mozc::commands::DIRECT) {
+    CompositionMode new_mode = EffectiveCompositionMode(output, mode_);
+    if (new_mode != mozc::commands::DIRECT) {
+      mode_ = new_mode;
+      PersistLastCompositionMode(mode_);
+      mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+    }
   }
   return output.consumed() ? YES : NO;
 }
@@ -2020,7 +2051,6 @@ bool IsConfigOnlySessionOutput(const Output &output) {
   if (!mozcClient_->SendCommand(command, &output)) {
     return;
   }
-
   [self processOutput:&output client:[self client]];
 }
 

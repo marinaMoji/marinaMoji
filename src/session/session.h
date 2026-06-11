@@ -221,6 +221,7 @@ class Session {
   bool CompositionModeHalfASCII(mozc::commands::Command* command);
   bool CompositionModeManyoshu(mozc::commands::Command* command);
   bool ToggleManyoshuHiragana(mozc::commands::Command* command);
+  bool ToggleHiraganaKatakana(mozc::commands::Command* command);
   bool CompositionModeSwitchKanaType(mozc::commands::Command* command);
 
   // Specify the input field type.

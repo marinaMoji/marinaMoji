@@ -368,6 +368,15 @@ bool MacUtil::IsSuppressSuggestionWindow(const std::string &name, const std::str
          (("Google" == name) || absl::EndsWith(name, " - Google 検索") ||
           absl::EndsWith(name, " - Google Search"));
 }
+
+bool MacUtil::IsSpotlightLikeHost(const std::string &bundle_id,
+                                  const std::string &window_name) {
+  if (bundle_id == "com.apple.Spotlight" ||
+      bundle_id == "com.apple.CoreSpotlightUI") {
+    return true;
+  }
+  return window_name == "Spotlight" || absl::StartsWith(window_name, "Spotlight ");
+}
 #endif  // TARGET_OS_IPHONE
 
 }  // namespace mozc

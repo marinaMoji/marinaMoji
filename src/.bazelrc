@@ -78,6 +78,8 @@ build:macos_env --macos_minimum_os=12.0 --host_macos_minimum_os=12.0
 build:macos_env --xcode_version_config=//tools/local_xcode:host_xcodes
 build:macos_env --repo_env=DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 build:macos_env --action_env=DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+# macOS 26+: xcode-locator fails inside Bazel's darwin sandbox without fix_bazel_xcode_config.sh
+build:macos_env --spawn_strategy=local
 test:macos_env   --test_tag_filters=-nomac
 
 ## Windows specific options

@@ -11,7 +11,8 @@ package(default_visibility = ["//visibility:public"])
 
 xcode_version(
     name = "version26_5_0_17F42",
-    version = "26.5.0.17F42",
+    # Absolute path skips Bazel's xcode-locator lookup (fails in darwin sandbox on macOS 26+).
+    version = "/Applications/Xcode.app/Contents/Developer",
     default_ios_sdk_version = "26.5",
     default_macos_sdk_version = "26.5",
     default_tvos_sdk_version = "26.5",

@@ -48,7 +48,9 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "base/clock.h"
+#include "base/file_util.h"
 #include "base/japanese_util.h"
+#include "base/system_util.h"
 #include "base/util.h"
 #include "config/config_handler.h"
 #include "composer/composer.h"
@@ -79,6 +81,25 @@ using ::mozc::engine::EngineConverterInterface;
 // Maximum size of multiple undo stack.
 const size_t kMultipleUndoMaxSize = 10;
 
+std::string LeftShiftDirectLockPath() {
+  return FileUtil::JoinPath(SystemUtil::GetUserProfileDirectory(),
+                            "left_shift_direct_lock.txt");
+}
+
+bool LoadLeftShiftDirectLock() {
+  const absl::StatusOr<std::string> contents =
+      FileUtil::GetContents(LeftShiftDirectLockPath());
+  if (!contents.ok()) {
+    return false;
+  }
+  return *contents == "1";
+}
+
+void PersistLeftShiftDirectLock(bool locked) {
+  FileUtil::SetContents(LeftShiftDirectLockPath(), locked ? "1" : "0")
+      .IgnoreError();
+}
+
 // Set input mode if the current input mode is not the given mode.
 void SwitchInputMode(const transliteration::TransliterationType mode,
                      composer::Composer* composer) {
@@ -98,6 +119,7 @@ void ApplyCompositionMode(const commands::CompositionMode mode,
       break;
     case commands::FULL_KATAKANA:
       SwitchInputMode(transliteration::FULL_KATAKANA, composer);
+      composer->SetOutputMode(transliteration::FULL_KATAKANA);
       break;
     case commands::HALF_KATAKANA:
       SwitchInputMode(transliteration::HALF_KATAKANA, composer);
@@ -111,9 +133,65 @@ void ApplyCompositionMode(const commands::CompositionMode mode,
     case commands::MANYOSHU:
       // Same as HIRAGANA for composer; session uses manyoshu_mode_ for display.
       SwitchInputMode(transliteration::HIRAGANA, composer);
+      composer->SetOutputMode(transliteration::HIRAGANA);
       break;
     default:
       LOG(DFATAL) << "ime on with invalid mode";
+  }
+}
+
+// Manyōshū mode types in hiragana but displays preedit/candidates/results as
+// katakana.  Output() applied this after PopOutput; composition typing uses
+// OutputComposition and must apply the same conversion.
+void ApplyManyoshuDisplayConversion(commands::Output* output) {
+  if (output == nullptr) {
+    return;
+  }
+  // Show preedit as katakana (composer produced hiragana).
+  if (output->has_preedit()) {
+    commands::Preedit* preedit = output->mutable_preedit();
+    for (int i = 0; i < preedit->segment_size(); ++i) {
+      std::string* value = preedit->mutable_segment(i)->mutable_value();
+      *value = japanese_util::HiraganaToKatakana(*value);
+    }
+  }
+  // Committed result: convert hiragana to katakana so final text matches display.
+  if (output->has_result()) {
+    commands::Result* result = output->mutable_result();
+    result->set_value(japanese_util::HiraganaToKatakana(result->value()));
+  }
+  // Convert candidate values to katakana and deduplicate by that value
+  // (keep first occurrence; このもの and コノモノ collapse to one コノモノ).
+  if (output->has_candidate_window()) {
+    commands::CandidateWindow* cw = output->mutable_candidate_window();
+    absl::flat_hash_set<std::string> seen;
+    std::vector<commands::CandidateWindow::Candidate> kept;
+    int new_focused = 0;
+    for (int i = 0; i < cw->candidate_size(); ++i) {
+      const std::string& raw = cw->candidate(i).value();
+      std::string value_katakana = japanese_util::HiraganaToKatakana(raw);
+      if (seen.insert(value_katakana).second) {
+        commands::CandidateWindow::Candidate c = cw->candidate(i);
+        c.set_value(value_katakana);
+        kept.push_back(std::move(c));
+        if (i == static_cast<int>(cw->focused_index())) {
+          new_focused = static_cast<int>(kept.size()) - 1;
+        }
+      } else if (i == static_cast<int>(cw->focused_index())) {
+        for (size_t j = 0; j < kept.size(); ++j) {
+          if (kept[j].value() == value_katakana) {
+            new_focused = static_cast<int>(j);
+            break;
+          }
+        }
+      }
+    }
+    cw->clear_candidate();
+    for (size_t i = 0; i < kept.size(); ++i) {
+      *cw->add_candidate() = kept[i];
+    }
+    cw->set_focused_index(static_cast<uint32_t>(new_focused));
+    cw->set_size(static_cast<uint32_t>(kept.size()));
   }
 }
 
@@ -231,7 +309,8 @@ ImeContext::State GetEffectiveStateForTestSendKey(const commands::KeyEvent& key,
 }  // namespace
 
 Session::Session(const EngineInterface& engine)
-    : context_(CreateContext(engine)) {}
+    : context_(CreateContext(engine)),
+      left_shift_mode_lock_(LoadLeftShiftDirectLock()) {}
 
 std::unique_ptr<ImeContext> Session::CreateContext(
     const EngineInterface& engine) const {
@@ -578,6 +657,27 @@ bool IsLeftShiftAlone(const commands::KeyEvent& key) {
 }
 
 // Ctrl+Left Shift alone: toggle mode lock for Left Shift direct toggle.
+bool IsLeftShiftDirectEligibleMode(const commands::CompositionMode mode) {
+  return mode == commands::HIRAGANA || mode == commands::FULL_KATAKANA ||
+         mode == commands::MANYOSHU || mode == commands::DIRECT;
+}
+
+commands::CompositionMode VisibleCompositionModeForLeftShift(
+    const commands::Command& command, const ImeContext& context,
+    bool manyoshu_mode) {
+  if (context.state() == ImeContext::DIRECT) {
+    return commands::DIRECT;
+  }
+  if (command.input().has_key() && command.input().key().has_mode() &&
+      command.input().key().mode() != commands::DIRECT) {
+    return command.input().key().mode();
+  }
+  if (manyoshu_mode) {
+    return commands::MANYOSHU;
+  }
+  return ToCompositionMode(context.composer().GetInputMode());
+}
+
 bool IsCtrlLeftShiftAlone(const commands::KeyEvent& key) {
   if (key.has_key_code() || key.has_special_key()) {
     return false;
@@ -623,8 +723,8 @@ bool Session::SendKey(commands::Command* command) {
     return true;
   }
 
-  // Right Shift alone: toggle Hiragana / Katakana (Manyoshu). Handle at top
-  // level so it works in all states and regardless of keymap/client encoding.
+  // Right Shift alone: toggle Hiragana / Manyōshū (project katakana). Handle at
+  // top level so it works in all states and regardless of keymap/client encoding.
   if (IsRightShiftAlone(command->input().key())) {
     return ToggleManyoshuHiragana(command);
   }
@@ -1269,6 +1369,7 @@ bool Session::MakeSureIMEOn(mozc::commands::Command* command) {
     if (mode == commands::MANYOSHU) {
       SwitchInputMode(transliteration::HIRAGANA,
                       context_->mutable_composer());
+      context_->mutable_composer()->SetOutputMode(transliteration::HIRAGANA);
       manyoshu_mode_ = true;
     } else {
       ApplyCompositionMode(mode, context_->mutable_composer());
@@ -2377,6 +2478,7 @@ bool Session::CompositionModeHiragana(commands::Command* command) {
   EnsureIMEIsOn();
   // The temporary mode should not be overridden.
   SwitchInputMode(transliteration::HIRAGANA, context_->mutable_composer());
+  context_->mutable_composer()->SetOutputMode(transliteration::HIRAGANA);
   OutputFromState(command);
   return true;
 }
@@ -2387,6 +2489,7 @@ bool Session::CompositionModeFullKatakana(commands::Command* command) {
   EnsureIMEIsOn();
   // The temporary mode should not be overridden.
   SwitchInputMode(transliteration::FULL_KATAKANA, context_->mutable_composer());
+  context_->mutable_composer()->SetOutputMode(transliteration::FULL_KATAKANA);
   OutputFromState(command);
   return true;
 }
@@ -2426,12 +2529,38 @@ bool Session::CompositionModeManyoshu(commands::Command* command) {
   manyoshu_mode_ = true;
   EnsureIMEIsOn();
   SwitchInputMode(transliteration::HIRAGANA, context_->mutable_composer());
+  context_->mutable_composer()->SetOutputMode(transliteration::HIRAGANA);
   OutputFromState(command);
   return true;
 }
 
+bool Session::ToggleHiraganaKatakana(commands::Command* command) {
+  // Right Shift alone toggles Hiragana ↔ Full Katakana during Japanese input.
+  if (context_->state() == ImeContext::DIRECT) {
+    command->mutable_output()->set_consumed(false);
+    OutputFromState(command);
+    return true;
+  }
+  const transliteration::TransliterationType input_mode =
+      context_->composer().GetInputMode();
+  if (input_mode == transliteration::HALF_ASCII ||
+      input_mode == transliteration::FULL_ASCII) {
+    command->mutable_output()->set_consumed(false);
+    OutputFromState(command);
+    return true;
+  }
+  manyoshu_mode_ = false;
+  if (context_->composer().GetInputMode() == transliteration::FULL_KATAKANA) {
+    CompositionModeHiragana(command);
+  } else {
+    CompositionModeFullKatakana(command);
+  }
+  command->mutable_output()->set_consumed(false);
+  return true;
+}
+
 bool Session::ToggleManyoshuHiragana(commands::Command* command) {
-  // Right Shift alone toggles Hiragana ↔ Manyōshū only during Japanese input.
+  // Right Shift alone (or Ctrl+Shift+4) toggles Hiragana ↔ Manyōshū.
   // In Latin / wide Latin (or direct input), pass Shift through to the app.
   if (context_->state() == ImeContext::DIRECT) {
     command->mutable_output()->set_consumed(false);
@@ -2495,6 +2624,11 @@ bool Session::CompositionModeSwitchKanaType(commands::Command* command) {
 
   // The temporary mode should not be overridden.
   SwitchInputMode(next_type, context_->mutable_composer());
+  if (next_type == transliteration::HIRAGANA ||
+      next_type == transliteration::FULL_KATAKANA ||
+      next_type == transliteration::HALF_KATAKANA) {
+    context_->mutable_composer()->SetOutputMode(next_type);
+  }
   OutputFromState(command);
   return true;
 }
@@ -2709,32 +2843,32 @@ bool Session::ToggleLeftShiftDirect(commands::Command* command) {
     return true;
   }
 
+  const commands::CompositionMode visible =
+      VisibleCompositionModeForLeftShift(*command, *context_, manyoshu_mode_);
+
   if (context_->state() == ImeContext::DIRECT) {
+    if (!IsLeftShiftDirectEligibleMode(saved_japanese_mode_) ||
+        saved_japanese_mode_ == commands::DIRECT) {
+      command->mutable_output()->set_consumed(false);
+      OutputFromState(command);
+      return true;
+    }
     command->mutable_output()->set_consumed(true);
     ClearUndoContext();
     SetSessionState(ImeContext::PRECOMPOSITION, context_.get());
-    if (saved_japanese_mode_ == commands::MANYOSHU) {
-      manyoshu_mode_ = true;
-      SwitchInputMode(transliteration::HIRAGANA, context_->mutable_composer());
-    } else {
-      manyoshu_mode_ = false;
-      ApplyCompositionMode(saved_japanese_mode_, context_->mutable_composer());
-    }
+    manyoshu_mode_ = (saved_japanese_mode_ == commands::MANYOSHU);
+    ApplyCompositionMode(saved_japanese_mode_, context_->mutable_composer());
     OutputFromState(command);
     return true;
   }
 
-  if (manyoshu_mode_) {
-    saved_japanese_mode_ = commands::MANYOSHU;
-  } else if (command->input().key().has_mode() &&
-             command->input().key().mode() != commands::DIRECT) {
-    // Prefer client composition mode (macOS |mode_|) over composer input mode so
-    // katakana / half-width toolbar states restore correctly after direct toggle.
-    saved_japanese_mode_ = command->input().key().mode();
-  } else {
-    saved_japanese_mode_ =
-        ToCompositionMode(context_->composer().GetInputMode());
+  if (!IsLeftShiftDirectEligibleMode(visible)) {
+    command->mutable_output()->set_consumed(false);
+    OutputFromState(command);
+    return true;
   }
+
+  saved_japanese_mode_ = visible;
   manyoshu_mode_ = false;
   IMEOff(command);
   // Do not consume Left Shift release so the app receives the key-up.
@@ -2748,8 +2882,16 @@ bool Session::ToggleLeftShiftModeLock(commands::Command* command) {
     OutputFromState(command);
     return true;
   }
+  const commands::CompositionMode visible =
+      VisibleCompositionModeForLeftShift(*command, *context_, manyoshu_mode_);
+  if (!IsLeftShiftDirectEligibleMode(visible)) {
+    command->mutable_output()->set_consumed(false);
+    OutputFromState(command);
+    return true;
+  }
   command->mutable_output()->set_consumed(true);
   left_shift_mode_lock_ = !left_shift_mode_lock_;
+  PersistLeftShiftDirectLock(left_shift_mode_lock_);
   OutputFromState(command);
   return true;
 }
@@ -3306,53 +3448,7 @@ void Session::Output(commands::Command* command) {
                                   odoriji_focused_index_);
   }
   if (manyoshu_mode_) {
-    commands::Output* output = command->mutable_output();
-    // Show preedit as katakana (composer produced hiragana).
-    if (output->has_preedit()) {
-      commands::Preedit* preedit = output->mutable_preedit();
-      for (int i = 0; i < preedit->segment_size(); ++i) {
-        std::string* value = preedit->mutable_segment(i)->mutable_value();
-        *value = japanese_util::HiraganaToKatakana(*value);
-      }
-    }
-    // Committed result: convert hiragana to katakana so final text matches display.
-    if (output->has_result()) {
-      commands::Result* result = output->mutable_result();
-      result->set_value(japanese_util::HiraganaToKatakana(result->value()));
-    }
-    // Convert candidate values to katakana and deduplicate by that value
-    // (keep first occurrence; このもの and コノモノ collapse to one コノモノ).
-    if (output->has_candidate_window()) {
-      commands::CandidateWindow* cw = output->mutable_candidate_window();
-      absl::flat_hash_set<std::string> seen;
-      std::vector<commands::CandidateWindow::Candidate> kept;
-      int new_focused = 0;
-      for (int i = 0; i < cw->candidate_size(); ++i) {
-        const std::string& raw = cw->candidate(i).value();
-        std::string value_katakana = japanese_util::HiraganaToKatakana(raw);
-        if (seen.insert(value_katakana).second) {
-          commands::CandidateWindow::Candidate c = cw->candidate(i);
-          c.set_value(value_katakana);
-          kept.push_back(std::move(c));
-          if (i == static_cast<int>(cw->focused_index())) {
-            new_focused = static_cast<int>(kept.size()) - 1;
-          }
-        } else if (i == static_cast<int>(cw->focused_index())) {
-          for (size_t j = 0; j < kept.size(); ++j) {
-            if (kept[j].value() == value_katakana) {
-              new_focused = static_cast<int>(j);
-              break;
-            }
-          }
-        }
-      }
-      cw->clear_candidate();
-      for (size_t i = 0; i < kept.size(); ++i) {
-        *cw->add_candidate() = kept[i];
-      }
-      cw->set_focused_index(static_cast<uint32_t>(new_focused));
-      cw->set_size(static_cast<uint32_t>(kept.size()));
-    }
+    ApplyManyoshuDisplayConversion(command->mutable_output());
   }
   // Replace 々 (iteration mark) in dictionary candidates and results with the
   // user's default odoriji from the Odoriji Palette (like manyoshu display conversion).
@@ -3381,12 +3477,16 @@ void Session::OutputMode(commands::Command* command) const {
     status->set_activated(true);
   }
   status->set_comeback_mode(comeback_mode);
+  status->set_left_shift_direct_lock(left_shift_mode_lock_);
 }
 
 void Session::OutputComposition(commands::Command* command) const {
   OutputMode(command);
   context_->converter().FillPreedit(
       context_->composer(), command->mutable_output()->mutable_preedit());
+  if (manyoshu_mode_) {
+    ApplyManyoshuDisplayConversion(command->mutable_output());
+  }
 }
 
 void Session::OutputKey(commands::Command* command) const {
