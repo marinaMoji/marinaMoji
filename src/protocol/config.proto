@@ -305,6 +305,10 @@ message Config {
   // input; Ctrl+Left Shift alone toggles a mode lock. Set true to disable both.
   optional bool disable_left_shift_direct_toggle = 70 [default = false];
 
+  // Custom kaeriten (返り点) preedit table (TSV, same format as kaeriten.tsv).
+  // When empty, bundled system://kaeriten.tsv is used.
+  optional bytes custom_kaeriten_table = 71;
+
   //////////////////////////////////////////////////////////////
   //
   // Dictionary (80-99)

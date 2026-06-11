@@ -316,7 +316,12 @@ bool Table::InitializeWithRequestAndConfig(const commands::Request& request,
   result = LoadFromFile(kKanaCombinationTableFile);
   if (!result) return result;
   // Load kaeriten (返り点) and punctuation shortcuts.
-  result = LoadFromFile(kKaeritenTableFile);
+  if (config.has_custom_kaeriten_table() &&
+      !config.custom_kaeriten_table().empty()) {
+    result = LoadFromString(config.custom_kaeriten_table());
+  } else {
+    result = LoadFromFile(kKaeritenTableFile);
+  }
   return result;
 }
 
@@ -581,7 +586,8 @@ std::shared_ptr<const Table> Table::GetSharedDefaultTable() {
 // TableContainer
 // ========================================
 TableManager::TableManager()
-    : custom_roman_table_fingerprint_(CityFingerprint("")) {}
+    : custom_roman_table_fingerprint_(CityFingerprint("")),
+      custom_kaeriten_table_fingerprint_(CityFingerprint("")) {}
 
 std::shared_ptr<const Table> TableManager::GetTable(
     const mozc::commands::Request& request,
@@ -592,20 +598,33 @@ std::shared_ptr<const Table> TableManager::GetTable(
                    config.punctuation_method(), config.symbol_method());
 
   // When custom_roman_table is set, force to create new table.
-  bool update_custom_roman_table = false;
+  bool update_custom_table = false;
   if ((config.preedit_method() == config::Config::ROMAN) &&
       config.has_custom_roman_table() && !config.custom_roman_table().empty()) {
     const uint64_t custom_roman_table_fingerprint =
         CityFingerprint(config.custom_roman_table());
     if (custom_roman_table_fingerprint != custom_roman_table_fingerprint_) {
-      update_custom_roman_table = true;
+      update_custom_table = true;
       custom_roman_table_fingerprint_ = custom_roman_table_fingerprint;
+    }
+  }
+
+  {
+    const std::string kaeriten_fingerprint_source =
+        config.has_custom_kaeriten_table() ? config.custom_kaeriten_table()
+                                           : "";
+    const uint64_t custom_kaeriten_table_fingerprint =
+        CityFingerprint(kaeriten_fingerprint_source);
+    if (custom_kaeriten_table_fingerprint !=
+        custom_kaeriten_table_fingerprint_) {
+      update_custom_table = true;
+      custom_kaeriten_table_fingerprint_ = custom_kaeriten_table_fingerprint;
     }
   }
 
   if (const auto iterator = table_map_.find(hash);
       iterator != table_map_.end()) {
-    if (update_custom_roman_table) {
+    if (update_custom_table) {
       // Delete the previous table to update the table.
       table_map_.erase(iterator);
     } else {

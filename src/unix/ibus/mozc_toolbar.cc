@@ -8,6 +8,7 @@
 #include "unix/ibus/mozc_toolbar.h"
 
 #include "base/file_util.h"
+#include "composer/kaeriten_table_util.h"
 #include "unix/ibus/mozc_engine.h"
 #include "unix/ibus/path_util.h"
 #include "protocol/commands.pb.h"
@@ -963,28 +964,6 @@ static void ParseKeymapFromString(const std::string& content,
   }
 }
 
-// Kaeriten (返り点) preedit table: input \t result \t [pending] \t [attrs]
-static void ParseKaeritenTsv(const std::string& path,
-                             std::vector<ShortcutEntry>* kaeriten) {
-  kaeriten->clear();
-  std::ifstream f(path);
-  if (!f) return;
-  std::string line;
-  while (std::getline(f, line)) {
-    if (line.empty() || line[0] == '#') continue;
-    size_t t1 = line.find('\t');
-    if (t1 == std::string::npos) continue;
-    size_t t2 = line.find('\t', t1 + 1);
-    std::string input = line.substr(0, t1);
-    std::string result = (t2 != std::string::npos)
-                             ? line.substr(t1 + 1, t2 - (t1 + 1))
-                             : line.substr(t1 + 1);
-    while (!result.empty() && (result.back() == '\r' || result.back() == ' '))
-      result.pop_back();
-    if (!input.empty()) kaeriten->emplace_back(input, result);
-  }
-}
-
 // Groups (key, command) entries by command/result; keys become comma-separated.
 // For script/comp, order follows the given command_order (only listed commands).
 // For kaeriten, order is first-occurrence of result (command_order is null).
@@ -1084,14 +1063,35 @@ static void FillDefaultKaeritenShortcuts(std::vector<ShortcutEntry>* kaeriten) {
   for (const auto& p : kDefault) kaeriten->emplace_back(p.first, p.second);
 }
 
+static void LoadKaeritenEntries(const config::Config* config,
+                                std::vector<ShortcutEntry>* kaeriten) {
+  kaeriten->clear();
+  config::Config effective;
+  if (config != nullptr) {
+    effective = *config;
+  }
+  std::vector<std::pair<std::string, std::string>> pairs;
+  composer::LoadKaeritenShortcutEntries(effective, &pairs);
+  for (const auto& pair : pairs) {
+    kaeriten->emplace_back(pair.first, pair.second);
+  }
+  if (kaeriten->empty()) {
+    FillDefaultKaeritenShortcuts(kaeriten);
+  }
+}
+
 static std::vector<std::string> BuildDefaultOdorijiSymbols() {
   return {"々", "ゝ", "ゞ", "ヽ", "ヾ", "〻", "〱", "〲"};
 }
 
 static std::vector<std::string> BuildDefaultKaeritenSymbols() {
   std::vector<ShortcutEntry> kaeriten_entries;
-  ParseKaeritenTsv(GetIconPath("kaeriten.tsv"), &kaeriten_entries);
-  FillDefaultKaeritenShortcuts(&kaeriten_entries);
+  config::Config config;
+  const config::Config* config_ptr = nullptr;
+  if (g_engine && g_engine->GetConfig(&config)) {
+    config_ptr = &config;
+  }
+  LoadKaeritenEntries(config_ptr, &kaeriten_entries);
   std::vector<std::string> symbols;
   std::set<std::string> seen;
   for (const auto& entry : kaeriten_entries) {
@@ -1503,8 +1503,12 @@ static void ShowShortcutsPopup() {
   FillDefaultScriptShortcuts(&script_entries);
   FillDefaultCompositionShortcuts(&comp_entries);
 
-  ParseKaeritenTsv(GetIconPath("kaeriten.tsv"), &kaeriten_entries);
-  FillDefaultKaeritenShortcuts(&kaeriten_entries);
+  config::Config kaeriten_config;
+  const config::Config* kaeriten_config_ptr = nullptr;
+  if (g_engine && g_engine->GetConfig(&kaeriten_config)) {
+    kaeriten_config_ptr = &kaeriten_config;
+  }
+  LoadKaeritenEntries(kaeriten_config_ptr, &kaeriten_entries);
 
   GroupShortcutsByCommand(script_entries, kScriptCommands, &data->script);
   GroupShortcutsByCommand(comp_entries, kCompositionCommands, &data->composition);

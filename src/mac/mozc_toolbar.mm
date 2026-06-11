@@ -18,6 +18,7 @@
 
 #include "base/file_util.h"
 #include "base/mac/mac_util.h"
+#include "composer/kaeriten_table_util.h"
 #include "base/system_util.h"
 #include "client/client_interface.h"
 #include "mac/common.h"
@@ -122,27 +123,6 @@ void ParseKeymapFromString(const std::string &content,
   }
 }
 
-void ParseKaeritenTsv(const std::string &path,
-                      std::vector<ShortcutEntry> *kaeriten) {
-  kaeriten->clear();
-  std::ifstream f(path);
-  if (!f) return;
-  std::string line;
-  while (std::getline(f, line)) {
-    if (line.empty() || line[0] == '#') continue;
-    size_t t1 = line.find('\t');
-    if (t1 == std::string::npos) continue;
-    size_t t2 = line.find('\t', t1 + 1);
-    std::string input = line.substr(0, t1);
-    std::string result = (t2 != std::string::npos)
-                             ? line.substr(t1 + 1, t2 - (t1 + 1))
-                             : line.substr(t1 + 1);
-    while (!result.empty() && (result.back() == '\r' || result.back() == ' '))
-      result.pop_back();
-    if (!input.empty()) kaeriten->emplace_back(input, result);
-  }
-}
-
 void GroupShortcutsByCommand(const std::vector<ShortcutEntry> &entries,
                              const char *const *command_order,
                              std::vector<GroupedShortcutRow> *out) {
@@ -228,16 +208,38 @@ void FillDefaultKaeritenShortcuts(std::vector<ShortcutEntry> *kaeriten) {
   for (const auto &p : kDefault) kaeriten->emplace_back(p.first, p.second);
 }
 
+void LoadKaeritenEntries(const mozc::config::Config *config,
+                         std::vector<ShortcutEntry> *kaeriten) {
+  kaeriten->clear();
+  mozc::config::Config effective;
+  if (config != nullptr) {
+    effective = *config;
+  }
+  std::vector<std::pair<std::string, std::string>> pairs;
+  mozc::composer::LoadKaeritenShortcutEntries(effective, &pairs);
+  for (const auto &pair : pairs) {
+    kaeriten->emplace_back(pair.first, pair.second);
+  }
+  if (kaeriten->empty()) {
+    FillDefaultKaeritenShortcuts(kaeriten);
+  }
+}
+
 std::string GetKeymapPath(const std::string &filename);
 
 std::vector<std::string> BuildDefaultOdorijiSymbols() {
   return {"々", "ゝ", "ゞ", "ヽ", "ヾ", "〻", "〱", "〲"};
 }
 
-std::vector<std::string> BuildDefaultKaeritenSymbols() {
+std::vector<std::string> BuildKaeritenSymbols(
+    mozc::client::ClientInterface *client) {
   std::vector<ShortcutEntry> kaeriten_entries;
-  ParseKaeritenTsv(GetKeymapPath("kaeriten.tsv"), &kaeriten_entries);
-  FillDefaultKaeritenShortcuts(&kaeriten_entries);
+  mozc::config::Config config;
+  const mozc::config::Config *config_ptr = nullptr;
+  if (client != nullptr && client->GetConfig(&config)) {
+    config_ptr = &config;
+  }
+  LoadKaeritenEntries(config_ptr, &kaeriten_entries);
   std::vector<std::string> symbols;
   std::set<std::string> seen;
   for (const auto &entry : kaeriten_entries) {
@@ -380,8 +382,16 @@ std::string GetKeymapPath(const std::string &filename) {
   FillDefaultScriptShortcuts(&script_entries);
   FillDefaultCompositionShortcuts(&comp_entries);
 
-  ParseKaeritenTsv(GetKeymapPath("kaeriten.tsv"), &kaeriten_entries);
-  FillDefaultKaeritenShortcuts(&kaeriten_entries);
+  if (client) {
+    mozc::config::Config kaeriten_config;
+    const mozc::config::Config *kaeriten_config_ptr = nullptr;
+    if (client->GetConfig(&kaeriten_config)) {
+      kaeriten_config_ptr = &kaeriten_config;
+    }
+    LoadKaeritenEntries(kaeriten_config_ptr, &kaeriten_entries);
+  } else {
+    LoadKaeritenEntries(nullptr, &kaeriten_entries);
+  }
 
   GroupShortcutsByCommand(script_entries, kScriptCommands, &scriptData_);
   GroupShortcutsByCommand(comp_entries, kCompositionCommands,
@@ -522,7 +532,7 @@ std::string GetKeymapPath(const std::string &filename) {
                             outView:&odorijiStack_];
   [self addSymbolsTabWithIdentifier:@"MM.Kaeriten"
                               title:MarinaLocalizedString(@"MM.Kaeriten")
-                            symbols:BuildDefaultKaeritenSymbols()
+                            symbols:BuildKaeritenSymbols(client_)
                         hintMessage:MarinaLocalizedString(@"MM.KaeritenHint")
                             outView:&kaeritenStack_];
   [self addSymbolsTabWithIdentifier:@"MM.Symbols"

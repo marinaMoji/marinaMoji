@@ -111,6 +111,23 @@ mozc_cc_test(
 )
 
 mozc_cc_library(
+    name = "kaeriten_table_util",
+    srcs = ["kaeriten_table_util.cc"],
+    hdrs = ["kaeriten_table_util.h"],
+    visibility = [
+        "//gui/config_dialog:__pkg__",
+        "//mac:__pkg__",
+        "//unix/ibus:__pkg__",
+    ],
+    deps = [
+        "//base:config_file_stream",
+        "//base:util",
+        "//protocol:config_cc_proto",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_library(
     name = "table",
     srcs = ["table.cc"],
     hdrs = ["table.h"],
@@ -152,6 +169,17 @@ mozc_cc_binary(
         "//protocol:config_cc_proto",
         "//transliteration",
         "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+mozc_cc_test(
+    name = "kaeriten_table_util_test",
+    size = "small",
+    srcs = ["kaeriten_table_util_test.cc"],
+    deps = [
+        ":kaeriten_table_util",
+        "//protocol:config_cc_proto",
+        "//testing:gunit_main",
     ],
 )
 

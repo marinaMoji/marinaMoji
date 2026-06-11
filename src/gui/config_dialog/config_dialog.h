@@ -74,6 +74,7 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   virtual void EditUserSymbols();
   virtual void EditKeymap();
   virtual void EditRomanTable();
+  virtual void EditKaeritenTable();
   virtual void ResetToDefaults();
   virtual void SelectInputModeSetting(int index);
   virtual void SelectAutoConversionSetting(int state);
@@ -102,6 +103,7 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   std::unique_ptr<client::ClientInterface> client_;
   std::string custom_keymap_table_;
   std::string custom_roman_table_;
+  std::string custom_kaeriten_table_;
   // base_config_ keeps the original config imported from the file including
   // unconfigurable options with the GUI (e.g. composing_timeout_threshold_msec)
   config::Config base_config_;

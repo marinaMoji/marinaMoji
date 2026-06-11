@@ -1066,6 +1066,42 @@ TEST_F(TableTest, TableManager) {
     EXPECT_NE(table2->LookUp("a"), nullptr);
     EXPECT_NE(table2->LookUp("kk"), nullptr);
   }
+
+  {
+    commands::Request request;
+    request.set_special_romanji_table(Request::DEFAULT_TABLE);
+    config::Config config;
+    config.set_preedit_method(Config::ROMAN);
+    config.set_punctuation_method(Config::TOUTEN_KUTEN);
+    config.set_symbol_method(Config::CORNER_BRACKET_MIDDLE_DOT);
+    config.set_custom_kaeriten_table(";xy\tX\t\tDirectInput\n");
+    std::shared_ptr<const Table> table =
+        table_manager.GetTable(request, config);
+    ASSERT_NE(table, nullptr);
+    const Entry* entry = table->LookUp(";xy");
+    ASSERT_NE(entry, nullptr);
+    EXPECT_EQ(entry->result(), "X");
+
+    config.set_custom_kaeriten_table(";ab\tY\t\tDirectInput\n");
+    std::shared_ptr<const Table> table2 =
+        table_manager.GetTable(request, config);
+    ASSERT_NE(table2, nullptr);
+    EXPECT_NE(table2, table);
+    entry = table2->LookUp(";ab");
+    ASSERT_NE(entry, nullptr);
+    EXPECT_EQ(entry->result(), "Y");
+  }
+}
+
+TEST_F(TableTest, CustomKaeritenTable) {
+  config_.set_custom_kaeriten_table(";zz\tZ\t\tDirectInput\n");
+  Table table;
+  commands::Request request;
+  table.InitializeWithRequestAndConfig(request, config_);
+
+  const Entry* entry = table.LookUp(";zz");
+  ASSERT_NE(entry, nullptr);
+  EXPECT_EQ(entry->result(), "Z");
 }
 
 }  // namespace

@@ -101,6 +101,14 @@ mozc_qt_moc(
 )
 
 mozc_qt_moc(
+    name = "moc_kaeriten_table_editor",
+    srcs = [
+        "kaeriten_table_editor.h",
+    ],
+    outs = ["moc_kaeriten_table_editor.cc"],
+)
+
+mozc_qt_moc(
     name = "moc_roman_table_editor",
     srcs = [
         "roman_table_editor.h",
@@ -172,11 +180,13 @@ mozc_cc_qt_library(
         "generic_table_editor.cc",
         "keybinding_editor.cc",
         "keybinding_editor_delegate.cc",
+        "kaeriten_table_editor.cc",
         "keymap_editor.cc",
         "roman_table_editor.cc",
         ":moc_character_form_editor",
         ":moc_config_dialog",
         ":moc_generic_table_editor",
+        ":moc_kaeriten_table_editor",
         ":moc_keybinding_editor",
         ":moc_keybinding_editor_delegate",
         ":moc_keymap_editor",
@@ -189,6 +199,7 @@ mozc_cc_qt_library(
         "config_dialog_shortcuts_tab.h",
         "config_dialog_sync_tab.h",
         "generic_table_editor.h",
+        "kaeriten_table_editor.h",
         "keybinding_editor.h",
         "keybinding_editor_delegate.h",
         "keymap_editor.h",
@@ -218,6 +229,7 @@ mozc_cc_qt_library(
         "//base/container:flat_map",
         "//client",
         "//client:client_interface",
+        "//composer:kaeriten_table_util",
         "//composer:key_parser",
         "//config:config_handler",
         "//config:stats_config_util",

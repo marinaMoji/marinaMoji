@@ -191,6 +191,7 @@ mozc_objc_library(
         "//base:system_util",
         "//base/mac:mac_util",
         "//client:client_interface",
+        "//composer:kaeriten_table_util",
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",
     ],

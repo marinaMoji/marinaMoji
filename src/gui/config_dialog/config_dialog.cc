@@ -59,6 +59,7 @@
 #include "config/stats_config_util.h"
 #include "gui/base/util.h"
 #include "gui/config_dialog/keymap_editor.h"
+#include "gui/config_dialog/kaeriten_table_editor.h"
 #include "gui/config_dialog/roman_table_editor.h"
 #include "protocol/config.pb.h"
 #include "session/keymap.h"
@@ -465,6 +466,7 @@ ConfigDialog::ConfigDialog()
   shortcuts_tab_ = std::make_unique<ConfigDialogShortcutsTab>(this);
   shortcuts_tab_->AddToTabWidget(configDialogTabWidget);
   shortcuts_tab_->ConnectApplyButton(this, SLOT(EnableApplyButton()));
+  shortcuts_tab_->ConnectEditKaeritenButton(this, SLOT(EditKaeritenTable()));
 
   sync_tab_ = std::make_unique<ConfigDialogSyncTab>(
       static_cast<client::Client*>(client_.get()), this);
@@ -757,6 +759,7 @@ void ConfigDialog::ConvertFromProto(const config::Config &config) {
 
   custom_keymap_table_ = config.custom_keymap_table();
   custom_roman_table_ = config.custom_roman_table();
+  custom_kaeriten_table_ = config.custom_kaeriten_table();
 
   // tab2
   SET_COMBOBOX(historyLearningLevelComboBox, HistoryLearningLevel,
@@ -857,6 +860,11 @@ void ConfigDialog::ConvertToProto(config::Config *config) const {
   config->clear_custom_roman_table();
   if (!custom_roman_table_.empty()) {
     config->set_custom_roman_table(custom_roman_table_);
+  }
+
+  config->clear_custom_kaeriten_table();
+  if (!custom_kaeriten_table_.empty()) {
+    config->set_custom_kaeriten_table(custom_kaeriten_table_);
   }
 
   // tab2
@@ -1083,6 +1091,16 @@ void ConfigDialog::EditRomanTable() {
   std::string output;
   if (gui::RomanTableEditorDialog::Show(this, custom_roman_table_, &output)) {
     custom_roman_table_ = output;
+    EnableApplyButton();
+  }
+}
+
+void ConfigDialog::EditKaeritenTable() {
+  std::string output;
+  if (gui::KaeritenTableEditorDialog::Show(this, custom_kaeriten_table_,
+                                           &output)) {
+    custom_kaeriten_table_ = output;
+    EnableApplyButton();
   }
 }
 

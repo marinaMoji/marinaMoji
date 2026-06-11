@@ -310,6 +310,7 @@ mozc_cc_library(
         "//base:vlog",
         "//base/container:flat_map",
         "//client",
+        "//composer:kaeriten_table_util",
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",

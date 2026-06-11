@@ -4,6 +4,7 @@
 #include <QCheckBox>
 #include <QLabel>
 #include <QObject>
+#include <QPushButton>
 #include <QTabWidget>
 #include <QWidget>
 
@@ -20,11 +21,14 @@ class ConfigDialogShortcutsTab {
   void LoadFromConfig(const config::Config& config);
   void ApplyToConfig(config::Config* config) const;
   void ConnectApplyButton(const QObject* receiver, const char* slot);
+  void ConnectEditKaeritenButton(const QObject* receiver, const char* slot);
 
  private:
   QWidget* tab_;
   QCheckBox* disable_left_shift_direct_toggle_;
   QLabel* left_shift_help_;
+  QLabel* kaeriten_help_;
+  QPushButton* edit_kaeriten_button_;
 };
 
 }  // namespace gui
