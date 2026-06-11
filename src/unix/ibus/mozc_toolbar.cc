@@ -9,6 +9,7 @@
 
 #include "base/file_util.h"
 #include "composer/kaeriten_table_util.h"
+#include "session/marina_number_row_bindings_util.h"
 #include "unix/ibus/mozc_engine.h"
 #include "unix/ibus/path_util.h"
 #include "protocol/commands.pb.h"
@@ -901,8 +902,9 @@ static const char* const kScriptCommands[] = {
     "ConvertToHalfWidth",
     "ConvertToFullAlphanumeric", "ConvertToHiragana", nullptr};
 static const char* const kCompositionCommands[] = {
-    "Commit", "LaunchWordRegisterDialog", "SegmentWidthShrink",
-    "SegmentWidthExpand", nullptr};
+    "Commit", "InsertOdorijiDefault", "ShowOdorijiPalette",
+    "LaunchWordRegisterDialog", "SegmentWidthShrink", "SegmentWidthExpand",
+    nullptr};
 
 static bool CommandInList(const char* cmd, const char* const* list) {
   for (; *list; ++list)
@@ -1502,6 +1504,16 @@ static void ShowShortcutsPopup() {
     ParseKeymapTsv(GetIconPath("ms-ime.tsv"), &script_entries, &comp_entries);
   FillDefaultScriptShortcuts(&script_entries);
   FillDefaultCompositionShortcuts(&comp_entries);
+
+  config::Config marina_config;
+  if (g_engine && g_engine->GetConfig(&marina_config)) {
+    session::ApplyMarinaNumberRowShortcutEntries(marina_config, &script_entries,
+                                                 &comp_entries);
+  } else {
+    session::ApplyMarinaNumberRowShortcutEntries(config::Config(),
+                                                 &script_entries,
+                                                 &comp_entries);
+  }
 
   config::Config kaeriten_config;
   const config::Config* kaeriten_config_ptr = nullptr;

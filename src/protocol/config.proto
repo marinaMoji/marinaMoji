@@ -35,6 +35,42 @@ package mozc.config;
 option java_outer_classname = "ProtoConfig";
 option java_package = "org.mozc.android.inputmethod.japanese.protobuf";
 
+// marinaMoji: configurable Ctrl / Ctrl+Shift + physical number-row shortcuts.
+enum MarinaNumberRowAction {
+  MARINA_NR_ODORIJI_DEFAULT = 1;
+  MARINA_NR_ODORIJI_PALETTE = 2;
+  MARINA_NR_TRADITIONAL_KANJI = 3;
+  MARINA_NR_MANYOSHU_HIRAGANA = 4;
+  MARINA_NR_HIRAGANA_DIRECT = 5;
+  MARINA_NR_WORD_REGISTER = 6;
+}
+
+enum MarinaShortcutModifier {
+  MARINA_MOD_CTRL = 0;
+  MARINA_MOD_CTRL_SHIFT = 1;
+}
+
+// Physical US number-row slot (layout-independent).
+enum MarinaPhysicalSlot {
+  MARINA_SLOT_1 = 1;
+  MARINA_SLOT_2 = 2;
+  MARINA_SLOT_3 = 3;
+  MARINA_SLOT_4 = 4;
+  MARINA_SLOT_5 = 5;
+  MARINA_SLOT_6 = 6;
+  MARINA_SLOT_7 = 7;
+  MARINA_SLOT_8 = 8;
+  MARINA_SLOT_9 = 9;
+  MARINA_SLOT_0 = 10;
+  MARINA_SLOT_GRAVE = 11;
+}
+
+message MarinaNumberRowBinding {
+  optional MarinaNumberRowAction action = 1;
+  optional MarinaShortcutModifier modifier = 2 [default = MARINA_MOD_CTRL_SHIFT];
+  optional MarinaPhysicalSlot slot = 3;
+}
+
 message GeneralConfig {
   //////////////////////////////////////////////////////////////
   //
@@ -308,6 +344,10 @@ message Config {
   // Custom kaeriten (返り点) preedit table (TSV, same format as kaeriten.tsv).
   // When empty, bundled system://kaeriten.tsv is used.
   optional bytes custom_kaeriten_table = 71;
+
+  // Custom marina number-row shortcut bindings. When empty, bundled defaults
+  // apply (Ctrl+Shift+1..5 for marina actions, Ctrl+0 for dictionary).
+  repeated MarinaNumberRowBinding marina_number_row_bindings = 72;
 
   //////////////////////////////////////////////////////////////
   //

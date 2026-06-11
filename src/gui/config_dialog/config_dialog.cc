@@ -550,6 +550,18 @@ bool ConfigDialog::Update() {
     return false;
   }
 
+  if (shortcuts_tab_) {
+    QString shortcut_error;
+    if (!shortcuts_tab_->ValidateBeforeApply(&shortcut_error)) {
+      QMessageBox::warning(
+          this, windowTitle(),
+          shortcut_error.isEmpty()
+              ? tr("Number-row shortcut bindings are invalid.")
+              : shortcut_error);
+      return false;
+    }
+  }
+
 #if defined(_WIN32)
   if ((initial_preedit_method_ != static_cast<int>(config.preedit_method())) ||
       (initial_use_keyboard_to_change_preedit_method_ !=

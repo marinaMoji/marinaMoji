@@ -393,6 +393,59 @@ BOOL HasNonShiftChordModifiers(NSUInteger flags) {
     }
   }
 
+  // marinaMoji: Ctrl-only physical number-row keys (e.g. Ctrl+0 dictionary).
+  const bool ctrl_only =
+      (nsModifiers & NSEventModifierFlagControl) &&
+      !(nsModifiers & NSEventModifierFlagShift) &&
+      !(nsModifiers & NSEventModifierFlagOption) &&
+      !(nsModifiers & NSEventModifierFlagCommand);
+  if (ctrl_only) {
+    unichar digit = 0;
+    switch (keyCode) {
+      case kVK_ANSI_1:
+        digit = '1';
+        break;
+      case kVK_ANSI_2:
+        digit = '2';
+        break;
+      case kVK_ANSI_3:
+        digit = '3';
+        break;
+      case kVK_ANSI_4:
+        digit = '4';
+        break;
+      case kVK_ANSI_5:
+        digit = '5';
+        break;
+      case kVK_ANSI_6:
+        digit = '6';
+        break;
+      case kVK_ANSI_7:
+        digit = '7';
+        break;
+      case kVK_ANSI_8:
+        digit = '8';
+        break;
+      case kVK_ANSI_9:
+        digit = '9';
+        break;
+      case kVK_ANSI_0:
+        digit = '0';
+        break;
+      case kVK_ANSI_Grave:
+        digit = '`';
+        break;
+      default:
+        break;
+    }
+    if (digit != 0) {
+      keyEvent->clear_special_key();
+      keyEvent->set_key_code(digit);
+      [self addModifierFlags:nsModifiers toMozcKeyEvent:keyEvent];
+      return YES;
+    }
+  }
+
   const bool ctrl_alt_no_command =
       (nsModifiers & NSEventModifierFlagControl) &&
       (nsModifiers & NSEventModifierFlagOption) &&

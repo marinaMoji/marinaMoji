@@ -62,8 +62,10 @@
 #include "unix/ibus/ibus_candidate_window_handler.h"
 #include "unix/ibus/ibus_config.h"
 #include "unix/ibus/ibus_wrapper.h"
+#include "unix/ibus/ibus_physical_slot.h"
 #include "unix/ibus/key_event_handler.h"
 #include "unix/ibus/key_translator.h"
+#include "unix/ibus/marina_number_row_dispatcher.h"
 #include "unix/ibus/message_translator.h"
 #include "unix/ibus/path_util.h"
 #include "unix/ibus/mozc_toolbar.h"
@@ -528,6 +530,17 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
 
   key.set_activated(property_handler_->IsActivated());
   key.set_mode(property_handler_->GetOriginalCompositionMode());
+
+  config::Config marina_config;
+  if (client_->GetConfig(&marina_config)) {
+    commands::Output marina_output;
+    if (DispatchMarinaNumberRowShortcut(engine, keycode, modifiers,
+                                        marina_config, property_handler_.get(),
+                                        client_.get(), &marina_output)) {
+      UpdateAll(engine, marina_output);
+      return true;
+    }
+  }
 
   commands::Context context;
   SurroundingTextInfo surrounding_text_info;

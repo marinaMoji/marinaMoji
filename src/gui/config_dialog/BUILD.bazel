@@ -238,6 +238,7 @@ mozc_cc_qt_library(
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",
         "//session:keymap",
+        "//session:marina_number_row_bindings_util",
         "//sync:sync_config",
         "//sync:sync_key",
         "//sync:sync_status",

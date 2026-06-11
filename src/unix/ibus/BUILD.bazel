@@ -182,6 +182,28 @@ mozc_cc_library(
 )
 
 mozc_cc_test(
+    name = "ibus_physical_slot_test",
+    size = "small",
+    srcs = ["ibus_physical_slot_test.cc"],
+    target_compatible_with = ["@platforms//os:linux"],
+    deps = [
+        ":ibus_physical_slot",
+        "//protocol:config_cc_proto",
+        "//testing:gunit_main",
+    ],
+)
+
+mozc_cc_library(
+    name = "ibus_physical_slot",
+    srcs = ["ibus_physical_slot.cc"],
+    hdrs = ["ibus_physical_slot.h"],
+    deps = [
+        ":ibus_header",
+        "//protocol:config_cc_proto",
+    ],
+)
+
+mozc_cc_test(
     name = "ibus_utils_test",
     size = "small",
     srcs = [
@@ -203,6 +225,7 @@ mozc_cc_library(
             "ibus_candidate_window_handler.cc",
             "key_event_handler.cc",
             "key_translator.cc",
+            "marina_number_row_dispatcher.cc",
             "mozc_engine.cc",
             "mozc_toolbar.cc",
             "preedit_handler.cc",
@@ -216,8 +239,10 @@ mozc_cc_library(
             "engine_interface.h",
             "engine_registrar.h",
             "ibus_candidate_window_handler.h",
+            "ibus_physical_slot.h",
             "key_event_handler.h",
             "key_translator.h",
+            "marina_number_row_dispatcher.h",
             "mozc_engine.h",
             "mozc_toolbar.h",
             "preedit_handler.h",
@@ -299,6 +324,7 @@ mozc_cc_library(
         ":candidate_window_handler",
         ":ibus_config",
         ":ibus_header",
+        ":ibus_physical_slot",
         ":ibus_property_handler",
         ":ibus_utils",
         ":ibus_wrapper",
@@ -311,6 +337,7 @@ mozc_cc_library(
         "//base/container:flat_map",
         "//client",
         "//composer:kaeriten_table_util",
+        "//session:marina_number_row_bindings_util",
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",

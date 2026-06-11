@@ -31,6 +31,8 @@
 
 #include "session/keymap.h"
 
+#include "session/marina_number_row_bindings_util.h"
+
 #include <algorithm>
 #include <istream>
 #include <memory>
@@ -305,6 +307,10 @@ bool KeyMapManager::LoadStreamWithErrors(std::istream* ifs,
 bool KeyMapManager::AddCommand(const std::string& state_name,
                                const std::string& key_event_name,
                                const std::string& command_name) {
+  if (session::IsMarinaNumberRowKeymapBinding(command_name, key_event_name)) {
+    return true;
+  }
+
 #ifdef NDEBUG  // means RELEASE BUILD
   // On the release build, we do not support the ReportBug
   // commands.  Note, true is returned as the arguments are

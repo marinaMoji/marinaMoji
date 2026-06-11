@@ -19,6 +19,7 @@
 #include "base/file_util.h"
 #include "base/mac/mac_util.h"
 #include "composer/kaeriten_table_util.h"
+#include "session/marina_number_row_bindings_util.h"
 #include "base/system_util.h"
 #include "client/client_interface.h"
 #include "mac/common.h"
@@ -61,8 +62,9 @@ const char *const kScriptCommands[] = {
     "ConvertToHalfWidth",
     "ConvertToFullAlphanumeric", "ConvertToHiragana", nullptr};
 const char *const kCompositionCommands[] = {
-    "Commit", "LaunchWordRegisterDialog", "SegmentWidthShrink",
-    "SegmentWidthExpand", nullptr};
+    "Commit", "InsertOdorijiDefault", "ShowOdorijiPalette",
+    "LaunchWordRegisterDialog", "SegmentWidthShrink", "SegmentWidthExpand",
+    nullptr};
 
 bool CommandInList(const char *cmd, const char *const *list) {
   for (; *list; ++list)
@@ -381,6 +383,18 @@ std::string GetKeymapPath(const std::string &filename) {
     ParseKeymapTsv(GetKeymapPath("ms-ime.tsv"), &script_entries, &comp_entries);
   FillDefaultScriptShortcuts(&script_entries);
   FillDefaultCompositionShortcuts(&comp_entries);
+
+  if (client) {
+    mozc::config::Config marina_config;
+    if (client->GetConfig(&marina_config)) {
+      mozc::session::ApplyMarinaNumberRowShortcutEntries(
+          marina_config, &script_entries, &comp_entries);
+    }
+  } else {
+    mozc::session::ApplyMarinaNumberRowShortcutEntries(mozc::config::Config(),
+                                                     &script_entries,
+                                                     &comp_entries);
+  }
 
   if (client) {
     mozc::config::Config kaeriten_config;

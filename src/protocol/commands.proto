@@ -472,6 +472,9 @@ message SessionCommand {
 
     // Toggle privacy mode (incognito + no history learning).
     TOGGLE_PRIVACY_MODE = 33;
+
+    // Open word-register dialog (same as Ctrl+0).
+    LAUNCH_WORD_REGISTER_DIALOG = 34;
   }
   required CommandType type = 1;
 

@@ -511,6 +511,9 @@ bool Session::SendCommand(commands::Command* command) {
     case commands::SessionCommand::INSERT_ODORIJI_DEFAULT:
       result = InsertOdorijiDefault(command);
       break;
+    case commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
+      result = LaunchWordRegisterDialog(command);
+      break;
     case commands::SessionCommand::INSERT_MACRON_VOWEL: {
       const absl::string_view text = command->input().command().text();
       if (text.size() == 1) {

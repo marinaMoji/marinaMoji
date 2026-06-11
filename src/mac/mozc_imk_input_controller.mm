@@ -68,6 +68,7 @@
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
+#include "session/marina_number_row_bindings_util.h"
 #include "sync/sync_activity.h"
 #include "mac/mozc_toolbar.h"
 #include "mac/sync_overlay.h"
@@ -253,16 +254,9 @@ bool KeyEventHasCtrlShift(const KeyEvent &key) {
   return ctrl && shift;
 }
 
-// Ctrl+Shift+US number-row slot (1..5) after KeyCodeMap physical-key normalization.
-bool IsMarinaNumberRowSlot(const KeyEvent &key, char slot_digit) {
-  return KeyEventHasCtrlShift(key) && key.has_key_code() &&
-         key.key_code() == static_cast<uint32_t>(slot_digit);
-}
-
-bool IsMarinaNumberRowShortcut(const KeyEvent &key) {
-  return IsMarinaNumberRowSlot(key, '1') || IsMarinaNumberRowSlot(key, '2') ||
-         IsMarinaNumberRowSlot(key, '3') || IsMarinaNumberRowSlot(key, '4') ||
-         IsMarinaNumberRowSlot(key, '5');
+bool IsMarinaConfigurableNumberRowShortcut(const KeyEvent &key,
+                                           const Config &config) {
+  return mozc::session::FindMarinaActionForKeyEvent(config, key).has_value();
 }
 
 // Ctrl+Shift+` / ~ (ToggleAlphanumericMode in keymap).
@@ -274,12 +268,11 @@ bool IsMarinaBacktickShortcut(const KeyEvent &key) {
   return code == static_cast<uint32_t>('`') || code == static_cast<uint32_t>('~');
 }
 
-// Ctrl+Shift+3, F, or f (ToggleTraditionalKanji); always SessionCommand, not keymap.
+// Ctrl+Shift+F / f (ToggleTraditionalKanji); always SessionCommand, not keymap.
 bool IsMarinaTraditionalKanjiShortcut(const KeyEvent &key) {
-  return IsMarinaNumberRowSlot(key, '3') ||
-         (KeyEventHasCtrlShift(key) && key.has_key_code() &&
-          (key.key_code() == static_cast<uint32_t>('f') ||
-           key.key_code() == static_cast<uint32_t>('F')));
+  return KeyEventHasCtrlShift(key) && key.has_key_code() &&
+         (key.key_code() == static_cast<uint32_t>('f') ||
+          key.key_code() == static_cast<uint32_t>('F'));
 }
 
 bool IsMacronVowelLetter(unichar c) {
@@ -922,59 +915,92 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
 }
 
 - (BOOL)dispatchMarinaNumberRowShortcut:(const KeyEvent &)keyEvent client:(id)sender {
+  (void)sender;
+  Config config;
+  if (!mozcClient_->GetConfig(&config)) {
+    return NO;
+  }
+  const std::optional<mozc::config::MarinaNumberRowAction> action =
+      mozc::session::FindMarinaActionForKeyEvent(config, keyEvent);
+  if (!action.has_value()) {
+    return NO;
+  }
+
   if (MarinaImkTraceEnabled() && keyEvent.has_key_code()) {
-    LOG(INFO) << "[marinaImk] dispatch shortcut slot="
-              << static_cast<char>(keyEvent.key_code())
+    LOG(INFO) << "[marinaImk] dispatch marina action=" << static_cast<int>(*action)
+              << " key=" << static_cast<char>(keyEvent.key_code())
               << " mode_=" << CompositionModeName(mode_);
   }
 
-  // Slot 5: same as toolbar Direct ↔ Hiragana (SessionCommand, not keymap).
-  if (IsMarinaNumberRowSlot(keyEvent, '5')) {
-    SessionCommand command;
-    if ([self isConverterSessionActivated]) {
-      command.set_type(SessionCommand::TURN_OFF_IME);
-    } else {
-      command.set_type(SessionCommand::TURN_ON_IME);
-      command.set_composition_mode(mozc::commands::HIRAGANA);
-    }
-    [self sendCommand:command];
-    return YES;
-  }
+  SessionCommand command;
+  switch (*action) {
+    case mozc::config::MARINA_NR_HIRAGANA_DIRECT:
+      if ([self isConverterSessionActivated]) {
+        command.set_type(SessionCommand::TURN_OFF_IME);
+      } else {
+        command.set_type(SessionCommand::TURN_ON_IME);
+        command.set_composition_mode(mozc::commands::HIRAGANA);
+      }
+      [self sendCommand:command];
+      return YES;
 
-  if (![self isConverterSessionActivated]) {
-    SessionCommand command;
-    command.set_type(SessionCommand::TURN_ON_IME);
-    const CompositionMode on_mode =
-        mode_ == mozc::commands::DIRECT ? mozc::commands::HIRAGANA : mode_;
-    command.set_composition_mode(on_mode);
-    [self sendCommand:command];
-  }
+    case mozc::config::MARINA_NR_MANYOSHU_HIRAGANA:
+      if (![self isConverterSessionActivated]) {
+        SessionCommand on_command;
+        on_command.set_type(SessionCommand::TURN_ON_IME);
+        const CompositionMode on_mode =
+            mode_ == mozc::commands::DIRECT ? mozc::commands::HIRAGANA : mode_;
+        on_command.set_composition_mode(on_mode);
+        [self sendCommand:on_command];
+      }
+      command.set_type(SessionCommand::SWITCH_COMPOSITION_MODE);
+      if (mode_ == mozc::commands::MANYOSHU) {
+        command.set_composition_mode(mozc::commands::HIRAGANA);
+      } else {
+        command.set_composition_mode(mozc::commands::MANYOSHU);
+      }
+      [self sendCommand:command];
+      return YES;
 
-  if (IsMarinaNumberRowSlot(keyEvent, '2')) {
-    SessionCommand command;
-    command.set_type(SessionCommand::SHOW_ODORIJI_PALETTE);
-    [self sendCommand:command];
-    return YES;
-  }
-  if (IsMarinaNumberRowSlot(keyEvent, '1')) {
-    SessionCommand command;
-    command.set_type(SessionCommand::INSERT_ODORIJI_DEFAULT);
-    [self sendCommand:command];
-    return YES;
-  }
-  if (IsMarinaNumberRowSlot(keyEvent, '4')) {
-    SessionCommand command;
-    command.set_type(SessionCommand::SWITCH_COMPOSITION_MODE);
-    if (mode_ == mozc::commands::MANYOSHU) {
-      command.set_composition_mode(mozc::commands::HIRAGANA);
-    } else {
-      command.set_composition_mode(mozc::commands::MANYOSHU);
-    }
-    [self sendCommand:command];
-    return YES;
-  }
+    case mozc::config::MARINA_NR_ODORIJI_DEFAULT:
+      if (![self isConverterSessionActivated]) {
+        SessionCommand on_command;
+        on_command.set_type(SessionCommand::TURN_ON_IME);
+        const CompositionMode on_mode =
+            mode_ == mozc::commands::DIRECT ? mozc::commands::HIRAGANA : mode_;
+        on_command.set_composition_mode(on_mode);
+        [self sendCommand:on_command];
+      }
+      command.set_type(SessionCommand::INSERT_ODORIJI_DEFAULT);
+      [self sendCommand:command];
+      return YES;
 
-  return YES;
+    case mozc::config::MARINA_NR_ODORIJI_PALETTE:
+      if (![self isConverterSessionActivated]) {
+        SessionCommand on_command;
+        on_command.set_type(SessionCommand::TURN_ON_IME);
+        const CompositionMode on_mode =
+            mode_ == mozc::commands::DIRECT ? mozc::commands::HIRAGANA : mode_;
+        on_command.set_composition_mode(on_mode);
+        [self sendCommand:on_command];
+      }
+      command.set_type(SessionCommand::SHOW_ODORIJI_PALETTE);
+      [self sendCommand:command];
+      return YES;
+
+    case mozc::config::MARINA_NR_TRADITIONAL_KANJI:
+      command.set_type(SessionCommand::TOGGLE_TRADITIONAL_KANJI);
+      [self sendCommand:command];
+      return YES;
+
+    case mozc::config::MARINA_NR_WORD_REGISTER:
+      command.set_type(SessionCommand::LAUNCH_WORD_REGISTER_DIALOG);
+      [self sendCommand:command];
+      return YES;
+
+    default:
+      return NO;
+  }
 }
 
 - (BOOL)dispatchMarinaTraditionalKanjiShortcut:(id)sender {
@@ -1988,7 +2014,9 @@ bool IsConfigOnlySessionOutput(const Output &output) {
 
   // Swallow autorepeat for marina Ctrl+Shift shortcuts (shin/kyū, odoriji, etc.).
   // Otherwise one key hold fires ToggleTraditionalKanji many times (rapid flip / freeze).
-  if ([event isARepeat] && KeyEventHasCtrlShift(keyEvent)) {
+  if ([event isARepeat] &&
+      (KeyEventHasCtrlShift(keyEvent) ||
+       mozc::session::KeyEventHasCtrlOnly(keyEvent))) {
     return YES;
   }
 
@@ -2000,8 +2028,12 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     return [self dispatchMarinaBacktickShortcut:keyEvent client:sender];
   }
 
-  if (IsMarinaNumberRowShortcut(keyEvent)) {
-    return [self dispatchMarinaNumberRowShortcut:keyEvent client:sender];
+  {
+    Config marina_config;
+    if (mozcClient_->GetConfig(&marina_config) &&
+        IsMarinaConfigurableNumberRowShortcut(keyEvent, marina_config)) {
+      return [self dispatchMarinaNumberRowShortcut:keyEvent client:sender];
+    }
   }
 
   // If the key event is turn on event, the key event has to be sent
