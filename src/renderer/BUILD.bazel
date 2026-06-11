@@ -241,6 +241,29 @@ mozc_embed_file(
     var_name = "kStyleTextProto",
 )
 
+mozc_embed_file(
+    name = "renderer_style_dark_data",
+    srcs = ["renderer_style_dark.textproto"],
+    out = "renderer_style_dark.inc",
+    as_string_view = True,
+    var_name = "kStyleDark",
+)
+
+mozc_cc_library(
+    name = "renderer_style_appearance",
+    srcs = ["renderer_style_appearance.cc"],
+    hdrs = ["renderer_style_appearance.h"],
+    visibility = ["//renderer:__subpackages__"],
+)
+
+mozc_objc_library(
+    name = "renderer_style_appearance_mac",
+    srcs = ["renderer_style_appearance_mac.mm"],
+    hdrs = ["renderer_style_appearance.h"],
+    sdk_frameworks = ["Cocoa"],
+    visibility = ["//renderer:__subpackages__"],
+)
+
 mozc_cc_library(
     name = "renderer_style_scale",
     srcs = ["renderer_style_scale.cc"],
@@ -255,7 +278,9 @@ mozc_cc_library(
     hdrs = ["renderer_style_handler.h"],
     # Recompile handler when renderer_style.textproto changes (include alone is
     # not tracked reliably when the embed output was listed only in srcs).
-    additional_compiler_inputs = [":renderer_style_data"],
+    additional_compiler_inputs = [
+        ":renderer_style_data",
+    ] + mozc_select(macos = [":renderer_style_dark_data"]),
     visibility = ["//renderer:__subpackages__"],
     deps = [
         ":renderer_style_scale",
@@ -265,9 +290,11 @@ mozc_cc_library(
         "@com_google_absl//absl/strings:string_view",
     ] + mozc_select(
         macos = [
+            ":renderer_style_appearance_mac",
             "//config:config_handler",
             "//protocol:config_cc_proto",
         ],
+        default = [":renderer_style_appearance"],
     ),
 )
 

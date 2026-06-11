@@ -27,64 +27,42 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "renderer/renderer_style_handler.h"
+#import <Cocoa/Cocoa.h>
 
-#include <algorithm>
-#include <cstdint>
-
-#include "absl/log/check.h"
-#include "absl/strings/string_view.h"
-#include "base/protobuf/text_format.h"
-#include "protocol/renderer_style.pb.h"
 #include "renderer/renderer_style_appearance.h"
-#include "renderer/renderer_style_scale.h"
-
-#ifdef __APPLE__
-#include "config/config_handler.h"
-#endif  // __APPLE__
 
 namespace mozc {
 namespace renderer {
 
 namespace {
-// absl::string_view kStyleTextProto is defined in renderer_style.inc.
-#include "renderer/renderer_style.inc"
 
-#ifdef __APPLE__
-// absl::string_view kStyleDark is defined in renderer_style_dark.inc.
-#include "renderer/renderer_style_dark.inc"
-#endif  // __APPLE__
-
-#ifdef __APPLE__
-constexpr uint32_t kDefaultCandidateWindowFontSize = 14;
-constexpr uint32_t kMinCandidateWindowFontSize = 14;
-constexpr uint32_t kMaxCandidateWindowFontSize = 36;
-
-uint32_t GetCandidateWindowFontSizeFromConfig() {
-  const uint32_t font_size =
-      config::ConfigHandler::GetSharedConfig()->candidate_window_font_size();
-  return std::clamp(font_size, kMinCandidateWindowFontSize,
-                    kMaxCandidateWindowFontSize);
+bool IsDarkAppearanceName(NSAppearance *appearance) {
+  if (appearance == nil) {
+    return false;
+  }
+  if (@available(macOS 10.14, *)) {
+    NSAppearanceName best = [appearance
+        bestMatchFromAppearancesWithNames:@[ NSAppearanceNameAqua,
+                                              NSAppearanceNameDarkAqua ]];
+    return [best isEqualToString:NSAppearanceNameDarkAqua];
+  }
+  return false;
 }
-#endif  // __APPLE__
 
 }  // namespace
 
-void RendererStyleHandler::GetRendererStyle(RendererStyle* style) {
-  const absl::string_view style_text =
-#ifdef __APPLE__
-      IsDarkRendererStylePreferred() ? kStyleDark : kStyleTextProto;
-#else
-      kStyleTextProto;
-#endif
-  CHECK(mozc::protobuf::TextFormat::ParseFromString(style_text, style));
-
-#ifdef __APPLE__
-  const uint32_t font_size = GetCandidateWindowFontSizeFromConfig();
-  const double scale_factor =
-      static_cast<double>(font_size) / kDefaultCandidateWindowFontSize;
-  ScaleRendererStyle(style, scale_factor);
-#endif  // __APPLE__
+bool IsDarkRendererStylePreferred() {
+  if (@available(macOS 10.14, *)) {
+    if (NSApp != nil && IsDarkAppearanceName(NSApp.effectiveAppearance)) {
+      return true;
+    }
+    if (IsDarkAppearanceName([NSAppearance currentDrawingAppearance])) {
+      return true;
+    }
+  }
+  NSString *style =
+      [[NSUserDefaults standardUserDefaults] stringForKey:@"AppleInterfaceStyle"];
+  return style != nil && [style isEqualToString:@"Dark"];
 }
 
 }  // namespace renderer

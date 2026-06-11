@@ -49,6 +49,7 @@ using mozc::renderer::mac::MacViewUtil;
 
 // Private method declarations.
 @interface InfolistView ()
+- (void)reloadStyle;
 - (CGFloat)cornerRadius;
 - (NSColor *)panelBackgroundColor;
 - (void)applyViewChrome;
@@ -108,6 +109,23 @@ using mozc::renderer::mac::MacViewUtil;
     [self.window setBackgroundColor:NSColor.clearColor];
     self.window.opaque = NO;
   }
+}
+
+- (void)reloadStyle {
+  if (style_ == nullptr) {
+    return;
+  }
+#ifdef __APPLE__
+  mozc::config::ConfigHandler::Reload();
+#endif  // __APPLE__
+  RendererStyleHandler::GetRendererStyle(style_);
+  [self applyViewChrome];
+}
+
+- (void)viewDidChangeEffectiveAppearance {
+  [super viewDidChangeEffectiveAppearance];
+  [self reloadStyle];
+  [self setNeedsDisplay:YES];
 }
 
 #pragma mark drawing
@@ -240,13 +258,7 @@ using mozc::renderer::mac::MacViewUtil;
 }
 
 - (NSSize)updateLayout {
-  if (style_ != nullptr) {
-#ifdef __APPLE__
-    mozc::config::ConfigHandler::Reload();
-#endif  // __APPLE__
-    RendererStyleHandler::GetRendererStyle(style_);
-    [self applyViewChrome];
-  }
+  [self reloadStyle];
   return [self drawView:false];
 }
 

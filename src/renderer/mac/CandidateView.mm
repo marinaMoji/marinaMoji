@@ -191,6 +191,16 @@ using mozc::renderer::mac::MacViewUtil;
   [self applyViewChrome];
 }
 
+- (void)viewDidChangeEffectiveAppearance {
+  [super viewDidChangeEffectiveAppearance];
+  if (candidate_window_.candidate_size() > 0) {
+    [self updateLayout];
+  } else {
+    [self reloadStyle];
+  }
+  [self setNeedsDisplay:YES];
+}
+
 - (void)setCandidateWindow:(const CandidateWindow *)candidate_window {
   candidate_window_ = *candidate_window;
 }
