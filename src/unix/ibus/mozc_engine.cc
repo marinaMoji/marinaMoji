@@ -415,6 +415,22 @@ bool HasNonemptyPreedit(const commands::Output& output) {
   return false;
 }
 
+bool IsConfigOnlySessionOutput(const commands::Output& output) {
+  return output.has_config() && !output.has_result() &&
+         !output.has_candidate_window();
+}
+
+// True when UpdateAll should treat preedit visibility as changed.
+bool ShouldUpdatePreeditTracking(const commands::Output& output) {
+  if (output.has_preedit() || output.has_result()) {
+    return true;
+  }
+  if (output.consumed() && !IsConfigOnlySessionOutput(output)) {
+    return true;
+  }
+  return false;
+}
+
 bool IsRightShiftAlone(const commands::KeyEvent& key) {
   if (key.has_key_code() || key.has_special_key()) {
     return false;
@@ -461,6 +477,72 @@ bool IsCtrlLeftShiftAlone(const commands::KeyEvent& key) {
   return has_left_shift && has_ctrl;
 }
 
+bool IsBackspaceKeyEvent(const commands::KeyEvent& key) {
+  return key.has_special_key() &&
+         key.special_key() == commands::KeyEvent::BACKSPACE;
+}
+
+bool IsBackspaceIbusKey(uint keyval, uint keycode) {
+  constexpr uint kBackSpaceKeyval = 0xff08;
+  constexpr uint kBackSpaceKeycode = 14;
+  return keyval == kBackSpaceKeyval || keycode == kBackSpaceKeycode;
+}
+
+void ApplyIbusModifiersToKey(uint modifiers, commands::KeyEvent* key) {
+  if (modifiers & IBUS_SHIFT_MASK) {
+    key->add_modifier_keys(commands::KeyEvent::SHIFT);
+  }
+  if (modifiers & IBUS_CONTROL_MASK) {
+    key->add_modifier_keys(commands::KeyEvent::CTRL);
+  }
+  if (modifiers & IBUS_MOD1_MASK) {
+    key->add_modifier_keys(commands::KeyEvent::ALT);
+  }
+  if (modifiers & (IBUS_MOD3_MASK | IBUS_MOD5_MASK)) {
+    key->add_modifier_keys(commands::KeyEvent::RIGHT_ALT);
+    key->add_modifier_keys(commands::KeyEvent::ALT);
+  }
+}
+
+bool TrySynthesizeBackspaceKey(uint keyval, uint keycode, uint modifiers,
+                             commands::KeyEvent* key) {
+  if ((modifiers & IBUS_RELEASE_MASK) != 0) {
+    return false;
+  }
+  if (!IsBackspaceIbusKey(keyval, keycode)) {
+    return false;
+  }
+  key->Clear();
+  key->set_special_key(commands::KeyEvent::BACKSPACE);
+  ApplyIbusModifiersToKey(modifiers, key);
+  return true;
+}
+
+// IBus often does not deliver Backspace to the app when process_key_event
+// returns false. Mozc echoes Backspace back for empty composition (Revert);
+// perform the deletion explicitly.
+bool TryHandleEchoBackBackspace(IbusEngineWrapper* engine,
+                                const commands::Output& output,
+                                const commands::KeyEvent& key,
+                                bool had_preedit_before, uint keyval,
+                                uint keycode) {
+  if (output.consumed() || !IsBackspaceKeyEvent(key)) {
+    return false;
+  }
+  if (HasNonemptyPreedit(output) || had_preedit_before) {
+    engine->HidePreeditText();
+  }
+  if (engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT)) {
+    SurroundingTextInfo info;
+    if (GetSurroundingText(engine, &info) && !info.preceding_text.empty()) {
+      engine->DeleteSurroundingText(-1, 1);
+      return true;
+    }
+  }
+  engine->ForwardBackspaceForEchoBack(keyval, keycode);
+  return true;
+}
+
 }  // namespace
 
 bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
@@ -469,6 +551,13 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
                << ", modifiers: " << modifiers;
   if (property_handler_->IsDisabled()) {
     return false;
+  }
+
+  // Consume Backspace release so IBus does not send Reset (RevertSession wipes
+  // the whole preedit when process_key_event returned false on key-up).
+  if ((modifiers & IBUS_RELEASE_MASK) != 0 &&
+      IsBackspaceIbusKey(keyval, keycode)) {
+    return true;
   }
 
   if (SyncOverlayIsActive()) {
@@ -495,8 +584,21 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
   const bool layout_is_jp = (layout != "us");
 
   commands::KeyEvent key;
-  if (!key_event_handler_->GetKeyEvent(keyval, keycode, modifiers,
-                                       preedit_method_, layout_is_jp, &key)) {
+  bool got_key = false;
+  // Handle Backspace before GetKeyEvent: some IBus/GTK paths send a nonstandard
+  // keysym on key-down (Translate/ProcessModifiers fail) but keycode 14.
+  if (!(modifiers & IBUS_RELEASE_MASK) &&
+      IsBackspaceIbusKey(keyval, keycode)) {
+    got_key = TrySynthesizeBackspaceKey(keyval, keycode, modifiers, &key);
+  }
+  if (!got_key) {
+    got_key = key_event_handler_->GetKeyEvent(
+        keyval, keycode, modifiers, preedit_method_, layout_is_jp, &key);
+  }
+  if (!got_key) {
+    got_key = TrySynthesizeBackspaceKey(keyval, keycode, modifiers, &key);
+  }
+  if (!got_key) {
     // Doesn't send a key event to mozc_server.
     return false;
   }
@@ -532,7 +634,7 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
   key.set_mode(property_handler_->GetOriginalCompositionMode());
 
   config::Config marina_config;
-  if (client_->GetConfig(&marina_config)) {
+  if (!IsBackspaceKeyEvent(key) && client_->GetConfig(&marina_config)) {
     commands::Output marina_output;
     if (DispatchMarinaNumberRowShortcut(engine, keycode, modifiers,
                                         marina_config, property_handler_.get(),
@@ -551,6 +653,17 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
   commands::Output output;
   if (!client_->SendKeyWithContext(key, context, &output)) {
     LOG(ERROR) << "SendKey failed";
+    if (IsBackspaceKeyEvent(key)) {
+      if (engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT)) {
+        SurroundingTextInfo info;
+        if (GetSurroundingText(engine, &info) && !info.preceding_text.empty()) {
+          engine->DeleteSurroundingText(-1, 1);
+          return true;
+        }
+      }
+      engine->ForwardBackspaceForEchoBack(keyval, keycode);
+      return true;
+    }
     return false;
   }
 
@@ -562,6 +675,7 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
     return true;
   }
 
+  const bool had_preedit_before = had_preedit_;
   UpdateAll(engine, output);
 
   // After inserting a macron (Ctrl+Alt+vowel), force DIRECT so the next key
@@ -588,6 +702,13 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
         IsCtrlLeftShiftAlone(key)) {
       return false;
     }
+  }
+  if (TryHandleEchoBackBackspace(engine, output, key, had_preedit_before,
+                                 keyval, keycode)) {
+    return true;
+  }
+  if (IsBackspaceKeyEvent(key)) {
+    return true;
   }
   return output.consumed();
 }
@@ -633,7 +754,14 @@ void MozcEngine::PropertyShow(IbusEngineWrapper* engine,
   // We can ignore the signal.
 }
 
-void MozcEngine::Reset(IbusEngineWrapper* engine) { RevertSession(engine); }
+void MozcEngine::Reset(IbusEngineWrapper* engine) {
+  // IBus/GTK sends reset when process_key_event returns false (e.g. Backspace
+  // echo-back). RevertSession in COMPOSITION wipes the entire preedit.
+  if (had_preedit_) {
+    return;
+  }
+  RevertSession(engine);
+}
 
 void MozcEngine::SetCapabilities(IbusEngineWrapper* engine, uint capabilities) {
   // Do nothing.
@@ -738,11 +866,13 @@ bool MozcEngine::UpdateAll(IbusEngineWrapper* engine,
   UpdateResult(engine, output);
   preedit_handler_->Update(engine, output);
 
-  const bool has_preedit = HasNonemptyPreedit(output);
-  if (had_preedit_ && !has_preedit) {
-    sync::RecordCompositionEnd();
+  if (ShouldUpdatePreeditTracking(output)) {
+    const bool has_preedit = HasNonemptyPreedit(output);
+    if (had_preedit_ && !has_preedit) {
+      sync::RecordCompositionEnd();
+    }
+    had_preedit_ = has_preedit;
   }
-  had_preedit_ = has_preedit;
 
   GetCandidateWindowHandler(engine)->Update(engine, output);
   UpdateCandidateIDMapping(output);

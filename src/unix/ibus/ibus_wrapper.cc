@@ -310,6 +310,21 @@ void IbusEngineWrapper::DeleteSurroundingText(int offset, uint size) {
   ibus_engine_delete_surrounding_text(engine_, offset, size);
 }
 
+void IbusEngineWrapper::ForwardKeyEvent(uint keyval, uint keycode,
+                                        uint modifiers) {
+  ibus_engine_forward_key_event(engine_, keyval, keycode, modifiers);
+}
+
+void IbusEngineWrapper::ForwardBackspaceForEchoBack(uint keyval,
+                                                    uint keycode) {
+  // Some applications delete a preedit glyph when we forward Backspace; hide
+  // first when the caller still shows preedit (stale edge case).
+  ibus_engine_forward_key_event(engine_, keyval, keycode, 0);
+  // Work around spurious focus_out/focus_in after forwarded Backspace.
+  constexpr uint kShiftLeftKeyCode = 42;
+  ibus_engine_forward_key_event(engine_, IBUS_Shift_L, kShiftLeftKeyCode, 0);
+}
+
 uint IbusEngineWrapper::GetCapabilities() {
   return engine_->client_capabilities;
 }

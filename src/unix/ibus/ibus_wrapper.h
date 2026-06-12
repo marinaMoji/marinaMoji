@@ -203,6 +203,11 @@ class IbusEngineWrapper {
   void EnableSurroundingText();
   absl::string_view GetSurroundingText(uint* cursor_pos, uint* anchor_pos);
   void DeleteSurroundingText(int offset, uint size);
+  // Forwards a key to the application (used when Mozc echoes back Backspace).
+  void ForwardKeyEvent(uint keyval, uint keycode, uint modifiers);
+  // Forwards Backspace then Left Shift (quiet) to work around IBus/GTK focus
+  // glitches after forwarded Backspace; see legacy ibus-mozc UpdateDeletionRange.
+  void ForwardBackspaceForEchoBack(uint keyval, uint keycode);
 
   uint GetCapabilities();
   bool CheckCapabilities(uint capabilities);

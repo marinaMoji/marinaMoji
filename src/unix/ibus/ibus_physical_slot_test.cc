@@ -61,6 +61,11 @@ TEST(IbusPhysicalSlotTest, Modifiers) {
             config::MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT);
 }
 
+TEST(IbusPhysicalSlotTest, BackspaceKeycodeIsNotNumberRow) {
+  EXPECT_FALSE(IbusKeycodeToPhysicalSlot(14).has_value());
+  EXPECT_FALSE(IbusKeycodeToPhysicalSlot(14 + 8).has_value());
+}
+
 }  // namespace
 }  // namespace ibus
 }  // namespace mozc
