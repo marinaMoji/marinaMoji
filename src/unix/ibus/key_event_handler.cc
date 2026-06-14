@@ -70,6 +70,22 @@ void SetCtrlLeftShiftModeLockKey(commands::KeyEvent* key_event) {
   key_event->add_modifier_keys(commands::KeyEvent::CTRL);
   key_event->add_modifier_keys(commands::KeyEvent::LEFT_SHIFT);
 }
+
+// Editing/navigation keys must work even when IBus spuriously sets Super
+// (Mod4), which otherwise makes GetKeyEvent reject all keys (issue #853).
+bool IsEditingKeyval(uint keyval) {
+  return keyval == IBUS_BackSpace || keyval == IBUS_Delete ||
+         keyval == IBUS_Escape || keyval == IBUS_Return ||
+         keyval == IBUS_Tab || keyval == IBUS_Left || keyval == IBUS_Right ||
+         keyval == IBUS_Up || keyval == IBUS_Down || keyval == IBUS_Home ||
+         keyval == IBUS_End;
+}
+
+bool IsEditingKeycode(uint keycode) {
+  // Physical Backspace key (X11 keycode 14) even when keyval is nonstandard.
+  constexpr uint kBackSpaceKeycode = 14;
+  return keycode == kBackSpaceKeycode;
+}
 }  // namespace
 
 KeyEventHandler::KeyEventHandler() : key_translator_(new KeyTranslator) {
@@ -90,12 +106,16 @@ bool KeyEventHandler::GetKeyEvent(uint keyval, uint keycode, uint modifiers,
   // IBus's default for switching input methods.
   // https://github.com/google/mozc/issues/853
   constexpr uint kExtraModMask = IBUS_MOD4_MASK;
-  if (modifiers & kExtraModMask) {
+  uint effective_modifiers = modifiers;
+  if (IsEditingKeyval(keyval) || IsEditingKeycode(keycode)) {
+    effective_modifiers &= ~kExtraModMask;
+  }
+  if (effective_modifiers & kExtraModMask) {
     return false;
   }
 
-  if (!key_translator_->Translate(keyval, keycode, modifiers, preedit_method,
-                                  layout_is_jp, key)) {
+  if (!key_translator_->Translate(keyval, keycode, effective_modifiers,
+                                  preedit_method, layout_is_jp, key)) {
     LOG(ERROR) << "Translate failed";
     return false;
   }
@@ -109,7 +129,7 @@ bool KeyEventHandler::GetKeyEvent(uint keyval, uint keycode, uint modifiers,
     key->add_modifier_keys(commands::KeyEvent::RIGHT_ALT);
   }
 
-  const bool is_key_up = ((modifiers & IBUS_RELEASE_MASK) != 0);
+  const bool is_key_up = ((effective_modifiers & IBUS_RELEASE_MASK) != 0);
   return ProcessModifiers(is_key_up, keyval, key);
 }
 

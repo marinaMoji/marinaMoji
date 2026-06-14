@@ -39,6 +39,12 @@ namespace mozc {
 namespace ibus {
 
 namespace {
+
+bool IsConfigOnlySessionOutput(const commands::Output& output) {
+  return output.has_config() && !output.has_result() &&
+         !output.has_candidate_window();
+}
+
 // Returns an IBusText composed from |preedit| to render preedit text.
 // Caller must release the returned IBusText object.
 IbusTextWrapper ComposePreeditText(const commands::Preedit& preedit) {
@@ -108,14 +114,33 @@ int CursorPos(const commands::Output& output) {
 
 bool PreeditHandler::Update(IbusEngineWrapper* engine,
                             const commands::Output& output) {
-  if (!output.has_preedit()) {
+  if (output.has_preedit()) {
+    if (output.preedit().segment_size() == 0) {
+      engine->ClearPreeditText();
+      engine->HidePreeditText();
+      return true;
+    }
+    IbusTextWrapper text = ComposePreeditText(output.preedit());
+    engine->UpdatePreeditTextWithMode(&text, CursorPos(output));
+    // |text| is released by ibus_engine_update_preedit_text.
+    return true;
+  }
+
+  if (output.has_result()) {
+    // Commit with no preedit field: clear marked text.
     engine->ClearPreeditText();
     engine->HidePreeditText();
     return true;
   }
-  IbusTextWrapper text = ComposePreeditText(output.preedit());
-  engine->UpdatePreeditTextWithMode(&text, CursorPos(output));
-  // |text| is released by ibus_engine_update_preedit_text.
+
+  // Escape/Cancel (consumed): server clears composition but often omits preedit.
+  // Do not clear on consumed=false echo-back (e.g. Precomposition Backspace →
+  // Revert): leave IBus preedit alone and return unconsumed so one character is
+  // removed in the app, not the whole preedit (macOS M1k parity).
+  if (output.consumed() && !IsConfigOnlySessionOutput(output)) {
+    engine->ClearPreeditText();
+    engine->HidePreeditText();
+  }
   return true;
 }
 

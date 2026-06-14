@@ -112,12 +112,15 @@ bool DispatchMarinaNumberRowShortcut(
     return false;
   }
 
-  const MarinaShortcutModifier modifier =
-      IbusModifiersToMarinaModifier(ibus_modifiers);
-  if (modifier != MarinaShortcutModifier::MARINA_MOD_CTRL &&
-      modifier != MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT) {
+  // Marina shortcuts require Ctrl; do not treat NumLock etc. as Ctrl+Shift.
+  const bool has_ctrl = (ibus_modifiers & IBUS_CONTROL_MASK) != 0;
+  if (!has_ctrl) {
     return false;
   }
+  const MarinaShortcutModifier modifier =
+      (ibus_modifiers & IBUS_SHIFT_MASK) != 0
+          ? MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT
+          : MarinaShortcutModifier::MARINA_MOD_CTRL;
 
   const std::optional<MarinaNumberRowAction> action =
       session::FindMarinaActionForPhysicalSlot(config, modifier, *slot);

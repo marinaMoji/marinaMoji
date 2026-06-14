@@ -42,6 +42,7 @@ using ::mozc::config::MarinaShortcutModifier;
 constexpr uint kEvdevKey1 = 2;
 constexpr uint kEvdevKey0 = 11;
 constexpr uint kEvdevKeyGrave = 41;
+constexpr uint kEvdevKeyBackspace = 14;
 constexpr uint kX11KeycodeOffset = 8;
 
 std::optional<MarinaPhysicalSlot> SlotFromEvdevCode(uint evdev_code) {
@@ -62,11 +63,19 @@ std::optional<MarinaPhysicalSlot> IbusKeycodeToPhysicalSlot(uint keycode) {
   if (keycode == 0) {
     return std::nullopt;
   }
+  // IBus may pass evdev codes directly; never treat Backspace as number-row "5".
+  if (keycode == kEvdevKeyBackspace) {
+    return std::nullopt;
+  }
   if (const auto slot = SlotFromEvdevCode(keycode); slot.has_value()) {
     return slot;
   }
   if (keycode > kX11KeycodeOffset) {
-    return SlotFromEvdevCode(keycode - kX11KeycodeOffset);
+    const uint evdev_code = keycode - kX11KeycodeOffset;
+    if (evdev_code == kEvdevKeyBackspace) {
+      return std::nullopt;
+    }
+    return SlotFromEvdevCode(evdev_code);
   }
   return std::nullopt;
 }

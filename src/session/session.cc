@@ -1458,6 +1458,15 @@ bool Session::DoNothing(commands::Command* command) {
 
 bool Session::Revert(commands::Command* command) {
   if (context_->state() == ImeContext::PRECOMPOSITION) {
+    const commands::KeyEvent& key = command->input().key();
+    // Precomposition Backspace → Revert is for deleting committed text (echo-back)
+    // when there is no reading. If the composer still has input, delete one
+    // character instead of wiping IBus preedit via echo-back (Linux/GNOME).
+    if (key.has_special_key() &&
+        key.special_key() == commands::KeyEvent::BACKSPACE &&
+        !context_->composer().Empty()) {
+      return Backspace(command);
+    }
     context_->mutable_converter()->Revert();
     return EchoBackAndClearUndoContext(command);
   }
