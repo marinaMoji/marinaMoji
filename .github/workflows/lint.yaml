@@ -1,5 +1,5 @@
 name: CI for Lint checks
-# https://github.com/google/mozc/blob/master/docs/build_mozc_in_docker.md
+# https://github.com/marinaMoji/marinaMoji/blob/main/docs/build_marinamoji_in_docker.md
 
 # Run on push.
 on: push

@@ -26,6 +26,10 @@ The [marinaMoji](https://github.com/marinaMoji/marinaMoji) fork installs **next 
 
 For setup and behavior details, see:
 
+- [compiling_instructions_for_marina.md](compiling_instructions_for_marina.md) — **Linux build and install (start here)**
+- [build_marinamoji_for_linux.md](build_marinamoji_for_linux.md) — Bazel reference and test commands
+- [MACOS_PORT_PLAN.md](MACOS_PORT_PLAN.md) — **macOS build and install (start here)**
+- [build_marinamoji_on_macos.md](build_marinamoji_on_macos.md) — Xcode/Qt toolchain reference
 - `docs/HOW_SYNC_WORKS.md` (user guide)
 - `docs/SYNC_PLAN.md` (implementation reference)
 

@@ -2,6 +2,8 @@
 
 This guide is for building **marinaMoji** (this Mozc fork) from source on **Ubuntu**. It covers the packages you need, how to install Bazelisk, how to compile, and how to install the result.
 
+For Bazel test commands, install path tables, and other reference material, see [build_marinamoji_for_linux.md](build_marinamoji_for_linux.md).
+
 ---
 
 ## 1. Install required packages

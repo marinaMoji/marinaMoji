@@ -50,10 +50,19 @@ For policies on vocabulary and conversion results, see
 Build Instructions
 ------------------
 
-* [How to build Mozc for Android](docs/build_mozc_for_android.md): for Android library (`libmozc.so`)
-* [How to build Mozc for Linux](docs/build_mozc_for_linux.md): for Linux desktop
-* [How to build Mozc for macOS](docs/build_mozc_in_osx.md): for macOS build
-* [How to build Mozc for Windows](docs/build_mozc_in_windows.md): for Windows
+**Recommended (marinaMoji day-to-day):**
+
+* [Compiling marinaMoji on Ubuntu](docs/compiling_instructions_for_marina.md) — Linux: packages, build, install, uninstall, sync, IBus
+* [macOS port plan](docs/MACOS_PORT_PLAN.md) — macOS: `MOZC_QT_PATH`, rebuild, `install_marinamoji.sh`, `.pkg`, troubleshooting
+
+**Reference (Bazel details, other platforms):**
+
+* [How to build marinaMoji for Linux](docs/build_marinamoji_for_linux.md) — test commands, install paths, Bazel options
+* [How to build marinaMoji on macOS](docs/build_marinamoji_on_macos.md) — Xcode/Qt setup, cross-arch builds
+* [How to build marinaMoji for Android](docs/build_marinamoji_for_android.md) — upstream Android library (not a marinaMoji product target)
+* [How to build marinaMoji on Windows](docs/build_marinamoji_on_windows.md) — upstream Windows/Mozc (Windows port planned)
+* [How to build marinaMoji in Docker](docs/build_marinamoji_in_docker.md) — deprecated Docker/GYP notes
+* [Install branding and paths](docs/MARINAMOJI.md)
 
 License
 -------

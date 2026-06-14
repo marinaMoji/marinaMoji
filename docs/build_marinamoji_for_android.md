@@ -1,4 +1,6 @@
-# How to build `libmozc.so` for Android
+# How to build `libmozc.so` for Android (upstream reference)
+
+> **marinaMoji** targets **Linux (IBus)** and **macOS (IMK)**. Android is inherited from upstream Mozc; this doc is kept for Bazel/Android library builds only.
 
 <!-- disableFinding(LINK_RELATIVE_G3DOC) -->
 

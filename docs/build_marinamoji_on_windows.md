@@ -1,4 +1,6 @@
-# How to build Mozc in Windows
+# How to build marinaMoji on Windows (upstream reference)
+
+> **marinaMoji** does not yet ship a Windows port. This file documents upstream **Mozc for Windows** build steps, kept for future port work.
 
 <!-- disableFinding(LINK_RELATIVE_G3DOC) -->
 

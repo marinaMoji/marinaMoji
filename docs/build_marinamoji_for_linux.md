@@ -1,4 +1,6 @@
-# How to build Mozc for Linux desktop
+# How to build marinaMoji for Linux desktop
+
+> **Start here for day-to-day builds:** [compiling_instructions_for_marina.md](compiling_instructions_for_marina.md) — copy-paste Ubuntu packages, build, **uninstall**, sync daemon, IBus reload, and troubleshooting. This file is the longer **reference** (Bazel options, test commands, install paths). Install branding: [MARINAMOJI.md](MARINAMOJI.md).
 
 <!-- disableFinding(LINK_RELATIVE_G3DOC) -->
 
@@ -6,29 +8,40 @@
 
 ## Summary
 
-If you are not sure what the following commands do, please check the
-descriptions below and make sure the operations before running them.
+If you are not sure what the following commands do, read
+[compiling_instructions_for_marina.md](compiling_instructions_for_marina.md) first.
 
 ```sh
-git clone https://github.com/google/mozc.git
-cd mozc/src
+git clone https://github.com/marinaMoji/marinaMoji.git --recursive
+cd marinaMoji/src
 
-bazelisk build package --config release_build
+bazelisk build package --config oss_linux --config release_build \
+  --repo_env=CC=clang --repo_env=CXX=clang++
 ```
 
-`bazel-bin/unix/mozc.zip` contains built files.
+`bazel-bin/unix/mozc.zip` contains the installable files. Install with:
+
+```sh
+sudo unzip -o bazel-bin/unix/mozc.zip -d /
+ibus write-cache && ibus restart
+```
+
+Then add **marinaMoji** in **Settings → Keyboard → Input Sources**. See
+[compiling_instructions_for_marina.md](compiling_instructions_for_marina.md) for
+the full package list (including GTK and librsvg for the toolbar), optional sync
+daemon setup, and uninstall steps.
 
 ## System Requirements
 
 Due to the diverse nature of Linux desktop ecosystem, continuous builds on
-GitHub Actions are the best example on how Mozc executables for Linux desktop
+GitHub Actions are the best example on how marinaMoji (Mozc fork) executables for Linux desktop
 can be built and tested against existing test cases.
 
 *   [`.github/workflows/linux.yaml`](../.github/workflows/linux.yaml)
 *   [CI for Linux](https://github.com/google/mozc/actions/workflows/linux.yaml)
 
 The following sections describe relevant software components that are necessary
-to build Mozc for Linux desktop.
+to build marinaMoji for Linux desktop.
 
 ### Bazelisk (required)
 
@@ -57,15 +70,17 @@ install Bazel and use it instead of Bazelisk, make sure it matches
 
 ### C++ toolchain
 
-GCC or Clang is needed to build Mozc.
+GCC or Clang is needed to build marinaMoji.
 
-While Linux continuous builds currently use GCC, Mozc's C++ code is designed to
+While Linux continuous builds currently use GCC, the C++ code is designed to
 be compatible with Clang (for macOS, Windows, Android, and Google internal use).
+For marinaMoji on Ubuntu, **Clang is recommended** — see
+[compiling_instructions_for_marina.md](compiling_instructions_for_marina.md).
 
 💡 See [`.github/workflows/linux.yaml`](../.github/workflows/linux.yaml) on which
 version of GCC is tested against.
 
-💡 Like many other Bazel-based C++ projects, Mozc relies on
+💡 Like many other Bazel-based C++ projects, marinaMoji relies on
 [`rules_cc`](https://github.com/bazelbuild/rules_cc/) specified in
 [`MODULE.bazel`](../src/MODULE.bazel) to automatically detect C++ toolchains in
 the host environment.
@@ -109,6 +124,16 @@ pkg_config_repository(
 
 Install the OpenCC development package so the build can link libopencc and enable the Shin/Kyū (traditional kanji) rewriter: e.g. `libopencc-dev` (Debian/Ubuntu), `opencc-devel` (Fedora), or `opencc` (Arch). If OpenCC is not installed, the build still succeeds; the kyūjitai toggle and menu option will have no effect on conversion output.
 
+```
+# GTK3 + librsvg (marinaMoji floating toolbar)
+pkg_config_repository(
+    name = "gtk3",
+    packages = ["gtk+-3.0"],
+)
+```
+
+Install `libgtk-3-dev` and `librsvg2-dev` (Debian/Ubuntu) before building the toolbar. See [compiling_instructions_for_marina.md](compiling_instructions_for_marina.md).
+
 💡 `pkg_config_repository` is not a bazel standard functionality. It is a custom
 macro defined in
 [`src/bazel/pkg_config_repository.bzl`](../src/bazel/pkg_config_repository.bzl).
@@ -117,30 +142,31 @@ macro defined in
 
 ### Get the Code
 
-You can download Mozc source code as follows.
+You can download marinaMoji source code as follows.
 
 ```sh
-git clone https://github.com/google/mozc.git
-cd mozc/src
+git clone https://github.com/marinaMoji/marinaMoji.git --recursive
+cd marinaMoji/src
 ```
 
 Hereafter you can do all the operations without changing directory.
 
-### Build Mozc
+### Build marinaMoji
 
-You should be able to build Mozc for Linux desktop as follows, assuming
+You should be able to build marinaMoji for Linux desktop as follows, assuming
 `bazelisk` is in your `$PATH`.
 
 ```sh
-bazelisk build package --config release_build
+bazelisk build package --config oss_linux --config release_build \
+  --repo_env=CC=clang --repo_env=CXX=clang++
 ```
 
-`package` is an alias to build Mozc executables and archive them into
+`package` is an alias to build marinaMoji executables and archive them into
 `mozc.zip`.
 
 ### Install and register with IBus (marinaMoji)
 
-After building, install the package and make marinaMoji appear in your input method list:
+After building, install the package and make marinaMoji appear in your input method list. For uninstall, sync daemon, and troubleshooting, see [compiling_instructions_for_marina.md](compiling_instructions_for_marina.md).
 
 1. **Install files** (from `src/` directory):
    ```bash
@@ -307,7 +333,7 @@ bazelisk test ... --repo_env=CC=gcc-14 --repo_env=CXX=g++-14
 
 --------------------------------------------------------------------------------
 
-## Build Mozc for Linux Desktop with GYP (deprecated):
+## Build marinaMoji for Linux Desktop with GYP (deprecated):
 
 ⚠️ The GYP build is deprecated and no longer supported.
 

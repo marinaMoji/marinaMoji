@@ -1,6 +1,6 @@
-# How to build Mozc on macOS
+# How to build marinaMoji on macOS
 
-> **marinaMoji fork:** Use `--config oss_macos`, build outputs are under `src/bazel-bin/mac/` (`marinaMoji.app` via `mozc_macos_archive-root/`, installer as `marinaMoji.pkg`). See [MACOS_PORT_PLAN.md](./MACOS_PORT_PLAN.md) for install, LaunchAgent, and **finding `bazel-bin`** details.
+> **Start here for day-to-day builds:** [MACOS_PORT_PLAN.md](./MACOS_PORT_PLAN.md) — `MOZC_QT_PATH`, `//mac:mozc_macos`, `install_marinamoji.sh`, `.pkg` for VM, LaunchAgents, and troubleshooting. This file is the longer **reference** (Xcode/Qt setup, cross-arch builds, unit tests). Install branding: [MARINAMOJI.md](./MARINAMOJI.md).
 
 <!-- disableFinding(LINK_RELATIVE_G3DOC) -->
 
@@ -8,31 +8,34 @@
 
 ## Summary
 
-If you are not sure what the following commands do, please check the
-descriptions below and make sure the operations before running them.
+If you are not sure what the following commands do, read
+[MACOS_PORT_PLAN.md](./MACOS_PORT_PLAN.md) first.
 
-```
-git clone https://github.com/google/mozc.git
-cd mozc/src
+```bash
+git clone https://github.com/marinaMoji/marinaMoji.git --recursive
+cd marinaMoji/src
 
-python3 build_tools/update_deps.py
-
-# CMake is also required to build Qt.
-python3 build_tools/build_qt.py --release --confirm_license
-
-bazelisk build package --config release_build
-open bazel-bin/mac/Mozc.pkg
+export MOZC_QT_PATH=/opt/homebrew/opt/qt   # Homebrew Qt; required each build shell
+bazelisk build --config=oss_macos //mac:mozc_macos
+bash mac/install_marinamoji.sh
 ```
 
-💡 With the above build steps, the target CPU architecture of the binaries in
-`Mozc.pkg` is the same as the CPU architecture of the build environment. That
-is, if you build Mozc on arm64 environment, `Mozc.pkg` contains arm64 binaries.
-See the
-["how to specify target CPU architectures"](#how-to-specify-target-cpu-architectures)
-section below about how to do cross build.
+Dev install copies `bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app` into
+`/Library/Input Methods/`, registers the IME, fixes bundled Qt paths, and
+restarts converter/renderer processes.
 
-💡 You can also download `Mozc.pkg` from GitHub Actions. Check
-[Build with GitHub Actions](#build-with-github-actions) for details.
+**Optional `.pkg` installer** (VM / machine without Homebrew Qt):
+
+```bash
+export MOZC_QT_PATH=/opt/homebrew/opt/qt
+bazelisk build --config=oss_macos --spawn_strategy=local //mac:package
+open bazel-bin/mac/marinaMoji.pkg
+```
+
+💡 Binaries match the build machine’s CPU unless you pass `--macos_cpus=…` (see
+below). Upstream stock Mozc used `bazelisk build package` → `Mozc.pkg`; marinaMoji
+uses **`--config oss_macos`**, target **`//mac:mozc_macos`** or **`//mac:package`**, and
+output **`marinaMoji.app`** / **`marinaMoji.pkg`**.
 
 ## Setup
 
@@ -48,20 +51,16 @@ Building on Mac requires the following software.
     *   Xcode 16.0 or later
     *   ⚠️Xcode Command Line Tools aren't sufficient.
 *   [Bazelisk](https://github.com/bazelbuild/bazelisk)
-    *   Bazelisk is a wrapper of [Bazel](https://bazel.build/) to use the
-        specific version of Bazel.
-    *   [src/.bazeliskrc](../src/.bazeliskrc) controls which version of Bazel is
-        used.
 *   Python 3.12 or later.
-*   CMake 3.18.4 or later (to build Qt6)
+*   **Qt 6** — marinaMoji dev builds typically use Homebrew: `brew install qt`. Set `export MOZC_QT_PATH=/opt/homebrew/opt/qt` before every Bazel build (see [MACOS_PORT_PLAN.md](./MACOS_PORT_PLAN.md)). Alternatively, build Qt from source with `build_tools/build_qt.py` (CMake required).
 
 ## Get the Code
 
-You can download Mozc source code as follows:
+You can download marinaMoji source code as follows:
 
 ```
-git clone https://github.com/google/mozc.git
-cd mozc/src
+git clone https://github.com/marinaMoji/marinaMoji.git --recursive
+cd marinaMoji/src
 ```
 
 Hereafter you can do all the operations without changing directory.
@@ -119,29 +118,45 @@ brew install cmake
 
 ## Build with Bazel
 
-### Build installer
+### Build marinaMoji (dev install)
+
+With Homebrew Qt (recommended for daily development):
 
 ```
-bazelisk build package --config release_build
-open bazel-bin/mac/Mozc.pkg
+export MOZC_QT_PATH=/opt/homebrew/opt/qt
+bazelisk build --config=oss_macos //mac:mozc_macos
+bash mac/install_marinamoji.sh
 ```
+
+See [MACOS_PORT_PLAN.md](./MACOS_PORT_PLAN.md) for manual `ditto`, LaunchAgents, and `bazel-bin` paths.
+
+### Build installer (`.pkg`)
+
+```
+export MOZC_QT_PATH=/opt/homebrew/opt/qt
+bazelisk build --config=oss_macos --spawn_strategy=local //mac:package
+open bazel-bin/mac/marinaMoji.pkg
+```
+
+Stock upstream Mozc used `bazelisk build package --config release_build` → `Mozc.pkg`. marinaMoji requires **`--config oss_macos`** and produces **`marinaMoji.pkg`**.
 
 #### How to specify target CPU architectures
 
 To build an Intel64 macOS binary regardless of the host CPU architecture.
 
 ```
-python3 build_tools/build_qt.py --release --debug --confirm_license --macos_cpus=x64_64
-bazelisk build package --config release_build --macos_cpus=x64_64
-open bazel-bin/mac/Mozc.pkg
+python3 build_tools/build_qt.py --release --debug --confirm_license --macos_cpus=x86_64
+export MOZC_QT_PATH=/path/to/built/qt   # if not using Homebrew
+bazelisk build --config=oss_macos --macos_cpus=x86_64 //mac:package
+open bazel-bin/mac/marinaMoji.pkg
 ```
 
 To build a Universal macOS Binary both x86_64 and arm64.
 
 ```
 python3 build_tools/build_qt.py --release --debug --confirm_license --macos_cpus=x86_64,arm64
-bazelisk build package --config release_build --macos_cpus=x86_64,arm64
-open bazel-bin/mac/Mozc.pkg
+bazelisk build --config=oss_macos --macos_cpus=x86_64,arm64 //mac:package
+open bazel-bin/mac/marinaMoji.pkg
 ```
 
 ### Unit tests
@@ -150,7 +165,7 @@ open bazel-bin/mac/Mozc.pkg
 bazelisk test ... --build_tests_only -c dbg
 ```
 
-See [build Mozc in Docker](build_mozc_in_docker.md#unittests) for details.
+See [build marinaMoji in Docker](build_marinamoji_in_docker.md#unittests) for details.
 
 ### Edit src/config.bzl
 
@@ -213,5 +228,6 @@ https://github.com/google/mozc/blob/3.33.6089/docs/build_mozc_in_osx.md#build-wi
 
 For marinaMoji-specific macOS behavior and toolbar features (including odoriji, symbols palette, and custom symbol settings), see:
 
-- [MACOS_PORT_PLAN.md](MACOS_PORT_PLAN.md)
+- [MACOS_PORT_PLAN.md](MACOS_PORT_PLAN.md) — **primary** rebuild/install/troubleshooting guide
 - [SYMBOLS_PALETTE.md](SYMBOLS_PALETTE.md)
+- [compiling_instructions_for_marina.md](compiling_instructions_for_marina.md) — Linux counterpart

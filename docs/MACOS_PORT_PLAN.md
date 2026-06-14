@@ -12,7 +12,9 @@ Planning and status for the **macOS** build of **marinaMoji** (Input Method Kit 
    (only if you used the old trace/support paths; profile data may still be under `Mozc` from earlier builds—see logs under `~/Library/Logs/marinaMoji/` after reinstall).
 5. Linux: reinstall package, `ibus write-cache && ibus restart`, re-add **marinaMoji**; config under `~/.config/marinamoji/` (legacy `marinamozc` dirs are used automatically if present).
 
-For full setup (Xcode, Qt, Bazelisk, `.pkg` installer), see [build_mozc_in_osx.md](build_mozc_in_osx.md). For fork branding on Linux, see [MARINAMOJI.md](MARINAMOJI.md).
+For full setup (Xcode, Qt, Bazelisk, `.pkg` installer), see [build_marinamoji_on_macos.md](build_marinamoji_on_macos.md). For fork branding on Linux, see [MARINAMOJI.md](MARINAMOJI.md).
+
+**Day-to-day macOS rebuild/install:** this document ([MACOS_PORT_PLAN.md](MACOS_PORT_PLAN.md)) is the primary guide. Linux: [compiling_instructions_for_marina.md](compiling_instructions_for_marina.md).
 
 ## Rebuild and reinstall (quick reference)
 
@@ -419,9 +421,10 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
    - [ ] **Right Shift** alone toggles hiragana ↔ Manyōshū (release without typing)
    - [ ] Candidate window F5/F6 behavior unchanged
    - [ ] Preferences → General → Appearance: candidate font size 14 vs 36 updates the candidate list (and usage examples) after OK, without restarting the IME
-   - [ ] Candidate window: **rounded** panel, **toolbar-matched** border (1pt `rgba(0,0,0,0.08)`), **opaque white** background, rounded scrollbar track
-   - [ ] Footer logo loads from `toolbar_icons/logo_long_light.svg` (sharp at 14 pt and 36 pt font)
-   - [ ] Infolist (“用例”) panel matches candidate rounding and white/toolbar-border theme
+   - [ ] Candidate window: **rounded** panel; **light mode:** opaque white, border `rgba(0,0,0,0.08)`; **dark mode:** `#202328` panel, white 12% border (matches toolbar)
+   - [ ] Footer logo: `logo_long_light.svg` in light mode, `logo_long_dark.svg` in dark mode (sharp at 14 pt and 36 pt font)
+   - [ ] Infolist (“用例”) panel matches candidate rounding and light/dark theme
+   - [ ] Switching macOS light ↔ dark while candidate window is open updates colors without restart
 5. Logs: `~/Library/Logs/marinaMoji/marinaMoji.log`
 
 ## Known issues / backlog
@@ -500,3 +503,4 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
 | 2026-05-27 | Single visible IME **marinaMoji** in input menu (hidden secondary TIS modes) |
 | 2026-06-08 | M8 investigated + resolved as by-design: validated M1n+M1b (display sync) and visible sub-modes in Mode Lab and in the real controller, but reverted — visible modes pollute the global input-source cycle, so the single-visible-mode + toolbar design stays. Kept: pre-existing `//base/mac:mac_util` → `//base:file_util` build-dep fix; `UpdateCandidates` test fix (`imeServerActive` test accessor). |
 | 2026-06-11 | **Custom number-row shortcuts (Phase 2):** `marina_number_row_bindings` in config; Preferences → Shortcuts table; Linux IBUS dispatcher + physical keycode mapping; macOS IMK reads bindings via `marina_number_row_bindings_util`; `KeyCodeMap` Ctrl-only normalization; marina number-row rows removed from keymap TSVs; `LAUNCH_WORD_REGISTER_DIALOG` session command. |
+| 2026-06-11 | **Candidate window dark mode:** `renderer_style_dark.textproto`; system appearance picks light/dark theme; `CandidateView` / `InfolistView` reload on `viewDidChangeEffectiveAppearance`. |

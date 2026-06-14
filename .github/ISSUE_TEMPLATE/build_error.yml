@@ -1,5 +1,5 @@
 name: Build error
-description: Issues for building Mozc
+description: Issues for building marinaMoji
 title: 'Build error: '
 
 body:
@@ -8,16 +8,11 @@ body:
       value: |
         Thank you for your reporting.
 
-        Checking the current CI status and build instructions may address your problem.
+        **marinaMoji build guides:**
 
-        | Linux | Windows | macOS | Android lib |
-        |:-----:|:-------:|:-----:|:-----------:|
-        | [![Linux](https://github.com/google/mozc/actions/workflows/linux.yaml/badge.svg)](https://github.com/google/mozc/actions/workflows/linux.yaml) | [![Windows](https://github.com/google/mozc/actions/workflows/windows.yaml/badge.svg)](https://github.com/google/mozc/actions/workflows/windows.yaml) | [![macOS](https://github.com/google/mozc/actions/workflows/macos.yaml/badge.svg)](https://github.com/google/mozc/actions/workflows/macos.yaml) | [![Android lib](https://github.com/google/mozc/actions/workflows/android.yaml/badge.svg)](https://github.com/google/mozc/actions/workflows/android.yaml) |
-
-        Build instructions:
-        * [Linux / Android-lib](https://github.com/google/mozc/blob/master/docs/build_mozc_in_docker.md)
-        * [macOS](https://github.com/google/mozc/blob/master/docs/build_mozc_in_osx.md)
-        * [Windows](https://github.com/google/mozc/blob/master/docs/build_mozc_in_windows.md)
+        * **Linux (start here):** [compiling_instructions_for_marina.md](https://github.com/marinaMoji/marinaMoji/blob/main/docs/compiling_instructions_for_marina.md)
+        * **macOS (start here):** [MACOS_PORT_PLAN.md](https://github.com/marinaMoji/marinaMoji/blob/main/docs/MACOS_PORT_PLAN.md)
+        * **Bazel reference:** [build_marinamoji_for_linux.md](https://github.com/marinaMoji/marinaMoji/blob/main/docs/build_marinamoji_for_linux.md), [build_marinamoji_on_macos.md](https://github.com/marinaMoji/marinaMoji/blob/main/docs/build_marinamoji_on_macos.md)
 
   - type: textarea
     id: description
