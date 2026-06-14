@@ -44,6 +44,7 @@
 #include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "base/japanese_util.h"
 #include "base/text_normalizer.h"
 #include "base/util.h"
 #include "base/vlog.h"
@@ -1168,6 +1169,76 @@ void EngineConverter::CandidatePrevPage() {
   candidate_list_visible_ = true;
   UpdateSelectedCandidateIndex();
   SegmentFocus();
+}
+
+bool EngineConverter::IsManyoshuDuplicateAt(size_t list_index) const {
+  if (!CheckState(PREDICTION | CONVERSION)) {
+    return false;
+  }
+  if (segment_index_ >= segments_.conversion_segments_size()) {
+    return false;
+  }
+  if (list_index >= candidate_list_.size()) {
+    return false;
+  }
+  const Segment& segment = segments_.conversion_segment(segment_index_);
+  const Candidate& focused = candidate_list_.candidate(list_index);
+  if (!segment.is_valid_index(focused.id())) {
+    return false;
+  }
+  const std::string normalized =
+      japanese_util::HiraganaToKatakana(segment.candidate(focused.id()).value);
+  for (size_t i = 0; i < list_index; ++i) {
+    const Candidate& earlier = candidate_list_.candidate(i);
+    if (!segment.is_valid_index(earlier.id())) {
+      continue;
+    }
+    if (japanese_util::HiraganaToKatakana(segment.candidate(earlier.id()).value) ==
+        normalized) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void EngineConverter::SkipManyoshuDuplicateFocusForward(
+    const composer::Composer& composer) {
+  const size_t max_steps = candidate_list_.size();
+  for (size_t steps = 0;
+       steps < max_steps &&
+       IsManyoshuDuplicateAt(candidate_list_.focused_index());
+       ++steps) {
+    CandidateNext(composer);
+  }
+}
+
+void EngineConverter::CandidateNextSkipManyoshuDuplicates(
+    const composer::Composer& composer) {
+  CandidateNext(composer);
+  SkipManyoshuDuplicateFocusForward(composer);
+}
+
+void EngineConverter::CandidatePrevSkipManyoshuDuplicates() {
+  CandidatePrev();
+  const size_t max_steps = candidate_list_.size();
+  for (size_t steps = 0;
+       steps < max_steps &&
+       IsManyoshuDuplicateAt(candidate_list_.focused_index());
+       ++steps) {
+    CandidatePrev();
+  }
+}
+
+void EngineConverter::CandidateNextPageSkipManyoshuDuplicates(
+    const composer::Composer& composer) {
+  CandidateNextPage();
+  SkipManyoshuDuplicateFocusForward(composer);
+}
+
+void EngineConverter::CandidatePrevPageSkipManyoshuDuplicates(
+    const composer::Composer& composer) {
+  CandidatePrevPage();
+  SkipManyoshuDuplicateFocusForward(composer);
 }
 
 void EngineConverter::CandidateMoveToId(const int id,

@@ -41,6 +41,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
@@ -76,7 +77,56 @@ namespace session {
 namespace {
 
 using ::mozc::engine::ConversionPreferences;
+using ::mozc::engine::EngineConverter;
 using ::mozc::engine::EngineConverterInterface;
+
+engine::EngineConverter* GetEngineConverter(
+    engine::EngineConverterInterface* converter) {
+  return dynamic_cast<engine::EngineConverter*>(converter);
+}
+
+void ManyoshuCandidateNext(engine::EngineConverterInterface* converter,
+                           const composer::Composer& composer) {
+  if (EngineConverter* ec = GetEngineConverter(converter)) {
+    ec->CandidateNextSkipManyoshuDuplicates(composer);
+  } else {
+    converter->CandidateNext(composer);
+  }
+}
+
+void ManyoshuCandidatePrev(engine::EngineConverterInterface* converter) {
+  if (EngineConverter* ec = GetEngineConverter(converter)) {
+    ec->CandidatePrevSkipManyoshuDuplicates();
+  } else {
+    converter->CandidatePrev();
+  }
+}
+
+void ManyoshuCandidateNextPage(engine::EngineConverterInterface* converter,
+                               const composer::Composer& composer) {
+  if (EngineConverter* ec = GetEngineConverter(converter)) {
+    ec->CandidateNextPageSkipManyoshuDuplicates(composer);
+  } else {
+    converter->CandidateNextPage();
+  }
+}
+
+void ManyoshuCandidatePrevPage(engine::EngineConverterInterface* converter,
+                               const composer::Composer& composer) {
+  if (EngineConverter* ec = GetEngineConverter(converter)) {
+    ec->CandidatePrevPageSkipManyoshuDuplicates(composer);
+  } else {
+    converter->CandidatePrevPage();
+  }
+}
+
+void ManyoshuSkipDuplicateFocusIfNeeded(
+    engine::EngineConverterInterface* converter,
+    const composer::Composer& composer) {
+  if (EngineConverter* ec = GetEngineConverter(converter)) {
+    ec->SkipManyoshuDuplicateFocusForward(composer);
+  }
+}
 
 // Maximum size of multiple undo stack.
 const size_t kMultipleUndoMaxSize = 10;
@@ -165,33 +215,45 @@ void ApplyManyoshuDisplayConversion(commands::Output* output) {
   if (output->has_candidate_window()) {
     commands::CandidateWindow* cw = output->mutable_candidate_window();
     absl::flat_hash_set<std::string> seen;
+    absl::flat_hash_map<uint32_t, uint32_t> page_index_to_canonical;
     std::vector<commands::CandidateWindow::Candidate> kept;
-    int new_focused = 0;
     for (int i = 0; i < cw->candidate_size(); ++i) {
-      const std::string& raw = cw->candidate(i).value();
-      std::string value_katakana = japanese_util::HiraganaToKatakana(raw);
+      const commands::CandidateWindow::Candidate& src = cw->candidate(i);
+      const std::string value_katakana =
+          japanese_util::HiraganaToKatakana(src.value());
+      const uint32_t src_index = src.index();
       if (seen.insert(value_katakana).second) {
-        commands::CandidateWindow::Candidate c = cw->candidate(i);
+        commands::CandidateWindow::Candidate c = src;
         c.set_value(value_katakana);
+        page_index_to_canonical[src_index] = src_index;
         kept.push_back(std::move(c));
-        if (i == static_cast<int>(cw->focused_index())) {
-          new_focused = static_cast<int>(kept.size()) - 1;
-        }
-      } else if (i == static_cast<int>(cw->focused_index())) {
-        for (size_t j = 0; j < kept.size(); ++j) {
-          if (kept[j].value() == value_katakana) {
-            new_focused = static_cast<int>(j);
+      } else {
+        for (const auto& k : kept) {
+          if (k.value() == value_katakana) {
+            page_index_to_canonical[src_index] = k.index();
             break;
           }
         }
       }
     }
-    cw->clear_candidate();
-    for (size_t i = 0; i < kept.size(); ++i) {
-      *cw->add_candidate() = kept[i];
+    if (cw->has_focused_index()) {
+      uint32_t new_focused = cw->focused_index();
+      if (const auto it = page_index_to_canonical.find(cw->focused_index());
+          it != page_index_to_canonical.end()) {
+        new_focused = it->second;
+      }
+      cw->set_focused_index(new_focused);
     }
-    cw->set_focused_index(static_cast<uint32_t>(new_focused));
-    cw->set_size(static_cast<uint32_t>(kept.size()));
+    constexpr absl::string_view kShortcutDigits = "123456789";
+    for (size_t j = 0; j < kept.size() && j < kShortcutDigits.size(); ++j) {
+      kept[j].mutable_annotation()->set_shortcut(
+          std::string(1, kShortcutDigits[j]));
+    }
+    cw->clear_candidate();
+    for (auto& c : kept) {
+      *cw->add_candidate() = std::move(c);
+    }
+    // Preserve cw->size(); page dedupe must not shrink the global count.
   }
 }
 
@@ -3076,6 +3138,10 @@ bool Session::Convert(commands::Command* command) {
   }
 
   SetSessionState(ImeContext::CONVERSION, context_.get());
+  if (manyoshu_mode_) {
+    ManyoshuSkipDuplicateFocusIfNeeded(context_->mutable_converter(),
+                                       context_->composer());
+  }
   Output(command);
   return true;
 }
@@ -3094,6 +3160,10 @@ bool Session::ConvertWithoutHistory(commands::Command* command) {
   }
 
   SetSessionState(ImeContext::CONVERSION, context_.get());
+  if (manyoshu_mode_) {
+    ManyoshuSkipDuplicateFocusIfNeeded(context_->mutable_converter(),
+                                       context_->composer());
+  }
   Output(command);
   return true;
 }
@@ -3337,7 +3407,11 @@ bool Session::ReportBug(commands::Command* command) {
 
 bool Session::ConvertNext(commands::Command* command) {
   command->mutable_output()->set_consumed(true);
-  context_->mutable_converter()->CandidateNext(context_->composer());
+  if (manyoshu_mode_) {
+    ManyoshuCandidateNext(context_->mutable_converter(), context_->composer());
+  } else {
+    context_->mutable_converter()->CandidateNext(context_->composer());
+  }
   Output(command);
   return true;
 }
@@ -3347,14 +3421,23 @@ bool Session::ConvertNextPage(commands::Command* command) {
     return DoNothing(command);
   }
   command->mutable_output()->set_consumed(true);
-  context_->mutable_converter()->CandidateNextPage();
+  if (manyoshu_mode_) {
+    ManyoshuCandidateNextPage(context_->mutable_converter(),
+                              context_->composer());
+  } else {
+    context_->mutable_converter()->CandidateNextPage();
+  }
   Output(command);
   return true;
 }
 
 bool Session::ConvertPrev(commands::Command* command) {
   command->mutable_output()->set_consumed(true);
-  context_->mutable_converter()->CandidatePrev();
+  if (manyoshu_mode_) {
+    ManyoshuCandidatePrev(context_->mutable_converter());
+  } else {
+    context_->mutable_converter()->CandidatePrev();
+  }
   Output(command);
   return true;
 }
@@ -3364,7 +3447,12 @@ bool Session::ConvertPrevPage(commands::Command* command) {
     return DoNothing(command);
   }
   command->mutable_output()->set_consumed(true);
-  context_->mutable_converter()->CandidatePrevPage();
+  if (manyoshu_mode_) {
+    ManyoshuCandidatePrevPage(context_->mutable_converter(),
+                              context_->composer());
+  } else {
+    context_->mutable_converter()->CandidatePrevPage();
+  }
   Output(command);
   return true;
 }

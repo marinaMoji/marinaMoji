@@ -225,6 +225,17 @@ class EngineConverter : public EngineConverterInterface {
   void CandidateNextPage() override;
   void CandidatePrev() override;
   void CandidatePrevPage() override;
+  // Manyōshū: advance focus but skip candidates that duplicate an earlier
+  // entry after hiragana→katakana normalization (display dedupe parity).
+  void CandidateNextSkipManyoshuDuplicates(
+      const composer::Composer& composer);
+  void CandidatePrevSkipManyoshuDuplicates();
+  void CandidateNextPageSkipManyoshuDuplicates(
+      const composer::Composer& composer);
+  void CandidatePrevPageSkipManyoshuDuplicates(
+      const composer::Composer& composer);
+  void SkipManyoshuDuplicateFocusForward(
+      const composer::Composer& composer);
   // Moves the focus to the candidate represented by the id.
   void CandidateMoveToId(int id, const composer::Composer& composer) override;
   // Moves the focus to the index from the beginning of the current page.
@@ -353,6 +364,8 @@ class EngineConverter : public EngineConverterInterface {
   void FillConversion(commands::Preedit* preedit) const;
   void FillResult(commands::Result* result) const;
   void FillCandidateWindow(commands::CandidateWindow* candidate_window) const;
+
+  bool IsManyoshuDuplicateAt(size_t list_index) const;
 
   // Fills protocol buffers with all flatten candidate words.
   void FillAllCandidateWords(commands::CandidateList* candidates) const;
