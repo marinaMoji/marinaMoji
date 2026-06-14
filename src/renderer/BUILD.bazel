@@ -191,6 +191,13 @@ mozc_cc_library(
 )
 
 mozc_cc_library(
+    name = "candidate_window_util",
+    hdrs = ["candidate_window_util.h"],
+    visibility = ["//renderer:__subpackages__"],
+    deps = ["//protocol:commands_cc_proto"],
+)
+
+mozc_cc_library(
     name = "renderer_interface",
     hdrs = ["renderer_interface.h"],
     visibility = [
@@ -391,6 +398,7 @@ mozc_objc_library(
         ":renderer_style_handler",
         ":table_layout",
         ":window_util",
+        ":candidate_window_util",
         "//base:const",
         "//base:coordinates",
         "//base:util",

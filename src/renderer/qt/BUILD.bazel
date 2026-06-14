@@ -135,6 +135,7 @@ mozc_cc_qt_library(
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",
         "//protocol:renderer_cc_proto",
+        "//renderer:candidate_window_util",
         "//renderer:renderer_style_handler",
         "//renderer:window_util",
         "@com_google_absl//absl/log",
