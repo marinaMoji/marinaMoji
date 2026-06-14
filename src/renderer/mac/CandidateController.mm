@@ -34,6 +34,7 @@
 #include "renderer/mac/CandidateController.h"
 #include "renderer/mac/CandidateWindow.h"
 #include "renderer/mac/InfolistWindow.h"
+#include "renderer/candidate_window_util.h"
 #include "renderer/mac/mac_view_util.h"
 #include "renderer/table_layout.h"
 #include "renderer/window_util.h"
@@ -175,8 +176,7 @@ bool CandidateController::ExecCommand(const RendererCommand &command) {
   if (infolist_visible && !cascading_visible) {
     const commands::CandidateWindow &candidate_window = command_.output().candidate_window();
     if (candidate_window.has_focused_index() && candidate_window.candidate_size() > 0) {
-      const int focused_row =
-          candidate_window.focused_index() - candidate_window.candidate(0).index();
+      const int focused_row = FocusedDisplayRow(candidate_window);
       if (candidate_window.candidate_size() >= focused_row &&
           candidate_window.candidate(focused_row).has_information_id()) {
         infolist_window_->DelayShow(candidate_window.usages().delay());
@@ -258,7 +258,7 @@ void CandidateController::AlignWindows() {
   // Fix cascading window position
   // 1. starting position is at the focused row
   const commands::CandidateWindow &candidate_window = command_.output().candidate_window();
-  const int focused_row = candidate_window.focused_index() - candidate_window.candidate(0).index();
+  const int focused_row = FocusedDisplayRow(candidate_window);
   if (focused_row < 0 || focused_row >= candidate_window.candidate_size()) {
     return;
   }

@@ -27,6 +27,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "renderer/candidate_window_util.h"
 #include "renderer/qt/qt_window_manager.h"
 
 #include <algorithm>
@@ -265,11 +266,7 @@ std::string GetIndexGuideString(
 }
 
 int GetFocusedRow(const commands::CandidateWindow& candidate_window) {
-  if (candidate_window.has_focused_index()) {
-    return candidate_window.focused_index() -
-           candidate_window.candidate(0).index();
-  }
-  return -1;  // No focused row
+  return FocusedDisplayRow(candidate_window);
 }
 
 void FillCandidateHighlight(const commands::CandidateWindow& candidate_window,
@@ -496,8 +493,7 @@ bool QtWindowManager::ShouldShowInfolistWindow(
   }
 
   // Converts candidate's index to column row index.
-  const int focused_row =
-      candidate_window.focused_index() - candidate_window.candidate(0).index();
+  const int focused_row = GetFocusedRow(candidate_window);
   if (candidate_window.candidate_size() < focused_row) {
     return false;
   }

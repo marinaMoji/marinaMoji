@@ -40,6 +40,7 @@
 #include "config/config_handler.h"
 #include "protocol/commands.pb.h"
 #include "protocol/renderer_style.pb.h"
+#include "renderer/candidate_window_util.h"
 #include "renderer/mac/mac_view_util.h"
 #include "renderer/renderer_style_handler.h"
 #include "renderer/table_layout.h"
@@ -231,12 +232,7 @@ using mozc::renderer::mac::MacViewUtil;
   tableLayout_.SetWindowBorder(style_.window_border());
 
   // calculating focusedRow_
-  if (candidate_window_.has_focused_index() && candidate_window_.candidate_size() > 0) {
-    const int focusedIndex = candidate_window_.focused_index();
-    focusedRow_ = focusedIndex - candidate_window_.candidate(0).index();
-  } else {
-    focusedRow_ = -1;
-  }
+  focusedRow_ = mozc::renderer::FocusedDisplayRow(candidate_window_);
 
   // Reserve footer space.
   if (candidate_window_.has_footer()) {
