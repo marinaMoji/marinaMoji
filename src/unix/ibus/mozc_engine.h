@@ -150,6 +150,9 @@ class MozcEngine : public EngineInterface {
   // message, then hides a preedit string and the candidate window.
   void RevertSession(IbusEngineWrapper* engine);
 
+  // Forwards IBUS_RELEASE for tracked Shift keys, then clears modifier state.
+  void ReleaseTrackedModifiers(IbusEngineWrapper* engine);
+
   CandidateWindowHandlerInterface* GetCandidateWindowHandler(
       IbusEngineWrapper* engine);
 

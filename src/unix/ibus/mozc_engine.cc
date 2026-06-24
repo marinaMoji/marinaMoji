@@ -298,7 +298,7 @@ void MozcEngine::Disable(IbusEngineWrapper* engine) {
   sync::RecordImeDeactivated();
   RevertSession(engine);
   GetCandidateWindowHandler(engine)->Hide(engine);
-  key_event_handler_->Clear();
+  ReleaseTrackedModifiers(engine);
 }
 
 namespace {
@@ -389,6 +389,7 @@ void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
   // See https://github.com/google/mozc/issues/255 for details.
   RevertSession(engine);
   SyncData(false);
+  ReleaseTrackedModifiers(engine);
 }
 
 void MozcEngine::PageDown(IbusEngineWrapper* engine) {
@@ -783,6 +784,7 @@ void MozcEngine::SetContentType(IbusEngineWrapper* engine, uint purpose,
   if (!prev_disabled && property_handler_->IsDisabled()) {
     // Make sure on-going composition is reverted.
     RevertSession(engine);
+    ReleaseTrackedModifiers(engine);
   }
 }
 
@@ -967,6 +969,14 @@ bool MozcEngine::LaunchTool(const commands::Output& output) const {
   }
 
   return true;
+}
+
+void MozcEngine::ReleaseTrackedModifiers(IbusEngineWrapper* engine) {
+  if (engine == nullptr) {
+    return;
+  }
+  key_event_handler_->ForwardTrackedShiftReleases(engine);
+  key_event_handler_->Clear();
 }
 
 void MozcEngine::RevertSession(IbusEngineWrapper* engine) {

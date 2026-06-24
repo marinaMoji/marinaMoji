@@ -80,4 +80,11 @@ enum InputMode { ASCII, KANA };
 // Ctrl+Left Shift chord released without typing: sets CTRL+LEFT_SHIFT.
 - (BOOL)tryCtrlLeftShiftModeLockFromEvent:(NSEvent *)event
                            toMozcKeyEvent:(mozc::commands::KeyEvent *)keyEvent;
+
+// Posts synthetic Shift key-ups for shifts tracked as down (Linux IBus parity on
+// IME deactivation), then clears shift tracking state.
+- (void)releaseTrackedShiftKeys;
+
+// Key codes (kVK_Shift / kVK_RightShift) for shifts tracked as physically down.
+- (NSArray<NSNumber *> *)trackedShiftKeyCodes;
 @end

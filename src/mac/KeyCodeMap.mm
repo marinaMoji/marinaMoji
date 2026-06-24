@@ -95,6 +95,15 @@ BOOL HasNonShiftChordModifiers(NSUInteger flags) {
                     NSEventModifierFlagCommand)) != 0;
 }
 
+void PostShiftKeyUp(CGKeyCode keyCode) {
+  CGEventRef event = CGEventCreateKeyboardEvent(nullptr, keyCode, false);
+  if (event == nullptr) {
+    return;
+  }
+  CGEventPost(kCGSessionEventTap, event);
+  CFRelease(event);
+}
+
 }  // namespace
 
 - (BOOL)tryRightShiftAloneKeyFromEvent:(NSEvent *)event
@@ -540,6 +549,38 @@ BOOL HasNonShiftChordModifiers(NSUInteger flags) {
   }
   [self addModifierFlags:nsModifiers toMozcKeyEvent:keyEvent];
   return YES;
+}
+
+- (NSArray<NSNumber *> *)trackedShiftKeyCodes {
+  NSMutableArray<NSNumber *> *codes = [NSMutableArray array];
+  if (rightShiftDown_) {
+    [codes addObject:@(kVK_RightShift)];
+  }
+  if (leftShiftDown_ || leftShiftPhysicallyDown_) {
+    [codes addObject:@(kVK_Shift)];
+  }
+  return codes;
+}
+
+- (void)resetShiftTrackingState {
+  rightShiftDown_ = NO;
+  typedWhileRightShiftDown_ = NO;
+  otherModifiersWhileRightShift_ = NO;
+  leftShiftDown_ = NO;
+  typedWhileLeftShiftDown_ = NO;
+  otherModifiersWhileLeftShift_ = NO;
+  leftShiftPhysicallyDown_ = NO;
+  ctrlHeldDuringLeftShiftPress_ = NO;
+  ctrlLeftShiftChordArmed_ = NO;
+  typedDuringCtrlLeftShiftChord_ = NO;
+  modifierFlags_ = 0;
+}
+
+- (void)releaseTrackedShiftKeys {
+  for (NSNumber *code in [self trackedShiftKeyCodes]) {
+    PostShiftKeyUp(static_cast<CGKeyCode>([code unsignedShortValue]));
+  }
+  [self resetShiftTrackingState];
 }
 
 @end

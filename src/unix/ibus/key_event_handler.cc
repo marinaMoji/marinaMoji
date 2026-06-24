@@ -30,9 +30,13 @@
 #include "unix/ibus/key_event_handler.h"
 
 #include <cstddef>
+#include <vector>
+
+#include <ibus.h>
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "unix/ibus/ibus_wrapper.h"
 
 namespace mozc {
 namespace ibus {
@@ -85,6 +89,21 @@ bool IsEditingKeycode(uint keycode) {
   // Physical Backspace key (X11 keycode 14) even when keyval is nonstandard.
   constexpr uint kBackSpaceKeycode = 14;
   return keycode == kBackSpaceKeycode;
+}
+
+// Standard PC X11 keycodes (KEY_LEFTSHIFT / KEY_RIGHTSHIFT).
+constexpr uint kShiftLeftKeyCode = 42;
+constexpr uint kShiftRightKeyCode = 54;
+
+void ForwardShiftRelease(IbusEngineWrapper* engine, uint keyval) {
+  if (engine == nullptr) {
+    return;
+  }
+  if (keyval == IBUS_Shift_L) {
+    engine->ForwardKeyEvent(IBUS_Shift_L, kShiftLeftKeyCode, IBUS_RELEASE_MASK);
+  } else if (keyval == IBUS_Shift_R) {
+    engine->ForwardKeyEvent(IBUS_Shift_R, kShiftRightKeyCode, IBUS_RELEASE_MASK);
+  }
 }
 }  // namespace
 
@@ -142,6 +161,22 @@ void KeyEventHandler::Clear() {
   ctrl_left_shift_chord_armed_ = false;
   typed_during_ctrl_left_shift_chord_ = false;
   ctrl_held_during_left_shift_press_ = false;
+}
+
+std::vector<uint> KeyEventHandler::TrackedShiftKeyvals() const {
+  std::vector<uint> result;
+  for (uint keyval : currently_pressed_modifiers_) {
+    if (keyval == IBUS_Shift_L || keyval == IBUS_Shift_R) {
+      result.push_back(keyval);
+    }
+  }
+  return result;
+}
+
+void KeyEventHandler::ForwardTrackedShiftReleases(IbusEngineWrapper* engine) {
+  for (uint keyval : TrackedShiftKeyvals()) {
+    ForwardShiftRelease(engine, keyval);
+  }
 }
 
 bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,

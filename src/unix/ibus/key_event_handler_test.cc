@@ -31,6 +31,7 @@
 
 #include <map>
 #include <memory>
+#include <vector>
 
 #include "absl/random/random.h"
 #include "absl/strings/str_format.h"
@@ -390,6 +391,24 @@ TEST_F(KeyEventHandlerTest, RightShiftAloneSentOnKeyUp) {
   EXPECT_TRUE(ProcessKey(true, IBUS_Shift_R, &key));  // up: sent
   EXPECT_NO_MODIFIERS_PRESSED();
   EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);
+}
+
+TEST_F(KeyEventHandlerTest, TrackedShiftKeyvals) {
+  commands::KeyEvent key;
+  EXPECT_TRUE(handler_->TrackedShiftKeyvals().empty());
+
+  ProcessKey(false, IBUS_Shift_R, &key);
+  std::vector<uint> tracked = handler_->TrackedShiftKeyvals();
+  ASSERT_EQ(tracked.size(), 1u);
+  EXPECT_EQ(tracked[0], static_cast<uint>(IBUS_Shift_R));
+
+  key.Clear();
+  ProcessKey(false, IBUS_Shift_L, &key);
+  tracked = handler_->TrackedShiftKeyvals();
+  EXPECT_EQ(tracked.size(), 2u);
+
+  handler_->Clear();
+  EXPECT_TRUE(handler_->TrackedShiftKeyvals().empty());
 }
 
 TEST_F(KeyEventHandlerTest, LeftShiftAloneSentOnKeyUp) {

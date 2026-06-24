@@ -760,6 +760,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   DLOG(INFO) << kProductNameInEnglish << " client (" << self << "): deactivated";
   DLOG(INFO) << "sender bundleID: " << clientBundle_;
   mozc::sync::RecordImeDeactivated();
+  [keyCodeMap_ releaseTrackedShiftKeys];
   [super deactivateServer:sender];
 }
 

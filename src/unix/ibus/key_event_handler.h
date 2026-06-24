@@ -32,6 +32,7 @@
 
 #include <memory>
 #include <set>
+#include <vector>
 
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
@@ -39,6 +40,8 @@
 
 namespace mozc {
 namespace ibus {
+
+class IbusEngineWrapper;
 
 class KeyEventHandler {
  public:
@@ -56,8 +59,15 @@ class KeyEventHandler {
   // Clears states.
   void Clear();
 
+  // Forwards IBUS_RELEASE for Shift keys tracked as pressed (e.g. before IME
+  // deactivation) so the application clears modifier state.
+  void ForwardTrackedShiftReleases(IbusEngineWrapper* engine);
+
  private:
   friend class KeyEventHandlerTest;
+
+  // Returns IBUS keyvals for shift keys in |currently_pressed_modifiers_|.
+  std::vector<uint> TrackedShiftKeyvals() const;
 
   // Manages modifier keys. Returns false if it should not be sent to server.
   bool ProcessModifiers(bool is_key_up, uint keyval,

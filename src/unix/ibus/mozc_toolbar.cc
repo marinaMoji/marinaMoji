@@ -1480,7 +1480,20 @@ static void OnShortcutsPopupDestroy(GtkWidget* /*w*/, gpointer data) {
   delete static_cast<ShortcutsData*>(data);
 }
 
+static void PresentShortcutsPopup() {
+  if (!g_shortcuts_window) {
+    return;
+  }
+  gtk_widget_show_all(g_shortcuts_window);
+  gtk_window_present(GTK_WINDOW(g_shortcuts_window));
+}
+
 static void ShowShortcutsPopup() {
+  if (g_shortcuts_window) {
+    PresentShortcutsPopup();
+    return;
+  }
+
   ShortcutsData* data = new ShortcutsData();
   std::vector<ShortcutEntry> script_entries, comp_entries, kaeriten_entries;
 
@@ -1526,10 +1539,6 @@ static void ShowShortcutsPopup() {
   GroupShortcutsByCommand(comp_entries, kCompositionCommands, &data->composition);
   GroupShortcutsByCommand(kaeriten_entries, nullptr, &data->kaeriten);
 
-  if (g_shortcuts_window) {
-    gtk_widget_destroy(g_shortcuts_window);
-    g_shortcuts_window = nullptr;
-  }
   g_shortcuts_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_title(GTK_WINDOW(g_shortcuts_window), "Keyboard shortcuts");
   gtk_window_set_decorated(GTK_WINDOW(g_shortcuts_window), TRUE);

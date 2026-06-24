@@ -28,11 +28,14 @@
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
 
+@class MozcShortcutsWindowController;
+
 // Declared before @implementation MozcToolbarView.
 static __weak id<ControllerCallback> g_active_controller = nil;
 static NSTimeInterval g_suppress_set_value_direct_until = 0;
 static bool g_symbols_palette_visible = false;
 static bool g_toolbar_reshow_after_palette_close = false;
+static MozcShortcutsWindowController *g_shortcuts_window_controller = nil;
 
 namespace {
 
@@ -302,7 +305,8 @@ std::string GetKeymapPath(const std::string &filename) {
 #pragma mark - MozcShortcutsWindowController
 
 @interface MozcShortcutsWindowController : NSWindowController
-    <NSTabViewDelegate, NSTableViewDataSource, NSTableViewDelegate> {
+    <NSTabViewDelegate, NSTableViewDataSource, NSTableViewDelegate,
+     NSWindowDelegate> {
   NSTabView *tabView_;
   NSTableView *scriptTable_;
   NSTableView *compositionTable_;
@@ -326,6 +330,7 @@ std::string GetKeymapPath(const std::string &filename) {
                                       defer:YES];
   window.title = MarinaLocalizedString(@"MM.KeyboardShortcuts");
   window.releasedWhenClosed = NO;
+  window.delegate = self;
   [window center];
 
   self = [super initWithWindow:window];
@@ -474,6 +479,12 @@ std::string GetKeymapPath(const std::string &filename) {
   if (tableView == compositionTable_) return &compositionData_;
   if (tableView == kaeritenTable_) return &kaeritenData_;
   return nullptr;
+}
+
+- (void)windowWillClose:(NSNotification *)notification {
+  if (g_shortcuts_window_controller == self) {
+    g_shortcuts_window_controller = nil;
+  }
 }
 
 @end
@@ -1146,12 +1157,16 @@ std::string GetKeymapPath(const std::string &filename) {
 - (void)shortcutsClicked:(id)sender {
   if (!client_) return;
   mozc::mac::MozcImkNotifyToolLaunchStarting();
-  MozcShortcutsWindowController *ctrl =
+  if (g_shortcuts_window_controller != nil &&
+      g_shortcuts_window_controller.window.isVisible) {
+    [g_shortcuts_window_controller showWindow:sender];
+    [g_shortcuts_window_controller.window makeKeyAndOrderFront:sender];
+    return;
+  }
+  g_shortcuts_window_controller =
       [[MozcShortcutsWindowController alloc] initWithClient:client_];
-  [ctrl showWindow:nil];
-  // Keep a strong reference so the window stays alive.
-  objc_setAssociatedObject(self, "shortcutsCtrl", ctrl,
-                           OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+  [g_shortcuts_window_controller showWindow:sender];
+  [g_shortcuts_window_controller.window makeKeyAndOrderFront:sender];
 }
 
 - (void)symbolsClicked:(id)sender {

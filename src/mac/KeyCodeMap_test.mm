@@ -400,3 +400,39 @@ TEST_F(KeyCodeMapTest, RightShiftAloneToggle) {
   event.Clear();
   EXPECT_FALSE(TryRightShiftAlone(release, &event));
 }
+
+TEST_F(KeyCodeMapTest, TrackedShiftKeyCodesAndRelease) {
+  KeyEvent event;
+
+  NSEvent *rightPress = [NSEvent keyEventWithType:NSEventTypeFlagsChanged
+                                         location:NSZeroPoint
+                                    modifierFlags:NSEventModifierFlagShift
+                                        timestamp:0.0
+                                     windowNumber:0
+                                          context:nil
+                                       characters:@""
+                      charactersIgnoringModifiers:@""
+                                        isARepeat:NO
+                                          keyCode:kVK_RightShift];
+  EXPECT_FALSE(TryRightShiftAlone(rightPress, &event));
+  NSArray<NSNumber *> *codes = [keyCodeMap_ trackedShiftKeyCodes];
+  ASSERT_EQ(codes.count, 1u);
+  EXPECT_EQ([codes[0] unsignedShortValue], kVK_RightShift);
+
+  NSEvent *leftPress = [NSEvent keyEventWithType:NSEventTypeFlagsChanged
+                                        location:NSZeroPoint
+                                   modifierFlags:NSEventModifierFlagShift
+                                       timestamp:0.0
+                                    windowNumber:0
+                                         context:nil
+                                      characters:@""
+                     charactersIgnoringModifiers:@""
+                                       isARepeat:NO
+                                         keyCode:kVK_Shift];
+  EXPECT_FALSE(TryLeftShiftAlone(leftPress, &event));
+  codes = [keyCodeMap_ trackedShiftKeyCodes];
+  EXPECT_EQ(codes.count, 2u);
+
+  [keyCodeMap_ releaseTrackedShiftKeys];
+  EXPECT_EQ([keyCodeMap_ trackedShiftKeyCodes].count, 0u);
+}
