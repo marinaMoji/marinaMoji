@@ -113,6 +113,8 @@ bash sync_marina_opencc.sh
 
 Skip this if you have not changed the shin→kyū dictionaries.
 
+**Full workflow** (edit CSVs, compile `.ocd2`, test, rebuild): see [`character_conversion/Documentation/PORTING_TO_IME.md`](../../marinaMoji/character_conversion/Documentation/PORTING_TO_IME.md).
+
 ### 3.3 Build the package
 
 From the **`marinaMoji/src`** directory (not the repo root), run:

@@ -163,6 +163,8 @@ bash sync_marina_opencc.sh
 This copies `marinaShin2Kyu.json` and the three `marinaShin2Kyu*.ocd2` files into
 `data/marina_opencc/` for both the Linux zip and the macOS app bundle.
 
+**Full workflow:** [`character_conversion/Documentation/PORTING_TO_IME.md`](../../marinaMoji/character_conversion/Documentation/PORTING_TO_IME.md).
+
 ### Build marinaMoji
 
 You should be able to build marinaMoji for Linux desktop as follows, assuming

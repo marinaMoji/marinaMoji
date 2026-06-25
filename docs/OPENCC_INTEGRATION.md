@@ -13,6 +13,20 @@ This document describes **OpenCC**-based character conversion is integrated in t
   - **Override:** set `OPENCC_DATA_DIR` to a directory containing `marinaShin2Kyu.json`
   - Stock OpenCC `jp2t.json` is **not** used by marinaMoji (it references different dictionaries).
 
+## Updating conversion tables
+
+Table curation happens in **`character_conversion`** (sibling repo / marinaMoji monorepo). Step-by-step: edit CSVs → generate → compile → sync → rebuild.
+
+**Runbook:** [`character_conversion/Documentation/PORTING_TO_IME.md`](../../marinaMoji/character_conversion/Documentation/PORTING_TO_IME.md) (in the marinaMoji checkout beside marinaMozc).
+
+**Quick sync** (after `opencc_runtime/` is ready), from `marinaMozc/src`:
+
+```bash
+bash sync_marina_opencc.sh
+```
+
+Then rebuild and reinstall the IME (macOS or Linux). Sync alone does not update a running app.
+
 ## How marinaMoji does it (reference)
 
 In **marinaMoji** (Rime-based), OpenCC is not used in the IBus C code. It is used inside **librime**:
