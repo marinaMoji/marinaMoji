@@ -7,7 +7,11 @@ This document describes **OpenCC**-based character conversion is integrated in t
 - **Config:** `Config::use_traditional_kanji` (proto field 69, default false).
 - **Rewriter:** `OpenccRewriter` in `src/rewriter/opencc_rewriter.cc` runs when the option is on and converts candidate `value` and `content_value` via OpenCC (jp2t). Commit output uses the same segment values, so it is converted automatically.
 - **Shortcut:** **Ctrl+Shift+F** toggles the option (command `ToggleTraditionalKanji`), registered in Precomposition, Composition, and Conversion. Keymap entries added in ms-ime, atok, kotoeri, chromeos, and mobile.
-- **Enabling OpenCC at build time:** The rewriter compiles with a no-op stub unless `MOZC_USE_OPENCC` is defined and the OpenCC library is linked. To enable: add the OpenCC dependency to your build (e.g. link opencc or system libopencc), define `MOZC_USE_OPENCC`, and ensure `jp2t.json` (and any `.ocd2` it references) is installed (e.g. under `OPENCC_DATA_DIR` or `/usr/share/opencc/`).
+- **Enabling OpenCC at build time:** The rewriter compiles with a no-op stub unless `MOZC_USE_OPENCC` is defined and the OpenCC library is linked. marinaMoji ships curated tables at:
+  - **macOS:** `marinaMoji.app/Contents/Resources/opencc/marinaShin2Kyu.json` (+ three `.ocd2`)
+  - **Linux:** `/usr/lib/marinamoji/opencc/marinaShin2Kyu.json` (+ three `.ocd2`, inside `mozc.zip`)
+  - **Override:** set `OPENCC_DATA_DIR` to a directory containing `marinaShin2Kyu.json`
+  - Stock OpenCC `jp2t.json` is **not** used by marinaMoji (it references different dictionaries).
 
 ## How marinaMoji does it (reference)
 

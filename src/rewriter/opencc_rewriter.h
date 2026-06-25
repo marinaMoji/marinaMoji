@@ -37,8 +37,9 @@
 namespace mozc {
 
 // Rewriter that converts candidate text (shinjitai -> kyūjitai) via OpenCC
-// when Config::use_traditional_kanji is true. Uses jp2t.json for Japanese
-// traditional character conversion.
+// when Config::use_traditional_kanji is true. Uses marinaShin2Kyu.json for
+// traditional character conversion. One-to-many dictionary entries (characters
+// and phrases) fan out into multiple IME candidates.
 class OpenccRewriter : public RewriterInterface {
  public:
   OpenccRewriter() = default;

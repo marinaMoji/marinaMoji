@@ -149,7 +149,19 @@ git clone https://github.com/marinaMoji/marinaMoji.git --recursive
 cd marinaMoji/src
 ```
 
-Hereafter you can do all the operations without changing directory.
+Hereafter you can do all the operations without changing the directory.
+
+### Sync OpenCC tables (when conversion data changed)
+
+If you updated shin→kyū tables in `character_conversion`, compile `.ocd2` files
+into `opencc_runtime/`, then from **`marinaMozc/src`**:
+
+```sh
+bash sync_marina_opencc.sh
+```
+
+This copies `marinaShin2Kyu.json` and the three `marinaShin2Kyu*.ocd2` files into
+`data/marina_opencc/` for both the Linux zip and the macOS app bundle.
 
 ### Build marinaMoji
 
@@ -209,7 +221,7 @@ If it still does not appear, confirm that `ibus-daemon` is running and that no e
 
 - **Odoriji from the menu:** The "Odoriji (iteration marks)" menu item works when the engine is active (e.g. focus in a text field). If it only works after you start typing, click inside a text field first so the engine has focus, then open the menu and choose Odoriji.
 
-- **Traditional kanji (Shin/Kyū):** Toggle via the toolbar button or the "Traditional kanji (Kyūjitai)" option in the IBus menu. The effect applies to the **next conversion**; reconvert or type again after toggling to see kyūjitai/shinjitai. Requires the build to have OpenCC enabled (install `libopencc-dev` or equivalent before building; see Packages above).
+- **Traditional kanji (Shin/Kyū):** Toggle via the toolbar button or the "Traditional kanji (Kyūjitai)" option in the IBus menu. The effect applies to the **next conversion**; reconvert or type again after toggling to see kyūjitai/shinjitai. Requires the build to have OpenCC enabled (install `libopencc-dev` or equivalent before building; see Packages above). Curated conversion tables ship in `/usr/lib/marinamoji/opencc/` (not stock `/usr/share/opencc/`).
 
 ### Clean Bazel's build cache
 
@@ -252,6 +264,7 @@ build target                     | installation location (marinaMoji)
 `//unix:icons`                   | `/usr/share/icons/marinamoji/...`
 `//unix/emacs:mozc.el`           | `/usr/share/emacs/site-lisp/emacs-mozc/mozc.el`
 `//unix/emacs:mozc_emacs_helper` | `/usr/bin/mozc_emacs_helper`
+`//data/marina_opencc:opencc_data` | `/usr/lib/marinamoji/opencc/` (`marinaShin2Kyu.json` + three `.ocd2`)
 
 To customize installation locations, modify [`src/config.bzl`](../src/config.bzl).
 

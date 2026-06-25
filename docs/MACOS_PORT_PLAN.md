@@ -377,7 +377,7 @@ Toolbar actions that open the **candidate window** must route through the active
 | Item | Notes |
 |------|--------|
 | `kProductPrefix` → `marinaMoji` on `__APPLE__` | Server/tool paths match `marinaMoji.app` layout |
-| OpenCC bundled in app `Resources/opencc` | Shin/kyū conversion on macOS |
+| OpenCC bundled in app `Resources/opencc` / Linux `opencc/` | Shin/kyū conversion (marina tables, not stock OpenCC) |
 | Floating toolbar | Mode, shin/kyū, odoriji, symbols palette, dict, shortcuts popup |
 | Keymap: `Ctrl Shift f` alias | macOS sends lowercase letter for Ctrl+Shift+letter; fixes shin/kyū shortcut |
 | Kotoeri: shin/kyū in Composition / Precomposition | Same states as MS-IME keymap |

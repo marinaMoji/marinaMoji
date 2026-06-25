@@ -1,0 +1,13 @@
+# Curated marinaMoji OpenCC data (shin→kyū). Sync from character_conversion:
+#   bash sync_marina_opencc.sh   # from marinaMozc/src/
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "opencc_data",
+    srcs = [
+        "marinaShin2Kyu.json",
+        "marinaShin2KyuCharacters.ocd2",
+        "marinaShin2KyuPhrases.ocd2",
+        "marinaShin2KyuVariants.ocd2",
+    ],
+)

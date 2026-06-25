@@ -103,7 +103,17 @@ cd marinaMoji/src
 
 The `--recursive` option is required; the build depends on submodules.
 
-### 3.2 Build the package
+### 3.2 Sync OpenCC tables (after updating conversion data)
+
+From **`marinaMozc/src`**, after regenerating tables in `character_conversion`:
+
+```bash
+bash sync_marina_opencc.sh
+```
+
+Skip this if you have not changed the shin→kyū dictionaries.
+
+### 3.3 Build the package
 
 From the **`marinaMoji/src`** directory (not the repo root), run:
 

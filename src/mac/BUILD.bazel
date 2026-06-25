@@ -101,7 +101,7 @@ mozc_macos_application(
             "//renderer:mozc_renderer_macos": "Resources",
             "//server:mozc_server_macos": "Resources",
             "//sync:marinaMojiSync_macos": "Resources",
-            "@opencc_source//:jp2t_data": "Resources/opencc",
+            "//data/marina_opencc:opencc_data": "Resources/opencc",
             "//unix/ibus:toolbar_icons": "Resources",
             "//data/keymap:keymap_files": "Resources/keymap",
             "//data/preedit:kaeriten.tsv": "Resources/keymap",

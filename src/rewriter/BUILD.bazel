@@ -301,23 +301,19 @@ mozc_cc_library(
     ),
     deps = [
         ":rewriter_interface",
+        "//base:system_util",
         "//converter:segments",
         "//protocol:config_cc_proto",
         "//request:conversion_request",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
     ] + mozc_select(
         default = [],
         linux = ["@opencc//:opencc"],
-        macos = [
-            "@opencc_source//:opencc",
-            "//base/mac:mac_util",
-        ],
+        macos = ["@opencc_source//:opencc"],
         oss_linux = ["@opencc//:opencc"],
-        oss_macos = [
-            "@opencc_source//:opencc",
-            "//base/mac:mac_util",
-        ],
+        oss_macos = ["@opencc_source//:opencc"],
     ),
     alwayslink = 1,
 )

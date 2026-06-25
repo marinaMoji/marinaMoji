@@ -38,6 +38,14 @@ import tempfile
 from typing import List
 import zipfile
 
+# marinaMoji curated OpenCC runtime (shin→kyū), installed beside mozc_server.
+MARINA_OPENCC_FILES = (
+    'marinaShin2Kyu.json',
+    'marinaShin2KyuPhrases.ocd2',
+    'marinaShin2KyuCharacters.ocd2',
+    'marinaShin2KyuVariants.ocd2',
+)
+
 
 class Packager:
   """Packager to locate the build targets to the install paths."""
@@ -61,6 +69,9 @@ class Packager:
                                           'mozc_emacs_helper'),
         'mozc.el': os.path.join(args.emacs_client_dir, 'mozc.el'),
     }
+    opencc_dir = os.path.join(args.mozc_dir, 'opencc')
+    for filename in MARINA_OPENCC_FILES:
+      self.location_rules[filename] = os.path.join(opencc_dir, filename)
 
   def PackageFiles(self, inputs: List[str], output: str) -> None:
     with tempfile.TemporaryDirectory() as tmp_dir:

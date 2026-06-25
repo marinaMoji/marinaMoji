@@ -15,6 +15,7 @@ if [[ ! -d "$APP_SRC" ]]; then
   echo "  $APP_SRC" >&2
   echo "Run from src/:" >&2
   echo "  export MOZC_QT_PATH=/opt/homebrew/opt/qt" >&2
+  echo "  bash sync_marina_opencc.sh   # after updating OpenCC tables" >&2
   echo "  bazelisk build --config oss_macos //mac:mozc_macos" >&2
   exit 1
 fi
