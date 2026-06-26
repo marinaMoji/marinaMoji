@@ -535,8 +535,12 @@ bool TryHandleEchoBackBackspace(IbusEngineWrapper* engine,
   }
   if (engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT)) {
     SurroundingTextInfo info;
-    if (GetSurroundingText(engine, &info) && !info.preceding_text.empty()) {
-      engine->DeleteSurroundingText(-1, 1);
+    if (GetSurroundingText(engine, &info)) {
+      if (!info.preceding_text.empty()) {
+        engine->DeleteSurroundingText(-1, 1);
+        return true;
+      }
+      engine->ForwardBackspaceForEchoBack(keyval, keycode);
       return true;
     }
   }
@@ -679,6 +683,10 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
   const bool had_preedit_before = had_preedit_;
   UpdateAll(engine, output);
 
+  if (output.consumed()) {
+    surround_stale_after_echo_back_ = false;
+  }
+
   // After inserting a macron (Ctrl+Alt+vowel), force DIRECT so the next key
   // (ghost Hiragana/ON from the layout) is consumed and does not switch mode.
   if (key.has_key_code()) {
@@ -704,12 +712,29 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
       return false;
     }
   }
+  if (surround_stale_after_echo_back_ && !output.consumed() &&
+      IsBackspaceKeyEvent(key)) {
+    // Surrounding text lags after Enter echo-back. Forward Left to reposition
+    // the client cursor, then return false so IBus delivers Backspace to the
+    // app (same path as arrow keys), instead of consuming it here.
+    constexpr uint kLeftKeyval = 0xff51;  // IBUS_Left
+    engine->ForwardKeyEvent(kLeftKeyval, 0, 0);
+    return false;
+  }
   if (TryHandleEchoBackBackspace(engine, output, key, had_preedit_before,
                                  keyval, keycode)) {
     return true;
   }
   if (IsBackspaceKeyEvent(key)) {
-    return true;
+    const bool consume = output.consumed() &&
+                         (HasNonemptyPreedit(output) || had_preedit_before);
+    return consume;
+  }
+  if (!output.consumed()) {
+    if (key.has_special_key() &&
+        key.special_key() == commands::KeyEvent::ENTER) {
+      surround_stale_after_echo_back_ = true;
+    }
   }
   return output.consumed();
 }
@@ -756,12 +781,10 @@ void MozcEngine::PropertyShow(IbusEngineWrapper* engine,
 }
 
 void MozcEngine::Reset(IbusEngineWrapper* engine) {
-  // IBus/GTK sends reset when process_key_event returns false (e.g. Backspace
-  // echo-back). RevertSession in COMPOSITION wipes the entire preedit.
-  if (had_preedit_) {
-    return;
-  }
-  RevertSession(engine);
+  // IBus/GTK sends Reset when process_key_event returns false (echo-back:
+  // Enter, arrows, app shortcuts). RevertSession when preedit is clear breaks
+  // the next Backspace delete (surrounding text). Disable/Enable still revert.
+  (void)engine;
 }
 
 void MozcEngine::SetCapabilities(IbusEngineWrapper* engine, uint capabilities) {
@@ -770,6 +793,7 @@ void MozcEngine::SetCapabilities(IbusEngineWrapper* engine, uint capabilities) {
 
 void MozcEngine::SetCursorLocation(IbusEngineWrapper* engine, int x, int y,
                                    int w, int h) {
+  surround_stale_after_echo_back_ = false;
   // Use the (x,y,w,h) from the IBus set_cursor_location signal so the
   // candidate window is positioned below the cursor. engine_->cursor_area
   // is not guaranteed to be updated by IBus before this callback.

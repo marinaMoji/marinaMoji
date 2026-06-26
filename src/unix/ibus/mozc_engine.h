@@ -184,6 +184,10 @@ class MozcEngine : public EngineInterface {
   // Tracks preedit for sync activity timestamps (composition end).
   bool had_preedit_ = false;
 
+  // After Enter echo-back, surrounding text lags until set_cursor_location.
+  // Backspace uses left-then-return-false until a consumed key clears this.
+  bool surround_stale_after_echo_back_ = false;
+
   friend class MozcEngineTestPeer;
 };
 
