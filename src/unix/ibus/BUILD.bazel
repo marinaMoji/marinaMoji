@@ -223,6 +223,7 @@ mozc_cc_library(
         linux = [
             "engine_registrar.cc",
             "ibus_candidate_window_handler.cc",
+            "ibus_debug_log.cc",
             "key_event_handler.cc",
             "key_translator.cc",
             "marina_number_row_dispatcher.cc",
@@ -239,6 +240,7 @@ mozc_cc_library(
             "engine_interface.h",
             "engine_registrar.h",
             "ibus_candidate_window_handler.h",
+            "ibus_debug_log.h",
             "ibus_physical_slot.h",
             "key_event_handler.h",
             "key_translator.h",

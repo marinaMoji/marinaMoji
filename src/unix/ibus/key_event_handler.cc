@@ -36,6 +36,7 @@
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "unix/ibus/ibus_debug_log.h"
 #include "unix/ibus/ibus_wrapper.h"
 
 namespace mozc {
@@ -63,6 +64,16 @@ bool HasNonShiftNonCtrlModifierKeyval(const std::set<uint>& pressed) {
   for (uint keyval : pressed) {
     if (keyval != IBUS_Shift_L && keyval != IBUS_Shift_R &&
         keyval != IBUS_Control_L && keyval != IBUS_Control_R) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool HasModifier(const commands::KeyEvent& key_event,
+                 commands::KeyEvent::ModifierKey modifier) {
+  for (int i = 0; i < key_event.modifier_keys_size(); ++i) {
+    if (key_event.modifier_keys(i) == modifier) {
       return true;
     }
   }
@@ -130,12 +141,19 @@ bool KeyEventHandler::GetKeyEvent(uint keyval, uint keycode, uint modifiers,
     effective_modifiers &= ~kExtraModMask;
   }
   if (effective_modifiers & kExtraModMask) {
+    MaybeLogIbusDebug("key_handler.get",
+                      "reject_mod4 keyval=%u keycode=%u modifiers=0x%x",
+                      keyval, keycode, modifiers);
     return false;
   }
 
   if (!key_translator_->Translate(keyval, keycode, effective_modifiers,
                                   preedit_method, layout_is_jp, key)) {
     LOG(ERROR) << "Translate failed";
+    MaybeLogIbusDebug("key_handler.get",
+                      "translate_failed keyval=%u keycode=%u modifiers=0x%x "
+                      "effective=0x%x",
+                      keyval, keycode, modifiers, effective_modifiers);
     return false;
   }
 
@@ -149,7 +167,20 @@ bool KeyEventHandler::GetKeyEvent(uint keyval, uint keycode, uint modifiers,
   }
 
   const bool is_key_up = ((effective_modifiers & IBUS_RELEASE_MASK) != 0);
-  return ProcessModifiers(is_key_up, keyval, key);
+  const bool send = ProcessModifiers(is_key_up, keyval, key);
+  MaybeLogIbusDebug(
+      "key_handler.get",
+      "end keyval=%u keycode=%u modifiers=0x%x effective=0x%x key_up=%d "
+      "send=%d has_key_code=%d has_special=%d mods=%d shift=%d "
+      "left_shift=%d right_shift=%d pressed=%zu pending=%zu non_modifier=%d",
+      keyval, keycode, modifiers, effective_modifiers, is_key_up, send,
+      key->has_key_code(), key->has_special_key(), key->modifier_keys_size(),
+      HasModifier(*key, commands::KeyEvent::SHIFT),
+      HasModifier(*key, commands::KeyEvent::LEFT_SHIFT),
+      HasModifier(*key, commands::KeyEvent::RIGHT_SHIFT),
+      currently_pressed_modifiers_.size(), modifiers_to_be_sent_.size(),
+      is_non_modifier_key_pressed_);
+  return send;
 }
 
 void KeyEventHandler::Clear() {
@@ -175,6 +206,8 @@ std::vector<uint> KeyEventHandler::TrackedShiftKeyvals() const {
 
 void KeyEventHandler::ForwardTrackedShiftReleases(IbusEngineWrapper* engine) {
   for (uint keyval : TrackedShiftKeyvals()) {
+    MaybeLogIbusDebug("key_handler.release",
+                      "forward_tracked_shift_release keyval=%u", keyval);
     ForwardShiftRelease(engine, keyval);
   }
 }
@@ -231,6 +264,19 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
   const bool is_modifier_only =
       !(key_event->has_key_code() || key_event->has_special_key());
 
+  MaybeLogIbusDebug(
+      "key_handler.mod",
+      "begin keyval=%u key_up=%d modifier_only=%d mods=%d shift=%d "
+      "left_shift=%d right_shift=%d pressed=%zu pending=%zu non_modifier=%d "
+      "ctrl_left_armed=%d typed_ctrl_left=%d",
+      keyval, is_key_up, is_modifier_only, key_event->modifier_keys_size(),
+      HasModifier(*key_event, commands::KeyEvent::SHIFT),
+      HasModifier(*key_event, commands::KeyEvent::LEFT_SHIFT),
+      HasModifier(*key_event, commands::KeyEvent::RIGHT_SHIFT),
+      currently_pressed_modifiers_.size(), modifiers_to_be_sent_.size(),
+      is_non_modifier_key_pressed_, ctrl_left_shift_chord_armed_,
+      typed_during_ctrl_left_shift_chord_);
+
   // We may get only up/down key event when a user moves a focus.
   // This code handles such situation as much as possible.
   // This code has a bug. If we send Shift + 'a', KeyTranslator removes a shift
@@ -272,10 +318,14 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
       modifiers_to_be_sent_.clear();
       is_non_modifier_key_pressed_ = false;
       currently_pressed_modifiers_.clear();
+      MaybeLogIbusDebug("key_handler.mod",
+                        "return_ctrl_left_shift_lock keyval=%u", keyval);
       return true;
     }
 
     if (!is_modifier_only) {
+      MaybeLogIbusDebug("key_handler.mod",
+                        "return_key_up_non_modifier keyval=%u", keyval);
       return false;
     }
     if (!currently_pressed_modifiers_.empty() ||
@@ -288,15 +338,25 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
         left_shift_in_chord_ = false;
         ctrl_held_during_left_shift_press_ = false;
       }
+      MaybeLogIbusDebug(
+          "key_handler.mod",
+          "return_key_up_waiting_or_no_pending keyval=%u pressed=%zu "
+          "pending=%zu",
+          keyval, currently_pressed_modifiers_.size(),
+          modifiers_to_be_sent_.size());
       return false;
     }
     if (is_non_modifier_key_pressed_) {
+      MaybeLogIbusDebug("key_handler.mod",
+                        "return_key_up_after_typing keyval=%u", keyval);
       return false;
     }
     if (keyval == IBUS_Shift_L && ctrl_held_during_left_shift_press_) {
       left_shift_in_chord_ = false;
       ctrl_held_during_left_shift_press_ = false;
       modifiers_to_be_sent_.clear();
+      MaybeLogIbusDebug("key_handler.mod",
+                        "return_left_shift_ctrl_held keyval=%u", keyval);
       return false;
     }
     DCHECK(!is_non_modifier_key_pressed_);
@@ -348,6 +408,11 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
       }
     }
     currently_pressed_modifiers_.insert(keyval);
+    MaybeLogIbusDebug(
+        "key_handler.mod",
+        "return_modifier_down_tracked keyval=%u pressed=%zu pending=%zu",
+        keyval, currently_pressed_modifiers_.size(),
+        modifiers_to_be_sent_.size());
     return false;
   }
 
@@ -356,6 +421,12 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
     Clear();
   }
 
+  MaybeLogIbusDebug(
+      "key_handler.mod",
+      "return_send keyval=%u mods=%d pressed=%zu pending=%zu non_modifier=%d",
+      keyval, key_event->modifier_keys_size(),
+      currently_pressed_modifiers_.size(), modifiers_to_be_sent_.size(),
+      is_non_modifier_key_pressed_);
   return true;
 }
 

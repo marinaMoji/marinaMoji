@@ -61,6 +61,7 @@
 #include "unix/ibus/engine_registrar.h"
 #include "unix/ibus/ibus_candidate_window_handler.h"
 #include "unix/ibus/ibus_config.h"
+#include "unix/ibus/ibus_debug_log.h"
 #include "unix/ibus/ibus_wrapper.h"
 #include "unix/ibus/ibus_physical_slot.h"
 #include "unix/ibus/key_event_handler.h"
@@ -444,6 +445,16 @@ bool IsRightShiftAlone(const commands::KeyEvent& key) {
   return false;
 }
 
+bool HasModifier(const commands::KeyEvent& key,
+                 commands::KeyEvent::ModifierKey modifier) {
+  for (int i = 0; i < key.modifier_keys_size(); ++i) {
+    if (key.modifier_keys(i) == modifier) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool IsLeftShiftAlone(const commands::KeyEvent& key) {
   if (key.has_key_code() || key.has_special_key()) {
     return false;
@@ -554,7 +565,16 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
                                  uint keycode, uint modifiers) {
   MOZC_VLOG(2) << "keyval: " << keyval << ", keycode: " << keycode
                << ", modifiers: " << modifiers;
+  MaybeLogIbusDebug("engine.key",
+                    "begin keyval=%u keycode=%u modifiers=0x%x release=%d "
+                    "disabled=%d activated=%d mode=%d",
+                    keyval, keycode, modifiers,
+                    (modifiers & IBUS_RELEASE_MASK) != 0,
+                    property_handler_->IsDisabled(),
+                    property_handler_->IsActivated(),
+                    property_handler_->GetOriginalCompositionMode());
   if (property_handler_->IsDisabled()) {
+    MaybeLogIbusDebug("engine.key", "return_disabled_forward");
     return false;
   }
 
@@ -562,12 +582,14 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
   // the whole preedit when process_key_event returned false on key-up).
   if ((modifiers & IBUS_RELEASE_MASK) != 0 &&
       IsBackspaceIbusKey(keyval, keycode)) {
+    MaybeLogIbusDebug("engine.key", "return_backspace_release_consumed");
     return true;
   }
 
   if (SyncOverlayIsActive()) {
     SyncOverlayFlashBlockedInput();
     GetCandidateWindowHandler(engine)->Hide(engine);
+    MaybeLogIbusDebug("engine.key", "return_sync_overlay_consumed");
     return true;
   }
 
@@ -580,6 +602,7 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
     if (!has_ctrl_alt &&
         (keyval == IBUS_Hiragana || keyval == IBUS_Hiragana_Katakana ||
          keyval == IBUS_Hangul)) {
+      MaybeLogIbusDebug("engine.key", "return_direct_switch_key_consumed");
       return true;  // Consume; do not send to server.
     }
   }
@@ -605,10 +628,26 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
   }
   if (!got_key) {
     // Doesn't send a key event to mozc_server.
+    MaybeLogIbusDebug("engine.key",
+                      "return_no_key_forward keyval=%u keycode=%u "
+                      "modifiers=0x%x",
+                      keyval, keycode, modifiers);
     return false;
   }
 
   MOZC_VLOG(2) << key;
+  MaybeLogIbusDebug(
+      "engine.key",
+      "translated keyval=%u keycode=%u modifiers=0x%x has_key_code=%d "
+      "key_code=%u has_special=%d special=%d mods=%d shift=%d left_shift=%d "
+      "right_shift=%d right_shift_alone=%d",
+      keyval, keycode, modifiers, key.has_key_code(),
+      key.has_key_code() ? key.key_code() : 0, key.has_special_key(),
+      key.has_special_key() ? key.special_key() : 0,
+      key.modifier_keys_size(), HasModifier(key, commands::KeyEvent::SHIFT),
+      HasModifier(key, commands::KeyEvent::LEFT_SHIFT),
+      HasModifier(key, commands::KeyEvent::RIGHT_SHIFT),
+      IsRightShiftAlone(key));
 
   // In Direct input there are no Hiragana; the Hiragana/ON key would only
   // trigger IMEOn and switch mode. Consume any KANA or ON key (with or without
@@ -621,10 +660,13 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
        key.special_key() == commands::KeyEvent::ON);
   if (switch_key &&
       property_handler_->GetOriginalCompositionMode() == commands::DIRECT) {
+    MaybeLogIbusDebug("engine.key",
+                      "return_direct_translated_switch_key_consumed");
     return true;  // Consume; do not send to server.
   }
   if (property_handler_->GetOriginalCompositionMode() == commands::DIRECT &&
       IsRightShiftAlone(key)) {
+    MaybeLogIbusDebug("engine.key", "return_direct_right_shift_forward");
     return false;  // Direct input: Right Shift is just a modifier key.
   }
 
@@ -632,6 +674,7 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
       IsLeftShiftAlone(key) || IsCtrlLeftShiftAlone(key);
   if (!property_handler_->IsActivated() && !client_->IsDirectModeCommand(key) &&
       !is_left_shift_toggle) {
+    MaybeLogIbusDebug("engine.key", "return_inactive_forward");
     return false;
   }
 
@@ -645,6 +688,9 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
                                         marina_config, property_handler_.get(),
                                         client_.get(), &marina_output)) {
       UpdateAll(engine, marina_output);
+      MaybeLogIbusDebug("engine.key",
+                        "return_number_row_shortcut_consumed consumed=%d",
+                        marina_output.consumed());
       return true;
     }
   }
@@ -658,25 +704,38 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
   commands::Output output;
   if (!client_->SendKeyWithContext(key, context, &output)) {
     LOG(ERROR) << "SendKey failed";
+    MaybeLogIbusDebug("engine.key", "send_key_failed");
     if (IsBackspaceKeyEvent(key)) {
       if (engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT)) {
         SurroundingTextInfo info;
         if (GetSurroundingText(engine, &info) && !info.preceding_text.empty()) {
           engine->DeleteSurroundingText(-1, 1);
+          MaybeLogIbusDebug("engine.key",
+                            "return_send_failed_backspace_deleted");
           return true;
         }
       }
       engine->ForwardBackspaceForEchoBack(keyval, keycode);
+      MaybeLogIbusDebug("engine.key",
+                        "return_send_failed_backspace_echoed");
       return true;
     }
+    MaybeLogIbusDebug("engine.key", "return_send_failed_forward");
     return false;
   }
 
   MOZC_VLOG(2) << output;
+  MaybeLogIbusDebug("engine.key",
+                    "server_output consumed=%d has_preedit=%d has_result=%d "
+                    "has_candidates=%d error=%d",
+                    output.consumed(), output.has_preedit(),
+                    output.has_result(), output.has_candidate_window(),
+                    output.error_code());
 
   if (output.error_code() == commands::Output::SYNC_LOCKED) {
     SyncOverlayFlashBlockedInput();
     GetCandidateWindowHandler(engine)->Hide(engine);
+    MaybeLogIbusDebug("engine.key", "return_sync_locked_consumed");
     return true;
   }
 
@@ -709,6 +768,8 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
   if (output.consumed() && !key.has_key_code() && !key.has_special_key()) {
     if (IsRightShiftAlone(key) || IsLeftShiftAlone(key) ||
         IsCtrlLeftShiftAlone(key)) {
+      MaybeLogIbusDebug("engine.key",
+                        "return_modifier_release_failsafe_forward");
       return false;
     }
   }
@@ -719,15 +780,19 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
     // app (same path as arrow keys), instead of consuming it here.
     constexpr uint kLeftKeyval = 0xff51;  // IBUS_Left
     engine->ForwardKeyEvent(kLeftKeyval, 0, 0);
+    MaybeLogIbusDebug("engine.key",
+                      "return_stale_backspace_left_then_forward");
     return false;
   }
   if (TryHandleEchoBackBackspace(engine, output, key, had_preedit_before,
                                  keyval, keycode)) {
+    MaybeLogIbusDebug("engine.key", "return_echo_back_backspace_consumed");
     return true;
   }
   if (IsBackspaceKeyEvent(key)) {
     const bool consume = output.consumed() &&
                          (HasNonemptyPreedit(output) || had_preedit_before);
+    MaybeLogIbusDebug("engine.key", "return_backspace consume=%d", consume);
     return consume;
   }
   if (!output.consumed()) {
@@ -736,6 +801,8 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
       surround_stale_after_echo_back_ = true;
     }
   }
+  MaybeLogIbusDebug("engine.key", "return_output_consumed consumed=%d",
+                    output.consumed());
   return output.consumed();
 }
 
@@ -999,6 +1066,7 @@ void MozcEngine::ReleaseTrackedModifiers(IbusEngineWrapper* engine) {
   if (engine == nullptr) {
     return;
   }
+  MaybeLogIbusDebug("engine.lifecycle", "release_tracked_modifiers");
   key_event_handler_->ForwardTrackedShiftReleases(engine);
   key_event_handler_->Clear();
 }

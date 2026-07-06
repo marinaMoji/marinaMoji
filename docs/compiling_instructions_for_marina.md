@@ -250,6 +250,34 @@ After installing a new build, restart IBus (`ibus write-cache && ibus restart`) 
 
 ---
 
+## 5.2 Debug Right Shift release problems
+
+If Right Shift sometimes stays stuck during ordinary typing, start IBus with marinaMoji's opt-in IBus debug log enabled:
+
+```bash
+ibus exit
+MARINAMOJI_IBUS_DEBUG_LOG="$HOME/marinamoji-ibus-debug.tsv" ibus-daemon -d
+```
+
+Then type normally until the problem happens. When it does, write down the approximate time, stop IBus logging, and restart IBus normally:
+
+```bash
+ibus exit
+ibus-daemon -d
+```
+
+The log is a tab-separated text file. It records low-level IBus event ordering, numeric key values, modifier state, and whether marinaMoji consumed or forwarded each key event. It does **not** record committed Japanese text or candidate contents, but numeric key values can still reveal ordinary key presses, so treat the file as private debugging data.
+
+Useful things to search for in the log:
+
+```bash
+rg "Shift_R|keyval=65506|right_shift|modifier_release|release_tracked" "$HOME/marinamoji-ibus-debug.tsv"
+```
+
+`keyval=65506` is the usual X11/IBus value for Right Shift. Around the time of the failure, we want to see whether Right Shift key-up reached marinaMoji, whether marinaMoji returned `false` so the application could receive the release, or whether focus/reset cleanup forwarded a synthetic Shift release.
+
+---
+
 ## 6. Optional: Wayland and gtk-layer-shell
 
 On **Wayland**, the toolbar is positioned like marinaMoji (bottom-right) without extra packages. If you want to use **gtk-layer-shell** (e.g. on Sway/Hyprland) for layer-shell positioning:
