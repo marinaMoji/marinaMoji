@@ -356,13 +356,13 @@ bool KeyTranslator::Translate(uint keyval, uint keycode, uint modifiers,
     // U+00B2 SUPERSCRIPT TWO (²); same physical key as backtick on AZERTY.
     // Pass through so Ctrl+Shift+² can be bound to ToggleAlphanumericMode.
     out_event->set_key_code(keyval);
-  } else if (keyval == 0x5E || keyval == 0xFE22) {
-    // U+005E CIRCUMFLEX ACCENT (^) or X11 keysym dead_circumflex (0xFE22).
+  } else if (keyval == 0x5E || keyval == 0xFE52) {
+    // U+005E CIRCUMFLEX ACCENT (^) or X11 keysym dead_circumflex (0xFE52).
     // Keymap rule "RightAlt ^" for SetMacronDeadKey (macron dead key on some layouts).
     out_event->set_key_code(0x5E);
-  } else if (keyval == 0xA8 || keyval == 0xFE20) {
-    // U+00A8 DIAERESIS (¨) or X11 keysym dead_diaeresis (0xFE20). On AZERTY the
-    // key often sends 0xFE20; keymap rule "RightAlt ¨" expects key_code 0xA8.
+  } else if (keyval == 0xA8 || keyval == 0xFE57) {
+    // U+00A8 DIAERESIS (¨) or X11 keysym dead_diaeresis (0xFE57). On AZERTY the
+    // key sends the dead keysym; keymap rule "RightAlt ¨" expects key_code 0xA8.
     out_event->set_key_code(0xA8);
   } else if (const uint* mask = kIbusModifierMaskMap.FindOrNull(keyval);
              mask != nullptr) {

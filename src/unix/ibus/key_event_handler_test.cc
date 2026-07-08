@@ -31,6 +31,7 @@
 
 #include <map>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "absl/random/random.h"
@@ -78,7 +79,7 @@ class KeyEventHandlerTest : public testing::Test {
 
   bool ProcessKey(bool is_key_up, uint keyval, commands::KeyEvent* key) {
     AppendToKeyEvent(keyval, key);
-    return handler_->ProcessModifiers(is_key_up, keyval, key);
+    return handler_->ProcessModifiers(is_key_up, keyval, /*keycode=*/0, key);
   }
 
   bool ProcessKeyWithCapsLock(bool is_key_up, uint keyval,
@@ -88,16 +89,19 @@ class KeyEventHandlerTest : public testing::Test {
   }
 
   bool IsPressed(uint keyval) const {
-    const std::set<uint>& pressed_set = handler_->currently_pressed_modifiers_;
-    return pressed_set.find(keyval) != pressed_set.end();
+    return handler_->currently_pressed_modifiers_.count(keyval) != 0;
   }
 
   bool is_non_modifier_key_pressed() {
     return handler_->is_non_modifier_key_pressed_;
   }
 
-  const std::set<uint>& currently_pressed_modifiers() {
+  const std::map<uint, uint>& currently_pressed_modifiers() {
     return handler_->currently_pressed_modifiers_;
+  }
+
+  std::vector<std::pair<uint, uint>> TrackedReleaseKeys() {
+    return handler_->TrackedReleaseKeys();
   }
 
   const std::set<commands::KeyEvent::ModifierKey>& modifiers_to_be_sent() {
@@ -227,19 +231,21 @@ TEST_F(KeyEventHandlerTest, ProcessShiftModifiers) {
   EXPECT_TRUE(IsPressed(IBUS_Shift_L));
   EXPECT_MODIFIERS_TO_BE_SENT(commands::KeyEvent::SHIFT);
 
-  // "a" down
+  // "a" down. Shift stays tracked while it is physically held (upstream
+  // wiped it here, which desynced the release); the pending-toggle state is
+  // what gets discarded.
   key.Clear();
   EXPECT_TRUE(ProcessKey(false, 'a', &key));
-  EXPECT_FALSE(IsPressed(IBUS_Shift_L));
+  EXPECT_TRUE(IsPressed(IBUS_Shift_L));
   EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);
 
   // "a" up
   key.Clear();
   EXPECT_FALSE(ProcessKey(true, 'a', &key));
-  EXPECT_FALSE(IsPressed(IBUS_Shift_L));
+  EXPECT_TRUE(IsPressed(IBUS_Shift_L));
   EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);
 
-  // Shift up
+  // Shift up: no toggle fires, tracking is clean.
   key.Clear();
   EXPECT_FALSE(ProcessKey(true, IBUS_Shift_L, &key));
   EXPECT_NO_MODIFIERS_PRESSED();
@@ -342,16 +348,16 @@ TEST_F(KeyEventHandlerTest, ProcessShiftModifiersWithCapsLockOn) {
   EXPECT_MODIFIERS_TO_BE_SENT(
       (commands::KeyEvent::CAPS | commands::KeyEvent::SHIFT));
 
-  // "a" down
+  // "a" down. As above, the held Shift keeps its tracking.
   key.Clear();
   EXPECT_TRUE(ProcessKeyWithCapsLock(false, 'a', &key));
-  EXPECT_FALSE(IsPressed(IBUS_Shift_L));
+  EXPECT_TRUE(IsPressed(IBUS_Shift_L));
   EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);
 
   // "a" up
   key.Clear();
   EXPECT_FALSE(ProcessKeyWithCapsLock(true, 'a', &key));
-  EXPECT_FALSE(IsPressed(IBUS_Shift_L));
+  EXPECT_TRUE(IsPressed(IBUS_Shift_L));
   EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);
 
   // Shift up
@@ -393,22 +399,124 @@ TEST_F(KeyEventHandlerTest, RightShiftAloneSentOnKeyUp) {
   EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);
 }
 
-TEST_F(KeyEventHandlerTest, TrackedShiftKeyvals) {
+TEST_F(KeyEventHandlerTest, TrackedReleaseKeys) {
   commands::KeyEvent key;
-  EXPECT_TRUE(handler_->TrackedShiftKeyvals().empty());
+  EXPECT_TRUE(TrackedReleaseKeys().empty());
 
   ProcessKey(false, IBUS_Shift_R, &key);
-  std::vector<uint> tracked = handler_->TrackedShiftKeyvals();
+  std::vector<std::pair<uint, uint>> tracked = TrackedReleaseKeys();
   ASSERT_EQ(tracked.size(), 1u);
-  EXPECT_EQ(tracked[0], static_cast<uint>(IBUS_Shift_R));
+  EXPECT_EQ(tracked[0].first, static_cast<uint>(IBUS_Shift_R));
 
   key.Clear();
   ProcessKey(false, IBUS_Shift_L, &key);
-  tracked = handler_->TrackedShiftKeyvals();
-  EXPECT_EQ(tracked.size(), 2u);
+  key.Clear();
+  ProcessKey(false, IBUS_Control_L, &key);
+  EXPECT_EQ(TrackedReleaseKeys().size(), 3u);
+
+  // Alt is tracked but not release-forwarded.
+  key.Clear();
+  ProcessKey(false, IBUS_Alt_L, &key);
+  EXPECT_EQ(TrackedReleaseKeys().size(), 3u);
+
+  // Forwarding with no engine must be a safe no-op.
+  handler_->ForwardTrackedReleases(nullptr);
 
   handler_->Clear();
-  EXPECT_TRUE(handler_->TrackedShiftKeyvals().empty());
+  EXPECT_TRUE(TrackedReleaseKeys().empty());
+}
+
+TEST_F(KeyEventHandlerTest, NonModifierKeysTrackedForRelease) {
+  commands::KeyEvent key;
+  constexpr uint kReturnKeycode = 28;
+
+  EXPECT_TRUE(handler_->GetKeyEvent(IBUS_Return, kReturnKeycode, 0,
+                                    config::Config::ROMAN, true, &key));
+  std::vector<std::pair<uint, uint>> tracked = TrackedReleaseKeys();
+  ASSERT_EQ(tracked.size(), 1u);
+  EXPECT_EQ(tracked[0].first, static_cast<uint>(IBUS_Return));
+  EXPECT_EQ(tracked[0].second, kReturnKeycode);
+
+  key.Clear();
+  handler_->GetKeyEvent(IBUS_Return, kReturnKeycode, IBUS_RELEASE_MASK,
+                        config::Config::ROMAN, true, &key);
+  EXPECT_TRUE(TrackedReleaseKeys().empty());
+}
+
+TEST_F(KeyEventHandlerTest, ShiftHeldThroughCapitalTypingStaysTracked) {
+  // Regression test for the stuck-Shift bug: Shift + 'a' translates to 'A'
+  // with zero modifier keys, which used to blanket-Clear() all tracking and
+  // desync the still-held Shift.
+  commands::KeyEvent key;
+  constexpr uint kShiftLKeycode = 42;
+
+  EXPECT_FALSE(handler_->GetKeyEvent(IBUS_Shift_L, kShiftLKeycode, 0,
+                                     config::Config::ROMAN, true, &key));
+  EXPECT_TRUE(IsPressed(IBUS_Shift_L));
+
+  key.Clear();
+  EXPECT_TRUE(handler_->GetKeyEvent(IBUS_A, 30, IBUS_SHIFT_MASK,
+                                    config::Config::ROMAN, true, &key));
+  EXPECT_TRUE(IsPressed(IBUS_Shift_L));
+  EXPECT_TRUE(is_non_modifier_key_pressed());
+
+  key.Clear();
+  EXPECT_FALSE(handler_->GetKeyEvent(IBUS_A, 30,
+                                     (IBUS_SHIFT_MASK | IBUS_RELEASE_MASK),
+                                     config::Config::ROMAN, true, &key));
+  EXPECT_TRUE(IsPressed(IBUS_Shift_L));
+
+  // Shift release: no Left-Shift-alone toggle fires (Shift was used to
+  // capitalize) and tracking ends up clean.
+  key.Clear();
+  EXPECT_FALSE(handler_->GetKeyEvent(IBUS_Shift_L, kShiftLKeycode,
+                                     (IBUS_SHIFT_MASK | IBUS_RELEASE_MASK),
+                                     config::Config::ROMAN, true, &key));
+  EXPECT_NO_MODIFIERS_PRESSED();
+  EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);
+  EXPECT_FALSE(is_non_modifier_key_pressed());
+}
+
+TEST_F(KeyEventHandlerTest, StaleCtrlPrunedByHardwareMask) {
+  // Ctrl down is tracked, then its release is eaten (focus change). The next
+  // event's hardware mask shows Control up, so the stale entry is pruned and
+  // the key goes out plain instead of as a phantom Ctrl chord.
+  commands::KeyEvent key;
+
+  EXPECT_FALSE(handler_->GetKeyEvent(IBUS_Control_L, 29, 0,
+                                     config::Config::ROMAN, true, &key));
+  EXPECT_TRUE(IsPressed(IBUS_Control_L));
+
+  key.Clear();
+  EXPECT_TRUE(handler_->GetKeyEvent(IBUS_a, 30, 0, config::Config::ROMAN,
+                                    true, &key));
+  EXPECT_FALSE(IsPressed(IBUS_Control_L));
+  EXPECT_NO_MODIFIERS_PRESSED();
+  EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);
+  EXPECT_EQ(key.modifier_keys_size(), 0);
+}
+
+TEST_F(KeyEventHandlerTest, StaleShiftPrunedOnRepress) {
+  // Shift_L down tracked, release missed, Shift_L pressed again: the second
+  // down event's mask still shows Shift up, so the stale entry is replaced
+  // and the following release fires the toggle exactly once.
+  commands::KeyEvent key;
+  constexpr uint kShiftLKeycode = 42;
+
+  EXPECT_FALSE(handler_->GetKeyEvent(IBUS_Shift_L, kShiftLKeycode, 0,
+                                     config::Config::ROMAN, true, &key));
+  key.Clear();
+  EXPECT_FALSE(handler_->GetKeyEvent(IBUS_Shift_L, kShiftLKeycode, 0,
+                                     config::Config::ROMAN, true, &key));
+  EXPECT_TRUE(IsPressed(IBUS_Shift_L));
+  EXPECT_EQ(currently_pressed_modifiers().size(), 1u);
+
+  key.Clear();
+  EXPECT_TRUE(handler_->GetKeyEvent(IBUS_Shift_L, kShiftLKeycode,
+                                    IBUS_RELEASE_MASK, config::Config::ROMAN,
+                                    true, &key));
+  EXPECT_NO_MODIFIERS_PRESSED();
+  EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);
 }
 
 TEST_F(KeyEventHandlerTest, LeftShiftAloneSentOnKeyUp) {
@@ -451,7 +559,8 @@ TEST_F(KeyEventHandlerTest, CtrlLeftShiftModeLockSentOnKeyUp) {
 TEST_F(KeyEventHandlerTest, ProcessModifiers) {
   commands::KeyEvent key;
 
-  // Shift down => Shift up
+  // Shift down => Shift up: Left Shift alone fires on key up, carrying the
+  // marinaMoji LEFT_SHIFT distinction for the hiragana/katakana toggle.
   key.Clear();
   ProcessKey(false, IBUS_Shift_L, &key);
 
@@ -459,35 +568,48 @@ TEST_F(KeyEventHandlerTest, ProcessModifiers) {
   EXPECT_TRUE(ProcessKey(true, IBUS_Shift_L, &key));
   EXPECT_NO_MODIFIERS_PRESSED();
   EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);
-  EXPECT_EQ(key.modifier_keys_size(), 1);
-  EXPECT_EQ(key.modifier_keys(0), commands::KeyEvent::SHIFT);
+  EXPECT_EQ(key.modifier_keys_size(), 2);
+  EXPECT_EQ(key.modifier_keys(0) | key.modifier_keys(1),
+            commands::KeyEvent::SHIFT | commands::KeyEvent::LEFT_SHIFT);
 
-  // Shift down => Ctrl down => Shift up => Alt down => Ctrl up => Alt up
+  // Shift down => Ctrl down => Shift up: the Ctrl+Left Shift mode-lock chord
+  // fires on the Shift release; the still-held Ctrl stays tracked and its own
+  // release is silent.
   key.Clear();
   ProcessKey(false, IBUS_Shift_L, &key);
   key.Clear();
   EXPECT_FALSE(ProcessKey(false, IBUS_Control_L, &key));
   key.Clear();
-  EXPECT_FALSE(ProcessKey(true, IBUS_Shift_L, &key));
-  key.Clear();
-  EXPECT_FALSE(ProcessKey(false, IBUS_Alt_L, &key));
+  EXPECT_TRUE(ProcessKey(true, IBUS_Shift_L, &key));
+  EXPECT_EQ(key.modifier_keys_size(), 2);
+  EXPECT_EQ(key.modifier_keys(0), commands::KeyEvent::CTRL);
+  EXPECT_EQ(key.modifier_keys(1), commands::KeyEvent::LEFT_SHIFT);
+  EXPECT_TRUE(IsPressed(IBUS_Control_L));
   key.Clear();
   EXPECT_FALSE(ProcessKey(true, IBUS_Control_L, &key));
-  key.Clear();
-  EXPECT_TRUE(ProcessKey(true, IBUS_Alt_L, &key));
   EXPECT_NO_MODIFIERS_PRESSED();
   EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);
-  EXPECT_EQ(key.modifier_keys_size(), 3);
-  EXPECT_EQ(key.modifier_keys(0) | key.modifier_keys(1) | key.modifier_keys(2),
-            commands::KeyEvent::SHIFT | commands::KeyEvent::CTRL |
-                commands::KeyEvent::ALT);
+
+  // Alt down => Ctrl down => Alt up => Ctrl up: a chord without Shift still
+  // sends the combined modifier event on the last release.
+  key.Clear();
+  ProcessKey(false, IBUS_Alt_L, &key);
+  key.Clear();
+  EXPECT_FALSE(ProcessKey(false, IBUS_Control_L, &key));
+  key.Clear();
+  EXPECT_FALSE(ProcessKey(true, IBUS_Alt_L, &key));
+  key.Clear();
+  EXPECT_TRUE(ProcessKey(true, IBUS_Control_L, &key));
+  EXPECT_NO_MODIFIERS_PRESSED();
+  EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);
+  EXPECT_EQ(key.modifier_keys_size(), 2);
+  EXPECT_EQ(key.modifier_keys(0) | key.modifier_keys(1),
+            commands::KeyEvent::CTRL | commands::KeyEvent::ALT);
 }
 
 TEST_F(KeyEventHandlerTest, ProcessModifiersRandomTest) {
-  // This test generates random key sequence and check that
-  // - All states are cleared when all keys are released.
-  // - All states are cleared when a non-modifier key with no modifier keys
-  //   is pressed / released.
+  // This test generates random key sequences and checks that all states are
+  // cleared once every key has been released.
 
   const uint kKeySet[] = {
       IBUS_Alt_L,   IBUS_Alt_R,   IBUS_Control_L, IBUS_Control_R,
@@ -535,17 +657,26 @@ TEST_F(KeyEventHandlerTest, ProcessModifiersRandomTest) {
       }
     }
 
-    // Anytime non-modifier key without modifier key should clear states.
-    commands::KeyEvent key;
-    const uint non_modifier_key = IBUS_b;
-    AppendToKeyEvent(non_modifier_key, &key);
-    ProcessKey(false, non_modifier_key, &key);
+    // Under per-key tracking, a bare non-modifier key no longer wipes state
+    // for keys that are still physically held (that blanket Clear() was the
+    // stuck-Shift bug; stale entries are pruned via the hardware modifier
+    // mask in GetKeyEvent instead). Releasing every held key must leave the
+    // handler fully clean.
+    while (!pressed_keys.empty()) {
+      const uint key_value = *pressed_keys.begin();
+      pressed_keys.erase(pressed_keys.begin());
+
+      commands::KeyEvent key;
+      for (std::set<uint>::const_iterator it = pressed_keys.begin();
+           it != pressed_keys.end(); ++it) {
+        AppendToKeyEvent(*it, &key);
+      }
+      ProcessKey(true, key_value, &key);
+    }
 
     {
-      const bool is_key_up = absl::Bernoulli(gen, 0.5);
-      SCOPED_TRACE(absl::StrFormat(
-          "Should be reset by non_modifier_key %s. key_sequence:\n%s",
-          (is_key_up ? "up" : "down"), key_sequence.c_str()));
+      SCOPED_TRACE("Should be clean after releasing all keys. key_sequence:\n" +
+                   key_sequence);
       EXPECT_FALSE(is_non_modifier_key_pressed());
       EXPECT_NO_MODIFIERS_PRESSED();
       EXPECT_MODIFIERS_TO_BE_SENT(kNoModifiers);

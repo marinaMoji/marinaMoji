@@ -1067,7 +1067,7 @@ void MozcEngine::ReleaseTrackedModifiers(IbusEngineWrapper* engine) {
     return;
   }
   MaybeLogIbusDebug("engine.lifecycle", "release_tracked_modifiers");
-  key_event_handler_->ForwardTrackedShiftReleases(engine);
+  key_event_handler_->ForwardTrackedReleases(engine);
   key_event_handler_->Clear();
 }
 

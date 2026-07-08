@@ -30,8 +30,10 @@
 #ifndef MOZC_UNIX_IBUS_KEY_EVENT_HANDLER_H_
 #define MOZC_UNIX_IBUS_KEY_EVENT_HANDLER_H_
 
+#include <map>
 #include <memory>
 #include <set>
+#include <utility>
 #include <vector>
 
 #include "protocol/commands.pb.h"
@@ -59,31 +61,51 @@ class KeyEventHandler {
   // Clears states.
   void Clear();
 
-  // Forwards IBUS_RELEASE for Shift keys tracked as pressed (e.g. before IME
-  // deactivation) so the application clears modifier state.
-  void ForwardTrackedShiftReleases(IbusEngineWrapper* engine);
+  // Forwards IBUS_RELEASE for keys tracked as pressed (Shift/Ctrl and
+  // non-modifier keys such as Return/BackSpace, e.g. before IME deactivation
+  // or focus loss) so the application clears its key state.
+  void ForwardTrackedReleases(IbusEngineWrapper* engine);
 
  private:
   friend class KeyEventHandlerTest;
 
-  // Returns IBUS keyvals for shift keys in |currently_pressed_modifiers_|.
-  std::vector<uint> TrackedShiftKeyvals() const;
+  // Returns (keyval, keycode) pairs for keys whose release should be
+  // forwarded by ForwardTrackedReleases.
+  std::vector<std::pair<uint, uint>> TrackedReleaseKeys() const;
+
+  // Drops tracked Shift/Ctrl keyvals whose bit is absent from the hardware
+  // modifier mask of the incoming event, i.e. keys whose release we missed
+  // (focus change, grab). The mask reflects the state before a key-down and
+  // still includes the key itself on its own key-up, so |current_keyval| is
+  // exempt on key-up.
+  void ReconcileStaleModifiers(uint current_keyval, bool is_key_up,
+                               uint modifiers);
+
+  bool HasTrackedCtrl() const;
+  bool HasTrackedShift() const;
+
+  // Resets the Left Shift / Ctrl+Left Shift toggle-chord flags only; tracked
+  // pressed keys are left untouched.
+  void ResetChordState();
 
   // Manages modifier keys. Returns false if it should not be sent to server.
-  bool ProcessModifiers(bool is_key_up, uint keyval,
+  bool ProcessModifiers(bool is_key_up, uint keyval, uint keycode,
                         commands::KeyEvent* key_event);
 
   std::unique_ptr<KeyTranslator> key_translator_;
   // Non modifier key is pressed or not after all keys are released.
   bool is_non_modifier_key_pressed_;
-  // Currently pressed modifier keys.  It is set of keyval.
-  std::set<uint> currently_pressed_modifiers_;
+  // Currently pressed modifier keys: keyval -> hardware keycode.
+  std::map<uint, uint> currently_pressed_modifiers_;
+  // Currently pressed non-modifier keys (Return, BackSpace, ...):
+  // keyval -> hardware keycode. Only used to forward missing releases on
+  // lifecycle events; takes no part in the modifier state machine.
+  std::map<uint, uint> currently_pressed_non_modifiers_;
   // Pending modifier keys.
   std::set<commands::KeyEvent::ModifierKey> modifiers_to_be_sent_;
   // True when Left Shift was pressed in the current modifier chord.
   bool left_shift_in_chord_ = false;
   // Ctrl+Left Shift alone → ToggleLeftShiftModeLock (macOS/Linux parity).
-  bool ctrl_physically_down_ = false;
   bool ctrl_left_shift_chord_armed_ = false;
   bool typed_during_ctrl_left_shift_chord_ = false;
   bool ctrl_held_during_left_shift_press_ = false;

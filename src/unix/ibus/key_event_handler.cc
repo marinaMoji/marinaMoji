@@ -30,6 +30,8 @@
 #include "unix/ibus/key_event_handler.h"
 
 #include <cstddef>
+#include <map>
+#include <utility>
 #include <vector>
 
 #include <ibus.h>
@@ -60,14 +62,37 @@ bool IsControlKeyval(uint keyval) {
   return keyval == IBUS_Control_L || keyval == IBUS_Control_R;
 }
 
-bool HasNonShiftNonCtrlModifierKeyval(const std::set<uint>& pressed) {
-  for (uint keyval : pressed) {
+bool HasNonShiftNonCtrlModifierKeyval(const std::map<uint, uint>& pressed) {
+  for (const auto& [keyval, keycode] : pressed) {
     if (keyval != IBUS_Shift_L && keyval != IBUS_Shift_R &&
         keyval != IBUS_Control_L && keyval != IBUS_Control_R) {
       return true;
     }
   }
   return false;
+}
+
+bool IsModifierKeyval(uint keyval) {
+  switch (keyval) {
+    case IBUS_Shift_L:
+    case IBUS_Shift_R:
+    case IBUS_Control_L:
+    case IBUS_Control_R:
+    case IBUS_Alt_L:
+    case IBUS_Alt_R:
+    case IBUS_Meta_L:
+    case IBUS_Meta_R:
+    case IBUS_Super_L:
+    case IBUS_Super_R:
+    case IBUS_Hyper_L:
+    case IBUS_Hyper_R:
+    case IBUS_Caps_Lock:
+    case IBUS_Shift_Lock:
+    case IBUS_ISO_Level3_Shift:
+      return true;
+    default:
+      return false;
+  }
 }
 
 bool HasModifier(const commands::KeyEvent& key_event,
@@ -102,19 +127,32 @@ bool IsEditingKeycode(uint keycode) {
   return keycode == kBackSpaceKeycode;
 }
 
-// Standard PC X11 keycodes (KEY_LEFTSHIFT / KEY_RIGHTSHIFT).
-constexpr uint kShiftLeftKeyCode = 42;
-constexpr uint kShiftRightKeyCode = 54;
+// Standard PC evdev keycodes, used as fallback when a tracked entry was
+// recorded without a keycode (KEY_LEFTSHIFT / KEY_RIGHTSHIFT / KEY_LEFTCTRL /
+// KEY_RIGHTCTRL).
+uint FallbackKeycode(uint keyval) {
+  switch (keyval) {
+    case IBUS_Shift_L:
+      return 42;
+    case IBUS_Shift_R:
+      return 54;
+    case IBUS_Control_L:
+      return 29;
+    case IBUS_Control_R:
+      return 97;
+    default:
+      return 0;
+  }
+}
 
-void ForwardShiftRelease(IbusEngineWrapper* engine, uint keyval) {
+void ForwardRelease(IbusEngineWrapper* engine, uint keyval, uint keycode) {
   if (engine == nullptr) {
     return;
   }
-  if (keyval == IBUS_Shift_L) {
-    engine->ForwardKeyEvent(IBUS_Shift_L, kShiftLeftKeyCode, IBUS_RELEASE_MASK);
-  } else if (keyval == IBUS_Shift_R) {
-    engine->ForwardKeyEvent(IBUS_Shift_R, kShiftRightKeyCode, IBUS_RELEASE_MASK);
+  if (keycode == 0) {
+    keycode = FallbackKeycode(keyval);
   }
+  engine->ForwardKeyEvent(keyval, keycode, IBUS_RELEASE_MASK);
 }
 }  // namespace
 
@@ -127,6 +165,24 @@ bool KeyEventHandler::GetKeyEvent(uint keyval, uint keycode, uint modifiers,
                                   bool layout_is_jp, commands::KeyEvent* key) {
   DCHECK(key);
   key->Clear();
+
+  const bool is_key_up_raw = ((modifiers & IBUS_RELEASE_MASK) != 0);
+
+  // Track physically pressed non-modifier keys (Return, BackSpace, arrows,
+  // ...) by keyval so ForwardTrackedReleases can synthesize a release if the
+  // real key-up never reaches us (focus change mid-hold). This bookkeeping is
+  // independent of the modifier state machine below.
+  if (!IsModifierKeyval(keyval)) {
+    if (is_key_up_raw) {
+      currently_pressed_non_modifiers_.erase(keyval);
+    } else {
+      currently_pressed_non_modifiers_[keyval] = keycode;
+    }
+  }
+
+  // The hardware modifier mask is authoritative: drop tracked Shift/Ctrl
+  // whose release we missed, instead of waiting for a lifecycle event.
+  ReconcileStaleModifiers(keyval, is_key_up_raw, modifiers);
 
   // Ignore key events with modifiers, except for the below;
   // - Alt (Mod1) - Mozc uses Alt for shortcuts
@@ -167,7 +223,7 @@ bool KeyEventHandler::GetKeyEvent(uint keyval, uint keycode, uint modifiers,
   }
 
   const bool is_key_up = ((effective_modifiers & IBUS_RELEASE_MASK) != 0);
-  const bool send = ProcessModifiers(is_key_up, keyval, key);
+  const bool send = ProcessModifiers(is_key_up, keyval, keycode, key);
   MaybeLogIbusDebug(
       "key_handler.get",
       "end keyval=%u keycode=%u modifiers=0x%x effective=0x%x key_up=%d "
@@ -186,33 +242,100 @@ bool KeyEventHandler::GetKeyEvent(uint keyval, uint keycode, uint modifiers,
 void KeyEventHandler::Clear() {
   is_non_modifier_key_pressed_ = false;
   currently_pressed_modifiers_.clear();
+  currently_pressed_non_modifiers_.clear();
   modifiers_to_be_sent_.clear();
+  ResetChordState();
+}
+
+void KeyEventHandler::ResetChordState() {
   left_shift_in_chord_ = false;
-  ctrl_physically_down_ = false;
   ctrl_left_shift_chord_armed_ = false;
   typed_during_ctrl_left_shift_chord_ = false;
   ctrl_held_during_left_shift_press_ = false;
 }
 
-std::vector<uint> KeyEventHandler::TrackedShiftKeyvals() const {
-  std::vector<uint> result;
-  for (uint keyval : currently_pressed_modifiers_) {
-    if (keyval == IBUS_Shift_L || keyval == IBUS_Shift_R) {
-      result.push_back(keyval);
+bool KeyEventHandler::HasTrackedCtrl() const {
+  return currently_pressed_modifiers_.count(IBUS_Control_L) != 0 ||
+         currently_pressed_modifiers_.count(IBUS_Control_R) != 0;
+}
+
+bool KeyEventHandler::HasTrackedShift() const {
+  return currently_pressed_modifiers_.count(IBUS_Shift_L) != 0 ||
+         currently_pressed_modifiers_.count(IBUS_Shift_R) != 0;
+}
+
+std::vector<std::pair<uint, uint>> KeyEventHandler::TrackedReleaseKeys()
+    const {
+  std::vector<std::pair<uint, uint>> result;
+  for (const auto& [keyval, keycode] : currently_pressed_modifiers_) {
+    // Only Shift/Ctrl: a spurious release for these is harmless, and they are
+    // the keys observed to stick. Alt/Super releases could interfere with WM
+    // shortcuts, so they are only dropped from tracking via Clear().
+    if (keyval == IBUS_Shift_L || keyval == IBUS_Shift_R ||
+        IsControlKeyval(keyval)) {
+      result.emplace_back(keyval, keycode);
     }
+  }
+  for (const auto& [keyval, keycode] : currently_pressed_non_modifiers_) {
+    result.emplace_back(keyval, keycode);
   }
   return result;
 }
 
-void KeyEventHandler::ForwardTrackedShiftReleases(IbusEngineWrapper* engine) {
-  for (uint keyval : TrackedShiftKeyvals()) {
+void KeyEventHandler::ForwardTrackedReleases(IbusEngineWrapper* engine) {
+  for (const auto& [keyval, keycode] : TrackedReleaseKeys()) {
     MaybeLogIbusDebug("key_handler.release",
-                      "forward_tracked_shift_release keyval=%u", keyval);
-    ForwardShiftRelease(engine, keyval);
+                      "forward_tracked_release keyval=%u keycode=%u", keyval,
+                      keycode);
+    ForwardRelease(engine, keyval, keycode);
+  }
+}
+
+void KeyEventHandler::ReconcileStaleModifiers(uint current_keyval,
+                                              bool is_key_up, uint modifiers) {
+  if (currently_pressed_modifiers_.empty()) {
+    return;
+  }
+  std::vector<uint> stale;
+  for (const auto& [keyval, keycode] : currently_pressed_modifiers_) {
+    // On the key's own key-up the mask still includes its bit; on its own
+    // key-down the mask predates the press, so an existing entry with a clear
+    // bit is genuinely stale (a re-press after a missed release).
+    if (keyval == current_keyval && is_key_up) {
+      continue;
+    }
+    const bool is_shift = (keyval == IBUS_Shift_L || keyval == IBUS_Shift_R);
+    if (is_shift && (modifiers & IBUS_SHIFT_MASK) == 0) {
+      stale.push_back(keyval);
+    } else if (IsControlKeyval(keyval) &&
+               (modifiers & IBUS_CONTROL_MASK) == 0) {
+      stale.push_back(keyval);
+    }
+  }
+  for (uint keyval : stale) {
+    MaybeLogIbusDebug("key_handler.mod",
+                      "prune_stale_modifier keyval=%u modifiers=0x%x", keyval,
+                      modifiers);
+    currently_pressed_modifiers_.erase(keyval);
+    if (keyval == IBUS_Shift_L) {
+      modifiers_to_be_sent_.erase(commands::KeyEvent::LEFT_SHIFT);
+      left_shift_in_chord_ = false;
+      ctrl_held_during_left_shift_press_ = false;
+      ctrl_left_shift_chord_armed_ = false;
+    } else if (keyval == IBUS_Shift_R) {
+      modifiers_to_be_sent_.erase(commands::KeyEvent::RIGHT_SHIFT);
+    } else if (IsControlKeyval(keyval) && !HasTrackedCtrl()) {
+      modifiers_to_be_sent_.erase(commands::KeyEvent::CTRL);
+      ctrl_left_shift_chord_armed_ = false;
+    }
+    if (!HasTrackedShift()) {
+      modifiers_to_be_sent_.erase(commands::KeyEvent::SHIFT);
+    }
   }
 }
 
 bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
+                                       uint keycode,
                                        commands::KeyEvent* key_event) {
   // Manage modifier key event.
   // Modifier key event is sent on key up if non-modifier key has not been
@@ -277,16 +400,13 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
       is_non_modifier_key_pressed_, ctrl_left_shift_chord_armed_,
       typed_during_ctrl_left_shift_chord_);
 
-  // We may get only up/down key event when a user moves a focus.
-  // This code handles such situation as much as possible.
-  // This code has a bug. If we send Shift + 'a', KeyTranslator removes a shift
-  // modifier and converts 'a' to 'A'. This codes does NOT consider these
-  // situation since we don't have enough data to handle it.
-  // TODO(hsumita): Moves the logic about a handling of Shift or Caps keys from
-  // KeyTranslator to MozcEngine.
-  if (key_event->modifier_keys_size() == 0) {
-    Clear();
-  }
+  // Upstream cleared ALL tracked state here whenever the translated event
+  // carried zero modifier keys, as a resync hack for releases missed during
+  // focus moves. That wiped valid state too: Shift + 'a' translates to 'A'
+  // with no modifier keys, so the still-held Shift lost its tracking (and
+  // with it the toggle-chord bookkeeping) on every capitalized keystroke.
+  // Stale entries are now pruned per-key in ReconcileStaleModifiers using the
+  // hardware modifier mask, so no blanket Clear() is needed here.
 
   if (!currently_pressed_modifiers_.empty() && !is_modifier_only) {
     is_non_modifier_key_pressed_ = true;
@@ -303,27 +423,28 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
     currently_pressed_modifiers_.erase(keyval);
 
     if (is_modifier_only &&
-        ((keyval == IBUS_Shift_L &&
-          ctrl_left_shift_chord_armed_ && !typed_during_ctrl_left_shift_chord_ &&
-          !HasNonShiftNonCtrlModifierKeyval(currently_pressed_modifiers_)) ||
-         (IsControlKeyval(keyval) &&
-          ctrl_left_shift_chord_armed_ && !typed_during_ctrl_left_shift_chord_ &&
-          !HasNonShiftNonCtrlModifierKeyval(currently_pressed_modifiers_)))) {
+        (keyval == IBUS_Shift_L || IsControlKeyval(keyval)) &&
+        ctrl_left_shift_chord_armed_ && !typed_during_ctrl_left_shift_chord_ &&
+        !HasNonShiftNonCtrlModifierKeyval(currently_pressed_modifiers_)) {
       SetCtrlLeftShiftModeLockKey(key_event);
-      ctrl_left_shift_chord_armed_ = false;
-      typed_during_ctrl_left_shift_chord_ = false;
-      ctrl_physically_down_ = false;
-      ctrl_held_during_left_shift_press_ = false;
-      left_shift_in_chord_ = false;
+      ResetChordState();
       modifiers_to_be_sent_.clear();
       is_non_modifier_key_pressed_ = false;
-      currently_pressed_modifiers_.clear();
+      // Keys still physically held (e.g. the chord partner, or an unrelated
+      // key like Return) stay tracked; their own key-ups will erase them.
       MaybeLogIbusDebug("key_handler.mod",
                         "return_ctrl_left_shift_lock keyval=%u", keyval);
       return true;
     }
 
     if (!is_modifier_only) {
+      // With no modifiers tracked anymore the chord is over; reset the
+      // transient bookkeeping that the removed blanket Clear() used to catch.
+      if (currently_pressed_modifiers_.empty()) {
+        is_non_modifier_key_pressed_ = false;
+        modifiers_to_be_sent_.clear();
+        ResetChordState();
+      }
       MaybeLogIbusDebug("key_handler.mod",
                         "return_key_up_non_modifier keyval=%u", keyval);
       return false;
@@ -331,9 +452,6 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
     if (!currently_pressed_modifiers_.empty() ||
         modifiers_to_be_sent_.empty()) {
       is_non_modifier_key_pressed_ = false;
-      if (IsControlKeyval(keyval)) {
-        ctrl_physically_down_ = false;
-      }
       if (keyval == IBUS_Shift_L) {
         left_shift_in_chord_ = false;
         ctrl_held_during_left_shift_press_ = false;
@@ -377,16 +495,12 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
   } else if (is_modifier_only) {
     if (keyval == IBUS_Shift_L) {
       left_shift_in_chord_ = true;
-      ctrl_held_during_left_shift_press_ =
-          ctrl_physically_down_ ||
-          currently_pressed_modifiers_.count(IBUS_Control_L) != 0 ||
-          currently_pressed_modifiers_.count(IBUS_Control_R) != 0;
+      ctrl_held_during_left_shift_press_ = HasTrackedCtrl();
       if (ctrl_held_during_left_shift_press_) {
         ctrl_left_shift_chord_armed_ = true;
       }
     }
     if (IsControlKeyval(keyval)) {
-      ctrl_physically_down_ = true;
       if (left_shift_in_chord_ ||
           currently_pressed_modifiers_.count(IBUS_Shift_L) != 0) {
         ctrl_left_shift_chord_armed_ = true;
@@ -407,7 +521,7 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
         modifiers_to_be_sent_.insert(key_event->modifier_keys(i));
       }
     }
-    currently_pressed_modifiers_.insert(keyval);
+    currently_pressed_modifiers_[keyval] = keycode;
     MaybeLogIbusDebug(
         "key_handler.mod",
         "return_modifier_down_tracked keyval=%u pressed=%zu pending=%zu",
@@ -416,9 +530,15 @@ bool KeyEventHandler::ProcessModifiers(bool is_key_up, uint keyval,
     return false;
   }
 
-  // Clear modifier data just in case if |key| has no modifier keys.
-  if (!IsModifierToBeSentOnKeyUp(*key_event)) {
-    Clear();
+  // Reset transient modifier bookkeeping when a plain key goes out with
+  // nothing tracked as held. Unlike the upstream blanket Clear(), keys that
+  // are still physically down (e.g. Shift while typing capitals) keep their
+  // tracking so their releases are handled correctly.
+  if (!IsModifierToBeSentOnKeyUp(*key_event) &&
+      currently_pressed_modifiers_.empty()) {
+    is_non_modifier_key_pressed_ = false;
+    modifiers_to_be_sent_.clear();
+    ResetChordState();
   }
 
   MaybeLogIbusDebug(

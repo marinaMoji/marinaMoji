@@ -441,19 +441,28 @@ TEST_F(KeyTranslatorTest, HiraganaKatakanaHandlingWithMultipleModifiersTest) {
   IsContained(commands::KeyEvent::SHIFT, out.modifier_keys());
 
   // C-M-Hiragana
+  // marinaMoji: Ctrl+Alt+Hiragana is rerouted to key_code 0x61 ('a') instead
+  // of the KANA special key, so the "Ctrl RightAlt a" macron keymap rule can
+  // match on AZERTY layouts. See KeyTranslator::Translate in key_translator.cc.
   modifier = IBUS_MOD1_MASK | IBUS_CONTROL_MASK;
   EXPECT_TRUE(translator_->Translate(IBUS_Hiragana, 0, modifier,
                                      config::Config::ROMAN, true, &out));
-  EXPECT_EQ(out.special_key(), commands::KeyEvent::KANA);
+  EXPECT_FALSE(out.has_special_key());
+  ASSERT_TRUE(out.has_key_code());
+  EXPECT_EQ(out.key_code(), 0x61);
   ASSERT_EQ(out.modifier_keys_size(), 2);
   IsContained(commands::KeyEvent::CTRL, out.modifier_keys());
   IsContained(commands::KeyEvent::ALT, out.modifier_keys());
 
   // C-S-M-Hiragana
+  // The marinaMoji Ctrl+Alt+Hiragana reroute above applies regardless of
+  // Shift, so this also yields key_code 0x61 rather than KANA.
   modifier = IBUS_SHIFT_MASK | IBUS_MOD1_MASK | IBUS_CONTROL_MASK;
   EXPECT_TRUE(translator_->Translate(IBUS_Hiragana, 0, modifier,
                                      config::Config::ROMAN, true, &out));
-  EXPECT_EQ(out.special_key(), commands::KeyEvent::KANA);
+  EXPECT_FALSE(out.has_special_key());
+  ASSERT_TRUE(out.has_key_code());
+  EXPECT_EQ(out.key_code(), 0x61);
   EXPECT_EQ(out.modifier_keys_size(), 3);
   IsContained(commands::KeyEvent::CTRL, out.modifier_keys());
   IsContained(commands::KeyEvent::ALT, out.modifier_keys());
