@@ -43,10 +43,24 @@ see Phase 4.
   `bazelisk build --config oss_windows --config release_build package` has
   not yet been run on real Windows hardware/VM; next step is Phase 1g
   (build bring-up + acceptance test) on a Windows machine.
-- `src/win32/` itself (TIP/TSF logic, key handling) is still **unmodified**
-  upstream Mozc code — Phase 1 only touched naming/branding plumbing (Bazel
-  name maps, `const.h`, GUIDs, `.rc` strings, installer `.wxs`, CI). Phases
-  2–6 (session features, OpenCC, toolbar, sync, packaging) are unstarted.
+- **Phase 2 (marina session features) landed 2026-07-13** — see checklist
+  below. Most items needed zero Windows code (keymap TSV rows and composer
+  tables were already in place); the two real gaps (Right/Left-Shift-alone
+  modifier fidelity, and the Ctrl(+Shift)+number-row dispatcher) are now
+  fixed/ported, mirroring `unix/ibus`'s reference implementation. `src/win32/`
+  is no longer unmodified upstream code — `keyevent_handler.cc` has a
+  targeted fix and `win32/tip/` has two new files
+  (`win32_physical_slot`, `marina_number_row_dispatcher`) hooked into
+  `tip_keyevent_handler.cc`'s `OnKey`. **Not yet compiled or tested on
+  Windows hardware** — first signal comes from Phase 1g.
+- **Phase 3 (OpenCC build/data wiring) landed 2026-07-13** — `opencc_rewriter`
+  now builds and links on Windows (mirrors macOS's static-from-source
+  approach) and the 4 curated marina shin/kyū data files are wired into the
+  installer. **Not yet compiled** (MSVC compatibility of the vendored OpenCC
+  C++ is unverified — first signal comes from Phase 1g's build attempt) and
+  the `Ctrl+Shift+3` shortcut is blocked on Phase 2's Windows key-dispatch
+  work (the keymap-TSV `Ctrl+Shift+F` alternative needs no Windows-specific
+  code, just Phase 1g confirmation that TIP key handling works at all).
 
 ---
 
@@ -214,37 +228,123 @@ third "OSS Mozc" case to preserve on Windows):
 
 # Phase 2 — marina session features on Windows
 
-Mostly verification: these features live in shared session/composer code and
-keymap TSVs, so they should light up once Phase 1 ships. Reference:
-"Keymap notes" in [MACOS_PORT_PLAN.md](MACOS_PORT_PLAN.md) — Windows has its
-own key-translation quirks (`win32/base/keyboard.cc`), expect a similar batch
-of fixes.
+Turned out to be mostly-true: 4 of 6 items already worked once Phase 1
+shipped, because the logic lives in shared session/composer code and keymap
+TSVs. Only two genuine Windows-specific gaps existed, both closed 2026-07-13.
 
-- [ ] Default keymap on Windows is MS-IME (`config_handler.cc`) — verify
-      marina rows exist in `ms-ime.tsv` (they do; aligned 2026-06)
-- [ ] Number-row shortcuts Ctrl+Shift+1–5 (odoriji, palette, shin/kyū,
-      Manyōshū, hiragana/direct) — verify `marina_number_row_bindings_util`
-      dispatch works from the TIP key handler; physical-scancode mapping for
-      non-QWERTY layouts (macOS needed `KeyCodeMap` work; Windows analog is
-      scancode→VK handling)
-- [ ] Right Shift alone toggles hiragana ↔ Manyōshū (Linux `IBUS_Shift_R` /
-      macOS `kVK_RightShift` parity — Windows: `VK_RSHIFT` release tracking;
-      mind the existing stuck-Shift fixes in direct mode, see
-      [SHIFT_RETURN_STUCK_MODIFIER_STOPGAP.md](SHIFT_RETURN_STUCK_MODIFIER_STOPGAP.md))
-- [ ] Macron vowels (Ctrl+Alt+Shift+letter) in ASCII mode
-- [ ] Kaeriten `;r` `;1` … input
-- [ ] Quick dictionary injection Ctrl+Shift+0 (`LAUNCH_WORD_REGISTER_DIALOG`
-      session command → broker → `marinamoji_tool.exe --mode=word_register_dialog`)
-- [ ] Katakana conversion mode + `shift_R` quick switch
+- [x] **Default keymap** (2026-07-13, verification only): confirmed
+      `data/keymap/ms-ime.tsv` already has marina rows — `RightShift` →
+      `ToggleManyoshuHiragana` (lines 23,121,252), macron vowel rows (`Ctrl
+      Alt`/`Ctrl RightAlt`/`Ctrl AltGr` + letter, lines 24-53 etc.),
+      `Ctrl Shift F` → `ToggleTraditionalKanji` (lines 57,58,154,286,287),
+      `Ctrl Shift )` → `LaunchWordRegisterDialog` (lines 65,163,215,301,303) —
+      aligned with `kotoeri.tsv` back in 2026-06, no Windows-specific work
+      was ever needed here.
+- [x] **Right Shift / Left Shift alone, Ctrl+Left Shift** (2026-07-13,
+      **real bug, now fixed**): `Session::IsRightShiftAlone`/`IsLeftShiftAlone`/
+      `IsCtrlLeftShiftAlone` ([session.cc:696-763](../src/session/session.cc))
+      are fully platform-independent and already wired into `SendKey` — but
+      Windows never set `RIGHT_SHIFT`/`LEFT_SHIFT` in `KeyEvent::modifier_keys`,
+      only the generic `SHIFT` (upstream's own `TODO(yukawa): Distinguish left
+      key from right key to fix b/2674446` at
+      [keyevent_handler.cc:421](../src/win32/base/keyevent_handler.cc)), so the
+      toggle silently never fired. Fixed in `ConvertToKeyEventMain`:
+      `keyboard_status.IsPressed(VK_LSHIFT/VK_RSHIFT)` for the "Shift held
+      while another key is pressed" case, plus scan-code-based detection
+      (PC/AT scan-code-set-1: LShift=0x2A, RShift=0x36 — reliable on both
+      key-down *and* key-up, unlike the keyboard-state snapshot) in the
+      `case VK_SHIFT:` branch that handles the modifier-key-itself-pressed
+      case. No new files; Ctrl/Alt left-right fidelity intentionally left
+      generic since no marina shortcut needs it.
+- [x] **Number-row shortcuts Ctrl(+Shift)+1-5/0/`** (2026-07-13, **new
+      dispatcher, mirrors unix/ibus**): added
+      [win32/tip/win32_physical_slot.h/.cc](../src/win32/tip/win32_physical_slot.cc)
+      (scan-code → `MarinaPhysicalSlot`, reusing `unix/ibus/ibus_physical_slot.cc`'s
+      table verbatim since PC/AT scan-code-set-1 and Linux evdev `KEY_1..KEY_0`/
+      `KEY_GRAVE`/`KEY_BACKSPACE` share identical numeric values — including
+      porting the Backspace-collision guard) and
+      [win32/tip/marina_number_row_dispatcher.h/.cc](../src/win32/tip/marina_number_row_dispatcher.cc)
+      (mirrors `unix/ibus/marina_number_row_dispatcher.cc`'s dispatch switch
+      and 300ms autorepeat-suppression window almost line-for-line, reusing
+      the shared `session::FindMarinaActionForPhysicalSlot`). No
+      `PropertyHandler`/engine equivalent was needed — Windows applies the
+      final `SessionCommand`'s `Output` via the existing
+      `TipEditSession::OnOutputReceivedSync` call already at the end of
+      `OnKey`, so `EnsureImeOn`'s intermediate `TURN_ON_IME` output is simply
+      discarded (its real effect already lands server-side via the IPC call).
+      Hooked into [tip_keyevent_handler.cc](../src/win32/tip/tip_keyevent_handler.cc)'s
+      `OnKey`, as a new `else if` branch alongside the existing on-screen-
+      keyboard prev/next-page `SendCommand` branches, gated on
+      `open && is_key_down` — falls through to the normal `ImeToAsciiEx` path
+      when nothing is bound, exactly like the ibus/mac reference behavior.
+      Fetches `config::Config` via IPC on every key-down before checking
+      Ctrl, matching (not optimizing past) the existing ibus precedent.
+  - [ ] **Untested**: no Windows hardware run yet; needs Phase 1g build
+        bring-up first, then manual verification of all 6 bindings plus a
+        non-QWERTY layout (AZERTY/Dvorak) to confirm the physical-slot
+        mapping is truly layout-independent.
+- [x] Macron vowels — confirmed keymap-only (`data/keymap/ms-ime.tsv`), needs
+      no Windows-specific code once Phase 1g confirms TIP key handling works.
+- [x] Kaeriten `;r` `;1` … — confirmed pure composer-table data
+      ([data/preedit/kaeriten.tsv](../src/data/preedit/kaeriten.tsv)), no code.
+- [x] Quick dictionary injection Ctrl+Shift+0 — confirmed this is the
+      keymap-TSV `Ctrl Shift )` row (a plain keystroke on US layout), not the
+      number-row dispatcher; already present in `ms-ime.tsv`.
+- [ ] Katakana conversion mode + `shift_R` quick switch — **not yet verified**;
+      needs Phase 1g hardware access to test interaction with the Right-Shift
+      fix above (right-shift-alone toggles hiragana↔Manyōshū, not katakana —
+      confirm the katakana path uses a different, already-shared binding and
+      doesn't collide).
 
 # Phase 3 — OpenCC / shin-kyū
 
-- [ ] Build OpenCC for Windows (MSVC) or add to Bazel deps; link into server
-- [ ] Bundle marina conversion tables; install under the server dir; path
-      resolution in `oss`/Windows layout (macOS uses `Resources/opencc`,
-      Linux `opencc/` — Windows: alongside `marinamoji_server.exe`)
-- [ ] `Ctrl+Shift+3` toggle + config persistence
-- [ ] Add tables + dictionaries to the `.wxs` file list
+- [x] **Bazel deps (2026-07-13)**: no new `MODULE.bazel` work needed — the
+      macOS `@opencc_source` `http_archive` (OpenCC 1.2.0 built from source,
+      static lib, plus `@marisa_trie`/`@rapidjson`/`@darts_clone` transitive
+      deps) is already declared unconditionally, just unused by Windows
+      targets. Added `windows`/`oss_windows` branches to both `mozc_select()`
+      calls in [rewriter/BUILD.bazel](../src/rewriter/BUILD.bazel) (`opencc_rewriter`
+      target): defines `MOZC_USE_OPENCC` and links `@opencc_source//:opencc`,
+      mirroring the macOS static-linking approach (Windows has no
+      pkg-config/system-libopencc equivalent like Linux).
+  - [ ] **Unverified**: `@opencc_source`'s vendored C++ (`src/bazel/BUILD.opencc.bazel`)
+        has only ever been compiled with Clang/GCC (Linux/macOS); MSVC
+        compatibility of the OpenCC/marisa-trie/rapidjson/darts-clone sources
+        is untested. First real signal comes from Phase 1g's build attempt now
+        that these targets are reachable on Windows.
+- [x] **Data bundling & path resolution (2026-07-13)**: confirmed
+      `SystemUtil::GetServerDirectory()` ([system_util.cc:503-517](../src/base/system_util.cc))
+      already has a full Windows branch (registry lookup, falls back to
+      `Program Files\marinaMoji`) — same function macOS/Linux use, so
+      `opencc_rewriter.cc`'s `GetOpenccConfigPath()` needed **no code changes**
+      for Windows. Wired the 4 curated `//data/marina_opencc:opencc_data`
+      files (`marinaShin2Kyu.json` + 3 `.ocd2` dictionaries — **not** stock
+      OpenCC's `jp2t.json`) into the installer:
+  - [x] [win32/installer/BUILD.bazel](../src/win32/installer/BUILD.bazel): added the
+        4 files to the `installer` genrule's `srcs` and as
+        `--opencc_config`/`--opencc_characters`/`--opencc_phrases`/`--opencc_variants`
+        args (same per-file pattern as `--icon_path`/`--credit_file`)
+  - [x] [build_installer.py](../src/win32/installer/build_installer.py): added the
+        4 argparse flags and threaded them through as `OpenccConfigPath` /
+        `OpenccCharactersPath` / `OpenccPhrasesPath` / `OpenccVariantsPath`
+        WiX `-define`s (passed unconditionally for every branding, same as
+        the existing Omaha-only vars — harmless no-ops for
+        `installer_64bit.wxs`/`installer_oss_64bit.wxs`, which don't
+        reference them)
+  - [x] [installer_marinamoji_64bit.wxs](../src/win32/installer/installer_marinamoji_64bit.wxs):
+        new `opencc\` subdirectory under `MarinaMojiDir` (sibling of
+        `marinamoji_server.exe`, matching `GetServerDirectory() + "/opencc/"`)
+        with 4 `<Component>`/`<File>` entries + `<ComponentRef>`s added to the
+        `MarinaMojiInstall` feature
+- [ ] `Ctrl+Shift+3` toggle + config persistence — **blocked on Phase 2**: no
+      Windows equivalent of `marina_number_row_dispatcher.cc`
+      (Linux)/`KeyCodeMap.mm` (macOS) exists yet in `src/win32/` to route the
+      number-row binding into `Session::ToggleTraditionalKanji()`. The
+      keymap-TSV alternative (`Ctrl+Shift+F`, stock `ToggleTraditionalKanji`
+      command name already in `session/keymap.cc`) should work once
+      Phase 1g's TIP key-handling path is confirmed working, since keymap
+      dispatch is shared code — no Windows-specific work needed for that path.
+- [x] Data files added to installer file list (see bundling item above)
 
 # Phase 4 — Floating toolbar (the big block)
 
@@ -333,3 +433,5 @@ exactly how stock Mozc draws its mode **indicator**, see
 |------|--------|
 | 2026-07-13 | Initial plan. Identified `executable_name_map`/BRANDING gate as the reason the Windows build is a silent no-op; phased checklist with branding first. |
 | 2026-07-13 | **Phase 1 (branding) implemented**: naming decided (`marinamoji_*`, vendor CRCAO); 7 `executable_name_map` entries + rc-defines fix; `const.h` Windows constants; new TSF/display-attribute GUIDs (+ one stray hard-coded GUID found in `system_util.cc`); 6 `.rc` files + shared resource template rebranded; `installer_marinamoji_64bit.wxs` created and wired into `BUILD.bazel`/`build_installer.py`; CI artifact names updated. Not yet built/tested on a Windows machine (Phase 1g); IME icon art not yet swapped. |
+| 2026-07-13 | **Phase 3 (OpenCC) build/data wiring implemented**: added `windows`/`oss_windows` to `opencc_rewriter`'s `mozc_select()` (defines `MOZC_USE_OPENCC`, links `@opencc_source//:opencc`, mirroring macOS's static-from-source linking since Windows has no pkg-config); confirmed `SystemUtil::GetServerDirectory()` already handles Windows so `opencc_rewriter.cc` needed no code changes; wired the 4 curated `data/marina_opencc` files into `win32/installer/BUILD.bazel` genrule, `build_installer.py` args/WiX defines, and a new `opencc\` directory in `installer_marinamoji_64bit.wxs`. Not yet compiled (MSVC compatibility of vendored OpenCC C++ unverified); `Ctrl+Shift+3` dispatch blocked on Phase 2 Windows key-handling work. |
+| 2026-07-13 | **Phase 2 (marina session features) implemented**: audited all 6 checklist items against shared session/composer/keymap code — 4 needed zero Windows work (keymap TSV rows, kaeriten composer table already present/aligned since 2026-06). Fixed the 2 real gaps: (1) `keyevent_handler.cc`'s `ConvertToKeyEventMain` never set `RIGHT_SHIFT`/`LEFT_SHIFT` in `modifier_keys` (upstream's own unresolved `TODO(yukawa) b/2674446`), silently breaking `Session::IsRightShiftAlone` et al. — fixed via `VK_LSHIFT`/`VK_RSHIFT` keyboard-state checks plus scan-code detection (0x2A/0x36) in the modifier-key-itself-pressed switch case, since keyboard-state snapshots are unreliable on key-up. (2) Added `win32/tip/win32_physical_slot.h/.cc` + `win32/tip/marina_number_row_dispatcher.h/.cc`, porting `unix/ibus`'s scan-code table and dispatch switch near-verbatim (PC/AT scan-code-set-1 and Linux evdev codes are numerically identical), hooked into `tip_keyevent_handler.cc`'s `OnKey` as a new branch before the normal key pipeline; reused shared `session::FindMarinaActionForPhysicalSlot` (added `//win32/tip` to its BUILD.bazel visibility). Not yet compiled/tested on Windows hardware. |

@@ -418,9 +418,22 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
     return true;
   }
 
-  // TODO(yukawa): Distinguish left key from right key to fix b/2674446.
+  // marinaMoji: distinguish left/right Shift (fixes upstream b/2674446 for
+  // Shift only) so Session::IsRightShiftAlone/IsLeftShiftAlone/
+  // IsCtrlLeftShiftAlone (session.cc) can fire on Windows. GetKeyboardState
+  // fills VK_LSHIFT/VK_RSHIFT independently of the generic VK_SHIFT entry,
+  // so no scan-code/extended-key lookup is needed here (unlike Ctrl/Alt,
+  // whose VK_CONTROL/VK_MENU are shared and only scan code distinguishes the
+  // side; left/right Ctrl/Alt fidelity is not required by any marina
+  // shortcut today, so it is intentionally left as generic CTRL/ALT).
   if (keyboard_status.IsPressed(VK_SHIFT)) {
     modifer_keys->insert(KeyEvent::SHIFT);
+  }
+  if (keyboard_status.IsPressed(VK_LSHIFT)) {
+    modifer_keys->insert(KeyEvent::LEFT_SHIFT);
+  }
+  if (keyboard_status.IsPressed(VK_RSHIFT)) {
+    modifer_keys->insert(KeyEvent::RIGHT_SHIFT);
   }
   if (keyboard_status.IsPressed(VK_CONTROL)) {
     modifer_keys->insert(KeyEvent::CTRL);
@@ -450,6 +463,17 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
   switch (virtual_key.virtual_key()) {
     case VK_SHIFT:
       modifer_keys->insert(KeyEvent::SHIFT);
+      // marinaMoji: Windows always reports the generic VK_SHIFT in wParam
+      // for both key-down and key-up of either physical Shift key (unlike
+      // Ctrl/Alt, Shift's left/right scan codes differ even without the
+      // extended-key bit: PC/AT scan-code-set-1 has LShift=0x2A, RShift=
+      // 0x36). Use scan_code directly rather than keyboard_status, since on
+      // key-up the keyboard_status snapshot may already reflect the release.
+      if (scan_code == 0x2A) {
+        modifer_keys->insert(KeyEvent::LEFT_SHIFT);
+      } else if (scan_code == 0x36) {
+        modifer_keys->insert(KeyEvent::RIGHT_SHIFT);
+      }
       return true;
     case VK_CONTROL:
       modifer_keys->insert(KeyEvent::CTRL);

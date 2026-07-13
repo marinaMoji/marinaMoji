@@ -175,6 +175,10 @@
       <ComponentRef Id="SysProcs" />
       <ComponentRef Id="PrelaunchProcesses" />
       <ComponentRef Id="CreditsEn" />
+      <ComponentRef Id="MarinaMojiOpenccConfig" />
+      <ComponentRef Id="MarinaMojiOpenccCharacters" />
+      <ComponentRef Id="MarinaMojiOpenccPhrases" />
+      <ComponentRef Id="MarinaMojiOpenccVariants" />
     </Feature>
 
     <Binary Id="marinamoji_installer_helper.dll" SourceFile="$(var.CustomActions64Path)" />
@@ -365,6 +369,25 @@
               <File Id="qwindows.dll" Name="qwindows.dll" DiskId="1" Vital="yes" Checksum="yes" Source="$(var.QtDir)/plugins/platforms/qwindows.dll" />
             </Component>
           <?endif?>
+        </Directory>
+        <!--
+          Curated marina shin->kyu (OpenCC) tables. Path must match
+          SystemUtil::GetServerDirectory() + "/opencc/" in opencc_rewriter.cc,
+          i.e. sit next to marinamoji_server.exe in an "opencc" subdirectory.
+        -->
+        <Directory Id="OpenccDir" Name="opencc">
+          <Component Id="MarinaMojiOpenccConfig">
+            <File Id="marinaShin2Kyu.json" Name="marinaShin2Kyu.json" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.OpenccConfigPath)" />
+          </Component>
+          <Component Id="MarinaMojiOpenccCharacters">
+            <File Id="marinaShin2KyuCharacters.ocd2" Name="marinaShin2KyuCharacters.ocd2" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.OpenccCharactersPath)" />
+          </Component>
+          <Component Id="MarinaMojiOpenccPhrases">
+            <File Id="marinaShin2KyuPhrases.ocd2" Name="marinaShin2KyuPhrases.ocd2" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.OpenccPhrasesPath)" />
+          </Component>
+          <Component Id="MarinaMojiOpenccVariants">
+            <File Id="marinaShin2KyuVariants.ocd2" Name="marinaShin2KyuVariants.ocd2" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.OpenccVariantsPath)" />
+          </Component>
         </Directory>
       </Directory>
     </StandardDirectory>

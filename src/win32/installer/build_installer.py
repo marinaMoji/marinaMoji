@@ -116,6 +116,10 @@ def run_wix4(args) -> None:
   mozc_renderer = pathlib.Path(args.mozc_renderer).resolve()
   mozc_tool = pathlib.Path(args.mozc_tool).resolve()
   custom_action = pathlib.Path(args.custom_action).resolve()
+  opencc_config = pathlib.Path(args.opencc_config).resolve()
+  opencc_characters = pathlib.Path(args.opencc_characters).resolve()
+  opencc_phrases = pathlib.Path(args.opencc_phrases).resolve()
+  opencc_variants = pathlib.Path(args.opencc_variants).resolve()
   wix_path = pathlib.Path(args.wix_path).resolve()
 
   branding = args.branding
@@ -160,6 +164,10 @@ def run_wix4(args) -> None:
       '-define', f'MozcRenderer64Path={mozc_renderer}',
       '-define', f'MozcToolPath={mozc_tool}',
       '-define', f'CustomActions64Path={custom_action}',
+      '-define', f'OpenccConfigPath={opencc_config}',
+      '-define', f'OpenccCharactersPath={opencc_characters}',
+      '-define', f'OpenccPhrasesPath={opencc_phrases}',
+      '-define', f'OpenccVariantsPath={opencc_variants}',
       '-define', f'DocumentsDir={document_dir}',
       '-define', f'QtDir={qt_dir}',
       '-define', 'QtVer=6',
@@ -192,6 +200,10 @@ def main():
   parser.add_argument('--mozc_tip64arm', type=str)
   parser.add_argument('--mozc_tip64x', type=str)
   parser.add_argument('--custom_action', type=str)
+  parser.add_argument('--opencc_config', type=str)
+  parser.add_argument('--opencc_characters', type=str)
+  parser.add_argument('--opencc_phrases', type=str)
+  parser.add_argument('--opencc_variants', type=str)
   parser.add_argument('--icon_path', type=str)
   parser.add_argument('--credit_file', type=str)
   parser.add_argument('--qt_core_dll', type=str)

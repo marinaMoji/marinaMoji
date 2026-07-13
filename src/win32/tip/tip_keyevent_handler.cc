@@ -42,12 +42,14 @@
 #include "base/win32/wide_char.h"
 #include "client/client_interface.h"
 #include "protocol/commands.pb.h"
+#include "protocol/config.pb.h"
 #include "win32/base/conversion_mode_util.h"
 #include "win32/base/deleter.h"
 #include "win32/base/input_state.h"
 #include "win32/base/keyboard.h"
 #include "win32/base/keyevent_handler.h"
 #include "win32/base/surrogate_pair_observer.h"
+#include "win32/tip/marina_number_row_dispatcher.h"
 #include "win32/tip/tip_edit_session.h"
 #include "win32/tip/tip_input_mode_manager.h"
 #include "win32/tip/tip_private_context.h"
@@ -293,6 +295,30 @@ void FillMozcContextForOnKey(TipTextService* text_service, ITfContext* context,
   }
 }
 
+// marinaMoji: physical Ctrl(+Shift)+1-5/0/` shortcuts (odoriji, palette,
+// shin/kyu, Manyoshu, hiragana/direct, quick dictionary), mirroring
+// unix/ibus/marina_number_row_dispatcher.cc. Only meaningful on key-down;
+// callers must also gate on |open| before calling this.
+bool TryDispatchMarinaNumberRowShortcut(TipPrivateContext* private_context,
+                                        const LParamKeyInfo& key_info,
+                                        const KeyboardStatus& keyboard_status,
+                                        uint32_t logical_mode,
+                                        bool open,
+                                        commands::Output* output) {
+  config::Config config;
+  if (!private_context->GetClient()->GetConfig(&config)) {
+    return false;
+  }
+  CompositionMode original_mode = CompositionMode::HIRAGANA;
+  if (!ConversionModeUtil::ToMozcMode(logical_mode, &original_mode)) {
+    return false;
+  }
+  return DispatchMarinaNumberRowShortcut(
+      key_info.GetScanCode(), keyboard_status.IsPressed(VK_CONTROL),
+      keyboard_status.IsPressed(VK_SHIFT), open, original_mode, config,
+      private_context->GetClient(), output);
+}
+
 HRESULT OnKey(TipTextService* text_service, ITfContext* context,
               bool is_key_down, WPARAM wparam, LPARAM lparam, BOOL* eaten) {
   DCHECK(text_service);
@@ -405,6 +431,13 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
       *eaten = FALSE;
       return E_FAIL;
     }
+    ignore_this_keyevent = false;
+  } else if (open && is_key_down &&
+             TryDispatchMarinaNumberRowShortcut(private_context, key_info,
+                                                keyboard_status, logical_mode,
+                                                open, &temporal_output)) {
+    // Consumed by a marina number-row shortcut; do not fall through to the
+    // normal per-character key pipeline below.
     ignore_this_keyevent = false;
   } else {
     InputBehavior behavior = private_context->input_behavior();

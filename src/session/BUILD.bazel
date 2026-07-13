@@ -599,6 +599,7 @@ mozc_cc_library(
         "//gui/config_dialog:__pkg__",
         "//mac:__pkg__",
         "//unix/ibus:__pkg__",
+        "//win32/tip:__pkg__",
     ],
     deps = [
         "//composer:key_event_util",

@@ -350,6 +350,7 @@ mozc_cc_library(
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
+        ":marina_number_row_dispatcher",
         ":tip_edit_session",
         ":tip_input_mode_manager",
         ":tip_private_context_h",
@@ -360,6 +361,7 @@ mozc_cc_library(
         "//base/win32:wide_char",
         "//client:client_interface",
         "//protocol:commands_cc_proto",
+        "//protocol:config_cc_proto",
         "//win32/base:conversion_mode_util",
         "//win32/base:deleter",
         "//win32/base:input_state",
@@ -369,6 +371,39 @@ mozc_cc_library(
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_microsoft_wil//:wil",
+    ],
+)
+
+# Physical (scan-code) number-row slot mapping, mirroring
+# unix/ibus/ibus_physical_slot.cc so Ctrl(+Shift)+1-5/0/` shortcuts work
+# regardless of keyboard layout (Dvorak, AZERTY, etc.).
+mozc_cc_library(
+    name = "win32_physical_slot",
+    srcs = ["win32_physical_slot.cc"],
+    hdrs = ["win32_physical_slot.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        "//protocol:config_cc_proto",
+    ],
+)
+
+# marinaMoji number-row shortcut dispatch, mirroring
+# unix/ibus/marina_number_row_dispatcher.cc. Hooked into tip_keyevent_handler's
+# OnKey, before the normal per-character key pipeline.
+mozc_cc_library(
+    name = "marina_number_row_dispatcher",
+    srcs = ["marina_number_row_dispatcher.cc"],
+    hdrs = ["marina_number_row_dispatcher.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        ":win32_physical_slot",
+        "//client:client_interface",
+        "//protocol:commands_cc_proto",
+        "//protocol:config_cc_proto",
+        "//session:marina_number_row_bindings_util",
+        "@com_google_absl//absl/time",
     ],
 )
 
