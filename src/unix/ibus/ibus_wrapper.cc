@@ -320,9 +320,17 @@ void IbusEngineWrapper::ForwardBackspaceForEchoBack(uint keyval,
   // Some applications delete a preedit glyph when we forward Backspace; hide
   // first when the caller still shows preedit (stale edge case).
   ibus_engine_forward_key_event(engine_, keyval, keycode, 0);
-  // Work around spurious focus_out/focus_in after forwarded Backspace.
+  // Pair the press with a release: Wayland/GTK clients drive auto-repeat from
+  // press/release pairs, so a forwarded press without a matching release
+  // leaves Backspace repeating ("stuck") in the application.
+  ibus_engine_forward_key_event(engine_, keyval, keycode, IBUS_RELEASE_MASK);
+  // Work around spurious focus_out/focus_in after forwarded Backspace. Must
+  // be a release, not a press: a forwarded Shift_L press with no matching
+  // release leaves the client with a phantom held Shift, while a spurious
+  // Shift release is harmless.
   constexpr uint kShiftLeftKeyCode = 42;
-  ibus_engine_forward_key_event(engine_, IBUS_Shift_L, kShiftLeftKeyCode, 0);
+  ibus_engine_forward_key_event(engine_, IBUS_Shift_L, kShiftLeftKeyCode,
+                                IBUS_RELEASE_MASK);
 }
 
 uint IbusEngineWrapper::GetCapabilities() {

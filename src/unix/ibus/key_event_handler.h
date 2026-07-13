@@ -66,6 +66,12 @@ class KeyEventHandler {
   // or focus loss) so the application clears its key state.
   void ForwardTrackedReleases(IbusEngineWrapper* engine);
 
+  // Records a physical press/release handled outside GetKeyEvent (e.g. the
+  // synthesized Backspace fast paths in MozcEngine::ProcessKeyEvent) so
+  // ForwardTrackedReleases still covers those keys. No-op for modifier
+  // keyvals, which must go through GetKeyEvent's state machine.
+  void NotifyKeyState(uint keyval, uint keycode, bool is_key_up);
+
  private:
   friend class KeyEventHandlerTest;
 

@@ -282,6 +282,18 @@ std::vector<std::pair<uint, uint>> KeyEventHandler::TrackedReleaseKeys()
   return result;
 }
 
+void KeyEventHandler::NotifyKeyState(uint keyval, uint keycode,
+                                     bool is_key_up) {
+  if (IsModifierKeyval(keyval)) {
+    return;
+  }
+  if (is_key_up) {
+    currently_pressed_non_modifiers_.erase(keyval);
+  } else {
+    currently_pressed_non_modifiers_[keyval] = keycode;
+  }
+}
+
 void KeyEventHandler::ForwardTrackedReleases(IbusEngineWrapper* engine) {
   for (const auto& [keyval, keycode] : TrackedReleaseKeys()) {
     MaybeLogIbusDebug("key_handler.release",

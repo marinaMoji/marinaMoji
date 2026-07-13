@@ -119,6 +119,12 @@ class MozcEngine : public EngineInterface {
   bool GetConfig(config::Config* config);
 
  private:
+  // Body of ProcessKeyEvent. The public wrapper records per-key bookkeeping
+  // (Backspace press/release tracking) around whatever return path this
+  // takes.
+  bool ProcessKeyEventInternal(IbusEngineWrapper* engine, uint keyval,
+                               uint keycode, uint state);
+
   // Updates the preedit text and the candidate window and inserts result
   // based on the content of |output|.
   bool UpdateAll(IbusEngineWrapper* engine, const commands::Output& output);
@@ -187,6 +193,12 @@ class MozcEngine : public EngineInterface {
   // After Enter echo-back, surrounding text lags until set_cursor_location.
   // Backspace uses left-then-return-false until a consumed key clears this.
   bool surround_stale_after_echo_back_ = false;
+
+  // Whether the last Backspace key-down was consumed. Its key-up must take
+  // the same path: consuming a release whose press was forwarded leaves the
+  // application waiting forever for the key-up (stuck auto-repeat on
+  // Wayland/GTK, which drive repeat client-side from press/release pairs).
+  bool backspace_down_consumed_ = false;
 
   friend class MozcEngineTestPeer;
 };

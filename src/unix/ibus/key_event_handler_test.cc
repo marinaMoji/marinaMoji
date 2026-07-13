@@ -443,6 +443,25 @@ TEST_F(KeyEventHandlerTest, NonModifierKeysTrackedForRelease) {
   EXPECT_TRUE(TrackedReleaseKeys().empty());
 }
 
+TEST_F(KeyEventHandlerTest, NotifyKeyStateTracksKeysOutsideGetKeyEvent) {
+  // The synthesized Backspace paths in MozcEngine bypass GetKeyEvent;
+  // NotifyKeyState must keep the release failsafe covering them.
+  constexpr uint kBackSpaceKeycode = 14;
+
+  handler_->NotifyKeyState(IBUS_BackSpace, kBackSpaceKeycode, false);
+  std::vector<std::pair<uint, uint>> tracked = TrackedReleaseKeys();
+  ASSERT_EQ(tracked.size(), 1u);
+  EXPECT_EQ(tracked[0].first, static_cast<uint>(IBUS_BackSpace));
+  EXPECT_EQ(tracked[0].second, kBackSpaceKeycode);
+
+  handler_->NotifyKeyState(IBUS_BackSpace, kBackSpaceKeycode, true);
+  EXPECT_TRUE(TrackedReleaseKeys().empty());
+
+  // Modifier keyvals are ignored: they must go through the state machine.
+  handler_->NotifyKeyState(IBUS_Shift_L, 42, false);
+  EXPECT_TRUE(TrackedReleaseKeys().empty());
+}
+
 TEST_F(KeyEventHandlerTest, ShiftHeldThroughCapitalTypingStaysTracked) {
   // Regression test for the stuck-Shift bug: Shift + 'a' translates to 'A'
   // with zero modifier keys, which used to blanket-Clear() all tracking and

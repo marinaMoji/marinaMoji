@@ -563,6 +563,23 @@ bool TryHandleEchoBackBackspace(IbusEngineWrapper* engine,
 
 bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
                                  uint keycode, uint modifiers) {
+  const bool is_key_up = ((modifiers & IBUS_RELEASE_MASK) != 0);
+  if (IsBackspaceIbusKey(keyval, keycode)) {
+    // The Backspace fast paths in ProcessKeyEventInternal can return before
+    // GetKeyEvent runs, so keep the release-failsafe tracking in sync here.
+    key_event_handler_->NotifyKeyState(keyval, keycode, is_key_up);
+  }
+  const bool consumed =
+      ProcessKeyEventInternal(engine, keyval, keycode, modifiers);
+  if (!is_key_up && IsBackspaceIbusKey(keyval, keycode)) {
+    backspace_down_consumed_ = consumed;
+  }
+  return consumed;
+}
+
+bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
+                                         uint keyval, uint keycode,
+                                         uint modifiers) {
   MOZC_VLOG(2) << "keyval: " << keyval << ", keycode: " << keycode
                << ", modifiers: " << modifiers;
   MaybeLogIbusDebug("engine.key",
@@ -579,11 +596,17 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
   }
 
   // Consume Backspace release so IBus does not send Reset (RevertSession wipes
-  // the whole preedit when process_key_event returned false on key-up).
+  // the whole preedit when process_key_event returned false on key-up) — but
+  // only when the key-down was consumed too. If the press was forwarded to
+  // the application, the release must follow it, or the application never
+  // sees the key-up and Backspace sticks (client-side auto-repeat). With no
+  // consumed press there is also no composition for Reset to wipe.
   if ((modifiers & IBUS_RELEASE_MASK) != 0 &&
       IsBackspaceIbusKey(keyval, keycode)) {
-    MaybeLogIbusDebug("engine.key", "return_backspace_release_consumed");
-    return true;
+    MaybeLogIbusDebug("engine.key",
+                      "return_backspace_release down_consumed=%d",
+                      backspace_down_consumed_);
+    return backspace_down_consumed_;
   }
 
   if (SyncOverlayIsActive()) {
@@ -780,6 +803,8 @@ bool MozcEngine::ProcessKeyEvent(IbusEngineWrapper* engine, uint keyval,
     // app (same path as arrow keys), instead of consuming it here.
     constexpr uint kLeftKeyval = 0xff51;  // IBUS_Left
     engine->ForwardKeyEvent(kLeftKeyval, 0, 0);
+    // Pair with a release so the client does not treat Left as still held.
+    engine->ForwardKeyEvent(kLeftKeyval, 0, IBUS_RELEASE_MASK);
     MaybeLogIbusDebug("engine.key",
                       "return_stale_backspace_left_then_forward");
     return false;
