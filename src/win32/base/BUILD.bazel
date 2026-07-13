@@ -468,6 +468,21 @@ mozc_cc_library(
     ],
 )
 
+# COM Task Scheduler (taskschd.h) wrapper used to register the per-user
+# logon-triggered sync-daemon task (see docs/WINDOWS_PORT_PLAN.md Phase 5) —
+# a Windows analog of the macOS LaunchAgent / Linux systemd --user unit.
+mozc_cc_library(
+    name = "task_scheduler_util",
+    srcs = ["task_scheduler_util.cc"],
+    hdrs = ["task_scheduler_util.h"],
+    linkopts = ["/DEFAULTLIB:taskschd.lib"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        "@com_microsoft_wil//:wil",
+    ],
+)
+
 mozc_cc_library(
     name = "win32_window_util",
     srcs = ["win32_window_util.cc"],

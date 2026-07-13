@@ -122,6 +122,9 @@ inline constexpr char kMozcRenderer[] = "marinamoji_renderer.exe";
 inline constexpr char kMozcCacheServiceExeName[] =
     "marinamoji_cache_service.exe";
 inline constexpr wchar_t kMozcCacheServiceName[] = L"marinaMojiCacheService";
+inline constexpr char kMozcSyncExecutable[] = "marinamoji_sync.exe";
+// Task Scheduler task name for the sync daemon (see win32/base/task_scheduler_util.h).
+inline constexpr wchar_t kMozcSyncTaskName[] = L"marinaMoji Sync";
 inline constexpr wchar_t kMessageReceiverMessageName[] =
     L"marinamoji.renderer.message";
 inline constexpr wchar_t kMessageReceiverClassName[] =

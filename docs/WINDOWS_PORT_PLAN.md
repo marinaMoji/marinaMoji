@@ -61,10 +61,21 @@ see Phase 4.
   the `Ctrl+Shift+3` shortcut is blocked on Phase 2's Windows key-dispatch
   work (the keymap-TSV `Ctrl+Shift+F` alternative needs no Windows-specific
   code, just Phase 1g confirmation that TIP key handling works at all).
+- **Phase 5 (Sync) landed 2026-07-13** — new `marinamoji_sync.exe` binary
+  target, a per-user Task Scheduler logon task (`win32/base/task_scheduler_util`
+  + two new custom actions) replacing the LaunchAgent/systemd-user-unit
+  mechanism from mac/Linux, and confirmation that the config-dialog Sync tab
+  and all sidecar file paths (`sync.conf`, `.sync_key`, etc.) already work
+  cross-platform with zero Windows-specific code. **Not yet compiled or
+  tested** — first signal comes from Phase 1g. Phase 4 (floating toolbar) is
+  the only phase not yet started.
+- **Phases 1-3 and 5 are all implemented as code, none verified on real
+  Windows hardware yet — Phase 1g (build bring-up + acceptance test) is the
+  actual current blocking phase**, gating confirmation of everything above.
 
 ---
 
-# Phase 1 — Branding & build bring-up  ← **current phase**
+# Phase 1 — Branding & build bring-up
 
 Goal: `bazelisk build --config oss_windows --config release_build package`
 succeeds on a Windows machine and produces a `marinaMoji64.msi` that installs
@@ -209,7 +220,7 @@ third "OSS Mozc" case to preserve on Windows):
       arm64) now upload/reference `marinaMoji64.msi` /
       `marinaMoji64_{x64,universal,arm64}.msi`
 
-### 1g. Phase 1 acceptance test (on Windows, VM fine)
+### 1g. Phase 1 acceptance test (on Windows, VM fine)  ← **current phase**
 
 - [ ] `bazelisk build --config oss_windows --config release_build package`
       from `src/` succeeds
@@ -390,15 +401,88 @@ exactly how stock Mozc draws its mode **indicator**, see
 
 # Phase 5 — Sync
 
-- [ ] Port `mozc_sync` binary/service to Windows (libsodium + miniz already in
-      third_party; both build with MSVC)
-- [ ] Decide process model: scheduled task vs on-demand from server (macOS
-      uses a LaunchAgent; Windows analog is Task Scheduler or the existing
-      cache-service pattern)
-- [ ] `sync.conf` sidecar path under `%LOCALAPPDATA%\marinaMoji`
-- [ ] Config dialog sync tab paths (folder picker → Nextcloud/Syncthing/
-      OneDrive folders); [SYNC_MANUAL_QA.md](SYNC_MANUAL_QA.md) two-device run
-      with one Windows device
+Sync is a self-contained encrypted-file mechanism (libsodium + vendored
+miniz; no transport of its own — the user points it at a folder already
+synced by Nextcloud/Syncthing/OneDrive/etc.), the same binary/code on every
+platform, just run under a different per-user scheduling mechanism.
+
+- [x] **Windows sync binary (2026-07-13)**: added `kMozcSyncExecutable =
+      "marinamoji_sync.exe"` to [const.h](../src/base/const.h)'s `_WIN32`
+      branch (`sync_util.cc`'s existing generic
+      `SystemUtil::GetServerDirectory() + kMozcSyncExecutable` path needed no
+      code changes — it already handles Windows). Added
+      `marinaMojiSync_win` to [sync/BUILD.bazel](../src/sync/BUILD.bazel) via
+      `mozc_win32_cc_prod_binary`, deliberately named `marinamoji_sync.exe`
+      for **every** `BRANDING` value (matching how `marinaMojiSync_bin`/
+      `_macos` are already unbranded fixed names on Linux/macOS — sync has no
+      stock-Mozc equivalent to collide with). No Windows-specific `.rc`
+      version resource yet (matches Linux's `marinaMojiSync_bin`, which also
+      has none) — deferred, same category as the Phase 1 IME icon.
+- [x] **Process model decision (2026-07-13): per-user Task Scheduler logon
+      task, not a Windows Service.** `cache_service` is LocalSystem-context
+      and machine-wide — wrong fit, since sync needs the *logged-on user's*
+      profile (`%LOCALAPPDATA%\marinaMoji\sync.conf`, `.sync_key`, and
+      whatever folder the user mapped) exactly like the LaunchAgent (macOS,
+      `gui/<uid>` domain) and systemd **user** unit (Linux) it mirrors — both
+      explicitly refuse to run as root/sudo for the same reason. Kept the
+      existing `--daemon` sleep-loop/poll model (no rewrite of
+      `sync_poll.cc`/`sync_activity.cc`, both already fully portable) rather
+      than re-triggering `--now` every N minutes via the scheduler, for
+      maximum code/behavior parity with mac/Linux.
+  - [x] [win32/base/task_scheduler_util.h/.cc](../src/win32/base/task_scheduler_util.cc):
+        new COM wrapper around `ITaskService`/`ITaskFolder`/`ITaskDefinition`
+        (`taskschd.h`) — `RegisterLogonTask` creates a `TASK_TRIGGER_LOGON`
+        trigger (30s delay so the user's sync client has time to mount the
+        folder) + `TASK_ACTION_EXEC` action running
+        `marinamoji_sync.exe --daemon`, `TASK_LOGON_INTERACTIVE_TOKEN` (no
+        stored password, runs only while logged on — the direct Windows
+        analog of LaunchAgent/systemd-user's session-scoping), 3 restarts on
+        failure; `UnregisterTask` removes it, tolerating "task doesn't
+        exist". `linkopts = ["/DEFAULTLIB:taskschd.lib"]` in
+        [win32/base/BUILD.bazel](../src/win32/base/BUILD.bazel).
+  - [x] New custom actions `RegisterSyncTask`/`UnregisterSyncTask` in
+        [custom_action.cc](../src/win32/custom_action/custom_action.cc) +
+        `.def` exports, `Impersonate="yes"` (registers/removes the task under
+        the installing user's own account, matching the existing
+        `EnableTipProfile`/`RestoreUserIMEEnvironment` pattern — not a new
+        WiX extension). Wired into
+        [installer_marinamoji_64bit.wxs](../src/win32/installer/installer_marinamoji_64bit.wxs)'s
+        `InstallExecuteSequence`: `RegisterSyncTask` before `InstallFinalize`
+        on every non-removal install (including upgrades, unlike
+        `EnableTipProfile` — registration is idempotent via
+        `TASK_CREATE_OR_UPDATE`); `UnregisterSyncTask` after
+        `RestoreUserIMEEnvironment` on uninstall. New `MarinaMojiSync`
+        `<Component>`/`<File>` alongside `marinamoji_broker.exe` under
+        `MarinaMojiDir`, threaded through
+        [installer/BUILD.bazel](../src/win32/installer/BUILD.bazel) and
+        [build_installer.py](../src/win32/installer/build_installer.py) as
+        `MarinaMojiSyncPath` (same per-file pattern as the OpenCC data files).
+  - [ ] **Untested**: chose `TASK_LOGON_INTERACTIVE_TOKEN` with no explicit
+        `IPrincipal::UserId` (documented to mean "the user calling
+        `RegisterTaskDefinition`") based on MSDN docs, not a real install —
+        first real signal is Phase 1g. Also flagged: RDP/Fast-User-Switching
+        sessions may behave differently for logon triggers (noted as a
+        manual-QA follow-up, not a regression vs. mac/Linux's own
+        GUI-session-scoping caveats).
+- [x] `sync.conf`/`.sync_key`/`sync.status.json`/`sync.activity.json` sidecar
+      paths — confirmed all resolve via
+      `SystemUtil::GetUserProfileDirectory()`, already Windows-aware; no
+      changes needed. `sync_key.cc`'s only platform conditional (POSIX
+      `chmod(0600)`) was already guarded `#if !defined(_WIN32)`.
+- [x] **Config dialog sync tab — confirmed zero Windows-specific work
+      needed.** [gui/config_dialog/BUILD.bazel](../src/gui/config_dialog/BUILD.bazel)'s
+      main `config_dialog` target already unconditionally builds
+      `config_dialog_sync_tab.cc` and depends on `//sync:sync_config`,
+      `//sync:sync_key`, `//sync:sync_status`, `//sync:sync_util` for every
+      platform (no `mozc_select` gating on these) — the folder-picker/enable
+      toggle/generate-key UI in `marinamoji_tool.exe`'s Preferences should
+      "just work" once `sync/` compiles with MSVC.
+- [ ] [SYNC_MANUAL_QA.md](SYNC_MANUAL_QA.md) needs a Windows section added
+      (mirroring its existing per-platform checklists) once Phase 1g proves
+      the binary builds; also flag that Tests 7-8 (input-blocking
+      overlay/beep during active sync) have **no Windows TIP-side
+      implementation at all** — that's new UI work, out of scope for this
+      pass, not silently assumed done.
 
 # Phase 6 — Polish, packaging, QA
 
@@ -435,3 +519,4 @@ exactly how stock Mozc draws its mode **indicator**, see
 | 2026-07-13 | **Phase 1 (branding) implemented**: naming decided (`marinamoji_*`, vendor CRCAO); 7 `executable_name_map` entries + rc-defines fix; `const.h` Windows constants; new TSF/display-attribute GUIDs (+ one stray hard-coded GUID found in `system_util.cc`); 6 `.rc` files + shared resource template rebranded; `installer_marinamoji_64bit.wxs` created and wired into `BUILD.bazel`/`build_installer.py`; CI artifact names updated. Not yet built/tested on a Windows machine (Phase 1g); IME icon art not yet swapped. |
 | 2026-07-13 | **Phase 3 (OpenCC) build/data wiring implemented**: added `windows`/`oss_windows` to `opencc_rewriter`'s `mozc_select()` (defines `MOZC_USE_OPENCC`, links `@opencc_source//:opencc`, mirroring macOS's static-from-source linking since Windows has no pkg-config); confirmed `SystemUtil::GetServerDirectory()` already handles Windows so `opencc_rewriter.cc` needed no code changes; wired the 4 curated `data/marina_opencc` files into `win32/installer/BUILD.bazel` genrule, `build_installer.py` args/WiX defines, and a new `opencc\` directory in `installer_marinamoji_64bit.wxs`. Not yet compiled (MSVC compatibility of vendored OpenCC C++ unverified); `Ctrl+Shift+3` dispatch blocked on Phase 2 Windows key-handling work. |
 | 2026-07-13 | **Phase 2 (marina session features) implemented**: audited all 6 checklist items against shared session/composer/keymap code — 4 needed zero Windows work (keymap TSV rows, kaeriten composer table already present/aligned since 2026-06). Fixed the 2 real gaps: (1) `keyevent_handler.cc`'s `ConvertToKeyEventMain` never set `RIGHT_SHIFT`/`LEFT_SHIFT` in `modifier_keys` (upstream's own unresolved `TODO(yukawa) b/2674446`), silently breaking `Session::IsRightShiftAlone` et al. — fixed via `VK_LSHIFT`/`VK_RSHIFT` keyboard-state checks plus scan-code detection (0x2A/0x36) in the modifier-key-itself-pressed switch case, since keyboard-state snapshots are unreliable on key-up. (2) Added `win32/tip/win32_physical_slot.h/.cc` + `win32/tip/marina_number_row_dispatcher.h/.cc`, porting `unix/ibus`'s scan-code table and dispatch switch near-verbatim (PC/AT scan-code-set-1 and Linux evdev codes are numerically identical), hooked into `tip_keyevent_handler.cc`'s `OnKey` as a new branch before the normal key pipeline; reused shared `session::FindMarinaActionForPhysicalSlot` (added `//win32/tip` to its BUILD.bazel visibility). Not yet compiled/tested on Windows hardware. |
+| 2026-07-13 | **Phase 5 (Sync) implemented**: `kMozcSyncExecutable = "marinamoji_sync.exe"` added to `const.h` (Windows' generic `sync_util.cc` path resolution needed no changes); new `marinaMojiSync_win` binary target in `sync/BUILD.bazel`, deliberately unbranded (same name for every `BRANDING`) matching Linux/macOS precedent. Process-model decision: per-user Task Scheduler logon task, not a Windows Service — mirrors the LaunchAgent/systemd-user-unit per-user-session model (sync needs the logged-on user's profile/mapped folders, which a LocalSystem service can't reach cleanly). New `win32/base/task_scheduler_util.h/.cc` (COM `ITaskService`/`ITaskFolder`/`ITaskDefinition` wrapper: `TASK_TRIGGER_LOGON` + `TASK_ACTION_EXEC` running `--daemon`, `TASK_LOGON_INTERACTIVE_TOKEN`) plus two new `Impersonate="yes"` custom actions (`RegisterSyncTask`/`UnregisterSyncTask`, mirroring the existing `EnableTipProfile` pattern — no new WiX extension needed) wired into `installer_marinamoji_64bit.wxs`'s `InstallExecuteSequence` and a new `MarinaMojiSync` file component. Confirmed the config-dialog Sync tab and all sync sidecar files (`sync.conf`, `.sync_key`, etc.) already work cross-platform with zero additional Windows code. Not yet compiled/tested on Windows hardware; Task Scheduler registration semantics (`TASK_LOGON_INTERACTIVE_TOKEN` + unset `UserId`) are based on MSDN docs, not a real install. |

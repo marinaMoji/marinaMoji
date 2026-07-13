@@ -179,6 +179,7 @@
       <ComponentRef Id="MarinaMojiOpenccCharacters" />
       <ComponentRef Id="MarinaMojiOpenccPhrases" />
       <ComponentRef Id="MarinaMojiOpenccVariants" />
+      <ComponentRef Id="MarinaMojiSync" />
     </Feature>
 
     <Binary Id="marinamoji_installer_helper.dll" SourceFile="$(var.CustomActions64Path)" />
@@ -198,6 +199,15 @@
     <CustomAction Id="SaveCustomActionData" DllEntry="SaveCustomActionData" BinaryRef="marinamoji_installer_helper.dll" />
     <CustomAction Id="RestoreServiceState" DllEntry="RestoreServiceState" Impersonate="no" Execute="deferred" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
     <CustomAction Id="StopCacheServiceForRollback" DllEntry="StopCacheService" Impersonate="no" Execute="rollback" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
+    <!--
+      Registers/unregisters the per-user Task Scheduler logon task that runs
+      marinamoji_sync.exe --daemon (see docs/WINDOWS_PORT_PLAN.md Phase 5 and
+      win32/base/task_scheduler_util.h). Impersonate="yes" so the task is
+      registered under the installing user's own account, matching
+      EnableTipProfile/RestoreUserIMEEnvironment above.
+    -->
+    <CustomAction Id="RegisterSyncTask" DllEntry="RegisterSyncTask" Execute="commit" Impersonate="yes" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="UnregisterSyncTask" DllEntry="UnregisterSyncTask" Impersonate="yes" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
     <CustomAction Id="NewerVersionError" Error="4000" />
 
     <InstallExecuteSequence>
@@ -207,6 +217,7 @@
       <StopServices />
       <DeleteServices />
       <Custom Action="RestoreUserIMEEnvironment" After="DeleteServices" Condition="(REMOVE=&quot;ALL&quot;) AND (NOT UPGRADINGPRODUCTCODE)" />
+      <Custom Action="UnregisterSyncTask" After="RestoreUserIMEEnvironment" Condition="(REMOVE=&quot;ALL&quot;) AND (NOT UPGRADINGPRODUCTCODE)" />
       <!-- This action invoked only when removal of the old product failed. -->
       <Custom Action="UnregisterTIPRollback64" After="RestoreUserIMEEnvironment" Condition="(REMOVE=&quot;ALL&quot;) AND UPGRADINGPRODUCTCODE AND (VersionNT64)" />
       <Custom Action="UnregisterTIP64" After="UnregisterTIPRollback64" Condition="(REMOVE=&quot;ALL&quot;) AND (NOT UPGRADINGPRODUCTCODE) AND (VersionNT64)" />
@@ -243,6 +254,12 @@
       <Custom Action="InitialInstallationCommit" Before="FixupConfigFilePermission" Condition="(NOT (REMOVE=&quot;ALL&quot;)) AND (NOT UPGRADING)" />
       <Custom Action="FixupConfigFilePermission" Before="EnableTipProfile" Condition="NOT (REMOVE=&quot;ALL&quot;)" />
       <Custom Action="EnableTipProfile" Before="InstallFinalize" Condition="(NOT (REMOVE=&quot;ALL&quot;)) AND (NOT UPGRADING)" />
+      <!--
+        Re-registered on every install/upgrade (unlike EnableTipProfile,
+        which skips upgrades) so upgrading from a pre-sync version also gets
+        the task; TASK_CREATE_OR_UPDATE makes repeated registration a no-op.
+      -->
+      <Custom Action="RegisterSyncTask" Before="InstallFinalize" Condition="NOT (REMOVE=&quot;ALL&quot;)" />
       <!-- show reboot dialog to execute pending file opartions -->
       <?if ($(var.VSConfigurationName) = "Release") ?>
         <ScheduleReboot After="InstallFinalize" Condition="(REMOVE=&quot;ALL&quot;)" />
@@ -295,6 +312,9 @@
         <?endif?>
         <Component Id="MarinaMojiBroker" Permanent="no">
           <File Id="marinamoji_broker.exe" Name="marinamoji_broker.exe" DiskId="1" Checksum="yes" Source="$(var.MozcBroker64Path)" Vital="yes" />
+        </Component>
+        <Component Id="MarinaMojiSync" Permanent="no">
+          <File Id="marinamoji_sync.exe" Name="marinamoji_sync.exe" DiskId="1" Checksum="yes" Source="$(var.MarinaMojiSyncPath)" Vital="yes" />
         </Component>
         <Component Id="MarinaMojiRenderer">
           <File Id="marinamoji_renderer.exe" Name="marinamoji_renderer.exe" DiskId="1" Vital="yes" Checksum="yes" Source="$(var.MozcRenderer64Path)" />

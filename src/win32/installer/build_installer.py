@@ -116,6 +116,7 @@ def run_wix4(args) -> None:
   mozc_renderer = pathlib.Path(args.mozc_renderer).resolve()
   mozc_tool = pathlib.Path(args.mozc_tool).resolve()
   custom_action = pathlib.Path(args.custom_action).resolve()
+  marinamoji_sync = pathlib.Path(args.marinamoji_sync).resolve()
   opencc_config = pathlib.Path(args.opencc_config).resolve()
   opencc_characters = pathlib.Path(args.opencc_characters).resolve()
   opencc_phrases = pathlib.Path(args.opencc_phrases).resolve()
@@ -164,6 +165,7 @@ def run_wix4(args) -> None:
       '-define', f'MozcRenderer64Path={mozc_renderer}',
       '-define', f'MozcToolPath={mozc_tool}',
       '-define', f'CustomActions64Path={custom_action}',
+      '-define', f'MarinaMojiSyncPath={marinamoji_sync}',
       '-define', f'OpenccConfigPath={opencc_config}',
       '-define', f'OpenccCharactersPath={opencc_characters}',
       '-define', f'OpenccPhrasesPath={opencc_phrases}',
@@ -200,6 +202,7 @@ def main():
   parser.add_argument('--mozc_tip64arm', type=str)
   parser.add_argument('--mozc_tip64x', type=str)
   parser.add_argument('--custom_action', type=str)
+  parser.add_argument('--marinamoji_sync', type=str)
   parser.add_argument('--opencc_config', type=str)
   parser.add_argument('--opencc_characters', type=str)
   parser.add_argument('--opencc_phrases', type=str)
