@@ -29,6 +29,8 @@ LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 #ifndef MOZC_RES_INTERNAL_NAME
   #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
     #define MOZC_RES_INTERNAL_NAME "GoogleIMEJaBroker"
+  #elif defined(MARINAMOJI)
+    #define MOZC_RES_INTERNAL_NAME "marinamoji_broker"
   #elif defined(MOZC_BUILD)
     #define MOZC_RES_INTERNAL_NAME "mozc_broker"
   #endif
@@ -36,6 +38,8 @@ LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 #ifndef MOZC_RES_ORIGINAL_FILENAME
   #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
     #define MOZC_RES_ORIGINAL_FILENAME "GoogleIMEJaBroker.exe"
+  #elif defined(MARINAMOJI)
+    #define MOZC_RES_ORIGINAL_FILENAME "marinamoji_broker.exe"
   #elif defined(MOZC_BUILD)
     #define MOZC_RES_ORIGINAL_FILENAME "mozc_broker.exe"
   #endif
@@ -43,6 +47,8 @@ LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 #ifndef MOZC_RES_FILE_DESCRIPTION
   #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
     #define MOZC_RES_FILE_DESCRIPTION "Google 日本語入力 ブローカー"
+  #elif defined(MARINAMOJI)
+    #define MOZC_RES_FILE_DESCRIPTION "marinaMoji Broker"
   #elif defined(MOZC_BUILD)
     #define MOZC_RES_FILE_DESCRIPTION "Mozc Broker"
   #endif

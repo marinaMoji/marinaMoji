@@ -465,7 +465,8 @@ constexpr wchar_t kMozcTipClsid[] =
 #ifdef GOOGLE_JAPANESE_INPUT_BUILD
     L"{D5A86FD5-5308-47EA-AD16-9C4EB160EC3C}"
 #else   // GOOGLE_JAPANESE_INPUT_BUILD
-    L"{10A67BC8-22FA-4A59-90DC-2546652C56BF}"
+    // marinaMoji TSF text service CLSID; must match win32/base/tsf_profile.cc.
+    L"{8D513EAE-75C6-4CCA-A307-90F97E573706}"
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD
     L"\\InprocServer32";
 

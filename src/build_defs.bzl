@@ -198,6 +198,12 @@ def mozc_win32_resource_from_template(
     _rc_defines = {
         "Mozc": ["MOZC_BUILD"],
         "GoogleJapaneseInput": ["GOOGLE_JAPANESE_INPUT_BUILD"],
+        # marinaMoji: keep MOZC_BUILD so OSS #else branches apply; MARINAMOJI
+        # marks fork-specific resource overrides.
+        "marinaMoji": [
+            "MOZC_BUILD",
+            "MARINAMOJI",
+        ],
     }.get(BRANDING, [])
 
     # Create main resource

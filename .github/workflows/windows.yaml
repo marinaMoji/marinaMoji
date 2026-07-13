@@ -59,11 +59,11 @@ jobs:
         run: |
           bazelisk build --config release_build package
 
-      - name: upload Mozc64_x64.msi
+      - name: upload marinaMoji64_x64.msi
         uses: actions/upload-artifact@v6
         with:
-          name: Mozc64_x64.msi
-          path: src/bazel-bin/win32/installer/Mozc64.msi
+          name: marinaMoji64_x64.msi
+          path: src/bazel-bin/win32/installer/marinaMoji64.msi
           if-no-files-found: warn
 
   build_universal:
@@ -112,11 +112,11 @@ jobs:
         run: |
           bazelisk build --config release_build --config win_universal_installer package
 
-      - name: upload Mozc64_universal.msi
+      - name: upload marinaMoji64_universal.msi
         uses: actions/upload-artifact@v6
         with:
-          name: Mozc64_universal.msi
-          path: src/bazel-bin/win32/installer/Mozc64.msi
+          name: marinaMoji64_universal.msi
+          path: src/bazel-bin/win32/installer/marinaMoji64.msi
           if-no-files-found: warn
 
   build_arm64:
@@ -165,11 +165,11 @@ jobs:
         run: |
           bazelisk build package --config release_build --platforms=//:windows-arm64
 
-      - name: upload Mozc64_arm64.msi
+      - name: upload marinaMoji64_arm64.msi
         uses: actions/upload-artifact@v6
         with:
-          name: Mozc64_arm64.msi
-          path: src/bazel-bin/win32/installer/Mozc64.msi
+          name: marinaMoji64_arm64.msi
+          path: src/bazel-bin/win32/installer/marinaMoji64.msi
           if-no-files-found: warn
 
   test:

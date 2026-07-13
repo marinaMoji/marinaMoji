@@ -108,6 +108,7 @@ class ForwarderInfo:
     return {
         'Mozc': 'mozc_tip64x.dll',
         'GoogleJapaneseInput': 'GoogleIMEJaTIP64X.dll',
+        'marinaMoji': 'marinamoji_tip64x.dll',
     }[self.branding]
 
   @property
@@ -115,6 +116,7 @@ class ForwarderInfo:
     return {
         'Mozc': 'mozc_tip64.dll',
         'GoogleJapaneseInput': 'GoogleIMEJaTIP64.dll',
+        'marinaMoji': 'marinamoji_tip64.dll',
     }[self.branding]
 
   @property
@@ -122,6 +124,7 @@ class ForwarderInfo:
     return {
         'Mozc': 'mozc_tip64arm.dll',
         'GoogleJapaneseInput': 'GoogleIMEJaTIP64Arm.dll',
+        'marinaMoji': 'marinamoji_tip64arm.dll',
     }[self.branding]
 
   @property
@@ -129,6 +132,7 @@ class ForwarderInfo:
     return {
         'Mozc': 'Mozc TIP Module Forwarder',
         'GoogleJapaneseInput': 'Google 日本語入力 TIP モジュール フォワーダー',
+        'marinaMoji': 'marinaMoji TIP Module Forwarder',
     }[self.branding]
 
   @property
@@ -136,6 +140,7 @@ class ForwarderInfo:
     return {
         'Mozc': 'Mozc',
         'GoogleJapaneseInput': 'Google 日本語入力',
+        'marinaMoji': 'marinaMoji',
     }[self.branding]
 
   def get_def_file_content_for_x64(self) -> str:
@@ -362,7 +367,7 @@ def parse_args() -> argparse.Namespace:
       '--branding',
       dest='branding',
       default='Mozc',
-      choices=['Mozc', 'GoogleJapaneseInput'],
+      choices=['Mozc', 'GoogleJapaneseInput', 'marinaMoji'],
       help='branding',
   )
   parser.add_argument(

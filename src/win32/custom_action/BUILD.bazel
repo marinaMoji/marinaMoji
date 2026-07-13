@@ -44,6 +44,7 @@ mozc_win32_cc_prod_binary(
     executable_name_map = {
         "Mozc": "mozc_installer_helper.dll",
         "GoogleJapaneseInput": "GoogleIMEJaInstallerHelper.dll",
+        "marinaMoji": "marinamoji_installer_helper.dll",
     },
     linkshared = True,
     static_crt = True,

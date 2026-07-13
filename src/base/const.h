@@ -35,13 +35,15 @@ namespace mozc {
 inline constexpr char kProductNameInEnglish[] = "Google Japanese Input";
 #define kProductPrefix "GoogleJapaneseInput"
 #else  // GOOGLE_JAPANESE_INPUT_BUILD
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
+// marinaMoji: on Windows this also names the profile dir
+// (%LOCALAPPDATA%\marinaMoji), keeping it separate from stock Mozc.
 inline constexpr char kProductNameInEnglish[] = "marinaMoji";
 #define kProductPrefix "marinaMoji"
 #else
 inline constexpr char kProductNameInEnglish[] = "Mozc";
 #define kProductPrefix "Mozc"
-#endif  // __APPLE__
+#endif  // __APPLE__ || _WIN32
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD
 
 inline constexpr char kVersionRewriterVersionPrefix[] = kProductPrefix "-";
@@ -103,35 +105,44 @@ inline constexpr wchar_t kMozcRegKey[] =
 inline constexpr wchar_t kElevatedProcessDisabledKey[] =
     L"Software\\Policies\\Google\\Google Japanese Input\\Preferences";
 #else   // !GOOGLE_JAPANESE_INPUT_BUILD
-inline constexpr char kCompanyNameInEnglish[] = "Mozc Project";
+// marinaMoji: all names distinct from stock Mozc so both IMEs can be
+// installed side-by-side (separate pipes, mutexes, window classes, registry).
+inline constexpr char kCompanyNameInEnglish[] = "CRCAO";
 // Use Local prefix so that modules running under AppContainer can access.
-inline constexpr char kEventPathPrefix[] = "Local\\Mozc.event.";
-inline constexpr char kMutexPathPrefix[] = "Local\\Mozc.mutex.";
-inline constexpr char kMozcServerName[] = "mozc_server.exe";
-inline constexpr char kIMEFile[] = "mozc_ja.ime";
-inline constexpr char kMozcTIP32[] = "mozc_tip32.dll";
-inline constexpr char kMozcTIP64[] = "mozc_tip64.dll";
-inline constexpr char kMozcTIP64X[] = "mozc_tip64x.dll";
-inline constexpr char kMozcBroker[] = "mozc_broker.exe";
-inline constexpr char kMozcTool[] = "mozc_tool.exe";
-inline constexpr char kMozcRenderer[] = "mozc_renderer.exe";
-inline constexpr char kMozcCacheServiceExeName[] = "mozc_cache_service.exe";
-inline constexpr wchar_t kMozcCacheServiceName[] = L"MozcCacheService";
+inline constexpr char kEventPathPrefix[] = "Local\\marinaMoji.event.";
+inline constexpr char kMutexPathPrefix[] = "Local\\marinaMoji.mutex.";
+inline constexpr char kMozcServerName[] = "marinamoji_server.exe";
+inline constexpr char kIMEFile[] = "marinamoji_ja.ime";
+inline constexpr char kMozcTIP32[] = "marinamoji_tip32.dll";
+inline constexpr char kMozcTIP64[] = "marinamoji_tip64.dll";
+inline constexpr char kMozcTIP64X[] = "marinamoji_tip64x.dll";
+inline constexpr char kMozcBroker[] = "marinamoji_broker.exe";
+inline constexpr char kMozcTool[] = "marinamoji_tool.exe";
+inline constexpr char kMozcRenderer[] = "marinamoji_renderer.exe";
+inline constexpr char kMozcCacheServiceExeName[] =
+    "marinamoji_cache_service.exe";
+inline constexpr wchar_t kMozcCacheServiceName[] = L"marinaMojiCacheService";
 inline constexpr wchar_t kMessageReceiverMessageName[] =
-    L"mozc.renderer.message";
-inline constexpr wchar_t kMessageReceiverClassName[] = L"mozc.renderer.window";
-inline constexpr wchar_t kCandidateWindowClassName[] = L"MozcCandidateWindow";
+    L"marinamoji.renderer.message";
+inline constexpr wchar_t kMessageReceiverClassName[] =
+    L"marinamoji.renderer.window";
+inline constexpr wchar_t kCandidateWindowClassName[] =
+    L"marinaMojiCandidateWindow";
 inline constexpr wchar_t kCompositionWindowClassName[] =
-    L"MozcCompositionWindow";
-inline constexpr wchar_t kIndicatorWindowClassName[] = L"MozcIndicatorWindow";
-inline constexpr wchar_t kInfolistWindowClassName[] = L"MozcInfolistWindow";
-inline constexpr wchar_t kIMEUIWndClassName[] = L"MozcUIWindow";
-inline constexpr char kIPCPrefix[] = "\\\\.\\pipe\\mozc.";
-inline constexpr wchar_t kCandidateUIDescription[] = L"MozcCandidateUI";
-inline constexpr wchar_t kConfigurationDisplayname[] = L"Mozc Configuration";
-inline constexpr wchar_t kMozcRegKey[] = L"Software\\Mozc Project\\Mozc";
+    L"marinaMojiCompositionWindow";
+inline constexpr wchar_t kIndicatorWindowClassName[] =
+    L"marinaMojiIndicatorWindow";
+inline constexpr wchar_t kInfolistWindowClassName[] =
+    L"marinaMojiInfolistWindow";
+// Must fit kIMEUIwndClassNameLimitInTchars (16 incl. terminator).
+inline constexpr wchar_t kIMEUIWndClassName[] = L"marinaMojiUIWnd";
+inline constexpr char kIPCPrefix[] = "\\\\.\\pipe\\marinamoji.";
+inline constexpr wchar_t kCandidateUIDescription[] = L"marinaMojiCandidateUI";
+inline constexpr wchar_t kConfigurationDisplayname[] =
+    L"marinaMoji Configuration";
+inline constexpr wchar_t kMozcRegKey[] = L"Software\\CRCAO\\marinaMoji";
 inline constexpr wchar_t kElevatedProcessDisabledKey[] =
-    L"Software\\Policies\\Mozc Project\\Mozc\\Preferences";
+    L"Software\\Policies\\CRCAO\\marinaMoji\\Preferences";
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD
 #elif defined(__APPLE__)
 inline constexpr char kMozcServerName[] = kProductPrefix "Converter.app";

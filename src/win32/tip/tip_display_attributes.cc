@@ -82,19 +82,22 @@ constexpr GUID kDisplayAttributeConverted = {
 
 #else  // GOOGLE_JAPANESE_INPUT_BUILD
 
-// {84CA1E7E-3020-4D1C-8968-DDA372D1E067}
-constexpr GUID kDisplayAttributeInput = {
-    0x84ca1e7e,
-    0x3020,
-    0x4d1c,
-    {0x89, 0x68, 0xdd, 0xa3, 0x72, 0xd1, 0xe0, 0x67}};
+// marinaMoji: fresh GUIDs, distinct from stock Mozc
+// ({84CA1E7E-…} / {8A4028E5-…}) for clean side-by-side registration.
 
-// {8A4028E5-2DCD-4365-A5DC-71F67E797437}
+// {B023BCAB-74F8-46A4-8020-41BA80FD04BA}
+constexpr GUID kDisplayAttributeInput = {
+    0xb023bcab,
+    0x74f8,
+    0x46a4,
+    {0x80, 0x20, 0x41, 0xba, 0x80, 0xfd, 0x04, 0xba}};
+
+// {DDA248E5-EADC-4FBD-A16D-78A80C8BF172}
 constexpr GUID kDisplayAttributeConverted = {
-    0x8a4028e5,
-    0x2dcd,
-    0x4365,
-    {0xa5, 0xdc, 0x71, 0xf6, 0x7e, 0x79, 0x74, 0x37}};
+    0xdda248e5,
+    0xeadc,
+    0x4fbd,
+    {0xa1, 0x6d, 0x78, 0xa8, 0x0c, 0x8b, 0xf1, 0x72}};
 
 #endif  // !GOOGLE_JAPANESE_INPUT_BUILD
 

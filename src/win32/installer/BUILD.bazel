@@ -56,6 +56,7 @@ mozc_py_binary(
 exports_files([
     "installer_64bit.wxs",
     "installer_oss_64bit.wxs",
+    "installer_marinamoji_64bit.wxs",
 ])
 
 config_setting(
@@ -66,9 +67,15 @@ config_setting(
     visibility = ["//visibility:private"],
 )
 
-_WXS_FILE = ":installer_oss_64bit.wxs" if BRANDING == "Mozc" else ":installer_64bit.wxs"
+_WXS_FILE = {
+    "Mozc": ":installer_oss_64bit.wxs",
+    "marinaMoji": ":installer_marinamoji_64bit.wxs",
+}.get(BRANDING, ":installer_64bit.wxs")
 
-_MSI_FILE = "Mozc64.msi" if BRANDING == "Mozc" else "GoogleJapaneseInput64.msi"
+_MSI_FILE = {
+    "Mozc": "Mozc64.msi",
+    "marinaMoji": "marinaMoji64.msi",
+}.get(BRANDING, "GoogleJapaneseInput64.msi")
 
 selects.config_setting_group(
     name = "build_arm64_binaries",

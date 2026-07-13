@@ -38,6 +38,8 @@ IDB_FOOTER_LOGO_COLOR_200  BITMAP    "data/images/win/candidate_window_logo_PBGR
 #ifndef MOZC_RES_INTERNAL_NAME
   #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
     #define MOZC_RES_INTERNAL_NAME "GoogleIMEJaRenderer"
+  #elif defined(MARINAMOJI)
+    #define MOZC_RES_INTERNAL_NAME "marinamoji_renderer"
   #elif defined(MOZC_BUILD)
     #define MOZC_RES_INTERNAL_NAME "mozc_renderer"
   #endif
@@ -45,6 +47,8 @@ IDB_FOOTER_LOGO_COLOR_200  BITMAP    "data/images/win/candidate_window_logo_PBGR
 #ifndef MOZC_RES_ORIGINAL_FILENAME
   #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
     #define MOZC_RES_ORIGINAL_FILENAME "GoogleIMEJaRenderer.exe"
+  #elif defined(MARINAMOJI)
+    #define MOZC_RES_ORIGINAL_FILENAME "marinamoji_renderer.exe"
   #elif defined(MOZC_BUILD)
     #define MOZC_RES_ORIGINAL_FILENAME "mozc_renderer.exe"
   #endif
@@ -52,6 +56,8 @@ IDB_FOOTER_LOGO_COLOR_200  BITMAP    "data/images/win/candidate_window_logo_PBGR
 #ifndef MOZC_RES_FILE_DESCRIPTION
   #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
     #define MOZC_RES_FILE_DESCRIPTION "Google 日本語入力 レンダラー"
+  #elif defined(MARINAMOJI)
+    #define MOZC_RES_FILE_DESCRIPTION "marinaMoji Renderer"
   #elif defined(MOZC_BUILD)
     #define MOZC_RES_FILE_DESCRIPTION "Mozc Renderer"
   #endif

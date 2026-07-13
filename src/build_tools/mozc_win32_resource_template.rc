@@ -5,6 +5,8 @@
 #ifndef MOZC_RES_COMPANY_NAME
   #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
     #define MOZC_RES_COMPANY_NAME "Google LLC"
+  #elif defined(MARINAMOJI)
+    #define MOZC_RES_COMPANY_NAME "CRCAO"
   #elif defined(MOZC_BUILD)
     #define MOZC_RES_COMPANY_NAME "Google LLC"
   #endif
@@ -24,6 +26,8 @@
 #ifndef MOZC_RES_PRODUCT_NAME
   #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
     #define MOZC_RES_PRODUCT_NAME "Google 日本語入力"
+  #elif defined(MARINAMOJI)
+    #define MOZC_RES_PRODUCT_NAME "marinaMoji"
   #elif defined(MOZC_BUILD)
     #define MOZC_RES_PRODUCT_NAME "Mozc"
   #endif

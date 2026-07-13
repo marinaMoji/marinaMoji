@@ -51,6 +51,7 @@ mozc_win32_cc_prod_binary(
     executable_name_map = {
         "Mozc": "mozc_renderer.exe",
         "GoogleJapaneseInput": "GoogleIMEJaRenderer.exe",
+        "marinaMoji": "marinamoji_renderer.exe",
     },
     static_crt = False,
     tags = MOZC_TAGS.WIN_ONLY,
