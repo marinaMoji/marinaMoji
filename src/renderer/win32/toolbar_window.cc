@@ -410,10 +410,9 @@ void ToolbarWindow::Redraw() {
     button_rects_.push_back(rect);
 
     const auto id = static_cast<ButtonId>(i);
-    const double opacity =
-        (id == ButtonId::kSymbols || id == ButtonId::kShortcuts)
-            ? kDisabledOpacity
-            : 1.0;
+    // marinaMoji: Symbols now opens SymbolsPaletteWindow; Shortcuts still has
+    // no Windows implementation (see docs/WINDOWS_PORT_PLAN.md Phase 4).
+    const double opacity = (id == ButtonId::kShortcuts) ? kDisabledOpacity : 1.0;
     uint8_t* icon_bits = GetDibBits(icon_cache_[i].get(), &icon_w, &icon_h);
     if (icon_bits != nullptr) {
       const int icon_x = x_cursor + (button_w - icon_w) / 2;
@@ -471,8 +470,10 @@ void ToolbarWindow::OnLButtonUp(UINT flags, CPoint point) {
       SendLaunchConfigDialog();
       break;
     case ButtonId::kSymbols:
+      SendShowSymbolsPalette();
+      break;
     case ButtonId::kShortcuts:
-      // Not implemented on Windows yet; buttons are rendered disabled.
+      // Not implemented on Windows yet; button is rendered disabled.
       break;
     default:
       break;
@@ -618,6 +619,16 @@ void ToolbarWindow::SendLaunchConfigDialog() {
   }
   commands::SessionCommand command;
   command.set_type(commands::SessionCommand::LAUNCH_CONFIG_DIALOG);
+  commands::Output output;
+  send_command_interface_->SendCommand(command, &output);
+}
+
+void ToolbarWindow::SendShowSymbolsPalette() {
+  if (send_command_interface_ == nullptr) {
+    return;
+  }
+  commands::SessionCommand command;
+  command.set_type(commands::SessionCommand::SHOW_SYMBOLS_PALETTE);
   commands::Output output;
   send_command_interface_->SendCommand(command, &output);
 }

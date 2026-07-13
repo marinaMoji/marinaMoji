@@ -102,10 +102,13 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       case commands::SessionCommand::TOGGLE_TRADITIONAL_KANJI:
       case commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
       case commands::SessionCommand::LAUNCH_CONFIG_DIALOG:
+      case commands::SessionCommand::INSERT_SYMBOL_TEXT:
+      case commands::SessionCommand::SHOW_SYMBOLS_PALETTE:
+      case commands::SessionCommand::HIDE_SYMBOLS_PALETTE:
         // marinaMoji: floating toolbar button clicks (mode switch, shin-kyu
-        // toggle, dict, settings) in addition to the original candidate
-        // click commands. This channel only carries (type, id) — see below
-        // for how |id| is repurposed to carry the composition mode.
+        // toggle, dict, settings), Symbols Palette open/close signals, and
+        // Symbols Palette commits, in addition to the original candidate
+        // click commands.
         break;
       default:
         // Unsupported command.
@@ -117,6 +120,24 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       LOG(ERROR) << "target window is nullptr";
       return false;
     }
+
+    if (command.type() == commands::SessionCommand::INSERT_SYMBOL_TEXT) {
+      // marinaMoji: the (type, id) PostMessage channel below can't carry
+      // arbitrary text, so Symbols Palette commits use WM_COPYDATA instead
+      // (SendMessage, synchronous -- the buffer must stay valid for the
+      // call). |dwData| is tagged so the receiver can tell this apart from
+      // any other WM_COPYDATA traffic; the payload is the symbol's raw UTF-8
+      // bytes (no NUL terminator needed, |cbData| carries the length).
+      const std::string& text = command.text();
+      COPYDATASTRUCT cds = {};
+      cds.dwData = kSymbolTextCopyDataTag;
+      cds.cbData = static_cast<DWORD>(text.size());
+      cds.lpData = const_cast<char*>(text.data());
+      ::SendMessage(target, WM_COPYDATA, reinterpret_cast<WPARAM>(nullptr),
+                   reinterpret_cast<LPARAM>(&cds));
+      return true;
+    }
+
     UINT mozc_msg = ::RegisterWindowMessageW(kMessageReceiverMessageName);
     if (mozc_msg == 0) {
       LOG(ERROR) << "RegisterWindowMessage failed: " << ::GetLastError();

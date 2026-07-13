@@ -763,9 +763,38 @@ bool TipEditSession::OnRendererCallbackAsync(TipTextService* text_service,
       command.set_type(type);
       return OnSessionCommandAsync(text_service, context, command);
     }
+    case SessionCommand::SHOW_SYMBOLS_PALETTE:
+    case SessionCommand::HIDE_SYMBOLS_PALETTE: {
+      // marinaMoji: Symbols Palette open/close. Purely a local UI-visibility
+      // flag (mirrors mac's g_symbols_palette_visible) -- intercepted here,
+      // never forwarded to the session/converter. Forces an immediate
+      // RendererCommand refresh so tip_ui_handler_conventional.cc's
+      // UpdateCommand() re-evaluates SymbolsPaletteInfo right away, rather
+      // than waiting for the next unrelated key/focus event.
+      TipPrivateContext* private_context =
+          text_service->GetPrivateContext(context);
+      if (private_context == nullptr) {
+        return false;
+      }
+      private_context->set_symbols_palette_visible(
+          type == SessionCommand::SHOW_SYMBOLS_PALETTE);
+      return OnLayoutChangedAsyncImpl(text_service, context);
+    }
     default:
       return false;
   }
+}
+
+bool TipEditSession::OnRendererSymbolTextCallbackAsync(
+    TipTextService* text_service, ITfContext* context,
+    const std::string& text) {
+  if (text.empty()) {
+    return false;
+  }
+  SessionCommand command;
+  command.set_type(SessionCommand::INSERT_SYMBOL_TEXT);
+  command.set_text(text);
+  return OnSessionCommandAsync(text_service, context, command);
 }
 
 bool TipEditSession::SubmitAsync(TipTextService* text_service,

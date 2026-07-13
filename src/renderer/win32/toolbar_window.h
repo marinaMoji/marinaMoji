@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "base/const.h"
 #include "base/coordinates.h"
 #include "client/client_interface.h"
 #include "protocol/commands.pb.h"
@@ -150,6 +151,7 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   void SendToggleTraditionalKanji();
   void SendLaunchWordRegisterDialog();
   void SendLaunchConfigDialog();
+  void SendShowSymbolsPalette();
 
   std::string ConfigFilePath() const;
   void LoadSavedPosition(CPoint* out_position, const CSize& window_size) const;

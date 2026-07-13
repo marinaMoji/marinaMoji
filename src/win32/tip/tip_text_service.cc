@@ -1420,8 +1420,41 @@ class TipTextServiceImpl
         self->OnRendererCallback(wparam, lparam);
         return 0;
       }
+      if (message == WM_COPYDATA) {
+        // marinaMoji: Symbols Palette text commit. WM_COPYDATA is on
+        // Windows' default UIPI-allowed message list (unlike the custom
+        // registered message above), so no ChangeMessageFilter call is
+        // needed for it.
+        const auto* cds = reinterpret_cast<const COPYDATASTRUCT*>(lparam);
+        if (cds != nullptr && cds->dwData == kSymbolTextCopyDataTag &&
+            cds->lpData != nullptr && cds->cbData > 0) {
+          self->OnRendererSymbolTextCallback(
+              std::string(static_cast<const char*>(cds->lpData),
+                         cds->cbData));
+        }
+        return TRUE;
+      }
     }
     return ::DefWindowProcW(window_handle, message, wparam, lparam);
+  }
+
+  void OnRendererSymbolTextCallback(const std::string& text) {
+    wil::com_ptr_nothrow<ITfDocumentMgr> document_manager;
+    if (FAILED(thread_mgr_->GetFocus(&document_manager))) {
+      return;
+    }
+    if (!document_manager) {
+      return;
+    }
+    wil::com_ptr_nothrow<ITfContext> context;
+    if (FAILED(document_manager->GetBase(&context))) {
+      return;
+    }
+    if (!context) {
+      return;
+    }
+    TipEditSession::OnRendererSymbolTextCallbackAsync(this, context.get(),
+                                                      text);
   }
 
   void OnRendererCallback(WPARAM wparam, LPARAM lparam) {

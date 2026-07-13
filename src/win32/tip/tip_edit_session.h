@@ -84,6 +84,12 @@ class TipEditSession {
   static bool OnRendererCallbackAsync(TipTextService* text_service,
                                       ITfContext* context, WPARAM wparam,
                                       LPARAM lparam);
+  // marinaMoji: Symbols Palette commit -- inserts |text| verbatim via
+  // SessionCommand::INSERT_SYMBOL_TEXT. Separate from OnRendererCallbackAsync
+  // since the WM_COPYDATA transport carries a string, not a (type, id) pair.
+  static bool OnRendererSymbolTextCallbackAsync(TipTextService* text_service,
+                                                ITfContext* context,
+                                                const std::string& text);
 
   // Begins an async edit session to submit the current candidate.
   static bool SubmitAsync(TipTextService* text_service, ITfContext* context);

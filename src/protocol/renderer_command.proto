@@ -86,6 +86,17 @@ message RendererCommand {
     optional Status status = 1;
   }
 
+  // marinaMoji: content for the Windows floating Symbols Palette window
+  // (renderer/win32/symbols_palette_window.cc), populated by the TIP only
+  // while the palette is open (see TipPrivateContext::symbols_palette_
+  // visible()). Odoriji and general-symbols lists are static and don't need
+  // to travel over IPC -- the renderer hardcodes them the same way mac/
+  // Linux's palette does.
+  message SymbolsPaletteInfo {
+    repeated string kaeriten_symbols = 1;
+    repeated string user_symbols = 2;
+  }
+
   // Application information Mozc UI is attaching
   message ApplicationInfo {
     optional uint32 process_id = 1;
@@ -156,6 +167,9 @@ message RendererCommand {
 
     // used in Windows:
     optional IndicatorInfo indicator_info = 14;
+
+    // used in Windows:
+    optional SymbolsPaletteInfo symbols_palette_info = 15;
   }
 
   optional ApplicationInfo application_info = 5;

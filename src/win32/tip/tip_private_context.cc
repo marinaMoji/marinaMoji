@@ -63,6 +63,7 @@ class TipPrivateContext::InternalState {
   InputBehavior input_behavior_;
   TipUiElementManager ui_element_manager_;
   VKBackBasedDeleter deleter_;
+  bool symbols_palette_visible_ = false;
 };
 
 TipPrivateContext::TipPrivateContext()
@@ -132,6 +133,14 @@ const InputBehavior& TipPrivateContext::input_behavior() const {
 
 InputBehavior* TipPrivateContext::mutable_input_behavior() {
   return &state_->input_behavior_;
+}
+
+bool TipPrivateContext::symbols_palette_visible() const {
+  return state_->symbols_palette_visible_;
+}
+
+void TipPrivateContext::set_symbols_palette_visible(bool visible) {
+  state_->symbols_palette_visible_ = visible;
 }
 
 }  // namespace tsf

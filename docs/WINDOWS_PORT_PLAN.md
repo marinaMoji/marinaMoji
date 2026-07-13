@@ -425,9 +425,49 @@ exactly how stock Mozc draws its mode **indicator**, see
       previously only ran after `SendKey` — so `Output::launch_tool_mode`
       now actually spawns tools for *any* `SessionCommand`, not just the
       toolbar's.
-- [ ] Symbols palette (tabbed Odoriji/Kaeriten/Symbols/User) — deferred (see
-      above); needs its own window infrastructure before the toolbar's
-      Symbols button can be enabled.
+- [x] **Symbols palette (2026-07-13)**: new `SymbolsPaletteWindow`
+      (`renderer/win32/symbols_palette_window.{h,cc}`) with a native
+      `SysTabControl32` (4 tabs) + native `BUTTON` children per symbol —
+      unlike the toolbar, no custom GDI compositing needed since symbol
+      buttons are just system-font glyphs, not icons. `WS_EX_TOOLWINDOW |
+      WS_EX_NOACTIVATE` so it never steals focus, matching mac's
+      `NSWindowStyleMaskNonactivatingPanel`. Odoriji tab reuses the existing
+      `SHOW_ODORIJI_PALETTE` + `SUBMIT_CANDIDATE(id)` session round-trip
+      unchanged; Kaeriten/Symbols/User tabs needed a new transport since the
+      renderer→TIP channel only carried `(type, id)`, no arbitrary text:
+  - Added `SessionCommand::INSERT_SYMBOL_TEXT` (`protocol/commands.proto`) →
+    `Session::InsertSymbolText` → the already-generic
+    `CommitStringDirectly` (no new validation, unlike `InsertMacronVowel`).
+  - Sent renderer→TIP via `WM_COPYDATA` (`RendererServerSendCommand::
+    SendCommand` in `renderer/renderer_server.cc`, tagged with
+    `kSymbolTextCopyDataTag` in `base/const.h`) rather than the existing
+    `PostMessage`-based `(type, id)` channel, which can't carry a string.
+    `WM_COPYDATA` is on Windows' default UIPI-allowed message list, so
+    (unlike the custom registered message) no `ChangeMessageFilter` call
+    was needed. Received in `TipTextService`'s `RendererCallbackWidnowProc`
+    → new `TipEditSession::OnRendererSymbolTextCallbackAsync`.
+  - Palette *content* stays TIP-side (keeps the renderer a "dumb" UI
+    process, no `composer`/config-parsing pulled into it): a new
+    `SymbolsPaletteInfo` message on `RendererCommand.ApplicationInfo`
+    (`protocol/renderer_command.proto`) carries Kaeriten symbols (via the
+    already-shared `composer::LoadKaeritenShortcutEntries`) and User
+    symbols (`user_symbols.txt` under `SystemUtil::GetUserProfileDirectory
+    ()`, mirroring mac's `LoadUserSymbolsFromFile()`); Odoriji/general-
+    symbols lists are static and hardcoded renderer-side instead. Populated
+    only while `TipPrivateContext::symbols_palette_visible()` is true, a
+    pure local UI flag (mirrors mac's `g_symbols_palette_visible`) toggled
+    by two new local-only `SessionCommand`s, `SHOW_SYMBOLS_PALETTE`/
+    `HIDE_SYMBOLS_PALETTE`, intercepted in `OnRendererCallbackAsync`
+    *before* reaching the session/converter at all.
+  - Toolbar's Symbols button enabled (`toolbar_window.cc`), sends
+    `SHOW_SYMBOLS_PALETTE`. Shortcuts button remains disabled (separate,
+    smaller follow-up).
+  - Also fixed a pre-existing bug while in this area: `ToolbarWindow`
+    referenced `kToolbarWindowClassName` (`DECLARE_WND_CLASS_EX`) without
+    it ever being defined anywhere — added it (and the new
+    `kSymbolsPaletteWindowClassName`) to `base/const.h` alongside the
+    other window class name constants, and added the missing
+    `//base:const` dep to `toolbar_window`'s `BUILD.bazel` target.
 - [x] **Show/hide (2026-07-13)**: shown whenever the TSF thread has focus
       (`ShowToolbar` bit), hidden immediately on focus loss — no 150 ms
       delayed-hide like GTK's (not yet ported; low priority since Windows

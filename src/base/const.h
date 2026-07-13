@@ -87,6 +87,10 @@ inline constexpr wchar_t kIndicatorWindowClassName[] =
     L"GoogleJapaneseInputIndicatorWindow";
 inline constexpr wchar_t kInfolistWindowClassName[] =
     L"GoogleJapaneseInpuInfolistWindow";
+inline constexpr wchar_t kToolbarWindowClassName[] =
+    L"GoogleJapaneseInputToolbarWindow";
+inline constexpr wchar_t kSymbolsPaletteWindowClassName[] =
+    L"GoogleJapaneseInputSymbolsPaletteWindow";
 // This UIWnd class name should be used by and only by the actual IMM32
 // version.  Make sure that |kIMEUIWndClassName| is different from
 // |kDummyIMEUIWndClassName| so that the dummy IME and the actual IME can
@@ -137,6 +141,10 @@ inline constexpr wchar_t kIndicatorWindowClassName[] =
     L"marinaMojiIndicatorWindow";
 inline constexpr wchar_t kInfolistWindowClassName[] =
     L"marinaMojiInfolistWindow";
+inline constexpr wchar_t kToolbarWindowClassName[] =
+    L"marinaMojiToolbarWindow";
+inline constexpr wchar_t kSymbolsPaletteWindowClassName[] =
+    L"marinaMojiSymbolsPaletteWindow";
 // Must fit kIMEUIwndClassNameLimitInTchars (16 incl. terminator).
 inline constexpr wchar_t kIMEUIWndClassName[] = L"marinaMojiUIWnd";
 inline constexpr char kIPCPrefix[] = "\\\\.\\pipe\\marinamoji.";
@@ -147,6 +155,14 @@ inline constexpr wchar_t kMozcRegKey[] = L"Software\\CRCAO\\marinaMoji";
 inline constexpr wchar_t kElevatedProcessDisabledKey[] =
     L"Software\\Policies\\CRCAO\\marinaMoji\\Preferences";
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD
+// marinaMoji: WM_COPYDATA tag identifying a Symbols Palette text-insert
+// payload sent renderer->TIP over the existing renderer-callback window (see
+// RendererServerSendCommand::SendCommand, TipTextService's
+// RendererCallbackWidnowProc). Same value regardless of branding/build --
+// it's a private wire-format tag, not a user-visible name. Plain `unsigned
+// long` (matches Win32 DWORD/ULONG_PTR's underlying type) rather than a
+// windows.h type, since this header has no includes today.
+inline constexpr unsigned long kSymbolTextCopyDataTag = 0x4D4D5354UL;  // 'MMST'
 #elif defined(__APPLE__)
 inline constexpr char kMozcServerName[] = kProductPrefix "Converter.app";
 inline constexpr char kMozcRenderer[] = kProductPrefix "Renderer.app";

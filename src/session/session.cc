@@ -588,6 +588,9 @@ bool Session::SendCommand(commands::Command* command) {
       result = InsertMacronVowel(command);
       break;
     }
+    case commands::SessionCommand::INSERT_SYMBOL_TEXT:
+      result = InsertSymbolText(command);
+      break;
     default:
       LOG(WARNING) << "Unknown command" << *command;
       result = DoNothing(command);
@@ -3047,6 +3050,19 @@ bool Session::InsertMacronVowel(commands::Command* command) {
   }
   absl::string_view s(macron);
   CommitStringDirectly(s, s, command);
+  return true;
+}
+
+bool Session::InsertSymbolText(commands::Command* command) {
+  // marinaMoji: Symbols Palette (Kaeriten/Symbols/User tabs) commit. Unlike
+  // InsertMacronVowel, any non-empty text is accepted as-is -- the palette
+  // is the source of truth for what's offered, not this method.
+  const absl::string_view text = command->input().command().text();
+  if (text.empty()) {
+    command->mutable_output()->set_consumed(false);
+    return false;
+  }
+  CommitStringDirectly(text, text, command);
   return true;
 }
 

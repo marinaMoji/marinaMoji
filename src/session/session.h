@@ -211,6 +211,9 @@ class Session {
   bool ShowOdorijiPalette(mozc::commands::Command* command);
   bool InsertOdorijiDefault(mozc::commands::Command* command);
   bool InsertMacronVowel(mozc::commands::Command* command);
+  // marinaMoji: Symbols Palette commit (Kaeriten/Symbols/User tabs) --
+  // inserts command.input().command().text() verbatim, no validation.
+  bool InsertSymbolText(mozc::commands::Command* command);
   bool ToggleFullHalfWidth(mozc::commands::Command* command);
 
   // Switch the composition mode.

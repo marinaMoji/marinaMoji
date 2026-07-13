@@ -480,6 +480,19 @@ message SessionCommand {
     // keymap shortcut), for platforms whose UI can only send SessionCommands
     // (e.g. the Windows floating toolbar) rather than raw KeyEvents.
     LAUNCH_CONFIG_DIALOG = 35;
+
+    // marinaMoji: insert arbitrary text (Symbols Palette's Kaeriten/Symbols/
+    // User tabs). |text| is committed as-is, unlike INSERT_MACRON_VOWEL which
+    // only accepts one of ten hardcoded vowel letters.
+    INSERT_SYMBOL_TEXT = 36;
+
+    // marinaMoji: open/close the Windows floating Symbols Palette window
+    // (distinct from SHOW_ODORIJI_PALETTE, which is the pre-existing
+    // candidate-window-based mini palette one of its tabs still uses). Pure
+    // local UI-visibility signal -- intercepted by the TIP before reaching
+    // the session/converter, never actually dispatched server-side.
+    SHOW_SYMBOLS_PALETTE = 37;
+    HIDE_SYMBOLS_PALETTE = 38;
   }
   required CommandType type = 1;
 

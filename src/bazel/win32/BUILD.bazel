@@ -58,6 +58,10 @@ mozc_win32_lib(
 )
 
 mozc_win32_lib(
+    name = "comctl32",
+)
+
+mozc_win32_lib(
     name = "aux_ulib",
 )
 

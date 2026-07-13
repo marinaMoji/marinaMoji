@@ -192,6 +192,7 @@ mozc_cc_library(
         ":win32_dpi_util",
         ":win32_image_util",
         ":win32_renderer_util",
+        "//base:const",
         "//base:coordinates",
         "//base:file_util",
         "//base:system_util",
@@ -205,6 +206,26 @@ mozc_cc_library(
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
         "@com_microsoft_wil//:wil",
+    ],
+)
+
+mozc_cc_library(
+    name = "symbols_palette_window",
+    srcs = ["symbols_palette_window.cc"],
+    hdrs = ["symbols_palette_window.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        "//base:const",
+        "//base:file_util",
+        "//base:system_util",
+        "//base/win32:wide_char",
+        "//bazel/win32:comctl32",
+        "//bazel/win32:user32",
+        "//client:client_interface",
+        "//protocol:commands_cc_proto",
+        "//protocol:renderer_cc_proto",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -280,6 +301,7 @@ mozc_cc_library(
         ":candidate_window",
         ":indicator_window",
         ":infolist_window",
+        ":symbols_palette_window",
         ":toolbar_window",
         ":win32_dpi_util",
         ":win32_renderer_util",

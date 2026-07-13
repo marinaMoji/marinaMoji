@@ -44,6 +44,7 @@
 #include "renderer/win32/candidate_window.h"
 #include "renderer/win32/indicator_window.h"
 #include "renderer/win32/infolist_window.h"
+#include "renderer/win32/symbols_palette_window.h"
 #include "renderer/win32/toolbar_window.h"
 #include "renderer/win32/win32_dpi_util.h"
 #include "renderer/win32/win32_renderer_util.h"
@@ -66,6 +67,7 @@ WindowManager::WindowManager()
       indicator_window_(std::make_unique<IndicatorWindow>()),
       infolist_window_(std::make_unique<InfolistWindow>()),
       toolbar_window_(std::make_unique<ToolbarWindow>()),
+      symbols_palette_window_(std::make_unique<SymbolsPaletteWindow>()),
       layout_manager_(std::make_unique<LayoutManager>()),
       send_command_interface_(nullptr),
       last_position_(kInvalidMousePosition),
@@ -87,6 +89,7 @@ void WindowManager::Initialize() {
   infolist_window_->Create(nullptr);
   infolist_window_->ShowWindow(SW_HIDE);
   toolbar_window_->Initialize();
+  symbols_palette_window_->Initialize();
 }
 
 void WindowManager::AsyncHideAllWindows() {
@@ -113,6 +116,7 @@ void WindowManager::DestroyAllWindows() {
     infolist_window_->DestroyWindow();
   }
   toolbar_window_->Destroy();
+  symbols_palette_window_->Destroy();
 }
 
 void WindowManager::HideAllWindows() {
@@ -121,6 +125,7 @@ void WindowManager::HideAllWindows() {
   indicator_window_->Hide();
   infolist_window_->DelayHide(0);
   toolbar_window_->Hide();
+  symbols_palette_window_->Hide();
 }
 
 // TODO(yukawa): Refactor this method by making a new method in LayoutManager
@@ -135,6 +140,11 @@ void WindowManager::UpdateLayout(const commands::RendererCommand& command) {
   // must be evaluated before the |!command.visible()| early-return below,
   // which is scoped to candidates/suggest/indicator only.
   toolbar_window_->OnUpdate(command);
+  // marinaMoji: same independent-of-|command.visible()| reasoning as the
+  // toolbar above -- the Symbols Palette's own presence is gated by
+  // SymbolsPaletteInfo (see tip_ui_handler_conventional.cc), not by
+  // candidate/suggest/indicator visibility.
+  symbols_palette_window_->OnUpdate(command);
 
   // Hide all UI elements if |command.visible()| is false.
   if (!command.visible()) {
@@ -420,6 +430,7 @@ void WindowManager::SetSendCommandInterface(
   cascading_window_->SetSendCommandInterface(send_command_interface);
   infolist_window_->SetSendCommandInterface(send_command_interface);
   toolbar_window_->SetSendCommandInterface(send_command_interface);
+  symbols_palette_window_->SetSendCommandInterface(send_command_interface);
 }
 
 void WindowManager::PreTranslateMessage(const MSG& message) {
