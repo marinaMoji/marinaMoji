@@ -475,6 +475,11 @@ message SessionCommand {
 
     // Open word-register dialog (same as Ctrl+0).
     LAUNCH_WORD_REGISTER_DIALOG = 34;
+
+    // marinaMoji: open the preferences dialog (same as the config_dialog
+    // keymap shortcut), for platforms whose UI can only send SessionCommands
+    // (e.g. the Windows floating toolbar) rather than raw KeyEvents.
+    LAUNCH_CONFIG_DIALOG = 35;
   }
   required CommandType type = 1;
 

@@ -152,6 +152,11 @@ bool FillVisibility(ITfUIElementMgr* ui_element_manager,
     // This bit does not mean that |command| requires the suggest window.
     visibility |= ApplicationInfo::ShowSuggestWindow;
   }
+  // marinaMoji: the floating toolbar shows whenever there is an active
+  // document context, independent of candidate/suggest visibility (mirrors
+  // mac/Linux: shown on focus, hidden on focus loss). UpdateCommand() clears
+  // this bit below when the TSF thread loses focus.
+  visibility |= ApplicationInfo::ShowToolbar;
   app_info->set_ui_visibilities(visibility);
 
   return true;
@@ -370,6 +375,10 @@ void UpdateCommand(TipTextService* text_service, ITfContext* context,
       text_service->GetThreadManager()->IsThreadFocus(&thread_focus);
   if (SUCCEEDED(hr) && (thread_focus == FALSE)) {
     command->set_visible(false);
+    // marinaMoji: also hide the floating toolbar, which is otherwise gated
+    // by |ShowToolbar| independent of |command->visible()|.
+    app_info->set_ui_visibilities(app_info->ui_visibilities() &
+                                  ~static_cast<int>(ApplicationInfo::ShowToolbar));
   }
 }
 

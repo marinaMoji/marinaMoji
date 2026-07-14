@@ -44,6 +44,7 @@
 #include "renderer/win32/candidate_window.h"
 #include "renderer/win32/indicator_window.h"
 #include "renderer/win32/infolist_window.h"
+#include "renderer/win32/toolbar_window.h"
 #include "renderer/win32/win32_dpi_util.h"
 #include "renderer/win32/win32_renderer_util.h"
 #include "renderer/window_util.h"
@@ -64,6 +65,7 @@ WindowManager::WindowManager()
       cascading_window_(std::make_unique<CandidateWindow>()),
       indicator_window_(std::make_unique<IndicatorWindow>()),
       infolist_window_(std::make_unique<InfolistWindow>()),
+      toolbar_window_(std::make_unique<ToolbarWindow>()),
       layout_manager_(std::make_unique<LayoutManager>()),
       send_command_interface_(nullptr),
       last_position_(kInvalidMousePosition),
@@ -84,6 +86,7 @@ void WindowManager::Initialize() {
   indicator_window_->Initialize();
   infolist_window_->Create(nullptr);
   infolist_window_->ShowWindow(SW_HIDE);
+  toolbar_window_->Initialize();
 }
 
 void WindowManager::AsyncHideAllWindows() {
@@ -109,6 +112,7 @@ void WindowManager::DestroyAllWindows() {
   if (infolist_window_->IsWindow()) {
     infolist_window_->DestroyWindow();
   }
+  toolbar_window_->Destroy();
 }
 
 void WindowManager::HideAllWindows() {
@@ -116,6 +120,7 @@ void WindowManager::HideAllWindows() {
   cascading_window_->ShowWindow(SW_HIDE);
   indicator_window_->Hide();
   infolist_window_->DelayHide(0);
+  toolbar_window_->Hide();
 }
 
 // TODO(yukawa): Refactor this method by making a new method in LayoutManager
@@ -123,6 +128,13 @@ void WindowManager::HideAllWindows() {
 //   and candidate windows.
 void WindowManager::UpdateLayout(const commands::RendererCommand& command) {
   typedef mozc::commands::RendererCommand::ApplicationInfo ApplicationInfo;
+
+  // marinaMoji: the toolbar has its own visibility rule (shown whenever the
+  // engine has focus, independent of candidate/suggest/indicator windows),
+  // driven by the ShowToolbar bit rather than |command.visible()| -- so it
+  // must be evaluated before the |!command.visible()| early-return below,
+  // which is scoped to candidates/suggest/indicator only.
+  toolbar_window_->OnUpdate(command);
 
   // Hide all UI elements if |command.visible()| is false.
   if (!command.visible()) {
@@ -407,6 +419,7 @@ void WindowManager::SetSendCommandInterface(
   main_window_->SetSendCommandInterface(send_command_interface);
   cascading_window_->SetSendCommandInterface(send_command_interface);
   infolist_window_->SetSendCommandInterface(send_command_interface);
+  toolbar_window_->SetSendCommandInterface(send_command_interface);
 }
 
 void WindowManager::PreTranslateMessage(const MSG& message) {

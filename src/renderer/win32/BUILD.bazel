@@ -183,6 +183,32 @@ mozc_cc_library(
 )
 
 mozc_cc_library(
+    name = "toolbar_window",
+    srcs = ["toolbar_window.cc"],
+    hdrs = ["toolbar_window.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        ":win32_dpi_util",
+        ":win32_image_util",
+        ":win32_renderer_util",
+        "//base:coordinates",
+        "//base:file_util",
+        "//base:system_util",
+        "//base/win32:wide_char",
+        "//bazel/win32:advapi32",
+        "//bazel/win32:gdi32",
+        "//bazel/win32:user32",
+        "//client:client_interface",
+        "//protocol:commands_cc_proto",
+        "//protocol:renderer_cc_proto",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+        "@com_microsoft_wil//:wil",
+    ],
+)
+
+mozc_cc_library(
     name = "text_renderer",
     srcs = ["text_renderer.cc"],
     hdrs = ["text_renderer.h"],
@@ -254,6 +280,7 @@ mozc_cc_library(
         ":candidate_window",
         ":indicator_window",
         ":infolist_window",
+        ":toolbar_window",
         ":win32_dpi_util",
         ":win32_renderer_util",
         "//base:coordinates",
@@ -285,6 +312,7 @@ mozc_cc_library(
         "//base/win32:wide_char",
         "//bazel/win32:gdi32",
         "//bazel/win32:user32",
+        "//bazel/win32:windowscodecs",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",

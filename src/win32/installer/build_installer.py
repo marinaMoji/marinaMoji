@@ -121,6 +121,11 @@ def run_wix4(args) -> None:
   opencc_characters = pathlib.Path(args.opencc_characters).resolve()
   opencc_phrases = pathlib.Path(args.opencc_phrases).resolve()
   opencc_variants = pathlib.Path(args.opencc_variants).resolve()
+  # All toolbar_icons/*.png live alongside this one sample file (see
+  # data/images/win/generate_toolbar_icons.py); only its parent directory is
+  # needed since installer_marinamoji_64bit.wxs references each file by its
+  # literal name under $(var.ToolbarIconsDir).
+  toolbar_icons_dir = pathlib.Path(args.toolbar_icons_sample).resolve().parent
   wix_path = pathlib.Path(args.wix_path).resolve()
 
   branding = args.branding
@@ -170,6 +175,7 @@ def run_wix4(args) -> None:
       '-define', f'OpenccCharactersPath={opencc_characters}',
       '-define', f'OpenccPhrasesPath={opencc_phrases}',
       '-define', f'OpenccVariantsPath={opencc_variants}',
+      '-define', f'ToolbarIconsDir={toolbar_icons_dir}',
       '-define', f'DocumentsDir={document_dir}',
       '-define', f'QtDir={qt_dir}',
       '-define', 'QtVer=6',
@@ -207,6 +213,7 @@ def main():
   parser.add_argument('--opencc_characters', type=str)
   parser.add_argument('--opencc_phrases', type=str)
   parser.add_argument('--opencc_variants', type=str)
+  parser.add_argument('--toolbar_icons_sample', type=str)
   parser.add_argument('--icon_path', type=str)
   parser.add_argument('--credit_file', type=str)
   parser.add_argument('--qt_core_dll', type=str)

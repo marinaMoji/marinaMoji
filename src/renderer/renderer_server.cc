@@ -94,10 +94,22 @@ class RendererServerSendCommand : public client::SendCommandInterface {
   bool SendCommand(const mozc::commands::SessionCommand& command,
                    mozc::commands::Output* output) override {
 #ifdef _WIN32
-    if ((command.type() != commands::SessionCommand::SELECT_CANDIDATE) &&
-        (command.type() != commands::SessionCommand::HIGHLIGHT_CANDIDATE)) {
-      // Unsupported command.
-      return false;
+    switch (command.type()) {
+      case commands::SessionCommand::SELECT_CANDIDATE:
+      case commands::SessionCommand::HIGHLIGHT_CANDIDATE:
+      case commands::SessionCommand::SWITCH_COMPOSITION_MODE:
+      case commands::SessionCommand::TURN_OFF_IME:
+      case commands::SessionCommand::TOGGLE_TRADITIONAL_KANJI:
+      case commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
+      case commands::SessionCommand::LAUNCH_CONFIG_DIALOG:
+        // marinaMoji: floating toolbar button clicks (mode switch, shin-kyu
+        // toggle, dict, settings) in addition to the original candidate
+        // click commands. This channel only carries (type, id) — see below
+        // for how |id| is repurposed to carry the composition mode.
+        break;
+      default:
+        // Unsupported command.
+        return false;
     }
 
     HWND target = WinUtil::DecodeWindowHandle(receiver_handle_);

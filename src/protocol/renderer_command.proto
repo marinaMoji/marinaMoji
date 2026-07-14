@@ -131,6 +131,8 @@ message RendererCommand {
       reserved "ShowCompositionWindow";
       ShowCandidateWindow = 2;
       ShowSuggestWindow = 4;
+      // marinaMoji: floating branded toolbar (mode/shin-kyu/dict/settings).
+      ShowToolbar = 8;
     }
     // used in Windows:
     optional int32 ui_visibilities = 9 [default = 0];  // ShowUIDefault

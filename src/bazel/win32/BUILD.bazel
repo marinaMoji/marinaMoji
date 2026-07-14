@@ -54,6 +54,10 @@ bzl_library(
 )
 
 mozc_win32_lib(
+    name = "advapi32",
+)
+
+mozc_win32_lib(
     name = "aux_ulib",
 )
 
@@ -103,4 +107,8 @@ mozc_win32_lib(
 
 mozc_win32_lib(
     name = "user32",
+)
+
+mozc_win32_lib(
+    name = "windowscodecs",
 )

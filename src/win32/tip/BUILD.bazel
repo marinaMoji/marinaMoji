@@ -777,6 +777,7 @@ mozc_cc_library(
         "//win32/base:conversion_mode_util",
         "//win32/base:deleter",
         "//win32/base:input_state",
+        "//win32/base:keyevent_handler",
         "//win32/base:string_util",
         "@com_google_absl//absl/log:check",
         "@com_microsoft_wil//:wil",

@@ -180,6 +180,102 @@
       <ComponentRef Id="MarinaMojiOpenccPhrases" />
       <ComponentRef Id="MarinaMojiOpenccVariants" />
       <ComponentRef Id="MarinaMojiSync" />
+      <ComponentRef Id="MMToolbarIcon_logo_long_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_logo_long_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_logo_long_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_logo_long_light_24" />
+      <ComponentRef Id="MMToolbarIcon_logo_long_light_36" />
+      <ComponentRef Id="MMToolbarIcon_logo_long_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_dict_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_dict_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_dict_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_dict_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_dict_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_dict_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_dark_lock_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_dark_lock_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_dark_lock_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_light_lock_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_light_lock_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_light_lock_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_dark_lock_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_dark_lock_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_dark_lock_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_half_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_half_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_half_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_half_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_half_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_half_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_light_lock_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_light_lock_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_light_lock_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kyu_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kyu_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kyu_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kyu_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kyu_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kyu_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_full_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_full_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_full_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_full_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_full_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_full_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_half_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_half_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_half_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_half_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_half_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_half_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_dark_lock_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_dark_lock_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_dark_lock_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_light_lock_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_light_lock_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_light_lock_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_settings_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_settings_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_settings_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_settings_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_settings_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_settings_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shin_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shin_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shin_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shin_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shin_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shin_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shortcuts_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shortcuts_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shortcuts_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shortcuts_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shortcuts_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shortcuts_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_symbols_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_symbols_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_symbols_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_symbols_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_symbols_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_symbols_light_48" />
     </Feature>
 
     <Binary Id="marinamoji_installer_helper.dll" SourceFile="$(var.CustomActions64Path)" />
@@ -407,6 +503,304 @@
           </Component>
           <Component Id="MarinaMojiOpenccVariants">
             <File Id="marinaShin2KyuVariants.ocd2" Name="marinaShin2KyuVariants.ocd2" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.OpenccVariantsPath)" />
+          </Component>
+        </Directory>
+        <!--
+          Pre-rendered PNG toolbar icons for the floating toolbar (see
+          renderer/win32/toolbar_window.cc). Path must match
+          SystemUtil::GetServerDirectory() + "/toolbar_icons/", i.e. sit next
+          to marinamoji_renderer.exe. Generated from src/unix/ibus/toolbar_
+          icons/*.svg by src/data/images/win/generate_toolbar_icons.py
+          (Windows has no SVG decoder, unlike mac/Linux).
+        -->
+        <Directory Id="ToolbarIconsDir" Name="toolbar_icons">
+          <Component Id="MMToolbarIcon_logo_long_dark_24">
+            <File Id="logo_long_dark_24.png" Name="logo_long_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/logo_long_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_logo_long_dark_36">
+            <File Id="logo_long_dark_36.png" Name="logo_long_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/logo_long_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_logo_long_dark_48">
+            <File Id="logo_long_dark_48.png" Name="logo_long_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/logo_long_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_logo_long_light_24">
+            <File Id="logo_long_light_24.png" Name="logo_long_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/logo_long_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_logo_long_light_36">
+            <File Id="logo_long_light_36.png" Name="logo_long_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/logo_long_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_logo_long_light_48">
+            <File Id="logo_long_light_48.png" Name="logo_long_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/logo_long_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_dict_dark_24">
+            <File Id="toolbar_dict_dark_24.png" Name="toolbar_dict_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_dict_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_dict_dark_36">
+            <File Id="toolbar_dict_dark_36.png" Name="toolbar_dict_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_dict_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_dict_dark_48">
+            <File Id="toolbar_dict_dark_48.png" Name="toolbar_dict_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_dict_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_dict_light_24">
+            <File Id="toolbar_dict_light_24.png" Name="toolbar_dict_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_dict_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_dict_light_36">
+            <File Id="toolbar_dict_light_36.png" Name="toolbar_dict_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_dict_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_dict_light_48">
+            <File Id="toolbar_dict_light_48.png" Name="toolbar_dict_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_dict_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_dark_24">
+            <File Id="toolbar_hira_dark_24.png" Name="toolbar_hira_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_dark_36">
+            <File Id="toolbar_hira_dark_36.png" Name="toolbar_hira_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_dark_48">
+            <File Id="toolbar_hira_dark_48.png" Name="toolbar_hira_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_dark_lock_24">
+            <File Id="toolbar_hira_dark_lock_24.png" Name="toolbar_hira_dark_lock_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_dark_lock_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_dark_lock_36">
+            <File Id="toolbar_hira_dark_lock_36.png" Name="toolbar_hira_dark_lock_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_dark_lock_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_dark_lock_48">
+            <File Id="toolbar_hira_dark_lock_48.png" Name="toolbar_hira_dark_lock_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_dark_lock_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_light_24">
+            <File Id="toolbar_hira_light_24.png" Name="toolbar_hira_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_light_36">
+            <File Id="toolbar_hira_light_36.png" Name="toolbar_hira_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_light_48">
+            <File Id="toolbar_hira_light_48.png" Name="toolbar_hira_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_light_lock_24">
+            <File Id="toolbar_hira_light_lock_24.png" Name="toolbar_hira_light_lock_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_light_lock_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_light_lock_36">
+            <File Id="toolbar_hira_light_lock_36.png" Name="toolbar_hira_light_lock_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_light_lock_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_light_lock_48">
+            <File Id="toolbar_hira_light_lock_48.png" Name="toolbar_hira_light_lock_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_light_lock_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_dark_24">
+            <File Id="toolbar_kata_dark_24.png" Name="toolbar_kata_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_dark_36">
+            <File Id="toolbar_kata_dark_36.png" Name="toolbar_kata_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_dark_48">
+            <File Id="toolbar_kata_dark_48.png" Name="toolbar_kata_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_dark_lock_24">
+            <File Id="toolbar_kata_dark_lock_24.png" Name="toolbar_kata_dark_lock_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_dark_lock_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_dark_lock_36">
+            <File Id="toolbar_kata_dark_lock_36.png" Name="toolbar_kata_dark_lock_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_dark_lock_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_dark_lock_48">
+            <File Id="toolbar_kata_dark_lock_48.png" Name="toolbar_kata_dark_lock_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_dark_lock_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_half_dark_24">
+            <File Id="toolbar_kata_half_dark_24.png" Name="toolbar_kata_half_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_half_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_half_dark_36">
+            <File Id="toolbar_kata_half_dark_36.png" Name="toolbar_kata_half_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_half_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_half_dark_48">
+            <File Id="toolbar_kata_half_dark_48.png" Name="toolbar_kata_half_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_half_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_half_light_24">
+            <File Id="toolbar_kata_half_light_24.png" Name="toolbar_kata_half_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_half_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_half_light_36">
+            <File Id="toolbar_kata_half_light_36.png" Name="toolbar_kata_half_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_half_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_half_light_48">
+            <File Id="toolbar_kata_half_light_48.png" Name="toolbar_kata_half_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_half_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_light_24">
+            <File Id="toolbar_kata_light_24.png" Name="toolbar_kata_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_light_36">
+            <File Id="toolbar_kata_light_36.png" Name="toolbar_kata_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_light_48">
+            <File Id="toolbar_kata_light_48.png" Name="toolbar_kata_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_light_lock_24">
+            <File Id="toolbar_kata_light_lock_24.png" Name="toolbar_kata_light_lock_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_light_lock_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_light_lock_36">
+            <File Id="toolbar_kata_light_lock_36.png" Name="toolbar_kata_light_lock_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_light_lock_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_light_lock_48">
+            <File Id="toolbar_kata_light_lock_48.png" Name="toolbar_kata_light_lock_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_light_lock_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kyu_dark_24">
+            <File Id="toolbar_kyu_dark_24.png" Name="toolbar_kyu_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kyu_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kyu_dark_36">
+            <File Id="toolbar_kyu_dark_36.png" Name="toolbar_kyu_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kyu_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kyu_dark_48">
+            <File Id="toolbar_kyu_dark_48.png" Name="toolbar_kyu_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kyu_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kyu_light_24">
+            <File Id="toolbar_kyu_light_24.png" Name="toolbar_kyu_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kyu_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kyu_light_36">
+            <File Id="toolbar_kyu_light_36.png" Name="toolbar_kyu_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kyu_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kyu_light_48">
+            <File Id="toolbar_kyu_light_48.png" Name="toolbar_kyu_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kyu_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_full_dark_24">
+            <File Id="toolbar_roma_full_dark_24.png" Name="toolbar_roma_full_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_full_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_full_dark_36">
+            <File Id="toolbar_roma_full_dark_36.png" Name="toolbar_roma_full_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_full_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_full_dark_48">
+            <File Id="toolbar_roma_full_dark_48.png" Name="toolbar_roma_full_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_full_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_full_light_24">
+            <File Id="toolbar_roma_full_light_24.png" Name="toolbar_roma_full_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_full_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_full_light_36">
+            <File Id="toolbar_roma_full_light_36.png" Name="toolbar_roma_full_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_full_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_full_light_48">
+            <File Id="toolbar_roma_full_light_48.png" Name="toolbar_roma_full_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_full_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_half_dark_24">
+            <File Id="toolbar_roma_half_dark_24.png" Name="toolbar_roma_half_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_half_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_half_dark_36">
+            <File Id="toolbar_roma_half_dark_36.png" Name="toolbar_roma_half_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_half_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_half_dark_48">
+            <File Id="toolbar_roma_half_dark_48.png" Name="toolbar_roma_half_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_half_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_half_light_24">
+            <File Id="toolbar_roma_half_light_24.png" Name="toolbar_roma_half_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_half_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_half_light_36">
+            <File Id="toolbar_roma_half_light_36.png" Name="toolbar_roma_half_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_half_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_half_light_48">
+            <File Id="toolbar_roma_half_light_48.png" Name="toolbar_roma_half_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_half_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_dark_24">
+            <File Id="toolbar_roman_dark_24.png" Name="toolbar_roman_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_dark_36">
+            <File Id="toolbar_roman_dark_36.png" Name="toolbar_roman_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_dark_48">
+            <File Id="toolbar_roman_dark_48.png" Name="toolbar_roman_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_dark_lock_24">
+            <File Id="toolbar_roman_dark_lock_24.png" Name="toolbar_roman_dark_lock_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_dark_lock_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_dark_lock_36">
+            <File Id="toolbar_roman_dark_lock_36.png" Name="toolbar_roman_dark_lock_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_dark_lock_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_dark_lock_48">
+            <File Id="toolbar_roman_dark_lock_48.png" Name="toolbar_roman_dark_lock_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_dark_lock_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_light_24">
+            <File Id="toolbar_roman_light_24.png" Name="toolbar_roman_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_light_36">
+            <File Id="toolbar_roman_light_36.png" Name="toolbar_roman_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_light_48">
+            <File Id="toolbar_roman_light_48.png" Name="toolbar_roman_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_light_lock_24">
+            <File Id="toolbar_roman_light_lock_24.png" Name="toolbar_roman_light_lock_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_light_lock_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_light_lock_36">
+            <File Id="toolbar_roman_light_lock_36.png" Name="toolbar_roman_light_lock_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_light_lock_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_light_lock_48">
+            <File Id="toolbar_roman_light_lock_48.png" Name="toolbar_roman_light_lock_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_light_lock_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_settings_dark_24">
+            <File Id="toolbar_settings_dark_24.png" Name="toolbar_settings_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_settings_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_settings_dark_36">
+            <File Id="toolbar_settings_dark_36.png" Name="toolbar_settings_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_settings_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_settings_dark_48">
+            <File Id="toolbar_settings_dark_48.png" Name="toolbar_settings_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_settings_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_settings_light_24">
+            <File Id="toolbar_settings_light_24.png" Name="toolbar_settings_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_settings_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_settings_light_36">
+            <File Id="toolbar_settings_light_36.png" Name="toolbar_settings_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_settings_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_settings_light_48">
+            <File Id="toolbar_settings_light_48.png" Name="toolbar_settings_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_settings_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shin_dark_24">
+            <File Id="toolbar_shin_dark_24.png" Name="toolbar_shin_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shin_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shin_dark_36">
+            <File Id="toolbar_shin_dark_36.png" Name="toolbar_shin_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shin_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shin_dark_48">
+            <File Id="toolbar_shin_dark_48.png" Name="toolbar_shin_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shin_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shin_light_24">
+            <File Id="toolbar_shin_light_24.png" Name="toolbar_shin_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shin_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shin_light_36">
+            <File Id="toolbar_shin_light_36.png" Name="toolbar_shin_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shin_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shin_light_48">
+            <File Id="toolbar_shin_light_48.png" Name="toolbar_shin_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shin_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shortcuts_dark_24">
+            <File Id="toolbar_shortcuts_dark_24.png" Name="toolbar_shortcuts_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shortcuts_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shortcuts_dark_36">
+            <File Id="toolbar_shortcuts_dark_36.png" Name="toolbar_shortcuts_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shortcuts_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shortcuts_dark_48">
+            <File Id="toolbar_shortcuts_dark_48.png" Name="toolbar_shortcuts_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shortcuts_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shortcuts_light_24">
+            <File Id="toolbar_shortcuts_light_24.png" Name="toolbar_shortcuts_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shortcuts_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shortcuts_light_36">
+            <File Id="toolbar_shortcuts_light_36.png" Name="toolbar_shortcuts_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shortcuts_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shortcuts_light_48">
+            <File Id="toolbar_shortcuts_light_48.png" Name="toolbar_shortcuts_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shortcuts_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_symbols_dark_24">
+            <File Id="toolbar_symbols_dark_24.png" Name="toolbar_symbols_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_symbols_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_symbols_dark_36">
+            <File Id="toolbar_symbols_dark_36.png" Name="toolbar_symbols_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_symbols_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_symbols_dark_48">
+            <File Id="toolbar_symbols_dark_48.png" Name="toolbar_symbols_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_symbols_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_symbols_light_24">
+            <File Id="toolbar_symbols_light_24.png" Name="toolbar_symbols_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_symbols_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_symbols_light_36">
+            <File Id="toolbar_symbols_light_36.png" Name="toolbar_symbols_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_symbols_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_symbols_light_48">
+            <File Id="toolbar_symbols_light_48.png" Name="toolbar_symbols_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_symbols_light_48.png" />
           </Component>
         </Directory>
       </Directory>

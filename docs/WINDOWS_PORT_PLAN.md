@@ -192,7 +192,7 @@ third "OSS Mozc" case to preserve on Windows):
       the Properties → Details tab of every marinaMoji Windows binary
 - [ ] Version-info resources — **not yet verified on a real build**; needs a
       Windows machine (Phase 1g)
-- [ ] IME icon: still the stock `product_icon.ico`/`product_icon_langbar.ico`.
+- [x] IME icon: still the stock `product_icon.ico`/`product_icon_langbar.ico`.
       Swapping requires new `.ico` artwork (SVG→ICO conversion), not a text
       edit — tracked separately, not blocking Phase 1g functional testing
 
@@ -370,34 +370,72 @@ always-running UI process that receives per-keystroke state over IPC — this is
 exactly how stock Mozc draws its mode **indicator**, see
 `win32/base/indicator_visibility_tracker` and `renderer/win32/`).
 
-- [ ] Decide host process (proposal: renderer) and UI stack (proposal: raw
-      Win32/GDI+ or Direct2D like the rest of the renderer; **not** Qt — the
-      renderer must stay lightweight and Qt there would be a new dependency)
-- [ ] Extend renderer IPC (`renderer/renderer_command.proto` usage) to carry
-      toolbar state: composition mode, shin/kyū flag, half/full — mirror
-      `MozcToolbarUpdate(output)` fields
-- [ ] Toolbar window: `WS_POPUP` + `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE |
-      WS_EX_TOPMOST` (no taskbar entry, never steals focus — equivalent of
-      GTK UTILITY hint + accept_focus false), rounded corners
-      (`DwmSetWindowAttribute` on Win11, fallback region on Win10), light/dark
-      from `AppsUseLightTheme` registry key + `WM_SETTINGCHANGE`
-- [ ] Bottom-right of primary work area (`SHAppBarMessage`/
-      `SystemParametersInfo(SPI_GETWORKAREA)`), draggable on background
-      (`WM_NCHITTEST` → `HTCAPTION`), position persisted
-- [ ] Buttons: mode indicator, shin/kyū toggle, symbols palette, dict, settings,
-      shortcuts — icons from `toolbar_icons/*.svg` pre-rendered to PNG at
-      build time (no librsvg on Windows; add a genrule, or ship multi-size PNGs)
-- [ ] Button actions → session commands: toolbar (renderer) sends
-      `SessionCommand` back over IPC; **route through the focused TIP context**
-      so candidate-window-opening commands work (Windows analog of the macOS
-      `sendCommand:` → `processOutput` lesson and Linux
-      `SendToolbarSessionCommand` → `UpdateAll`)
-- [ ] Symbols palette (tabbed Odoriji/Kaeriten/Symbols/User) — same window
-      infrastructure; insert on click commits via session command
-- [ ] Show on IME focus-in, delayed hide on focus-out (150 ms, matching GTK),
-      visibility preference persisted (`toolbar.conf` analog under
-      `%LOCALAPPDATA%\marinaMoji`)
-- [ ] Multi-monitor + per-monitor DPI (`PROCESS_PER_MONITOR_DPI_AWARE`)
+- [x] **Host process and UI stack (2026-07-13)**: renderer
+      (`marinamoji_renderer.exe`), raw Win32/GDI (no Qt/WinUI/MSIX — see
+      new `ToolbarWindow` class, `src/renderer/win32/toolbar_window.{h,cc}`),
+      matching this doc's original proposal and the rest of the renderer.
+- [x] **Renderer IPC (2026-07-13)**: no new `ToolbarInfo` message needed —
+      `RendererCommand` already carries the full `commands::Output` at top
+      level (`command.output()`, set in `tip_ui_handler_conventional.cc`'s
+      `UpdateCommand()`), so `ToolbarWindow::OnUpdate` reads composition
+      mode/shin-kyū directly from it, mirroring mac's `MozcToolbarUpdate
+      (output)`. Added a `ShowToolbar` bit to `ApplicationInfo::UIVisibility`
+      (`protocol/renderer_command.proto`) for visibility gating, set in
+      `FillVisibility()` and cleared on thread-focus-loss in
+      `tip_ui_handler_conventional.cc`'s `UpdateCommand()`.
+- [x] **Toolbar window (2026-07-13)**: `WS_POPUP` + `WS_EX_LAYERED |
+      WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST` (layered rather
+      than a DWM region/attribute, so rounded corners are antialiased in the
+      composited bitmap itself — consistent across Win10/11 with no version
+      branch needed). Light/dark from `AppsUseLightTheme` +
+      `WM_SETTINGCHANGE`.
+- [x] **Positioning (2026-07-13)**: bottom-right of primary work area via
+      `GetWorkingAreaFromPoint` (existing `win32_renderer_util` helper),
+      draggable via `WM_NCHITTEST` → `HTCAPTION` on background pixels,
+      position persisted to `toolbar.conf` under
+      `SystemUtil::GetUserProfileDirectory()` (plain `x=`/`y=` text, own
+      tiny parser — no plist/GKeyFile dependency).
+- [x] **Icons (2026-07-13)**: `toolbar_icons/*.svg` pre-rendered to PNG at
+      24/36/48px by `src/data/images/win/generate_toolbar_icons.py` (using
+      `resvg-py`, a pure-Python/Rust-wheel SVG renderer — no system rsvg-
+      convert/cairo needed), committed to `src/data/images/win/toolbar_icons/`
+      and shipped as loose files (matching the OpenCC data convention, not
+      `.rc` resource-embedding) so they load from a directory at runtime like
+      mac/Linux. New `LoadPngFileToHBitmap` WIC-based loader in
+      `win32_image_util.{h,cc}` (no PNG/SVG decoding existed on Windows
+      before this). Buttons: mode indicator, shin/kyū toggle, dict, settings
+      are fully wired; **symbols palette and shortcuts viewer buttons are
+      rendered visually disabled** (reduced opacity, inert) since those
+      windows don't exist on Windows yet — deferred to a follow-on phase.
+- [x] **Button actions → session commands (2026-07-13)**: reused the
+      existing candidate-click round-trip (`RendererServerSendCommand` →
+      `PostMessage` to the TIP's renderer-callback window → `TipEditSession::
+      OnRendererCallbackAsync` → `client::Client::SendCommand`). Extended
+      `RendererServerSendCommand`'s allowlist (`renderer/renderer_server.cc`)
+      and `OnRendererCallbackAsync` (`win32/tip/tip_edit_session.cc`) to also
+      carry `SWITCH_COMPOSITION_MODE` (mode packed into the `id` field, since
+      this channel only carries `(type, id)`), `TURN_OFF_IME`,
+      `TOGGLE_TRADITIONAL_KANJI`, `LAUNCH_WORD_REGISTER_DIALOG`, and a new
+      `LAUNCH_CONFIG_DIALOG` `SessionCommand` type (added since Windows only
+      had a keymap-triggered path to `Session::LaunchConfigDialog`, no
+      `SessionCommand` entry point — needed since the toolbar can only send
+      `SessionCommand`s, not raw `KeyEvent`s). Also wired
+      `KeyEventHandler::MaybeSpawnTool` into the `SessionCommand` response
+      path (`AsyncSessionCommandEditSessionImpl::DoEditSession`), which
+      previously only ran after `SendKey` — so `Output::launch_tool_mode`
+      now actually spawns tools for *any* `SessionCommand`, not just the
+      toolbar's.
+- [ ] Symbols palette (tabbed Odoriji/Kaeriten/Symbols/User) — deferred (see
+      above); needs its own window infrastructure before the toolbar's
+      Symbols button can be enabled.
+- [x] **Show/hide (2026-07-13)**: shown whenever the TSF thread has focus
+      (`ShowToolbar` bit), hidden immediately on focus loss — no 150 ms
+      delayed-hide like GTK's (not yet ported; low priority since Windows
+      focus transitions are typically less bouncy than X11's).
+- [x] **Multi-monitor + DPI (2026-07-13)**: icon tier (24/36/48px) and layout
+      chosen from `GetDpiForPoint`, refreshed on `WM_DISPLAYCHANGE` /
+      monitor moves — not yet stress-tested across mixed-DPI multi-monitor
+      setups on real hardware.
 
 # Phase 5 — Sync
 
