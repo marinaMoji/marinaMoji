@@ -52,6 +52,7 @@ struct StaticConfigSnapshot {
   bool use_mode_indicator;
   size_t num_direct_mode_keys;
   KeyInformation direct_mode_keys[kMaxDirectModeKeys];
+  config::MarinaKeyboardLayout marina_keyboard_layout;
 };
 
 StaticConfigSnapshot GetConfigSnapshotImpl() {
@@ -63,6 +64,7 @@ StaticConfigSnapshot GetConfigSnapshotImpl() {
   snapshot.use_keyboard_to_change_preedit_method =
       config->use_keyboard_to_change_preedit_method();
   snapshot.use_mode_indicator = config->use_mode_indicator();
+  snapshot.marina_keyboard_layout = config->marina_keyboard_layout();
 
   const auto& direct_mode_keys =
       KeyInfoUtil::ExtractSortedDirectModeKeys(*config);
@@ -81,7 +83,8 @@ StaticConfigSnapshot GetConfigSnapshotImpl() {
 ConfigSnapshot::Info::Info()
     : use_kana_input(false),
       use_keyboard_to_change_preedit_method(false),
-      use_mode_indicator(false) {}
+      use_mode_indicator(false),
+      marina_keyboard_layout(config::MARINA_KBD_OS_DEFAULT) {}
 
 // static
 bool ConfigSnapshot::Get(Info* info) {
@@ -91,6 +94,7 @@ bool ConfigSnapshot::Get(Info* info) {
   info->use_keyboard_to_change_preedit_method =
       cached_snapshot.use_keyboard_to_change_preedit_method;
   info->use_mode_indicator = cached_snapshot.use_mode_indicator;
+  info->marina_keyboard_layout = cached_snapshot.marina_keyboard_layout;
   info->direct_mode_keys.resize(cached_snapshot.num_direct_mode_keys);
   for (size_t i = 0; i < cached_snapshot.num_direct_mode_keys; ++i) {
     info->direct_mode_keys[i] = cached_snapshot.direct_mode_keys[i];

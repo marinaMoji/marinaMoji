@@ -297,8 +297,8 @@
     <CustomAction Id="StopCacheServiceForRollback" DllEntry="StopCacheService" Impersonate="no" Execute="rollback" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
     <!--
       Registers/unregisters the per-user Task Scheduler logon task that runs
-      marinamoji_sync.exe --daemon (see docs/WINDOWS_PORT_PLAN.md Phase 5 and
-      win32/base/task_scheduler_util.h). Impersonate="yes" so the task is
+      marinamoji_sync.exe in daemon mode (see docs/WINDOWS_PORT_PLAN.md Phase 5
+      and win32/base/task_scheduler_util.h). Impersonate="yes" so the task is
       registered under the installing user's own account, matching
       EnableTipProfile/RestoreUserIMEEnvironment above.
     -->

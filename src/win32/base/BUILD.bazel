@@ -207,6 +207,7 @@ mozc_cc_library(
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
         ":keyboard",
+        "//protocol:config_cc_proto",
         "//session:key_info_util",
     ],
 )
@@ -236,6 +237,30 @@ mozc_cc_test(
 )
 
 mozc_cc_library(
+    name = "keyboard_layout_tables",
+    srcs = ["keyboard_layout_tables.cc"],
+    hdrs = ["keyboard_layout_tables.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        ":keyboard",
+        "//protocol:config_cc_proto",
+    ],
+)
+
+mozc_cc_test(
+    name = "keyboard_layout_tables_test",
+    srcs = ["keyboard_layout_tables_test.cc"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        ":keyboard_layout_tables",
+        "//protocol:config_cc_proto",
+        "//testing:gunit_main",
+    ],
+)
+
+mozc_cc_library(
     name = "keyevent_handler",
     srcs = ["keyevent_handler.cc"],
     hdrs = ["keyevent_handler.h"],
@@ -245,11 +270,13 @@ mozc_cc_library(
         ":conversion_mode_util",
         ":input_state",
         ":keyboard",
+        ":keyboard_layout_tables",
         "//base:japanese_util",
         "//base:util",
         "//base/win32:wide_char",
         "//client:client_interface",
         "//protocol:commands_cc_proto",
+        "//protocol:config_cc_proto",
         "//session:key_info_util",
         "@com_google_absl//absl/log:check",
     ],

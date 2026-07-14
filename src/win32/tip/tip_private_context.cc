@@ -94,6 +94,7 @@ void TipPrivateContext::EnsureInitialized() {
     behavior->use_romaji_key_to_toggle_input_style =
         snapshot.use_keyboard_to_change_preedit_method;
     behavior->use_mode_indicator = snapshot.use_mode_indicator;
+    behavior->marina_keyboard_layout = snapshot.marina_keyboard_layout;
     behavior->direct_mode_keys = snapshot.direct_mode_keys;
     behavior->initialized = true;
   }

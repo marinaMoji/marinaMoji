@@ -34,6 +34,7 @@
 
 #include <vector>
 
+#include "protocol/config.pb.h"
 #include "session/key_info_util.h"
 #include "win32/base/keyboard.h"
 
@@ -60,6 +61,8 @@ struct InputBehavior {
   bool use_mode_indicator = false;
   bool use_romaji_key_to_toggle_input_style = false;
   std::vector<KeyInformation> direct_mode_keys;
+  config::MarinaKeyboardLayout marina_keyboard_layout =
+      config::MARINA_KBD_OS_DEFAULT;
 };
 
 }  // namespace win32

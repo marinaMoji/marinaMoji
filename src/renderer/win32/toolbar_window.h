@@ -17,6 +17,13 @@
 #include <wil/resource.h>
 #include <windows.h>
 
+// atlbase.h pulls in <shlwapi.h>, which #defines StrCat to StrCatW (a real
+// WinAPI path-string function) under UNICODE builds. Left unchecked, this
+// silently rewrites every absl::StrCat(...) call in any translation unit
+// that includes this header into absl::StrCatW(...), which doesn't exist
+// and fails at link time instead of compile time.
+#undef StrCat
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -75,7 +82,6 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   void SetSendCommandInterface(
       client::SendCommandInterface* send_command_interface);
 
- private:
   enum class ButtonId {
     kMode = 0,
     kTraditionalKanji,
@@ -86,6 +92,7 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
     kNumButtons,
   };
 
+ private:
   LRESULT OnCreate(LPCREATESTRUCT create_struct);
   void OnLButtonDown(UINT flags, CPoint point);
   void OnLButtonUp(UINT flags, CPoint point);

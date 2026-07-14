@@ -333,6 +333,7 @@ mozc_cc_library(
         "//base:coordinates",
         "//base/win32:wide_char",
         "//bazel/win32:gdi32",
+        "//bazel/win32:ole32",
         "//bazel/win32:user32",
         "//bazel/win32:windowscodecs",
         "@com_google_absl//absl/base:core_headers",

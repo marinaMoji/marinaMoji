@@ -42,10 +42,12 @@
 #include "base/win32/wide_char.h"
 #include "client/client_interface.h"
 #include "protocol/commands.pb.h"
+#include "protocol/config.pb.h"
 #include "session/key_info_util.h"
 #include "win32/base/conversion_mode_util.h"
 #include "win32/base/input_state.h"
 #include "win32/base/keyboard.h"
+#include "win32/base/keyboard_layout_tables.h"
 
 namespace mozc {
 namespace win32 {
@@ -554,6 +556,20 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
   if (is_vk_alpha) {
     const char keycode = static_cast<char>(virtual_key.virtual_key());
     const size_t index = (keycode - 'A');
+    // marinaMoji: when a fixed romaji keyboard layout is selected (see
+    // config.proto's MarinaKeyboardLayout), resolve this VK against that
+    // layout's table instead of assuming a US/QWERTY-position keyboard.
+    // MARINA_KBD_OS_DEFAULT keeps the exact upstream behavior below.
+    wchar_t lower_char = 'a' + index;
+    wchar_t upper_char = 'A' + index;
+    if (behavior.marina_keyboard_layout != config::MARINA_KBD_OS_DEFAULT) {
+      lower_char = RomajiKeyboardLayoutEmulator::GetCharacterForKeyDown(
+          behavior.marina_keyboard_layout, virtual_key.virtual_key(),
+          /*shift=*/false, /*capslock=*/false);
+      upper_char = RomajiKeyboardLayoutEmulator::GetCharacterForKeyDown(
+          behavior.marina_keyboard_layout, virtual_key.virtual_key(),
+          /*shift=*/true, /*capslock=*/false);
+    }
     if (keyboard_status_wo_kana_lock.IsToggled(VK_CAPITAL)) {
       // CapsLock is enabled.
       modifer_keys->insert(KeyEvent::CAPS);
@@ -561,9 +577,9 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
         if (!keyboard_status_wo_kana_lock.IsPressed(VK_CONTROL)) {
           modifer_keys->erase(KeyEvent::SHIFT);
         }
-        key->set_key_code('a' + index);
+        key->set_key_code(lower_char);
       } else {
-        key->set_key_code('A' + index);
+        key->set_key_code(upper_char);
       }
       if (keyboard_status_wo_kana_lock.IsPressed(VK_CONTROL)) {
         modifer_keys->insert(KeyEvent::CTRL);
@@ -576,17 +592,17 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
     DCHECK(!keyboard_status_wo_kana_lock.IsPressed(VK_CAPITAL));
     if (keyboard_status_wo_kana_lock.IsPressed(VK_CONTROL)) {
       modifer_keys->insert(KeyEvent::CTRL);
-      key->set_key_code('a' + index);
+      key->set_key_code(lower_char);
       return true;
     }
     if (keyboard_status_wo_kana_lock.IsPressed(VK_SHIFT)) {
       // In this cases, SHIFT modifier should be removed.
       modifer_keys->erase(KeyEvent::SHIFT);
-      key->set_key_code('A' + index);
+      key->set_key_code(upper_char);
       return true;
     }
 
-    key->set_key_code('a' + index);
+    key->set_key_code(lower_char);
     return true;
   }
 
@@ -611,6 +627,28 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
     keyboard_status_wo_kana_lock.SetState(VK_CONTROL, 0);
     keyboard_status_wo_kana_lock.SetState(VK_LCONTROL, 0);
     keyboard_status_wo_kana_lock.SetState(VK_RCONTROL, 0);
+  }
+
+  // marinaMoji: when a fixed romaji keyboard layout is selected, prefer its
+  // table for digits/punctuation too (e.g. AZERTY/BEPO reshuffle the number
+  // row), falling back to the real OS ToUnicode below when the layout table
+  // doesn't cover this VK (e.g. an unpopulated best-effort entry).
+  if (behavior.marina_keyboard_layout != config::MARINA_KBD_OS_DEFAULT) {
+    const bool shift_pressed =
+        keyboard_status_wo_kana_lock.IsPressed(VK_SHIFT);
+    const bool capslock_on =
+        keyboard_status_wo_kana_lock.IsToggled(VK_CAPITAL);
+    const wchar_t layout_char =
+        RomajiKeyboardLayoutEmulator::GetCharacterForKeyDown(
+            behavior.marina_keyboard_layout, virtual_key.virtual_key(),
+            shift_pressed, capslock_on);
+    if (layout_char != L'\0') {
+      if (modifer_keys->find(KeyEvent::CAPS) == modifer_keys->end()) {
+        modifer_keys->erase(KeyEvent::SHIFT);
+      }
+      key->set_key_code(layout_char);
+      return true;
+    }
   }
 
   WCHAR codes[16] = {};

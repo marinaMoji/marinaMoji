@@ -56,13 +56,14 @@ namespace renderer {
 namespace win32 {
 
 HBITMAP LoadPngFileToHBitmap(const std::wstring& path, SIZE* out_size) {
-  // WICCreateImagingFactory_Proxy (unlike CoCreateInstance(CLSID_WICImaging
-  // Factory, ...)) does not require CoInitialize/CoInitializeEx to have been
-  // called on this thread, which the renderer process otherwise never does.
+  // The renderer process initializes COM (STA) once at startup via
+  // ScopedCOMInitializer in win32_renderer_main.cc, so a plain
+  // CoCreateInstance is safe here.
   wil::com_ptr_nothrow<IWICImagingFactory> factory;
-  if (FAILED(::WICCreateImagingFactory_Proxy(WINCODEC_SDK_VERSION,
-                                             factory.put()))) {
-    LOG(ERROR) << "WICCreateImagingFactory_Proxy failed";
+  if (FAILED(::CoCreateInstance(CLSID_WICImagingFactory, nullptr,
+                                 CLSCTX_INPROC_SERVER,
+                                 IID_PPV_ARGS(factory.put())))) {
+    LOG(ERROR) << "CoCreateInstance(CLSID_WICImagingFactory) failed";
     return nullptr;
   }
 

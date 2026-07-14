@@ -209,7 +209,7 @@ void FillSymbolsPaletteInfo(TipPrivateContext* private_context,
     return;
   }
 
-  RendererCommand::ApplicationInfo::SymbolsPaletteInfo* info =
+  RendererCommand::SymbolsPaletteInfo* info =
       app_info->mutable_symbols_palette_info();
 
   config::Config config;

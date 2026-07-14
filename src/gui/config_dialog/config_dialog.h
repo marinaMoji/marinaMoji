@@ -110,6 +110,7 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   int initial_preedit_method_;
   bool initial_use_keyboard_to_change_preedit_method_;
   bool initial_use_mode_indicator_;
+  int initial_marina_keyboard_layout_;
   std::map<QString, config::Config::SessionKeymap>
       keymapname_sessionkeymap_map_;
 

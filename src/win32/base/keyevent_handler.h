@@ -88,6 +88,10 @@ class KeyEventHandler {
       client::ClientInterface* client, Win32KeyboardInterface* keyboard,
       InputState* next_state, commands::Output* output);
 
+  // Span Tool if launch_tool_mode is set in |output|.
+  static void MaybeSpawnTool(client::ClientInterface* client,
+                             commands::Output* output);
+
  protected:
   static KeyEventHandlerResult HandleKey(const VirtualKey& virtual_key,
                                          BYTE scan_code, bool is_key_down,
@@ -119,10 +123,6 @@ class KeyEventHandler {
   static void UnlockKanaLock(const KeyboardStatus& keyboard_status,
                              Win32KeyboardInterface* keyboard,
                              KeyboardStatus* new_keyboard_status);
-
-  // Span Tool if launch_tool_mode is set in |output|.
-  static void MaybeSpawnTool(client::ClientInterface* client,
-                             commands::Output* output);
 };
 }  // namespace win32
 }  // namespace mozc

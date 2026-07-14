@@ -222,8 +222,34 @@ third "OSS Mozc" case to preserve on Windows):
 
 ### 1g. Phase 1 acceptance test (on Windows, VM fine)  ← **current phase**
 
-- [ ] `bazelisk build --config oss_windows --config release_build package`
-      from `src/` succeeds
+- [x] `bazelisk build --config oss_windows --config release_build package`
+      from `src/` succeeds (2026-07-14) — produces
+      `bazel-bin/win32/installer/marinaMoji64.msi`. Needed `update_deps.py`
+      to actually finish (LLVM archive was cached but never extracted;
+      `dotnet tool restore` needs `dotnet` on `PATH`) and `BAZEL_VC` set in
+      the invoking shell to the VS install's `VC` dir (`--action_env=BAZEL_VC`
+      only passes it through, doesn't supply a value). Along the way, fixed
+      several real bugs this was the first build to ever exercise: a missing
+      `//win32/tip` visibility grant on `composer:kaeriten_table_util`;
+      libsodium's runtime-dispatched SIMD sources needing per-file
+      target-feature flags (`.bazelrc`) plus a required `-DSODIUM_STATIC`
+      (its Windows headers default to `dllimport`, which appears to have
+      crashed `lld-link` at libsodium's scale); a non-existent
+      `WICCreateImagingFactory_Proxy` API (renderer already initializes COM
+      in `main()`, so switched to plain `CoCreateInstance`); a vendored
+      rapidjson v1.1.0 bug (assignment through two `const` members, fixed via
+      placement-new `patch_cmds`); `SetEnvironmentVariableA` called with a
+      stray 3rd arg copied from the POSIX `setenv()` branch; a private
+      `ButtonId` enum used at file scope; `<shlwapi.h>` (pulled in via
+      `atlbase.h`) `#define`-ing `StrCat` to `StrCatW`, silently breaking
+      every `absl::StrCat` call in `toolbar_window.cc` (fixed with `#undef
+      StrCat`); a wrong nested-type qualifier (`RendererCommand::
+      ApplicationInfo::SymbolsPaletteInfo` instead of `RendererCommand::
+      SymbolsPaletteInfo`); `KeyEventHandler::MaybeSpawnTool` left `protected`
+      after being wired into an external caller; and a literal `--daemon` in
+      an XML comment (illegal per the XML spec) in the installer `.wxs`.
+      **Not yet installed/run** — next is actually installing the MSI and
+      working through the rest of this checklist.
 - [ ] Install `marinaMoji64.msi` on a machine that **already has stock Mozc**:
       both appear separately in Settings → Time & Language → Language →
       Japanese → keyboard options

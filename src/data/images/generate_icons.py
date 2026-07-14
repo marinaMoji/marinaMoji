@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate macOS TIFF icons, iconset PNGs, ICNS, and product_icon PNG
+Generate Windows ICO, macOS TIFF icons, iconset PNGs, ICNS, and product_icon PNG
 from SVG source files.
 
 Usage:
@@ -229,6 +229,20 @@ def generate_product_icon_png() -> None:
     print(f"  icon.svg → {out_path.name}  (128×128)")
 
 
+def generate_windows_ico() -> None:
+    """Build the Windows taskbar/application icon from the generated PNG."""
+    print("Generating Windows ICO …")
+    png_path = SCRIPT_DIR / "product_icon_32bpp-128.png"
+    ico_path = SCRIPT_DIR / "win" / "product_icon.ico"
+    image = Image.open(png_path).convert("RGBA")
+    image.save(
+        ico_path,
+        format="ICO",
+        sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128)],
+    )
+    print(f"  {png_path.name} → {ico_path.relative_to(SCRIPT_DIR)}")
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -252,6 +266,7 @@ def main() -> None:
     generate_iconset()
     generate_icns()
     generate_product_icon_png()
+    generate_windows_ico()
     print("\nDone ✓")
 
 
