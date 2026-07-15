@@ -185,6 +185,23 @@ HRESULT OnTestKey(TipTextService* text_service, ITfContext* context,
   const LParamKeyInfo key_info(lparam);
   VirtualKey vk = GetVK(wparam, keyboard_status);
 
+  // marinaMoji: physical Ctrl(+Shift)+number-row shortcuts must be reported
+  // as consumed here regardless of |open|, since KeyEventHandler::ImeProcessKey
+  // below marks these keys as not-eaten whenever the IME is closed (e.g. while
+  // the Dvorak/other fixed keyboard-layout emulation is active in direct
+  // mode), which would otherwise stop TSF from ever delivering the key to
+  // OnKeyDown, where TryDispatchMarinaNumberRowShortcut actually handles it.
+  if (is_key_down) {
+    config::Config marina_config;
+    if (private_context->GetClient()->GetConfig(&marina_config) &&
+        WouldConsumeMarinaNumberRowShortcut(
+            key_info.GetScanCode(), keyboard_status.IsPressed(VK_CONTROL),
+            keyboard_status.IsPressed(VK_SHIFT), marina_config)) {
+      *eaten = TRUE;
+      return S_OK;
+    }
+  }
+
   if (open) {
     // Check if this key event is handled by VKBackBasedDeleter to support
     // *deletion_range* rule.
@@ -436,12 +453,15 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
       return E_FAIL;
     }
     ignore_this_keyevent = false;
-  } else if (open && is_key_down &&
+  } else if (is_key_down &&
              TryDispatchMarinaNumberRowShortcut(private_context, key_info,
                                                 keyboard_status, logical_mode,
                                                 open, &temporal_output)) {
     // Consumed by a marina number-row shortcut; do not fall through to the
-    // normal per-character key pipeline below.
+    // normal per-character key pipeline below. Not gated on |open|: these
+    // shortcuts (e.g. odoriji palette, Manyoshu) turn the IME on themselves
+    // via EnsureImeOn when invoked from a closed/direct state, mirroring
+    // unix/ibus/mozc_engine.cc's unconditional dispatch.
     ignore_this_keyevent = false;
   } else {
     InputBehavior behavior = private_context->input_behavior();

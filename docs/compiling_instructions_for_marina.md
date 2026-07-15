@@ -243,7 +243,7 @@ Open marinaMoji settings from the IBus input-method menu: **marinaMoji → Prope
 The **Shortcuts** tab controls Left Shift toggling between Japanese input and Direct input. By default:
 
 - **Left Shift alone** (press and release without typing) switches hiragana, full katakana, or Manyōshū ↔ Direct input.
-- **Ctrl+Left Shift alone** locks or unlocks the current mode (toolbar shows a lock icon).
+- **Ctrl+Right Shift alone** locks or unlocks the current mode (toolbar shows a lock icon).
 - **Right Shift alone** toggles hiragana ↔ Manyōshū.
 
 After installing a new build, restart IBus (`ibus write-cache && ibus restart`) so the engine picks up shortcut changes.

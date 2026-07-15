@@ -51,6 +51,16 @@ bool DispatchMarinaNumberRowShortcut(
     const config::Config& config, client::ClientInterface* client,
     commands::Output* output);
 
+// Non-mutating check for OnTestKeyDown: returns true iff
+// DispatchMarinaNumberRowShortcut would consume this scan_code/Ctrl/Shift
+// combination (i.e. some MarinaNumberRowAction is bound to it), without
+// sending any command. Needed because TSF only delivers a key event to
+// OnKeyDown if OnTestKeyDown reported it as consumed, and this must be
+// checked independent of whether the IME is currently open, since these
+// shortcuts (e.g. via EnsureImeOn) are meant to work from a closed IME too.
+bool WouldConsumeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl, bool shift,
+                                         const config::Config& config);
+
 }  // namespace tsf
 }  // namespace win32
 }  // namespace mozc

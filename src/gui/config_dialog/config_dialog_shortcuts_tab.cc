@@ -102,7 +102,7 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
           "between hiragana and direct input only (Manyōshū, half-width, and "
           "other modes are unaffected). From direct input, Left Shift returns "
           "to the hiragana or full-katakana mode you were using before. Press "
-          "and release Ctrl+Left Shift alone to lock the current mode and "
+          "and release Ctrl+Right Shift alone to lock the current mode and "
           "prevent accidental toggles; use the same chord again to unlock. "
           "Right Shift alone toggles hiragana and Manyōshū (katakana). Shift "
           "still works for capitals and shortcuts while locked."),

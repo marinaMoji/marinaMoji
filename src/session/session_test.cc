@@ -1046,7 +1046,7 @@ TEST_F(SessionTest, LeftShiftModeLockPersistsAcrossSessions) {
     Session session(engine);
     InitSessionToPrecomposition(&session);
     session.SetConfig(cfg);
-    EXPECT_TRUE(SendKey("Ctrl LeftShift", &session, &command));
+    EXPECT_TRUE(SendKey("Ctrl RightShift", &session, &command));
     SessionTestPeer peer(session);
     EXPECT_TRUE(peer.left_shift_mode_lock_());
   }
@@ -1057,7 +1057,7 @@ TEST_F(SessionTest, LeftShiftModeLockPersistsAcrossSessions) {
   SessionTestPeer peer2(session2);
   EXPECT_TRUE(peer2.left_shift_mode_lock_());
 
-  EXPECT_TRUE(SendKey("Ctrl LeftShift", &session2, &command));
+  EXPECT_TRUE(SendKey("Ctrl RightShift", &session2, &command));
   EXPECT_FALSE(peer2.left_shift_mode_lock_());
 }
 
@@ -1072,7 +1072,7 @@ TEST_F(SessionTest, LeftShiftModeLockBlocksToggle) {
   cfg.set_disable_left_shift_direct_toggle(false);
   session.SetConfig(cfg);
 
-  EXPECT_TRUE(SendKey("Ctrl LeftShift", &session, &command));
+  EXPECT_TRUE(SendKey("Ctrl RightShift", &session, &command));
   SessionTestPeer peer(session);
   EXPECT_TRUE(peer.left_shift_mode_lock_());
 
@@ -1080,7 +1080,7 @@ TEST_F(SessionTest, LeftShiftModeLockBlocksToggle) {
   EXPECT_FALSE(command.output().consumed());
   EXPECT_EQ(command.output().status().mode(), commands::HIRAGANA);
 
-  EXPECT_TRUE(SendKey("Ctrl LeftShift", &session, &command));
+  EXPECT_TRUE(SendKey("Ctrl RightShift", &session, &command));
   EXPECT_FALSE(peer.left_shift_mode_lock_());
 }
 

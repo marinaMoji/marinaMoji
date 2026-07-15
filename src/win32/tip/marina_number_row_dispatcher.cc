@@ -97,6 +97,23 @@ bool EnsureImeOn(bool is_open, CompositionMode original_composition_mode,
 
 }  // namespace
 
+bool WouldConsumeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl, bool shift,
+                                         const config::Config& config) {
+  if (!ctrl) {
+    return false;
+  }
+  const std::optional<MarinaPhysicalSlot> slot =
+      ScanCodeToPhysicalSlot(scan_code);
+  if (!slot.has_value()) {
+    return false;
+  }
+  const MarinaShortcutModifier modifier =
+      shift ? MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT
+            : MarinaShortcutModifier::MARINA_MOD_CTRL;
+  return session::FindMarinaActionForPhysicalSlot(config, modifier, *slot)
+      .has_value();
+}
+
 bool DispatchMarinaNumberRowShortcut(
     BYTE scan_code, bool ctrl, bool shift, bool is_open,
     CompositionMode original_composition_mode, const config::Config& config,

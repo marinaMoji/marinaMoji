@@ -422,7 +422,7 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
 
   // marinaMoji: distinguish left/right Shift (fixes upstream b/2674446 for
   // Shift only) so Session::IsRightShiftAlone/IsLeftShiftAlone/
-  // IsCtrlLeftShiftAlone (session.cc) can fire on Windows. GetKeyboardState
+  // IsCtrlRightShiftAlone (session.cc) can fire on Windows. GetKeyboardState
   // fills VK_LSHIFT/VK_RSHIFT independently of the generic VK_SHIFT entry,
   // so no scan-code/extended-key lookup is needed here (unlike Ctrl/Alt,
   // whose VK_CONTROL/VK_MENU are shared and only scan code distinguishes the

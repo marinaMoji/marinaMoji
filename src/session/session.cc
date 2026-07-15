@@ -601,14 +601,27 @@ bool Session::SendCommand(commands::Command* command) {
 }
 
 namespace {
-// Right Shift alone (modifier-only with RIGHT_SHIFT): toggle Hiragana/Manyoshu.
-// Detected here so it works regardless of keymap lookup or client encoding.
+// Right Shift alone (modifier-only with RIGHT_SHIFT, no Ctrl): toggle
+// Hiragana/Manyoshu. Detected here so it works regardless of keymap lookup or
+// client encoding. Ctrl is excluded so Ctrl+Right Shift can be used for
+// IsCtrlRightShiftAlone (mode lock) below without also firing this toggle.
 bool IsRightShiftAlone(const commands::KeyEvent& key) {
   if (key.has_key_code() || key.has_special_key()) {
     return false;
   }
-  return (KeyEventUtil::GetModifiers(key) &
-          static_cast<uint32_t>(commands::KeyEvent::RIGHT_SHIFT)) != 0;
+  bool has_right_shift = false;
+  bool has_ctrl = false;
+  for (int i = 0; i < key.modifier_keys_size(); ++i) {
+    const commands::KeyEvent::ModifierKey mod = key.modifier_keys(i);
+    if (mod == commands::KeyEvent::RIGHT_SHIFT) {
+      has_right_shift = true;
+    }
+    if (mod == commands::KeyEvent::CTRL || mod == commands::KeyEvent::LEFT_CTRL ||
+        mod == commands::KeyEvent::RIGHT_CTRL) {
+      has_ctrl = true;
+    }
+  }
+  return has_right_shift && !has_ctrl;
 }
 
 // Left Shift alone (modifier-only with LEFT_SHIFT): toggle Japanese/direct input.
@@ -653,23 +666,27 @@ commands::CompositionMode VisibleCompositionModeForLeftShift(
   return ToCompositionMode(context.composer().GetInputMode());
 }
 
-bool IsCtrlLeftShiftAlone(const commands::KeyEvent& key) {
+// Ctrl+Right Shift alone: toggle mode lock for the Left Shift direct toggle.
+// Windows reserves plain Ctrl+Shift (either side) system-wide for the "Switch
+// Input Language" hotkey, which is intercepted by the shell before any
+// keystroke reaches this text service; Right Shift keeps this combo free.
+bool IsCtrlRightShiftAlone(const commands::KeyEvent& key) {
   if (key.has_key_code() || key.has_special_key()) {
     return false;
   }
-  bool has_left_shift = false;
+  bool has_right_shift = false;
   bool has_ctrl = false;
   for (int i = 0; i < key.modifier_keys_size(); ++i) {
     const commands::KeyEvent::ModifierKey mod = key.modifier_keys(i);
-    if (mod == commands::KeyEvent::LEFT_SHIFT) {
-      has_left_shift = true;
+    if (mod == commands::KeyEvent::RIGHT_SHIFT) {
+      has_right_shift = true;
     }
     if (mod == commands::KeyEvent::CTRL || mod == commands::KeyEvent::LEFT_CTRL ||
         mod == commands::KeyEvent::RIGHT_CTRL) {
       has_ctrl = true;
     }
   }
-  return has_left_shift && has_ctrl;
+  return has_right_shift && has_ctrl;
 }
 }  // namespace
 
@@ -701,7 +718,7 @@ bool Session::TestSendKey(commands::Command* command) {
   // SendKey's toggle — never runs. Whether the key-up is ultimately passed
   // through to the application is still decided by the Toggle* handlers in
   // SendKey.
-  if (IsRightShiftAlone(key) || IsCtrlLeftShiftAlone(key) ||
+  if (IsRightShiftAlone(key) || IsCtrlRightShiftAlone(key) ||
       IsLeftShiftAlone(key)) {
     return DoNothing(command);
   }
@@ -820,7 +837,7 @@ bool Session::SendKey(commands::Command* command) {
     return ToggleManyoshuHiragana(command);
   }
 
-  if (IsCtrlLeftShiftAlone(command->input().key())) {
+  if (IsCtrlRightShiftAlone(command->input().key())) {
     return ToggleLeftShiftModeLock(command);
   }
   if (IsLeftShiftAlone(command->input().key())) {
