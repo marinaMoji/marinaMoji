@@ -91,7 +91,7 @@ def _exec_pkg_config(repo_ctx, flags):
 
     # Use whitespace splitting so empty output and repeated whitespace do not
     # become empty flags in the generated BUILD file.
-    items = result.stdout.split()
+    items = [item for item in result.stdout.strip().split(" ") if item]
     uniq_items = sorted({key: None for key in items}.keys())
     return uniq_items
 
