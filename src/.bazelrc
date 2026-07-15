@@ -33,15 +33,15 @@ build:compiler_msvc_like --per_file_copt="external/.*@/w" --host_per_file_copt="
 # BUILD.bazel just globs every .c file with the baseline flags, so these fail
 # to compile without replicating the same per-file flags here.
 build:linux_env         --per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul" --host_per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul"
-build:compiler_msvc_like --per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul" --host_per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul"
+build:x86_simd         --per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul" --host_per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul"
 build:linux_env         --per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3" --host_per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3"
-build:compiler_msvc_like --per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3" --host_per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3"
+build:x86_simd         --per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3" --host_per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3"
 build:linux_env         --per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1" --host_per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1"
-build:compiler_msvc_like --per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1" --host_per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1"
+build:x86_simd         --per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1" --host_per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1"
 build:linux_env         --per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2" --host_per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2"
-build:compiler_msvc_like --per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2" --host_per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2"
+build:x86_simd         --per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2" --host_per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2"
 build:linux_env         --per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f" --host_per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f"
-build:compiler_msvc_like --per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f" --host_per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f"
+build:x86_simd         --per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f" --host_per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f"
 
 ## Target platforms
 common:linux          --config=linux_env --define TARGET=oss_linux
