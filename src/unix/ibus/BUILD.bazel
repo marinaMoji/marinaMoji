@@ -257,7 +257,6 @@ mozc_cc_library(
     ] + mozc_select(
         linux = ["MOZC_HAVE_GTK_TOOLBAR"],
         oss_linux = ["MOZC_HAVE_GTK_TOOLBAR"],
-        default = [],
     ) + select({
         ":gtk_layer_shell": ["MOZC_HAVE_GTK_LAYER_SHELL"],
         "//conditions:default": [],
@@ -285,7 +284,6 @@ mozc_cc_library(
             "-I/usr/include/atk-1.0",
             "-I/usr/include/librsvg-2.0",
         ],
-        default = [],
     ) + select({
         ":gtk_layer_shell": ["-I/usr/include/gtk-layer-shell"],
         "//conditions:default": [],
@@ -317,7 +315,6 @@ mozc_cc_library(
             "-lglib-2.0",
             "-lrsvg-2",
         ],
-        default = [],
     ) + select({
         ":gtk_layer_shell": ["-lgtk-layer-shell"],
         "//conditions:default": [],
@@ -339,11 +336,11 @@ mozc_cc_library(
         "//base/container:flat_map",
         "//client",
         "//composer:kaeriten_table_util",
-        "//session:marina_number_row_bindings_util",
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",
         "//renderer:renderer_client",
+        "//session:marina_number_row_bindings_util",
         "//sync:sync_activity",
         "//sync:sync_status",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -366,8 +363,8 @@ proto_library(
 
 cc_proto_library(
     name = "ibus_config_cc_proto",
-    deps = ["ibus_config_proto"],
     visibility = ["//gui/config_dialog:__pkg__"],
+    deps = ["ibus_config_proto"],
 )
 
 mozc_cc_library(

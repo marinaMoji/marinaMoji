@@ -88,6 +88,7 @@ def _exec_pkg_config(repo_ctx, flags):
         print("pkg-config is not found")  # buildifier: disable=print
         return []
     result = repo_ctx.execute([binary] + flags + repo_ctx.attr.packages)
+
     # Use whitespace splitting so empty output and repeated whitespace do not
     # become empty flags in the generated BUILD file.
     items = result.stdout.split()
