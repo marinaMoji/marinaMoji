@@ -83,32 +83,51 @@ constexpr int kTipLangBarMenuCookie =
 
 constexpr int kToolbarIconSizeTiers[] = {24, 36, 48};
 
+bool IsDarkTheme() {
+  HKEY key = nullptr;
+  if (::RegOpenKeyExW(HKEY_CURRENT_USER,
+                      L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes"
+                      L"\\Personalize",
+                      0, KEY_READ, &key) != ERROR_SUCCESS) {
+    return false;
+  }
+  DWORD value = 1;
+  DWORD size = sizeof(value);
+  const LSTATUS status = ::RegQueryValueExW(key, L"AppsUseLightTheme", nullptr,
+                                           nullptr,
+                                           reinterpret_cast<BYTE*>(&value),
+                                           &size);
+  ::RegCloseKey(key);
+  return status == ERROR_SUCCESS && value == 0;
+}
+
 // TODO(yukawa): Refactor LangBar code so that we can configure following
 // settings as a part of initialization.
 std::string GetToolbarIconName(UINT icon_id) {
+  const char* theme = IsDarkTheme() ? "dark" : "light";
   switch (icon_id) {
     case IDI_DIRECT_NT:
     case IDI_DIRECT:
-      return "toolbar_roman_light";
+      return absl::StrCat("toolbar_roman_", theme);
     case IDI_HIRAGANA_NT:
     case IDI_HIRAGANA:
-      return "toolbar_hira_light";
+      return absl::StrCat("toolbar_hira_", theme);
     case IDI_FULL_KATAKANA_NT:
     case IDI_FULL_KATAKANA:
-      return "toolbar_kata_light";
+      return absl::StrCat("toolbar_kata_", theme);
     case IDI_HALF_ALPHANUMERIC_NT:
     case IDI_HALF_ALPHANUMERIC:
-      return "toolbar_roma_half_light";
+      return absl::StrCat("toolbar_roma_half_", theme);
     case IDI_FULL_ALPHANUMERIC_NT:
     case IDI_FULL_ALPHANUMERIC:
-      return "toolbar_roma_full_light";
+      return absl::StrCat("toolbar_roma_full_", theme);
     case IDI_HALF_KATAKANA_NT:
     case IDI_HALF_KATAKANA:
-      return "toolbar_kata_half_light";
+      return absl::StrCat("toolbar_kata_half_", theme);
     case IDI_DICTIONARY_NT:
-      return "toolbar_dict_light";
+      return absl::StrCat("toolbar_dict_", theme);
     case IDI_PROPERTY_NT:
-      return "toolbar_settings_light";
+      return absl::StrCat("toolbar_settings_", theme);
   }
   return "";
 }
