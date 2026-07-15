@@ -161,6 +161,7 @@ def _pkg_config_repository_impl(repo_ctx):
             repo_ctx,
             ["--cflags-only-I", "--keep-system-cflags"],
         )
+
     # Keep the original absolute -I flags in the compile action.  The
     # repository-local symlinks below are useful for declaring the headers to
     # Bazel, but they are not reliably materialized inside processwrapper's
@@ -180,7 +181,7 @@ def _pkg_config_repository_impl(repo_ctx):
         "name": repo_ctx.attr.name.replace("~", "+").split("+")[-1],
         "hdrs": _make_strlist([item + "/**" for item in includes]),
         "copts": _make_strlist(
-            include_flags + _exec_pkg_config(repo_ctx, ["--cflags-only-other"])
+            include_flags + _exec_pkg_config(repo_ctx, ["--cflags-only-other"]),
         ),
         "includes": _make_strlist(includes),
         "linkopts": _make_strlist(_exec_pkg_config(repo_ctx, ["--libs-only-l"])),
