@@ -203,12 +203,16 @@ pkg_config_repository = use_repo_rule(
 )
 
 # iBus
+# Note: GTK headers/libs for the toolbar (ibus_mozc_lib) are supplied via
+# hardcoded absolute copts/linkopts in unix/ibus/BUILD.bazel, not via this
+# repository. Adding "gtk+-3.0" here poisons the combined pkg-config call
+# for every package below (glib/gobject/ibus-1.0 all come back empty) on
+# runners that don't have libgtk-3-dev installed, e.g. our Linux CI image.
 pkg_config_repository(
     name = "ibus",
     packages = [
         "glib-2.0",
         "gobject-2.0",
-        "gtk+-3.0",
         "ibus-1.0",
     ],
 )
