@@ -96,6 +96,13 @@ TEST(ConversionModeUtilTest, ToNativeMode) {
                                                false, &native_code));
   EXPECT_EQ(native_code, IME_CMODE_NATIVE | IME_CMODE_KATAKANA |
                              IME_CMODE_FULLSHAPE | IME_CMODE_ROMAN);
+
+  // marinaMoji: MANYOSHU shares full-width katakana's native representation.
+  native_code = 0;
+  EXPECT_TRUE(ConversionModeUtil::ToNativeMode(mozc::commands::MANYOSHU, false,
+                                               &native_code));
+  EXPECT_EQ(native_code, IME_CMODE_NATIVE | IME_CMODE_KATAKANA |
+                             IME_CMODE_FULLSHAPE | IME_CMODE_ROMAN);
 }
 
 TEST(ConversionModeUtilTest, ToNativeModeWithKanaLocked) {
@@ -181,11 +188,12 @@ TEST(ConversionModeUtilTest, ToMozcMode) {
   mode = mozc::commands::DIRECT;
   EXPECT_FALSE(ConversionModeUtil::ToMozcMode(IME_CMODE_NATIVE, &mode));
 
-  // Check for FULL_KATAKANA
+  // Check for full-width katakana bits. marinaMoji replaces full-width
+  // katakana with Manyōshū mode, so these bits convert to MANYOSHU.
   mode = mozc::commands::DIRECT;
   EXPECT_TRUE(ConversionModeUtil::ToMozcMode(
       IME_CMODE_NATIVE | IME_CMODE_FULLSHAPE | IME_CMODE_KATAKANA, &mode));
-  EXPECT_EQ(mode, mozc::commands::FULL_KATAKANA);
+  EXPECT_EQ(mode, mozc::commands::MANYOSHU);
 
   // IME_CMODE_ROMAN has no effect in this conversion.
   mode = mozc::commands::DIRECT;
@@ -193,7 +201,7 @@ TEST(ConversionModeUtilTest, ToMozcMode) {
       ConversionModeUtil::ToMozcMode(IME_CMODE_NATIVE | IME_CMODE_FULLSHAPE |
                                          IME_CMODE_KATAKANA | IME_CMODE_ROMAN,
                                      &mode));
-  EXPECT_EQ(mode, mozc::commands::FULL_KATAKANA);
+  EXPECT_EQ(mode, mozc::commands::MANYOSHU);
 
   // Check for HALF_KATAKANA
   mode = mozc::commands::DIRECT;

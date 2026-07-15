@@ -135,6 +135,7 @@ mozc_cc_library(
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",
         "//protocol:renderer_cc_proto",
+        "//renderer:renderer_style_handler",
         "//renderer:table_layout",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
@@ -329,6 +330,10 @@ mozc_cc_library(
     hdrs = ["win32_image_util.h"],
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
+    visibility = [
+        "//renderer/win32:__pkg__",
+        "//win32/tip:__pkg__",
+    ],
     deps = [
         "//base:coordinates",
         "//base/win32:wide_char",

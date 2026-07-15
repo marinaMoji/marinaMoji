@@ -58,6 +58,17 @@ bool HasShiftModifier(const commands::KeyEvent& key) {
   return false;
 }
 
+bool IsSpaceKey(const commands::KeyEvent& key) {
+  return (key.has_special_key() &&
+          key.special_key() == commands::KeyEvent::SPACE) ||
+         (key.has_key_code() && key.key_code() == 0x20);
+}
+
+bool IsNumberKey(const commands::KeyEvent& key) {
+  return key.has_key_code() && key.key_code() >= 0x31 &&
+         key.key_code() <= 0x38;
+}
+
 }  // namespace
 
 const char* OdorijiPalette::GetCharacter(size_t index) {
@@ -68,6 +79,31 @@ const char* OdorijiPalette::GetCharacter(size_t index) {
 void OdorijiPalette::Show(bool* visible, int* focused_index) {
   if (visible) *visible = true;
   if (focused_index) *focused_index = 0;
+}
+
+bool OdorijiPalette::WouldConsumeKey(const commands::KeyEvent& key) {
+  if (key.has_special_key()) {
+    switch (key.special_key()) {
+      case commands::KeyEvent::ESCAPE:
+      case commands::KeyEvent::ENTER:
+      case commands::KeyEvent::VIRTUAL_ENTER:
+      case commands::KeyEvent::UP:
+      case commands::KeyEvent::VIRTUAL_UP:
+      case commands::KeyEvent::DOWN:
+      case commands::KeyEvent::VIRTUAL_DOWN:
+      case commands::KeyEvent::LEFT:
+      case commands::KeyEvent::VIRTUAL_LEFT:
+      case commands::KeyEvent::RIGHT:
+      case commands::KeyEvent::VIRTUAL_RIGHT:
+      case commands::KeyEvent::SPACE:
+        return true;
+      default:
+        // Some Windows key events carry NO_SPECIALKEY as an explicitly set
+        // field. Continue checking key_code() in that case.
+        break;
+    }
+  }
+  return IsSpaceKey(key) || IsNumberKey(key);
 }
 
 bool OdorijiPalette::HandleKey(const commands::KeyEvent& key,
@@ -124,29 +160,32 @@ bool OdorijiPalette::HandleKey(const commands::KeyEvent& key,
       return true;
     }
   }
-  if (key.has_key_code()) {
-    const uint32_t k = key.key_code();
-    if (k >= 0x31 && k <= 0x38) {
-      int id = static_cast<int>(k - 0x31);
-      if (commit_result) *commit_result = kOdorijiChars[id];
-      if (session_default_index) *session_default_index = id;
-      *visible = false;
-      return true;
+  if (IsSpaceKey(key)) {
+    if (HasShiftModifier(key)) {
+      *focused_index = static_cast<int>((*focused_index + kCount - 1) % kCount);
+    } else {
+      *focused_index = static_cast<int>((*focused_index + 1) % kCount);
     }
+    return true;
+  }
+  if (IsNumberKey(key)) {
+    const int id = static_cast<int>(key.key_code() - 0x31);
+    if (commit_result) *commit_result = kOdorijiChars[id];
+    if (session_default_index) *session_default_index = id;
+    *visible = false;
+    return true;
   }
   return false;
 }
 
 void OdorijiPalette::OverlayOutput(commands::Output* output, int focused_index) {
   if (!output) return;
+  // The palette has no composition text. In particular, do not synthesize a
+  // label such as "繰り返し記号" in the preedit: if a client loses the
+  // palette update or commits stale preedit text, that label would become
+  // accidental application text. The candidate window is sufficient to
+  // present the palette.
   output->clear_preedit();
-  commands::Preedit* preedit = output->mutable_preedit();
-  auto* segment = preedit->add_segment();
-  segment->set_value(
-      "\xe9\x80\x90\xe3\x82\x8a\xe8\xbf\x94\xe3\x81\x97\xe8\xa8\x98\xe5\x8f\xb7");  // 繰り返し記号
-  segment->set_annotation(commands::Preedit::Segment::HIGHLIGHT);
-  segment->set_value_length(6);
-  preedit->set_cursor(0);
   FillCandidateWindow(output->mutable_candidate_window(), focused_index);
 }
 

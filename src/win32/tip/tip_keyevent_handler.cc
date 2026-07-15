@@ -250,6 +250,10 @@ HRESULT OnTestKey(TipTextService* text_service, ITfContext* context,
   input_state.logical_conversion_mode = logical_mode;
   input_state.visible_conversion_mode = visible_mode;
   input_state.open = open;
+  // marinaMoji: inputs for the direct-mode fixed-layout emulation. The
+  // pending dead key is only *read* here; it is persisted from OnKey.
+  input_state.pending_dead_key = private_context->pending_dead_key();
+  input_state.disabled_tsf_context = TipStatus::IsDisabledContext(context);
 
   InputState next_state;
   commands::Output temporal_output;
@@ -448,6 +452,9 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
     ime_state.visible_conversion_mode = visible_mode;
     ime_state.open = open;
     ime_state.last_down_key = private_context->last_down_key();
+    // marinaMoji: inputs for the direct-mode fixed-layout emulation.
+    ime_state.pending_dead_key = private_context->pending_dead_key();
+    ime_state.disabled_tsf_context = TipStatus::IsDisabledContext(context);
 
     // This call is placed in OnKey instead on OnTestKey because VK_DBE_ROMAN
     // and VK_DBE_NOROMAN are handled as preserved keys in TSF Mozc.
@@ -480,6 +487,18 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
             vk, is_key_down, result.should_be_eaten);
     if (action == TipInputModeManager::Action::kUpdateUI) {
       text_service->PostUIUpdateMessage();
+    }
+
+    // marinaMoji: this is the real key phase, so persist the direct-mode
+    // dead-key state now. A dead-key press is consumed without producing
+    // output; keys that produced text continue below and insert the server's
+    // echoed commit via OnOutputReceivedSync.
+    if (result.handled_by_direct_layout) {
+      private_context->set_pending_dead_key(next_state.pending_dead_key);
+      if (!result.should_be_sent_to_server) {
+        *eaten = TRUE;
+        return S_OK;
+      }
     }
 
     if (!result.should_be_sent_to_server) {

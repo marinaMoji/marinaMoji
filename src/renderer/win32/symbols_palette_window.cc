@@ -330,8 +330,8 @@ void SymbolsPaletteWindow::OnUpdate(const commands::RendererCommand& command) {
         work_area.left + (work_area.right - work_area.left - kWindowWidth) / 2;
     const int y = work_area.top +
                   (work_area.bottom - work_area.top - total_height) / 2;
-    SetWindowPos(nullptr, x, y, kWindowWidth, total_height,
-                SWP_NOZORDER | SWP_NOACTIVATE);
+    SetWindowPos(HWND_TOPMOST, x, y, kWindowWidth, total_height,
+                 SWP_NOACTIVATE);
     has_shown_once_ = true;
   }
 

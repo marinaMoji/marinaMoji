@@ -41,16 +41,26 @@
 #include <windows.h>
 #include <winuser.h>
 
+// ATL includes <shlwapi.h>, which defines StrCat as the wide Win32 API
+// function StrCatW under UNICODE.  Clear the macro before including/calling
+// Abseil's StrCat so the identifier is not rewritten at preprocessing time.
+#undef StrCat
+
 #include <algorithm>
 #include <cstddef>
+#include <cstdlib>
 #include <string>
 #include <utility>
 
 #include "absl/base/casts.h"
 #include "absl/base/macros.h"
+#include "absl/strings/str_cat.h"
+#include "base/file_util.h"
+#include "base/system_util.h"
 #include "base/win32/com.h"
 #include "base/win32/com_implements.h"
-#include "win32/base/text_icon.h"
+#include "base/win32/wide_char.h"
+#include "renderer/win32/win32_image_util.h"
 #include "win32/base/tsf_profile.h"
 #include "win32/tip/tip_dll_module.h"
 #include "win32/tip/tip_lang_bar_callback.h"
@@ -71,39 +81,86 @@ namespace {
 constexpr int kTipLangBarMenuCookie =
     (('M' << 24) | ('o' << 16) | ('z' << 8) | ('c' << 0));
 
-constexpr char kTextIconFont[] = "ＭＳ ゴシック";
+constexpr int kToolbarIconSizeTiers[] = {24, 36, 48};
 
 // TODO(yukawa): Refactor LangBar code so that we can configure following
 // settings as a part of initialization.
-std::string GetIconStringIfNecessary(UINT icon_id) {
+std::string GetToolbarIconName(UINT icon_id) {
   switch (icon_id) {
     case IDI_DIRECT_NT:
-      return "A";
+      return "toolbar_roman_light";
     case IDI_HIRAGANA_NT:
-      return "あ";
+      return "toolbar_hira_light";
     case IDI_FULL_KATAKANA_NT:
-      return "ア";
+      return "toolbar_kata_light";
     case IDI_HALF_ALPHANUMERIC_NT:
-      return "_A";
+      return "toolbar_roma_half_light";
     case IDI_FULL_ALPHANUMERIC_NT:
-      return "Ａ";
+      return "toolbar_roma_full_light";
     case IDI_HALF_KATAKANA_NT:
-      return "_ｱ";
+      return "toolbar_kata_half_light";
+    case IDI_DICTIONARY_NT:
+      return "toolbar_dict_light";
+    case IDI_PROPERTY_NT:
+      return "toolbar_settings_light";
   }
   return "";
+}
+
+int PickToolbarIconSizeTier(int target) {
+  int best = kToolbarIconSizeTiers[0];
+  int best_delta = std::abs(kToolbarIconSizeTiers[0] - target);
+  for (int size : kToolbarIconSizeTiers) {
+    const int delta = std::abs(size - target);
+    if (delta < best_delta) {
+      best = size;
+      best_delta = delta;
+    }
+  }
+  return best;
+}
+
+std::wstring ToolbarIconPath(UINT icon_id, int size) {
+  const std::string name = GetToolbarIconName(icon_id);
+  if (name.empty()) {
+    return L"";
+  }
+  return mozc::win32::Utf8ToWide(FileUtil::JoinPath(
+      {SystemUtil::GetServerDirectory(), "toolbar_icons",
+       absl::StrCat(name, "_", size, ".png")}));
+}
+
+HICON CreateIconFromPng(const std::wstring& path) {
+  SIZE png_size = {};
+  wil::unique_hbitmap color_bitmap(
+      renderer::win32::LoadPngFileToHBitmap(path, &png_size));
+  if (!color_bitmap) {
+    return nullptr;
+  }
+  wil::unique_hbitmap mask_bitmap(
+      ::CreateBitmap(png_size.cx, png_size.cy, 1, 1, nullptr));
+  if (!mask_bitmap) {
+    return nullptr;
+  }
+  ICONINFO icon_info = {};
+  icon_info.fIcon = TRUE;
+  icon_info.hbmColor = color_bitmap.get();
+  icon_info.hbmMask = mask_bitmap.get();
+  return ::CreateIconIndirect(&icon_info);
 }
 
 // Loads an icon which is appropriate for the current theme.
 // An icon ID 0 represents "no icon".
 HICON LoadIconFromResource(HINSTANCE instance, UINT icon_id) {
-  const auto icon_size = ::GetSystemMetrics(SM_CYSMICON);
-
-  // Replace some text icons with on-the-fly image drawn with MS-Gothic.
-  const auto& icon_text = GetIconStringIfNecessary(icon_id);
-  if (!icon_text.empty()) {
-    const COLORREF text_color = ::GetSysColor(COLOR_WINDOWTEXT);
-    return TextIcon::CreateMonochromeIcon(icon_size, icon_size, icon_text,
-                                          kTextIconFont, text_color);
+  const int icon_size = ::GetSystemMetrics(SM_CYSMICON);
+  const std::string toolbar_icon_name = GetToolbarIconName(icon_id);
+  if (!toolbar_icon_name.empty()) {
+    const int size_tier = PickToolbarIconSizeTier(icon_size);
+    wil::unique_hicon icon(
+        CreateIconFromPng(ToolbarIconPath(icon_id, size_tier)));
+    if (icon.is_valid()) {
+      return icon.release();
+    }
   }
 
   return static_cast<HICON>(::LoadImage(instance, MAKEINTRESOURCE(icon_id),
@@ -257,6 +314,8 @@ STDMETHODIMP TipLangBarButton::OnClick(TfLBIClick click, POINT point,
     return S_OK;
   }
 
+  RefreshMenuState(TipDllModule::module_handle());
+
   wil::unique_hmenu menu(::CreatePopupMenu());
   for (size_t i = 0; i < menu_data_size(); ++i) {
     TipLangBarMenuData* data = menu_data(i);
@@ -380,6 +439,37 @@ STDMETHODIMP TipLangBarButton::UnadviseSink(DWORD cookie) {
 // required for creating a menu button. A text service MUST call this function
 // before calling the ITfLangBarItemMgr::AddItem() function and adding this
 // button menu to a language bar.
+void TipLangBarButton::RefreshMenuState(HINSTANCE instance) {
+  for (size_t i = 0; i < menu_data_size(); ++i) {
+    TipLangBarMenuData* data = menu_data(i);
+    if (data == nullptr) {
+      continue;
+    }
+    switch (data->item_id_) {
+      case TipLangBarCallback::kTraditionalKanji:
+        data->flags_ = lang_bar_callback_->UseTraditionalKanji()
+                           ? TF_LBMENUF_CHECKED
+                           : 0;
+        break;
+      case TipLangBarCallback::kPrivacyMode:
+        data->flags_ = lang_bar_callback_->IsPrivacyModeEnabled()
+                           ? TF_LBMENUF_CHECKED
+                           : 0;
+        break;
+      case TipLangBarCallback::kToolbarVisibility:
+        data->flags_ = 0;
+        data->text_id_ = lang_bar_callback_->IsToolbarVisible()
+                             ? IDS_HIDE_TOOLBAR
+                             : IDS_SHOW_TOOLBAR;
+        data->length_ = ::LoadString(instance, data->text_id_, &data->text_[0],
+                                     std::size(data->text_));
+        break;
+      default:
+        break;
+    }
+  }
+}
+
 HRESULT TipLangBarButton::Init(HINSTANCE instance, int string_id,
                                const TipLangBarMenuItem* menu, int count) {
   // Retrieve the text label from the resource.
@@ -462,6 +552,8 @@ STDMETHODIMP TipLangBarMenuButton::InitMenu(ITfMenu* menu) {
   if (!IsMenuButton()) {
     return result;
   }
+
+  RefreshMenuState(TipDllModule::module_handle());
 
   // Add the menu items of this object to the given ITfMenu object.
   for (size_t i = 0; i < menu_data_size(); ++i) {
@@ -623,6 +715,8 @@ STDMETHODIMP TipLangBarToggleButton::InitMenu(ITfMenu* menu) {
   if (!IsMenuButton()) {
     return result;
   }
+
+  RefreshMenuState(TipDllModule::module_handle());
 
   // Add the menu items of this object to the given ITfMenu object.
   for (size_t i = 0; i < menu_data_size(); ++i) {

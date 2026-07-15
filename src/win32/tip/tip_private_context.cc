@@ -64,6 +64,7 @@ class TipPrivateContext::InternalState {
   TipUiElementManager ui_element_manager_;
   VKBackBasedDeleter deleter_;
   bool symbols_palette_visible_ = false;
+  wchar_t pending_dead_key_ = L'\0';
 };
 
 TipPrivateContext::TipPrivateContext()
@@ -142,6 +143,14 @@ bool TipPrivateContext::symbols_palette_visible() const {
 
 void TipPrivateContext::set_symbols_palette_visible(bool visible) {
   state_->symbols_palette_visible_ = visible;
+}
+
+wchar_t TipPrivateContext::pending_dead_key() const {
+  return state_->pending_dead_key_;
+}
+
+void TipPrivateContext::set_pending_dead_key(wchar_t accent) {
+  state_->pending_dead_key_ = accent;
 }
 
 }  // namespace tsf

@@ -310,6 +310,15 @@ message KeyEvent {
 
   // Timestamp of this key event in millisecond.
   optional int64 timestamp_msec = 10;
+
+  // marinaMoji: set by the Windows client when it intercepts a printable key
+  // in direct input mode because a fixed romaji keyboard layout (see
+  // config.proto's MarinaKeyboardLayout) is selected. The client has already
+  // resolved the key against that layout (including dead-key composition);
+  // the session should commit the resolved text (key_string if set,
+  // otherwise the key_code character) unless a keymap command or a pending
+  // macron dead key claims the key first. Never set by other platforms.
+  optional bool marina_direct_insert = 11 [default = false];
 }
 
 message SessionCommand {

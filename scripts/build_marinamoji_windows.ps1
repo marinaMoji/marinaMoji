@@ -1,4 +1,4 @@
-# Build marinaMoji on Windows (x64)
+﻿# Build marinaMoji on Windows (x64)
 # Prerequisites: VS 2022, Python 3.12+, .NET 6+, Bazelisk in PATH
 # Usage: powershell -ExecutionPolicy Bypass -File build_marinamoji_windows.ps1
 
@@ -15,22 +15,57 @@ Write-Host "=== marinaMoji Windows Build ===" -ForegroundColor Cyan
 Write-Host "Repo: $RepoRoot" -ForegroundColor Gray
 Write-Host ""
 
-# Verify prerequisites
-Write-Host "Checking prerequisites..." -ForegroundColor Yellow
-$prereqs = @{
-    "python" = "Python 3.12+"
-    "bazelisk" = "Bazelisk"
-    "dotnet" = ".NET 6+"
+# Resolve bazelisk: prefer PATH, fall back to the repo-root bazelisk.exe.
+$bazelisk = $null
+$bazeliskCmd = Get-Command bazelisk -ErrorAction SilentlyContinue
+if ($bazeliskCmd) {
+    $bazelisk = "bazelisk"
+} elseif (Test-Path "$RepoRoot\bazelisk.exe") {
+    $bazelisk = "$RepoRoot\bazelisk.exe"
 }
 
-foreach ($cmd in $prereqs.Keys) {
-    try {
-        $result = & $cmd --version 2>&1
-        Write-Host "  ✓ $($prereqs[$cmd])" -ForegroundColor Green
-    } catch {
-        Write-Host "  ✗ $($prereqs[$cmd]) not found in PATH" -ForegroundColor Red
-        exit 1
+# Resolve a real python interpreter, skipping the Microsoft Store
+# "app execution alias" stub that Windows puts on PATH ahead of any real
+# install (it writes to stderr, which -- combined with $ErrorActionPreference
+# = Stop below -- turns into a terminating error even when a real Python is
+# installed elsewhere on PATH).
+$python = $null
+foreach ($candidate in (Get-Command python -All -ErrorAction SilentlyContinue)) {
+    if ($candidate.Source -notlike "*\WindowsApps\python.exe") {
+        $python = $candidate.Source
+        break
     }
+}
+if (-not $python) {
+    $pyLauncher = Get-Command py -ErrorAction SilentlyContinue
+    if ($pyLauncher) {
+        $python = "py"
+    }
+}
+
+# Verify prerequisites
+Write-Host "Checking prerequisites..." -ForegroundColor Yellow
+
+if ($python) {
+    Write-Host "  ✓ Python 3.12+ ($python)" -ForegroundColor Green
+} else {
+    Write-Host "  ✗ Python 3.12+ not found (only the Microsoft Store alias was seen on PATH)" -ForegroundColor Red
+    exit 1
+}
+
+try {
+    & dotnet --version 2>&1 | Out-Null
+    Write-Host "  ✓ .NET 6+" -ForegroundColor Green
+} catch {
+    Write-Host "  ✗ .NET 6+ not found in PATH" -ForegroundColor Red
+    exit 1
+}
+
+if ($bazelisk) {
+    Write-Host "  ✓ Bazelisk ($bazelisk)" -ForegroundColor Green
+} else {
+    Write-Host "  ✗ Bazelisk not found in PATH or at $RepoRoot\bazelisk.exe" -ForegroundColor Red
+    exit 1
 }
 Write-Host ""
 
@@ -43,7 +78,7 @@ try {
     if (-not $SkipDeps) {
         Write-Host "Step 1: Downloading build dependencies..." -ForegroundColor Yellow
         Write-Host "  (LLVM, MSYS2, Qt, Ninja, .NET tools)" -ForegroundColor Gray
-        & python build_tools/update_deps.py
+        & $python build_tools/update_deps.py
         if ($LASTEXITCODE -ne 0) {
             throw "update_deps.py failed with exit code $LASTEXITCODE"
         }
@@ -54,7 +89,7 @@ try {
     # Step 2: Build Qt
     if (-not $SkipQt) {
         Write-Host "Step 2: Building Qt 6 (may take 15-30 min)..." -ForegroundColor Yellow
-        & python build_tools/build_qt.py --release --confirm_license
+        & $python build_tools/build_qt.py --release --confirm_license
         if ($LASTEXITCODE -ne 0) {
             throw "build_qt.py failed with exit code $LASTEXITCODE"
         }
@@ -65,7 +100,7 @@ try {
     # Step 3: Clean Bazel cache if requested
     if ($CleanBuild) {
         Write-Host "Step 3: Cleaning Bazel cache..." -ForegroundColor Yellow
-        & bazelisk clean --expunge
+        & $bazelisk clean --expunge
         Write-Host "  ✓ Bazel cache cleaned" -ForegroundColor Green
         Write-Host ""
     }
@@ -74,7 +109,7 @@ try {
     Write-Host "Step 4: Building marinaMoji (x64)..." -ForegroundColor Yellow
     Write-Host "  Config: oss_windows release_build" -ForegroundColor Gray
     Write-Host "  Target: marinaMoji64.msi" -ForegroundColor Gray
-    & bazelisk build --config oss_windows --config release_build package
+    & $bazelisk build --config oss_windows --config release_build package
     if ($LASTEXITCODE -ne 0) {
         throw "Bazel build failed with exit code $LASTEXITCODE"
     }

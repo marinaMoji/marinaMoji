@@ -254,6 +254,248 @@ constexpr CharPair kBepo[kVkOrderSize] = {
     /*OEM_7*/ {L'm', L'M'}, /*OEM_102*/ {L'ê', L'Ê'},
 };
 
+// ---------------------------------------------------------------------------
+// Direct-input-mode extras: dead keys and the AltGr layer.
+//
+// These are deliberately sparse side tables so the base CharPair tables above
+// (used by composition-mode romaji resolution) stay untouched: composition
+// mode keeps treating accent keys as plain spacing characters, while direct
+// input mode gets real dead-key composition and AltGr characters.
+//
+// Sources: Windows' shipped layout DLLs (kbdfr/kbdgr/kbdsp/kbdit/kbdne/
+// kbdus/kbddv/kbduk) cross-checked against xkeyboard-config where noted.
+// Entries marked "best effort" have not been verified key-by-key against a
+// live Windows layout; unpopulated AltGr combinations simply pass through
+// to the application.
+// ---------------------------------------------------------------------------
+
+// Marks (vk, shift-level or AltGr-level) as producing a dead key whose
+// spacing form is |accent|. |shift| is ignored when |altgr| is true only if
+// noted per-entry; matching is exact on both flags.
+struct DeadKeySpec {
+  BYTE vk;
+  bool shift;
+  bool altgr;
+  wchar_t accent;
+};
+
+// One AltGr-layer entry: |base| without Shift, |shifted| with Shift.
+// L'\0' means "no character" (falls back to unhandled/pass-through).
+struct AltGrPair {
+  BYTE vk;
+  wchar_t base;
+  wchar_t shifted;
+};
+
+// French AZERTY (kbdfr). The OEM_4 key left of Enter is the classic
+// circumflex/diaeresis dead key. AltGr digits carry the programming
+// characters; the tilde and grave there are dead keys as well.
+constexpr DeadKeySpec kFrDeadKeys[] = {
+    {VK_OEM_4, /*shift=*/false, /*altgr=*/false, L'^'},
+    {VK_OEM_4, /*shift=*/true, /*altgr=*/false, L'¨'},
+    {'2', /*shift=*/false, /*altgr=*/true, L'~'},
+    {'7', /*shift=*/false, /*altgr=*/true, L'`'},
+};
+constexpr AltGrPair kFrAltGr[] = {
+    {'0', L'@', L'\0'}, {'2', L'\0', L'\0'} /* dead ~ */,
+    {'3', L'#', L'\0'}, {'4', L'{', L'\0'},  {'5', L'[', L'\0'},
+    {'6', L'|', L'\0'}, {'7', L'\0', L'\0'} /* dead ` */,
+    {'8', L'\\', L'\0'},
+    // Best effort: kbdfr's AltGr+9 caret is a plain (non-dead) character,
+    // unlike xkeyboard-config's fr(basic) which makes it dead.
+    {'9', L'^', L'\0'},
+    {'E', L'€', L'\0'},
+    {VK_OEM_MINUS, L']', L'\0'},  // ')' key
+    {VK_OEM_PLUS, L'}', L'\0'},   // '=' key
+    {VK_OEM_6, L'¤', L'\0'},      // '$' key
+};
+
+// German QWERTZ (kbdgr): dead circumflex on the key left of '1', dead
+// acute/grave on the key right of 'ß'.
+constexpr DeadKeySpec kDeDeadKeys[] = {
+    {VK_OEM_3, /*shift=*/false, /*altgr=*/false, L'^'},
+    {VK_OEM_PLUS, /*shift=*/false, /*altgr=*/false, L'´'},
+    {VK_OEM_PLUS, /*shift=*/true, /*altgr=*/false, L'`'},
+};
+constexpr AltGrPair kDeAltGr[] = {
+    {'Q', L'@', L'\0'}, {'E', L'€', L'\0'}, {'M', L'µ', L'\0'},
+    {'2', L'²', L'\0'}, {'3', L'³', L'\0'}, {'7', L'{', L'\0'},
+    {'8', L'[', L'\0'}, {'9', L']', L'\0'}, {'0', L'}', L'\0'},
+    {VK_OEM_MINUS, L'\\', L'\0'},  // 'ß' key
+    {VK_OEM_6, L'~', L'\0'},       // '+' key
+    {VK_OEM_102, L'|', L'\0'},
+};
+
+// Spanish (kbdsp): dead grave/circumflex left of Enter, dead acute/diaeresis
+// right of 'ñ'.
+constexpr DeadKeySpec kEsDeadKeys[] = {
+    {VK_OEM_4, /*shift=*/false, /*altgr=*/false, L'`'},
+    {VK_OEM_4, /*shift=*/true, /*altgr=*/false, L'^'},
+    {VK_OEM_7, /*shift=*/false, /*altgr=*/false, L'´'},
+    {VK_OEM_7, /*shift=*/true, /*altgr=*/false, L'¨'},
+};
+constexpr AltGrPair kEsAltGr[] = {
+    {'1', L'|', L'\0'}, {'2', L'@', L'\0'}, {'3', L'#', L'\0'},
+    {'4', L'~', L'\0'}, {'6', L'¬', L'\0'}, {'E', L'€', L'\0'},
+    {VK_OEM_3, L'\\', L'\0'},  // 'º' key
+    {VK_OEM_4, L'[', L'\0'},   // '`' dead key's AltGr level
+    {VK_OEM_6, L']', L'\0'},   // '+' key
+    {VK_OEM_7, L'{', L'\0'},   // '´' dead key's AltGr level
+    {VK_OEM_5, L'}', L'\0'},   // 'ç' key
+};
+
+// Italian (kbdit): no dead keys on the basic layout.
+constexpr AltGrPair kItAltGr[] = {
+    {'E', L'€', L'\0'},
+    {VK_OEM_1, L'@', L'\0'},  // 'ò' key
+    {VK_OEM_7, L'#', L'\0'},  // 'à' key
+    {VK_OEM_4, L'[', L'{'},   // 'è' key
+    {VK_OEM_6, L']', L'}'},   // '+' key
+};
+
+// Dutch (kbdne): the layout is unusually dead-key heavy.
+constexpr DeadKeySpec kNlDeadKeys[] = {
+    {VK_OEM_4, /*shift=*/false, /*altgr=*/false, L'¨'},
+    {VK_OEM_4, /*shift=*/true, /*altgr=*/false, L'^'},
+    {VK_OEM_7, /*shift=*/false, /*altgr=*/false, L'´'},
+    {VK_OEM_7, /*shift=*/true, /*altgr=*/false, L'`'},
+    {VK_OEM_PLUS, /*shift=*/true, /*altgr=*/false, L'~'},
+};
+// Best effort: only the euro sign; the full kbdne AltGr layer is extensive.
+constexpr AltGrPair kNlAltGr[] = {
+    {'E', L'€', L'\0'},
+};
+
+// UK QWERTY (kbduk): no dead keys; AltGr carries the euro sign, broken bar,
+// and acute-accented vowels.
+constexpr AltGrPair kUkAltGr[] = {
+    {'4', L'€', L'\0'}, {'A', L'á', L'Á'}, {'E', L'é', L'É'},
+    {'I', L'í', L'Í'},  {'O', L'ó', L'Ó'}, {'U', L'ú', L'Ú'},
+    {VK_OEM_3, L'¦', L'\0'},
+};
+
+// BEPO: the base-layer circumflex (physical Y position) is a dead key.
+constexpr DeadKeySpec kBepoDeadKeys[] = {
+    {'Y', /*shift=*/false, /*altgr=*/false, L'^'},
+};
+// Best effort: the BEPO AltGr layer is very large; this covers the most
+// common programming characters and French ligatures. Not shipped with
+// Windows, so verified against xkeyboard-config's fr(bepo) only.
+constexpr AltGrPair kBepoAltGr[] = {
+    {'A', L'æ', L'Æ'},        // physical A = bépo 'a'
+    {'R', L'œ', L'Œ'},        // physical R = bépo 'o'
+    {'F', L'€', L'\0'},       // physical F = bépo 'e'
+    {'Z', L'\\', L'\0'},      // physical Z = bépo 'à'
+    {'2', L'<', L'\0'},       // bépo '«' key
+    {'3', L'>', L'\0'},       // bépo '»' key
+    {'4', L'[', L'{'},        // bépo '(' key
+    {'5', L']', L'}'},        // bépo ')' key
+    {'E', L'&', L'\0'},       // physical E = bépo 'p'
+};
+
+// Windows composes CapsLock into the shift level for letters only; the
+// composition pairs below cover the spacing accents used by the layouts
+// above. A pair that is missing falls back to "<accent><char>".
+struct DeadKeyComposition {
+  wchar_t accent;
+  wchar_t base;
+  wchar_t composed;
+};
+
+constexpr DeadKeyComposition kDeadKeyCompositions[] = {
+    // Circumflex.
+    {L'^', L'a', L'â'}, {L'^', L'e', L'ê'}, {L'^', L'i', L'î'},
+    {L'^', L'o', L'ô'}, {L'^', L'u', L'û'},
+    {L'^', L'A', L'Â'}, {L'^', L'E', L'Ê'}, {L'^', L'I', L'Î'},
+    {L'^', L'O', L'Ô'}, {L'^', L'U', L'Û'},
+    // Diaeresis.
+    {L'¨', L'a', L'ä'}, {L'¨', L'e', L'ë'}, {L'¨', L'i', L'ï'},
+    {L'¨', L'o', L'ö'}, {L'¨', L'u', L'ü'}, {L'¨', L'y', L'ÿ'},
+    {L'¨', L'A', L'Ä'}, {L'¨', L'E', L'Ë'}, {L'¨', L'I', L'Ï'},
+    {L'¨', L'O', L'Ö'}, {L'¨', L'U', L'Ü'}, {L'¨', L'Y', L'Ÿ'},
+    // Acute.
+    {L'´', L'a', L'á'}, {L'´', L'e', L'é'}, {L'´', L'i', L'í'},
+    {L'´', L'o', L'ó'}, {L'´', L'u', L'ú'}, {L'´', L'y', L'ý'},
+    {L'´', L'A', L'Á'}, {L'´', L'E', L'É'}, {L'´', L'I', L'Í'},
+    {L'´', L'O', L'Ó'}, {L'´', L'U', L'Ú'}, {L'´', L'Y', L'Ý'},
+    // Grave.
+    {L'`', L'a', L'à'}, {L'`', L'e', L'è'}, {L'`', L'i', L'ì'},
+    {L'`', L'o', L'ò'}, {L'`', L'u', L'ù'},
+    {L'`', L'A', L'À'}, {L'`', L'E', L'È'}, {L'`', L'I', L'Ì'},
+    {L'`', L'O', L'Ò'}, {L'`', L'U', L'Ù'},
+    // Tilde.
+    {L'~', L'a', L'ã'}, {L'~', L'n', L'ñ'}, {L'~', L'o', L'õ'},
+    {L'~', L'A', L'Ã'}, {L'~', L'N', L'Ñ'}, {L'~', L'O', L'Õ'},
+};
+
+struct LayoutExtras {
+  const DeadKeySpec* dead_keys = nullptr;
+  size_t num_dead_keys = 0;
+  const AltGrPair* altgr = nullptr;
+  size_t num_altgr = 0;
+};
+
+LayoutExtras ExtrasForLayout(config::MarinaKeyboardLayout layout) {
+  switch (layout) {
+    case config::MARINA_KBD_UK:
+      return {nullptr, 0, kUkAltGr, std::size(kUkAltGr)};
+    case config::MARINA_KBD_FR_AZERTY:
+      return {kFrDeadKeys, std::size(kFrDeadKeys), kFrAltGr,
+              std::size(kFrAltGr)};
+    case config::MARINA_KBD_DE_QWERTZ:
+      return {kDeDeadKeys, std::size(kDeDeadKeys), kDeAltGr,
+              std::size(kDeAltGr)};
+    case config::MARINA_KBD_ES:
+      return {kEsDeadKeys, std::size(kEsDeadKeys), kEsAltGr,
+              std::size(kEsAltGr)};
+    case config::MARINA_KBD_IT:
+      return {nullptr, 0, kItAltGr, std::size(kItAltGr)};
+    case config::MARINA_KBD_NL:
+      return {kNlDeadKeys, std::size(kNlDeadKeys), kNlAltGr,
+              std::size(kNlAltGr)};
+    case config::MARINA_KBD_BEPO:
+      return {kBepoDeadKeys, std::size(kBepoDeadKeys), kBepoAltGr,
+              std::size(kBepoAltGr)};
+    default:
+      // US, Dvorak, JIS: no dead keys, no AltGr layer.
+      return {};
+  }
+}
+
+wchar_t DeadKeyAccentFor(config::MarinaKeyboardLayout layout, BYTE virtual_key,
+                         bool shift, bool altgr) {
+  const LayoutExtras extras = ExtrasForLayout(layout);
+  for (size_t i = 0; i < extras.num_dead_keys; ++i) {
+    const DeadKeySpec& spec = extras.dead_keys[i];
+    if (spec.vk == virtual_key && spec.shift == shift &&
+        spec.altgr == altgr) {
+      return spec.accent;
+    }
+  }
+  return L'\0';
+}
+
+wchar_t AltGrCharacterFor(config::MarinaKeyboardLayout layout,
+                          BYTE virtual_key, bool shift) {
+  const LayoutExtras extras = ExtrasForLayout(layout);
+  for (size_t i = 0; i < extras.num_altgr; ++i) {
+    const AltGrPair& pair = extras.altgr[i];
+    if (pair.vk == virtual_key) {
+      return shift ? pair.shifted : pair.base;
+    }
+  }
+  return L'\0';
+}
+
+wchar_t ComposeDeadKey(wchar_t accent, wchar_t base) {
+  for (const DeadKeyComposition& composition : kDeadKeyCompositions) {
+    if (composition.accent == accent && composition.base == base) {
+      return composition.composed;
+    }
+  }
+  return L'\0';
+}
+
 const CharPair* TableForLayout(config::MarinaKeyboardLayout layout) {
   switch (layout) {
     case config::MARINA_KBD_US:
@@ -314,6 +556,72 @@ wchar_t RomajiKeyboardLayoutEmulator::GetCharacterForKeyDown(
 
   const CharPair& pair = table[index];
   return effective_shift ? pair.shifted : pair.base;
+}
+
+// static
+RomajiKeyboardLayoutEmulator::DirectModeKeyOutput
+RomajiKeyboardLayoutEmulator::ResolveDirectModeKey(
+    config::MarinaKeyboardLayout layout, BYTE virtual_key, bool shift,
+    bool altgr, bool capslock, wchar_t pending_dead_key) {
+  DirectModeKeyOutput output;
+  if (layout == config::MARINA_KBD_OS_DEFAULT) {
+    return output;
+  }
+
+  // Space commits the spacing form of a pending dead key ("^" + space types
+  // "^"), exactly like a real Windows dead key. Without a pending dead key,
+  // space is none of our business.
+  if (virtual_key == VK_SPACE) {
+    if (pending_dead_key == L'\0') {
+      return output;
+    }
+    output.handled = true;
+    output.commit_text.assign(1, pending_dead_key);
+    output.next_pending_dead_key = L'\0';
+    return output;
+  }
+
+  // Dead key pressed: consume it. If another dead key was already pending,
+  // Windows commits the first accent's spacing form and the new key becomes
+  // the pending one.
+  const wchar_t accent = DeadKeyAccentFor(layout, virtual_key, shift, altgr);
+  if (accent != L'\0') {
+    output.handled = true;
+    if (pending_dead_key != L'\0') {
+      output.commit_text.assign(1, pending_dead_key);
+    }
+    output.next_pending_dead_key = accent;
+    return output;
+  }
+
+  wchar_t character = L'\0';
+  if (altgr) {
+    // Only explicitly populated AltGr combinations are handled; everything
+    // else passes through to the application.
+    character = AltGrCharacterFor(layout, virtual_key, shift);
+  } else {
+    character = GetCharacterForKeyDown(layout, virtual_key, shift, capslock);
+  }
+  if (character == L'\0') {
+    return output;
+  }
+
+  output.handled = true;
+  output.next_pending_dead_key = L'\0';
+  if (pending_dead_key != L'\0') {
+    const wchar_t composed = ComposeDeadKey(pending_dead_key, character);
+    if (composed != L'\0') {
+      output.commit_text.assign(1, composed);
+    } else {
+      // Non-composable pair: commit the spacing accent followed by the
+      // character, mirroring Windows behavior.
+      output.commit_text.assign(1, pending_dead_key);
+      output.commit_text.push_back(character);
+    }
+    return output;
+  }
+  output.commit_text.assign(1, character);
+  return output;
 }
 
 }  // namespace win32

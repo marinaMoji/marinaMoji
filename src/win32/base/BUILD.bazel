@@ -50,10 +50,14 @@ mozc_cc_library(
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
+        "//base:config_file_stream",
+        "//base:file_util",
         "//base:system_util",
         "//config:config_handler",
         "//protocol:config_cc_proto",
         "//session:key_info_util",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/synchronization",
     ],
 )
 
@@ -507,6 +511,19 @@ mozc_cc_library(
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
         "@com_microsoft_wil//:wil",
+    ],
+)
+
+mozc_cc_library(
+    name = "toolbar_config",
+    srcs = ["toolbar_config.cc"],
+    hdrs = ["toolbar_config.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        "//base:file_util",
+        "//base:system_util",
+        "@com_google_absl//absl/strings",
     ],
 )
 

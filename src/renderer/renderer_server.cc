@@ -145,7 +145,16 @@ class RendererServerSendCommand : public client::SendCommandInterface {
     }
     WPARAM type = static_cast<WPARAM>(command.type());
     LPARAM id = static_cast<LPARAM>(command.id());
-    ::PostMessage(target, mozc_msg, type, id);
+    // Palette visibility is local UI state in the TIP. Process these signals
+    // synchronously so the focused context refreshes its RendererCommand
+    // before the toolbar click returns; a queued PostMessage can otherwise be
+    // superseded by the next renderer update and leave the palette unopened.
+    if (command.type() == commands::SessionCommand::SHOW_SYMBOLS_PALETTE ||
+        command.type() == commands::SessionCommand::HIDE_SYMBOLS_PALETTE) {
+      ::SendMessage(target, mozc_msg, type, id);
+    } else {
+      ::PostMessage(target, mozc_msg, type, id);
+    }
 #endif  // _WIN32
 
     // TODO(all): implementation for Mac/Linux

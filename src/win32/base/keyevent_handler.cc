@@ -691,12 +691,93 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
   return true;
 }
 
+// marinaMoji: attempts to claim |virtual_key| for the direct-input-mode
+// fixed-layout emulation (config.proto's MarinaKeyboardLayout). Returns true
+// and fills |result| (and, for keys that produce text, rewrites |key| into a
+// marina_direct_insert key event for the server to echo back as a commit)
+// when the key is handled. Returns false to fall back to the upstream
+// pass-through behavior. Must be called only when the IME is closed and the
+// key did not match |behavior.direct_mode_keys|, so that IME-on keys and the
+// macron shortcuts keep their priority.
+bool HandleDirectModeLayoutKey(const VirtualKey& virtual_key, bool is_key_down,
+                               const InputBehavior& behavior,
+                               const InputState& ime_state,
+                               const KeyboardStatus& keyboard_status,
+                               commands::KeyEvent* key,
+                               KeyEventHandlerResult* result) {
+  if (behavior.marina_keyboard_layout == config::MARINA_KBD_OS_DEFAULT ||
+      !is_key_down || ime_state.disabled_tsf_context) {
+    return false;
+  }
+  // VK_PACKET events carry injected Unicode (SendInput etc.); leave them to
+  // the application untouched.
+  if (virtual_key.virtual_key() == VK_PACKET) {
+    return false;
+  }
+  const bool ctrl = keyboard_status.IsPressed(VK_CONTROL);
+  const bool alt = keyboard_status.IsPressed(VK_MENU);
+  // Windows reports a dedicated AltGr key as Ctrl+RightAlt; keyboards
+  // without one conventionally use Ctrl+Alt.
+  const bool altgr = keyboard_status.IsPressed(VK_RMENU) || (ctrl && alt);
+  if ((ctrl || alt) && !altgr) {
+    // Plain Ctrl-/Alt- application shortcuts must reach the application.
+    return false;
+  }
+  if (keyboard_status.IsPressed(VK_LWIN) ||
+      keyboard_status.IsPressed(VK_RWIN)) {
+    return false;
+  }
+
+  const RomajiKeyboardLayoutEmulator::DirectModeKeyOutput layout_output =
+      RomajiKeyboardLayoutEmulator::ResolveDirectModeKey(
+          behavior.marina_keyboard_layout, virtual_key.virtual_key(),
+          keyboard_status.IsPressed(VK_SHIFT), altgr,
+          keyboard_status.IsToggled(VK_CAPITAL), ime_state.pending_dead_key);
+  if (!layout_output.handled) {
+    return false;
+  }
+
+  result->succeeded = true;
+  result->should_be_eaten = true;
+  result->handled_by_direct_layout = true;
+  result->next_pending_dead_key = layout_output.next_pending_dead_key;
+
+  if (layout_output.commit_text.empty()) {
+    // A dead-key press: consume it, nothing to type yet.
+    result->should_be_sent_to_server = false;
+    return true;
+  }
+
+  // Rebuild the key event from scratch: the layout has fully resolved the
+  // character, and leftover modifiers from ConvertToKeyEvent (e.g. CTRL from
+  // an AltGr chord) would otherwise let the server keymap misinterpret it.
+  key->Clear();
+  if (layout_output.commit_text.size() == 1) {
+    // A single character goes into key_code so a pending server-side macron
+    // dead key (SetMacronDeadKey) can turn a vowel into ā ē ī ō ū.
+    key->set_key_code(layout_output.commit_text[0]);
+  } else {
+    key->set_key_string(WideToUtf8(layout_output.commit_text));
+  }
+  key->set_activated(false);
+  commands::CompositionMode mozc_mode = commands::DIRECT;
+  if (ConversionModeUtil::GetMozcModeFromNativeMode(
+          ime_state.visible_conversion_mode, &mozc_mode)) {
+    key->set_mode(mozc_mode);
+  }
+  key->set_marina_direct_insert(true);
+  result->should_be_sent_to_server = true;
+  return true;
+}
+
 }  // namespace
 
 KeyEventHandlerResult::KeyEventHandlerResult()
     : should_be_eaten(false),
       should_be_sent_to_server(false),
-      succeeded(false) {}
+      succeeded(false),
+      handled_by_direct_layout(false),
+      next_pending_dead_key(L'\0') {}
 
 KeyEventHandlerResult KeyEventHandler::HandleKey(
     const VirtualKey& virtual_key, BYTE scan_code, bool is_key_down,
@@ -740,11 +821,28 @@ KeyEventHandlerResult KeyEventHandler::HandleKey(
   // We do not handle key message unless the key is one of force activation
   // keys.
   if (!ime_state.open) {
+    // marinaMoji: Left Shift alone is a converter command even while the
+    // system IME is closed: it restores the saved Japanese mode.  Let its
+    // key-up reach the session after the normal last-down-key guard above;
+    // all other closed-IME keys retain the upstream direct-input behaviour.
+    const bool is_standalone_shift_release =
+        !is_key_down && virtual_key.virtual_key() == VK_SHIFT &&
+        ime_state.last_down_key.virtual_key() == VK_SHIFT;
     // TODO(yukawa): Treat VK_PACKET as a direct mode key.
     const bool is_direct_mode_command =
         is_key_down &&
         KeyInfoUtil::ContainsKey(behavior.direct_mode_keys, *key);
-    if (!is_direct_mode_command) {
+    if (!is_direct_mode_command && !is_standalone_shift_release) {
+      // marinaMoji: when a fixed romaji keyboard layout is selected, direct
+      // input follows that layout too (including AltGr and dead keys).
+      // Checked after the direct-mode-command test above so IME-on keys and
+      // the macron shortcuts keep their priority.
+      KeyEventHandlerResult direct_layout_result;
+      if (HandleDirectModeLayoutKey(virtual_key, is_key_down, behavior,
+                                    ime_state, initial_status, key,
+                                    &direct_layout_result)) {
+        return direct_layout_result;
+      }
       result.succeeded = true;
       result.should_be_eaten = false;
       result.should_be_sent_to_server = false;
@@ -893,6 +991,16 @@ KeyEventHandlerResult KeyEventHandler::ImeProcessKey(
     return result;
   }
 
+  // marinaMoji: keys claimed by the direct-mode fixed-layout emulation are
+  // reported as eaten without consulting the server in the test phase; the
+  // real key phase (ImeToAsciiEx) performs the server round trip. The
+  // updated dead-key state is exposed via |next_state| but must only be
+  // persisted from the real key phase.
+  if (result.handled_by_direct_layout) {
+    next_state->pending_dead_key = result.next_pending_dead_key;
+    return result;
+  }
+
   if (!result.should_be_sent_to_server) {
     return result;
   }
@@ -981,6 +1089,14 @@ KeyEventHandlerResult KeyEventHandler::ImeToAsciiEx(
 
   if (!result.succeeded) {
     return result;
+  }
+
+  // marinaMoji: expose the direct-mode layout emulation's dead-key state to
+  // the caller (persisted by the TIP from this real key phase). Keys that
+  // produced text continue below and reach the server as
+  // marina_direct_insert key events, which it echoes back as a commit.
+  if (result.handled_by_direct_layout) {
+    next_state->pending_dead_key = result.next_pending_dead_key;
   }
 
   if (!result.should_be_sent_to_server) {

@@ -57,7 +57,9 @@
 #include "base/win32/hresult.h"
 #include "base/win32/hresultor.h"
 #include "base/win32/win_util.h"
+#include "config/config_handler.h"
 #include "protocol/commands.pb.h"
+#include "win32/base/toolbar_config.h"
 #include "win32/base/win32_window_util.h"
 #include "win32/tip/tip_display_attributes.h"
 #include "win32/tip/tip_dll_module.h"
@@ -196,7 +198,9 @@ commands::CompositionMode GetMozcMode(TipLangBarCallback::ItemId menu_id) {
     case TipLangBarCallback::kHiragana:
       return commands::HIRAGANA;
     case TipLangBarCallback::kFullKatakana:
-      return commands::FULL_KATAKANA;
+      // marinaMoji: the language bar's "Katakana" entry enters Manyōshū mode,
+      // which replaces traditional full-width katakana.
+      return commands::MANYOSHU;
     case TipLangBarCallback::kHalfAlphanumeric:
       return commands::HALF_ASCII;
     case TipLangBarCallback::kFullAlphanumeric:
@@ -481,6 +485,9 @@ class TipTextServiceImpl
     // Release the ITfCategoryMgr.
     category_.reset();
 
+    // Release the cached renderer-callback target.
+    last_focused_document_manager_.reset();
+
     // Release the client ID who communicates with this IME.
     client_id_ = TF_CLIENTID_NULL;
 
@@ -714,6 +721,13 @@ class TipTextServiceImpl
   STDMETHODIMP OnSetFocus(ITfDocumentMgr* focused,
                           ITfDocumentMgr* previous) override {
     GetThreadContext()->IncrementFocusRevision();
+    // marinaMoji: remember the last real focused document manager so
+    // renderer callbacks (floating toolbar / symbols palette clicks) can be
+    // delivered even when the click transiently moved the thread focus away
+    // (e.g. the toolbar's mode popup menu) and GetFocus() returns null.
+    if (focused != nullptr) {
+      last_focused_document_manager_ = focused;
+    }
     OnDocumentMgrChanged(focused);
     return S_OK;
   }
@@ -730,10 +744,12 @@ class TipTextServiceImpl
   STDMETHODIMP OnSetThreadFocus() override {
     EnsureKanaLockUnlocked();
 
-    // A temporary workaround for b/24793812.  When previous attempt to
-    // establish conection failed, retry again as if this was the first attempt.
-    // TODO(yukawa): We should give up if this fails a number of times.
-    if (WinUtil::IsProcessSandboxed()) {
+    // Refresh the focused context's behavior from the (mtime-checked) config
+    // snapshot so config changes apply to already-running applications on the
+    // next focus event. This also retains the original purpose of this call
+    // for sandboxed processes (b/24793812): when a previous attempt to
+    // establish a connection failed, retry as if this was the first attempt.
+    {
       auto* private_context = GetFocusedPrivateContext();
       if (private_context != nullptr) {
         private_context->EnsureInitialized();
@@ -916,6 +932,56 @@ class TipTextServiceImpl
       case TipLangBarCallback::kWordRegister:
       case TipLangBarCallback::kAbout:
         return SpawnTool(GetMozcToolCommand(menu_id));
+      case TipLangBarCallback::kTraditionalKanji: {
+        auto* private_context = GetFocusedPrivateContext();
+        if (private_context == nullptr) {
+          return E_FAIL;
+        }
+        commands::SessionCommand command;
+        command.set_type(commands::SessionCommand::TOGGLE_TRADITIONAL_KANJI);
+        commands::Output output;
+        if (!private_context->GetClient()->SendCommand(command, &output)) {
+          return E_FAIL;
+        }
+        PostUIUpdateMessage();
+        return S_OK;
+      }
+      case TipLangBarCallback::kOdoriji: {
+        auto* private_context = GetFocusedPrivateContext();
+        if (private_context == nullptr) {
+          return E_FAIL;
+        }
+        commands::SessionCommand command;
+        command.set_type(commands::SessionCommand::SHOW_ODORIJI_PALETTE);
+        commands::Output output;
+        if (!private_context->GetClient()->SendCommand(command, &output)) {
+          return E_FAIL;
+        }
+        PostUIUpdateMessage();
+        return S_OK;
+      }
+      case TipLangBarCallback::kToolbarVisibility: {
+        const bool visible = !mozc::win32::LoadToolbarVisiblePreference();
+        if (!mozc::win32::SaveToolbarVisiblePreference(visible)) {
+          return E_FAIL;
+        }
+        PostUIUpdateMessage();
+        return S_OK;
+      }
+      case TipLangBarCallback::kPrivacyMode: {
+        auto* private_context = GetFocusedPrivateContext();
+        if (private_context == nullptr) {
+          return E_FAIL;
+        }
+        commands::SessionCommand command;
+        command.set_type(commands::SessionCommand::TOGGLE_PRIVACY_MODE);
+        commands::Output output;
+        if (!private_context->GetClient()->SendCommand(command, &output)) {
+          return E_FAIL;
+        }
+        PostUIUpdateMessage();
+        return S_OK;
+      }
       case TipLangBarCallback::kHelp:
         // Open the about dialog.
         return Process::OpenBrowser(kHelpUrl) ? S_OK : E_FAIL;
@@ -936,6 +1002,15 @@ class TipTextServiceImpl
     // Like MSIME 2012, switch to Hiragana mode when the LangBar button is
     // clicked.
     return TipEditSession::SwitchInputModeAsync(this, commands::HIRAGANA);
+  }
+  bool IsToolbarVisible() const override {
+    return mozc::win32::LoadToolbarVisiblePreference();
+  }
+  bool UseTraditionalKanji() const override {
+    return config::ConfigHandler::GetSharedConfig()->use_traditional_kanji();
+  }
+  bool IsPrivacyModeEnabled() const override {
+    return config::ConfigHandler::GetSharedConfig()->incognito_mode();
   }
 
   // TipTextService
@@ -1438,18 +1513,31 @@ class TipTextServiceImpl
     return ::DefWindowProcW(window_handle, message, wparam, lparam);
   }
 
-  void OnRendererSymbolTextCallback(const std::string& text) {
+  // Resolves the context a renderer callback (toolbar / symbols palette
+  // click) should be delivered to. Prefers the live focused document
+  // manager, but falls back to the last known one: clicking the toolbar's
+  // mode popup menu transiently steals the thread focus, so by the time the
+  // selection message arrives GetFocus() can already be null even though the
+  // application context is still perfectly able to accept an async edit
+  // session.
+  wil::com_ptr_nothrow<ITfContext> GetRendererCallbackContext() {
     wil::com_ptr_nothrow<ITfDocumentMgr> document_manager;
-    if (FAILED(thread_mgr_->GetFocus(&document_manager))) {
-      return;
+    if (FAILED(thread_mgr_->GetFocus(&document_manager)) ||
+        !document_manager) {
+      document_manager = last_focused_document_manager_;
     }
     if (!document_manager) {
-      return;
+      return nullptr;
     }
     wil::com_ptr_nothrow<ITfContext> context;
     if (FAILED(document_manager->GetBase(&context))) {
-      return;
+      return nullptr;
     }
+    return context;
+  }
+
+  void OnRendererSymbolTextCallback(const std::string& text) {
+    wil::com_ptr_nothrow<ITfContext> context = GetRendererCallbackContext();
     if (!context) {
       return;
     }
@@ -1458,17 +1546,7 @@ class TipTextServiceImpl
   }
 
   void OnRendererCallback(WPARAM wparam, LPARAM lparam) {
-    wil::com_ptr_nothrow<ITfDocumentMgr> document_manager;
-    if (FAILED(thread_mgr_->GetFocus(&document_manager))) {
-      return;
-    }
-    if (!document_manager) {
-      return;
-    }
-    wil::com_ptr_nothrow<ITfContext> context;
-    if (FAILED(document_manager->GetBase(&context))) {
-      return;
-    }
+    wil::com_ptr_nothrow<ITfContext> context = GetRendererCallbackContext();
     if (!context) {
       return;
     }
@@ -1478,6 +1556,11 @@ class TipTextServiceImpl
 
   // Represents the status of the thread manager which owns this IME object.
   wil::com_ptr_nothrow<ITfThreadMgr> thread_mgr_;
+
+  // marinaMoji: last non-null focused document manager, used as a fallback
+  // target for renderer callbacks when the thread focus is transiently lost
+  // (see GetRendererCallbackContext).
+  wil::com_ptr_nothrow<ITfDocumentMgr> last_focused_document_manager_;
 
   // Represents the ID of the client application using this IME object.
   TfClientId client_id_;

@@ -1667,6 +1667,53 @@ TEST_F(KeyEventHandlerTest, ProtocolAnomalyModiferKeyMayBeSentOnKeyUp) {
   }
 }
 
+TEST_F(KeyEventHandlerTest, LeftShiftReleaseIsSentWhileImeIsClosed) {
+  // marinaMoji uses Left Shift alone to restore the saved Japanese mode from
+  // direct input.  Upstream's closed-IME path normally rejects every key
+  // except configured direct-mode keys, so specifically retain this release.
+  Output mock_output;
+  mock_output.set_consumed(true);
+  MockState mock(mock_output);
+  KeyboardMock keyboard(/*kana_locked=*/false);
+
+  InputBehavior behavior;
+  behavior.disabled = false;
+  behavior.direct_mode_keys = GetDefaultDirectModeKeys();
+
+  KeyboardStatus keyboard_status;
+  // The release snapshot is allowed to have already cleared the physical
+  // left-shift state; the scan code supplies the side reliably.
+  constexpr VirtualKey kVirtualKey = VirtualKey::FromVirtualKey(VK_SHIFT);
+  constexpr BYTE kLeftShiftScanCode = 0x2a;
+  InputState initial_state;
+  initial_state.open = false;
+  initial_state.last_down_key = kVirtualKey;
+
+  Context context;
+  InputState next_state;
+  Output output;
+  const KeyEventHandlerResult result =
+      TestableKeyEventHandler::ImeToAsciiEx(
+          kVirtualKey, kLeftShiftScanCode, /*is_key_down=*/false,
+          keyboard_status, behavior, initial_state, context,
+          mock.mutable_client(), &keyboard, &next_state, &output);
+
+  EXPECT_TRUE(result.succeeded);
+  EXPECT_TRUE(result.should_be_eaten);
+  EXPECT_TRUE(result.should_be_sent_to_server);
+
+  commands::Input actual_input;
+  ASSERT_TRUE(mock.GetGeneratedRequest(&actual_input));
+  ASSERT_TRUE(actual_input.has_key());
+  EXPECT_TRUE(actual_input.key().has_activated());
+  EXPECT_FALSE(actual_input.key().activated());
+  bool has_left_shift = false;
+  for (const auto modifier : actual_input.key().modifier_keys()) {
+    has_left_shift |= (modifier == commands::KeyEvent::LEFT_SHIFT);
+  }
+  EXPECT_TRUE(has_left_shift);
+}
+
 TEST_F(KeyEventHandlerTest,
        ProtocolAnomalyModifierShiftShouldBeRemovedForPrintableChar) {
   // Currently, the Mozc server expects the client remove Shift modifier if

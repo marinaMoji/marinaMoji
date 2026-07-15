@@ -188,6 +188,9 @@ class TipLangBarButton : public TipComImplements<ITfLangBarItemButton,
   // IsMenuButton() returns false.
   void SetContextMenuEnabled(bool enabled);
 
+  // Refreshes the dynamic menu items that mirror current session/config state.
+  void RefreshMenuState(HINSTANCE instance);
+
   wil::com_ptr_nothrow<ITfLangBarItemSink> item_sink_;
   // Save the TipLangBarCallback object that owns this button to prevent the
   // object from being deleted.

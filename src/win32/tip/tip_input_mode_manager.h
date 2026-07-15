@@ -47,6 +47,9 @@ namespace tsf {
 // Exposed for unit testing.
 class TipInputModeManagerImpl {
  public:
+  // Values intentionally mirror commands::CompositionMode: state is stored by
+  // static_cast from/to mozc modes (see OnReceiveCommand and
+  // GetOpenAndMode in tip_keyevent_handler.cc).
   enum ConversionMode {
     kDirect,
     kHiragana,
@@ -54,6 +57,9 @@ class TipInputModeManagerImpl {
     kHalfAscii,
     kFullAscii,
     kHalfKatakana,
+    // marinaMoji: Manyōshū mode (replaces full-width katakana; value matches
+    // commands::MANYOSHU).
+    kManyoshu,
   };
   struct StatePair {
     StatePair() = default;

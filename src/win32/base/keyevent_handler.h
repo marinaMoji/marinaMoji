@@ -55,6 +55,20 @@ struct KeyEventHandlerResult {
   bool should_be_eaten;
   bool should_be_sent_to_server;
   bool succeeded;
+  // marinaMoji: true when this key was handled by the direct-input-mode
+  // fixed-layout emulation (see RomajiKeyboardLayoutEmulator::
+  // ResolveDirectModeKey). When set:
+  //  - ImeProcessKey (the test phase) reports the key as eaten without
+  //    consulting the server;
+  //  - the resulting dead-key state is in |next_state->pending_dead_key|,
+  //    which the caller should persist only from the real key phase (OnKey);
+  //  - if the key produced text, |should_be_sent_to_server| is also true and
+  //    the KeyEvent carries marina_direct_insert so the session echoes the
+  //    text back as a commit.
+  bool handled_by_direct_layout;
+  // marinaMoji: dead key pending after this key ('\0' if none). Only
+  // meaningful when |handled_by_direct_layout| is true.
+  wchar_t next_pending_dead_key;
   KeyEventHandlerResult();
 };
 

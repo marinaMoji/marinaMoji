@@ -44,6 +44,7 @@
 #include "client/client_interface.h"
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
+#include "protocol/renderer_style.pb.h"
 #include "renderer/table_layout.h"
 #include "renderer/win32/text_renderer.h"
 
@@ -127,6 +128,7 @@ class CandidateWindow : public ATL::CWindowImpl<CandidateWindow, ATL::CWindow,
   void DrawInformationIcon(HDC dc);
   void DrawBackground(HDC dc);
   void DrawFrame(HDC dc);
+  void UpdateWindowRegion();
 
   // Recomputes DPI-dependent cached resources (footer logo and indicator
   // width) for the current |dpi_|.
@@ -200,6 +202,7 @@ class CandidateWindow : public ATL::CWindowImpl<CandidateWindow, ATL::CWindow,
   Size footer_logo_display_size_;
   client::SendCommandInterface* send_command_interface_;
   std::unique_ptr<TableLayout> table_layout_;
+  RendererStyle style_;
   uint32_t dpi_;
   std::unique_ptr<TextRenderer> text_renderer_;
   int indicator_width_;

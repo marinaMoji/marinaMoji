@@ -52,6 +52,7 @@
 #include "protocol/renderer_command.pb.h"
 #include "renderer/win32/win32_renderer_client.h"
 #include "win32/base/input_state.h"
+#include "win32/base/toolbar_config.h"
 #include "win32/tip/tip_composition_util.h"
 #include "win32/tip/tip_dll_module.h"
 #include "win32/tip/tip_input_mode_manager.h"
@@ -163,7 +164,9 @@ bool FillVisibility(ITfUIElementMgr* ui_element_manager,
   // document context, independent of candidate/suggest visibility (mirrors
   // mac/Linux: shown on focus, hidden on focus loss). UpdateCommand() clears
   // this bit below when the TSF thread loses focus.
-  visibility |= ApplicationInfo::ShowToolbar;
+  if (mozc::win32::LoadToolbarVisiblePreference()) {
+    visibility |= ApplicationInfo::ShowToolbar;
+  }
   app_info->set_ui_visibilities(visibility);
 
   return true;
@@ -519,6 +522,15 @@ void TipUiHandlerConventional::OnActivate(TipTextService* text_service) {
 }
 
 void TipUiHandlerConventional::OnDeactivate() {
+  // marinaMoji: explicitly tell the renderer to hide everything (including
+  // the floating toolbar and Symbols Palette, which are gated by
+  // |ApplicationInfo::ShowToolbar| / |has_symbols_palette_info()| rather than
+  // |visible()|) before tearing down IPC. Without this, whatever the
+  // renderer was last showing stays on screen after the IME deactivates.
+  RendererCommand command;
+  command.set_type(RendererCommand::UPDATE);
+  command.set_visible(false);
+  Win32RendererClient::OnUpdated(command);
   Win32RendererClient::OnUIThreadUninitialized();
 }
 

@@ -241,11 +241,12 @@ TEST(TipInputModeManagerTest, ChangeInputScope) {
 
   // InputScope: IS_KATAKANA_FULLWIDTH
   // This should change the mode and make indicator visible.
+  // marinaMoji: full-width katakana is replaced by Manyōshū mode.
   action = input_mode_manager.OnChangeInputScope(input_scope_full_katakana);
   EXPECT_EQ(action, TipInputModeManager::kUpdateUI);
   EXPECT_TRUE(input_mode_manager.GetEffectiveOpenClose());
   EXPECT_EQ(input_mode_manager.GetEffectiveConversionMode(),
-            TipInputModeManager::kFullKatakana);
+            TipInputModeManager::kManyoshu);
   EXPECT_TRUE(input_mode_manager.IsIndicatorVisible());
 
   action = input_mode_manager.OnKey(VirtualKey(), true, true);

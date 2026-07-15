@@ -1,4 +1,4 @@
-# Install and test marinaMoji IME on Windows
+﻿# Install and test marinaMoji IME on Windows
 # Prerequisites:
 #   - marinaMoji64.msi exists at specified path
 #   - Stock Mozc is already installed (for side-by-side testing)

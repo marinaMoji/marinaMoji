@@ -48,6 +48,18 @@ namespace {
 
 typedef ::mozc::commands::CompositionMode CompositionMode;
 
+// The manager's ConversionMode enum is stored/read via static_cast from
+// commands::CompositionMode; keep the numbering locked together.
+static_assert(TipInputModeManagerImpl::kDirect == commands::DIRECT);
+static_assert(TipInputModeManagerImpl::kHiragana == commands::HIRAGANA);
+static_assert(TipInputModeManagerImpl::kFullKatakana ==
+              commands::FULL_KATAKANA);
+static_assert(TipInputModeManagerImpl::kHalfAscii == commands::HALF_ASCII);
+static_assert(TipInputModeManagerImpl::kFullAscii == commands::FULL_ASCII);
+static_assert(TipInputModeManagerImpl::kHalfKatakana ==
+              commands::HALF_KATAKANA);
+static_assert(TipInputModeManagerImpl::kManyoshu == commands::MANYOSHU);
+
 template <typename T>
 void Dedup(std::vector<T>* container) {
   std::sort(container->begin(), container->end());
@@ -94,7 +106,8 @@ TipInputModeManagerImpl::StatePair TipInputModeManagerImpl::GetOverriddenState(
         states.push_back(kHalfKatakana);
         break;
       case IS_KATAKANA_FULLWIDTH:
-        states.push_back(kFullKatakana);
+        // marinaMoji: Manyōshū mode replaces full-width katakana.
+        states.push_back(kManyoshu);
         break;
       default:
         break;

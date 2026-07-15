@@ -36,7 +36,10 @@ namespace win32 {
 // window chrome (caption + close box), so WS_POPUPWINDOW | WS_CAPTION rather
 // than WS_POPUP alone.
 typedef ATL::CWinTraits<WS_POPUPWINDOW | WS_CAPTION,
-                        WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE>
+                        // The toolbar is topmost, so the palette must be as
+                        // well. Otherwise SW_SHOWNA succeeds but the palette
+                        // is immediately covered by the focused application.
+                        WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE>
     SymbolsPaletteWindowTraits;
 
 class SymbolsPaletteWindow

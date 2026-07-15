@@ -572,7 +572,9 @@ void ToolbarWindow::ShowModeMenu() {
   };
   constexpr ModeEntry kEntries[] = {
       {L"Hiragana", commands::HIRAGANA},
-      {L"Katakana", commands::FULL_KATAKANA},
+      // marinaMoji: the "Katakana" entry enters Manyōshū mode, which replaces
+      // traditional full-width katakana.
+      {L"Katakana", commands::MANYOSHU},
       {L"Half-width Katakana", commands::HALF_KATAKANA},
       {L"Full-width Roman", commands::FULL_ASCII},
       {L"Half-width Roman", commands::HALF_ASCII},
@@ -580,7 +582,13 @@ void ToolbarWindow::ShowModeMenu() {
   };
   for (size_t i = 0; i < std::size(kEntries); ++i) {
     UINT flags = MF_STRING;
-    if (activated_ && kEntries[i].mode == current_mode_) {
+    // FULL_KATAKANA can still be reported by older sessions; show it as the
+    // Katakana (Manyōshū) entry being active.
+    const bool checked =
+        kEntries[i].mode == current_mode_ ||
+        (kEntries[i].mode == commands::MANYOSHU &&
+         current_mode_ == commands::FULL_KATAKANA);
+    if (activated_ && checked) {
       flags |= MF_CHECKED;
     }
     ::AppendMenuW(menu.get(), flags, i + 1, kEntries[i].label);

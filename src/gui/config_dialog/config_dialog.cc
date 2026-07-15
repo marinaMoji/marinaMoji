@@ -197,11 +197,7 @@ constexpr absl::Duration kConfigDialogTimeout = absl::Milliseconds(100000);
 }  // namespace
 
 ConfigDialog::ConfigDialog()
-    : client_(client::ClientFactory::NewClient()),
-      initial_preedit_method_(0),
-      initial_use_keyboard_to_change_preedit_method_(false),
-      initial_use_mode_indicator_(true),
-      initial_marina_keyboard_layout_(0) {
+    : client_(client::ClientFactory::NewClient()) {
   client_->set_timeout(kConfigDialogTimeout);
   // Avoid spawning ErrorMessageDialog.app on IPC errors during shutdown.
   client_->set_suppress_error_dialog(true);
@@ -548,13 +544,6 @@ void ConfigDialog::Reload() {
 
   SelectAutoConversionSetting(static_cast<int>(config.use_auto_conversion()));
 
-  initial_preedit_method_ = static_cast<int>(config.preedit_method());
-  initial_use_keyboard_to_change_preedit_method_ =
-      config.use_keyboard_to_change_preedit_method();
-  initial_use_mode_indicator_ = config.use_mode_indicator();
-  initial_marina_keyboard_layout_ =
-      static_cast<int>(config.marina_keyboard_layout());
-
   if (sync_tab_) {
     sync_tab_->LoadFromServer();
   }
@@ -585,36 +574,12 @@ bool ConfigDialog::Update() {
     }
   }
 
-#if defined(_WIN32)
-  if ((initial_preedit_method_ != static_cast<int>(config.preedit_method())) ||
-      (initial_use_keyboard_to_change_preedit_method_ !=
-       config.use_keyboard_to_change_preedit_method())) {
-    QMessageBox::information(this, windowTitle(),
-                             tr("Romaji/Kana setting is enabled from"
-                                " new applications."));
-    initial_preedit_method_ = static_cast<int>(config.preedit_method());
-    initial_use_keyboard_to_change_preedit_method_ =
-        config.use_keyboard_to_change_preedit_method();
-  }
-
-  if (initial_marina_keyboard_layout_ !=
-      static_cast<int>(config.marina_keyboard_layout())) {
-    QMessageBox::information(this, windowTitle(),
-                             tr("Romaji keyboard layout setting is enabled"
-                                " from new applications."));
-    initial_marina_keyboard_layout_ =
-        static_cast<int>(config.marina_keyboard_layout());
-  }
-#endif  // _WIN32
-
-#ifdef _WIN32
-  if (initial_use_mode_indicator_ != config.use_mode_indicator()) {
-    QMessageBox::information(this, windowTitle(),
-                             tr("Input mode indicator setting is enabled from"
-                                " new applications."));
-    initial_use_mode_indicator_ = config.use_mode_indicator();
-  }
-#endif  // _WIN32
+  // Note: Romaji/Kana input style, the fixed romaji keyboard layout, and the
+  // mode indicator used to require restarting each application ("enabled from
+  // new applications"). The Windows client now refreshes its config snapshot
+  // on thread-focus events (see win32/base/config_snapshot.cc), so these
+  // settings take effect in running applications as soon as they regain
+  // focus. No message box is needed anymore.
 
   if (!SetConfig(config)) {
     QMessageBox::critical(this, windowTitle(), tr("Failed to update config"));

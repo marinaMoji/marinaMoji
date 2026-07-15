@@ -129,11 +129,11 @@ bool DispatchMarinaNumberRowShortcut(
   switch (*action) {
     case MarinaNumberRowAction::MARINA_NR_HIRAGANA_DIRECT:
       if (original_composition_mode == CompositionMode::DIRECT) {
-        command.set_type(SessionCommand::TURN_OFF_IME);
+        command.set_type(SessionCommand::TURN_ON_IME);
+        command.set_composition_mode(CompositionMode::HIRAGANA);
         return SendSessionCommand(client, command, output);
       }
-      command.set_type(SessionCommand::TURN_ON_IME);
-      command.set_composition_mode(CompositionMode::HIRAGANA);
+      command.set_type(SessionCommand::TURN_OFF_IME);
       return SendSessionCommand(client, command, output);
 
     case MarinaNumberRowAction::MARINA_NR_MANYOSHU_HIRAGANA:

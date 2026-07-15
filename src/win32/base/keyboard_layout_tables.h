@@ -32,6 +32,8 @@
 
 #include <windows.h>
 
+#include <string>
+
 #include "protocol/config.pb.h"
 
 namespace mozc {
@@ -52,11 +54,14 @@ namespace win32 {
 // JapaneseKeyboardLayoutEmulator pattern (see keyboard.h/.cc) but as a
 // user-selected, always-on table rather than a Kana-lock emulation.
 //
-// Limitation shared with the rest of this file: there is no AltGr or
+// Composition-mode limitation (GetCharacterForKeyDown): no AltGr or
 // dead-key composition support. Every entry is a single non-combining
 // character, so layout keys that normally require dead-key composition
 // (e.g. French AZERTY's circumflex/diaeresis key, Spanish's accent keys)
 // will type the raw base glyph instead of composing an accented letter.
+// Direct-input mode (ResolveDirectModeKey below) does support both: it
+// consults per-layout AltGr tables and runs a one-slot dead-key state
+// machine so direct input behaves like the real layout.
 class RomajiKeyboardLayoutEmulator {
  public:
   RomajiKeyboardLayoutEmulator() = delete;
@@ -73,6 +78,37 @@ class RomajiKeyboardLayoutEmulator {
   static wchar_t GetCharacterForKeyDown(
       config::MarinaKeyboardLayout layout, BYTE virtual_key,
       bool shift, bool capslock);
+
+  // Result of feeding one key-down into the direct-input-mode layout
+  // emulation (see ResolveDirectModeKey).
+  struct DirectModeKeyOutput {
+    // False: this key is not covered by the emulation and should be passed
+    // through to the application unmodified (all other fields are unset).
+    bool handled = false;
+    // Text to commit into the application. Empty for a dead-key press
+    // (the key is consumed, nothing is typed yet).
+    std::wstring commit_text;
+    // Dead-key accent pending after this key ('\0' if none). Callers must
+    // persist this and pass it back as |pending_dead_key| on the next call.
+    wchar_t next_pending_dead_key = L'\0';
+  };
+
+  // Resolves one key-down in direct input mode against the fixed |layout|,
+  // including the AltGr layer and dead-key composition:
+  //  - A dead-key press is consumed and stored in |next_pending_dead_key|.
+  //  - A character key with a pending dead key commits the composed
+  //    character (e.g. '^' + 'e' -> 'ê'), or "<accent><char>" when the pair
+  //    does not compose, mirroring Windows behavior.
+  //  - VK_SPACE with a pending dead key commits the spacing accent itself;
+  //    without a pending dead key it is not handled (passes through).
+  //  - Keys outside the table (navigation, function keys, unpopulated
+  //    best-effort AltGr combinations) are not handled and pass through;
+  //    a pending dead key survives them.
+  // |altgr| is the AltGr level (RightAlt, or Ctrl+Alt on keyboards without
+  // a dedicated AltGr key). MARINA_KBD_OS_DEFAULT is never handled.
+  static DirectModeKeyOutput ResolveDirectModeKey(
+      config::MarinaKeyboardLayout layout, BYTE virtual_key, bool shift,
+      bool altgr, bool capslock, wchar_t pending_dead_key);
 };
 
 }  // namespace win32

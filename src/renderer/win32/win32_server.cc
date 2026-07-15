@@ -111,10 +111,17 @@ bool Win32Server::ExecCommand(const commands::RendererCommand& command) {
       window_manager_->HideAllWindows();
       break;
     case commands::RendererCommand::UPDATE:
-      if (!command.visible()) {
-        window_manager_->HideAllWindows();
-      } else if (IsTSFMessage(command)) {
+      // marinaMoji: non-visible TSF updates (e.g. per-keystroke updates while
+      // no candidate window is shown) must still go through UpdateLayout,
+      // which applies the toolbar's / Symbols Palette's own visibility rules
+      // (|ApplicationInfo::ShowToolbar| / |has_symbols_palette_info()|,
+      // independent of |command.visible()|) and hides the candidate windows
+      // itself. Commands without TSF application info (e.g. the bare hide
+      // sent on thread-focus loss or deactivation) hide everything.
+      if (IsTSFMessage(command)) {
         window_manager_->UpdateLayout(command);
+      } else if (!command.visible()) {
+        window_manager_->HideAllWindows();
       } else {
         LOG(WARNING) << "output/left/bottom are not set";
       }

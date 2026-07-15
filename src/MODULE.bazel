@@ -401,7 +401,16 @@ http_archive(
         # package controlled by our build_file. This avoids pulling in
         # OpenCC's pybind11/tclap deps. Keep the root BUILD.bazel intact
         # (it was placed by the build_file attribute before patch_cmds run).
-        "find . -mindepth 2 \\( -name BUILD -o -name BUILD.bazel \\) -delete",
+        #
+        # On Windows, patch_cmds run through the vendored MSYS bash
+        # (BAZEL_SH, see bazel/bazel_wrapper/bazel.bat) non-interactively, so
+        # it inherits the caller's native Windows PATH instead of loading
+        # MSYS's own profile. Without forcing /usr/bin first, "find" resolves
+        # to Windows's builtin find.exe instead of GNU find and fails on
+        # -mindepth/-delete. Prepend MSYS's own bin dirs to fix that on both
+        # platforms (a no-op on macOS/Linux, where /usr/bin already has GNU
+        # find on the PATH given to patch_cmds).
+        "PATH=\"/usr/bin:/bin:$PATH\" find . -mindepth 2 \\( -name BUILD -o -name BUILD.bazel \\) -delete",
     ],
     strip_prefix = "OpenCC-ver.1.2.0",
     url = "https://github.com/BYVoid/OpenCC/archive/refs/tags/ver.1.2.0.tar.gz",

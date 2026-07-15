@@ -216,12 +216,28 @@ bool CanIgnoreRequest(const RendererCommand& command) {
   if (g_tls_index == TLS_OUT_OF_INDEXES) {
     return true;
   }
-  if ((::TlsGetValue(g_tls_index) == nullptr) && !command.visible()) {
-    // The sender threaed is not initialized and |command| is to hide the
-    // renderer. We are likely to be able to skip this request.
-    return true;
+  if (::TlsGetValue(g_tls_index) != nullptr) {
+    return false;
   }
-  return false;
+  if (command.visible()) {
+    return false;
+  }
+  // marinaMoji: the floating toolbar and the Symbols Palette are shown via
+  // |ApplicationInfo::ShowToolbar| / |has_symbols_palette_info()|
+  // independent of |command.visible()| (see FillVisibility() /
+  // FillSymbolsPaletteInfo() in tip_ui_handler_conventional.cc). The very
+  // first UPDATE after IME activation carries one of these but
+  // |visible()==false|, so it must not be skipped just because the sender
+  // thread hasn't been initialized yet.
+  const auto& app_info = command.application_info();
+  if ((app_info.ui_visibilities() &
+       RendererCommand::ApplicationInfo::ShowToolbar) != 0 ||
+      app_info.has_symbols_palette_info()) {
+    return false;
+  }
+  // The sender thread is not initialized and |command| is to hide the
+  // renderer. We are likely to be able to skip this request.
+  return true;
 }
 
 // Returns true when the required initialization is finished successfully.
