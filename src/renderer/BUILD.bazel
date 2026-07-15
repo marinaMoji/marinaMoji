@@ -296,12 +296,12 @@ mozc_cc_library(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings:string_view",
     ] + mozc_select(
+        default = [":renderer_style_appearance"],
         macos = [
             ":renderer_style_appearance_mac",
             "//config:config_handler",
             "//protocol:config_cc_proto",
         ],
-        default = [":renderer_style_appearance"],
     ),
 )
 
@@ -393,12 +393,12 @@ mozc_objc_library(
         "Foundation",
     ],
     deps = [
+        ":candidate_window_util",
         ":renderer_interface",
         ":renderer_server",
         ":renderer_style_handler",
         ":table_layout",
         ":window_util",
-        ":candidate_window_util",
         "//base:const",
         "//base:coordinates",
         "//base:util",

@@ -66,8 +66,12 @@ filegroup(
         "//unix:__pkg__",
     ],
 )
+
 # For marinaMoji about dialog (Qt resource).
-exports_files(["toolbar_icons/logo_long_light.svg"], visibility = ["//gui/about_dialog:__pkg__"])
+exports_files(
+    ["toolbar_icons/logo_long_light.svg"],
+    visibility = ["//gui/about_dialog:__pkg__"],
+)
 
 mozc_py_binary(
     name = "gen_mozc_xml_main",
@@ -167,11 +171,11 @@ mozc_cc_library(
         "message_translator.h",
         "path_util.h",
     ],
-    visibility = ["//gui/config_dialog:__pkg__"],
     local_defines = [
         "MARINAMOJI",
         'MOZC_IBUS_INSTALL_DIR=\\"' + IBUS_MOZC_INSTALL_DIR + '\\"',
     ],
+    visibility = ["//gui/config_dialog:__pkg__"],
     deps = [
         "//base:environ",
         "//base:file_util",
@@ -252,15 +256,6 @@ mozc_cc_library(
             "surrounding_text_util.h",
         ],
     ),
-    defines = [
-        "ENABLE_QT_RENDERER",
-    ] + mozc_select(
-        linux = ["MOZC_HAVE_GTK_TOOLBAR"],
-        oss_linux = ["MOZC_HAVE_GTK_TOOLBAR"],
-    ) + select({
-        ":gtk_layer_shell": ["MOZC_HAVE_GTK_LAYER_SHELL"],
-        "//conditions:default": [],
-    }),
     # Avoid absolute -I paths under /usr/lib (Bazel sandbox disallows paths outside execution root).
     # System GTK and dependencies (Pango, ATK, etc.) needed for toolbar.
     copts = mozc_select(
@@ -286,6 +281,15 @@ mozc_cc_library(
         ],
     ) + select({
         ":gtk_layer_shell": ["-I/usr/include/gtk-layer-shell"],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "ENABLE_QT_RENDERER",
+    ] + mozc_select(
+        linux = ["MOZC_HAVE_GTK_TOOLBAR"],
+        oss_linux = ["MOZC_HAVE_GTK_TOOLBAR"],
+    ) + select({
+        ":gtk_layer_shell": ["MOZC_HAVE_GTK_LAYER_SHELL"],
         "//conditions:default": [],
     }),
     linkopts = mozc_select(

@@ -57,20 +57,20 @@ mozc_objc_library(
 
 mozc_macos_application(
     name = "mode_lab_ime",
+    app_icons = ["//data/images/mac:product_icon.icns"],
     bundle_id = MODE_LAB_BUNDLE_PREFIX,
     bundle_name = "ModeLab",
     infoplists = ["ModeLabIME-Info.plist"],
-    strings = [
-        "English.lproj/InfoPlist.strings",
-        "Japanese.lproj/InfoPlist.strings",
-    ],
-    app_icons = ["//data/images/mac:product_icon.icns"],
     resources = [
         "//data/images/mac:direct.tiff",
         "//data/images/mac:full_ascii.tiff",
         "//data/images/mac:full_katakana.tiff",
         "//data/images/mac:half_katakana.tiff",
         "//data/images/mac:hiragana.tiff",
+    ],
+    strings = [
+        "English.lproj/InfoPlist.strings",
+        "Japanese.lproj/InfoPlist.strings",
     ],
     tags = ["manual"],
     deps = [":mode_lab_ime_lib"],
