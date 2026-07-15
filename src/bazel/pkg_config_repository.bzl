@@ -150,19 +150,28 @@ def _pkg_config_repository_impl(repo_ctx):
     for pc_file in pc_files:
         repo_ctx.watch(pc_file)
 
-    includes = _exec_pkg_config(repo_ctx, ["--cflags-only-I"])
+    include_flags = _exec_pkg_config(repo_ctx, ["--cflags-only-I"])
 
-    # If includes is empty, pkg-config will be re-executed with
+    # If the include flags are empty, pkg-config will be re-executed with
     # the --keep-system-cflags option added. Typically, -I/usr/include is
     # returned, enabling bazel to recognize packages as valid even when
     # pkg-config does not output cflags with standard options.
-    if not includes or includes[0] == "":
-        includes = _exec_pkg_config(repo_ctx, ["--cflags-only-I", "--keep-system-cflags"])
+    if not include_flags or include_flags[0] == "":
+        include_flags = _exec_pkg_config(
+            repo_ctx,
+            ["--cflags-only-I", "--keep-system-cflags"],
+        )
+    # Keep the original absolute -I flags in the compile action.  The
+    # repository-local symlinks below are useful for declaring the headers to
+    # Bazel, but they are not reliably materialized inside processwrapper's
+    # sandbox on all Linux runners.  In particular, this otherwise makes
+    # <ibus.h> disappear even though libibus-1.0-dev is installed.
     includes = [
-        item[3:] if item.startswith("-I/") else item[2:]
-        for item in includes
+        item[2:]
+        for item in include_flags
         if item.startswith("-I") and len(item) > 2
     ]
+    includes = [item[1:] if item.startswith("/") else item for item in includes]
     _symlinks(repo_ctx, includes)
     data = {
         # In bzlmod, repo_ctx.attr.name has a prefix like "_main~_repo_rules~ibus".
@@ -170,7 +179,9 @@ def _pkg_config_repository_impl(repo_ctx):
         # https://github.com/bazelbuild/bazel/issues/23127
         "name": repo_ctx.attr.name.replace("~", "+").split("+")[-1],
         "hdrs": _make_strlist([item + "/**" for item in includes]),
-        "copts": _make_strlist(_exec_pkg_config(repo_ctx, ["--cflags-only-other"])),
+        "copts": _make_strlist(
+            include_flags + _exec_pkg_config(repo_ctx, ["--cflags-only-other"])
+        ),
         "includes": _make_strlist(includes),
         "linkopts": _make_strlist(_exec_pkg_config(repo_ctx, ["--libs-only-l"])),
     }

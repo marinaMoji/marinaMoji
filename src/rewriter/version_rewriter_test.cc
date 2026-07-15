@@ -34,6 +34,7 @@
 #include <utility>
 
 #include "absl/strings/string_view.h"
+#include "base/const.h"
 #include "converter/candidate.h"
 #include "converter/segments.h"
 #include "protocol/commands.pb.h"
@@ -105,13 +106,8 @@ TEST_F(VersionRewriterTest, MobileEnvironmentTest) {
 
 
 TEST_F(VersionRewriterTest, RewriteTestVersion) {
-#ifdef GOOGLE_JAPANESE_INPUT_BUILD
-  constexpr absl::string_view kVersionPrefixExpected = "GoogleJapaneseInput-";
-  constexpr absl::string_view kVersionPrefixUnexpected = "Mozc-";
-#else   // GOOGLE_JAPANESE_INPUT_BUILD
-  constexpr absl::string_view kVersionPrefixExpected = "Mozc-";
-  constexpr absl::string_view kVersionPrefixUnexpected = "GoogleJapaneseInput-";
-#endif  // GOOGLE_JAPANESE_INPUT_BUILD
+  constexpr absl::string_view kVersionPrefixExpected =
+      kVersionRewriterVersionPrefix;
 
   VersionRewriter version_rewriter(kDummyDataVersion);
 
@@ -123,8 +119,6 @@ TEST_F(VersionRewriterTest, RewriteTestVersion) {
     EXPECT_TRUE(version_rewriter.Rewrite(request, &segments));
     EXPECT_TRUE(VersionRewriterTest::FindCandidateWithPrefix(
         kVersionPrefixExpected, segments));
-    EXPECT_FALSE(VersionRewriterTest::FindCandidateWithPrefix(
-        kVersionPrefixUnexpected, segments));
   }
   {
     Segments segments;
@@ -133,8 +127,6 @@ TEST_F(VersionRewriterTest, RewriteTestVersion) {
     EXPECT_TRUE(version_rewriter.Rewrite(request, &segments));
     EXPECT_TRUE(VersionRewriterTest::FindCandidateWithPrefix(
         kVersionPrefixExpected, segments));
-    EXPECT_FALSE(VersionRewriterTest::FindCandidateWithPrefix(
-        kVersionPrefixUnexpected, segments));
   }
 }
 

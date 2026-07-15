@@ -323,15 +323,21 @@ void FillMozcContextForOnKey(TipTextService* text_service, ITfContext* context,
 bool TryDispatchMarinaNumberRowShortcut(TipPrivateContext* private_context,
                                         const LParamKeyInfo& key_info,
                                         const KeyboardStatus& keyboard_status,
-                                        uint32_t logical_mode,
+                                        uint32_t visible_mode,
                                         bool open,
                                         commands::Output* output) {
   config::Config config;
   if (!private_context->GetClient()->GetConfig(&config)) {
     return false;
   }
+  // marinaMoji: must use the *visible* mode (native bits sourced from
+  // commands::Status::mode()), not TipInputModeManager's "logical" mode
+  // (sourced from Status::comeback_mode(), the mode to return to after a
+  // temporary override) -- comeback_mode never reflects manyoshu_mode_, so
+  // reading it here made the Manyoshu direction check always see Hiragana
+  // and only ever switch forward, never back.
   CompositionMode original_mode = CompositionMode::HIRAGANA;
-  if (!ConversionModeUtil::ToMozcMode(logical_mode, &original_mode)) {
+  if (!ConversionModeUtil::ToMozcMode(visible_mode, &original_mode)) {
     return false;
   }
   return DispatchMarinaNumberRowShortcut(
@@ -455,7 +461,7 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
     ignore_this_keyevent = false;
   } else if (is_key_down &&
              TryDispatchMarinaNumberRowShortcut(private_context, key_info,
-                                                keyboard_status, logical_mode,
+                                                keyboard_status, visible_mode,
                                                 open, &temporal_output)) {
     // Consumed by a marina number-row shortcut; do not fall through to the
     // normal per-character key pipeline below. Not gated on |open|: these

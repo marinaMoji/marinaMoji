@@ -312,6 +312,10 @@ bool SessionHandler::EvalCommand(commands::Command* command) {
     return false;
   }
 
+  // Commands may be reused by clients and tests. Do not let an error or
+  // response field from a previous evaluation leak into the next response.
+  command->mutable_output()->Clear();
+
   bool eval_succeeded = false;
   Stopwatch stopwatch;
   stopwatch.Start();

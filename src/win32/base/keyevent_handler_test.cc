@@ -1658,11 +1658,13 @@ TEST_F(KeyEventHandlerTest, ProtocolAnomalyModiferKeyMayBeSentOnKeyUp) {
     EXPECT_TRUE(actual_input.key().activated());
     EXPECT_TRUE(actual_input.key().has_mode());
     EXPECT_EQ(actual_input.key().mode(), commands::HIRAGANA);
-    EXPECT_FALSE(actual_input.key().has_modifiers());
-    EXPECT_EQ(actual_input.key().modifier_keys_size(), 1);
-    // Interestingly we have to set SHIFT modifier in spite of the Shift key
-    // has been just released.
+    EXPECT_TRUE(actual_input.key().has_modifiers());
+    EXPECT_EQ(actual_input.key().modifier_keys_size(), 2);
+    // Keep the generic SHIFT marker required by Mozc's key-up protocol and
+    // the physical side marker used by marinaMoji's shift-only shortcuts.
     EXPECT_EQ(actual_input.key().modifier_keys(0), commands::KeyEvent::SHIFT);
+    EXPECT_EQ(actual_input.key().modifier_keys(1),
+              commands::KeyEvent::LEFT_SHIFT);
     EXPECT_FALSE(actual_input.key().has_special_key());
   }
 }

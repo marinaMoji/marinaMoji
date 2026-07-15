@@ -145,7 +145,12 @@ bool DispatchMarinaNumberRowShortcut(
   SessionCommand command;
   switch (*action) {
     case MarinaNumberRowAction::MARINA_NR_HIRAGANA_DIRECT:
-      if (original_composition_mode == CompositionMode::DIRECT) {
+      // marinaMoji: direction must be decided from |is_open|, not
+      // |original_composition_mode| -- ConversionModeUtil::ToMozcMode can
+      // never return DIRECT (it collides with HALF_ASCII's native bit
+      // pattern), so comparing against CompositionMode::DIRECT was always
+      // false and this shortcut only ever turned the IME off, never back on.
+      if (!is_open) {
         command.set_type(SessionCommand::TURN_ON_IME);
         command.set_composition_mode(CompositionMode::HIRAGANA);
         return SendSessionCommand(client, command, output);

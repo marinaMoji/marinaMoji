@@ -1046,7 +1046,7 @@ TEST_F(SessionTest, LeftShiftModeLockPersistsAcrossSessions) {
     Session session(engine);
     InitSessionToPrecomposition(&session);
     session.SetConfig(cfg);
-    EXPECT_TRUE(SendKey("Ctrl RightShift", &session, &command));
+    EXPECT_TRUE(SendKey("Ctrl Alt RightShift", &session, &command));
     SessionTestPeer peer(session);
     EXPECT_TRUE(peer.left_shift_mode_lock_());
   }
@@ -1057,7 +1057,7 @@ TEST_F(SessionTest, LeftShiftModeLockPersistsAcrossSessions) {
   SessionTestPeer peer2(session2);
   EXPECT_TRUE(peer2.left_shift_mode_lock_());
 
-  EXPECT_TRUE(SendKey("Ctrl RightShift", &session2, &command));
+  EXPECT_TRUE(SendKey("Ctrl Alt RightShift", &session2, &command));
   EXPECT_FALSE(peer2.left_shift_mode_lock_());
 }
 
@@ -1072,7 +1072,7 @@ TEST_F(SessionTest, LeftShiftModeLockBlocksToggle) {
   cfg.set_disable_left_shift_direct_toggle(false);
   session.SetConfig(cfg);
 
-  EXPECT_TRUE(SendKey("Ctrl RightShift", &session, &command));
+  EXPECT_TRUE(SendKey("Ctrl Alt RightShift", &session, &command));
   SessionTestPeer peer(session);
   EXPECT_TRUE(peer.left_shift_mode_lock_());
 
@@ -1080,7 +1080,7 @@ TEST_F(SessionTest, LeftShiftModeLockBlocksToggle) {
   EXPECT_FALSE(command.output().consumed());
   EXPECT_EQ(command.output().status().mode(), commands::HIRAGANA);
 
-  EXPECT_TRUE(SendKey("Ctrl RightShift", &session, &command));
+  EXPECT_TRUE(SendKey("Ctrl Alt RightShift", &session, &command));
   EXPECT_FALSE(peer.left_shift_mode_lock_());
 }
 
@@ -6868,7 +6868,7 @@ TEST_F(SessionTest, Issue2569789) {
 
 TEST_F(SessionTest, Issue2555503) {
   // This is a unittest against http://b/2555503.
-  // Mode respects the previous character too much.
+  // Changing to full katakana updates the whole visible preedit.
 
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
@@ -6882,10 +6882,10 @@ TEST_F(SessionTest, Issue2555503) {
   session.CompositionModeFullKatakana(&command);
 
   SendKey("i", &session, &command);
-  EXPECT_EQ(GetComposition(command), "あイ");
+  EXPECT_EQ(GetComposition(command), "アイ");
 
   SendKey("backspace", &session, &command);
-  EXPECT_EQ(GetComposition(command), "あ");
+  EXPECT_EQ(GetComposition(command), "ア");
   EXPECT_EQ(command.output().mode(), commands::FULL_KATAKANA);
 }
 

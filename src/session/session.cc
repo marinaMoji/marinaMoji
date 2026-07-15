@@ -603,8 +603,8 @@ bool Session::SendCommand(commands::Command* command) {
 namespace {
 // Right Shift alone (modifier-only with RIGHT_SHIFT, no Ctrl): toggle
 // Hiragana/Manyoshu. Detected here so it works regardless of keymap lookup or
-// client encoding. Ctrl is excluded so Ctrl+Right Shift can be used for
-// IsCtrlRightShiftAlone (mode lock) below without also firing this toggle.
+// client encoding. Ctrl is excluded so Ctrl+Alt+Right Shift can be used for
+// IsCtrlAltRightShiftAlone (mode lock) below without also firing this toggle.
 bool IsRightShiftAlone(const commands::KeyEvent& key) {
   if (key.has_key_code() || key.has_special_key()) {
     return false;
@@ -666,16 +666,19 @@ commands::CompositionMode VisibleCompositionModeForLeftShift(
   return ToCompositionMode(context.composer().GetInputMode());
 }
 
-// Ctrl+Right Shift alone: toggle mode lock for the Left Shift direct toggle.
-// Windows reserves plain Ctrl+Shift (either side) system-wide for the "Switch
-// Input Language" hotkey, which is intercepted by the shell before any
-// keystroke reaches this text service; Right Shift keeps this combo free.
-bool IsCtrlRightShiftAlone(const commands::KeyEvent& key) {
+// Ctrl+Alt+Right Shift alone: toggle mode lock for the Left Shift direct
+// toggle. Windows reserves plain Ctrl+Shift (either side) system-wide for the
+// "Switch Input Language" hotkey, intercepted by the shell before any
+// keystroke reaches this text service; on at least some systems Ctrl+Right
+// Shift alone is also bound to a keyboard-layout-switch hotkey. Three
+// modifiers together are not a default OS or Mozc keymap binding.
+bool IsCtrlAltRightShiftAlone(const commands::KeyEvent& key) {
   if (key.has_key_code() || key.has_special_key()) {
     return false;
   }
   bool has_right_shift = false;
   bool has_ctrl = false;
+  bool has_alt = false;
   for (int i = 0; i < key.modifier_keys_size(); ++i) {
     const commands::KeyEvent::ModifierKey mod = key.modifier_keys(i);
     if (mod == commands::KeyEvent::RIGHT_SHIFT) {
@@ -685,8 +688,12 @@ bool IsCtrlRightShiftAlone(const commands::KeyEvent& key) {
         mod == commands::KeyEvent::RIGHT_CTRL) {
       has_ctrl = true;
     }
+    if (mod == commands::KeyEvent::ALT || mod == commands::KeyEvent::LEFT_ALT ||
+        mod == commands::KeyEvent::RIGHT_ALT) {
+      has_alt = true;
+    }
   }
-  return has_right_shift && has_ctrl;
+  return has_right_shift && has_ctrl && has_alt;
 }
 }  // namespace
 
@@ -718,9 +725,23 @@ bool Session::TestSendKey(commands::Command* command) {
   // SendKey's toggle — never runs. Whether the key-up is ultimately passed
   // through to the application is still decided by the Toggle* handlers in
   // SendKey.
-  if (IsRightShiftAlone(key) || IsCtrlRightShiftAlone(key) ||
+  if (IsRightShiftAlone(key) || IsCtrlAltRightShiftAlone(key) ||
       IsLeftShiftAlone(key)) {
     return DoNothing(command);
+  }
+
+  // A macron dead key (AltGr+umlaut) was just consumed by SendKey; report the
+  // following vowel key as consumed too so SendKey actually gets to run its
+  // macron_dead_key_pending_ check (line ~869) instead of this key being
+  // echoed straight through to the application.
+  if (macron_dead_key_pending_ && key.has_key_code()) {
+    switch (key.key_code()) {
+      case 'a': case 'e': case 'i': case 'o': case 'u':
+      case 'A': case 'E': case 'I': case 'O': case 'U':
+        return DoNothing(command);
+      default:
+        break;
+    }
   }
 
   // To support indirect IME on/off by using KeyEvent::activated, use effective
@@ -837,7 +858,7 @@ bool Session::SendKey(commands::Command* command) {
     return ToggleManyoshuHiragana(command);
   }
 
-  if (IsCtrlRightShiftAlone(command->input().key())) {
+  if (IsCtrlAltRightShiftAlone(command->input().key())) {
     return ToggleLeftShiftModeLock(command);
   }
   if (IsLeftShiftAlone(command->input().key())) {

@@ -188,6 +188,8 @@ Conversion	VirtualLeft	SegmentWidthShrink
 Conversion	VirtualRight	SegmentWidthExpand
 Conversion	VirtualEnter	CommitOnlyFirstSegment
 Conversion	Ctrl Shift )	LaunchWordRegisterDialog
+DirectInput	Ctrl 0	LaunchWordRegisterDialog
+DirectInput	Ctrl Shift 0	LaunchWordRegisterDialog
 DirectInput	Ctrl Shift )	LaunchWordRegisterDialog
 Precomposition	ASCII	InsertCharacter
 Precomposition	Backspace	Revert

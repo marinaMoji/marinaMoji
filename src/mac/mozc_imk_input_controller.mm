@@ -1122,9 +1122,11 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   unichar c = 0;
 
   // Use whatever the active keyboard layout reports (AZERTY 'a' is on Q, etc.).
-  if (want_upper && chars != nil && [chars length] > 0) {
-    c = [chars characterAtIndex:0];
-  } else if (raw != nil && [raw length] > 0) {
+  // Prefer charactersIgnoringModifiers: it already factors in Shift, and unlike
+  // characters it isn't affected by Option acting as a dead-key modifier (e.g.
+  // Option+E is the acute-accent dead key on US layout), which would otherwise
+  // make the uppercase chord (Ctrl+Option+Shift+vowel) silently fail.
+  if (raw != nil && [raw length] > 0) {
     c = [raw characterAtIndex:0];
   } else if (chars != nil && [chars length] > 0) {
     c = [chars characterAtIndex:0];

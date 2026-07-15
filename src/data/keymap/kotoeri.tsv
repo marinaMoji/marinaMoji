@@ -234,6 +234,8 @@ DirectInput	Ctrl AltGr Shift U	InsertMacronVowel
 DirectInput	RightAlt ¨	SetMacronDeadKey
 DirectInput	RightAlt ^	SetMacronDeadKey
 DirectInput	Ctrl Shift `	IMEOn
+DirectInput	Ctrl 0	LaunchWordRegisterDialog
+DirectInput	Ctrl Shift 0	LaunchWordRegisterDialog
 DirectInput	Ctrl Shift )	LaunchWordRegisterDialog
 Precomposition	Backspace	Revert
 Precomposition	Ctrl Backspace	Undo
