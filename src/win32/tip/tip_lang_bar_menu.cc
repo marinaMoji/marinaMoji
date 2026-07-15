@@ -88,16 +88,22 @@ constexpr int kToolbarIconSizeTiers[] = {24, 36, 48};
 std::string GetToolbarIconName(UINT icon_id) {
   switch (icon_id) {
     case IDI_DIRECT_NT:
+    case IDI_DIRECT:
       return "toolbar_roman_light";
     case IDI_HIRAGANA_NT:
+    case IDI_HIRAGANA:
       return "toolbar_hira_light";
     case IDI_FULL_KATAKANA_NT:
+    case IDI_FULL_KATAKANA:
       return "toolbar_kata_light";
     case IDI_HALF_ALPHANUMERIC_NT:
+    case IDI_HALF_ALPHANUMERIC:
       return "toolbar_roma_half_light";
     case IDI_FULL_ALPHANUMERIC_NT:
+    case IDI_FULL_ALPHANUMERIC:
       return "toolbar_roma_full_light";
     case IDI_HALF_KATAKANA_NT:
+    case IDI_HALF_KATAKANA:
       return "toolbar_kata_half_light";
     case IDI_DICTIONARY_NT:
       return "toolbar_dict_light";

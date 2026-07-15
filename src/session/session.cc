@@ -3643,13 +3643,15 @@ void Session::OutputMode(commands::Command* command) const {
   commands::Status* status = output->mutable_status();
   if (context_->state() == ImeContext::DIRECT) {
     output->set_mode(commands::DIRECT);
-    status->set_mode(commands::DIRECT);
     status->set_activated(false);
   } else {
     output->set_mode(mode);
-    status->set_mode(mode);
     status->set_activated(true);
   }
+  // Keep the selected composition mode in status even while the IME is
+  // inactive. Clients use |activated| to determine whether composition is
+  // enabled and |mode| to display the mode that will be restored on re-enable.
+  status->set_mode(mode);
   status->set_comeback_mode(comeback_mode);
   status->set_left_shift_direct_lock(left_shift_mode_lock_);
 }

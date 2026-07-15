@@ -259,10 +259,23 @@ void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
   commands::CompositionMode mode = commands::DIRECT;
   bool activated = false;
   bool lock = false;
-  if (output.has_status()) {
-    activated = output.status().activated();
-    mode = activated ? output.status().mode() : commands::DIRECT;
-    lock = output.status().left_shift_direct_lock();
+  // Keep the toolbar in sync with the taskbar/indicator. The TIP populates
+  // indicator_info from TipInputModeManager's effective state, which is the
+  // authoritative state used by the language bar. Renderer output can lag or
+  // omit status during focus and mode transitions, so use it only as a
+  // fallback for clients that do not provide indicator status.
+  const commands::Status* status = nullptr;
+  if (command.has_application_info() &&
+      command.application_info().has_indicator_info() &&
+      command.application_info().indicator_info().has_status()) {
+    status = &command.application_info().indicator_info().status();
+  } else if (output.has_status()) {
+    status = &output.status();
+  }
+  if (status != nullptr) {
+    activated = status->activated();
+    mode = activated ? status->mode() : commands::DIRECT;
+    lock = status->left_shift_direct_lock();
   }
   // marinaMoji: |output.config()| is only populated on the specific Output
   // that toggles it (ToggleTraditionalKanji et al.); ordinary per-keystroke
