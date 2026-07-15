@@ -114,7 +114,7 @@ mozc_cc_library(
     name = "ibus_header",
     hdrs = mozc_select(linux = ["ibus_header.h"]),
     deps = mozc_select(
-        linux = ["//third_party/ibus"],
+        linux = ["@ibus//:ibus"],
         oss_linux = ["@ibus//:ibus"],
     ),
 )
@@ -128,7 +128,7 @@ mozc_cc_library(
     ] + mozc_select(
         linux = [
             ":ibus_header",
-            "//third_party/ibus",
+            "@ibus//:ibus",
         ],
         oss_linux = [
             ":ibus_header",
@@ -156,7 +156,7 @@ mozc_cc_library(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
     ] + mozc_select(
-        linux = ["//third_party/ibus"],
+        linux = ["@ibus//:ibus"],
         oss_linux = ["@ibus//:ibus"],
     ),
 )
@@ -473,7 +473,6 @@ mozc_cc_library(
             "candidate_window_handler.h",
         ],
     ),
-    copts = mozc_select(linux = ["-Ithird_party/glib"]),
     deps = [
         ":ibus_header",
         "//base:coordinates",
@@ -489,8 +488,7 @@ mozc_cc_library(
     ] + mozc_select(
         linux = [
             ":ibus_wrapper",
-            "//third_party/ibus",
-            "//third_party/glib/gio",
+            "@ibus//:ibus",
         ],
         oss_linux = [
             ":ibus_wrapper",
