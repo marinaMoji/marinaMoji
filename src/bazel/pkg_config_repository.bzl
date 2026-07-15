@@ -88,7 +88,9 @@ def _exec_pkg_config(repo_ctx, flags):
         print("pkg-config is not found")  # buildifier: disable=print
         return []
     result = repo_ctx.execute([binary] + flags + repo_ctx.attr.packages)
-    items = result.stdout.strip().split(" ")
+    # Use whitespace splitting so empty output and repeated whitespace do not
+    # become empty flags in the generated BUILD file.
+    items = result.stdout.split()
     uniq_items = sorted({key: None for key in items}.keys())
     return uniq_items
 
@@ -153,7 +155,11 @@ def _pkg_config_repository_impl(repo_ctx):
     # pkg-config does not output cflags with standard options.
     if not includes or includes[0] == "":
         includes = _exec_pkg_config(repo_ctx, ["--cflags-only-I", "--keep-system-cflags"])
-    includes = [item[len("-I/"):] for item in includes]
+    includes = [
+        item[3:] if item.startswith("-I/") else item[2:]
+        for item in includes
+        if item.startswith("-I") and len(item) > 2
+    ]
     _symlinks(repo_ctx, includes)
     data = {
         # In bzlmod, repo_ctx.attr.name has a prefix like "_main~_repo_rules~ibus".
