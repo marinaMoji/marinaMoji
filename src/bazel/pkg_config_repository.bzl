@@ -131,6 +131,8 @@ def _get_possible_pc_files(repo_ctx):
     return pc_files
 
 def _make_strlist(list):
+    if not list:
+        return ""
     return "\"" + "\",\n        \"".join(list) + "\""
 
 def _symlinks(repo_ctx, paths):
