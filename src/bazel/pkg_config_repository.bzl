@@ -143,14 +143,22 @@ def _symlinks(repo_ctx, paths):
     # package is installed. Mirroring the real directory structure with
     # per-file symlinks keeps every intermediate directory a genuine
     # directory, so glob() traverses it normally.
+    find_binary = repo_ctx.which("find")
+    if not find_binary:
+        print("find is not found")  # buildifier: disable=print
+        return
     for path in paths:
         abs_path = "/" + path
-        result = repo_ctx.execute(["find", abs_path, "-type", "f"])
+        result = repo_ctx.execute([find_binary, abs_path, "-type", "f"])
         if result.return_code != 0:
+            print(  # buildifier: disable=print
+                "find failed for %s (exit %d): %s" %
+                (abs_path, result.return_code, result.stderr),
+            )
             continue
-        for file in result.stdout.splitlines():
-            if not file:
-                continue
+        files = [f for f in result.stdout.splitlines() if f]
+        print("symlinking %d files from %s" % (len(files), abs_path))  # buildifier: disable=print
+        for file in files:
             rel_file = file[1:] if file.startswith("/") else file
             if repo_ctx.path(rel_file).exists:
                 continue
