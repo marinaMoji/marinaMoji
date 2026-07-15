@@ -238,8 +238,6 @@ DirectInput	Ctrl AltGr Shift E	InsertMacronVowel
 DirectInput	Ctrl AltGr Shift I	InsertMacronVowel
 DirectInput	Ctrl AltGr Shift O	InsertMacronVowel
 DirectInput	Ctrl AltGr Shift U	InsertMacronVowel
-DirectInput	Ctrl 0	LaunchWordRegisterDialog
-DirectInput	Ctrl Shift 0	LaunchWordRegisterDialog
 DirectInput	Ctrl Shift )	LaunchWordRegisterDialog
 Precomposition	ASCII	InsertCharacter
 Precomposition	Backspace	Revert

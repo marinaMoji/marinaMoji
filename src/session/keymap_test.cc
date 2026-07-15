@@ -997,16 +997,9 @@ TEST_F(KeyMapTest, LaunchToolTest) {
         config::Config::MSIME}) {
     KeyMapManager manager(GetDefaultConfig(keymap));
 
-    KeyParser::ParseKey("Ctrl 0", &key_event);
-    EXPECT_TRUE(manager.GetCommandDirect(key_event, &direct_command));
-    EXPECT_EQ(direct_command,
-              DirectInputState::LAUNCH_WORD_REGISTER_DIALOG);
-
-    KeyParser::ParseKey("Ctrl Shift 0", &key_event);
-    EXPECT_TRUE(manager.GetCommandDirect(key_event, &direct_command));
-    EXPECT_EQ(direct_command,
-              DirectInputState::LAUNCH_WORD_REGISTER_DIALOG);
-
+    // "Ctrl 0" / "Ctrl Shift 0" are handled by the platform-native marina
+    // number-row dispatcher, not by the generic keymap table; see
+    // MarinaNumberRowBindingsUtilTest.FindActionForKeyEvent.
     KeyParser::ParseKey("Ctrl Shift )", &key_event);
     EXPECT_TRUE(manager.GetCommandDirect(key_event, &direct_command));
     EXPECT_EQ(direct_command,

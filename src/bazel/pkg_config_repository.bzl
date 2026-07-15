@@ -136,10 +136,25 @@ def _make_strlist(list):
     return "\"" + "\",\n        \"".join(list) + "\""
 
 def _symlinks(repo_ctx, paths):
+    # Symlink individual header files rather than whole directories.
+    # Bazel's glob() does not reliably traverse a directory that is itself a
+    # symlink pointing outside the repository, which otherwise makes hdrs
+    # resolve to an empty list (and <ibus.h> "disappear") even though the
+    # package is installed. Mirroring the real directory structure with
+    # per-file symlinks keeps every intermediate directory a genuine
+    # directory, so glob() traverses it normally.
     for path in paths:
-        if repo_ctx.path(path).exists:
+        abs_path = "/" + path
+        result = repo_ctx.execute(["find", abs_path, "-type", "f"])
+        if result.return_code != 0:
             continue
-        repo_ctx.symlink("/" + path, path)
+        for file in result.stdout.splitlines():
+            if not file:
+                continue
+            rel_file = file[1:] if file.startswith("/") else file
+            if repo_ctx.path(rel_file).exists:
+                continue
+            repo_ctx.symlink(file, rel_file)
 
 def _pkg_config_repository_impl(repo_ctx):
     # Register all possible .pc files for watching to trigger repository
@@ -162,11 +177,6 @@ def _pkg_config_repository_impl(repo_ctx):
             ["--cflags-only-I", "--keep-system-cflags"],
         )
 
-    # Keep the original absolute -I flags in the compile action.  The
-    # repository-local symlinks below are useful for declaring the headers to
-    # Bazel, but they are not reliably materialized inside processwrapper's
-    # sandbox on all Linux runners.  In particular, this otherwise makes
-    # <ibus.h> disappear even though libibus-1.0-dev is installed.
     includes = [
         item[2:]
         for item in include_flags
@@ -180,9 +190,7 @@ def _pkg_config_repository_impl(repo_ctx):
         # https://github.com/bazelbuild/bazel/issues/23127
         "name": repo_ctx.attr.name.replace("~", "+").split("+")[-1],
         "hdrs": _make_strlist([item + "/**" for item in includes]),
-        "copts": _make_strlist(
-            include_flags + _exec_pkg_config(repo_ctx, ["--cflags-only-other"]),
-        ),
+        "copts": _make_strlist(_exec_pkg_config(repo_ctx, ["--cflags-only-other"])),
         "includes": _make_strlist(includes),
         "linkopts": _make_strlist(_exec_pkg_config(repo_ctx, ["--libs-only-l"])),
     }
