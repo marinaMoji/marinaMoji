@@ -67,6 +67,24 @@ if ($bazelisk) {
     Write-Host "  ✗ Bazelisk not found in PATH or at $RepoRoot\bazelisk.exe" -ForegroundColor Red
     exit 1
 }
+
+# The installer genrule passes BAZEL_VC to build_installer.py through Bash
+# with `set -u`, so it must be defined even when Bazelisk is invoked directly
+# instead of through src/bazel/bazel_wrapper/bazel.bat. Reuse the repository's
+# Visual Studio resolver and preserve an explicitly supplied value.
+if (-not $env:BAZEL_VC) {
+    try {
+        $vcDir = (& $python "$RepoRoot\src\build_tools\vs_util.py").Trim()
+        if ($LASTEXITCODE -ne 0 -or -not $vcDir -or -not (Test-Path "$vcDir\Auxiliary\Build\vcvarsall.bat")) {
+            throw "Visual Studio C++ toolchain was not found"
+        }
+        $env:BAZEL_VC = $vcDir
+    } catch {
+        Write-Host "  ✗ Visual Studio C++ toolchain not found: $($_.Exception.Message)" -ForegroundColor Red
+        exit 1
+    }
+}
+Write-Host "  ✓ Visual Studio VC ($env:BAZEL_VC)" -ForegroundColor Green
 Write-Host ""
 
 # Change to src directory
@@ -109,7 +127,10 @@ try {
     Write-Host "Step 4: Building marinaMoji (x64)..." -ForegroundColor Yellow
     Write-Host "  Config: oss_windows release_build" -ForegroundColor Gray
     Write-Host "  Target: marinaMoji64.msi" -ForegroundColor Gray
-    & $bazelisk build --config oss_windows --config release_build package
+    # Batch mode keeps the build self-contained and prevents an interrupted
+    # PowerShell invocation from leaving a stale Bazel server holding the
+    # output-base lock for the next build.
+    & $bazelisk --batch build --config oss_windows --config release_build package
     if ($LASTEXITCODE -ne 0) {
         throw "Bazel build failed with exit code $LASTEXITCODE"
     }
