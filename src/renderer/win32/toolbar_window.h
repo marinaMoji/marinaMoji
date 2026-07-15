@@ -158,16 +158,19 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   void SendToggleTraditionalKanji();
   void SendLaunchWordRegisterDialog();
   void SendLaunchConfigDialog();
-  void SendShowSymbolsPalette();
+  void SendToggleSymbolsPalette();
 
   std::string ConfigFilePath() const;
   void LoadSavedPosition(CPoint* out_position, const CSize& window_size) const;
   void SavePosition() const;
   CPoint DefaultWindowOrigin(const CSize& window_size) const;
 
-  // Pure function of dpi_/logical layout constants -- does not depend on
-  // loaded icons, so it can be computed before the first LoadIcons()/Redraw()
-  // to place the window correctly on first show.
+  // Width in pixels reserved for the logo: the loaded logo bitmap's actual
+  // width, or kLogoWidthLogical scaled by |scale| before icons are loaded.
+  int LogoWidth(double scale) const;
+
+  // Window size for the current DPI and loaded logo. Falls back to the
+  // logical logo width when called before the first LoadIcons().
   CSize ComputeWindowSize() const;
 
   client::SendCommandInterface* send_command_interface_;
@@ -178,6 +181,7 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   bool activated_;
   bool left_shift_direct_lock_;
   bool use_traditional_kanji_;
+  bool symbols_palette_visible_;
 
   // Top-left corner of the window in screen coordinates, restored from
   // toolbar.conf (or defaulted to bottom-right of the primary monitor) on
@@ -199,6 +203,11 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   // the action when release lands back on the same button (standard button
   // press/release semantics). -1 when no button is currently pressed.
   int pressed_button_;
+
+  // True while ShowModeMenu()'s TrackPopupMenuEx modal loop is running. The
+  // loop can dispatch a focus-loss hide before the selected mode command
+  // reaches the TIP, so Hide() is suppressed while this is set.
+  bool mode_menu_open_;
 };
 
 }  // namespace win32

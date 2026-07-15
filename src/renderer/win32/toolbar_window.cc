@@ -179,8 +179,10 @@ ToolbarWindow::ToolbarWindow()
       activated_(false),
       left_shift_direct_lock_(false),
       use_traditional_kanji_(false),
+      symbols_palette_visible_(false),
       window_origin_(0, 0),
-      pressed_button_(-1) {}
+      pressed_button_(-1),
+      mode_menu_open_(false) {}
 
 ToolbarWindow::~ToolbarWindow() {}
 
@@ -209,7 +211,15 @@ LRESULT ToolbarWindow::OnCreate(LPCREATESTRUCT create_struct) {
   return 0;
 }
 
-void ToolbarWindow::Hide() { ShowWindow(SW_HIDE); }
+void ToolbarWindow::Hide() {
+  // TrackPopupMenuEx runs a modal loop that can dispatch a focus-loss hide
+  // before the selected mode command reaches the TIP. Keep the toolbar up
+  // until that loop finishes (see |mode_menu_open_| in the header).
+  if (mode_menu_open_) {
+    return;
+  }
+  ShowWindow(SW_HIDE);
+}
 
 bool ToolbarWindow::IsDarkTheme() const {
   HKEY key = nullptr;
@@ -231,11 +241,15 @@ bool ToolbarWindow::IsDarkTheme() const {
 
 void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
   bool show_toolbar = false;
+  bool symbols_palette_visible = false;
   if (command.has_application_info()) {
     show_toolbar = (command.application_info().ui_visibilities() &
                     ApplicationInfo::ShowToolbar) ==
                    ApplicationInfo::ShowToolbar;
+    symbols_palette_visible =
+        command.application_info().has_symbols_palette_info();
   }
+  symbols_palette_visible_ = symbols_palette_visible;
   if (!show_toolbar || !command.has_output()) {
     Hide();
     return;
@@ -250,8 +264,13 @@ void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
     mode = activated ? output.status().mode() : commands::DIRECT;
     lock = output.status().left_shift_direct_lock();
   }
-  const bool use_trad = output.has_config() &&
-                        output.config().use_traditional_kanji();
+  // marinaMoji: |output.config()| is only populated on the specific Output
+  // that toggles it (ToggleTraditionalKanji et al.); ordinary per-keystroke
+  // updates carry no config at all. Treat |use_traditional_kanji_| as sticky
+  // local state so the icon doesn't revert on the next unrelated UPDATE.
+  const bool use_trad = output.has_config()
+                            ? output.config().use_traditional_kanji()
+                            : use_traditional_kanji_;
   const bool dark = IsDarkTheme();
 
   const bool state_changed =
@@ -268,12 +287,17 @@ void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
   const bool first_show = !has_state_;
   has_state_ = true;
 
+  // Icons must be loaded before ComputeWindowSize(): the window width depends
+  // on the logo bitmap's actual width (|logo_size_|).
+  if (state_changed || !IsWindowVisible()) {
+    LoadIcons();
+  }
+
   if (first_show) {
     LoadSavedPosition(&window_origin_, ComputeWindowSize());
   }
 
   if (state_changed || !IsWindowVisible()) {
-    LoadIcons();
     Redraw();
   }
 
@@ -337,13 +361,25 @@ void ToolbarWindow::LoadIcons() {
   logo_cache_ = LoadIcon(absl::StrCat("logo_long_", theme), size, &logo_size_);
 }
 
+int ToolbarWindow::LogoWidth(double scale) const {
+  // The logo PNG is pre-rendered with its natural aspect ratio at the icon
+  // size tier, so its width is usually narrower than the logical 120px the
+  // mac toolbar reserves; reserving the logical width leaves a large gap
+  // between the logo and the mode button. Use the actual bitmap width once
+  // the icons are loaded (the logical width is only a pre-load fallback).
+  if (logo_size_.cx > 0) {
+    return logo_size_.cx;
+  }
+  return static_cast<int>(std::lround(kLogoWidthLogical * scale));
+}
+
 CSize ToolbarWindow::ComputeWindowSize() const {
   const double scale = GetDPIScalingFactor(dpi_);
   const int margin = static_cast<int>(std::lround(4 * scale));
   const int button_w = static_cast<int>(std::lround(kButtonWidthLogical * scale));
   const int height = static_cast<int>(std::lround(kToolbarHeightLogical * scale));
-  const int logo_w = static_cast<int>(std::lround(kLogoWidthLogical * scale));
-  const int width = margin + logo_w + margin + button_w * kButtonCount + margin;
+  const int width =
+      margin + LogoWidth(scale) + margin + button_w * kButtonCount + margin;
   return CSize(width, height);
 }
 
@@ -352,7 +388,7 @@ void ToolbarWindow::Redraw() {
   const int margin = static_cast<int>(std::lround(4 * scale));
   const int button_w = static_cast<int>(std::lround(kButtonWidthLogical * scale));
   const double corner_radius = kCornerRadiusLogical * scale;
-  const int logo_w = static_cast<int>(std::lround(kLogoWidthLogical * scale));
+  const int logo_w = LogoWidth(scale);
 
   const CSize window_size = ComputeWindowSize();
   const int width = window_size.cx;
@@ -410,8 +446,9 @@ void ToolbarWindow::Redraw() {
     button_rects_.push_back(rect);
 
     const auto id = static_cast<ButtonId>(i);
-    // marinaMoji: Symbols now opens SymbolsPaletteWindow; Shortcuts still has
-    // no Windows implementation (see docs/WINDOWS_PORT_PLAN.md Phase 4).
+    // marinaMoji: Symbols toggles SymbolsPaletteWindow; Shortcuts still has
+    // no Windows implementation (see docs/WINDOWS_PORT_PLAN.md Phase 4), so
+    // only that button is rendered visually disabled.
     const double opacity = (id == ButtonId::kShortcuts) ? kDisabledOpacity : 1.0;
     uint8_t* icon_bits = GetDibBits(icon_cache_[i].get(), &icon_w, &icon_h);
     if (icon_bits != nullptr) {
@@ -470,7 +507,7 @@ void ToolbarWindow::OnLButtonUp(UINT flags, CPoint point) {
       SendLaunchConfigDialog();
       break;
     case ButtonId::kSymbols:
-      SendShowSymbolsPalette();
+      SendToggleSymbolsPalette();
       break;
     case ButtonId::kShortcuts:
       // Not implemented on Windows yet; button is rendered disabled.
@@ -555,9 +592,19 @@ void ToolbarWindow::ShowModeMenu() {
   CPoint screen_point(button_rect.left, button_rect.bottom);
   ClientToScreen(&screen_point);
 
+  // Keep the application in the foreground while the popup is open.  The
+  // renderer owns this non-activating toolbar, but the callback is handled by
+  // the TIP attached to the application's focused text context.  Promoting
+  // this window to foreground makes that context disappear before the selected
+  // command is delivered, which looks like a successful menu click but has no
+  // effect.  |mode_menu_open_| still suppresses focus-loss hide traffic that
+  // can be dispatched by TrackPopupMenuEx's modal loop.
+  mode_menu_open_ = true;
   const int selected = ::TrackPopupMenuEx(
       menu.get(), TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD | TPM_NONOTIFY,
       screen_point.x, screen_point.y, m_hWnd, nullptr);
+  ::PostMessage(m_hWnd, WM_NULL, 0, 0);
+  mode_menu_open_ = false;
   if (selected <= 0 || selected > static_cast<int>(std::size(kEntries))) {
     return;
   }
@@ -623,12 +670,15 @@ void ToolbarWindow::SendLaunchConfigDialog() {
   send_command_interface_->SendCommand(command, &output);
 }
 
-void ToolbarWindow::SendShowSymbolsPalette() {
+void ToolbarWindow::SendToggleSymbolsPalette() {
   if (send_command_interface_ == nullptr) {
     return;
   }
   commands::SessionCommand command;
-  command.set_type(commands::SessionCommand::SHOW_SYMBOLS_PALETTE);
+  const bool show = !symbols_palette_visible_;
+  symbols_palette_visible_ = show;
+  command.set_type(show ? commands::SessionCommand::SHOW_SYMBOLS_PALETTE
+                        : commands::SessionCommand::HIDE_SYMBOLS_PALETTE);
   commands::Output output;
   send_command_interface_->SendCommand(command, &output);
 }
