@@ -10,7 +10,7 @@ cc_library(
         exclude = [
             "src/SimpleConverter.cpp",  # Needs @bazel_tools//tools/cpp/runfiles
             "src/*Test*.cpp",
-            "src/py_opencc.cpp",        # Needs @pybind11_bazel
+            "src/py_opencc.cpp",  # Needs @pybind11_bazel
         ],
     ),
     hdrs = glob([
