@@ -63,7 +63,7 @@ cc_library(
     name = "{name}",
     hdrs = glob([
         {hdrs}
-    ]),
+    ], allow_empty = True),
     copts = [
         {copts}
     ],
