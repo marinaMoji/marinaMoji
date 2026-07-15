@@ -991,7 +991,11 @@ TEST_F(SessionTest, LeftShiftTogglesManyoshuAndDirect) {
   session.SetConfig(cfg);
 
   SwitchCompositionMode(commands::HIRAGANA, &session);
-  EXPECT_TRUE(SendKey("Ctrl Shift 4", &session, &command));
+  // Ctrl+Shift+4 is dispatched client-side (marina number-row dispatcher) and
+  // is intentionally absent from the session keymap, so enter Manyoshu via
+  // the composition-mode command the dispatcher ends up issuing.
+  EXPECT_TRUE(
+      SwitchCompositionModeCommand(commands::MANYOSHU, &session, &command));
   EXPECT_EQ(command.output().status().mode(), commands::MANYOSHU);
 
   EXPECT_TRUE(SendKeyWithMode("LeftShift", commands::MANYOSHU, &session,
