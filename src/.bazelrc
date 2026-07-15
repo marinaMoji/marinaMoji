@@ -32,15 +32,15 @@ build:compiler_msvc_like --per_file_copt="external/.*@/w" --host_per_file_copt="
 # extra target-feature flags per file group. The Bazel Central Registry's
 # BUILD.bazel just globs every .c file with the baseline flags, so these fail
 # to compile without replicating the same per-file flags here.
-build:compiler_gcc_like  --per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul" --host_per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul"
+build:linux_env         --per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul" --host_per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul"
 build:compiler_msvc_like --per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul" --host_per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul"
-build:compiler_gcc_like  --per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3" --host_per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3"
+build:linux_env         --per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3" --host_per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3"
 build:compiler_msvc_like --per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3" --host_per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3"
-build:compiler_gcc_like  --per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1" --host_per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1"
+build:linux_env         --per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1" --host_per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1"
 build:compiler_msvc_like --per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1" --host_per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1"
-build:compiler_gcc_like  --per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2" --host_per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2"
+build:linux_env         --per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2" --host_per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2"
 build:compiler_msvc_like --per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2" --host_per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2"
-build:compiler_gcc_like  --per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f" --host_per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f"
+build:linux_env         --per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f" --host_per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f"
 build:compiler_msvc_like --per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f" --host_per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f"
 
 ## Target platforms
@@ -100,7 +100,7 @@ test:linux_env   --test_tag_filters=-nolinux
 ## macOS specific options
 build:macos_env --build_tag_filters=-nomac --objccopt "-fsigned-char"
 build:macos_env --macos_minimum_os=12.0 --host_macos_minimum_os=12.0
-build:macos_env --xcode_version_config=//tools/local_xcode:host_xcodes
+# Let Bazel discover the Xcode/SDK installed on the runner or developer machine.
 build:macos_env --repo_env=DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 build:macos_env --action_env=DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 # macOS 26+: xcode-locator fails inside Bazel's darwin sandbox without fix_bazel_xcode_config.sh
