@@ -208,6 +208,7 @@ pkg_config_repository(
     packages = [
         "glib-2.0",
         "gobject-2.0",
+        "gtk+-3.0",
         "ibus-1.0",
     ],
 )
