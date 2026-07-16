@@ -282,8 +282,11 @@ TEST_F(DataLoaderTest, WaitHighPriorityDataTimeoutTest) {
   EXPECT_TRUE(loader.StartNewDataBuildTask(make_request(100), callback));
   EXPECT_TRUE(loader.StartNewDataBuildTask(make_request(200), callback));
 
-  // Timeout. priority = 50 is loaded.
-  absl::SleepFor(absl::Milliseconds(200));
+  // Timeout. priority = 50 is loaded. This needs to outlast the actual
+  // background load of mock_request_'s file, which can take longer than a
+  // couple hundred ms under CI load/disk contention; a short sleep here was
+  // an observed source of flakiness.
+  absl::SleepFor(absl::Seconds(2));
 
   // Then priority = 10 is loaded.
   EXPECT_TRUE(loader.StartNewDataBuildTask(make_request(10), callback));
