@@ -27,12 +27,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+load("@rules_python//python:defs.bzl", "py_test")
 load(
     "//:build_defs.bzl",
     "mozc_cc_binary",
     "mozc_cc_library",
     "mozc_cc_test",
     "mozc_py_binary",
+    "mozc_py_library",
     "mozc_select",
     "mozc_select_enable_supplemental_model",
 )
@@ -231,6 +233,20 @@ mozc_cc_library(
     ],
 )
 
+mozc_cc_library(
+    name = "caching_connector",
+    hdrs = ["caching_connector.h"],
+    visibility = [
+        "//:__subpackages__",
+    ],
+    deps = [
+        ":connector",
+        "//dictionary:pos_matcher",
+        "@com_google_absl//absl/algorithm:container",
+        "@com_google_absl//absl/log:check",
+    ],
+)
+
 mozc_cc_test(
     name = "connector_test",
     size = "small",
@@ -262,6 +278,7 @@ mozc_cc_library(
     hdrs = ["nbest_generator.h"],
     deps = [
         ":attribute",
+        ":caching_connector",
         ":candidate_filter",
         ":connector",
         ":inner_segment",
@@ -274,7 +291,7 @@ mozc_cc_library(
         "//dictionary:dictionary_interface",
         "//dictionary:pos_matcher",
         "//prediction:suggestion_filter",
-        "//request:conversion_request",
+        "//request:options",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
@@ -289,6 +306,7 @@ mozc_cc_test(
         "nbest_generator_test.cc",
     ],
     deps = [
+        ":caching_connector",
         ":immutable_converter",
         ":lattice",
         ":nbest_generator",
@@ -323,7 +341,7 @@ mozc_cc_library(
         "//dictionary:pos_matcher",
         "//prediction:suggestion_filter",
         "//protocol:commands_cc_proto",
-        "//request:conversion_request",
+        "//request:options",
         "//request:request_util",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/hash",
@@ -382,7 +400,6 @@ mozc_cc_library(
     deps = [
         ":node",
         ":node_allocator",
-        "//base:singleton",
         "//base/strings:unicode",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
@@ -409,8 +426,7 @@ mozc_cc_library(
     ],
     deps = [
         ":segments",
-        "//request:conversion_request",
-        "@com_google_absl//absl/base:core_headers",
+        "//request:options",
     ],
 )
 
@@ -425,6 +441,7 @@ mozc_cc_library(
     ],
     deps = [
         ":attribute",
+        ":caching_connector",
         ":connector",
         ":immutable_converter_interface",
         ":key_corrector",
@@ -448,7 +465,7 @@ mozc_cc_library(
         "//prediction:suggestion_filter",
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",
-        "//request:conversion_request",
+        "//request:options",
         "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -480,6 +497,7 @@ mozc_cc_test(
         "//engine:modules",
         "//protocol:commands_cc_proto",
         "//request:conversion_request",
+        "//request:options",
         "//request:request_test_util",
         "//testing:gunit_main",
         "//testing:test_peer",
@@ -834,12 +852,31 @@ mozc_py_binary(
     visibility = ["//data_manager:__subpackages__"],
 )
 
+mozc_py_library(
+    name = "gen_boundary_data_lib",
+    srcs = ["gen_boundary_data.py"],
+    visibility = ["//visibility:private"],
+)
+
 mozc_py_binary(
     name = "gen_boundary_data",
     srcs = ["gen_boundary_data.py"],
     visibility = [
         "//data_manager:__subpackages__",
         "//tools/periodical_update:__pkg__",
+    ],
+    deps = [
+        ":gen_boundary_data_lib",
+    ],
+)
+
+py_test(
+    name = "gen_boundary_data_test",
+    srcs = ["gen_boundary_data_test.py"],
+    tags = ["manual"],
+    deps = [
+        ":gen_boundary_data_lib",
+        "//third_party/py/absl/testing:absltest",
     ],
 )
 

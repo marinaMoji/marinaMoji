@@ -35,6 +35,8 @@
 #include "absl/log/check.h"
 #include "absl/strings/string_view.h"
 #include "base/protobuf/text_format.h"
+#include "base/protobuf_util.h"
+#include "base/text_normalizer.h"
 #include "protocol/renderer_style.pb.h"
 #include "renderer/renderer_style_appearance.h"
 #include "renderer/renderer_style_scale.h"
@@ -68,6 +70,14 @@ uint32_t GetCandidateWindowFontSizeFromConfig() {
 }
 #endif  // __APPLE__
 
+void SetRgbaColor(RendererStyle::RGBAColor* color, double r, double g, double b,
+                  double a = 1.0) {
+  color->set_r(r);
+  color->set_g(g);
+  color->set_b(b);
+  color->set_a(a);
+}
+
 }  // namespace
 
 void RendererStyleHandler::GetRendererStyle(RendererStyle* style) {
@@ -78,6 +88,17 @@ void RendererStyleHandler::GetRendererStyle(RendererStyle* style) {
       kStyleTextProto;
 #endif
   CHECK(mozc::protobuf::TextFormat::ParseFromString(style_text, style));
+
+  if (!style->candidate_style().has_background_color()) {
+    SetRgbaColor(style->mutable_candidate_style()->mutable_background_color(),
+                 255, 255, 255);
+  }
+
+  protobuf_util::SanitizeMessageStrings(*style, [](absl::string_view src) {
+    // Limit the length of the string to 100 bytes and remove ill-formed
+    // UTF-8 sequences and ASCII control characters.
+    return TextNormalizer::SanitizeText(src, 100);
+  });
 
 #ifdef __APPLE__
   const uint32_t font_size = GetCandidateWindowFontSizeFromConfig();

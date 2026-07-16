@@ -208,6 +208,7 @@ class CandidateWindow : public ATL::CWindowImpl<CandidateWindow, ATL::CWindow,
   int indicator_width_;
   bool metrics_changed_;
   bool mouse_moving_;
+  RendererStyle style_;
 };
 
 }  // namespace win32

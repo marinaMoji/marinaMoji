@@ -78,8 +78,7 @@ mozc_cc_library(
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
     ] + mozc_select(
-        ios = ["//base/mac:mac_util"],
-        macos = ["//base/mac:mac_util"],
+        apple = ["//base/mac:mac_util"],
         windows = [
             "//base/win32:win_sandbox",
         ],
@@ -245,6 +244,7 @@ mozc_embed_file(
     srcs = ["renderer_style.textproto"],
     out = "renderer_style.inc",
     as_string_view = True,
+    skip_until = "# proto-file:",
     var_name = "kStyleTextProto",
 )
 
@@ -291,6 +291,8 @@ mozc_cc_library(
     visibility = ["//renderer:__subpackages__"],
     deps = [
         ":renderer_style_scale",
+        "//base:protobuf_util",
+        "//base:text_normalizer",
         "//base/protobuf:text_format",
         "//protocol:renderer_cc_proto",
         "@com_google_absl//absl/log:check",

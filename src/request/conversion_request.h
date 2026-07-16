@@ -173,9 +173,7 @@ class ConversionRequest {
   }
   // Returns options by value. Cheap to copy and avoids reference lifetime
   // issues.
-  Options options() const {
-    return options_;
-  }
+  Options options() const { return options_; }
   const prediction::Result& history_result() const
       ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return *history_result_;
@@ -259,6 +257,26 @@ class ConversionRequestBuilder {
           GetKey(*request_.composer_data_, request_.options_.request_type,
                  request_.options_.composer_key_selection);
     }
+    // Populate decoupled ConversionOptions fields from commands::Request and
+    // config::Config.
+    request_.options_.incognito_mode = request_.incognito_mode();
+    request_.options_.kana_modifier_insensitive_conversion =
+        request_.IsKanaModifierInsensitiveConversion();
+    request_.options_.use_spelling_correction =
+        request_.config().use_spelling_correction();
+    request_.options_.use_zip_code_conversion =
+        request_.config().use_zip_code_conversion();
+    request_.options_.use_t13n_conversion =
+        request_.config().use_t13n_conversion();
+    if (request_.config().preedit_method() == config::Config::ROMAN) {
+      request_.options_.input_mode = ConversionOptions::InputMode::ROMAN;
+    } else {
+      request_.options_.input_mode = ConversionOptions::InputMode::KANA;
+    }
+    request_.options_.particle_omission_transition_cost_bonus =
+        request_.request()
+            .decoder_experiment_params()
+            .particle_omission_transition_cost_bonus();
     return request_;
   }
 

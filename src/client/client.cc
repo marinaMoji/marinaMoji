@@ -49,7 +49,6 @@
 #include "base/file_stream.h"
 #include "base/file_util.h"
 #include "base/process.h"
-#include "base/singleton.h"
 #include "base/system_util.h"
 #include "base/version.h"
 #include "base/vlog.h"
@@ -1100,19 +1099,14 @@ bool Client::OpenBrowser(absl::string_view url) {
 }
 
 namespace {
-class DefaultClientFactory : public ClientFactoryInterface {
- public:
-  std::unique_ptr<ClientInterface> NewClient() override {
-    return std::make_unique<Client>();
-  }
-};
 
 ClientFactoryInterface *g_client_factory = nullptr;
+
 }  // namespace
 
 std::unique_ptr<ClientInterface> ClientFactory::NewClient() {
   if (g_client_factory == nullptr) {
-    return Singleton<DefaultClientFactory>::get()->NewClient();
+    return std::make_unique<Client>();
   } else {
     return g_client_factory->NewClient();
   }

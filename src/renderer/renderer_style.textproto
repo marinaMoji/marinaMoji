@@ -27,7 +27,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# proto-file: third_party/mozc/src/protocol/renderer_style.proto
+# proto-file: protocol/renderer_style.proto
 # proto-message: RendererStyle
 # marinaMoji: white panel; borders match macOS toolbar (1pt, rgba(0,0,0,0.08)).
 # Inset from rounded panel edge (scales with font size).
@@ -44,7 +44,10 @@ shortcut_style {
   right_padding: 8
 }
 gap1_style { font_size: 14 }
-candidate_style { font_size: 14 }
+candidate_style {
+  font_size: 14
+  foreground_color { r: 0 g: 0 b: 0 }
+}
 description_style {
   font_size: 12
   foreground_color { r: 136 g: 136 b: 136 }

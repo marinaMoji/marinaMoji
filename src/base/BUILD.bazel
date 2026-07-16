@@ -27,6 +27,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 load(
     "//:build_defs.bzl",
     "mozc_cc_library",
@@ -111,6 +113,11 @@ mozc_cc_library(
             ":system_util",
             "@com_google_absl//absl/flags:parse",
         ],
+        apple = [
+            ":file_util",
+            ":system_util",
+            "@com_google_absl//absl/flags:parse",
+        ],
         client = [
             ":file_util",
             "@com_google_absl//absl/flags:parse",
@@ -120,17 +127,7 @@ mozc_cc_library(
             ":system_util",
             "@com_google_absl//absl/flags:parse",
         ],
-        ios = [
-            ":file_util",
-            ":system_util",
-            "@com_google_absl//absl/flags:parse",
-        ],
         linux = [
-            ":file_util",
-            ":system_util",
-            "@com_google_absl//absl/flags:parse",
-        ],
-        macos = [
             ":file_util",
             ":system_util",
             "@com_google_absl//absl/flags:parse",
@@ -227,31 +224,6 @@ mozc_cc_test(
         "//testing:gunit_main",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
-    ],
-)
-
-mozc_cc_library(
-    name = "singleton",
-    srcs = ["singleton.cc"],
-    hdrs = ["singleton.h"],
-    visibility = ["//:__subpackages__"],
-    deps = [
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/base:no_destructor",
-        "@com_google_absl//absl/log",
-        "@com_google_absl//absl/synchronization",
-    ],
-)
-
-mozc_cc_test(
-    name = "singleton_test",
-    size = "small",
-    srcs = ["singleton_test.cc"],
-    deps = [
-        ":singleton",
-        ":thread",
-        "//testing:gunit_main",
-        "@com_google_absl//absl/time",
     ],
 )
 
@@ -395,6 +367,7 @@ mozc_cc_library(
     visibility = ["//:__subpackages__"],
     deps = [
         ":util",
+        "//base/strings:unicode",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -406,6 +379,7 @@ mozc_cc_test(
     deps = [
         ":text_normalizer",
         "//testing:gunit_main",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -505,10 +479,12 @@ mozc_cc_library(
         ":mmap",
         ":port",
         "//base/strings:pfchar",
+        "@com_google_absl//absl/base",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:resize_and_overwrite",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
     ] + mozc_select(
@@ -566,18 +542,8 @@ mozc_cc_test(
 
 mozc_cc_library(
     name = "system_util",
-    # TODO(b/269889028): android_util and win_util have cyclic dependency
-    # between this library. Solve it and make them independent libraries.
-    srcs = ["system_util.cc"] +
-           mozc_select(
-               android = ["android_util.cc"],
-               windows = ["//base/win32:win_util_cc"],
-           ),
-    hdrs = ["system_util.h"] +
-           mozc_select(
-               android = ["android_util.h"],
-               windows = ["//base/win32:win_util_h"],
-           ),
+    srcs = ["system_util.cc"],
+    hdrs = ["system_util.h"],
     local_defines = mozc_select(
         linux = [
             'MOZC_DOCUMENT_DIR=\\"' + LINUX_MOZC_DOCUMENT_DIR + '\\"',
@@ -590,12 +556,11 @@ mozc_cc_library(
         ":environ",
         ":file_util",
         ":port",
-        ":singleton",
         ":util",
-        "//bazel/win32:aux_ulib",  # win_util
         "//bazel/win32:imm32",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/container:fixed_array",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
@@ -603,12 +568,11 @@ mozc_cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
     ] + mozc_select(
-        ios = ["//base/mac:mac_util"],
-        macos = ["//base/mac:mac_util"],
+        android = [":android_util"],
+        apple = ["//base/mac:mac_util"],
         windows = [
-            ":vlog",
             "//base/win32:wide_char",
-            "@com_microsoft_wil//:wil",
+            "//base/win32:win_util",
         ],
     ),
 )
@@ -623,6 +587,34 @@ mozc_cc_test(
         ":file_util_mock",
         ":system_util",
         "//testing:gunit_main",
+    ],
+)
+
+mozc_cc_library(
+    name = "android_util",
+    srcs = ["android_util.cc"],
+    hdrs = ["android_util.h"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":util",
+        "@com_google_absl//absl/base:config",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+mozc_cc_test(
+    name = "android_util_test",
+    size = "small",
+    srcs = ["android_util_test.cc"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":android_util",
+        ":port",
+        ":util",
+        "//testing:gunit_main",
+        "//testing:test_peer",
     ],
 )
 
@@ -660,12 +652,12 @@ mozc_cc_library(
     deps = [
         ":file_util",
         ":port",
-        ":singleton",
         ":system_util",
         ":util",
         ":vlog",
         "//base/strings:pfchar",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
@@ -747,8 +739,8 @@ mozc_cc_library(
     deps = [
         ":file_stream",
         ":file_util",
-        ":singleton",
         ":system_util",
+        "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
@@ -918,8 +910,7 @@ mozc_cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
     ] + mozc_select(
-        ios = ["//base/mac:mac_util"],
-        macos = ["//base/mac:mac_util"],
+        apple = ["//base/mac:mac_util"],
         windows = ["//base/win32:wide_char"],
     ),
 )
@@ -1161,5 +1152,54 @@ mozc_cc_test(
         "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
+    ],
+)
+
+mozc_cc_library(
+    name = "protobuf_util",
+    srcs = ["protobuf_util.cc"],
+    hdrs = ["protobuf_util.h"],
+    tags = ["noandroid"],
+    target_compatible_with = mozc_select(
+        android = ["@platforms//:incompatible"],
+        default = [],
+        ios = ["@platforms//:incompatible"],
+        macos = [],
+    ),
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//base/protobuf:descriptor",
+        "//base/protobuf:message",
+        "@com_google_absl//absl/functional:function_ref",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+proto_library(
+    name = "protobuf_util_test_proto",
+    testonly = True,
+    srcs = ["protobuf_util_test.proto"],
+)
+
+cc_proto_library(
+    name = "protobuf_util_test_cc_proto",
+    testonly = True,
+    deps = [":protobuf_util_test_proto"],
+)
+
+mozc_cc_test(
+    name = "protobuf_util_test",
+    size = "small",
+    srcs = ["protobuf_util_test.cc"],
+    tags = ["noandroid"],
+    target_compatible_with = mozc_select(
+        android = ["@platforms//:incompatible"],
+        ios = ["@platforms//:incompatible"],
+    ),
+    deps = [
+        ":protobuf_util",
+        ":protobuf_util_test_cc_proto",
+        "//testing:gunit_main",
+        "@com_google_absl//absl/strings:string_view",
     ],
 )

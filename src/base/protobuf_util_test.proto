@@ -27,30 +27,34 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef MOZC_CONFIG_STATS_CONFIG_UTIL_MOCK_H_
-#define MOZC_CONFIG_STATS_CONFIG_UTIL_MOCK_H_
+// Protocol buffer messages for testing protobuf_util.
+syntax = "proto2";
 
-#include "config/stats_config_util.h"
+package mozc.protobuf_util;
 
-namespace mozc {
-namespace config {
+option java_package = "mozc.protobufutil";
 
-class StatsConfigUtilMock : public StatsConfigUtilInterface {
- public:
-  StatsConfigUtilMock() : is_enabled_(true) {}
+message TestMessage {
+  optional string test_string = 1;
+  optional string logo_file_name = 2;
+  optional bool is_enabled = 3 [default = true];
 
-  bool IsEnabled() override { return is_enabled_; }
-
-  bool SetEnabled(bool val) override {
-    is_enabled_ = val;
-    return true;
+  message TextStyle {
+    optional string font_name = 1;
+    optional int32 font_size = 2;
   }
+  optional TextStyle shortcut_style = 4;
+}
 
- private:
-  bool is_enabled_;
-};
-
-}  // namespace config
-}  // namespace mozc
-
-#endif  // MOZC_CONFIG_STATS_CONFIG_UTIL_MOCK_H_
+message TestRepeatedMessage {
+  message Entry {
+    optional string key = 1;
+    optional string value = 2;
+    optional float score = 3;
+  }
+  message Dictionary {
+    optional string name = 1;
+    repeated Entry entries = 2;
+  }
+  repeated Dictionary dictionaries = 1;
+}

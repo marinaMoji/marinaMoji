@@ -67,7 +67,6 @@ namespace win32 {
 namespace tsf {
 namespace {
 
-using ::mozc::commands::CompositionMode;
 using ::mozc::commands::Preedit;
 using ::mozc::renderer::win32::Win32RendererClient;
 using Segment = ::mozc::commands::Preedit_Segment;
@@ -441,8 +440,8 @@ void UpdateCommand(TipTextService* text_service, ITfContext* context,
       IndicatorInfo* info = app_info->mutable_indicator_info();
       info->mutable_status()->set_activated(
           input_mode_manager->GetEffectiveOpenClose());
-      info->mutable_status()->set_mode(static_cast<CompositionMode>(
-          input_mode_manager->GetEffectiveConversionMode()));
+      info->mutable_status()->set_mode(
+          input_mode_manager->GetEffectiveConversionMode());
     }
   }
 

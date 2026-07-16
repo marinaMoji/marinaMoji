@@ -27,43 +27,28 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "base/singleton.h"
+#ifndef MOZC_BASE_PROTOBUF_UTIL_H_
+#define MOZC_BASE_PROTOBUF_UTIL_H_
 
-#include <array>
+#include <optional>
+#include <string>
 
-#include "absl/base/const_init.h"
-#include "absl/base/thread_annotations.h"
-#include "absl/log/log.h"
-#include "absl/synchronization/mutex.h"
+#include "absl/functional/function_ref.h"
+#include "absl/strings/string_view.h"
+#include "base/protobuf/message.h"
 
 namespace mozc {
-namespace internal {
-namespace {
+namespace protobuf_util {
 
-constinit absl::Mutex mu(absl::kConstInit);
-constinit std::array<void (*)(), 256> finalizers ABSL_GUARDED_BY(mu) = {};
-constinit int size ABSL_GUARDED_BY(mu) = 0;
+// Applies `sanitizer` to all string fields in the given `message` (including
+// nested messages). If `sanitizer` returns a string, the field is replaced.
+// If it returns std::nullopt, the field is left unchanged.
+void SanitizeMessageStrings(
+    protobuf::Message& message,
+    absl::FunctionRef<std::optional<std::string>(absl::string_view)>
+        sanitizer);
 
-}  // namespace
-
-void AddSingletonFinalizer(void (*finalizer)()) ABSL_LOCKS_EXCLUDED(mu) {
-  absl::MutexLock lock(mu);
-  if (size >= finalizers.size()) {
-    LOG(FATAL) << "Too many singletons";
-  }
-  finalizers[size++] = finalizer;
-}
-
-}  // namespace internal
-
-void FinalizeSingletons() ABSL_LOCKS_EXCLUDED(internal::mu) {
-  absl::MutexLock lock(internal::mu);
-  // Run the finalizers in the reverse order of their registration for safer
-  // destruction (e.g. in case one singleton depends on another).
-  for (int i = internal::size - 1; i >= 0; --i) {
-    internal::finalizers[i]();
-  }
-  internal::size = 0;
-}
-
+}  // namespace protobuf_util
 }  // namespace mozc
+
+#endif  // MOZC_BASE_PROTOBUF_UTIL_H_
