@@ -1,0 +1,44 @@
+# Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+#
+# Binary package repacking the official marinaMoji release archives.
+# Per release: bump pkgver, reset pkgrel to 1, and update sha256sums from
+# the SHA256SUMS file attached to the GitHub release.
+
+pkgname=marinamoji-bin
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Japanese input method for classical and literary Japanese (Mozc fork)'
+arch=('x86_64' 'aarch64')
+url='https://github.com/marinaMoji/marinaMoji'
+license=('BSD-3-Clause')
+depends=('ibus' 'qt6-base' 'opencc')
+provides=('marinamoji')
+conflicts=('marinamoji')
+source=("LICENSE-${pkgver}::https://raw.githubusercontent.com/marinaMoji/marinaMoji/v${pkgver}/LICENSE")
+source_x86_64=("${url}/releases/download/v${pkgver}/marinaMoji-v${pkgver}-linux-x86_64.zip")
+source_aarch64=("${url}/releases/download/v${pkgver}/marinaMoji-v${pkgver}-linux-arm64.zip")
+sha256sums=('SKIP')
+sha256sums_x86_64=('SKIP')
+sha256sums_aarch64=('SKIP')
+
+package() {
+  # The release zip mirrors the install tree (usr/...); tmp/ is a leftover
+  # staging artifact of the upstream packaging script.
+  cp -a "${srcdir}/usr" "${pkgdir}/usr"
+
+  local binaries=(
+    usr/lib/marinamoji/mozc_server
+    usr/lib/marinamoji/mozc_tool
+    usr/lib/marinamoji/mozc_renderer
+    usr/lib/marinamoji/mozc_sync
+    usr/lib/ibus-marinamoji/ibus-engine-marinamoji
+    usr/bin/mozc_emacs_helper
+  )
+  local bin
+  for bin in "${binaries[@]}"; do
+    chmod 755 "${pkgdir}/${bin}"
+  done
+
+  install -Dm644 "${srcdir}/LICENSE-${pkgver}" \
+    "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

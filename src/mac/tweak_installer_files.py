@@ -241,12 +241,12 @@ def Codesign(top_dir: str, identity: str) -> None:
 
   args = ['--force', '--sign', identity]
 
-  # Ad-hoc signing ('-') must not pass --keychain; macOS rejects that combo.
-  # https://github.com/google/mozc/issues/1412
   if identity != '-':
-    args.extend(['--keychain', 'login.keychain'])
-    # --option=runtime is required for notarization.
-    args.append('--option=runtime')
+    # Hardened runtime and a secure timestamp are required for notarization.
+    # The identity is resolved through the keychain search list, so release
+    # builds must add their signing keychain to it (see
+    # .github/workflows/release.yaml).
+    args.extend(['--timestamp', '--option=runtime'])
 
   # codesign libqcocoa.dylib
   file_name = 'libqcocoa.dylib'
@@ -290,9 +290,11 @@ def TweakInstallerFiles(args: argparse.Namespace, work_dir: str) -> None:
 
   if args.productbuild:
     TweakForProductbuild(top_dir, tweak_qt, args.oss, args.channel, args.branding)
-    # Re-sign release/test builds after layout tweaks. Qt path fix re-signs GUI
-    # bundles itself (including ad-hoc '-') so skip duplicate work here.
-    if args.codesign_identity != '-' and not tweak_qt:
+    # Re-sign release/test builds after layout tweaks. The Qt path fix signs
+    # the bundles it rewrites, but the outer bundles (marinaMoji.app itself,
+    # the Uninstaller, ...) still carry ad-hoc signatures from the Bazel
+    # build, so notarizable builds must re-sign everything bottom-up here.
+    if args.codesign_identity != '-':
       Codesign(top_dir, args.codesign_identity)
 
   # Create a zip file with the zip command.

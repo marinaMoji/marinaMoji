@@ -1,0 +1,363 @@
+name: Release
+
+# Builds signed and notarized macOS packages for a release tag.
+#
+# Push a tag matching v* — this workflow builds the .pkg files with
+# Developer ID signing (--define CODESIGN=release), notarizes and staples
+# them, then publishes a release with the packages, SHA256SUMS, and build
+# provenance attestations (verify with:
+#   gh attestation verify <file> --repo <owner>/<repo>).
+#
+# Windows assets are unsigned for now (MSIX via the Microsoft Store will
+# cover signing later).
+#
+# The Apple secrets live in the "release" GitHub environment; keep that
+# environment restricted to v* tags (and/or required reviewers).
+
+on:
+  push:
+    tags:
+      - 'v*'
+  # Manual runs build and notarize but skip the draft release.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build_macos:
+    runs-on: macos-26
+    timeout-minutes: 120
+    environment: release
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            macos_cpus: arm64
+          - arch: intel64
+            macos_cpus: x86_64
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: false
+          persist-credentials: false
+
+      - name: Try to restore update_deps cache
+        uses: actions/cache@v6
+        with:
+          path: src/third_party_cache
+          key: update_deps-${{ runner.os }}-${{ hashFiles('src/build_tools/update_deps.py') }}
+
+      - name: Install dependencies
+        working-directory: ./src
+        run: |
+          python3 build_tools/update_deps.py
+
+      - name: Build Qt
+        working-directory: ./src
+        run: |
+          python3 build_tools/build_qt.py --release --confirm_license --macos_cpus=${{ matrix.macos_cpus }}
+
+      - name: Set up signing keychain
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_DEVELOPER_ID_APPLICATION_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_P12_BASE64 }}
+          APPLE_DEVELOPER_ID_APPLICATION_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_P12_PASSWORD }}
+          APPLE_DEVELOPER_ID_INSTALLER_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_INSTALLER_P12_BASE64 }}
+          APPLE_DEVELOPER_ID_INSTALLER_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_INSTALLER_P12_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          KEYCHAIN_NAME="marinamoji-release.keychain"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_NAME"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+          # codesign resolves identities via the search list (the build
+          # scripts do not pass --keychain), so the keychain must be on it.
+          security list-keychains -d user -s "$KEYCHAIN_NAME" login.keychain
+
+          echo "$APPLE_DEVELOPER_ID_APPLICATION_P12_BASE64" | base64 -d > "$RUNNER_TEMP/app.p12"
+          echo "$APPLE_DEVELOPER_ID_INSTALLER_P12_BASE64" | base64 -d > "$RUNNER_TEMP/installer.p12"
+          security import "$RUNNER_TEMP/app.p12" -k "$KEYCHAIN_NAME" \
+            -f pkcs12 -P "$APPLE_DEVELOPER_ID_APPLICATION_P12_PASSWORD" -T /usr/bin/codesign
+          security import "$RUNNER_TEMP/installer.p12" -k "$KEYCHAIN_NAME" \
+            -f pkcs12 -P "$APPLE_DEVELOPER_ID_INSTALLER_P12_PASSWORD" -T /usr/bin/productsign
+          rm -f "$RUNNER_TEMP/app.p12" "$RUNNER_TEMP/installer.p12"
+          # Allow Apple's signing tools to use the keys without a UI prompt.
+          security set-key-partition-list -S apple-tool:,apple: -s \
+            -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME" > /dev/null
+
+          APP_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_NAME" \
+            | grep -o '"Developer ID Application: [^"]*"' | head -n1 | tr -d '"')"
+          INSTALLER_IDENTITY="$(security find-identity -v "$KEYCHAIN_NAME" \
+            | grep -o '"Developer ID Installer: [^"]*"' | head -n1 | tr -d '"')"
+
+          if [[ -z "$APP_IDENTITY" || -z "$INSTALLER_IDENTITY" ]]; then
+            echo "::error::Developer ID identities not found in imported certificates."
+            exit 1
+          fi
+          for identity in "$APP_IDENTITY" "$INSTALLER_IDENTITY"; do
+            if [[ "$identity" != *"($APPLE_TEAM_ID)"* ]]; then
+              echo "::error::Identity '$identity' does not match APPLE_TEAM_ID."
+              exit 1
+            fi
+          done
+
+          {
+            echo "APP_IDENTITY=$APP_IDENTITY"
+            echo "INSTALLER_IDENTITY=$INSTALLER_IDENTITY"
+            echo "KEYCHAIN_FILE=${KEYCHAIN_NAME}-db"
+          } >> "$GITHUB_ENV"
+
+      - name: Configure release signing identities
+        working-directory: ./src
+        run: |
+          set -euo pipefail
+          /usr/bin/sed -i '' \
+            -e "s|^MACOS_CODESIGN_IDENTITY_RELEASE = .*|MACOS_CODESIGN_IDENTITY_RELEASE = \"${APP_IDENTITY}\"|" \
+            -e "s|^MACOS_CODESIGN_IDENTITY_INSTALLER_RELEASE = .*|MACOS_CODESIGN_IDENTITY_INSTALLER_RELEASE = \"${INSTALLER_IDENTITY}\"|" \
+            -e "s|^MACOS_KEYCHAIN_INSTALLER_RELEASE = .*|MACOS_KEYCHAIN_INSTALLER_RELEASE = \"${KEYCHAIN_FILE}\"|" \
+            config.bzl
+          grep -n "_RELEASE" config.bzl
+
+      - name: bazel build (signed)
+        working-directory: ./src
+        run: |
+          bazelisk build package --macos_cpus=${{ matrix.macos_cpus }} \
+            --config release_build \
+            --define CODESIGN=release \
+            --define CHANNEL=stable
+
+      - name: Notarize and staple
+        env:
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_NOTARY_API_PRIVATE_KEY_P8: ${{ secrets.APPLE_NOTARY_API_PRIVATE_KEY_P8 }}
+        run: |
+          set -euo pipefail
+
+          # Copy out of bazel-bin: outputs are read-only and stapling
+          # modifies the file (checksums are computed after stapling).
+          DIST="$RUNNER_TEMP/dist"
+          PKG="$DIST/marinaMoji-${GITHUB_REF_NAME}-${{ matrix.arch }}.pkg"
+          mkdir -p "$DIST"
+          cp src/bazel-bin/mac/marinaMoji.pkg "$PKG"
+          chmod u+w "$PKG"
+
+          KEY="$RUNNER_TEMP/notary_key.p8"
+          printf '%s\n' "$APPLE_NOTARY_API_PRIVATE_KEY_P8" > "$KEY"
+
+          SUBMISSION="$(xcrun notarytool submit "$PKG" \
+            --key "$KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" \
+            --wait --timeout 1h --output-format json)"
+          echo "$SUBMISSION"
+          STATUS="$(echo "$SUBMISSION" | jq -r .status)"
+          SUBMISSION_ID="$(echo "$SUBMISSION" | jq -r .id)"
+
+          if [[ "$STATUS" != "Accepted" ]]; then
+            echo "::error::Notarization failed with status '$STATUS'. Log:"
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --key "$KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" || true
+            rm -f "$KEY"
+            exit 1
+          fi
+          rm -f "$KEY"
+
+          xcrun stapler staple "$PKG"
+          echo "PKG_PATH=$PKG" >> "$GITHUB_ENV"
+
+      - name: Verify package
+        run: |
+          set -euo pipefail
+          pkgutil --check-signature "$PKG_PATH"
+          xcrun stapler validate "$PKG_PATH"
+          spctl --assess -vv --type install "$PKG_PATH"
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: marinaMoji-${{ matrix.arch }}
+          path: ${{ env.PKG_PATH }}
+          if-no-files-found: error
+
+  # Unsigned for now — MSIX via the Microsoft Store will cover Windows
+  # signing later. No secrets needed, so no "release" environment.
+  build_windows:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-2025
+            extra_configs: --config x86_simd
+          - arch: arm64
+            runner: windows-11-arm
+            extra_configs: ''
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: false
+          persist-credentials: false
+
+      - name: Try to restore update_deps cache
+        uses: actions/cache@v6
+        with:
+          path: src/third_party_cache
+          key: update_deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/build_tools/update_deps.py') }}
+
+      - name: Install Dependencies
+        shell: cmd
+        working-directory: .\src
+        run: |
+          python build_tools/update_deps.py
+
+      - name: Build Qt
+        shell: cmd
+        working-directory: .\src
+        run: |
+          python build_tools/build_qt.py --release --confirm_license
+
+      # This is needed only for GitHub Actions where free disk space is quite limited.
+      - name: Delete Qt src to save disk space
+        shell: cmd
+        working-directory: .\src
+        run: |
+          rmdir third_party\qt_src /s /q
+
+      - name: build installer
+        shell: cmd
+        working-directory: .\src
+        env:
+          ANDROID_NDK_HOME: ""
+        run: |
+          bazelisk build package --config release_build ${{ matrix.extra_configs }} --define CHANNEL=stable
+
+      - name: Rename installer
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp src/bazel-bin/win32/installer/marinaMoji64.msi \
+            "dist/marinaMoji-${GITHUB_REF_NAME}-${{ matrix.arch }}.msi"
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: marinaMoji-windows-${{ matrix.arch }}
+          path: dist/*.msi
+          if-no-files-found: error
+
+  build_linux:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+            deb_arch: amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            deb_arch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: false
+          persist-credentials: false
+
+      - name: Setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libibus-1.0-dev qt6-base-dev libgtk-3-dev librsvg2-dev libopencc-dev dpkg-dev unzip
+          #
+          # Unset the Android NDK setting to skip the unnecessary configuration.
+          echo "ANDROID_NDK_HOME=" >> $GITHUB_ENV
+
+      - name: bazel build
+        working-directory: ./src
+        run: |
+          bazelisk build package --config release_build --define CHANNEL=stable
+
+      - name: Package artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp src/bazel-bin/unix/mozc.zip \
+            "dist/marinaMoji-${GITHUB_REF_NAME}-linux-${{ matrix.arch }}.zip"
+
+          # Debian versions must start with a digit; tags are v<version>.
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then
+            VERSION="0.0.0+g$(git rev-parse --short HEAD)"
+          fi
+          bash packaging/linux/build_deb.sh \
+            --zip src/bazel-bin/unix/mozc.zip \
+            --version "$VERSION" \
+            --arch ${{ matrix.deb_arch }} \
+            --output-dir dist
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: marinaMoji-linux-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+
+  publish_release:
+    if: github.ref_type == 'tag'
+    needs:
+      - build_macos
+      - build_windows
+      - build_linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate SHA256SUMS
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          sha256sum *.pkg *.msi *.zip *.deb > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: dist/*
+
+      - name: Publish release
+        working-directory: dist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "marinaMoji $GITHUB_REF_NAME" \
+            --generate-notes \
+            *.pkg *.msi *.zip *.deb SHA256SUMS
