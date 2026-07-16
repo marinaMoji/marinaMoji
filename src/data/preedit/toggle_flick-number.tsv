@@ -394,5 +394,57 @@ $		{*}$	NoTransliteration
 {*}-*		{*}-
 {?}/*		{*}/
 {*}/*		{*}/
+a	a		NewChunk NoTransliteration
+b	b		NewChunk NoTransliteration
+c	c		NewChunk NoTransliteration
+d	d		NewChunk NoTransliteration
+e	e		NewChunk NoTransliteration
+f	f		NewChunk NoTransliteration
+g	g		NewChunk NoTransliteration
+h	h		NewChunk NoTransliteration
+i	i		NewChunk NoTransliteration
+j	j		NewChunk NoTransliteration
+k	k		NewChunk NoTransliteration
+l	l		NewChunk NoTransliteration
+m	m		NewChunk NoTransliteration
+n	n		NewChunk NoTransliteration
+o	o		NewChunk NoTransliteration
+p	p		NewChunk NoTransliteration
+q	q		NewChunk NoTransliteration
+r	r		NewChunk NoTransliteration
+s	s		NewChunk NoTransliteration
+t	t		NewChunk NoTransliteration
+u	u		NewChunk NoTransliteration
+v	v		NewChunk NoTransliteration
+w	w		NewChunk NoTransliteration
+x	x		NewChunk NoTransliteration
+y	y		NewChunk NoTransliteration
+z	z		NewChunk NoTransliteration
+A	A		NewChunk NoTransliteration
+B	B		NewChunk NoTransliteration
+C	C		NewChunk NoTransliteration
+D	D		NewChunk NoTransliteration
+E	E		NewChunk NoTransliteration
+F	F		NewChunk NoTransliteration
+G	G		NewChunk NoTransliteration
+H	H		NewChunk NoTransliteration
+I	I		NewChunk NoTransliteration
+J	J		NewChunk NoTransliteration
+K	K		NewChunk NoTransliteration
+L	L		NewChunk NoTransliteration
+M	M		NewChunk NoTransliteration
+N	N		NewChunk NoTransliteration
+O	O		NewChunk NoTransliteration
+P	P		NewChunk NoTransliteration
+Q	Q		NewChunk NoTransliteration
+R	R		NewChunk NoTransliteration
+S	S		NewChunk NoTransliteration
+T	T		NewChunk NoTransliteration
+U	U		NewChunk NoTransliteration
+V	V		NewChunk NoTransliteration
+W	W		NewChunk NoTransliteration
+X	X		NewChunk NoTransliteration
+Y	Y		NewChunk NoTransliteration
+Z	Z		NewChunk NoTransliteration
 {<}			NoTransliteration
 {!}			NoTransliteration
