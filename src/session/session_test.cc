@@ -7166,18 +7166,29 @@ TEST_F(SessionTest, CompositionModeOutputHasComposition) {
   EXPECT_EQ(command.output().mode(), mozc::commands::HIRAGANA);
   EXPECT_SINGLE_SEGMENT("あ", command);
 
+  // Switching between Hiragana and Katakana reflows the existing preedit
+  // into the new mode's script (and back), so subsequent checks expect the
+  // transliterated form rather than the original "あ".
   command.Clear();
   EXPECT_TRUE(session.CompositionModeFullKatakana(&command));
   EXPECT_TRUE(command.output().consumed());
   EXPECT_EQ(command.output().mode(), mozc::commands::FULL_KATAKANA);
-  EXPECT_SINGLE_SEGMENT("あ", command);
+  EXPECT_SINGLE_SEGMENT("ア", command);
 
   command.Clear();
   EXPECT_TRUE(session.CompositionModeHalfKatakana(&command));
   EXPECT_TRUE(command.output().consumed());
   EXPECT_EQ(command.output().mode(), mozc::commands::HALF_KATAKANA);
+  EXPECT_SINGLE_SEGMENT("ｱ", command);
+
+  command.Clear();
+  EXPECT_TRUE(session.CompositionModeHiragana(&command));
+  EXPECT_TRUE(command.output().consumed());
+  EXPECT_EQ(command.output().mode(), mozc::commands::HIRAGANA);
   EXPECT_SINGLE_SEGMENT("あ", command);
 
+  // ASCII modes are out of scope for reflow: they don't call SetOutputMode,
+  // so the preedit stays rendered in whatever mode was last explicitly set.
   command.Clear();
   EXPECT_TRUE(session.CompositionModeFullASCII(&command));
   EXPECT_TRUE(command.output().consumed());

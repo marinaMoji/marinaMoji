@@ -166,6 +166,7 @@ void ApplyCompositionMode(const commands::CompositionMode mode,
   switch (mode) {
     case commands::HIRAGANA:
       SwitchInputMode(transliteration::HIRAGANA, composer);
+      composer->SetOutputMode(transliteration::HIRAGANA);
       break;
     case commands::FULL_KATAKANA:
       SwitchInputMode(transliteration::FULL_KATAKANA, composer);
@@ -173,6 +174,7 @@ void ApplyCompositionMode(const commands::CompositionMode mode,
       break;
     case commands::HALF_KATAKANA:
       SwitchInputMode(transliteration::HALF_KATAKANA, composer);
+      composer->SetOutputMode(transliteration::HALF_KATAKANA);
       break;
     case commands::FULL_ASCII:
       SwitchInputMode(transliteration::FULL_ASCII, composer);
@@ -2658,6 +2660,7 @@ bool Session::CompositionModeHalfKatakana(commands::Command* command) {
   EnsureIMEIsOn();
   // The temporary mode should not be overridden.
   SwitchInputMode(transliteration::HALF_KATAKANA, context_->mutable_composer());
+  context_->mutable_composer()->SetOutputMode(transliteration::HALF_KATAKANA);
   OutputFromState(command);
   return true;
 }
