@@ -53,13 +53,13 @@ active_on_launch: False
 
   const std::string expected_xml = R"(<engines>
 <engine>
-  <description>Mozc (Japanese Input Method)</description>
+  <description>marinaMoji (Japanese Input Method)</description>
   <language>ja</language>
-  <icon>/usr/share/ibus-mozc/product_icon.png</icon>
+  <icon>/usr/share/ibus-marinamoji/product_icon.png</icon>
   <rank>80</rank>
   <icon_prop_key>InputMode</icon_prop_key>
   <symbol>あ</symbol>
-  <setup>/usr/lib/mozc/mozc_tool --mode=config_dialog</setup>
+  <setup>/usr/lib/marinamoji/mozc_tool --mode=config_dialog</setup>
   <name>mozc-jp</name>
   <longname>Mozc</longname>
   <layout>default</layout>

@@ -42,7 +42,7 @@ TEST(NullMessageTranslatorTest, BasicTest) {
 }
 
 TEST(LocaleBasedMessageTranslatorTest, UnknownLocaleName) {
-  LocaleBasedMessageTranslator translator("ja_JP");
+  LocaleBasedMessageTranslator translator("en_US");
 
   // For unknown key.
   EXPECT_EQ(translator.MaybeTranslate("foobar"), "foobar");
