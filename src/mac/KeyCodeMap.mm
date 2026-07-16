@@ -472,6 +472,35 @@ void PostShiftKeyUp(CGKeyCode keyCode) {
   NSString *inputString = [event characters];
   NSString *inputStringRaw = [event charactersIgnoringModifiers];
 
+  if ([inputString length] == 0 && [inputStringRaw length] == 0 && macron_shift) {
+    // Some layouts deliver the Ctrl+Alt+Shift macron combo with no
+    // |characters| at all. Fall back to the QWERTY-position base vowel from
+    // the physical keyCode so the macron shortcut still works.
+    unichar fallback = 0;
+    switch (keyCode) {
+      case kVK_ANSI_A:
+        fallback = 'a';
+        break;
+      case kVK_ANSI_E:
+        fallback = 'e';
+        break;
+      case kVK_ANSI_I:
+        fallback = 'i';
+        break;
+      case kVK_ANSI_O:
+        fallback = 'o';
+        break;
+      case kVK_ANSI_U:
+        fallback = 'u';
+        break;
+      default:
+        break;
+    }
+    if (fallback != 0) {
+      inputStringRaw = [NSString stringWithCharacters:&fallback length:1];
+    }
+  }
+
   if ([inputString length] == 0 && [inputStringRaw length] == 0) {
     return NO;
   }
