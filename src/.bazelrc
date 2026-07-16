@@ -38,6 +38,9 @@ build:compiler_msvc_like --per_file_copt="external/.*@/w" --host_per_file_copt="
 # add per-file `-msse2`/`-mavx`/etc. flags for these files: they change
 # nothing on x86_64 (the code they'd enable is compiled out) and break the
 # build outright on arm64, where gcc rejects the x86-only flags.
+# windows.yaml still passes --config x86_simd; keep the config defined (as a
+# no-op) so Bazel doesn't reject the flag outright.
+build:x86_simd --define=x86_simd_noop=true
 
 ## Target platforms
 common:linux          --config=linux_env --define TARGET=oss_linux
