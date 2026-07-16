@@ -1631,6 +1631,8 @@ bool Session::Revert(commands::Command* command) {
 bool Session::ResetContext(commands::Command* command) {
   if (context_->state() == ImeContext::PRECOMPOSITION) {
     context_->mutable_converter()->Reset();
+    last_committed_expression_.clear();
+    last_committed_reading_.clear();
     return EchoBackAndClearUndoContext(command);
   }
 
@@ -3025,8 +3027,12 @@ bool Session::ToggleLeftShiftDirect(commands::Command* command) {
   }
 
   saved_japanese_mode_ = visible;
-  manyoshu_mode_ = false;
+  // IMEOff() reads manyoshu_mode_ (via OutputMode) to report the mode being
+  // left in status(); clear it only after that so a Manyoshu->Direct toggle
+  // still reports MANYOSHU (matching saved_japanese_mode_) instead of the
+  // underlying Hiragana composer mode.
   IMEOff(command);
+  manyoshu_mode_ = false;
   // Do not consume Left Shift release so the app receives the key-up.
   command->mutable_output()->set_consumed(false);
   return true;

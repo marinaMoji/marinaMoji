@@ -967,7 +967,11 @@ TEST_F(SessionTest, LeftShiftAloneTogglesJapaneseAndDirect) {
 
   EXPECT_TRUE(SendKey("LeftShift", &session, &command));
   EXPECT_FALSE(command.output().consumed());
-  EXPECT_EQ(command.output().status().mode(), commands::DIRECT);
+  // status().mode() intentionally keeps the last active mode while inactive
+  // (toolbar/langbar icons use it to show what mode will resume); the top
+  // level output().mode() is what actually reflects DIRECT.
+  EXPECT_EQ(command.output().mode(), commands::DIRECT);
+  EXPECT_EQ(command.output().status().mode(), commands::FULL_KATAKANA);
   EXPECT_FALSE(command.output().status().activated());
 
   SessionTestPeer peer(session);
@@ -1001,7 +1005,11 @@ TEST_F(SessionTest, LeftShiftTogglesManyoshuAndDirect) {
   EXPECT_TRUE(SendKeyWithMode("LeftShift", commands::MANYOSHU, &session,
                               &command));
   EXPECT_FALSE(command.output().consumed());
-  EXPECT_EQ(command.output().status().mode(), commands::DIRECT);
+  // status().mode() intentionally keeps the last active mode while inactive
+  // (toolbar/langbar icons use it to show what mode will resume); the top
+  // level output().mode() is what actually reflects DIRECT.
+  EXPECT_EQ(command.output().mode(), commands::DIRECT);
+  EXPECT_EQ(command.output().status().mode(), commands::MANYOSHU);
   EXPECT_FALSE(command.output().status().activated());
 
   SessionTestPeer peer(session);
@@ -1028,7 +1036,11 @@ TEST_F(SessionTest, LeftShiftAloneTogglesHiraganaKatakanaAndDirect) {
   SwitchCompositionMode(commands::FULL_KATAKANA, &session);
   EXPECT_TRUE(SendKeyWithMode("LeftShift", commands::FULL_KATAKANA, &session,
                               &command));
-  EXPECT_EQ(command.output().status().mode(), commands::DIRECT);
+  // status().mode() intentionally keeps the last active mode while inactive
+  // (toolbar/langbar icons use it to show what mode will resume); the top
+  // level output().mode() is what actually reflects DIRECT.
+  EXPECT_EQ(command.output().mode(), commands::DIRECT);
+  EXPECT_EQ(command.output().status().mode(), commands::FULL_KATAKANA);
 
   EXPECT_TRUE(SendKey("LeftShift", &session, &command));
   EXPECT_EQ(command.output().status().mode(), commands::FULL_KATAKANA);

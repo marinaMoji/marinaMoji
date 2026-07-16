@@ -95,6 +95,13 @@ BOOL HasNonShiftChordModifiers(NSUInteger flags) {
                     NSEventModifierFlagCommand)) != 0;
 }
 
+// Like HasNonShiftChordModifiers, but excludes Control: for the Ctrl+Left
+// Shift mode-lock chord, Control is an expected part of the combo rather
+// than a disqualifying extra modifier.
+BOOL HasNonShiftNonCtrlChordModifiers(NSUInteger flags) {
+  return (flags & (NSEventModifierFlagOption | NSEventModifierFlagCommand)) != 0;
+}
+
 void PostShiftKeyUp(CGKeyCode keyCode) {
   CGEventRef event = CGEventCreateKeyboardEvent(nullptr, keyCode, false);
   if (event == nullptr) {
@@ -200,7 +207,7 @@ void PostShiftKeyUp(CGKeyCode keyCode) {
       // Fire when the chord was armed, even if the other modifier was already
       // released (macOS often delivers both key-ups without either held alone).
       if (ctrlLeftShiftChordArmed_ && !typedDuringCtrlLeftShiftChord_ &&
-          !HasNonShiftChordModifiers(flags)) {
+          !HasNonShiftNonCtrlChordModifiers(flags)) {
         keyEvent->Clear();
         keyEvent->add_modifier_keys(KeyEvent::CTRL);
         keyEvent->add_modifier_keys(KeyEvent::LEFT_SHIFT);
@@ -228,7 +235,7 @@ void PostShiftKeyUp(CGKeyCode keyCode) {
       }
     } else {
       if (ctrlLeftShiftChordArmed_ && !typedDuringCtrlLeftShiftChord_ &&
-          !HasNonShiftChordModifiers(flags)) {
+          !HasNonShiftNonCtrlChordModifiers(flags)) {
         keyEvent->Clear();
         keyEvent->add_modifier_keys(KeyEvent::CTRL);
         keyEvent->add_modifier_keys(KeyEvent::LEFT_SHIFT);
@@ -247,7 +254,8 @@ void PostShiftKeyUp(CGKeyCode keyCode) {
     return NO;
   }
 
-  if (HasNonShiftChordModifiers(flags) && (leftShiftPhysicallyDown_ || ctrlPhysicallyDown_)) {
+  if (HasNonShiftNonCtrlChordModifiers(flags) &&
+      (leftShiftPhysicallyDown_ || ctrlPhysicallyDown_)) {
     ctrlLeftShiftChordArmed_ = NO;
     typedDuringCtrlLeftShiftChord_ = NO;
   }
