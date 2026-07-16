@@ -55,12 +55,12 @@ The project uses **Bazelisk** to run the correct Bazel version automatically. Do
 ### 2.1 Download and install the binary
 
 1. Open: [Bazelisk releases on GitHub](https://github.com/bazelbuild/bazelisk/releases).
-2. Download the **Linux amd64** binary (e.g. `bazelisk-linux-amd64` from the latest release).
+2. Download the binary matching your CPU: **`bazelisk-linux-amd64`** for x86_64, or **`bazelisk-linux-arm64`** for arm64/aarch64 (e.g. Raspberry Pi, ARM laptops/VMs — check with `uname -m`).
 3. Make it executable and put it in your `PATH`. For example, to install for your user only:
 
 ```bash
 mkdir -p ~/bin
-mv ~/Downloads/bazelisk-linux-amd64 ~/bin/bazelisk
+mv ~/Downloads/bazelisk-linux-amd64 ~/bin/bazelisk   # or bazelisk-linux-arm64 on arm64
 chmod +x ~/bin/bazelisk
 ```
 
@@ -127,6 +127,8 @@ bazelisk build package --config oss_linux --config release_build \
 The first run can take a long time (tens of minutes) while dependencies are downloaded and compiled. When it finishes successfully, the installable archive is:
 
 - **`bazel-bin/unix/mozc.zip`**
+
+Bazel builds natively for whatever CPU you run it on — no cross-compilation flags needed. On an x86_64 machine this produces x86_64 binaries; on an arm64 machine (e.g. Raspberry Pi, ARM laptop/VM) it produces arm64 binaries. Either way the local output is always named `mozc.zip`; it only matters if you're moving the archive to a different machine, in which case check `file bazel-bin/server/mozc_server` to confirm its architecture before installing elsewhere.
 
 ---
 
