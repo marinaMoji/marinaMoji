@@ -34,6 +34,7 @@ jobs:
     timeout-minutes: 120
     environment: release
     strategy:
+      fail-fast: false
       matrix:
         include:
           - arch: arm64

@@ -40,16 +40,22 @@ build:compiler_msvc_like --host_per_file_copt="external/protobuf[+]/upb/wire/enc
 # avx2/avx512f, picked at runtime via CPUID) are gated behind HAVE_AVXINTRIN_H
 # / HAVE_WMMINTRIN_H, which libsodium's own configure script normally sets in
 # its generated config.h. The Bazel Central Registry's BUILD.bazel bypasses
-# autoconf (local_defines = ["CONFIGURED"]), so those HAVE_* macros are never
-# defined on GCC/Clang and every one of these files preprocesses to an empty
-# translation unit regardless of target CPU or compiler flags — libsodium
-# always falls back to its portable C reference implementations here. Do not
-# add per-file `-msse2`/`-mavx`/etc. flags for these files: they change
-# nothing on x86_64 (the code they'd enable is compiled out) and break the
-# build outright on arm64, where gcc rejects the x86-only flags.
-# windows.yaml still passes --config x86_simd; keep the config defined (as a
-# no-op) so Bazel doesn't reject the flag outright.
-build:x86_simd --define=x86_simd_noop=true
+# autoconf (local_defines = ["CONFIGURED"]), so on GCC/Clang (Linux, macOS)
+# those HAVE_* macros are never defined and every one of these files
+# preprocesses to an empty translation unit — libsodium falls back to its
+# portable C reference implementations, and per-file `-msse2`/`-mavx`/etc.
+# flags must NOT be added globally: gcc rejects the x86-only flags on arm64.
+#
+# On Windows, however, libsodium enables these code paths from _MSC_VER
+# alone (clang-cl defines it), and clang-cl — unlike MSVC's cl.exe —
+# requires the matching target features to compile the intrinsics. The
+# x86_simd config carries those per-file flags and is passed only by
+# x64 Windows builds (never arm64).
+build:x86_simd --per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul" --host_per_file_copt="external/libsodium.*_aesni\.c@-msse2,-mssse3,-mavx,-maes,-mpclmul"
+build:x86_simd --per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3" --host_per_file_copt="external/libsodium.*ssse3\.c@-msse2,-mssse3"
+build:x86_simd --per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1" --host_per_file_copt="external/libsodium.*sse41\.c@-msse2,-mssse3,-msse4.1"
+build:x86_simd --per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2" --host_per_file_copt="external/libsodium.*avx2\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2"
+build:x86_simd --per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f" --host_per_file_copt="external/libsodium.*avx512f\.c@-msse2,-mssse3,-msse4.1,-mavx,-mavx2,-mavx512f"
 
 ## Target platforms
 common:linux          --config=linux_env --define TARGET=oss_linux
