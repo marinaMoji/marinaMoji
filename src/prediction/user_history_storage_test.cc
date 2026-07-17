@@ -83,14 +83,22 @@ TEST_F(UserHistoryStorageTest, BasicTest) {
 
   EXPECT_FALSE(storage.IsEmpty());
 
-  // Serialization.
-  storage.AsyncSave();
-  EXPECT_TRUE(storage.IsSyncerRunning());
+  // Serialization. The syncer-state assertions hold the storage lock so the
+  // scheduled task cannot acquire it and finish before the assertion runs;
+  // IsSyncerRunning() reports false once the task completes.
+  {
+    auto lock = storage.AcquireUniqueLock();
+    storage.AsyncSave();
+    EXPECT_TRUE(storage.IsSyncerRunning());
+  }
   storage.Wait();
   EXPECT_FALSE(storage.IsSyncerRunning());
 
-  storage.AsyncLoad();
-  EXPECT_TRUE(storage.IsSyncerRunning());
+  {
+    auto lock = storage.AcquireUniqueLock();
+    storage.AsyncLoad();
+    EXPECT_TRUE(storage.IsSyncerRunning());
+  }
   storage.Wait();
   EXPECT_FALSE(storage.IsSyncerRunning());
   EXPECT_FALSE(storage.IsEmpty());

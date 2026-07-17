@@ -1658,7 +1658,9 @@ TEST_F(KeyEventHandlerTest, ProtocolAnomalyModiferKeyMayBeSentOnKeyUp) {
     EXPECT_TRUE(actual_input.key().activated());
     EXPECT_TRUE(actual_input.key().has_mode());
     EXPECT_EQ(actual_input.key().mode(), commands::HIRAGANA);
-    EXPECT_TRUE(actual_input.key().has_modifiers());
+    // |modifiers| is the obsolete scalar bitfield, which the Windows client
+    // never sets; the modifier list lives in the repeated |modifier_keys|.
+    EXPECT_FALSE(actual_input.key().has_modifiers());
     EXPECT_EQ(actual_input.key().modifier_keys_size(), 2);
     // Keep the generic SHIFT marker required by Mozc's key-up protocol and
     // the physical side marker used by marinaMoji's shift-only shortcuts.
