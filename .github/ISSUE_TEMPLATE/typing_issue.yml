@@ -1,5 +1,5 @@
 name: Typing issue
-description: Please use https://forms.gle/oXgwbqzvSyVHNBSc7 for reporting typing issues
+description: Report conversion, typing, or dictionary issues in marinaMoji.
 title: 'Typing issue: '
 
 body:
@@ -7,21 +7,10 @@ body:
     attributes:
       value: |
         > [!IMPORTANT]
-        > Please use the Google Form for reporting typing issues.
+        > Please include the exact input, the committed output, and the expected output.
         >
-        > https://forms.gle/oXgwbqzvSyVHNBSc7 (Conversion accuracy feedback form)
-        >
-        > The
-        > [reports](https://docs.google.com/spreadsheets/d/1AAK8wiTfIhj339Rb98lIRwgGfHndVz-jFXFNXZNQyeo/pubhtml?gid=649291758&single=true)
-        > will be updated in 10 mins.
-        >
-        > For inappropriate words, please use the following form.
-        > The reports are not publicly shared.
-        >
-        > https://forms.gle/4wwwhkqsXtiDgPcYA (Inappropriate vocabulary report form)
-        >
-        > For our policy on language models and dictionary data, see
-        > [Vocabulary Policy](https://github.com/google/mozc/blob/master/VOCABULARY_POLICY.md).
+        > For dictionary or conversion-policy context, see
+        > [Vocabulary Policy](../../VOCABULARY_POLICY.md).
 
   - type: input
     id: na

@@ -1,14 +1,14 @@
 name: Discussions (Q&A, ideas)
-description: please use Discussions rather than Issues for those topics.
+description: Use Discussions rather than Issues for questions and ideas.
 
 body:
   - type: markdown
     attributes:
       value: |
         > [!IMPORTANT]
-        > Please use Discussions rather than Issues for those topics.
+        > Please use Discussions rather than Issues for questions and ideas.
         >
-        > https://github.com/google/mozc/discussions
+        > https://github.com/marinaMoji/marinaMoji/discussions
 
   - type: input
     id: na

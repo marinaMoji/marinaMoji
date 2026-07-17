@@ -48,7 +48,7 @@ body:
     id: build_status
     attributes:
       label: CI build status
-      description: Status of https://github.com/google/mozc#build-status
+      description: Status of this repository's CI, if available
       options:
         - passing
         - failure
