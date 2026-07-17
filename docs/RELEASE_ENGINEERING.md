@@ -3,6 +3,19 @@
 Status as of 2026-07-17. Covers both projects; lives here because the
 release policy and signing key are shared.
 
+**2026-07-17 dry-run results:** both pipelines are green end-to-end.
+marinaMoji `v0.0.1-rc3` and LJB `v0.0.2-rc3` produced complete releases
+(signed/notarized/stapled mac pkgs verified with Gatekeeper on a real
+machine, per-arch Windows MSIs, Linux zips + debs, flatpak, matching
+SHA256SUMS, verified attestations, live apt repo). Fixes landed along the
+way: LJB `github-pages` env tag policy, per-arch deb flags, checksum
+flattening/naming; marinaMoji `HOME` fallback in build_package.py,
+libsodium clang-cl flags under x86_simd, duplicate `style_` member from
+the upstream merge. Still untested: installing the deb on a real system
+(consider a CI smoke-test step: `apt install ./dist/*.deb` in the Linux
+job), the MSIs on a Windows machine, and both PKGBUILDs. The rc releases
+are kept for those tests; delete them and their tags afterwards.
+
 ## Policy (decided)
 
 - **macOS**: all release packages are Developer ID-signed, notarized, and
