@@ -47,6 +47,7 @@
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
 #include "win32/base/conversion_mode_util.h"
+#include "win32/base/keyevent_handler.h"
 #include "win32/base/deleter.h"
 #include "win32/base/input_state.h"
 #include "win32/tip/tip_composition_util.h"
@@ -288,6 +289,11 @@ class AsyncSessionCommandEditSessionImpl final
     if (!private_context->GetClient()->SendCommand(session_command_, &output)) {
       return E_FAIL;
     }
+    // marinaMoji: mirrors the KeyEvent path (KeyEventHandler::MaybeSpawnTool
+    // is otherwise only invoked after SendKey), so SessionCommands that set
+    // Output::launch_tool_mode (e.g. LAUNCH_WORD_REGISTER_DIALOG or the
+    // toolbar's LAUNCH_CONFIG_DIALOG) actually spawn the tool too.
+    KeyEventHandler::MaybeSpawnTool(private_context->GetClient(), &output);
     return TipEditSessionImpl::UpdateContext(
         text_service_.get(), context_.get(), write_cookie, output);
   }
@@ -738,9 +744,57 @@ bool TipEditSession::OnRendererCallbackAsync(TipTextService* text_service,
       command.set_id(candidate_id);
       return OnSessionCommandAsync(text_service, context, command);
     }
+    case SessionCommand::SWITCH_COMPOSITION_MODE: {
+      // marinaMoji: floating toolbar mode-select click. The PostMessage-based
+      // channel only carries (type, id), so the toolbar packs the target
+      // CompositionMode into |lparam| in place of a candidate id.
+      SessionCommand command;
+      command.set_type(type);
+      command.set_composition_mode(static_cast<CompositionMode>(lparam));
+      return OnSessionCommandAsync(text_service, context, command);
+    }
+    case SessionCommand::TURN_OFF_IME:
+    case SessionCommand::TOGGLE_TRADITIONAL_KANJI:
+    case SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
+    case SessionCommand::LAUNCH_CONFIG_DIALOG: {
+      // marinaMoji: floating toolbar direct-mode / shin-kyu toggle / dict /
+      // settings clicks. None of these need extra fields.
+      SessionCommand command;
+      command.set_type(type);
+      return OnSessionCommandAsync(text_service, context, command);
+    }
+    case SessionCommand::SHOW_SYMBOLS_PALETTE:
+    case SessionCommand::HIDE_SYMBOLS_PALETTE: {
+      // marinaMoji: Symbols Palette open/close. Purely a local UI-visibility
+      // flag (mirrors mac's g_symbols_palette_visible) -- intercepted here,
+      // never forwarded to the session/converter. Forces an immediate
+      // RendererCommand refresh so tip_ui_handler_conventional.cc's
+      // UpdateCommand() re-evaluates SymbolsPaletteInfo right away, rather
+      // than waiting for the next unrelated key/focus event.
+      TipPrivateContext* private_context =
+          text_service->GetPrivateContext(context);
+      if (private_context == nullptr) {
+        return false;
+      }
+      private_context->set_symbols_palette_visible(
+          type == SessionCommand::SHOW_SYMBOLS_PALETTE);
+      return OnLayoutChangedAsyncImpl(text_service, context);
+    }
     default:
       return false;
   }
+}
+
+bool TipEditSession::OnRendererSymbolTextCallbackAsync(
+    TipTextService* text_service, ITfContext* context,
+    const std::string& text) {
+  if (text.empty()) {
+    return false;
+  }
+  SessionCommand command;
+  command.set_type(SessionCommand::INSERT_SYMBOL_TEXT);
+  command.set_text(text);
+  return OnSessionCommandAsync(text_service, context, command);
 }
 
 bool TipEditSession::SubmitAsync(TipTextService* text_service,

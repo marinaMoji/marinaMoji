@@ -42,10 +42,12 @@
 #include "base/win32/wide_char.h"
 #include "client/client_interface.h"
 #include "protocol/commands.pb.h"
+#include "protocol/config.pb.h"
 #include "session/key_info_util.h"
 #include "win32/base/conversion_mode_util.h"
 #include "win32/base/input_state.h"
 #include "win32/base/keyboard.h"
+#include "win32/base/keyboard_layout_tables.h"
 
 namespace mozc {
 namespace win32 {
@@ -418,9 +420,22 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
     return true;
   }
 
-  // TODO(yukawa): Distinguish left key from right key to fix b/2674446.
+  // marinaMoji: distinguish left/right Shift (fixes upstream b/2674446 for
+  // Shift only) so Session::IsRightShiftAlone/IsLeftShiftAlone/
+  // IsCtrlAltRightShiftAlone (session.cc) can fire on Windows. GetKeyboardState
+  // fills VK_LSHIFT/VK_RSHIFT independently of the generic VK_SHIFT entry,
+  // so no scan-code/extended-key lookup is needed here (unlike Ctrl/Alt,
+  // whose VK_CONTROL/VK_MENU are shared and only scan code distinguishes the
+  // side; left/right Ctrl/Alt fidelity is not required by any marina
+  // shortcut today, so it is intentionally left as generic CTRL/ALT).
   if (keyboard_status.IsPressed(VK_SHIFT)) {
     modifer_keys->insert(KeyEvent::SHIFT);
+  }
+  if (keyboard_status.IsPressed(VK_LSHIFT)) {
+    modifer_keys->insert(KeyEvent::LEFT_SHIFT);
+  }
+  if (keyboard_status.IsPressed(VK_RSHIFT)) {
+    modifer_keys->insert(KeyEvent::RIGHT_SHIFT);
   }
   if (keyboard_status.IsPressed(VK_CONTROL)) {
     modifer_keys->insert(KeyEvent::CTRL);
@@ -450,6 +465,17 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
   switch (virtual_key.virtual_key()) {
     case VK_SHIFT:
       modifer_keys->insert(KeyEvent::SHIFT);
+      // marinaMoji: Windows always reports the generic VK_SHIFT in wParam
+      // for both key-down and key-up of either physical Shift key (unlike
+      // Ctrl/Alt, Shift's left/right scan codes differ even without the
+      // extended-key bit: PC/AT scan-code-set-1 has LShift=0x2A, RShift=
+      // 0x36). Use scan_code directly rather than keyboard_status, since on
+      // key-up the keyboard_status snapshot may already reflect the release.
+      if (scan_code == 0x2A) {
+        modifer_keys->insert(KeyEvent::LEFT_SHIFT);
+      } else if (scan_code == 0x36) {
+        modifer_keys->insert(KeyEvent::RIGHT_SHIFT);
+      }
       return true;
     case VK_CONTROL:
       modifer_keys->insert(KeyEvent::CTRL);
@@ -530,6 +556,20 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
   if (is_vk_alpha) {
     const char keycode = static_cast<char>(virtual_key.virtual_key());
     const size_t index = (keycode - 'A');
+    // marinaMoji: when a fixed romaji keyboard layout is selected (see
+    // config.proto's MarinaKeyboardLayout), resolve this VK against that
+    // layout's table instead of assuming a US/QWERTY-position keyboard.
+    // MARINA_KBD_OS_DEFAULT keeps the exact upstream behavior below.
+    wchar_t lower_char = 'a' + index;
+    wchar_t upper_char = 'A' + index;
+    if (behavior.marina_keyboard_layout != config::MARINA_KBD_OS_DEFAULT) {
+      lower_char = RomajiKeyboardLayoutEmulator::GetCharacterForKeyDown(
+          behavior.marina_keyboard_layout, virtual_key.virtual_key(),
+          /*shift=*/false, /*capslock=*/false);
+      upper_char = RomajiKeyboardLayoutEmulator::GetCharacterForKeyDown(
+          behavior.marina_keyboard_layout, virtual_key.virtual_key(),
+          /*shift=*/true, /*capslock=*/false);
+    }
     if (keyboard_status_wo_kana_lock.IsToggled(VK_CAPITAL)) {
       // CapsLock is enabled.
       modifer_keys->insert(KeyEvent::CAPS);
@@ -537,9 +577,9 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
         if (!keyboard_status_wo_kana_lock.IsPressed(VK_CONTROL)) {
           modifer_keys->erase(KeyEvent::SHIFT);
         }
-        key->set_key_code('a' + index);
+        key->set_key_code(lower_char);
       } else {
-        key->set_key_code('A' + index);
+        key->set_key_code(upper_char);
       }
       if (keyboard_status_wo_kana_lock.IsPressed(VK_CONTROL)) {
         modifer_keys->insert(KeyEvent::CTRL);
@@ -552,17 +592,17 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
     DCHECK(!keyboard_status_wo_kana_lock.IsPressed(VK_CAPITAL));
     if (keyboard_status_wo_kana_lock.IsPressed(VK_CONTROL)) {
       modifer_keys->insert(KeyEvent::CTRL);
-      key->set_key_code('a' + index);
+      key->set_key_code(lower_char);
       return true;
     }
     if (keyboard_status_wo_kana_lock.IsPressed(VK_SHIFT)) {
       // In this cases, SHIFT modifier should be removed.
       modifer_keys->erase(KeyEvent::SHIFT);
-      key->set_key_code('A' + index);
+      key->set_key_code(upper_char);
       return true;
     }
 
-    key->set_key_code('a' + index);
+    key->set_key_code(lower_char);
     return true;
   }
 
@@ -587,6 +627,28 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
     keyboard_status_wo_kana_lock.SetState(VK_CONTROL, 0);
     keyboard_status_wo_kana_lock.SetState(VK_LCONTROL, 0);
     keyboard_status_wo_kana_lock.SetState(VK_RCONTROL, 0);
+  }
+
+  // marinaMoji: when a fixed romaji keyboard layout is selected, prefer its
+  // table for digits/punctuation too (e.g. AZERTY/BEPO reshuffle the number
+  // row), falling back to the real OS ToUnicode below when the layout table
+  // doesn't cover this VK (e.g. an unpopulated best-effort entry).
+  if (behavior.marina_keyboard_layout != config::MARINA_KBD_OS_DEFAULT) {
+    const bool shift_pressed =
+        keyboard_status_wo_kana_lock.IsPressed(VK_SHIFT);
+    const bool capslock_on =
+        keyboard_status_wo_kana_lock.IsToggled(VK_CAPITAL);
+    const wchar_t layout_char =
+        RomajiKeyboardLayoutEmulator::GetCharacterForKeyDown(
+            behavior.marina_keyboard_layout, virtual_key.virtual_key(),
+            shift_pressed, capslock_on);
+    if (layout_char != L'\0') {
+      if (modifer_keys->find(KeyEvent::CAPS) == modifer_keys->end()) {
+        modifer_keys->erase(KeyEvent::SHIFT);
+      }
+      key->set_key_code(layout_char);
+      return true;
+    }
   }
 
   WCHAR codes[16] = {};
@@ -629,12 +691,93 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
   return true;
 }
 
+// marinaMoji: attempts to claim |virtual_key| for the direct-input-mode
+// fixed-layout emulation (config.proto's MarinaKeyboardLayout). Returns true
+// and fills |result| (and, for keys that produce text, rewrites |key| into a
+// marina_direct_insert key event for the server to echo back as a commit)
+// when the key is handled. Returns false to fall back to the upstream
+// pass-through behavior. Must be called only when the IME is closed and the
+// key did not match |behavior.direct_mode_keys|, so that IME-on keys and the
+// macron shortcuts keep their priority.
+bool HandleDirectModeLayoutKey(const VirtualKey& virtual_key, bool is_key_down,
+                               const InputBehavior& behavior,
+                               const InputState& ime_state,
+                               const KeyboardStatus& keyboard_status,
+                               commands::KeyEvent* key,
+                               KeyEventHandlerResult* result) {
+  if (behavior.marina_keyboard_layout == config::MARINA_KBD_OS_DEFAULT ||
+      !is_key_down || ime_state.disabled_tsf_context) {
+    return false;
+  }
+  // VK_PACKET events carry injected Unicode (SendInput etc.); leave them to
+  // the application untouched.
+  if (virtual_key.virtual_key() == VK_PACKET) {
+    return false;
+  }
+  const bool ctrl = keyboard_status.IsPressed(VK_CONTROL);
+  const bool alt = keyboard_status.IsPressed(VK_MENU);
+  // Windows reports a dedicated AltGr key as Ctrl+RightAlt; keyboards
+  // without one conventionally use Ctrl+Alt.
+  const bool altgr = keyboard_status.IsPressed(VK_RMENU) || (ctrl && alt);
+  if ((ctrl || alt) && !altgr) {
+    // Plain Ctrl-/Alt- application shortcuts must reach the application.
+    return false;
+  }
+  if (keyboard_status.IsPressed(VK_LWIN) ||
+      keyboard_status.IsPressed(VK_RWIN)) {
+    return false;
+  }
+
+  const RomajiKeyboardLayoutEmulator::DirectModeKeyOutput layout_output =
+      RomajiKeyboardLayoutEmulator::ResolveDirectModeKey(
+          behavior.marina_keyboard_layout, virtual_key.virtual_key(),
+          keyboard_status.IsPressed(VK_SHIFT), altgr,
+          keyboard_status.IsToggled(VK_CAPITAL), ime_state.pending_dead_key);
+  if (!layout_output.handled) {
+    return false;
+  }
+
+  result->succeeded = true;
+  result->should_be_eaten = true;
+  result->handled_by_direct_layout = true;
+  result->next_pending_dead_key = layout_output.next_pending_dead_key;
+
+  if (layout_output.commit_text.empty()) {
+    // A dead-key press: consume it, nothing to type yet.
+    result->should_be_sent_to_server = false;
+    return true;
+  }
+
+  // Rebuild the key event from scratch: the layout has fully resolved the
+  // character, and leftover modifiers from ConvertToKeyEvent (e.g. CTRL from
+  // an AltGr chord) would otherwise let the server keymap misinterpret it.
+  key->Clear();
+  if (layout_output.commit_text.size() == 1) {
+    // A single character goes into key_code so a pending server-side macron
+    // dead key (SetMacronDeadKey) can turn a vowel into ā ē ī ō ū.
+    key->set_key_code(layout_output.commit_text[0]);
+  } else {
+    key->set_key_string(WideToUtf8(layout_output.commit_text));
+  }
+  key->set_activated(false);
+  commands::CompositionMode mozc_mode = commands::DIRECT;
+  if (ConversionModeUtil::GetMozcModeFromNativeMode(
+          ime_state.visible_conversion_mode, &mozc_mode)) {
+    key->set_mode(mozc_mode);
+  }
+  key->set_marina_direct_insert(true);
+  result->should_be_sent_to_server = true;
+  return true;
+}
+
 }  // namespace
 
 KeyEventHandlerResult::KeyEventHandlerResult()
     : should_be_eaten(false),
       should_be_sent_to_server(false),
-      succeeded(false) {}
+      succeeded(false),
+      handled_by_direct_layout(false),
+      next_pending_dead_key(L'\0') {}
 
 KeyEventHandlerResult KeyEventHandler::HandleKey(
     const VirtualKey& virtual_key, BYTE scan_code, bool is_key_down,
@@ -678,11 +821,28 @@ KeyEventHandlerResult KeyEventHandler::HandleKey(
   // We do not handle key message unless the key is one of force activation
   // keys.
   if (!ime_state.open) {
+    // marinaMoji: Left Shift alone is a converter command even while the
+    // system IME is closed: it restores the saved Japanese mode.  Let its
+    // key-up reach the session after the normal last-down-key guard above;
+    // all other closed-IME keys retain the upstream direct-input behaviour.
+    const bool is_standalone_shift_release =
+        !is_key_down && virtual_key.virtual_key() == VK_SHIFT &&
+        ime_state.last_down_key.virtual_key() == VK_SHIFT;
     // TODO(yukawa): Treat VK_PACKET as a direct mode key.
     const bool is_direct_mode_command =
         is_key_down &&
         KeyInfoUtil::ContainsKey(behavior.direct_mode_keys, *key);
-    if (!is_direct_mode_command) {
+    if (!is_direct_mode_command && !is_standalone_shift_release) {
+      // marinaMoji: when a fixed romaji keyboard layout is selected, direct
+      // input follows that layout too (including AltGr and dead keys).
+      // Checked after the direct-mode-command test above so IME-on keys and
+      // the macron shortcuts keep their priority.
+      KeyEventHandlerResult direct_layout_result;
+      if (HandleDirectModeLayoutKey(virtual_key, is_key_down, behavior,
+                                    ime_state, initial_status, key,
+                                    &direct_layout_result)) {
+        return direct_layout_result;
+      }
       result.succeeded = true;
       result.should_be_eaten = false;
       result.should_be_sent_to_server = false;
@@ -831,6 +991,16 @@ KeyEventHandlerResult KeyEventHandler::ImeProcessKey(
     return result;
   }
 
+  // marinaMoji: keys claimed by the direct-mode fixed-layout emulation are
+  // reported as eaten without consulting the server in the test phase; the
+  // real key phase (ImeToAsciiEx) performs the server round trip. The
+  // updated dead-key state is exposed via |next_state| but must only be
+  // persisted from the real key phase.
+  if (result.handled_by_direct_layout) {
+    next_state->pending_dead_key = result.next_pending_dead_key;
+    return result;
+  }
+
   if (!result.should_be_sent_to_server) {
     return result;
   }
@@ -919,6 +1089,14 @@ KeyEventHandlerResult KeyEventHandler::ImeToAsciiEx(
 
   if (!result.succeeded) {
     return result;
+  }
+
+  // marinaMoji: expose the direct-mode layout emulation's dead-key state to
+  // the caller (persisted by the TIP from this real key phase). Keys that
+  // produced text continue below and reach the server as
+  // marina_direct_insert key events, which it echoes back as a commit.
+  if (result.handled_by_direct_layout) {
+    next_state->pending_dead_key = result.next_pending_dead_key;
   }
 
   if (!result.should_be_sent_to_server) {

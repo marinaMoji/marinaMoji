@@ -307,10 +307,17 @@ bool SessionHandler::SetRequest(commands::Command* command) {
 }
 
 bool SessionHandler::EvalCommand(commands::Command* command) {
+  if (engine_) {
+    engine_->ClearOldSupplementalModels();
+  }
   if (!is_available_) {
     LOG(ERROR) << "SessionHandler is not available.";
     return false;
   }
+
+  // Commands may be reused by clients and tests. Do not let an error or
+  // response field from a previous evaluation leak into the next response.
+  command->mutable_output()->Clear();
 
   bool eval_succeeded = false;
   Stopwatch stopwatch;

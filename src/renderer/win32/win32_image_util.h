@@ -163,6 +163,16 @@ class BalloonImage {
                                 std::vector<ARGBColor>* arbg_buffer);
 };
 
+// Loads a PNG file from disk into a top-down, 32bpp, premultiplied-alpha
+// (PBGRA) DIB section suitable for UpdateLayeredWindow -- the same format
+// BalloonImage::Create produces. Used by ToolbarWindow to load the
+// pre-rendered icons in toolbar_icons/ (see
+// src/data/images/win/generate_toolbar_icons.py), since unlike mac/Linux,
+// Windows has no SVG decoder. Returns nullptr on failure (missing file,
+// decode error, etc). |out_size| receives the image's pixel dimensions when
+// non-null and the load succeeds.
+HBITMAP LoadPngFileToHBitmap(const std::wstring& path, SIZE* out_size);
+
 // Following types are declared in this header so that unit test can access
 // them. You should not use these classes directly.
 namespace internal {

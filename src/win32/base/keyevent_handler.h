@@ -55,6 +55,20 @@ struct KeyEventHandlerResult {
   bool should_be_eaten;
   bool should_be_sent_to_server;
   bool succeeded;
+  // marinaMoji: true when this key was handled by the direct-input-mode
+  // fixed-layout emulation (see RomajiKeyboardLayoutEmulator::
+  // ResolveDirectModeKey). When set:
+  //  - ImeProcessKey (the test phase) reports the key as eaten without
+  //    consulting the server;
+  //  - the resulting dead-key state is in |next_state->pending_dead_key|,
+  //    which the caller should persist only from the real key phase (OnKey);
+  //  - if the key produced text, |should_be_sent_to_server| is also true and
+  //    the KeyEvent carries marina_direct_insert so the session echoes the
+  //    text back as a commit.
+  bool handled_by_direct_layout;
+  // marinaMoji: dead key pending after this key ('\0' if none). Only
+  // meaningful when |handled_by_direct_layout| is true.
+  wchar_t next_pending_dead_key;
   KeyEventHandlerResult();
 };
 
@@ -88,6 +102,10 @@ class KeyEventHandler {
       client::ClientInterface* client, Win32KeyboardInterface* keyboard,
       InputState* next_state, commands::Output* output);
 
+  // Span Tool if launch_tool_mode is set in |output|.
+  static void MaybeSpawnTool(client::ClientInterface* client,
+                             commands::Output* output);
+
  protected:
   static KeyEventHandlerResult HandleKey(const VirtualKey& virtual_key,
                                          BYTE scan_code, bool is_key_down,
@@ -119,10 +137,6 @@ class KeyEventHandler {
   static void UnlockKanaLock(const KeyboardStatus& keyboard_status,
                              Win32KeyboardInterface* keyboard,
                              KeyboardStatus* new_keyboard_status);
-
-  // Span Tool if launch_tool_mode is set in |output|.
-  static void MaybeSpawnTool(client::ClientInterface* client,
-                             commands::Output* output);
 };
 }  // namespace win32
 }  // namespace mozc

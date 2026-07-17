@@ -52,6 +52,10 @@ class TipLangBarCallback : public IUnknown {
     kProperty = 20,
     kDictionary = 21,
     kWordRegister = 22,
+    kTraditionalKanji = 23,
+    kOdoriji = 24,
+    kToolbarVisibility = 25,
+    kPrivacyMode = 26,
 
     // Help Menu
     kHelp = 30,
@@ -65,6 +69,9 @@ class TipLangBarCallback : public IUnknown {
 
   virtual STDMETHODIMP OnMenuSelect(ItemId menu_id) = 0;
   virtual STDMETHODIMP OnItemClick(const wchar_t* description) = 0;
+  virtual bool IsToolbarVisible() const = 0;
+  virtual bool UseTraditionalKanji() const = 0;
+  virtual bool IsPrivacyModeEnabled() const = 0;
 };
 
 }  // namespace mozc::win32::tsf

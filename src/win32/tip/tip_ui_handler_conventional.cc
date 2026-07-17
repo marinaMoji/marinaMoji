@@ -33,18 +33,26 @@
 #include <wil/com.h>
 #include <windows.h>
 
+#include <algorithm>
 #include <cstddef>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
+#include "base/file_util.h"
+#include "base/system_util.h"
 #include "base/win32/com.h"
 #include "base/win32/wide_char.h"
 #include "base/win32/win_util.h"
+#include "composer/kaeriten_table_util.h"
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
+#include "protocol/config.pb.h"
 #include "protocol/renderer_command.pb.h"
 #include "renderer/win32/win32_renderer_client.h"
 #include "win32/base/input_state.h"
+#include "win32/base/toolbar_config.h"
 #include "win32/tip/tip_composition_util.h"
 #include "win32/tip/tip_dll_module.h"
 #include "win32/tip/tip_input_mode_manager.h"
@@ -59,7 +67,6 @@ namespace win32 {
 namespace tsf {
 namespace {
 
-using ::mozc::commands::CompositionMode;
 using ::mozc::commands::Preedit;
 using ::mozc::renderer::win32::Win32RendererClient;
 using Segment = ::mozc::commands::Preedit_Segment;
@@ -152,9 +159,84 @@ bool FillVisibility(ITfUIElementMgr* ui_element_manager,
     // This bit does not mean that |command| requires the suggest window.
     visibility |= ApplicationInfo::ShowSuggestWindow;
   }
+  // marinaMoji: the floating toolbar shows whenever there is an active
+  // document context, independent of candidate/suggest visibility (mirrors
+  // mac/Linux: shown on focus, hidden on focus loss). UpdateCommand() clears
+  // this bit below when the TSF thread loses focus.
+  if (mozc::win32::LoadToolbarVisiblePreference()) {
+    visibility |= ApplicationInfo::ShowToolbar;
+  }
   app_info->set_ui_visibilities(visibility);
 
   return true;
+}
+
+// marinaMoji: reads user_symbols.txt (one symbol per line, same format/path
+// mac's LoadUserSymbolsFromFile() uses: SystemUtil::GetUserProfileDirectory()
+// + "/user_symbols.txt") into |out|. Missing file just means an empty list.
+void LoadUserSymbolsFromFile(std::vector<std::string>* out) {
+  out->clear();
+  const std::string path = FileUtil::JoinPath(
+      {SystemUtil::GetUserProfileDirectory(), "user_symbols.txt"});
+  const auto contents = FileUtil::GetContents(path);
+  if (!contents.ok()) {
+    return;
+  }
+  const std::string& text = *contents;
+  size_t pos = 0;
+  while (pos < text.size()) {
+    size_t eol = text.find('\n', pos);
+    std::string line = text.substr(
+        pos, eol == std::string::npos ? std::string::npos : eol - pos);
+    if (!line.empty() && line.back() == '\r') {
+      line.pop_back();
+    }
+    if (!line.empty()) {
+      out->push_back(std::move(line));
+    }
+    if (eol == std::string::npos) {
+      break;
+    }
+    pos = eol + 1;
+  }
+}
+
+// marinaMoji: populates SymbolsPaletteInfo (Kaeriten/User tabs) while the
+// Windows floating Symbols Palette is open. Odoriji and general-symbols tabs
+// are static and hardcoded renderer-side, so they don't need to travel here.
+void FillSymbolsPaletteInfo(TipPrivateContext* private_context,
+                            ApplicationInfo* app_info) {
+  if (private_context == nullptr ||
+      !private_context->symbols_palette_visible()) {
+    return;
+  }
+
+  RendererCommand::SymbolsPaletteInfo* info =
+      app_info->mutable_symbols_palette_info();
+
+  config::Config config;
+  if (private_context->GetClient()->GetConfig(&config)) {
+    std::vector<std::pair<std::string, std::string>> kaeriten_entries;
+    composer::LoadKaeritenShortcutEntries(config, &kaeriten_entries);
+    std::vector<std::string> seen;
+    for (const auto& entry : kaeriten_entries) {
+      const std::string& symbol = entry.second;
+      if (symbol.empty()) {
+        continue;
+      }
+      if (std::find(seen.begin(), seen.end(), symbol) != seen.end()) {
+        continue;
+      }
+      seen.push_back(symbol);
+      info->add_kaeriten_symbols(symbol);
+    }
+  }
+
+  std::vector<std::string> user_symbols;
+  LoadUserSymbolsFromFile(&user_symbols);
+  for (const std::string& symbol : user_symbols) {
+    info->add_user_symbols(symbol);
+  }
 }
 
 bool FillWindowHandle(ITfContext* context, ApplicationInfo* app_info) {
@@ -358,10 +440,12 @@ void UpdateCommand(TipTextService* text_service, ITfContext* context,
       IndicatorInfo* info = app_info->mutable_indicator_info();
       info->mutable_status()->set_activated(
           input_mode_manager->GetEffectiveOpenClose());
-      info->mutable_status()->set_mode(static_cast<CompositionMode>(
-          input_mode_manager->GetEffectiveConversionMode()));
+      info->mutable_status()->set_mode(
+          input_mode_manager->GetEffectiveConversionMode());
     }
   }
+
+  FillSymbolsPaletteInfo(private_context, app_info);
 
   // Regardless of the value of |command->visible()| here, we should hide
   // all the UI elements whenever the current threads is not focused.
@@ -370,6 +454,17 @@ void UpdateCommand(TipTextService* text_service, ITfContext* context,
       text_service->GetThreadManager()->IsThreadFocus(&thread_focus);
   if (SUCCEEDED(hr) && (thread_focus == FALSE)) {
     command->set_visible(false);
+    // marinaMoji: also hide the floating toolbar, which is otherwise gated
+    // by |ShowToolbar| independent of |command->visible()|.
+    app_info->set_ui_visibilities(app_info->ui_visibilities() &
+                                  ~static_cast<int>(ApplicationInfo::ShowToolbar));
+    // marinaMoji: also close the Symbols Palette (same independent-of-
+    // |command->visible()| reasoning) and clear the already-emitted
+    // SymbolsPaletteInfo so this UPDATE doesn't ask the renderer to show it.
+    if (private_context != nullptr) {
+      private_context->set_symbols_palette_visible(false);
+    }
+    app_info->clear_symbols_palette_info();
   }
 }
 
@@ -426,6 +521,15 @@ void TipUiHandlerConventional::OnActivate(TipTextService* text_service) {
 }
 
 void TipUiHandlerConventional::OnDeactivate() {
+  // marinaMoji: explicitly tell the renderer to hide everything (including
+  // the floating toolbar and Symbols Palette, which are gated by
+  // |ApplicationInfo::ShowToolbar| / |has_symbols_palette_info()| rather than
+  // |visible()|) before tearing down IPC. Without this, whatever the
+  // renderer was last showing stays on screen after the IME deactivates.
+  RendererCommand command;
+  command.set_type(RendererCommand::UPDATE);
+  command.set_visible(false);
+  Win32RendererClient::OnUpdated(command);
   Win32RendererClient::OnUIThreadUninitialized();
 }
 

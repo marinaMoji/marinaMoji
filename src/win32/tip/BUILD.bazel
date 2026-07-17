@@ -82,6 +82,7 @@ mozc_win32_cc_prod_binary(
     executable_name_map = {
         "Mozc": "mozc_tip32.dll",
         "GoogleJapaneseInput": "GoogleIMEJaTIP32.dll",
+        "marinaMoji": "marinamoji_tip32.dll",
     },
     linkshared = True,
     platform = "//:windows-x86_32",
@@ -101,6 +102,7 @@ mozc_win32_cc_prod_binary(
     executable_name_map = {
         "Mozc": "mozc_tip64.dll",
         "GoogleJapaneseInput": "GoogleIMEJaTIP64.dll",
+        "marinaMoji": "marinamoji_tip64.dll",
     },
     linkshared = True,
     platform = "//:windows-x86_64",
@@ -120,6 +122,7 @@ mozc_win32_cc_prod_binary(
     executable_name_map = {
         "Mozc": "mozc_tip64arm.dll",
         "GoogleJapaneseInput": "GoogleIMEJaTIP64Arm.dll",
+        "marinaMoji": "marinamoji_tip64arm.dll",
     },
     linkshared = True,
     platform = "//:windows-arm64",
@@ -138,7 +141,7 @@ genrule(
     srcs = [
         "//base:mozc_version_txt",
     ],
-    outs = ["mozc_tip64x.dll" if BRANDING == "Mozc" else "GoogleIMEJaTIP64X.msi"],
+    outs = ["marinamoji_tip64x.dll" if BRANDING == "marinaMoji" else "mozc_tip64x.dll" if BRANDING == "Mozc" else "GoogleIMEJaTIP64X.msi"],
     cmd = " ".join([
         "$(location :build_tip_forwarder_dll)",
         "--output=$@",
@@ -226,8 +229,10 @@ mozc_cc_library(
         "//base/win32:com_implements",
         "//base/win32:hresult",
         "//base/win32:hresultor",
+        "//config:config_handler",
         "//protocol:commands_cc_proto",
         "//win32/base:msctf_dll",  # buildcleaner: keep
+        "//win32/base:toolbar_config",
         "//win32/base:win32_window_util",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -347,6 +352,7 @@ mozc_cc_library(
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
+        ":marina_number_row_dispatcher",
         ":tip_edit_session",
         ":tip_input_mode_manager",
         ":tip_private_context_h",
@@ -357,6 +363,7 @@ mozc_cc_library(
         "//base/win32:wide_char",
         "//client:client_interface",
         "//protocol:commands_cc_proto",
+        "//protocol:config_cc_proto",
         "//win32/base:conversion_mode_util",
         "//win32/base:deleter",
         "//win32/base:input_state",
@@ -366,6 +373,39 @@ mozc_cc_library(
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_microsoft_wil//:wil",
+    ],
+)
+
+# Physical (scan-code) number-row slot mapping, mirroring
+# unix/ibus/ibus_physical_slot.cc so Ctrl(+Shift)+1-5/0/` shortcuts work
+# regardless of keyboard layout (Dvorak, AZERTY, etc.).
+mozc_cc_library(
+    name = "win32_physical_slot",
+    srcs = ["win32_physical_slot.cc"],
+    hdrs = ["win32_physical_slot.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        "//protocol:config_cc_proto",
+    ],
+)
+
+# marinaMoji number-row shortcut dispatch, mirroring
+# unix/ibus/marina_number_row_dispatcher.cc. Hooked into tip_keyevent_handler's
+# OnKey, before the normal per-character key pipeline.
+mozc_cc_library(
+    name = "marina_number_row_dispatcher",
+    srcs = ["marina_number_row_dispatcher.cc"],
+    hdrs = ["marina_number_row_dispatcher.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        ":win32_physical_slot",
+        "//client:client_interface",
+        "//protocol:commands_cc_proto",
+        "//protocol:config_cc_proto",
+        "//session:marina_number_row_bindings_util",
+        "@com_google_absl//absl/time",
     ],
 )
 
@@ -387,13 +427,17 @@ mozc_cc_library(
         ":tip_dll_module",
         ":tip_lang_bar_callback",
         ":tip_resource",
+        "//base:file_util",
+        "//base:system_util",
         "//base/win32:com",
         "//base/win32:com_implements",
+        "//base/win32:wide_char",
         "//bazel/win32:user32",
-        "//win32/base:text_icon",
+        "//renderer/win32:win32_image_util",
         "//win32/base:tsf_profile",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/strings",
         "@com_microsoft_wil//:wil",
     ],
 )
@@ -675,14 +719,18 @@ mozc_cc_library(
         ":tip_thread_context",
         ":tip_ui_element_manager",
         ":tip_ui_handler",
+        "//base:file_util",
         "//base:system_util",
         "//base/win32:com",
         "//base/win32:wide_char",
+        "//composer:kaeriten_table_util",
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",
+        "//protocol:config_cc_proto",
         "//protocol:renderer_cc_proto",
         "//renderer/win32:win32_renderer_client",
         "//win32/base:input_state",
+        "//win32/base:toolbar_config",
         "@com_google_absl//absl/log:check",
         "@com_microsoft_wil//:wil",
     ],
@@ -739,6 +787,7 @@ mozc_cc_library(
         "//win32/base:conversion_mode_util",
         "//win32/base:deleter",
         "//win32/base:input_state",
+        "//win32/base:keyevent_handler",
         "//win32/base:string_util",
         "@com_google_absl//absl/log:check",
         "@com_microsoft_wil//:wil",
@@ -864,6 +913,7 @@ mozc_cc_test(
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
         ":tip_input_mode_manager",
+        "//protocol:commands_cc_proto",
         "//testing:gunit_main",
     ],
 )

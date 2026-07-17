@@ -65,6 +65,7 @@ mozc_win32_cc_prod_binary(
     executable_name_map = {
         "Mozc": "mozc_server.exe",
         "GoogleJapaneseInput": "GoogleIMEJaConverter.exe",
+        "marinaMoji": "marinamoji_server.exe",
     },
     static_crt = False,
     tags = MOZC_TAGS.WIN_ONLY,
@@ -100,7 +101,6 @@ mozc_cc_library(
         "//base:init_mozc",
         "//base:process_mutex",
         "//base:run_level",
-        "//base:singleton",
         "//base:system_util",
         "//base:vlog",
         "//config:stats_config_util",

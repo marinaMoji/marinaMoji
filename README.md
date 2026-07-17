@@ -1,17 +1,18 @@
 <img src="src/unix/ibus/toolbar_icons/logo_long_light.svg" title="" alt="" width="303">
 
-A Japanese IME to turn back time
+A Japanese IME for historical and pre-modern Japanese text.
 
 [Marina Pandolfino](https://www.crcao.fr/membre/marina-pandolfino/) (EPHE) | [Daniel Patrick Morgan](https://www.crcao.fr/membre/daniel-patrick-morgan/) (CNRS)
 
-marinaMoji is a fork of [Mozc](https://github.com/google/mozc), Copyright 2010-2026 Google LLC, fine tuned for scholars of ancient and pre-modern Japanese.
+marinaMoji is a fork of [Mozc](https://github.com/google/mozc), tuned for scholarly workflows with kyūjitai/shinjitai conversion, historical kana, kaeriten, macron vowels, and encrypted cross-device sync.
 
 ===================================
 
-Build Status
-------------
+## CI
 
-(coming)
+[![Linux CI](https://github.com/marinaMoji/marinaMoji/actions/workflows/linux.yaml/badge.svg)](https://github.com/marinaMoji/marinaMoji/actions/workflows/linux.yaml)
+[![macOS CI](https://github.com/marinaMoji/marinaMoji/actions/workflows/macos.yaml/badge.svg)](https://github.com/marinaMoji/marinaMoji/actions/workflows/macos.yaml)
+[![Windows CI](https://github.com/marinaMoji/marinaMoji/actions/workflows/windows.yaml/badge.svg)](https://github.com/marinaMoji/marinaMoji/actions/workflows/windows.yaml)
 
 ## Features
 
@@ -26,6 +27,12 @@ marinaMoji provides the following features for scholarly Japanese text input:
 7. **Macron vowels** - Input of macron vowels (ā, ē, ī, ō, ū) for scholarly transliteration in ASCII mode
 8. **Quick dictionary injection:** type `ctrl+shift+0` in compose mode to immediately save kanji phrase and pronunciation to user dictionary.
 9. **Encrypted cross-device sync:** sync your user dictionary and learning history via one encrypted file in a folder you choose (Nextcloud, Syncthing, iCloud Drive, etc.). Opt-in; see [How sync works](docs/HOW_SYNC_WORKS.md).
+
+## Support
+
+- Bugs and reproducible issues: [Issues](https://github.com/marinaMoji/marinaMoji/issues)
+- Questions, ideas, and discussion: [Discussions](https://github.com/marinaMoji/marinaMoji/discussions)
+- Vocabulary policy: [VOCABULARY_POLICY.md](VOCABULARY_POLICY.md)
 
 ## Synchronisation
 
@@ -47,22 +54,62 @@ Sync uses [libsodium](https://github.com/jedisct1/libsodium) and [miniz](https:/
 For policies on vocabulary and conversion results, see
 [Vocabulary Policy](VOCABULARY_POLICY.md).
 
-Build Instructions
-------------------
+## Installation
 
-**Recommended (marinaMoji day-to-day):**
+Prebuilt installers are attached to each
+[release](https://github.com/marinaMoji/marinaMoji/releases/latest). All
+release assets can be verified as described in [SECURITY.md](SECURITY.md).
 
-* [Compiling marinaMoji on Ubuntu](docs/compiling_instructions_for_marina.md) — Linux: packages, build, install, uninstall, sync, IBus
-* [macOS port plan](docs/MACOS_PORT_PLAN.md) — macOS: `MOZC_QT_PATH`, rebuild, `install_marinamoji.sh`, `.pkg`, troubleshooting
+### macOS
 
-**Reference (Bazel details, other platforms):**
+Download the `.pkg` for your machine — `arm64` (Apple silicon), `intel64`,
+or `universal` (both, larger download) — and run it. The packages are
+signed and notarized, so Gatekeeper accepts them without warnings. Log out
+and back in, then add marinaMoji in
+System Settings → Keyboard → Input Sources.
 
-* [How to build marinaMoji for Linux](docs/build_marinamoji_for_linux.md) — test commands, install paths, Bazel options
-* [How to build marinaMoji on macOS](docs/build_marinamoji_on_macos.md) — Xcode/Qt setup, cross-arch builds
-* [How to build marinaMoji for Android](docs/build_marinamoji_for_android.md) — upstream Android library (not a marinaMoji product target)
-* [How to build marinaMoji on Windows](docs/build_marinamoji_on_windows.md) — upstream Windows/Mozc (Windows port planned)
-* [How to build marinaMoji in Docker](docs/build_marinamoji_in_docker.md) — deprecated Docker/GYP notes
-* [Install branding and paths](docs/MARINAMOJI.md)
+### Windows
+
+Download the `.msi` for your machine — `x64` or `arm64` — and run it. The
+installer is not yet signed, so SmartScreen will warn — choose
+"More info" → "Run anyway". Signed packages through the Microsoft Store
+are planned.
+
+### Linux
+
+**Debian/Ubuntu (amd64, arm64):** download
+`marinamoji_<version>_<arch>.deb` and install it:
+
+```bash
+sudo apt install ./marinamoji_<version>_amd64.deb
+ibus restart   # or log out and back in
+```
+
+Then add "marinaMoji" in your desktop's input-source settings (or with
+`ibus-setup`). An apt repository for automatic updates is planned.
+
+**Arch Linux (x86_64, aarch64):** PKGBUILDs are provided in
+[packaging/arch](packaging/arch) — `marinamoji` builds from source,
+`marinamoji-bin` repacks the release binaries. Build and install with
+`makepkg -si` after updating `pkgver` and checksums for the release.
+(AUR publication is planned.)
+
+**Other distributions:** releases also include plain binary archives
+(`marinaMoji-<version>-linux-<arch>.zip`) that mirror the install tree
+(`usr/...`); see the build guides below for manual installation.
+
+## Build and Install
+
+For release builds and installation steps, use the platform guides:
+
+- Linux day-to-day build and install: [Compiling marinaMoji on Ubuntu](docs/compiling_instructions_for_marina.md)
+- Linux Bazel reference: [How to build marinaMoji for Linux](docs/build_marinamoji_for_linux.md)
+- macOS build and porting: [macOS port plan](docs/MACOS_PORT_PLAN.md)
+- macOS Bazel reference: [How to build marinaMoji on macOS](docs/build_marinamoji_on_macos.md)
+- Android reference build: [How to build marinaMoji for Android](docs/build_marinamoji_for_android.md)
+- Windows reference build: [How to build marinaMoji on Windows](docs/build_marinamoji_on_windows.md)
+- Docker and legacy notes: [How to build marinaMoji in Docker](docs/build_marinamoji_in_docker.md)
+- Branding and install paths: [Install branding and paths](docs/MARINAMOJI.md)
 
 License
 -------
@@ -89,49 +136,6 @@ See [src/data/dictionary_oss/README.txt](src/data/dictionary_oss/README.txt)
 Public Domain.  See the comment in
 [src/data/test/stress_test/sentences.txt](src/data/test/stress_test/sentences.txt)
 
-## Install in CachyOS
+## Notes
 
-Install dependencies
-
-```
-sudo pacman -S --needed \
-  ibus glib2 base-devel \
-  qt6-base \
-  opencc \
-  gtk3 \
-  zip unzip jdk-openjdk
-```
-
-install bazelisk
-
-```
-# AUR (yay/paru)
-yay -S bazelisk
-# or
-paru -S bazelisk
-```
-
-Build
-
-```
-git clone https://github.com/marinaMoji/marinaMoji.git --recursive
-cd marinaMoji/src
-
-bazelisk build package --config oss_linux --config release_build
-```
-
-Install
-
-```
-sudo unzip -o bazel-bin/unix/mozc.zip -d /
-```
-
-- **JAVA_HOME:** If you see "Could not find system javabase" or "must point to a JDK, not a JRE", install a JDK (`jdk-openjdk`), then e.g. `export JAVA_HOME=/usr/lib/jvm/java-25-openjdk` (or `default`) before building.
-- **rules_swift aspect error:** If you see "required_aspect_providers, got element of type NoneType", ensure you use **bazelisk** (not system `bazel`) from the `src/` directory so the correct Bazel and dependency versions are used. This repo pins `rules_swift` to 2.5.0 and dependency overrides to avoid that failure on Linux.
-
-Reload ibus and add marinaMoji
-
-```
-ibus write-cache
-ibus restart
-```
+- Release verification instructions are available in [SECURITY.md](SECURITY.md).

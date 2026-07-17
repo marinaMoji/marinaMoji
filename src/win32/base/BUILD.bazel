@@ -50,10 +50,14 @@ mozc_cc_library(
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
+        "//base:config_file_stream",
+        "//base:file_util",
         "//base:system_util",
         "//config:config_handler",
         "//protocol:config_cc_proto",
         "//session:key_info_util",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/synchronization",
     ],
 )
 
@@ -207,6 +211,7 @@ mozc_cc_library(
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
         ":keyboard",
+        "//protocol:config_cc_proto",
         "//session:key_info_util",
     ],
 )
@@ -236,6 +241,30 @@ mozc_cc_test(
 )
 
 mozc_cc_library(
+    name = "keyboard_layout_tables",
+    srcs = ["keyboard_layout_tables.cc"],
+    hdrs = ["keyboard_layout_tables.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        ":keyboard",
+        "//protocol:config_cc_proto",
+    ],
+)
+
+mozc_cc_test(
+    name = "keyboard_layout_tables_test",
+    srcs = ["keyboard_layout_tables_test.cc"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        ":keyboard_layout_tables",
+        "//protocol:config_cc_proto",
+        "//testing:gunit_main",
+    ],
+)
+
+mozc_cc_library(
     name = "keyevent_handler",
     srcs = ["keyevent_handler.cc"],
     hdrs = ["keyevent_handler.h"],
@@ -245,11 +274,13 @@ mozc_cc_library(
         ":conversion_mode_util",
         ":input_state",
         ":keyboard",
+        ":keyboard_layout_tables",
         "//base:japanese_util",
         "//base:util",
         "//base/win32:wide_char",
         "//client:client_interface",
         "//protocol:commands_cc_proto",
+        "//protocol:config_cc_proto",
         "//session:key_info_util",
         "@com_google_absl//absl/log:check",
     ],
@@ -465,6 +496,34 @@ mozc_cc_library(
         "//base/win32:wide_char",
         "@com_google_absl//absl/log",
         "@com_microsoft_wil//:wil",
+    ],
+)
+
+# COM Task Scheduler (taskschd.h) wrapper used to register the per-user
+# logon-triggered sync-daemon task (see docs/WINDOWS_PORT_PLAN.md Phase 5) —
+# a Windows analog of the macOS LaunchAgent / Linux systemd --user unit.
+mozc_cc_library(
+    name = "task_scheduler_util",
+    srcs = ["task_scheduler_util.cc"],
+    hdrs = ["task_scheduler_util.h"],
+    linkopts = ["/DEFAULTLIB:taskschd.lib"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        "@com_microsoft_wil//:wil",
+    ],
+)
+
+mozc_cc_library(
+    name = "toolbar_config",
+    srcs = ["toolbar_config.cc"],
+    hdrs = ["toolbar_config.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        "//base:file_util",
+        "//base:system_util",
+        "@com_google_absl//absl/strings",
     ],
 )
 

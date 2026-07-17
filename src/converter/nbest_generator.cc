@@ -45,6 +45,7 @@
 #include "absl/types/span.h"
 #include "base/vlog.h"
 #include "converter/attribute.h"
+#include "converter/caching_connector.h"
 #include "converter/candidate.h"
 #include "converter/candidate_filter.h"
 #include "converter/connector.h"
@@ -56,7 +57,7 @@
 #include "dictionary/dictionary_interface.h"
 #include "dictionary/pos_matcher.h"
 #include "prediction/suggestion_filter.h"
-#include "request/conversion_request.h"
+#include "request/options.h"
 
 namespace mozc {
 namespace {
@@ -78,11 +79,11 @@ bool IsBetweenAlphabetKeys(const Node& left, const Node& right) {
 
 }  // namespace
 
-const NBestGenerator::QueueElement* absl_nonnull
-NBestGenerator::CreateNewElement(const Node* absl_nonnull node,
-                                 const QueueElement* absl_nullable next,
-                                 int32_t fx, int32_t gx, int32_t structure_gx,
-                                 int32_t w_gx) {
+template <typename TConnector>
+const typename NBestGenerator<TConnector>::QueueElement* absl_nonnull
+NBestGenerator<TConnector>::CreateNewElement(
+    const Node* absl_nonnull node, const QueueElement* absl_nullable next,
+    int32_t fx, int32_t gx, int32_t structure_gx, int32_t w_gx) {
   QueueElement* absl_nonnull elm = arena_.Alloc();
   elm->node = node;
   elm->next = next;
@@ -93,26 +94,28 @@ NBestGenerator::CreateNewElement(const Node* absl_nonnull node,
   return elm;
 }
 
-void NBestGenerator::Agenda::Push(
-    const NBestGenerator::QueueElement* absl_nonnull element) {
+template <typename TConnector>
+void NBestGenerator<TConnector>::Agenda::Push(
+    const typename NBestGenerator<TConnector>::QueueElement* absl_nonnull
+        element) {
   priority_queue_.push_back(element);
   std::push_heap(priority_queue_.begin(), priority_queue_.end(),
                  QueueElement::Comparator);
 }
 
-void NBestGenerator::Agenda::Pop() {
+template <typename TConnector>
+void NBestGenerator<TConnector>::Agenda::Pop() {
   DCHECK(!priority_queue_.empty());
   std::pop_heap(priority_queue_.begin(), priority_queue_.end(),
                 QueueElement::Comparator);
   priority_queue_.pop_back();
 }
 
-NBestGenerator::NBestGenerator(const UserDictionaryInterface& user_dictionary,
-                               const Segmenter& segmenter,
-                               const Connector& connector,
-                               const PosMatcher& pos_matcher,
-                               const Lattice& lattice,
-                               const SuggestionFilter& suggestion_filter)
+template <typename TConnector>
+NBestGenerator<TConnector>::NBestGenerator(
+    const UserDictionaryInterface& user_dictionary, const Segmenter& segmenter,
+    TConnector& connector, const PosMatcher& pos_matcher,
+    const Lattice& lattice, const SuggestionFilter& suggestion_filter)
     : user_dictionary_(user_dictionary),
       segmenter_(segmenter),
       connector_(connector),
@@ -127,9 +130,10 @@ NBestGenerator::NBestGenerator(const UserDictionaryInterface& user_dictionary,
   agenda_.Reserve(kArenaChunkSize);
 }
 
-void NBestGenerator::Reset(const Node* absl_nonnull begin_node,
-                           const Node* absl_nonnull end_node,
-                           const Options options) {
+template <typename TConnector>
+void NBestGenerator<TConnector>::Reset(const Node& begin_node,
+                                       const Node& end_node,
+                                       const Options options) {
   agenda_.Clear();
   arena_.Clear();
   top_nodes_.clear();
@@ -137,8 +141,8 @@ void NBestGenerator::Reset(const Node* absl_nonnull begin_node,
   viterbi_result_checked_ = false;
   options_ = options;
 
-  begin_node_ = begin_node;
-  end_node_ = end_node;
+  begin_node_ = &begin_node;
+  end_node_ = &end_node;
 
   for (const Node* node : lattice_.begin_nodes(end_node_->begin_pos)) {
     if (node == end_node_ ||
@@ -155,7 +159,8 @@ void NBestGenerator::Reset(const Node* absl_nonnull begin_node,
   }
 }
 
-void NBestGenerator::MakeCandidate(
+template <typename TConnector>
+void NBestGenerator<TConnector>::MakeCandidate(
     Candidate& candidate, int32_t cost, int32_t structure_cost, int32_t wcost,
     absl::Span<const Node* absl_nonnull const> nodes) const {
   DCHECK(!nodes.empty());
@@ -216,7 +221,8 @@ void NBestGenerator::MakeCandidate(
   }
 }
 
-void NBestGenerator::FillInnerSegmentInfo(
+template <typename TConnector>
+void NBestGenerator<TConnector>::FillInnerSegmentInfo(
     absl::Span<const Node* absl_nonnull const> nodes,
     Candidate& candidate) const {
   size_t key_len = nodes[0]->key.size(), value_len = nodes[0]->value.size();
@@ -277,9 +283,12 @@ void NBestGenerator::FillInnerSegmentInfo(
       builder.Build(candidate.key, candidate.value);
 }
 
-CandidateFilter::ResultType NBestGenerator::MakeCandidateFromElement(
-    const ConversionRequest& request, absl::string_view original_key,
-    const NBestGenerator::QueueElement& element, Candidate& candidate) {
+template <typename TConnector>
+CandidateFilter::ResultType
+NBestGenerator<TConnector>::MakeCandidateFromElement(
+    const ConversionOptions& options, absl::string_view original_key,
+    const typename NBestGenerator<TConnector>::QueueElement& element,
+    Candidate& candidate) {
   std::vector<const Node* absl_nonnull> nodes;
 
   if (element.next == nullptr) {
@@ -317,15 +326,16 @@ CandidateFilter::ResultType NBestGenerator::MakeCandidateFromElement(
                   nodes);
   }
 
-  return filter_.FilterCandidate(request, original_key, &candidate, top_nodes_,
+  return filter_.FilterCandidate(options, original_key, &candidate, top_nodes_,
                                  nodes);
 }
 
 // Set candidates.
-void NBestGenerator::SetCandidates(const ConversionRequest& request,
-                                   absl::string_view original_key,
-                                   const size_t expand_size,
-                                   Segment* absl_nonnull segment) {
+template <typename TConnector>
+void NBestGenerator<TConnector>::SetCandidates(const ConversionOptions& options,
+                                               absl::string_view original_key,
+                                               const size_t expand_size,
+                                               Segment& segment) {
   DCHECK(begin_node_);
   DCHECK(end_node_);
 
@@ -334,29 +344,30 @@ void NBestGenerator::SetCandidates(const ConversionRequest& request,
     return;
   }
 
-  while (segment->candidates_size() < expand_size) {
-    Candidate* candidate = segment->push_back_candidate();
+  while (segment.candidates_size() < expand_size) {
+    Candidate* candidate = segment.push_back_candidate();
     DCHECK(candidate);
 
     // if Next() returns false, no more entries are generated.
-    if (!Next(request, original_key, *candidate)) {
-      segment->pop_back_candidate();
+    if (!Next(options, original_key, *candidate)) {
+      segment.pop_back_candidate();
       break;
     }
   }
 #ifdef MOZC_CANDIDATE_DEBUG
-  // Append moved bad_candidates_ to segment->removed_candidates_for_debug_.
-  segment->removed_candidates_for_debug_.insert(
-      segment->removed_candidates_for_debug_.end(),
+  // Append moved bad_candidates_ to segment.removed_candidates_for_debug_.
+  segment.removed_candidates_for_debug_.insert(
+      segment.removed_candidates_for_debug_.end(),
       std::make_move_iterator(bad_candidates_.begin()),
       std::make_move_iterator(bad_candidates_.end()));
   bad_candidates_.clear();
 #endif  // MOZC_CANDIDATE_DEBUG
 }
 
-bool NBestGenerator::Next(const ConversionRequest& request,
-                          absl::string_view original_key,
-                          Candidate& candidate) {
+template <typename TConnector>
+bool NBestGenerator<TConnector>::Next(const ConversionOptions& options,
+                                      absl::string_view original_key,
+                                      Candidate& candidate) {
   // |cost| and |structure_cost| are calculated as follows:
   //
   // Example:
@@ -388,7 +399,7 @@ bool NBestGenerator::Next(const ConversionRequest& request,
     viterbi_result_checked_ = true;
     // Use CandidateFilter so that filter is initialized with the
     // Viterbi-best path.
-    switch (InsertTopResult(request, original_key, candidate)) {
+    switch (InsertTopResult(options, original_key, candidate)) {
       case CandidateFilter::GOOD_CANDIDATE:
         return true;
       case CandidateFilter::STOP_ENUMERATION:
@@ -421,7 +432,7 @@ bool NBestGenerator::Next(const ConversionRequest& request,
     // reached to the goal.
     if (rnode->end_pos == begin_node_->end_pos) {
       const CandidateFilter::ResultType filter_result =
-          MakeCandidateFromElement(request, original_key, *top, candidate);
+          MakeCandidateFromElement(options, original_key, *top, candidate);
 
       switch (filter_result) {
         case CandidateFilter::GOOD_CANDIDATE:
@@ -557,8 +568,10 @@ bool NBestGenerator::Next(const ConversionRequest& request,
   return false;
 }
 
-NBestGenerator::BoundaryCheckResult NBestGenerator::BoundaryCheck(
-    const Node& lnode, const Node& rnode, bool is_edge) const {
+template <typename TConnector>
+typename NBestGenerator<TConnector>::BoundaryCheckResult
+NBestGenerator<TConnector>::BoundaryCheck(const Node& lnode, const Node& rnode,
+                                          bool is_edge) const {
   // Special case, no boundary check
   if (rnode.node_type == Node::CON_NODE || lnode.node_type == Node::CON_NODE) {
     return VALID;
@@ -584,8 +597,10 @@ NBestGenerator::BoundaryCheckResult NBestGenerator::BoundaryCheck(
   return INVALID;
 }
 
-NBestGenerator::BoundaryCheckResult NBestGenerator::CheckOnlyMid(
-    const Node& lnode, const Node& rnode, bool is_edge) const {
+template <typename TConnector>
+typename NBestGenerator<TConnector>::BoundaryCheckResult
+NBestGenerator<TConnector>::CheckOnlyMid(const Node& lnode, const Node& rnode,
+                                         bool is_edge) const {
   // is_boundary is true if there is a grammar-based boundary
   // between lnode and rnode
   const bool is_boundary = (lnode.node_type == Node::HIS_NODE ||
@@ -604,8 +619,10 @@ NBestGenerator::BoundaryCheckResult NBestGenerator::CheckOnlyMid(
   return VALID;
 }
 
-NBestGenerator::BoundaryCheckResult NBestGenerator::CheckOnlyEdge(
-    const Node& lnode, const Node& rnode, bool is_edge) const {
+template <typename TConnector>
+typename NBestGenerator<TConnector>::BoundaryCheckResult
+NBestGenerator<TConnector>::CheckOnlyEdge(const Node& lnode, const Node& rnode,
+                                          bool is_edge) const {
   // is_boundary is true if there is a grammar-based boundary
   // between lnode and rnode
   const bool is_boundary = (lnode.node_type == Node::HIS_NODE ||
@@ -619,8 +636,10 @@ NBestGenerator::BoundaryCheckResult NBestGenerator::CheckOnlyEdge(
   }
 }
 
-NBestGenerator::BoundaryCheckResult NBestGenerator::CheckStrict(
-    const Node& lnode, const Node& rnode, bool is_edge) const {
+template <typename TConnector>
+typename NBestGenerator<TConnector>::BoundaryCheckResult
+NBestGenerator<TConnector>::CheckStrict(const Node& lnode, const Node& rnode,
+                                        bool is_edge) const {
   // is_boundary is true if there is a grammar-based boundary
   // between lnode and rnode
   const bool is_boundary = (lnode.node_type == Node::HIS_NODE ||
@@ -635,7 +654,9 @@ NBestGenerator::BoundaryCheckResult NBestGenerator::CheckStrict(
   }
 }
 
-bool NBestGenerator::MakeCandidateFromBestPath(Candidate& candidate) {
+template <typename TConnector>
+bool NBestGenerator<TConnector>::MakeCandidateFromBestPath(
+    Candidate& candidate) {
   top_nodes_.clear();
   int total_wcost = 0;
   DCHECK(begin_node_);
@@ -665,7 +686,9 @@ bool NBestGenerator::MakeCandidateFromBestPath(Candidate& candidate) {
   return true;
 }
 
-void NBestGenerator::MakePrefixCandidateFromBestPath(Candidate& candidate) {
+template <typename TConnector>
+void NBestGenerator<TConnector>::MakePrefixCandidateFromBestPath(
+    Candidate& candidate) {
   top_nodes_.clear();
   int total_extra_wcost = 0;  // wcost sum excepting the first node
   DCHECK(begin_node_);
@@ -699,9 +722,10 @@ void NBestGenerator::MakePrefixCandidateFromBestPath(Candidate& candidate) {
   MakeCandidate(candidate, cost, structure_cost, wcost, top_nodes_);
 }
 
-int NBestGenerator::InsertTopResult(const ConversionRequest& request,
-                                    absl::string_view original_key,
-                                    Candidate& candidate) {
+template <typename TConnector>
+int NBestGenerator<TConnector>::InsertTopResult(
+    const ConversionOptions& options, absl::string_view original_key,
+    Candidate& candidate) {
   if (options_.candidate_mode &
       CandidateMode::BUILD_FROM_ONLY_FIRST_INNER_SEGMENT) {
     MakePrefixCandidateFromBestPath(candidate);
@@ -710,22 +734,26 @@ int NBestGenerator::InsertTopResult(const ConversionRequest& request,
       return CandidateFilter::STOP_ENUMERATION;
     }
   }
-  if (request.request_type() == ConversionRequest::SUGGESTION) {
+  if (options.request_type == RequestType::SUGGESTION) {
     candidate.attributes |= Attribute::REALTIME_CONVERSION;
   }
 
-  const int result = filter_.FilterCandidate(request, original_key, &candidate,
+  const int result = filter_.FilterCandidate(options, original_key, &candidate,
                                              top_nodes_, top_nodes_);
   return result;
 }
 
-int NBestGenerator::GetTransitionCost(const Node& lnode,
-                                      const Node& rnode) const {
+template <typename TConnector>
+int NBestGenerator<TConnector>::GetTransitionCost(const Node& lnode,
+                                                  const Node& rnode) {
   constexpr int kInvalidPenaltyCost = 100000;
   if (rnode.constrained_prev != nullptr && &lnode != rnode.constrained_prev) {
     return kInvalidPenaltyCost;
   }
+  connector_.ResetCacheIfNecessary(rnode.lid);
   return connector_.GetTransitionCost(lnode.rid, rnode.lid);
 }
 
+template class NBestGenerator<CachingConnector<true>>;
+template class NBestGenerator<CachingConnector<false>>;
 }  // namespace mozc

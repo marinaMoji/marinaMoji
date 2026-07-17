@@ -71,6 +71,25 @@ message MarinaNumberRowBinding {
   optional MarinaPhysicalSlot slot = 3;
 }
 
+// marinaMoji: fixed per-layout romaji key tables, selected explicitly by the
+// user rather than following the OS's live active keyboard layout. Windows
+// assigns VK_A..VK_Z by physical key position (not printed character), so
+// non-QWERTY layouts need their own character table; see
+// win32/base/keyboard_layout_tables.h.
+enum MarinaKeyboardLayout {
+  MARINA_KBD_OS_DEFAULT = 0;
+  MARINA_KBD_US = 1;
+  MARINA_KBD_UK = 2;
+  MARINA_KBD_FR_AZERTY = 3;
+  MARINA_KBD_DE_QWERTZ = 4;
+  MARINA_KBD_ES = 5;
+  MARINA_KBD_IT = 6;
+  MARINA_KBD_NL = 7;
+  MARINA_KBD_DVORAK = 8;
+  MARINA_KBD_BEPO = 9;
+  MARINA_KBD_JIS = 10;
+}
+
 message GeneralConfig {
   //////////////////////////////////////////////////////////////
   //
@@ -348,6 +367,11 @@ message Config {
   // Custom marina number-row shortcut bindings. When empty, bundled defaults
   // apply (Ctrl+Shift+1..5 for marina actions, Ctrl+0 for dictionary).
   repeated MarinaNumberRowBinding marina_number_row_bindings = 72;
+
+  // Fixed romaji keyboard layout used to resolve physical keys to characters,
+  // independent of the OS's active layout. Default preserves prior behavior.
+  optional MarinaKeyboardLayout marina_keyboard_layout = 73
+      [default = MARINA_KBD_OS_DEFAULT];
 
   //////////////////////////////////////////////////////////////
   //

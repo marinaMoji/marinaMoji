@@ -112,6 +112,8 @@ mozc_macos_application(
     bundle_name = BRANDING,
     infoplists = ["Info.plist"],
     resources = [
+        "bundle_qt_deps.sh",
+        "fix_qt_bundled_paths.sh",
         "//data/images/mac:direct.tiff",
         "//data/images/mac:full_ascii.tiff",
         "//data/images/mac:full_katakana.tiff",
@@ -120,8 +122,6 @@ mozc_macos_application(
         "//data/images/mac:hiragana.tiff",
         "//data/images/mac:marinamoji.tiff",
         "//data/installer:credits_en.html",
-        "bundle_qt_deps.sh",
-        "fix_qt_bundled_paths.sh",
     ],
     strings = [
         "English.lproj/InfoPlist.strings",
@@ -192,9 +192,9 @@ mozc_objc_library(
         "//base/mac:mac_util",
         "//client:client_interface",
         "//composer:kaeriten_table_util",
-        "//session:marina_number_row_bindings_util",
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",
+        "//session:marina_number_row_bindings_util",
     ],
 )
 

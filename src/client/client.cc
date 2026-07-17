@@ -49,7 +49,6 @@
 #include "base/file_stream.h"
 #include "base/file_util.h"
 #include "base/process.h"
-#include "base/singleton.h"
 #include "base/system_util.h"
 #include "base/version.h"
 #include "base/vlog.h"
@@ -953,14 +952,14 @@ void ApplyWordRegisterLaunchEnvToProcess(const commands::Output &output) {
   if (output.has_word_register_expression()) {
 #ifdef _WIN32
     SetEnvironmentVariableA(kWordRegisterEnvironmentName,
-                            output.word_register_expression().c_str(), 1);
+                            output.word_register_expression().c_str());
 #else
     ::setenv(kWordRegisterEnvironmentName,
              output.word_register_expression().c_str(), 1);
 #endif
   } else {
 #ifdef _WIN32
-    SetEnvironmentVariableA(kWordRegisterEnvironmentName, nullptr, 1);
+    SetEnvironmentVariableA(kWordRegisterEnvironmentName, nullptr);
 #else
     ::unsetenv(kWordRegisterEnvironmentName);
 #endif
@@ -969,7 +968,7 @@ void ApplyWordRegisterLaunchEnvToProcess(const commands::Output &output) {
 #ifdef _WIN32
     SetEnvironmentVariableA(
         kWordRegisterEnvironmentReadingName,
-        output.word_register_reading_candidates(0).c_str(), 1);
+        output.word_register_reading_candidates(0).c_str());
 #else
     ::setenv(kWordRegisterEnvironmentReadingName,
              output.word_register_reading_candidates(0).c_str(), 1);
@@ -983,16 +982,16 @@ void ApplyWordRegisterLaunchEnvToProcess(const commands::Output &output) {
     }
 #ifdef _WIN32
     SetEnvironmentVariableA(kWordRegisterEnvironmentReadingCandidatesName,
-                            candidates.c_str(), 1);
+                            candidates.c_str());
 #else
     ::setenv(kWordRegisterEnvironmentReadingCandidatesName, candidates.c_str(),
              1);
 #endif
   } else {
 #ifdef _WIN32
-    SetEnvironmentVariableA(kWordRegisterEnvironmentReadingName, nullptr, 1);
+    SetEnvironmentVariableA(kWordRegisterEnvironmentReadingName, nullptr);
     SetEnvironmentVariableA(kWordRegisterEnvironmentReadingCandidatesName,
-                            nullptr, 1);
+                            nullptr);
 #else
     ::unsetenv(kWordRegisterEnvironmentReadingName);
     ::unsetenv(kWordRegisterEnvironmentReadingCandidatesName);
@@ -1100,19 +1099,14 @@ bool Client::OpenBrowser(absl::string_view url) {
 }
 
 namespace {
-class DefaultClientFactory : public ClientFactoryInterface {
- public:
-  std::unique_ptr<ClientInterface> NewClient() override {
-    return std::make_unique<Client>();
-  }
-};
 
 ClientFactoryInterface *g_client_factory = nullptr;
+
 }  // namespace
 
 std::unique_ptr<ClientInterface> ClientFactory::NewClient() {
   if (g_client_factory == nullptr) {
-    return Singleton<DefaultClientFactory>::get()->NewClient();
+    return std::make_unique<Client>();
   } else {
     return g_client_factory->NewClient();
   }

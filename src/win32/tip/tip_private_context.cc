@@ -63,6 +63,8 @@ class TipPrivateContext::InternalState {
   InputBehavior input_behavior_;
   TipUiElementManager ui_element_manager_;
   VKBackBasedDeleter deleter_;
+  bool symbols_palette_visible_ = false;
+  wchar_t pending_dead_key_ = L'\0';
 };
 
 TipPrivateContext::TipPrivateContext()
@@ -93,6 +95,7 @@ void TipPrivateContext::EnsureInitialized() {
     behavior->use_romaji_key_to_toggle_input_style =
         snapshot.use_keyboard_to_change_preedit_method;
     behavior->use_mode_indicator = snapshot.use_mode_indicator;
+    behavior->marina_keyboard_layout = snapshot.marina_keyboard_layout;
     behavior->direct_mode_keys = snapshot.direct_mode_keys;
     behavior->initialized = true;
   }
@@ -132,6 +135,22 @@ const InputBehavior& TipPrivateContext::input_behavior() const {
 
 InputBehavior* TipPrivateContext::mutable_input_behavior() {
   return &state_->input_behavior_;
+}
+
+bool TipPrivateContext::symbols_palette_visible() const {
+  return state_->symbols_palette_visible_;
+}
+
+void TipPrivateContext::set_symbols_palette_visible(bool visible) {
+  state_->symbols_palette_visible_ = visible;
+}
+
+wchar_t TipPrivateContext::pending_dead_key() const {
+  return state_->pending_dead_key_;
+}
+
+void TipPrivateContext::set_pending_dead_key(wchar_t accent) {
+  state_->pending_dead_key_ = accent;
 }
 
 }  // namespace tsf

@@ -13,7 +13,7 @@ Entries are added to the main dictionary with the following adjustments:
 *   The cost is set to the median cost of all words sharing the same POS.
 
 These adjustments are performed by
-[dictionary/gen_aux_dictionary.py](https://github.com/google/mozc/blob/master/src/dictionary/gen_aux_dictionary.py).
+[dictionary/gen_aux_dictionary.py](../../dictionary/gen_aux_dictionary.py).
 
 If the same entries already exist in the main dictionary, the entries in this
 directory are ignored. For more control, you may want to use
@@ -24,8 +24,8 @@ directory are ignored. For more control, you may want to use
 Otherwise the IME may prefer a split reading such as マリナ + モジ over the
 whole word. See `marinaMoji` / `marinaMoji` in `data/dictionary_oss/aux_dictionary.tsv`.
 
-*   https://github.com/google/mozc/blob/master/src/data/dictionary_oss/aux_dictionary.tsv
-*   https://github.com/google/mozc/blob/master/src/data/dictionary_oss/dictionary_filter.tsv
+*   [aux_dictionary.tsv](../dictionary_oss/aux_dictionary.tsv)
+*   [dictionary_filter.tsv](../dictionary_oss/dictionary_filter.tsv)
 
 ## domain.txt
 

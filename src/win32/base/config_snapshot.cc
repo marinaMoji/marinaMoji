@@ -32,7 +32,12 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <string>
 
+#include "absl/status/statusor.h"
+#include "absl/synchronization/mutex.h"
+#include "base/config_file_stream.h"
+#include "base/file_util.h"
 #include "config/config_handler.h"
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
@@ -52,6 +57,7 @@ struct StaticConfigSnapshot {
   bool use_mode_indicator;
   size_t num_direct_mode_keys;
   KeyInformation direct_mode_keys[kMaxDirectModeKeys];
+  config::MarinaKeyboardLayout marina_keyboard_layout;
 };
 
 StaticConfigSnapshot GetConfigSnapshotImpl() {
@@ -63,6 +69,7 @@ StaticConfigSnapshot GetConfigSnapshotImpl() {
   snapshot.use_keyboard_to_change_preedit_method =
       config->use_keyboard_to_change_preedit_method();
   snapshot.use_mode_indicator = config->use_mode_indicator();
+  snapshot.marina_keyboard_layout = config->marina_keyboard_layout();
 
   const auto& direct_mode_keys =
       KeyInfoUtil::ExtractSortedDirectModeKeys(*config);
@@ -81,16 +88,65 @@ StaticConfigSnapshot GetConfigSnapshotImpl() {
 ConfigSnapshot::Info::Info()
     : use_kana_input(false),
       use_keyboard_to_change_preedit_method(false),
-      use_mode_indicator(false) {}
+      use_mode_indicator(false),
+      marina_keyboard_layout(config::MARINA_KBD_OS_DEFAULT) {}
+
+namespace {
+
+// marinaMoji: unlike upstream, the snapshot is refreshable: it is rebuilt
+// whenever config1.db's modification time changes, so a config change made in
+// the config dialog takes effect in already-running applications the next
+// time the snapshot is queried (TipPrivateContext::EnsureInitialized runs on
+// every thread-focus event). In processes that cannot stat the config file
+// (e.g. AppContainer sandboxes), the stat fails and the cached snapshot is
+// kept, which matches the old load-once behavior.
+struct SnapshotCache {
+  absl::Mutex mutex;
+  bool initialized ABSL_GUARDED_BY(mutex) = false;
+  FileTimeStamp config_mtime ABSL_GUARDED_BY(mutex) = 0;
+  StaticConfigSnapshot snapshot ABSL_GUARDED_BY(mutex);
+};
+
+SnapshotCache* GetSnapshotCache() {
+  static SnapshotCache* cache = new SnapshotCache();
+  return cache;
+}
+
+std::string GetConfigFilePath() {
+  // Despite its name, GetConfigFileNameForTesting simply returns the current
+  // config file name (e.g. "user://config1.db"); GetFileName resolves it to
+  // an actual file path.
+  return ConfigFileStream::GetFileName(
+      config::ConfigHandler::GetConfigFileNameForTesting());
+}
+
+}  // namespace
 
 // static
 bool ConfigSnapshot::Get(Info* info) {
-  // Note: Thread-safety is not required.
-  static const StaticConfigSnapshot cached_snapshot = GetConfigSnapshotImpl();
+  SnapshotCache* cache = GetSnapshotCache();
+  absl::MutexLock lock(&cache->mutex);
+
+  const absl::StatusOr<FileTimeStamp> mtime =
+      FileUtil::GetModificationTime(GetConfigFilePath());
+  if (!cache->initialized) {
+    cache->snapshot = GetConfigSnapshotImpl();
+    cache->config_mtime = mtime.ok() ? *mtime : 0;
+    cache->initialized = true;
+  } else if (mtime.ok() && *mtime != cache->config_mtime) {
+    // The config file has been rewritten since the last snapshot;
+    // ConfigHandler caches the parsed config, so force a reload first.
+    config::ConfigHandler::Reload();
+    cache->snapshot = GetConfigSnapshotImpl();
+    cache->config_mtime = *mtime;
+  }
+
+  const StaticConfigSnapshot& cached_snapshot = cache->snapshot;
   info->use_kana_input = cached_snapshot.use_kana_input;
   info->use_keyboard_to_change_preedit_method =
       cached_snapshot.use_keyboard_to_change_preedit_method;
   info->use_mode_indicator = cached_snapshot.use_mode_indicator;
+  info->marina_keyboard_layout = cached_snapshot.marina_keyboard_layout;
   info->direct_mode_keys.resize(cached_snapshot.num_direct_mode_keys);
   for (size_t i = 0; i < cached_snapshot.num_direct_mode_keys; ++i) {
     info->direct_mode_keys[i] = cached_snapshot.direct_mode_keys[i];

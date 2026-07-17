@@ -9,7 +9,7 @@ pipeline.
 > [!NOTE]
 >
 > We recommend to update TSV files in
-> [data/dictionary_manual](https://github.com/google/mozc/blob/master/src/data/dictionary_manual/) as an
+> [data/dictionary_manual](../dictionary_manual/) as an
 > easier way. Please consider using `data/dictionary_manual/` at first.
 
 ### Format of aux_dictionary.tsv

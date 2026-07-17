@@ -32,6 +32,7 @@
 
 #include <vector>
 
+#include "protocol/config.pb.h"
 #include "session/key_info_util.h"
 
 namespace mozc {
@@ -44,6 +45,7 @@ class ConfigSnapshot {
     bool use_keyboard_to_change_preedit_method;
     bool use_mode_indicator;
     std::vector<KeyInformation> direct_mode_keys;
+    config::MarinaKeyboardLayout marina_keyboard_layout;
     Info();
   };
 

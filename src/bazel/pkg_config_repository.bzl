@@ -36,6 +36,7 @@ Generated `BUILD.bazel` is available at `bazel-src/external/<repository_name>`.
 ```:WORKSPACE.bazel
 pkg_config_repository(
   name = "ibus",
+  exec_os = ["linux"],  # or "mac", "windows", "freebsd", etc.
   packages = ["glib-2.0", "gobject-2.0", "ibus-1.0"],
 )
 ```
@@ -63,7 +64,7 @@ cc_library(
     name = "{name}",
     hdrs = glob([
         {hdrs}
-    ]),
+    ], allow_empty = True),
     copts = [
         {copts}
     ],
@@ -76,6 +77,18 @@ cc_library(
 )
 """
 
+BUILD_EMPTY_TEMPLATE = """
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "{name}",
+)
+"""
+
 EXPORTS_FILES_TEMPLATE = """
 exports_files(glob(["libexec/*"], allow_empty=True))
 """
@@ -83,12 +96,15 @@ exports_files(glob(["libexec/*"], allow_empty=True))
 def _exec_pkg_config(repo_ctx, flags):
     binary = repo_ctx.which("pkg-config")
     if not binary:
-        # Using print is not recommended, but this will be a clue to debug build errors in
-        # the case of pkg-config is not found.
-        print("pkg-config is not found")  # buildifier: disable=print
-        return []
+        fail("pkg-config binary is not found in PATH")
+
     result = repo_ctx.execute([binary] + flags + repo_ctx.attr.packages)
-    items = result.stdout.strip().split(" ")
+    if result.return_code != 0:
+        fail("pkg-config failed for packages %s:\n%s" % (repo_ctx.attr.packages, result.stderr))
+
+    # Use whitespace splitting so empty output and repeated whitespace do not
+    # become empty flags in the generated BUILD file.
+    items = [item for item in result.stdout.strip().split(" ") if item]
     uniq_items = sorted({key: None for key in items}.keys())
     return uniq_items
 
@@ -128,15 +144,52 @@ def _get_possible_pc_files(repo_ctx):
     return pc_files
 
 def _make_strlist(list):
+    if not list:
+        return ""
     return "\"" + "\",\n        \"".join(list) + "\""
 
 def _symlinks(repo_ctx, paths):
+    # Symlink individual header files rather than whole directories.
+    # Bazel's glob() does not reliably traverse a directory that is itself a
+    # symlink pointing outside the repository, which otherwise makes hdrs
+    # resolve to an empty list (and <ibus.h> "disappear") even though the
+    # package is installed. Mirroring the real directory structure with
+    # per-file symlinks keeps every intermediate directory a genuine
+    # directory, so glob() traverses it normally.
+    find_binary = repo_ctx.which("find")
+    if not find_binary:
+        print("find is not found")  # buildifier: disable=print
+        return
     for path in paths:
-        if repo_ctx.path(path).exists:
+        abs_path = "/" + path
+        result = repo_ctx.execute([find_binary, abs_path, "-type", "f"])
+        if result.return_code != 0:
+            print(
+                # buildifier: disable=print
+                "find failed for %s (exit %d): %s" %
+                (abs_path, result.return_code, result.stderr),
+            )
             continue
-        repo_ctx.symlink("/" + path, path)
+        for file in [f for f in result.stdout.splitlines() if f]:
+            rel_file = file[1:] if file.startswith("/") else file
+            if repo_ctx.path(rel_file).exists:
+                continue
+            repo_ctx.symlink(file, rel_file)
 
 def _pkg_config_repository_impl(repo_ctx):
+    # In bzlmod, repo_ctx.attr.name has a prefix like "_main~_repo_rules~ibus".
+    # Note also that Bazel 8.0+ uses "+" instead of "~".
+    # https://github.com/bazelbuild/bazel/issues/23127
+    name = repo_ctx.attr.name.replace("~", "+").split("+")[-1]
+
+    current_os = repo_ctx.os.name.lower()
+    is_supported = any([current_os.startswith(os_name.lower()) for os_name in repo_ctx.attr.exec_os])
+
+    # If the current host OS is not supported, generate an empty BUILD file and return early.
+    if not is_supported:
+        repo_ctx.file("BUILD.bazel", BUILD_EMPTY_TEMPLATE.format(name = name))
+        return
+
     # Register all possible .pc files for watching to trigger repository
     # reevaluation.
     # This includes files that don't exist yet but might be created later
@@ -145,21 +198,27 @@ def _pkg_config_repository_impl(repo_ctx):
     for pc_file in pc_files:
         repo_ctx.watch(pc_file)
 
-    includes = _exec_pkg_config(repo_ctx, ["--cflags-only-I"])
+    include_flags = _exec_pkg_config(repo_ctx, ["--cflags-only-I"])
 
-    # If includes is empty, pkg-config will be re-executed with
+    # If the include flags are empty, pkg-config will be re-executed with
     # the --keep-system-cflags option added. Typically, -I/usr/include is
     # returned, enabling bazel to recognize packages as valid even when
     # pkg-config does not output cflags with standard options.
-    if not includes or includes[0] == "":
-        includes = _exec_pkg_config(repo_ctx, ["--cflags-only-I", "--keep-system-cflags"])
-    includes = [item[len("-I/"):] for item in includes]
+    if not include_flags or include_flags[0] == "":
+        include_flags = _exec_pkg_config(
+            repo_ctx,
+            ["--cflags-only-I", "--keep-system-cflags"],
+        )
+
+    includes = [
+        item[2:]
+        for item in include_flags
+        if item.startswith("-I") and len(item) > 2
+    ]
+    includes = [item[1:] if item.startswith("/") else item for item in includes]
     _symlinks(repo_ctx, includes)
     data = {
-        # In bzlmod, repo_ctx.attr.name has a prefix like "_main~_repo_rules~ibus".
-        # Note also that Bazel 8.0+ uses "+" instead of "~".
-        # https://github.com/bazelbuild/bazel/issues/23127
-        "name": repo_ctx.attr.name.replace("~", "+").split("+")[-1],
+        "name": name,
         "hdrs": _make_strlist([item + "/**" for item in includes]),
         "copts": _make_strlist(_exec_pkg_config(repo_ctx, ["--cflags-only-other"])),
         "includes": _make_strlist(includes),
@@ -179,6 +238,7 @@ pkg_config_repository = repository_rule(
     configure = True,
     local = True,
     attrs = {
+        "exec_os": attr.string_list(default = ["linux"]),
         "packages": attr.string_list(),
     },
 )

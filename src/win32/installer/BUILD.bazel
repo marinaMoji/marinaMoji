@@ -56,6 +56,7 @@ mozc_py_binary(
 exports_files([
     "installer_64bit.wxs",
     "installer_oss_64bit.wxs",
+    "installer_marinamoji_64bit.wxs",
 ])
 
 config_setting(
@@ -66,9 +67,15 @@ config_setting(
     visibility = ["//visibility:private"],
 )
 
-_WXS_FILE = ":installer_oss_64bit.wxs" if BRANDING == "Mozc" else ":installer_64bit.wxs"
+_WXS_FILE = {
+    "Mozc": ":installer_oss_64bit.wxs",
+    "marinaMoji": ":installer_marinamoji_64bit.wxs",
+}.get(BRANDING, ":installer_64bit.wxs")
 
-_MSI_FILE = "Mozc64.msi" if BRANDING == "Mozc" else "GoogleJapaneseInput64.msi"
+_MSI_FILE = {
+    "Mozc": "Mozc64.msi",
+    "marinaMoji": "marinaMoji64.msi",
+}.get(BRANDING, "GoogleJapaneseInput64.msi")
 
 selects.config_setting_group(
     name = "build_arm64_binaries",
@@ -89,6 +96,13 @@ genrule(
         "//win32/tip:mozc_tip32",
         "//win32/tip:mozc_tip64",
         "//win32/custom_action",
+        "//sync:marinaMojiSync_win",
+        "//data/marina_opencc:marinaShin2Kyu.json",
+        "//data/marina_opencc:marinaShin2KyuCharacters.ocd2",
+        "//data/marina_opencc:marinaShin2KyuPhrases.ocd2",
+        "//data/marina_opencc:marinaShin2KyuVariants.ocd2",
+        "//data/images/win:toolbar_icons",
+        "//data/images/win:toolbar_icons/logo_long_light_24.png",
         _WXS_FILE,
         "//base:mozc_version_txt",
         "//data/images/win:product_icon.ico",
@@ -115,6 +129,12 @@ genrule(
         "--mozc_tip32=$(location //win32/tip:mozc_tip32)",
         "--mozc_tip64=$(location //win32/tip:mozc_tip64)",
         "--custom_action=$(location //win32/custom_action)",
+        "--marinamoji_sync=$(location //sync:marinaMojiSync_win)",
+        "--opencc_config=$(location //data/marina_opencc:marinaShin2Kyu.json)",
+        "--opencc_characters=$(location //data/marina_opencc:marinaShin2KyuCharacters.ocd2)",
+        "--opencc_phrases=$(location //data/marina_opencc:marinaShin2KyuPhrases.ocd2)",
+        "--opencc_variants=$(location //data/marina_opencc:marinaShin2KyuVariants.ocd2)",
+        "--toolbar_icons_sample=$(location //data/images/win:toolbar_icons/logo_long_light_24.png)",
         "--icon_path=$(location //data/images/win:product_icon.ico)",
         "--credit_file=$(location //data/installer:credits_en.html)",
         "--qt_core_dll=$(location @qt_win//:bin/Qt6Core.dll)",

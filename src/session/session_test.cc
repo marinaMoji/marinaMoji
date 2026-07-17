@@ -967,7 +967,11 @@ TEST_F(SessionTest, LeftShiftAloneTogglesJapaneseAndDirect) {
 
   EXPECT_TRUE(SendKey("LeftShift", &session, &command));
   EXPECT_FALSE(command.output().consumed());
-  EXPECT_EQ(command.output().status().mode(), commands::DIRECT);
+  // status().mode() intentionally keeps the last active mode while inactive
+  // (toolbar/langbar icons use it to show what mode will resume); the top
+  // level output().mode() is what actually reflects DIRECT.
+  EXPECT_EQ(command.output().mode(), commands::DIRECT);
+  EXPECT_EQ(command.output().status().mode(), commands::FULL_KATAKANA);
   EXPECT_FALSE(command.output().status().activated());
 
   SessionTestPeer peer(session);
@@ -991,13 +995,21 @@ TEST_F(SessionTest, LeftShiftTogglesManyoshuAndDirect) {
   session.SetConfig(cfg);
 
   SwitchCompositionMode(commands::HIRAGANA, &session);
-  EXPECT_TRUE(SendKey("Ctrl Shift 4", &session, &command));
+  // Ctrl+Shift+4 is dispatched client-side (marina number-row dispatcher) and
+  // is intentionally absent from the session keymap, so enter Manyoshu via
+  // the composition-mode command the dispatcher ends up issuing.
+  EXPECT_TRUE(
+      SwitchCompositionModeCommand(commands::MANYOSHU, &session, &command));
   EXPECT_EQ(command.output().status().mode(), commands::MANYOSHU);
 
   EXPECT_TRUE(SendKeyWithMode("LeftShift", commands::MANYOSHU, &session,
                               &command));
   EXPECT_FALSE(command.output().consumed());
-  EXPECT_EQ(command.output().status().mode(), commands::DIRECT);
+  // status().mode() intentionally keeps the last active mode while inactive
+  // (toolbar/langbar icons use it to show what mode will resume); the top
+  // level output().mode() is what actually reflects DIRECT.
+  EXPECT_EQ(command.output().mode(), commands::DIRECT);
+  EXPECT_EQ(command.output().status().mode(), commands::MANYOSHU);
   EXPECT_FALSE(command.output().status().activated());
 
   SessionTestPeer peer(session);
@@ -1024,7 +1036,11 @@ TEST_F(SessionTest, LeftShiftAloneTogglesHiraganaKatakanaAndDirect) {
   SwitchCompositionMode(commands::FULL_KATAKANA, &session);
   EXPECT_TRUE(SendKeyWithMode("LeftShift", commands::FULL_KATAKANA, &session,
                               &command));
-  EXPECT_EQ(command.output().status().mode(), commands::DIRECT);
+  // status().mode() intentionally keeps the last active mode while inactive
+  // (toolbar/langbar icons use it to show what mode will resume); the top
+  // level output().mode() is what actually reflects DIRECT.
+  EXPECT_EQ(command.output().mode(), commands::DIRECT);
+  EXPECT_EQ(command.output().status().mode(), commands::FULL_KATAKANA);
 
   EXPECT_TRUE(SendKey("LeftShift", &session, &command));
   EXPECT_EQ(command.output().status().mode(), commands::FULL_KATAKANA);
@@ -1042,7 +1058,7 @@ TEST_F(SessionTest, LeftShiftModeLockPersistsAcrossSessions) {
     Session session(engine);
     InitSessionToPrecomposition(&session);
     session.SetConfig(cfg);
-    EXPECT_TRUE(SendKey("Ctrl LeftShift", &session, &command));
+    EXPECT_TRUE(SendKey("Ctrl Alt RightShift", &session, &command));
     SessionTestPeer peer(session);
     EXPECT_TRUE(peer.left_shift_mode_lock_());
   }
@@ -1053,7 +1069,7 @@ TEST_F(SessionTest, LeftShiftModeLockPersistsAcrossSessions) {
   SessionTestPeer peer2(session2);
   EXPECT_TRUE(peer2.left_shift_mode_lock_());
 
-  EXPECT_TRUE(SendKey("Ctrl LeftShift", &session2, &command));
+  EXPECT_TRUE(SendKey("Ctrl Alt RightShift", &session2, &command));
   EXPECT_FALSE(peer2.left_shift_mode_lock_());
 }
 
@@ -1068,7 +1084,7 @@ TEST_F(SessionTest, LeftShiftModeLockBlocksToggle) {
   cfg.set_disable_left_shift_direct_toggle(false);
   session.SetConfig(cfg);
 
-  EXPECT_TRUE(SendKey("Ctrl LeftShift", &session, &command));
+  EXPECT_TRUE(SendKey("Ctrl Alt RightShift", &session, &command));
   SessionTestPeer peer(session);
   EXPECT_TRUE(peer.left_shift_mode_lock_());
 
@@ -1076,7 +1092,7 @@ TEST_F(SessionTest, LeftShiftModeLockBlocksToggle) {
   EXPECT_FALSE(command.output().consumed());
   EXPECT_EQ(command.output().status().mode(), commands::HIRAGANA);
 
-  EXPECT_TRUE(SendKey("Ctrl LeftShift", &session, &command));
+  EXPECT_TRUE(SendKey("Ctrl Alt RightShift", &session, &command));
   EXPECT_FALSE(peer.left_shift_mode_lock_());
 }
 
@@ -1159,8 +1175,11 @@ TEST_F(SessionTest, LaunchWordRegisterDialogFromDirectInput) {
   Session session(engine);
   InitSessionToDirect(&session);
 
+  // "Ctrl 0" / "Ctrl Shift 0" are handled by the platform-native marina
+  // number-row dispatcher, not by the generic keymap table; "Ctrl Shift )"
+  // is the generically-registered LaunchWordRegisterDialog shortcut.
   commands::Command command;
-  EXPECT_TRUE(SendKey("Ctrl Shift 0", &session, &command));
+  EXPECT_TRUE(SendKey("Ctrl Shift )", &session, &command));
   EXPECT_EQ(command.output().launch_tool_mode(),
             commands::Output::WORD_REGISTER_DIALOG);
 }
@@ -1194,8 +1213,11 @@ TEST_F(SessionTest, LaunchWordRegisterDialogPrefillFromDirectAfterCommit) {
   peer.last_committed_expression_() = "google";
   peer.last_committed_reading_() = "google";
 
+  // "Ctrl 0" / "Ctrl Shift 0" are handled by the platform-native marina
+  // number-row dispatcher, not by the generic keymap table; "Ctrl Shift )"
+  // is the generically-registered LaunchWordRegisterDialog shortcut.
   commands::Command command;
-  EXPECT_TRUE(SendKey("Ctrl Shift 0", &session, &command));
+  EXPECT_TRUE(SendKey("Ctrl Shift )", &session, &command));
   EXPECT_EQ(command.output().word_register_expression(), "google");
   ASSERT_EQ(command.output().word_register_reading_candidates_size(), 1);
   EXPECT_EQ(command.output().word_register_reading_candidates(0), "google");
@@ -6864,7 +6886,7 @@ TEST_F(SessionTest, Issue2569789) {
 
 TEST_F(SessionTest, Issue2555503) {
   // This is a unittest against http://b/2555503.
-  // Mode respects the previous character too much.
+  // Changing to full katakana updates the whole visible preedit.
 
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
@@ -6878,10 +6900,10 @@ TEST_F(SessionTest, Issue2555503) {
   session.CompositionModeFullKatakana(&command);
 
   SendKey("i", &session, &command);
-  EXPECT_EQ(GetComposition(command), "あイ");
+  EXPECT_EQ(GetComposition(command), "アイ");
 
   SendKey("backspace", &session, &command);
-  EXPECT_EQ(GetComposition(command), "あ");
+  EXPECT_EQ(GetComposition(command), "ア");
   EXPECT_EQ(command.output().mode(), commands::FULL_KATAKANA);
 }
 
@@ -7144,18 +7166,29 @@ TEST_F(SessionTest, CompositionModeOutputHasComposition) {
   EXPECT_EQ(command.output().mode(), mozc::commands::HIRAGANA);
   EXPECT_SINGLE_SEGMENT("あ", command);
 
+  // Switching between Hiragana and Katakana reflows the existing preedit
+  // into the new mode's script (and back), so subsequent checks expect the
+  // transliterated form rather than the original "あ".
   command.Clear();
   EXPECT_TRUE(session.CompositionModeFullKatakana(&command));
   EXPECT_TRUE(command.output().consumed());
   EXPECT_EQ(command.output().mode(), mozc::commands::FULL_KATAKANA);
-  EXPECT_SINGLE_SEGMENT("あ", command);
+  EXPECT_SINGLE_SEGMENT("ア", command);
 
   command.Clear();
   EXPECT_TRUE(session.CompositionModeHalfKatakana(&command));
   EXPECT_TRUE(command.output().consumed());
   EXPECT_EQ(command.output().mode(), mozc::commands::HALF_KATAKANA);
+  EXPECT_SINGLE_SEGMENT("ｱ", command);
+
+  command.Clear();
+  EXPECT_TRUE(session.CompositionModeHiragana(&command));
+  EXPECT_TRUE(command.output().consumed());
+  EXPECT_EQ(command.output().mode(), mozc::commands::HIRAGANA);
   EXPECT_SINGLE_SEGMENT("あ", command);
 
+  // ASCII modes are out of scope for reflow: they don't call SetOutputMode,
+  // so the preedit stays rendered in whatever mode was last explicitly set.
   command.Clear();
   EXPECT_TRUE(session.CompositionModeFullASCII(&command));
   EXPECT_TRUE(command.output().consumed());

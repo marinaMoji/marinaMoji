@@ -30,6 +30,8 @@ LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 #ifndef MOZC_RES_INTERNAL_NAME
   #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
     #define MOZC_RES_INTERNAL_NAME "GoogleIMEJaInstallerHelper"
+  #elif defined(MARINAMOJI)
+    #define MOZC_RES_INTERNAL_NAME "marinamoji_installer_helper"
   #elif defined(MOZC_BUILD)
     #define MOZC_RES_INTERNAL_NAME "mozc_installer_helper"
   #endif
@@ -37,6 +39,8 @@ LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 #ifndef MOZC_RES_ORIGINAL_FILENAME
   #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
     #define MOZC_RES_ORIGINAL_FILENAME "GoogleIMEJaInstallerHelper.dll"
+  #elif defined(MARINAMOJI)
+    #define MOZC_RES_ORIGINAL_FILENAME "marinamoji_installer_helper.dll"
   #elif defined(MOZC_BUILD)
     #define MOZC_RES_ORIGINAL_FILENAME "mozc_installer_helper.dll"
   #endif
@@ -44,6 +48,8 @@ LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 #ifndef MOZC_RES_FILE_DESCRIPTION
   #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
     #define MOZC_RES_FILE_DESCRIPTION "Google 日本語入力 インストーラー ヘルパー"
+  #elif defined(MARINAMOJI)
+    #define MOZC_RES_FILE_DESCRIPTION "marinaMoji Installer Helper"
   #elif defined(MOZC_BUILD)
     #define MOZC_RES_FILE_DESCRIPTION "Mozc Installer Helper"
   #endif
@@ -69,6 +75,10 @@ BEGIN
   IDS_FORMAT_VERSION_INFO       "Google 日本語入力 インストーラー (バージョン %1!s!)"
   IDS_UNEXPECTED_ERROR          "未知のエラーが発生しました。"
   IDS_FORMAT_FUNCTION_AND_LINE  "%1!s! (%2!u!) でエラーが発生したため、インストールを中止しました。"
+#elif defined(MARINAMOJI)
+  IDS_FORMAT_VERSION_INFO       "marinaMoji インストーラー (バージョン %1!s!)"
+  IDS_UNEXPECTED_ERROR          "未知のエラーが発生しました。"
+  IDS_FORMAT_FUNCTION_AND_LINE  "%1!s! (%2!u!) でエラーが発生したため、インストールを中止しました。"
 #elif defined(MOZC_BUILD)
   IDS_FORMAT_VERSION_INFO       "Mozc インストーラー (バージョン %1!s!)"
   IDS_UNEXPECTED_ERROR          "未知のエラーが発生しました。"
@@ -80,6 +90,10 @@ STRINGTABLE LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
 BEGIN
 #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
   IDS_FORMAT_VERSION_INFO       "Google Japanese Input Installer (Ver. %1!s!)"
+  IDS_UNEXPECTED_ERROR          "An unknown error occurred."
+  IDS_FORMAT_FUNCTION_AND_LINE  "The installation was stopped because of an error at %1!s! (%2!u!)"
+#elif defined(MARINAMOJI)
+  IDS_FORMAT_VERSION_INFO       "marinaMoji Installer (Ver. %1!s!)"
   IDS_UNEXPECTED_ERROR          "An unknown error occurred."
   IDS_FORMAT_FUNCTION_AND_LINE  "The installation was stopped because of an error at %1!s! (%2!u!)"
 #elif defined(MOZC_BUILD)

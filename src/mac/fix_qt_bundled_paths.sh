@@ -160,7 +160,14 @@ codesign_path() {
     return 0
   fi
   echo "Codesigning ${path}..."
-  /usr/bin/codesign --force --sign "$SIGN_IDENTITY" "$path" 2>/dev/null || true
+  if [[ "$SIGN_IDENTITY" == "-" ]]; then
+    /usr/bin/codesign --force --sign "$SIGN_IDENTITY" "$path" 2>/dev/null || true
+  else
+    # Real identities must produce notarizable signatures: hardened runtime
+    # plus a secure timestamp, and a signing failure must fail the build.
+    /usr/bin/codesign --force --timestamp --options runtime \
+      --sign "$SIGN_IDENTITY" "$path"
+  fi
 }
 
 remove_stale_signatures() {

@@ -441,8 +441,20 @@ bool RendererClient::ExecCommand(const commands::RendererCommand& command) {
   is_window_visible_ = command.visible();
 
   if (!client->Connected()) {
+    // marinaMoji: the floating toolbar and the Symbols Palette are shown via
+    // |ApplicationInfo::ShowToolbar| / |has_symbols_palette_info()|
+    // independent of |command.visible()|. The first UPDATE after IME
+    // activation carries the toolbar bit with |visible()==false|; it must
+    // still launch the renderer instead of being discarded as a HIDE.
+    const commands::RendererCommand::ApplicationInfo& app_info =
+        command.application_info();
+    const bool shows_persistent_ui =
+        (app_info.ui_visibilities() &
+         commands::RendererCommand::ApplicationInfo::ShowToolbar) != 0 ||
+        app_info.has_symbols_palette_info();
     // We don't need to send HIDE if the renderer is not running
     if (command.type() == commands::RendererCommand::UPDATE &&
+        !shows_persistent_ui &&
         (!is_window_visible_ || !command.has_output())) {
       LOG(WARNING) << "Discards a HIDE command since the "
                    << "renderer is not running";

@@ -1,0 +1,53 @@
+# Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+#
+# Source package building marinaMoji from a release tag with Bazel.
+# Per release: bump pkgver, reset pkgrel to 1, and update sha256sums
+# (makepkg -g). Note that Bazel fetches module dependencies over the
+# network during build(), like other Bazel-based AUR packages.
+#
+# For a prebuilt alternative, see ../marinamoji-bin.
+
+pkgname=marinamoji
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Japanese input method for classical and literary Japanese (Mozc fork)'
+arch=('x86_64' 'aarch64')
+url='https://github.com/marinaMoji/marinaMoji'
+license=('BSD-3-Clause')
+depends=('ibus' 'qt6-base' 'opencc')
+makedepends=('bazel' 'python' 'unzip' 'librsvg' 'gtk3')
+provides=('marinamoji')
+conflicts=('marinamoji-bin')
+source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "marinaMoji-${pkgver}/src"
+  bazel build package --config release_build --define CHANNEL=stable
+}
+
+package() {
+  local staging="${srcdir}/install-tree"
+  mkdir -p "${staging}"
+  unzip -q "${srcdir}/marinaMoji-${pkgver}/src/bazel-bin/unix/mozc.zip" \
+    -d "${staging}"
+  # tmp/icons.zip is a staging artifact of the packaging script.
+  rm -rf "${staging}/tmp"
+  cp -a "${staging}/usr" "${pkgdir}/usr"
+
+  local binaries=(
+    usr/lib/marinamoji/mozc_server
+    usr/lib/marinamoji/mozc_tool
+    usr/lib/marinamoji/mozc_renderer
+    usr/lib/marinamoji/mozc_sync
+    usr/lib/ibus-marinamoji/ibus-engine-marinamoji
+    usr/bin/mozc_emacs_helper
+  )
+  local bin
+  for bin in "${binaries[@]}"; do
+    chmod 755 "${pkgdir}/${bin}"
+  done
+
+  install -Dm644 "${srcdir}/marinaMoji-${pkgver}/LICENSE" \
+    "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

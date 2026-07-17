@@ -44,6 +44,7 @@ load(
     "IBUS_MOZC_PATH",
     "LINUX_MOZC_SERVER_DIR",
 )
+load("//build_tools:embed_file.bzl", "mozc_embed_file")
 
 package(default_visibility = ["//visibility:private"])
 
@@ -66,8 +67,12 @@ filegroup(
         "//unix:__pkg__",
     ],
 )
+
 # For marinaMoji about dialog (Qt resource).
-exports_files(["toolbar_icons/logo_long_light.svg"], visibility = ["//gui/about_dialog:__pkg__"])
+exports_files(
+    ["toolbar_icons/logo_long_light.svg"],
+    visibility = ["//gui/about_dialog:__pkg__"],
+)
 
 mozc_py_binary(
     name = "gen_mozc_xml_main",
@@ -110,7 +115,7 @@ mozc_cc_library(
     name = "ibus_header",
     hdrs = mozc_select(linux = ["ibus_header.h"]),
     deps = mozc_select(
-        linux = ["//third_party/ibus"],
+        linux = ["@ibus//:ibus"],
         oss_linux = ["@ibus//:ibus"],
     ),
 )
@@ -124,7 +129,7 @@ mozc_cc_library(
     ] + mozc_select(
         linux = [
             ":ibus_header",
-            "//third_party/ibus",
+            "@ibus//:ibus",
         ],
         oss_linux = [
             ":ibus_header",
@@ -152,7 +157,7 @@ mozc_cc_library(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
     ] + mozc_select(
-        linux = ["//third_party/ibus"],
+        linux = ["@ibus//:ibus"],
         oss_linux = ["@ibus//:ibus"],
     ),
 )
@@ -167,11 +172,11 @@ mozc_cc_library(
         "message_translator.h",
         "path_util.h",
     ],
-    visibility = ["//gui/config_dialog:__pkg__"],
     local_defines = [
         "MARINAMOJI",
         'MOZC_IBUS_INSTALL_DIR=\\"' + IBUS_MOZC_INSTALL_DIR + '\\"',
     ],
+    visibility = ["//gui/config_dialog:__pkg__"],
     deps = [
         "//base:environ",
         "//base:file_util",
@@ -252,16 +257,6 @@ mozc_cc_library(
             "surrounding_text_util.h",
         ],
     ),
-    defines = [
-        "ENABLE_QT_RENDERER",
-    ] + mozc_select(
-        linux = ["MOZC_HAVE_GTK_TOOLBAR"],
-        oss_linux = ["MOZC_HAVE_GTK_TOOLBAR"],
-        default = [],
-    ) + select({
-        ":gtk_layer_shell": ["MOZC_HAVE_GTK_LAYER_SHELL"],
-        "//conditions:default": [],
-    }),
     # Avoid absolute -I paths under /usr/lib (Bazel sandbox disallows paths outside execution root).
     # System GTK and dependencies (Pango, ATK, etc.) needed for toolbar.
     copts = mozc_select(
@@ -285,9 +280,17 @@ mozc_cc_library(
             "-I/usr/include/atk-1.0",
             "-I/usr/include/librsvg-2.0",
         ],
-        default = [],
     ) + select({
         ":gtk_layer_shell": ["-I/usr/include/gtk-layer-shell"],
+        "//conditions:default": [],
+    }),
+    defines = [
+        "ENABLE_QT_RENDERER",
+    ] + mozc_select(
+        linux = ["MOZC_HAVE_GTK_TOOLBAR"],
+        oss_linux = ["MOZC_HAVE_GTK_TOOLBAR"],
+    ) + select({
+        ":gtk_layer_shell": ["MOZC_HAVE_GTK_LAYER_SHELL"],
         "//conditions:default": [],
     }),
     linkopts = mozc_select(
@@ -317,7 +320,6 @@ mozc_cc_library(
             "-lglib-2.0",
             "-lrsvg-2",
         ],
-        default = [],
     ) + select({
         ":gtk_layer_shell": ["-lgtk-layer-shell"],
         "//conditions:default": [],
@@ -339,11 +341,11 @@ mozc_cc_library(
         "//base/container:flat_map",
         "//client",
         "//composer:kaeriten_table_util",
-        "//session:marina_number_row_bindings_util",
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",
         "//renderer:renderer_client",
+        "//session:marina_number_row_bindings_util",
         "//sync:sync_activity",
         "//sync:sync_status",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -353,7 +355,10 @@ mozc_cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
-    ],
+    ] + mozc_select(
+        linux = ["@ibus//:ibus"],
+        oss_linux = ["@ibus//:ibus"],
+    ),
 )
 
 proto_library(
@@ -366,8 +371,17 @@ proto_library(
 
 cc_proto_library(
     name = "ibus_config_cc_proto",
-    deps = ["ibus_config_proto"],
     visibility = ["//gui/config_dialog:__pkg__"],
+    deps = ["ibus_config_proto"],
+)
+
+mozc_embed_file(
+    name = "ibus_config_textproto_inc",
+    srcs = ["ibus_config.textproto"],
+    out = "ibus_config_textproto.inc",
+    as_string_view = True,
+    skip_until = "# proto-file:",
+    var_name = "kIbusConfigTextProto",
 )
 
 mozc_cc_library(
@@ -376,13 +390,16 @@ mozc_cc_library(
     hdrs = [
         "ibus_config.h",
         ":gen_main_h",
+        ":ibus_config_textproto_inc",
     ],
     copts = ["-Wno-unused-variable"],
     local_defines = ["MARINAMOJI"],
     deps = [
         ":ibus_config_cc_proto",
         "//base:file_util",
+        "//base:protobuf_util",
         "//base:system_util",
+        "//base:text_normalizer",
         "//base/protobuf:text_format",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/status",
@@ -469,7 +486,6 @@ mozc_cc_library(
             "candidate_window_handler.h",
         ],
     ),
-    copts = mozc_select(linux = ["-Ithird_party/glib"]),
     deps = [
         ":ibus_header",
         "//base:coordinates",
@@ -485,8 +501,7 @@ mozc_cc_library(
     ] + mozc_select(
         linux = [
             ":ibus_wrapper",
-            "//third_party/ibus",
-            "//third_party/glib/gio",
+            "@ibus//:ibus",
         ],
         oss_linux = [
             ":ibus_wrapper",

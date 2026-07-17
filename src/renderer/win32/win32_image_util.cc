@@ -29,6 +29,8 @@
 
 #include "renderer/win32/win32_image_util.h"
 
+#include <wincodec.h>
+#include <wil/com.h>
 #include <wil/resource.h>
 #include <windows.h>
 
@@ -52,6 +54,81 @@
 namespace mozc {
 namespace renderer {
 namespace win32 {
+
+HBITMAP LoadPngFileToHBitmap(const std::wstring& path, SIZE* out_size) {
+  // The renderer process initializes COM (STA) once at startup via
+  // ScopedCOMInitializer in win32_renderer_main.cc, so a plain
+  // CoCreateInstance is safe here.
+  wil::com_ptr_nothrow<IWICImagingFactory> factory;
+  if (FAILED(::CoCreateInstance(CLSID_WICImagingFactory, nullptr,
+                                 CLSCTX_INPROC_SERVER,
+                                 IID_PPV_ARGS(factory.put())))) {
+    LOG(ERROR) << "CoCreateInstance(CLSID_WICImagingFactory) failed";
+    return nullptr;
+  }
+
+  wil::com_ptr_nothrow<IWICBitmapDecoder> decoder;
+  if (FAILED(factory->CreateDecoderFromFilename(
+          path.c_str(), nullptr, GENERIC_READ,
+          WICDecodeMetadataCacheOnDemand, decoder.put()))) {
+    LOG(ERROR) << "Failed to decode PNG: " << path;
+    return nullptr;
+  }
+
+  wil::com_ptr_nothrow<IWICBitmapFrameDecode> frame;
+  if (FAILED(decoder->GetFrame(0, frame.put()))) {
+    return nullptr;
+  }
+
+  wil::com_ptr_nothrow<IWICFormatConverter> converter;
+  if (FAILED(factory->CreateFormatConverter(converter.put()))) {
+    return nullptr;
+  }
+  // 32bppPBGRA (premultiplied alpha, BGRA byte order) is exactly the format
+  // UpdateLayeredWindow's AC_SRC_ALPHA blend function expects, so no manual
+  // premultiplication step is needed after this.
+  if (FAILED(converter->Initialize(
+          frame.get(), GUID_WICPixelFormat32bppPBGRA,
+          WICBitmapDitherTypeNone, nullptr, 0.0,
+          WICBitmapPaletteTypeCustom))) {
+    return nullptr;
+  }
+
+  UINT width = 0;
+  UINT height = 0;
+  if (FAILED(converter->GetSize(&width, &height)) || width == 0 ||
+      height == 0) {
+    return nullptr;
+  }
+
+  BITMAPINFO bitmap_info = {};
+  bitmap_info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+  bitmap_info.bmiHeader.biWidth = static_cast<LONG>(width);
+  bitmap_info.bmiHeader.biHeight = -static_cast<LONG>(height);  // top-down
+  bitmap_info.bmiHeader.biPlanes = 1;
+  bitmap_info.bmiHeader.biBitCount = 32;
+  bitmap_info.bmiHeader.biCompression = BI_RGB;
+
+  void* bits = nullptr;
+  wil::unique_hbitmap dib(::CreateDIBSection(
+      nullptr, &bitmap_info, DIB_RGB_COLORS, &bits, nullptr, 0));
+  if (!dib || bits == nullptr) {
+    return nullptr;
+  }
+
+  const UINT stride = width * 4;
+  if (FAILED(converter->CopyPixels(nullptr, stride, stride * height,
+                                   static_cast<BYTE*>(bits)))) {
+    return nullptr;
+  }
+
+  if (out_size != nullptr) {
+    out_size->cx = static_cast<LONG>(width);
+    out_size->cy = static_cast<LONG>(height);
+  }
+  return dib.release();
+}
+
 namespace {
 
 using ::mozc::renderer::win32::internal::GaussianBlur;

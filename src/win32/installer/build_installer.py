@@ -116,6 +116,16 @@ def run_wix4(args) -> None:
   mozc_renderer = pathlib.Path(args.mozc_renderer).resolve()
   mozc_tool = pathlib.Path(args.mozc_tool).resolve()
   custom_action = pathlib.Path(args.custom_action).resolve()
+  marinamoji_sync = pathlib.Path(args.marinamoji_sync).resolve()
+  opencc_config = pathlib.Path(args.opencc_config).resolve()
+  opencc_characters = pathlib.Path(args.opencc_characters).resolve()
+  opencc_phrases = pathlib.Path(args.opencc_phrases).resolve()
+  opencc_variants = pathlib.Path(args.opencc_variants).resolve()
+  # All toolbar_icons/*.png live alongside this one sample file (see
+  # data/images/win/generate_toolbar_icons.py); only its parent directory is
+  # needed since installer_marinamoji_64bit.wxs references each file by its
+  # literal name under $(var.ToolbarIconsDir).
+  toolbar_icons_dir = pathlib.Path(args.toolbar_icons_sample).resolve().parent
   wix_path = pathlib.Path(args.wix_path).resolve()
 
   branding = args.branding
@@ -132,6 +142,8 @@ def run_wix4(args) -> None:
     )
   elif branding == 'Mozc':
     upgrade_code = 'DD94B570-B5E2-4100-9D42-61930C611D8A'
+  elif branding == 'marinaMoji':
+    upgrade_code = 'F01BE4B5-4749-46C1-B714-DFF9FE9744A0'
 
   omaha_channel_type = 'dev' if version.IsDevChannel() else 'stable'
   vs_configuration_name = 'Debug' if args.debug_build else 'Release'
@@ -158,6 +170,12 @@ def run_wix4(args) -> None:
       '-define', f'MozcRenderer64Path={mozc_renderer}',
       '-define', f'MozcToolPath={mozc_tool}',
       '-define', f'CustomActions64Path={custom_action}',
+      '-define', f'MarinaMojiSyncPath={marinamoji_sync}',
+      '-define', f'OpenccConfigPath={opencc_config}',
+      '-define', f'OpenccCharactersPath={opencc_characters}',
+      '-define', f'OpenccPhrasesPath={opencc_phrases}',
+      '-define', f'OpenccVariantsPath={opencc_variants}',
+      '-define', f'ToolbarIconsDir={toolbar_icons_dir}',
       '-define', f'DocumentsDir={document_dir}',
       '-define', f'QtDir={qt_dir}',
       '-define', 'QtVer=6',
@@ -190,6 +208,12 @@ def main():
   parser.add_argument('--mozc_tip64arm', type=str)
   parser.add_argument('--mozc_tip64x', type=str)
   parser.add_argument('--custom_action', type=str)
+  parser.add_argument('--marinamoji_sync', type=str)
+  parser.add_argument('--opencc_config', type=str)
+  parser.add_argument('--opencc_characters', type=str)
+  parser.add_argument('--opencc_phrases', type=str)
+  parser.add_argument('--opencc_variants', type=str)
+  parser.add_argument('--toolbar_icons_sample', type=str)
   parser.add_argument('--icon_path', type=str)
   parser.add_argument('--credit_file', type=str)
   parser.add_argument('--qt_core_dll', type=str)

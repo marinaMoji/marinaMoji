@@ -44,6 +44,7 @@ mozc_win32_cc_prod_binary(
     executable_name_map = {
         "Mozc": "mozc_installer_helper.dll",
         "GoogleJapaneseInput": "GoogleIMEJaInstallerHelper.dll",
+        "marinaMoji": "marinamoji_installer_helper.dll",
     },
     linkshared = True,
     static_crt = True,
@@ -67,6 +68,7 @@ mozc_win32_cc_prod_binary(
         "//renderer:renderer_client",
         "//win32/base:input_dll",
         "//win32/base:omaha_util",
+        "//win32/base:task_scheduler_util",
         "//win32/base:tsf_profile",
         "//win32/base:tsf_registrar",
         "//win32/base:uninstall_helper",

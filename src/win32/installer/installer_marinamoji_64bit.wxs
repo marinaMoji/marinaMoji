@@ -1,0 +1,827 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ Copyright 2010-2021, Google Inc.
+ All rights reserved.
+
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are
+ met:
+
+     * Redistributions of source code must retain the above copyright
+ notice, this list of conditions and the following disclaimer.
+     * Redistributions in binary form must reproduce the above
+ copyright notice, this list of conditions and the following disclaimer
+ in the documentation and/or other materials provided with the
+ distribution.
+     * Neither the name of Google Inc. nor the names of its
+ contributors may be used to endorse or promote products derived from
+ this software without specific prior written permission.
+
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ marinaMoji: derived from installer_oss_64bit.wxs. All file/service/registry
+ names use the marinamoji_* binary names and CRCAO\marinaMoji registry root
+ so this MSI installs side-by-side with stock Mozc and Google Japanese Input.
+ See docs/WINDOWS_PORT_PLAN.md Phase 1 for the naming decisions.
+-->
+
+
+<?define QtCoreFilename="Qt$(var.QtVer)Core.dll" ?>
+<?define QtCoredFilename="Qt$(var.QtVer)Cored.dll" ?>
+<?define QtGuiFilename="Qt$(var.QtVer)Gui.dll" ?>
+<?define QtGuidFilename="Qt$(var.QtVer)Guid.dll" ?>
+<?define QtWidgetsFilename="Qt$(var.QtVer)Widgets.dll" ?>
+<?define QtWidgetsdFilename="Qt$(var.QtVer)Widgetsd.dll" ?>
+
+<?ifndef MozcTIP64ArmPath ?>
+  <?define MozcTIP64ArmPath="" ?>
+<?endif?>
+<?ifndef MozcTIP64XPath ?>
+  <?define MozcTIP64XPath="" ?>
+<?endif?>
+<?ifndef MozcUniversalInstaller ?>
+  <?define MozcUniversalInstaller="" ?>
+<?endif?>
+
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <!--
+    It appears that Windows Installer emits error on upgrade saying "Another
+    version of this product is already installed" unless we change the product
+    ID even when we follow the instructions in "Changing the Product Code"
+    http://msdn.microsoft.com/en-us/library/aa367850.aspx.
+    So we change the product ID for every new version.
+  -->
+  <Package Name="marinaMoji" Language="1041" Codepage="932" Version="$(var.MozcVersion)" Manufacturer="CRCAO" UpgradeCode="$(var.UpgradeCode)" InstallerVersion="500">
+    <SummaryInformation Keywords="Installer" Description="marinaMoji インストーラー" Manufacturer="CRCAO" Codepage="932" />
+
+    <!--
+       While obtaining the OS build number from the registry does not seem to be officially
+       explained, there are several articles in the Microsoft website that do mention how to do so
+       with the registry value.
+         https://learn.microsoft.com/en-us/fslogix/reference-configuration-settings#custom-environment-variables
+         https://learn.microsoft.com/en-us/intune/intune-service/apps/apps-win32-deploy-update-package
+
+       Here are other examples that use the same registry value to check the OS build number.
+         Microsoft PowerToys
+           https://github.com/microsoft/PowerToys/blob/ca473b488bc3df626140cd332b9a1ea4ff1fcdf2/installer/PowerToysSetup/Product.wxs#L43-L45
+         Google bindiff
+           https://github.com/google/bindiff/blob/7e4d0375035b2353f22f44311f747eedafd98c4e/packaging/msi/Setup.wxs#L70-L75
+
+                       Build Number
+       Windows 10 1507      10240
+       Windows 10 1511      10586
+       Windows 10 1607      14393
+       Windows 10 1703      15063
+       Windows 10 1709      16299
+       Windows 10 1803      17134
+       Windows 10 1809      17763
+       Windows 10 1903      18362
+       Windows 10 1903      18362
+       Windows 10 1909      18363
+       Windows 10 2004      19041
+       Windows 10 20H2      19042
+       Windows 10 21H1      19043
+       Windows 10 21H2      19044
+       Windows 10 22H2      19045
+
+       Windows 11 21H2      22000
+       Windows 11 22H2      22621
+       Windows 11 23H2      22631
+       Windows 11 24H2      26100
+
+       Note that this needs to be a secure property. Otherwise, it becomes an unexpected value in
+       the repair/uninstall mode. See https://github.com/google/mozc/issues/1410
+    -->
+    <Property Id="OS_BUILD_NUMBER" Secure="yes">
+      <RegistrySearch Id="CurrentBuildNumberValue" Type="raw" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Name="CurrentBuildNumber" />
+    </Property>
+    <Launch Condition="(OS_BUILD_NUMBER AND (OS_BUILD_NUMBER &gt;= 17763)) OR (REMOVE=&quot;ALL&quot;)" Message="marinaMoji をインストールするには Windows 10 1809 以降にアップグレードする必要があります。" />
+
+    <!-- Check if the user have the administrative privileges. -->
+    <Launch Condition="Privileged" Message="marinaMoji をインストールするには管理者権限が必要です。" />
+    <Media Id="1" Cabinet="marinaMoji.cab" EmbedCab="yes" CompressionLevel="high" />
+
+    <?if $(var.MozcTIP64ArmPath) == "" and $(var.MozcTIP64XPath) == "" and $(var.MozcUniversalInstaller) == "" ?>
+      <!--
+        This needs to be a secure property. Otherwise, it becomes an unexpected value in the
+        repair/uninstall mode. See https://github.com/google/mozc/issues/1410
+      -->
+      <Property Id="PROCESSOR_ARCHITECTURE" Secure="yes">
+        <RegistrySearch Id="ProcessorArchitectureValue" Type="raw" Root="HKLM" Key="System\CurrentControlSet\Control\Session Manager\Environment" Name="PROCESSOR_ARCHITECTURE" />
+      </Property>
+      <Launch Condition="(NOT (PROCESSOR_ARCHITECTURE=&quot;ARM64&quot;)) OR UPGRADING OR (REMOVE=&quot;ALL&quot;)" Message="ARM64 環境へのインストールは未対応です" />
+    <?endif?>
+
+    <!-- Set Add/Remove Program Icon -->
+    <Icon Id="add_remove_program_icon.ico" SourceFile="$(var.AddRemoveProgramIconPath)" />
+    <Property Id="ARPPRODUCTICON" Value="add_remove_program_icon.ico" />
+
+    <!-- Disable Modify and Repair buttons. -->
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+
+    <!--
+       TODO: Consider migrating to "MajorUpgrade" rule.
+       See https://github.com/google/mozc/issues/734#issuecomment-1524294119
+    -->
+    <Upgrade Id="$(var.UpgradeCode)">
+      <UpgradeVersion Minimum="0.0.0.0" IncludeMinimum="yes" Maximum="$(var.MozcVersion)" IncludeMaximum="yes" OnlyDetect="no" Property="UPGRADING" />
+      <UpgradeVersion Minimum="$(var.MozcVersion)" IncludeMinimum="no" OnlyDetect="yes" Property="NEWERVERSIONDETECTED" />
+    </Upgrade>
+
+    <UI>
+      <Error Id="4000" Message="新しいバージョンの marinaMoji が既にインストールされています。" />
+    </UI>
+
+    <Feature Id="MarinaMojiInstall" Title="marinaMoji" Level="1">
+      <ComponentRef Id="MarinaMojiTIP32" />
+      <ComponentRef Id="MarinaMojiTIP64" />
+      <?if $(var.MozcTIP64ArmPath) != "" and $(var.MozcTIP64XPath) != "" ?>
+        <ComponentRef Id="MarinaMojiTIP64Arm" />
+        <ComponentRef Id="MarinaMojiTIP64X" />
+      <?endif?>
+      <ComponentRef Id="MarinaMojiBroker" />
+      <ComponentRef Id="MarinaMojiConverter" />
+      <ComponentRef Id="MarinaMojiCacheService" />
+      <ComponentRef Id="MarinaMojiRenderer" />
+      <ComponentRef Id="MarinaMojiTool" />
+      <?if $(var.VSConfigurationName) = "Release" ?>
+        <ComponentRef Id="msvcp140" />
+        <ComponentRef Id="msvcp140_1" />
+        <ComponentRef Id="msvcp140_2" />
+        <ComponentRef Id="vcruntime140" />
+        <ComponentRef Id="vcruntime140_1" />
+        <ComponentRef Id="QtCoreDll" />
+        <ComponentRef Id="QtGuiDll" />
+        <ComponentRef Id="QtWidgetsDll" />
+        <ComponentRef Id="QWindowsDll" />
+      <?else?>
+        <ComponentRef Id="QtCoredDll" />
+        <ComponentRef Id="QtGuidDll" />
+        <ComponentRef Id="QtWidgetsdDll" />
+        <ComponentRef Id="QWindowsdDll" />
+      <?endif?>
+      <ComponentRef Id="SysProcs" />
+      <ComponentRef Id="PrelaunchProcesses" />
+      <ComponentRef Id="CreditsEn" />
+      <ComponentRef Id="MarinaMojiOpenccConfig" />
+      <ComponentRef Id="MarinaMojiOpenccCharacters" />
+      <ComponentRef Id="MarinaMojiOpenccPhrases" />
+      <ComponentRef Id="MarinaMojiOpenccVariants" />
+      <ComponentRef Id="MarinaMojiSync" />
+      <ComponentRef Id="MMToolbarIcon_logo_long_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_logo_long_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_logo_long_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_logo_long_light_24" />
+      <ComponentRef Id="MMToolbarIcon_logo_long_light_36" />
+      <ComponentRef Id="MMToolbarIcon_logo_long_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_dict_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_dict_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_dict_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_dict_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_dict_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_dict_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_dark_lock_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_dark_lock_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_dark_lock_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_light_lock_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_light_lock_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_hira_light_lock_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_dark_lock_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_dark_lock_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_dark_lock_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_half_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_half_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_half_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_half_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_half_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_half_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_light_lock_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_light_lock_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kata_light_lock_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kyu_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kyu_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kyu_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kyu_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kyu_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_kyu_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_full_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_full_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_full_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_full_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_full_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_full_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_half_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_half_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_half_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_half_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_half_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roma_half_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_dark_lock_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_dark_lock_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_dark_lock_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_light_lock_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_light_lock_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_roman_light_lock_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_settings_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_settings_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_settings_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_settings_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_settings_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_settings_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shin_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shin_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shin_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shin_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shin_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shin_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shortcuts_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shortcuts_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shortcuts_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shortcuts_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shortcuts_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_shortcuts_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_symbols_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_symbols_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_symbols_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_symbols_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_symbols_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_symbols_light_48" />
+    </Feature>
+
+    <Binary Id="marinamoji_installer_helper.dll" SourceFile="$(var.CustomActions64Path)" />
+
+    <CustomAction Id="RegisterTIP64" DllEntry="RegisterTIP" Execute="deferred" Impersonate="no" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="RegisterTIPRollback64" DllEntry="RegisterTIPRollback" Execute="rollback" Impersonate="no" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="UnregisterTIP64" DllEntry="UnregisterTIP" Execute="deferred" Impersonate="no" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="UnregisterTIPRollback64" DllEntry="UnregisterTIPRollback" Execute="rollback" Impersonate="no" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="EnsureAllApplicationPackagesPermisssions" DllEntry="EnsureAllApplicationPackagesPermisssions" Execute="deferred" Impersonate="no" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="ShutdownServer" DllEntry="ShutdownServer" Impersonate="yes" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="RestoreUserIMEEnvironment" DllEntry="RestoreUserIMEEnvironment" Impersonate="yes" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="InitialInstallation" DllEntry="InitialInstallation" Execute="deferred" Impersonate="no" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="InitialInstallationCommit" DllEntry="InitialInstallationCommit" Execute="commit" Impersonate="no" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="EnableTipProfile" DllEntry="EnableTipProfile" Execute="commit" Impersonate="yes" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="FixupConfigFilePermission" DllEntry="FixupConfigFilePermission" Execute="commit" Impersonate="yes" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="HideCancelButton" DllEntry="HideCancelButton" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="SaveCustomActionData" DllEntry="SaveCustomActionData" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="RestoreServiceState" DllEntry="RestoreServiceState" Impersonate="no" Execute="deferred" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="StopCacheServiceForRollback" DllEntry="StopCacheService" Impersonate="no" Execute="rollback" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
+    <!--
+      Registers/unregisters the per-user Task Scheduler logon task that runs
+      marinamoji_sync.exe in daemon mode (see docs/WINDOWS_PORT_PLAN.md Phase 5
+      and win32/base/task_scheduler_util.h). Impersonate="yes" so the task is
+      registered under the installing user's own account, matching
+      EnableTipProfile/RestoreUserIMEEnvironment above.
+    -->
+    <CustomAction Id="RegisterSyncTask" DllEntry="RegisterSyncTask" Execute="commit" Impersonate="yes" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="UnregisterSyncTask" DllEntry="UnregisterSyncTask" Impersonate="yes" Return="ignore" BinaryRef="marinamoji_installer_helper.dll" />
+    <CustomAction Id="NewerVersionError" Error="4000" />
+
+    <InstallExecuteSequence>
+      <Custom Action="InitialInstallation" After="InstallInitialize" Condition="(NOT (REMOVE=&quot;ALL&quot;)) AND (NOT UPGRADING)" />
+      <Custom Action="HideCancelButton" After="InitialInstallation" />
+      <Custom Action="SaveCustomActionData" Before="StopServices" Condition="(NOT (REMOVE=&quot;ALL&quot;))" />
+      <StopServices />
+      <DeleteServices />
+      <Custom Action="RestoreUserIMEEnvironment" After="DeleteServices" Condition="(REMOVE=&quot;ALL&quot;) AND (NOT UPGRADINGPRODUCTCODE)" />
+      <Custom Action="UnregisterSyncTask" After="RestoreUserIMEEnvironment" Condition="(REMOVE=&quot;ALL&quot;) AND (NOT UPGRADINGPRODUCTCODE)" />
+      <!-- This action invoked only when removal of the old product failed. -->
+      <Custom Action="UnregisterTIPRollback64" After="RestoreUserIMEEnvironment" Condition="(REMOVE=&quot;ALL&quot;) AND UPGRADINGPRODUCTCODE AND (VersionNT64)" />
+      <Custom Action="UnregisterTIP64" After="UnregisterTIPRollback64" Condition="(REMOVE=&quot;ALL&quot;) AND (NOT UPGRADINGPRODUCTCODE) AND (VersionNT64)" />
+      <!--
+        The InstallValidate action notifies the user
+        if marinamoji_server.exe and marinamoji_renderer.exe
+        are currenly running. So the ShutdownServer action
+        needs to be callled before the InstallValidate action.
+      -->
+      <Custom Action="ShutdownServer" Before="InstallValidate" />
+      <Custom Action="NewerVersionError" After="FindRelatedProducts" Condition="NEWERVERSIONDETECTED" />
+      <!--
+        RemoveExistingProducts needs to be scheduled between InstallExecute and
+        InstallFinalize to correctly deal with errors which occur when the old
+        product is removed on upgrade.
+        http://msdn.microsoft.com/en-us/library/aa371197(VS.85).aspx
+      -->
+      <InstallExecute Before="RemoveExistingProducts" />
+      <RemoveExistingProducts Before="StopCacheServiceForRollback" />
+      <!--
+        When the installer enters rollback mode, the cache service should be
+        stopped before RemoveExistingProducts is invoked.
+      -->
+      <Custom Action="StopCacheServiceForRollback" Before="RestoreServiceState" Condition="(NOT (REMOVE=&quot;ALL&quot;))" />
+      <Custom Action="RestoreServiceState" Before="RegisterTIPRollback64" Condition="(NOT (REMOVE=&quot;ALL&quot;))" />
+      <!--
+        If error occurs after RegisterTIP64,
+        the registration needs to be canceled by registering the old product.
+        So RegisterTIP64 needs to be scheduled after RemoveExistingProduct.
+      -->
+      <Custom Action="RegisterTIPRollback64" Before="RegisterTIP64" Condition="(NOT (REMOVE=&quot;ALL&quot;)) AND (VersionNT64) AND (NOT UPGRADING)" />
+      <Custom Action="RegisterTIP64" Before="EnsureAllApplicationPackagesPermisssions" Condition="(NOT (REMOVE=&quot;ALL&quot;)) AND (VersionNT64)" />
+      <Custom Action="EnsureAllApplicationPackagesPermisssions" Before="InitialInstallationCommit" Condition="(NOT (REMOVE=&quot;ALL&quot;))" />
+      <Custom Action="InitialInstallationCommit" Before="FixupConfigFilePermission" Condition="(NOT (REMOVE=&quot;ALL&quot;)) AND (NOT UPGRADING)" />
+      <Custom Action="FixupConfigFilePermission" Before="EnableTipProfile" Condition="NOT (REMOVE=&quot;ALL&quot;)" />
+      <Custom Action="EnableTipProfile" Before="InstallFinalize" Condition="(NOT (REMOVE=&quot;ALL&quot;)) AND (NOT UPGRADING)" />
+      <!--
+        Re-registered on every install/upgrade (unlike EnableTipProfile,
+        which skips upgrades) so upgrading from a pre-sync version also gets
+        the task; TASK_CREATE_OR_UPDATE makes repeated registration a no-op.
+      -->
+      <Custom Action="RegisterSyncTask" Before="InstallFinalize" Condition="NOT (REMOVE=&quot;ALL&quot;)" />
+      <!-- show reboot dialog to execute pending file opartions -->
+      <?if ($(var.VSConfigurationName) = "Release") ?>
+        <ScheduleReboot After="InstallFinalize" Condition="(REMOVE=&quot;ALL&quot;)" />
+      <?endif?>
+    </InstallExecuteSequence>
+
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Id="MarinaMojiDir" Name="marinaMoji">
+        <Component Id="MarinaMojiConverter">
+          <File Id="marinamoji_server.exe" Name="marinamoji_server.exe" DiskId="1" Checksum="yes" Source="$(var.MozcServer64Path)" Vital="yes" />
+        </Component>
+        <Component Id="MarinaMojiCacheService">
+          <File Id="marinamoji_cache_service.exe" Name="marinamoji_cache_service.exe" DiskId="1" Checksum="yes" Source="$(var.MozcCacheService64Path)" Vital="yes" KeyPath="yes" />
+          <!--
+            To use localized description, set Description as follows:
+              Description="@[#marinamoji_cache_service.exe],-N"
+            where N is the resource ID for the description.
+            http://msdn.microsoft.com/en-us/library/ms685156.aspx
+
+            See win32/cache_service/mozc_cache_service_resource.h for resource
+            IDs used below.
+
+            The service name specified in "Name" needs to be the same to
+            |mozc::kMozcCacheServiceName| defined in base/const.h
+            (marinaMojiCacheService).
+          -->
+          <ServiceInstall Id="MarinaMojiCacheService" Name="marinaMojiCacheService" DisplayName="@[#marinamoji_cache_service.exe],-100" Description="@[#marinamoji_cache_service.exe],-101" Type="ownProcess" Start="auto" ErrorControl="normal" />
+          <!--
+            The following entry which stops our cache service both on
+            installation and uninstallation should be the first entry in
+            the ServiceControl table.  Otherwise, restart manager does not
+            recognise that the specified service will be stopped during the
+            instalaltion.  See http://b/2440272 for details.
+          -->
+          <ServiceControl Id="StopMarinaMojiCacheService" Name="marinaMojiCacheService" Stop="both" Remove="uninstall" Wait="yes" />
+        </Component>
+        <Component Id="MarinaMojiTIP32" Permanent="no" Bitness="always32">
+          <File Id="marinamoji_tip32.dll" Name="marinamoji_tip32.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIP32Path)" Vital="yes" />
+        </Component>
+        <Component Id="MarinaMojiTIP64" Permanent="no" Bitness="always64">
+          <File Id="marinamoji_tip64.dll" Name="marinamoji_tip64.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIP64Path)" Vital="yes" />
+        </Component>
+        <?if $(var.MozcTIP64ArmPath) != "" and $(var.MozcTIP64XPath) != "" ?>
+          <Component Id="MarinaMojiTIP64Arm" Permanent="no" Bitness="always64">
+            <File Id="marinamoji_tip64arm.dll" Name="marinamoji_tip64arm.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIP64ArmPath)" Vital="yes" />
+          </Component>
+          <Component Id="MarinaMojiTIP64X" Permanent="no" Bitness="always64">
+            <File Id="marinamoji_tip64x.dll" Name="marinamoji_tip64x.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIP64XPath)" Vital="yes" />
+          </Component>
+        <?endif?>
+        <Component Id="MarinaMojiBroker" Permanent="no">
+          <File Id="marinamoji_broker.exe" Name="marinamoji_broker.exe" DiskId="1" Checksum="yes" Source="$(var.MozcBroker64Path)" Vital="yes" />
+        </Component>
+        <Component Id="MarinaMojiSync" Permanent="no">
+          <File Id="marinamoji_sync.exe" Name="marinamoji_sync.exe" DiskId="1" Checksum="yes" Source="$(var.MarinaMojiSyncPath)" Vital="yes" />
+        </Component>
+        <Component Id="MarinaMojiRenderer">
+          <File Id="marinamoji_renderer.exe" Name="marinamoji_renderer.exe" DiskId="1" Vital="yes" Checksum="yes" Source="$(var.MozcRenderer64Path)" />
+        </Component>
+        <Component Id="MarinaMojiTool">
+          <File Id="marinamoji_tool.exe" Name="marinamoji_tool.exe" DiskId="1" Checksum="yes" Source="$(var.MozcToolPath)" Vital="yes" />
+        </Component>
+        <?if $(var.VSConfigurationName) = "Release" ?>
+          <Component Id="msvcp140">
+            <File Id="msvcp140.dll" Name="msvcp140.dll" DiskId="1" Checksum="yes" Source="$(var.ReleaseRedistCrt64Dir)/msvcp140.dll" />
+          </Component>
+          <Component Id="msvcp140_1">
+            <File Id="msvcp140_1.dll" Name="msvcp140_1.dll" DiskId="1" Checksum="yes" Source="$(var.ReleaseRedistCrt64Dir)/msvcp140_1.dll" />
+          </Component>
+          <Component Id="msvcp140_2">
+            <File Id="msvcp140_2.dll" Name="msvcp140_2.dll" DiskId="1" Checksum="yes" Source="$(var.ReleaseRedistCrt64Dir)/msvcp140_2.dll" />
+          </Component>
+          <Component Id="vcruntime140">
+            <File Id="vcruntime140.dll" Name="vcruntime140.dll" DiskId="1" Checksum="yes" Source="$(var.ReleaseRedistCrt64Dir)/vcruntime140.dll" />
+          </Component>
+          <Component Id="vcruntime140_1">
+            <File Id="vcruntime140_1.dll" Name="vcruntime140_1.dll" DiskId="1" Checksum="yes" Source="$(var.ReleaseRedistCrt64Dir)/vcruntime140_1.dll" />
+          </Component>
+          <Component Id="QtCoreDll">
+            <!-- Always overwrite: b/31845781 -->
+            <RemoveFile Id="$(var.QtCoreFilename)" Name="$(var.QtCoreFilename)" On="install" />
+            <File Id="$(var.QtCoreFilename)" Name="$(var.QtCoreFilename)" DiskId="1" Vital="yes" Checksum="yes" Source="$(var.QtDir)/bin/$(var.QtCoreFilename)" />
+          </Component>
+          <Component Id="QtGuiDll">
+            <!-- Always overwrite: b/31845781 -->
+            <RemoveFile Id="$(var.QtGuiFilename)" Name="$(var.QtGuiFilename)" On="install" />
+            <File Id="$(var.QtGuiFilename)" Name="$(var.QtGuiFilename)" DiskId="1" Vital="yes" Checksum="yes" Source="$(var.QtDir)/bin/$(var.QtGuiFilename)" />
+          </Component>
+          <Component Id="QtWidgetsDll">
+            <!-- Always overwrite: b/31845781 -->
+            <RemoveFile Id="$(var.QtWidgetsFilename)" Name="$(var.QtWidgetsFilename)" On="install" />
+            <File Id="$(var.QtWidgetsFilename)" Name="$(var.QtWidgetsFilename)" DiskId="1" Vital="yes" Checksum="yes" Source="$(var.QtDir)/bin/$(var.QtWidgetsFilename)" />
+          </Component>
+        <?else?>
+          <Component Id="QtCoredDll">
+            <!-- Always overwrite: b/31845781 -->
+            <RemoveFile Id="$(var.QtCoredFilename)" Name="$(var.QtCoredFilename)" On="install" />
+            <File Id="$(var.QtCoredFilename)" Name="$(var.QtCoredFilename)" DiskId="1" Vital="yes" Checksum="yes" Source="$(var.QtDir)/bin/$(var.QtCoredFilename)" />
+          </Component>
+          <Component Id="QtGuidDll">
+            <!-- Always overwrite: b/31845781 -->
+            <RemoveFile Id="$(var.QtGuidFilename)" Name="$(var.QtGuidFilename)" On="install" />
+            <File Id="$(var.QtGuidFilename)" Name="$(var.QtGuidFilename)" DiskId="1" Vital="yes" Checksum="yes" Source="$(var.QtDir)/bin/$(var.QtGuidFilename)" />
+          </Component>
+          <Component Id="QtWidgetsdDll">
+            <!-- Always overwrite: b/31845781 -->
+            <RemoveFile Id="$(var.QtWidgetsdFilename)" Name="$(var.QtWidgetsdFilename)" On="install" />
+            <File Id="$(var.QtWidgetsdFilename)" Name="$(var.QtWidgetsdFilename)" DiskId="1" Vital="yes" Checksum="yes" Source="$(var.QtDir)/bin/$(var.QtWidgetsdFilename)" />
+          </Component>
+        <?endif?>
+        <Directory Id="DocumentsDir" Name="documents">
+          <Component Id="CreditsEn">
+            <File Id="credits_en.html" Name="credits_en.html" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.DocumentsDir)/credits_en.html" />
+          </Component>
+        </Directory>
+        <Directory Id="QtPlatformsPluginDir" Name="platforms">
+          <?if $(var.VSConfigurationName) = "Debug" ?>
+            <Component Id="QWindowsdDll">
+              <!-- Always overwrite: b/31845781 -->
+              <RemoveFile Id="qwindowsd.dll" Name="qwindowsd.dll" On="install" />
+              <File Id="qwindowsd.dll" Name="qwindowsd.dll" DiskId="1" Vital="yes" Checksum="yes" Source="$(var.QtDir)/plugins/platforms/qwindowsd.dll" />
+            </Component>
+          <?else?>
+            <Component Id="QWindowsDll">
+              <!-- Always overwrite: b/31845781 -->
+              <RemoveFile Id="qwindows.dll" Name="qwindows.dll" On="install" />
+              <File Id="qwindows.dll" Name="qwindows.dll" DiskId="1" Vital="yes" Checksum="yes" Source="$(var.QtDir)/plugins/platforms/qwindows.dll" />
+            </Component>
+          <?endif?>
+        </Directory>
+        <!--
+          Curated marina shin->kyu (OpenCC) tables. Path must match
+          SystemUtil::GetServerDirectory() + "/opencc/" in opencc_rewriter.cc,
+          i.e. sit next to marinamoji_server.exe in an "opencc" subdirectory.
+        -->
+        <Directory Id="OpenccDir" Name="opencc">
+          <Component Id="MarinaMojiOpenccConfig">
+            <File Id="marinaShin2Kyu.json" Name="marinaShin2Kyu.json" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.OpenccConfigPath)" />
+          </Component>
+          <Component Id="MarinaMojiOpenccCharacters">
+            <File Id="marinaShin2KyuCharacters.ocd2" Name="marinaShin2KyuCharacters.ocd2" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.OpenccCharactersPath)" />
+          </Component>
+          <Component Id="MarinaMojiOpenccPhrases">
+            <File Id="marinaShin2KyuPhrases.ocd2" Name="marinaShin2KyuPhrases.ocd2" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.OpenccPhrasesPath)" />
+          </Component>
+          <Component Id="MarinaMojiOpenccVariants">
+            <File Id="marinaShin2KyuVariants.ocd2" Name="marinaShin2KyuVariants.ocd2" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.OpenccVariantsPath)" />
+          </Component>
+        </Directory>
+        <!--
+          Pre-rendered PNG toolbar icons for the floating toolbar (see
+          renderer/win32/toolbar_window.cc). Path must match
+          SystemUtil::GetServerDirectory() + "/toolbar_icons/", i.e. sit next
+          to marinamoji_renderer.exe. Generated from src/unix/ibus/toolbar_
+          icons/*.svg by src/data/images/win/generate_toolbar_icons.py
+          (Windows has no SVG decoder, unlike mac/Linux).
+        -->
+        <Directory Id="ToolbarIconsDir" Name="toolbar_icons">
+          <Component Id="MMToolbarIcon_logo_long_dark_24">
+            <File Id="logo_long_dark_24.png" Name="logo_long_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/logo_long_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_logo_long_dark_36">
+            <File Id="logo_long_dark_36.png" Name="logo_long_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/logo_long_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_logo_long_dark_48">
+            <File Id="logo_long_dark_48.png" Name="logo_long_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/logo_long_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_logo_long_light_24">
+            <File Id="logo_long_light_24.png" Name="logo_long_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/logo_long_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_logo_long_light_36">
+            <File Id="logo_long_light_36.png" Name="logo_long_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/logo_long_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_logo_long_light_48">
+            <File Id="logo_long_light_48.png" Name="logo_long_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/logo_long_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_dict_dark_24">
+            <File Id="toolbar_dict_dark_24.png" Name="toolbar_dict_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_dict_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_dict_dark_36">
+            <File Id="toolbar_dict_dark_36.png" Name="toolbar_dict_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_dict_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_dict_dark_48">
+            <File Id="toolbar_dict_dark_48.png" Name="toolbar_dict_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_dict_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_dict_light_24">
+            <File Id="toolbar_dict_light_24.png" Name="toolbar_dict_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_dict_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_dict_light_36">
+            <File Id="toolbar_dict_light_36.png" Name="toolbar_dict_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_dict_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_dict_light_48">
+            <File Id="toolbar_dict_light_48.png" Name="toolbar_dict_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_dict_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_dark_24">
+            <File Id="toolbar_hira_dark_24.png" Name="toolbar_hira_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_dark_36">
+            <File Id="toolbar_hira_dark_36.png" Name="toolbar_hira_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_dark_48">
+            <File Id="toolbar_hira_dark_48.png" Name="toolbar_hira_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_dark_lock_24">
+            <File Id="toolbar_hira_dark_lock_24.png" Name="toolbar_hira_dark_lock_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_dark_lock_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_dark_lock_36">
+            <File Id="toolbar_hira_dark_lock_36.png" Name="toolbar_hira_dark_lock_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_dark_lock_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_dark_lock_48">
+            <File Id="toolbar_hira_dark_lock_48.png" Name="toolbar_hira_dark_lock_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_dark_lock_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_light_24">
+            <File Id="toolbar_hira_light_24.png" Name="toolbar_hira_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_light_36">
+            <File Id="toolbar_hira_light_36.png" Name="toolbar_hira_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_light_48">
+            <File Id="toolbar_hira_light_48.png" Name="toolbar_hira_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_light_lock_24">
+            <File Id="toolbar_hira_light_lock_24.png" Name="toolbar_hira_light_lock_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_light_lock_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_light_lock_36">
+            <File Id="toolbar_hira_light_lock_36.png" Name="toolbar_hira_light_lock_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_light_lock_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_hira_light_lock_48">
+            <File Id="toolbar_hira_light_lock_48.png" Name="toolbar_hira_light_lock_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_hira_light_lock_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_dark_24">
+            <File Id="toolbar_kata_dark_24.png" Name="toolbar_kata_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_dark_36">
+            <File Id="toolbar_kata_dark_36.png" Name="toolbar_kata_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_dark_48">
+            <File Id="toolbar_kata_dark_48.png" Name="toolbar_kata_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_dark_lock_24">
+            <File Id="toolbar_kata_dark_lock_24.png" Name="toolbar_kata_dark_lock_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_dark_lock_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_dark_lock_36">
+            <File Id="toolbar_kata_dark_lock_36.png" Name="toolbar_kata_dark_lock_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_dark_lock_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_dark_lock_48">
+            <File Id="toolbar_kata_dark_lock_48.png" Name="toolbar_kata_dark_lock_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_dark_lock_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_half_dark_24">
+            <File Id="toolbar_kata_half_dark_24.png" Name="toolbar_kata_half_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_half_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_half_dark_36">
+            <File Id="toolbar_kata_half_dark_36.png" Name="toolbar_kata_half_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_half_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_half_dark_48">
+            <File Id="toolbar_kata_half_dark_48.png" Name="toolbar_kata_half_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_half_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_half_light_24">
+            <File Id="toolbar_kata_half_light_24.png" Name="toolbar_kata_half_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_half_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_half_light_36">
+            <File Id="toolbar_kata_half_light_36.png" Name="toolbar_kata_half_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_half_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_half_light_48">
+            <File Id="toolbar_kata_half_light_48.png" Name="toolbar_kata_half_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_half_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_light_24">
+            <File Id="toolbar_kata_light_24.png" Name="toolbar_kata_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_light_36">
+            <File Id="toolbar_kata_light_36.png" Name="toolbar_kata_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_light_48">
+            <File Id="toolbar_kata_light_48.png" Name="toolbar_kata_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_light_lock_24">
+            <File Id="toolbar_kata_light_lock_24.png" Name="toolbar_kata_light_lock_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_light_lock_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_light_lock_36">
+            <File Id="toolbar_kata_light_lock_36.png" Name="toolbar_kata_light_lock_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_light_lock_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kata_light_lock_48">
+            <File Id="toolbar_kata_light_lock_48.png" Name="toolbar_kata_light_lock_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kata_light_lock_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kyu_dark_24">
+            <File Id="toolbar_kyu_dark_24.png" Name="toolbar_kyu_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kyu_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kyu_dark_36">
+            <File Id="toolbar_kyu_dark_36.png" Name="toolbar_kyu_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kyu_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kyu_dark_48">
+            <File Id="toolbar_kyu_dark_48.png" Name="toolbar_kyu_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kyu_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kyu_light_24">
+            <File Id="toolbar_kyu_light_24.png" Name="toolbar_kyu_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kyu_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kyu_light_36">
+            <File Id="toolbar_kyu_light_36.png" Name="toolbar_kyu_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kyu_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_kyu_light_48">
+            <File Id="toolbar_kyu_light_48.png" Name="toolbar_kyu_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_kyu_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_full_dark_24">
+            <File Id="toolbar_roma_full_dark_24.png" Name="toolbar_roma_full_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_full_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_full_dark_36">
+            <File Id="toolbar_roma_full_dark_36.png" Name="toolbar_roma_full_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_full_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_full_dark_48">
+            <File Id="toolbar_roma_full_dark_48.png" Name="toolbar_roma_full_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_full_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_full_light_24">
+            <File Id="toolbar_roma_full_light_24.png" Name="toolbar_roma_full_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_full_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_full_light_36">
+            <File Id="toolbar_roma_full_light_36.png" Name="toolbar_roma_full_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_full_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_full_light_48">
+            <File Id="toolbar_roma_full_light_48.png" Name="toolbar_roma_full_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_full_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_half_dark_24">
+            <File Id="toolbar_roma_half_dark_24.png" Name="toolbar_roma_half_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_half_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_half_dark_36">
+            <File Id="toolbar_roma_half_dark_36.png" Name="toolbar_roma_half_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_half_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_half_dark_48">
+            <File Id="toolbar_roma_half_dark_48.png" Name="toolbar_roma_half_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_half_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_half_light_24">
+            <File Id="toolbar_roma_half_light_24.png" Name="toolbar_roma_half_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_half_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_half_light_36">
+            <File Id="toolbar_roma_half_light_36.png" Name="toolbar_roma_half_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_half_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roma_half_light_48">
+            <File Id="toolbar_roma_half_light_48.png" Name="toolbar_roma_half_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roma_half_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_dark_24">
+            <File Id="toolbar_roman_dark_24.png" Name="toolbar_roman_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_dark_36">
+            <File Id="toolbar_roman_dark_36.png" Name="toolbar_roman_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_dark_48">
+            <File Id="toolbar_roman_dark_48.png" Name="toolbar_roman_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_dark_lock_24">
+            <File Id="toolbar_roman_dark_lock_24.png" Name="toolbar_roman_dark_lock_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_dark_lock_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_dark_lock_36">
+            <File Id="toolbar_roman_dark_lock_36.png" Name="toolbar_roman_dark_lock_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_dark_lock_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_dark_lock_48">
+            <File Id="toolbar_roman_dark_lock_48.png" Name="toolbar_roman_dark_lock_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_dark_lock_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_light_24">
+            <File Id="toolbar_roman_light_24.png" Name="toolbar_roman_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_light_36">
+            <File Id="toolbar_roman_light_36.png" Name="toolbar_roman_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_light_48">
+            <File Id="toolbar_roman_light_48.png" Name="toolbar_roman_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_light_lock_24">
+            <File Id="toolbar_roman_light_lock_24.png" Name="toolbar_roman_light_lock_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_light_lock_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_light_lock_36">
+            <File Id="toolbar_roman_light_lock_36.png" Name="toolbar_roman_light_lock_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_light_lock_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_roman_light_lock_48">
+            <File Id="toolbar_roman_light_lock_48.png" Name="toolbar_roman_light_lock_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_roman_light_lock_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_settings_dark_24">
+            <File Id="toolbar_settings_dark_24.png" Name="toolbar_settings_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_settings_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_settings_dark_36">
+            <File Id="toolbar_settings_dark_36.png" Name="toolbar_settings_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_settings_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_settings_dark_48">
+            <File Id="toolbar_settings_dark_48.png" Name="toolbar_settings_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_settings_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_settings_light_24">
+            <File Id="toolbar_settings_light_24.png" Name="toolbar_settings_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_settings_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_settings_light_36">
+            <File Id="toolbar_settings_light_36.png" Name="toolbar_settings_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_settings_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_settings_light_48">
+            <File Id="toolbar_settings_light_48.png" Name="toolbar_settings_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_settings_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shin_dark_24">
+            <File Id="toolbar_shin_dark_24.png" Name="toolbar_shin_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shin_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shin_dark_36">
+            <File Id="toolbar_shin_dark_36.png" Name="toolbar_shin_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shin_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shin_dark_48">
+            <File Id="toolbar_shin_dark_48.png" Name="toolbar_shin_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shin_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shin_light_24">
+            <File Id="toolbar_shin_light_24.png" Name="toolbar_shin_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shin_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shin_light_36">
+            <File Id="toolbar_shin_light_36.png" Name="toolbar_shin_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shin_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shin_light_48">
+            <File Id="toolbar_shin_light_48.png" Name="toolbar_shin_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shin_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shortcuts_dark_24">
+            <File Id="toolbar_shortcuts_dark_24.png" Name="toolbar_shortcuts_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shortcuts_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shortcuts_dark_36">
+            <File Id="toolbar_shortcuts_dark_36.png" Name="toolbar_shortcuts_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shortcuts_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shortcuts_dark_48">
+            <File Id="toolbar_shortcuts_dark_48.png" Name="toolbar_shortcuts_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shortcuts_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shortcuts_light_24">
+            <File Id="toolbar_shortcuts_light_24.png" Name="toolbar_shortcuts_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shortcuts_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shortcuts_light_36">
+            <File Id="toolbar_shortcuts_light_36.png" Name="toolbar_shortcuts_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shortcuts_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_shortcuts_light_48">
+            <File Id="toolbar_shortcuts_light_48.png" Name="toolbar_shortcuts_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_shortcuts_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_symbols_dark_24">
+            <File Id="toolbar_symbols_dark_24.png" Name="toolbar_symbols_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_symbols_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_symbols_dark_36">
+            <File Id="toolbar_symbols_dark_36.png" Name="toolbar_symbols_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_symbols_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_symbols_dark_48">
+            <File Id="toolbar_symbols_dark_48.png" Name="toolbar_symbols_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_symbols_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_symbols_light_24">
+            <File Id="toolbar_symbols_light_24.png" Name="toolbar_symbols_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_symbols_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_symbols_light_36">
+            <File Id="toolbar_symbols_light_36.png" Name="toolbar_symbols_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_symbols_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_symbols_light_48">
+            <File Id="toolbar_symbols_light_48.png" Name="toolbar_symbols_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_symbols_light_48.png" />
+          </Component>
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <!--
+      Write registry keys to make sure marinamoji_server.exe and
+      marinamoji_renderer.exe exit when a user logoff via remote desctop
+      connection.
+    -->
+    <Component Id="SysProcs" Directory="TARGETDIR">
+      <RegistryValue Id="SysProcsMarinaMojiConverter" Root="HKLM" Key="SYSTEM\CurrentControlSet\Control\Terminal Server\SysProcs" Name="marinamoji_server.exe" Value="0" Action="write" Type="integer" />
+      <RegistryValue Id="SysProcsMarinaMojiRenderer" Root="HKLM" Key="SYSTEM\CurrentControlSet\Control\Terminal Server\SysProcs" Name="marinamoji_renderer.exe" Value="0" Action="write" Type="integer" />
+    </Component>
+
+    <!--
+      Write a registry key to launch marinamoji_server.exe and
+      marinamoji_renderer.exe automatically after user logon.
+    -->
+    <Component Id="PrelaunchProcesses" Directory="TARGETDIR">
+      <RegistryValue Id="RunBroker" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="marinaMoji Prelauncher" Action="write" Type="string" Value="&quot;[MarinaMojiDir]marinamoji_broker.exe&quot; --mode=prelaunch_processes" />
+    </Component>
+  </Package>
+</Wix>

@@ -483,7 +483,7 @@ TEST_F(ConverterTest, ContextAwareConversionTest) {
   EXPECT_EQ(ContextAwareConvert("きき", "危機", "いっぱつ"), "一髪");
 
   EXPECT_EQ(ContextAwareConvert("きょうと", "京都", "だい"), "大");
-  EXPECT_EQ(ContextAwareConvert("もんだい", "問題", "てん"), "点");
+  EXPECT_EQ(ContextAwareConvert("きき", "危機", "かん"), "感");
 
   EXPECT_EQ(ContextAwareConvert("いのうえ", "井上", "ようすい"), "陽水");
 
@@ -759,7 +759,8 @@ TEST_F(ConverterTest, CompletePosIds) {
                 .max_conversion_candidates_size = 20,
             })
             .Build();
-    CHECK(converter->immutable_converter().Convert(request, &segments));
+    CHECK(
+        converter->immutable_converter().Convert(request.options(), &segments));
     const int lid = segments.segment(0).candidate(0).lid;
     const int rid = segments.segment(0).candidate(0).rid;
     Candidate candidate;
@@ -1806,8 +1807,8 @@ TEST_F(ConverterTest, DoNotAddOverlappingNodesForPrediction) {
 }
 
 TEST_F(ConverterTest, RevertConversion) {
-  auto mock_predictor = absl::make_unique<MockPredictor>();
-  auto mock_rewriter = absl::make_unique<MockRewriter>();
+  auto mock_predictor = std::make_unique<MockPredictor>();
+  auto mock_rewriter = std::make_unique<MockRewriter>();
 
   EXPECT_CALL(*mock_predictor, Revert(_)).Times(1);
   EXPECT_CALL(*mock_rewriter, Revert(_)).Times(1);
@@ -2487,8 +2488,8 @@ TEST_F(ConverterTest, MakeHistoryResultTest) {
 }
 
 TEST_F(ConverterTest, Bugfix424676259) {
-  auto mock_predictor = absl::make_unique<MockPredictor>();
-  auto mock_rewriter = absl::make_unique<MockRewriter>();
+  auto mock_predictor = std::make_unique<MockPredictor>();
+  auto mock_rewriter = std::make_unique<MockRewriter>();
 
   std::vector<prediction::Result> results;
 
@@ -2550,8 +2551,8 @@ TEST_F(ConverterTest, Bugfix424676259) {
 }
 
 TEST_F(ConverterTest, CommitContext) {
-  auto mock_predictor = absl::make_unique<MockPredictor>();
-  auto mock_rewriter = absl::make_unique<MockRewriter>();
+  auto mock_predictor = std::make_unique<MockPredictor>();
+  auto mock_rewriter = std::make_unique<MockRewriter>();
 
   EXPECT_CALL(*mock_predictor, CommitContext(_)).WillOnce(Return());
 
@@ -2578,8 +2579,8 @@ TEST_F(ConverterTest, CommitContext) {
 }
 
 TEST_F(ConverterTest, AddUserHistory) {
-  auto mock_predictor = absl::make_unique<MockPredictor>();
-  auto mock_rewriter = absl::make_unique<MockRewriter>();
+  auto mock_predictor = std::make_unique<MockPredictor>();
+  auto mock_rewriter = std::make_unique<MockRewriter>();
 
   EXPECT_CALL(*mock_predictor, AddHistoryEntry("key", "value"))
       .WillOnce(Return(true));

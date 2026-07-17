@@ -42,12 +42,14 @@
 #include "base/win32/wide_char.h"
 #include "client/client_interface.h"
 #include "protocol/commands.pb.h"
+#include "protocol/config.pb.h"
 #include "win32/base/conversion_mode_util.h"
 #include "win32/base/deleter.h"
 #include "win32/base/input_state.h"
 #include "win32/base/keyboard.h"
 #include "win32/base/keyevent_handler.h"
 #include "win32/base/surrogate_pair_observer.h"
+#include "win32/tip/marina_number_row_dispatcher.h"
 #include "win32/tip/tip_edit_session.h"
 #include "win32/tip/tip_input_mode_manager.h"
 #include "win32/tip/tip_private_context.h"
@@ -122,10 +124,9 @@ bool GetOpenAndMode(TipTextService* text_service, ITfContext* context,
   if (private_context) {
     prefer_kana_input = private_context->input_behavior().prefer_kana_input;
   }
-  const CompositionMode tsf_mode =
-      static_cast<CompositionMode>(input_mode_manager->GetTsfConversionMode());
-  const CompositionMode effective_mode = static_cast<CompositionMode>(
-      input_mode_manager->GetEffectiveConversionMode());
+  const CompositionMode tsf_mode = input_mode_manager->GetTsfConversionMode();
+  const CompositionMode effective_mode =
+      input_mode_manager->GetEffectiveConversionMode();
 
   const bool has_valid_logical_mode = ConversionModeUtil::ToNativeMode(
       tsf_mode, prefer_kana_input, logical_mode);
@@ -182,6 +183,23 @@ HRESULT OnTestKey(TipTextService* text_service, ITfContext* context,
   const KeyboardStatus keyboard_status(key_state);
   const LParamKeyInfo key_info(lparam);
   VirtualKey vk = GetVK(wparam, keyboard_status);
+
+  // marinaMoji: physical Ctrl(+Shift)+number-row shortcuts must be reported
+  // as consumed here regardless of |open|, since KeyEventHandler::ImeProcessKey
+  // below marks these keys as not-eaten whenever the IME is closed (e.g. while
+  // the Dvorak/other fixed keyboard-layout emulation is active in direct
+  // mode), which would otherwise stop TSF from ever delivering the key to
+  // OnKeyDown, where TryDispatchMarinaNumberRowShortcut actually handles it.
+  if (is_key_down) {
+    config::Config marina_config;
+    if (private_context->GetClient()->GetConfig(&marina_config) &&
+        WouldConsumeMarinaNumberRowShortcut(
+            key_info.GetScanCode(), keyboard_status.IsPressed(VK_CONTROL),
+            keyboard_status.IsPressed(VK_SHIFT), marina_config)) {
+      *eaten = TRUE;
+      return S_OK;
+    }
+  }
 
   if (open) {
     // Check if this key event is handled by VKBackBasedDeleter to support
@@ -248,6 +266,10 @@ HRESULT OnTestKey(TipTextService* text_service, ITfContext* context,
   input_state.logical_conversion_mode = logical_mode;
   input_state.visible_conversion_mode = visible_mode;
   input_state.open = open;
+  // marinaMoji: inputs for the direct-mode fixed-layout emulation. The
+  // pending dead key is only *read* here; it is persisted from OnKey.
+  input_state.pending_dead_key = private_context->pending_dead_key();
+  input_state.disabled_tsf_context = TipStatus::IsDisabledContext(context);
 
   InputState next_state;
   commands::Output temporal_output;
@@ -291,6 +313,36 @@ void FillMozcContextForOnKey(TipTextService* text_service, ITfContext* context,
   if (info.has_following_text) {
     mozc_context->set_following_text(WideToUtf8(info.following_text));
   }
+}
+
+// marinaMoji: physical Ctrl(+Shift)+1-5/0/` shortcuts (odoriji, palette,
+// shin/kyu, Manyoshu, hiragana/direct, quick dictionary), mirroring
+// unix/ibus/marina_number_row_dispatcher.cc. Only meaningful on key-down;
+// callers must also gate on |open| before calling this.
+bool TryDispatchMarinaNumberRowShortcut(TipPrivateContext* private_context,
+                                        const LParamKeyInfo& key_info,
+                                        const KeyboardStatus& keyboard_status,
+                                        uint32_t visible_mode,
+                                        bool open,
+                                        commands::Output* output) {
+  config::Config config;
+  if (!private_context->GetClient()->GetConfig(&config)) {
+    return false;
+  }
+  // marinaMoji: must use the *visible* mode (native bits sourced from
+  // commands::Status::mode()), not TipInputModeManager's "logical" mode
+  // (sourced from Status::comeback_mode(), the mode to return to after a
+  // temporary override) -- comeback_mode never reflects manyoshu_mode_, so
+  // reading it here made the Manyoshu direction check always see Hiragana
+  // and only ever switch forward, never back.
+  CompositionMode original_mode = CompositionMode::HIRAGANA;
+  if (!ConversionModeUtil::ToMozcMode(visible_mode, &original_mode)) {
+    return false;
+  }
+  return DispatchMarinaNumberRowShortcut(
+      key_info.GetScanCode(), keyboard_status.IsPressed(VK_CONTROL),
+      keyboard_status.IsPressed(VK_SHIFT), open, original_mode, config,
+      private_context->GetClient(), output);
 }
 
 HRESULT OnKey(TipTextService* text_service, ITfContext* context,
@@ -406,6 +458,16 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
       return E_FAIL;
     }
     ignore_this_keyevent = false;
+  } else if (is_key_down &&
+             TryDispatchMarinaNumberRowShortcut(private_context, key_info,
+                                                keyboard_status, visible_mode,
+                                                open, &temporal_output)) {
+    // Consumed by a marina number-row shortcut; do not fall through to the
+    // normal per-character key pipeline below. Not gated on |open|: these
+    // shortcuts (e.g. odoriji palette, Manyoshu) turn the IME on themselves
+    // via EnsureImeOn when invoked from a closed/direct state, mirroring
+    // unix/ibus/mozc_engine.cc's unconditional dispatch.
+    ignore_this_keyevent = false;
   } else {
     InputBehavior behavior = private_context->input_behavior();
 
@@ -415,6 +477,9 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
     ime_state.visible_conversion_mode = visible_mode;
     ime_state.open = open;
     ime_state.last_down_key = private_context->last_down_key();
+    // marinaMoji: inputs for the direct-mode fixed-layout emulation.
+    ime_state.pending_dead_key = private_context->pending_dead_key();
+    ime_state.disabled_tsf_context = TipStatus::IsDisabledContext(context);
 
     // This call is placed in OnKey instead on OnTestKey because VK_DBE_ROMAN
     // and VK_DBE_NOROMAN are handled as preserved keys in TSF Mozc.
@@ -447,6 +512,18 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
             vk, is_key_down, result.should_be_eaten);
     if (action == TipInputModeManager::Action::kUpdateUI) {
       text_service->PostUIUpdateMessage();
+    }
+
+    // marinaMoji: this is the real key phase, so persist the direct-mode
+    // dead-key state now. A dead-key press is consumed without producing
+    // output; keys that produced text continue below and insert the server's
+    // echoed commit via OnOutputReceivedSync.
+    if (result.handled_by_direct_layout) {
+      private_context->set_pending_dead_key(next_state.pending_dead_key);
+      if (!result.should_be_sent_to_server) {
+        *eaten = TRUE;
+        return S_OK;
+      }
     }
 
     if (!result.should_be_sent_to_server) {

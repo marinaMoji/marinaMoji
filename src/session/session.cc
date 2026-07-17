@@ -166,6 +166,7 @@ void ApplyCompositionMode(const commands::CompositionMode mode,
   switch (mode) {
     case commands::HIRAGANA:
       SwitchInputMode(transliteration::HIRAGANA, composer);
+      composer->SetOutputMode(transliteration::HIRAGANA);
       break;
     case commands::FULL_KATAKANA:
       SwitchInputMode(transliteration::FULL_KATAKANA, composer);
@@ -173,6 +174,7 @@ void ApplyCompositionMode(const commands::CompositionMode mode,
       break;
     case commands::HALF_KATAKANA:
       SwitchInputMode(transliteration::HALF_KATAKANA, composer);
+      composer->SetOutputMode(transliteration::HALF_KATAKANA);
       break;
     case commands::FULL_ASCII:
       SwitchInputMode(transliteration::FULL_ASCII, composer);
@@ -576,6 +578,9 @@ bool Session::SendCommand(commands::Command* command) {
     case commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
       result = LaunchWordRegisterDialog(command);
       break;
+    case commands::SessionCommand::LAUNCH_CONFIG_DIALOG:
+      result = LaunchConfigDialog(command);
+      break;
     case commands::SessionCommand::INSERT_MACRON_VOWEL: {
       const absl::string_view text = command->input().command().text();
       if (text.size() == 1) {
@@ -585,6 +590,9 @@ bool Session::SendCommand(commands::Command* command) {
       result = InsertMacronVowel(command);
       break;
     }
+    case commands::SessionCommand::INSERT_SYMBOL_TEXT:
+      result = InsertSymbolText(command);
+      break;
     default:
       LOG(WARNING) << "Unknown command" << *command;
       result = DoNothing(command);
@@ -593,6 +601,103 @@ bool Session::SendCommand(commands::Command* command) {
   MaybeSetUndoStatus(command);
   return result;
 }
+
+namespace {
+// Right Shift alone (modifier-only with RIGHT_SHIFT, no Ctrl): toggle
+// Hiragana/Manyoshu. Detected here so it works regardless of keymap lookup or
+// client encoding. Ctrl is excluded so Ctrl+Alt+Right Shift can be used for
+// IsCtrlAltRightShiftAlone (mode lock) below without also firing this toggle.
+bool IsRightShiftAlone(const commands::KeyEvent& key) {
+  if (key.has_key_code() || key.has_special_key()) {
+    return false;
+  }
+  bool has_right_shift = false;
+  bool has_ctrl = false;
+  for (int i = 0; i < key.modifier_keys_size(); ++i) {
+    const commands::KeyEvent::ModifierKey mod = key.modifier_keys(i);
+    if (mod == commands::KeyEvent::RIGHT_SHIFT) {
+      has_right_shift = true;
+    }
+    if (mod == commands::KeyEvent::CTRL || mod == commands::KeyEvent::LEFT_CTRL ||
+        mod == commands::KeyEvent::RIGHT_CTRL) {
+      has_ctrl = true;
+    }
+  }
+  return has_right_shift && !has_ctrl;
+}
+
+// Left Shift alone (modifier-only with LEFT_SHIFT): toggle Japanese/direct input.
+bool IsLeftShiftAlone(const commands::KeyEvent& key) {
+  if (key.has_key_code() || key.has_special_key()) {
+    return false;
+  }
+  bool has_left_shift = false;
+  bool has_ctrl = false;
+  for (int i = 0; i < key.modifier_keys_size(); ++i) {
+    const commands::KeyEvent::ModifierKey mod = key.modifier_keys(i);
+    if (mod == commands::KeyEvent::LEFT_SHIFT) {
+      has_left_shift = true;
+    }
+    if (mod == commands::KeyEvent::CTRL || mod == commands::KeyEvent::LEFT_CTRL ||
+        mod == commands::KeyEvent::RIGHT_CTRL) {
+      has_ctrl = true;
+    }
+  }
+  return has_left_shift && !has_ctrl;
+}
+
+// Ctrl+Left Shift alone: toggle mode lock for Left Shift direct toggle.
+bool IsLeftShiftDirectEligibleMode(const commands::CompositionMode mode) {
+  return mode == commands::HIRAGANA || mode == commands::FULL_KATAKANA ||
+         mode == commands::MANYOSHU || mode == commands::DIRECT;
+}
+
+commands::CompositionMode VisibleCompositionModeForLeftShift(
+    const commands::Command& command, const ImeContext& context,
+    bool manyoshu_mode) {
+  if (context.state() == ImeContext::DIRECT) {
+    return commands::DIRECT;
+  }
+  if (command.input().has_key() && command.input().key().has_mode() &&
+      command.input().key().mode() != commands::DIRECT) {
+    return command.input().key().mode();
+  }
+  if (manyoshu_mode) {
+    return commands::MANYOSHU;
+  }
+  return ToCompositionMode(context.composer().GetInputMode());
+}
+
+// Ctrl+Alt+Right Shift alone: toggle mode lock for the Left Shift direct
+// toggle. Windows reserves plain Ctrl+Shift (either side) system-wide for the
+// "Switch Input Language" hotkey, intercepted by the shell before any
+// keystroke reaches this text service; on at least some systems Ctrl+Right
+// Shift alone is also bound to a keyboard-layout-switch hotkey. Three
+// modifiers together are not a default OS or Mozc keymap binding.
+bool IsCtrlAltRightShiftAlone(const commands::KeyEvent& key) {
+  if (key.has_key_code() || key.has_special_key()) {
+    return false;
+  }
+  bool has_right_shift = false;
+  bool has_ctrl = false;
+  bool has_alt = false;
+  for (int i = 0; i < key.modifier_keys_size(); ++i) {
+    const commands::KeyEvent::ModifierKey mod = key.modifier_keys(i);
+    if (mod == commands::KeyEvent::RIGHT_SHIFT) {
+      has_right_shift = true;
+    }
+    if (mod == commands::KeyEvent::CTRL || mod == commands::KeyEvent::LEFT_CTRL ||
+        mod == commands::KeyEvent::RIGHT_CTRL) {
+      has_ctrl = true;
+    }
+    if (mod == commands::KeyEvent::ALT || mod == commands::KeyEvent::LEFT_ALT ||
+        mod == commands::KeyEvent::RIGHT_ALT) {
+      has_alt = true;
+    }
+  }
+  return has_right_shift && has_ctrl && has_alt;
+}
+}  // namespace
 
 bool Session::TestSendKey(commands::Command* command) {
   UpdateTime();
@@ -606,6 +711,40 @@ bool Session::TestSendKey(commands::Command* command) {
   }
 
   const commands::KeyEvent& key = command->input().key();
+
+  // While the odoriji palette is visible, report its keys as consumed so
+  // that TSF on Windows delivers them to SendKey instead of echoing them
+  // back to the application (which would commit the palette's preedit).
+  if (odoriji_palette_visible_ && OdorijiPalette::WouldConsumeKey(key)) {
+    return DoNothing(command);
+  }
+
+  // The shift-alone toggles are dispatched at the top of SendKey, bypassing
+  // the keymap. Report them as consumed here as well: on Windows the TSF
+  // client gates the real key event on this test phase
+  // (KeyEventHandler::ImeProcessKey sets should_be_eaten from
+  // output.consumed()), so an echo-back here means OnKeyUp — and therefore
+  // SendKey's toggle — never runs. Whether the key-up is ultimately passed
+  // through to the application is still decided by the Toggle* handlers in
+  // SendKey.
+  if (IsRightShiftAlone(key) || IsCtrlAltRightShiftAlone(key) ||
+      IsLeftShiftAlone(key)) {
+    return DoNothing(command);
+  }
+
+  // A macron dead key (AltGr+umlaut) was just consumed by SendKey; report the
+  // following vowel key as consumed too so SendKey actually gets to run its
+  // macron_dead_key_pending_ check (line ~869) instead of this key being
+  // echoed straight through to the application.
+  if (macron_dead_key_pending_ && key.has_key_code()) {
+    switch (key.key_code()) {
+      case 'a': case 'e': case 'i': case 'o': case 'u':
+      case 'A': case 'E': case 'I': case 'O': case 'U':
+        return DoNothing(command);
+      default:
+        break;
+    }
+  }
 
   // To support indirect IME on/off by using KeyEvent::activated, use effective
   // state instead of directly using context_->state().
@@ -690,79 +829,6 @@ bool Session::TestSendKey(commands::Command* command) {
   return DoNothing(command);
 }
 
-namespace {
-// Right Shift alone (modifier-only with RIGHT_SHIFT): toggle Hiragana/Manyoshu.
-// Detected here so it works regardless of keymap lookup or client encoding.
-bool IsRightShiftAlone(const commands::KeyEvent& key) {
-  if (key.has_key_code() || key.has_special_key()) {
-    return false;
-  }
-  return (KeyEventUtil::GetModifiers(key) &
-          static_cast<uint32_t>(commands::KeyEvent::RIGHT_SHIFT)) != 0;
-}
-
-// Left Shift alone (modifier-only with LEFT_SHIFT): toggle Japanese/direct input.
-bool IsLeftShiftAlone(const commands::KeyEvent& key) {
-  if (key.has_key_code() || key.has_special_key()) {
-    return false;
-  }
-  bool has_left_shift = false;
-  bool has_ctrl = false;
-  for (int i = 0; i < key.modifier_keys_size(); ++i) {
-    const commands::KeyEvent::ModifierKey mod = key.modifier_keys(i);
-    if (mod == commands::KeyEvent::LEFT_SHIFT) {
-      has_left_shift = true;
-    }
-    if (mod == commands::KeyEvent::CTRL || mod == commands::KeyEvent::LEFT_CTRL ||
-        mod == commands::KeyEvent::RIGHT_CTRL) {
-      has_ctrl = true;
-    }
-  }
-  return has_left_shift && !has_ctrl;
-}
-
-// Ctrl+Left Shift alone: toggle mode lock for Left Shift direct toggle.
-bool IsLeftShiftDirectEligibleMode(const commands::CompositionMode mode) {
-  return mode == commands::HIRAGANA || mode == commands::FULL_KATAKANA ||
-         mode == commands::MANYOSHU || mode == commands::DIRECT;
-}
-
-commands::CompositionMode VisibleCompositionModeForLeftShift(
-    const commands::Command& command, const ImeContext& context,
-    bool manyoshu_mode) {
-  if (context.state() == ImeContext::DIRECT) {
-    return commands::DIRECT;
-  }
-  if (command.input().has_key() && command.input().key().has_mode() &&
-      command.input().key().mode() != commands::DIRECT) {
-    return command.input().key().mode();
-  }
-  if (manyoshu_mode) {
-    return commands::MANYOSHU;
-  }
-  return ToCompositionMode(context.composer().GetInputMode());
-}
-
-bool IsCtrlLeftShiftAlone(const commands::KeyEvent& key) {
-  if (key.has_key_code() || key.has_special_key()) {
-    return false;
-  }
-  bool has_left_shift = false;
-  bool has_ctrl = false;
-  for (int i = 0; i < key.modifier_keys_size(); ++i) {
-    const commands::KeyEvent::ModifierKey mod = key.modifier_keys(i);
-    if (mod == commands::KeyEvent::LEFT_SHIFT) {
-      has_left_shift = true;
-    }
-    if (mod == commands::KeyEvent::CTRL || mod == commands::KeyEvent::LEFT_CTRL ||
-        mod == commands::KeyEvent::RIGHT_CTRL) {
-      has_ctrl = true;
-    }
-  }
-  return has_left_shift && has_ctrl;
-}
-}  // namespace
-
 bool Session::SendKey(commands::Command* command) {
   UpdateTime();
   UpdatePreferences(command);
@@ -794,7 +860,7 @@ bool Session::SendKey(commands::Command* command) {
     return ToggleManyoshuHiragana(command);
   }
 
-  if (IsCtrlLeftShiftAlone(command->input().key())) {
+  if (IsCtrlAltRightShiftAlone(command->input().key())) {
     return ToggleLeftShiftModeLock(command);
   }
   if (IsLeftShiftAlone(command->input().key())) {
@@ -890,6 +956,24 @@ bool Session::SendKeyDirectInputState(commands::Command* command) {
   keymap::DirectInputState::Commands key_command;
   const keymap::KeyMapManager* keymap = &context_->GetKeyMapManager();
   if (!keymap->GetCommandDirect(command->input().key(), &key_command)) {
+    // marinaMoji: the Windows client sends printable direct-mode keys here
+    // when a fixed romaji keyboard layout is selected, with the character
+    // already resolved against that layout (including dead-key composition).
+    // Commit the resolved text as-is. Keymap commands above and the macron
+    // dead key (handled before state dispatch in SendKey) take priority.
+    const commands::KeyEvent& key = command->input().key();
+    if (key.marina_direct_insert()) {
+      std::string text;
+      if (key.has_key_string()) {
+        text = key.key_string();
+      } else if (key.has_key_code()) {
+        text = Util::CodepointToUtf8(key.key_code());
+      }
+      if (!text.empty()) {
+        CommitStringDirectly(text, text, command);
+        return true;
+      }
+    }
     return EchoBackAndClearUndoContext(command);
   }
 
@@ -1549,6 +1633,8 @@ bool Session::Revert(commands::Command* command) {
 bool Session::ResetContext(commands::Command* command) {
   if (context_->state() == ImeContext::PRECOMPOSITION) {
     context_->mutable_converter()->Reset();
+    last_committed_expression_.clear();
+    last_committed_reading_.clear();
     return EchoBackAndClearUndoContext(command);
   }
 
@@ -2574,6 +2660,7 @@ bool Session::CompositionModeHalfKatakana(commands::Command* command) {
   EnsureIMEIsOn();
   // The temporary mode should not be overridden.
   SwitchInputMode(transliteration::HALF_KATAKANA, context_->mutable_composer());
+  context_->mutable_composer()->SetOutputMode(transliteration::HALF_KATAKANA);
   OutputFromState(command);
   return true;
 }
@@ -2943,8 +3030,12 @@ bool Session::ToggleLeftShiftDirect(commands::Command* command) {
   }
 
   saved_japanese_mode_ = visible;
-  manyoshu_mode_ = false;
+  // IMEOff() reads manyoshu_mode_ (via OutputMode) to report the mode being
+  // left in status(); clear it only after that so a Manyoshu->Direct toggle
+  // still reports MANYOSHU (matching saved_japanese_mode_) instead of the
+  // underlying Hiragana composer mode.
   IMEOff(command);
+  manyoshu_mode_ = false;
   // Do not consume Left Shift release so the app receives the key-up.
   command->mutable_output()->set_consumed(false);
   return true;
@@ -3044,6 +3135,19 @@ bool Session::InsertMacronVowel(commands::Command* command) {
   }
   absl::string_view s(macron);
   CommitStringDirectly(s, s, command);
+  return true;
+}
+
+bool Session::InsertSymbolText(commands::Command* command) {
+  // marinaMoji: Symbols Palette (Kaeriten/Symbols/User tabs) commit. Unlike
+  // InsertMacronVowel, any non-empty text is accepted as-is -- the palette
+  // is the source of truth for what's offered, not this method.
+  const absl::string_view text = command->input().command().text();
+  if (text.empty()) {
+    command->mutable_output()->set_consumed(false);
+    return false;
+  }
+  CommitStringDirectly(text, text, command);
   return true;
 }
 
@@ -3569,13 +3673,15 @@ void Session::OutputMode(commands::Command* command) const {
   commands::Status* status = output->mutable_status();
   if (context_->state() == ImeContext::DIRECT) {
     output->set_mode(commands::DIRECT);
-    status->set_mode(commands::DIRECT);
     status->set_activated(false);
   } else {
     output->set_mode(mode);
-    status->set_mode(mode);
     status->set_activated(true);
   }
+  // Keep the selected composition mode in status even while the IME is
+  // inactive. Clients use |activated| to determine whether composition is
+  // enabled and |mode| to display the mode that will be restored on re-enable.
+  status->set_mode(mode);
   status->set_comeback_mode(comeback_mode);
   status->set_left_shift_direct_lock(left_shift_mode_lock_);
 }

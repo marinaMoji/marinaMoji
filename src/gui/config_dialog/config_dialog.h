@@ -107,9 +107,6 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   // base_config_ keeps the original config imported from the file including
   // unconfigurable options with the GUI (e.g. composing_timeout_threshold_msec)
   config::Config base_config_;
-  int initial_preedit_method_;
-  bool initial_use_keyboard_to_change_preedit_method_;
-  bool initial_use_mode_indicator_;
   std::map<QString, config::Config::SessionKeymap>
       keymapname_sessionkeymap_map_;
 

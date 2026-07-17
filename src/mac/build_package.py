@@ -36,6 +36,7 @@ This script creates a .pkg file with pkgbuild and productbuild
 import argparse
 import os
 import plistlib
+import pwd
 import shutil
 import tempfile
 
@@ -127,9 +128,10 @@ def main():
     if args.codesign_identity == '-':
       shutil.copyfile('package.pkg', output_path)
     else:
-      keychain_path = os.path.join(
-          os.getenv('HOME'), 'Library/Keychains', args.keychain
-      )
+      # HOME is absent from Bazel's scrubbed action environment; fall back
+      # to the user database.
+      home = os.getenv('HOME') or pwd.getpwuid(os.getuid()).pw_dir
+      keychain_path = os.path.join(home, 'Library/Keychains', args.keychain)
       codesign_commands = [
           '/usr/bin/productsign',
           '--sign',

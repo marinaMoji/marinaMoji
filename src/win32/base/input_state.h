@@ -34,6 +34,7 @@
 
 #include <vector>
 
+#include "protocol/config.pb.h"
 #include "session/key_info_util.h"
 #include "win32/base/keyboard.h"
 
@@ -51,6 +52,16 @@ struct InputState {
   DWORD visible_conversion_mode = 0;
   // Tracks the last down key mainly for handling modifier key-up event.
   VirtualKey last_down_key;
+  // marinaMoji: spacing form of the dead key pending in direct input mode
+  // when a fixed romaji keyboard layout is selected ('\0' if none). Owned by
+  // the TIP private context; carried here so KeyEventHandler can resolve
+  // dead-key composition and report the next value via
+  // KeyEventHandlerResult/next_state.
+  wchar_t pending_dead_key = L'\0';
+  // marinaMoji: true when the TSF context is disabled (password fields,
+  // protected content). Direct-mode layout interception must not touch keys
+  // in disabled contexts.
+  bool disabled_tsf_context = false;
 };
 
 struct InputBehavior {
@@ -60,6 +71,8 @@ struct InputBehavior {
   bool use_mode_indicator = false;
   bool use_romaji_key_to_toggle_input_style = false;
   std::vector<KeyInformation> direct_mode_keys;
+  config::MarinaKeyboardLayout marina_keyboard_layout =
+      config::MARINA_KBD_OS_DEFAULT;
 };
 
 }  // namespace win32

@@ -51,6 +51,17 @@ mozc_cc_library(
     deps = ["//protocol:commands_cc_proto"],
 )
 
+mozc_cc_test(
+    name = "odoriji_palette_test",
+    size = "small",
+    srcs = ["odoriji_palette_test.cc"],
+    deps = [
+        ":odoriji_palette",
+        "//protocol:commands_cc_proto",
+        "//testing:gunit_main",
+    ],
+)
+
 mozc_cc_library(
     name = "session",
     srcs = ["session.cc"],
@@ -169,7 +180,6 @@ mozc_cc_library(
         ":keymap",
         ":session",
         "//base:clock",
-        "//base:singleton",
         "//base:stopwatch",
         "//base:util",
         "//base:version",
@@ -599,6 +609,7 @@ mozc_cc_library(
         "//gui/config_dialog:__pkg__",
         "//mac:__pkg__",
         "//unix/ibus:__pkg__",
+        "//win32/tip:__pkg__",
     ],
     deps = [
         "//composer:key_event_util",

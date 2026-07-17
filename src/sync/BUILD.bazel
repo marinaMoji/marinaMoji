@@ -9,6 +9,7 @@ load(
     "mozc_cc_test",
     "mozc_macos_application",
     "mozc_select",
+    "mozc_win32_cc_prod_binary",
 )
 load(
     "//:config.bzl",
@@ -26,7 +27,7 @@ mozc_cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@libsodium//:libsodium",
+        "@libsodium",
     ],
 )
 
@@ -197,7 +198,7 @@ mozc_cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@libsodium//:libsodium",
+        "@libsodium",
     ],
 )
 
@@ -272,6 +273,31 @@ mozc_macos_application(
     infoplists = ["Info.plist"],
     visibility = [
         "//mac:__pkg__",
+    ],
+    deps = [":sync_main_lib"],
+)
+
+# Windows sync daemon, run via a per-user Task Scheduler logon task (see
+# win32/base/task_scheduler_util.h) rather than a Windows Service, mirroring
+# the LaunchAgent (macOS)/systemd --user unit (Linux) per-user-session model
+# needed to access the interactive user's profile and sync folder.
+#
+# Unlike the main IME binaries, this always builds as "marinamoji_sync.exe"
+# regardless of BRANDING, matching marinaMojiSync_bin/_macos above: sync is
+# an additive marinaMoji feature with no stock-Mozc equivalent to avoid
+# colliding with, so it doesn't need brand-specific naming.
+mozc_win32_cc_prod_binary(
+    name = "marinaMojiSync_win",
+    executable_name_map = {
+        "Mozc": "marinamoji_sync.exe",
+        "GoogleJapaneseInput": "marinamoji_sync.exe",
+        "marinaMoji": "marinamoji_sync.exe",
+    },
+    static_crt = False,
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    visibility = [
+        "//win32:__subpackages__",
     ],
     deps = [":sync_main_lib"],
 )

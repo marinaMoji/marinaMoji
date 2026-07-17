@@ -39,6 +39,12 @@ class OdorijiPalette {
                         int* session_default_index = nullptr,
                         std::string* commit_result = nullptr);
 
+  // Non-mutating variant of HandleKey for TestSendKey: returns true iff
+  // HandleKey would consume |key| while the palette is visible. Needed on
+  // Windows, where TSF only delivers a key to SendKey if TestSendKey
+  // reported it as consumed.
+  static bool WouldConsumeKey(const commands::KeyEvent& key);
+
   // If palette is visible, overwrite output preedit and candidate_window.
   static void OverlayOutput(commands::Output* output, int focused_index);
 

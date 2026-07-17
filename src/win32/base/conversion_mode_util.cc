@@ -177,6 +177,13 @@ bool ConversionModeUtil::ToNativeMode(mozc::commands::CompositionMode mode,
     case mozc::commands::FULL_KATAKANA:
       *flag = kNative | kKatakana | kFullShape | roman_flag;
       break;
+    case mozc::commands::MANYOSHU:
+      // marinaMoji: Manyōshū mode replaces full-width katakana, and the
+      // IMM32/TSF conversion-mode bit vocabulary has no way to express it,
+      // so it shares full-width katakana's native representation. The
+      // reverse conversion (ToMozcMode) maps these bits back to MANYOSHU.
+      *flag = kNative | kKatakana | kFullShape | roman_flag;
+      break;
     default:
       LOG(ERROR) << "Unknown composition mode: " << mode;
       return false;
@@ -219,7 +226,12 @@ bool ConversionModeUtil::ToMozcMode(uint32_t flag,
     if (TestAndClearBits(&flag, kKatakana)) {
       // KATAKANA mode
       if (TestAndClearBits(&flag, kFullShape)) {
-        *mode = mozc::commands::FULL_KATAKANA;
+        // marinaMoji: full-width katakana is replaced by Manyōshū mode, so
+        // the native full-width-katakana bits (e.g. the taskbar's "Katakana"
+        // pick writing the TSF conversion-mode compartment) mean MANYOSHU.
+        // commands::FULL_KATAKANA is intentionally unreachable from native
+        // bits on Windows.
+        *mode = mozc::commands::MANYOSHU;
         succeeded = true;
       } else {
         *mode = mozc::commands::HALF_KATAKANA;

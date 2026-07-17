@@ -54,19 +54,23 @@ static const GUID kGoogleJapaneseInputProfile = {
 
 #else  // GOOGLE_JAPANESE_INPUT_BUILD
 
-// {10A67BC8-22FA-4A59-90DC-2546652C56BF}
-static const GUID kMozcTextService = {
-    0x10a67bc8,
-    0x22fa,
-    0x4a59,
-    {0x90, 0xdc, 0x25, 0x46, 0x65, 0x2c, 0x56, 0xbf}};
+// marinaMoji: fresh GUIDs, distinct from stock Mozc
+// ({10A67BC8-22FA-4A59-90DC-2546652C56BF} / {186F700C-71CF-43FE-A00E-
+// AACB1D9E6D3D}), so both IMEs can be registered side-by-side.
 
-// {186F700C-71CF-43FE-A00E-AACB1D9E6D3D}
+// {8D513EAE-75C6-4CCA-A307-90F97E573706}
+static const GUID kMozcTextService = {
+    0x8d513eae,
+    0x75c6,
+    0x4cca,
+    {0xa3, 0x07, 0x90, 0xf9, 0x7e, 0x57, 0x37, 0x06}};
+
+// {499B197C-3E88-428C-99E1-D1118B8A3734}
 static const GUID kMozcProfile = {
-    0x186f700c,
-    0x71cf,
-    0x43fe,
-    {0xa0, 0x0e, 0xaa, 0xcb, 0x1d, 0x9e, 0x6d, 0x3d}};
+    0x499b197c,
+    0x3e88,
+    0x428c,
+    {0x99, 0xe1, 0xd1, 0x11, 0x8b, 0x8a, 0x37, 0x34}};
 
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD
 

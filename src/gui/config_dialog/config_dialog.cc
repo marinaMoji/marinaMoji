@@ -197,10 +197,7 @@ constexpr absl::Duration kConfigDialogTimeout = absl::Milliseconds(100000);
 }  // namespace
 
 ConfigDialog::ConfigDialog()
-    : client_(client::ClientFactory::NewClient()),
-      initial_preedit_method_(0),
-      initial_use_keyboard_to_change_preedit_method_(false),
-      initial_use_mode_indicator_(true) {
+    : client_(client::ClientFactory::NewClient()) {
   client_->set_timeout(kConfigDialogTimeout);
   // Avoid spawning ErrorMessageDialog.app on IPC errors during shutdown.
   client_->set_suppress_error_dialog(true);
@@ -316,6 +313,26 @@ ConfigDialog::ConfigDialog()
 
   yenSignComboBox->addItem(tr("Yen Sign ¥"));
   yenSignComboBox->addItem(tr("Backslash \\"));
+
+  // Order must exactly match the MarinaKeyboardLayout enum in config.proto,
+  // since the combobox index is cast directly to the enum value.
+  keyboardLayoutComboBox->addItem(tr("System default (current OS layout)"));
+  keyboardLayoutComboBox->addItem(tr("US QWERTY"));
+  keyboardLayoutComboBox->addItem(tr("UK QWERTY"));
+  keyboardLayoutComboBox->addItem(tr("French AZERTY"));
+  keyboardLayoutComboBox->addItem(tr("German QWERTZ"));
+  keyboardLayoutComboBox->addItem(tr("Spanish"));
+  keyboardLayoutComboBox->addItem(tr("Italian"));
+  keyboardLayoutComboBox->addItem(tr("Dutch"));
+  keyboardLayoutComboBox->addItem(tr("Dvorak"));
+  keyboardLayoutComboBox->addItem(tr("BÉPO"));
+  keyboardLayoutComboBox->addItem(tr("Japanese JIS"));
+
+#ifndef _WIN32
+  // Fixed romaji keyboard layout selection is only implemented on Windows.
+  keyboardLayoutLabel->hide();
+  keyboardLayoutComboBox->hide();
+#endif  // !_WIN32
 
 #ifndef __APPLE__
   // On Windows/Linux, yenSignCombBox can be hidden.
@@ -527,11 +544,6 @@ void ConfigDialog::Reload() {
 
   SelectAutoConversionSetting(static_cast<int>(config.use_auto_conversion()));
 
-  initial_preedit_method_ = static_cast<int>(config.preedit_method());
-  initial_use_keyboard_to_change_preedit_method_ =
-      config.use_keyboard_to_change_preedit_method();
-  initial_use_mode_indicator_ = config.use_mode_indicator();
-
   if (sync_tab_) {
     sync_tab_->LoadFromServer();
   }
@@ -562,27 +574,12 @@ bool ConfigDialog::Update() {
     }
   }
 
-#if defined(_WIN32)
-  if ((initial_preedit_method_ != static_cast<int>(config.preedit_method())) ||
-      (initial_use_keyboard_to_change_preedit_method_ !=
-       config.use_keyboard_to_change_preedit_method())) {
-    QMessageBox::information(this, windowTitle(),
-                             tr("Romaji/Kana setting is enabled from"
-                                " new applications."));
-    initial_preedit_method_ = static_cast<int>(config.preedit_method());
-    initial_use_keyboard_to_change_preedit_method_ =
-        config.use_keyboard_to_change_preedit_method();
-  }
-#endif  // _WIN32
-
-#ifdef _WIN32
-  if (initial_use_mode_indicator_ != config.use_mode_indicator()) {
-    QMessageBox::information(this, windowTitle(),
-                             tr("Input mode indicator setting is enabled from"
-                                " new applications."));
-    initial_use_mode_indicator_ = config.use_mode_indicator();
-  }
-#endif  // _WIN32
+  // Note: Romaji/Kana input style, the fixed romaji keyboard layout, and the
+  // mode indicator used to require restarting each application ("enabled from
+  // new applications"). The Windows client now refreshes its config snapshot
+  // on thread-focus events (see win32/base/config_snapshot.cc), so these
+  // settings take effect in running applications as soon as they regain
+  // focus. No message box is needed anymore.
 
   if (!SetConfig(config)) {
     QMessageBox::critical(this, windowTitle(), tr("Failed to update config"));
@@ -743,6 +740,21 @@ void GetComboboxForPreeditMethod(const QComboBox *combobox,
     config->set_use_keyboard_to_change_preedit_method(false);
   }
 }
+
+// MarinaKeyboardLayout is a top-level enum (not nested in Config), so it
+// cannot use the config::Config_##enumname pattern that SET_COMBOBOX/
+// GET_COMBOBOX rely on.
+void SetComboboxForKeyboardLayout(const config::Config &config,
+                                  QComboBox *combobox) {
+  combobox->setCurrentIndex(
+      static_cast<int>(config.marina_keyboard_layout()));
+}
+
+void GetComboboxForKeyboardLayout(const QComboBox *combobox,
+                                  config::Config *config) {
+  config->set_marina_keyboard_layout(
+      static_cast<config::MarinaKeyboardLayout>(combobox->currentIndex()));
+}
 }  // namespace
 
 // TODO(taku)
@@ -752,6 +764,7 @@ void ConfigDialog::ConvertFromProto(const config::Config &config) {
   base_config_ = config;
   // tab1
   SetComboboxForPreeditMethod(config, inputModeComboBox);
+  SetComboboxForKeyboardLayout(config, keyboardLayoutComboBox);
   SET_COMBOBOX(punctuationsSettingComboBox, PunctuationMethod,
                punctuation_method);
   SET_COMBOBOX(symbolsSettingComboBox, SymbolMethod, symbol_method);
@@ -850,6 +863,7 @@ void ConfigDialog::ConvertToProto(config::Config *config) const {
 
   // tab1
   GetComboboxForPreeditMethod(inputModeComboBox, config);
+  GetComboboxForKeyboardLayout(keyboardLayoutComboBox, config);
   GET_COMBOBOX(punctuationsSettingComboBox, PunctuationMethod,
                punctuation_method);
   GET_COMBOBOX(symbolsSettingComboBox, SymbolMethod, symbol_method);

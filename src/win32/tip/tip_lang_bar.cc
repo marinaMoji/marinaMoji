@@ -115,6 +115,7 @@ TipLangBarCallback::ItemId GetItemId(DWORD composition_mode) {
     case commands::HIRAGANA:
       return TipLangBarCallback::kHiragana;
     case commands::FULL_KATAKANA:
+    case commands::MANYOSHU:
       return TipLangBarCallback::kFullKatakana;
     case commands::HALF_ASCII:
       return TipLangBarCallback::kHalfAlphanumeric;
@@ -172,8 +173,25 @@ HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
         {kTipLangBarItemTypeRadioChecked, TipLangBarCallback::kDirect,
          IDS_DIRECT, IDI_DIRECT_NT, IDI_DIRECT},
         {kTipLangBarItemTypeSeparator, 0, 0, 0, 0},
-        {kTipLangBarItemTypeDefault, TipLangBarCallback::kCancel, IDS_CANCEL, 0,
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kTraditionalKanji,
+         IDS_TRADITIONAL_KANJI, 0, 0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kOdoriji,
+         IDS_ODORIJI, 0, 0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kToolbarVisibility,
+         IDS_HIDE_TOOLBAR, 0, 0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kPrivacyMode,
+         IDS_PRIVACY_MODE, 0, 0},
+        {kTipLangBarItemTypeSeparator, 0, 0, 0, 0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kDictionary,
+         IDS_DICTIONARY, IDI_DICTIONARY_NT, IDI_DICTIONARY},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kWordRegister,
+         IDS_WORD_REGISTER, IDI_DICTIONARY_NT, IDI_DICTIONARY},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kProperty,
+         IDS_PROPERTY, IDI_PROPERTY_NT, IDI_PROPERTY},
+        {kTipLangBarItemTypeSeparator, 0, 0, 0, 0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kAbout, IDS_ABOUT, 0,
          0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kHelp, IDS_HELP, 0, 0},
     };
 
     constexpr bool kMenuButton = true;
@@ -211,6 +229,15 @@ HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
         {kTipLangBarItemTypeDefault, TipLangBarCallback::kDirect, IDS_DIRECT,
          IDI_DIRECT_NT, IDI_DIRECT},
         {kTipLangBarItemTypeSeparator, 0, 0, 0, 0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kTraditionalKanji,
+         IDS_TRADITIONAL_KANJI, 0, 0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kOdoriji,
+         IDS_ODORIJI, 0, 0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kToolbarVisibility,
+         IDS_HIDE_TOOLBAR, 0, 0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kPrivacyMode,
+         IDS_PRIVACY_MODE, 0, 0},
+        {kTipLangBarItemTypeSeparator, 0, 0, 0, 0},
         {kTipLangBarItemTypeDefault, TipLangBarCallback::kDictionary,
          IDS_DICTIONARY, IDI_DICTIONARY_NT, IDI_DICTIONARY},
         {kTipLangBarItemTypeDefault, TipLangBarCallback::kWordRegister,
@@ -244,6 +271,15 @@ HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
     // Add the "Tool" button.
     // TODO(yukawa): Make an Icon for kWordRegister.
     const TipLangBarMenuItem kToolMenu[] = {
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kTraditionalKanji,
+         IDS_TRADITIONAL_KANJI, 0, 0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kOdoriji,
+         IDS_ODORIJI, 0, 0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kToolbarVisibility,
+         IDS_HIDE_TOOLBAR, 0, 0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kPrivacyMode,
+         IDS_PRIVACY_MODE, 0, 0},
+        {kTipLangBarItemTypeSeparator, 0, 0, 0, 0},
         {kTipLangBarItemTypeDefault, TipLangBarCallback::kDictionary,
          IDS_DICTIONARY, IDI_DICTIONARY_NT, IDI_DICTIONARY},
         {kTipLangBarItemTypeDefault, TipLangBarCallback::kWordRegister,
@@ -251,9 +287,6 @@ HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
          IDI_DICTIONARY},  // Use Dictionary icon temporarily
         {kTipLangBarItemTypeDefault, TipLangBarCallback::kProperty,
          IDS_PROPERTY, IDI_PROPERTY_NT, IDI_PROPERTY},
-        {kTipLangBarItemTypeSeparator, 0, 0, 0, 0},
-        {kTipLangBarItemTypeDefault, TipLangBarCallback::kCancel, IDS_CANCEL, 0,
-         0},
     };
 
     // Always show the tool icon so that a user can find the icon.

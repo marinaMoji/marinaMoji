@@ -40,6 +40,21 @@ can be built and tested against existing test cases.
 *   [`.github/workflows/linux.yaml`](../.github/workflows/linux.yaml)
 *   [CI for Linux](https://github.com/google/mozc/actions/workflows/linux.yaml)
 
+### Architectures (x86_64 / arm64)
+
+CI builds and tests both `x86_64` and `arm64` Linux, using GitHub's hosted
+`ubuntu-24.04` and `ubuntu-24.04-arm` runners respectively. Each run uploads a
+distinctly named artifact so you know which one you're grabbing:
+
+*   `mozc-linux-x86_64.zip`
+*   `mozc-linux-arm64.zip`
+
+When building locally, Bazel always targets the host CPU natively — there is
+no cross-compilation step to opt into. The local build output is still just
+`bazel-bin/unix/mozc.zip` regardless of architecture; run `file
+bazel-bin/server/mozc_server` if you need to confirm which architecture a zip
+was built for (e.g. before copying it to another machine).
+
 The following sections describe relevant software components that are necessary
 to build marinaMoji for Linux desktop.
 

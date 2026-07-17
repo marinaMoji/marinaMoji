@@ -38,6 +38,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/no_destructor.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/log/log.h"
 #include "absl/strings/str_format.h"
@@ -48,7 +49,6 @@
 #include "base/config_file_stream.h"
 #include "base/hash.h"
 #include "base/port.h"
-#include "base/singleton.h"
 #include "base/strings/assign.h"
 #include "base/system_util.h"
 #include "base/thread.h"
@@ -163,9 +163,14 @@ void NormalizeConfig(Config* config) {
   constexpr uint32_t kMinCandidateWindowFontSize = 14;
   constexpr uint32_t kMaxCandidateWindowFontSize = 36;
   const uint32_t font_size = config->candidate_window_font_size();
-  config->set_candidate_window_font_size(
-      std::clamp(font_size, kMinCandidateWindowFontSize,
-                 kMaxCandidateWindowFontSize));
+  const uint32_t clamped_font_size = std::clamp(
+      font_size, kMinCandidateWindowFontSize, kMaxCandidateWindowFontSize);
+  // Only write back when clamping actually changes the value: otherwise an
+  // unset (default) field would spuriously become explicitly-set, which
+  // breaks config round-trip comparisons that rely on proto has_*() state.
+  if (clamped_font_size != font_size) {
+    config->set_candidate_window_font_size(clamped_font_size);
+  }
 #endif  // __APPLE__
 
   // Recover from the legacy IME-menu privacy toggle that persisted incognito +
@@ -210,7 +215,8 @@ class ConfigHandlerImpl final {
 };
 
 ConfigHandlerImpl* GetConfigHandlerImpl() {
-  return Singleton<ConfigHandlerImpl>::get();
+  static absl::NoDestructor<ConfigHandlerImpl> impl;
+  return impl.get();
 }
 
 std::shared_ptr<const Config> ConfigHandlerImpl::GetSharedConfig() const {

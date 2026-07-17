@@ -1658,13 +1658,64 @@ TEST_F(KeyEventHandlerTest, ProtocolAnomalyModiferKeyMayBeSentOnKeyUp) {
     EXPECT_TRUE(actual_input.key().activated());
     EXPECT_TRUE(actual_input.key().has_mode());
     EXPECT_EQ(actual_input.key().mode(), commands::HIRAGANA);
+    // |modifiers| is the obsolete scalar bitfield, which the Windows client
+    // never sets; the modifier list lives in the repeated |modifier_keys|.
     EXPECT_FALSE(actual_input.key().has_modifiers());
-    EXPECT_EQ(actual_input.key().modifier_keys_size(), 1);
-    // Interestingly we have to set SHIFT modifier in spite of the Shift key
-    // has been just released.
+    EXPECT_EQ(actual_input.key().modifier_keys_size(), 2);
+    // Keep the generic SHIFT marker required by Mozc's key-up protocol and
+    // the physical side marker used by marinaMoji's shift-only shortcuts.
     EXPECT_EQ(actual_input.key().modifier_keys(0), commands::KeyEvent::SHIFT);
+    EXPECT_EQ(actual_input.key().modifier_keys(1),
+              commands::KeyEvent::LEFT_SHIFT);
     EXPECT_FALSE(actual_input.key().has_special_key());
   }
+}
+
+TEST_F(KeyEventHandlerTest, LeftShiftReleaseIsSentWhileImeIsClosed) {
+  // marinaMoji uses Left Shift alone to restore the saved Japanese mode from
+  // direct input.  Upstream's closed-IME path normally rejects every key
+  // except configured direct-mode keys, so specifically retain this release.
+  Output mock_output;
+  mock_output.set_consumed(true);
+  MockState mock(mock_output);
+  KeyboardMock keyboard(/*kana_locked=*/false);
+
+  InputBehavior behavior;
+  behavior.disabled = false;
+  behavior.direct_mode_keys = GetDefaultDirectModeKeys();
+
+  KeyboardStatus keyboard_status;
+  // The release snapshot is allowed to have already cleared the physical
+  // left-shift state; the scan code supplies the side reliably.
+  constexpr VirtualKey kVirtualKey = VirtualKey::FromVirtualKey(VK_SHIFT);
+  constexpr BYTE kLeftShiftScanCode = 0x2a;
+  InputState initial_state;
+  initial_state.open = false;
+  initial_state.last_down_key = kVirtualKey;
+
+  Context context;
+  InputState next_state;
+  Output output;
+  const KeyEventHandlerResult result =
+      TestableKeyEventHandler::ImeToAsciiEx(
+          kVirtualKey, kLeftShiftScanCode, /*is_key_down=*/false,
+          keyboard_status, behavior, initial_state, context,
+          mock.mutable_client(), &keyboard, &next_state, &output);
+
+  EXPECT_TRUE(result.succeeded);
+  EXPECT_TRUE(result.should_be_eaten);
+  EXPECT_TRUE(result.should_be_sent_to_server);
+
+  commands::Input actual_input;
+  ASSERT_TRUE(mock.GetGeneratedRequest(&actual_input));
+  ASSERT_TRUE(actual_input.has_key());
+  EXPECT_TRUE(actual_input.key().has_activated());
+  EXPECT_FALSE(actual_input.key().activated());
+  bool has_left_shift = false;
+  for (const auto modifier : actual_input.key().modifier_keys()) {
+    has_left_shift |= (modifier == commands::KeyEvent::LEFT_SHIFT);
+  }
+  EXPECT_TRUE(has_left_shift);
 }
 
 TEST_F(KeyEventHandlerTest,

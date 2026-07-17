@@ -69,6 +69,20 @@ class TipPrivateContext {
   const InputBehavior& input_behavior() const;
   InputBehavior* mutable_input_behavior();
 
+  // marinaMoji: whether the Symbols Palette is currently shown for this
+  // context. Purely a local UI-visibility flag (no session/converter
+  // involvement, mirroring mac's g_symbols_palette_visible /  GTK's
+  // equivalent) -- gates whether RendererCommand carries SymbolsPaletteInfo.
+  bool symbols_palette_visible() const;
+  void set_symbols_palette_visible(bool visible);
+
+  // marinaMoji: spacing form of the dead key pending in direct input mode
+  // when a fixed romaji keyboard layout is selected ('\0' if none). Fed into
+  // InputState::pending_dead_key on each key event and persisted from the
+  // real key phase (OnKey) only.
+  wchar_t pending_dead_key() const;
+  void set_pending_dead_key(wchar_t accent);
+
  private:
   class InternalState;
   std::unique_ptr<InternalState> state_;

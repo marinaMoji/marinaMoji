@@ -36,8 +36,6 @@
 #include <wow64apiset.h>
 // clang-format on
 
-#undef StrCat  // NOLINT: TODO: triggers clang-tidy, defined by windows.h.
-
 #include <cstdarg>
 #include <cstddef>
 #include <memory>
@@ -61,6 +59,7 @@
 #include "renderer/renderer_client.h"
 #include "win32/base/input_dll.h"
 #include "win32/base/omaha_util.h"
+#include "win32/base/task_scheduler_util.h"
 #include "win32/base/tsf_profile.h"
 #include "win32/base/tsf_registrar.h"
 #include "win32/base/uninstall_helper.h"
@@ -531,4 +530,34 @@ UINT __stdcall UnregisterTIP(MSIHANDLE msi_handle) {
 UINT __stdcall UnregisterTIPRollback(MSIHANDLE msi_handle) {
   DEBUG_BREAK_FOR_DEBUGGER();
   return RegisterTIP(msi_handle);
+}
+
+// [Return='ignore']
+// Registers a per-user Task Scheduler logon task that runs
+// marinamoji_sync.exe --daemon, mirroring the macOS LaunchAgent / Linux
+// systemd --user unit process model (see docs/WINDOWS_PORT_PLAN.md Phase 5).
+// Must run impersonated as the installing user (see the CustomAction's
+// Impersonate="yes" in the .wxs) so the task is registered under that
+// user's account, not SYSTEM. Sync is an optional feature, so a failure
+// here is logged but never fails the install; the user can still trigger
+// sync manually from Preferences.
+UINT __stdcall RegisterSyncTask(MSIHANDLE msi_handle) {
+  DEBUG_BREAK_FOR_DEBUGGER();
+  mozc::ScopedCOMInitializer com_initializer;
+  const std::wstring sync_path =
+      GetMozcComponentPath(mozc::kMozcSyncExecutable);
+  const HRESULT result = mozc::win32::TaskSchedulerUtil::RegisterLogonTask(
+      mozc::kMozcSyncTaskName, sync_path, L"--daemon");
+  if (FAILED(result)) {
+    LOG_ERROR_FOR_OMAHA();
+  }
+  return ERROR_SUCCESS;
+}
+
+// [Return='ignore']
+UINT __stdcall UnregisterSyncTask(MSIHANDLE msi_handle) {
+  DEBUG_BREAK_FOR_DEBUGGER();
+  mozc::ScopedCOMInitializer com_initializer;
+  mozc::win32::TaskSchedulerUtil::UnregisterTask(mozc::kMozcSyncTaskName);
+  return ERROR_SUCCESS;
 }
