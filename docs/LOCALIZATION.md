@@ -6,6 +6,7 @@ UI language follows the **system locale** only (no in-app language picker).
 
 | Surface | Mechanism |
 |---------|-----------|
+| Input-source name in menu bar / System Settings | [`src/mac/{English,French,Japanese}.lproj/InfoPlist.strings`](../src/mac/English.lproj/InfoPlist.strings) (`com.apple.inputmethod.Japanese` → `marinaMoji`). French is required; without it macOS shows the raw ID and may hide the IME. |
 | IME menu, floating toolbar | [`src/mac/Resources/*/Localizable.strings`](../src/mac/Resources/en.lproj/Localizable.strings) + `MarinaLocalizedString()` |
 | Qt tools (Preferences, Dictionary, About, …) | Qt `.qm` files (`*_en`, `*_fr`, `*_ja`) |
 | Installer ActivatePane | `ActivatePane/{English,Japanese,fr}.lproj/Localizable.strings` |
@@ -25,11 +26,14 @@ LC_ALL=fr_FR.UTF-8 ibus-daemon -drx   # example; then select marinaMoji
 
 1. Edit UI source (`.ui`, `tr()` in `.cc`).
 2. Update `.qtts`: `lupdate` (see [`src/gui/config_dialog/README.md`](../src/gui/config_dialog/README.md)).
-3. Add or refresh French: `python3 src/gui/tools/generate_fr_qtts.py` (draft from English + glossary), then edit `*_fr.qtts` by hand as needed.
-4. Compile: `lrelease foo_fr.qtts -qm foo_fr.qm`
-5. Register `*_fr.qm` in the component’s `.qrc` and `BUILD.bazel`.
+3. Add or refresh French: `python3 src/gui/tools/generate_fr_qtts.py` (draft from English + [`en_fr_glossary.json`](../src/gui/tools/en_fr_glossary.json)), then edit `*_fr.qtts` by hand as needed.
+4. When you settle on a French wording (e.g. `Startup` → `Démarrage`), put the whole-string pair in `en_fr_glossary.json` so the next regenerate keeps it.
+5. Compile: `lrelease foo_fr.qtts -qm foo_fr.qm` (and the matching `*_ja.qm` / `*_en.qm` if those `.qtts` changed).
+6. Register `*_fr.qm` in the component’s `.qrc` and `BUILD.bazel` (already done for EN / FR / JA on Preferences).
 
 Commit both `.qtts` and `.qm` (Bazel does not run `lrelease` automatically).
+
+**Japanese Preferences:** `config_dialog_ja.qtts` / `.qm` are already wired the same way as French (`InstallTranslator("config_dialog")` + `QLocale::system()`). Empty JA entries are intentional for punctuation and brand names (ATOK, MS-IME, etc.).
 
 ## Adding a new Mac UI string
 

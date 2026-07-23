@@ -9,14 +9,17 @@ We have not tested Qt6 yet.
 ## Locales
 
 Committed translations: **English** (`*_en`), **Japanese** (`*_ja`), **French** (`*_fr`).
+All three are loaded at runtime from the system locale (`GuiUtil::InstallTranslator`).
 
-To refresh French drafts from English sources:
+To refresh French drafts from English sources (uses [`tools/en_fr_glossary.json`](../tools/en_fr_glossary.json) when present):
 
 ```sh
 cd src/gui
 python3 tools/generate_fr_qtts.py
 lrelease config_dialog_fr.qtts -qm config_dialog_fr.qm   # repeat per component
 ```
+
+Add stable EN→FR pairs (e.g. `"Startup": "Démarrage"`) to the glossary so regenerates do not lose hand fixes.
 
 See [docs/LOCALIZATION.md](../../../docs/LOCALIZATION.md).
 

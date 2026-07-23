@@ -44,6 +44,8 @@ WHOLE_STRING = {
     "Mozc": "Mozc",
     "Google Japanese Input": "Google Japanese Input",
     "Administration": "Administration",
+    "Startup": "Démarrage",
+    "Start conversion engine on login": "Démarrer le moteur de conversion à la connexion",
     "A fatal error occurred.": "Une erreur fatale s'est produite.",
     "Do you want to enable [ProductName]?": "Voulez-vous activer [ProductName] ?",
 }

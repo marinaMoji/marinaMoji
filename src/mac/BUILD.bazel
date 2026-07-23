@@ -125,6 +125,7 @@ mozc_macos_application(
     ],
     strings = [
         "English.lproj/InfoPlist.strings",
+        "French.lproj/InfoPlist.strings",
         "Japanese.lproj/InfoPlist.strings",
         "Resources/en.lproj/Localizable.strings",
         "Resources/fr.lproj/Localizable.strings",

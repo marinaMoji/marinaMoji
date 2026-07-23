@@ -15,7 +15,7 @@
     <message>
         <location filename="config_dialog.ui" line="172" />
         <source>Keymap style</source>
-        <translation>Style de table de touches</translation>
+        <translation>Table de touches</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="185" />
@@ -46,7 +46,7 @@
     <message>
         <location filename="config_dialog.ui" line="322" />
         <source>Candidate window font size</source>
-        <translation>Taille de police de la fenêtre de candidats</translation>
+        <translation>Taille de police dans la fenêtre de candidats</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="199" />
@@ -71,7 +71,7 @@
     <message>
         <location filename="config_dialog.ui" line="397" />
         <source>Emoticon conversion</source>
-        <translation>Conversion d'émoticônes</translation>
+        <translation>Conversion en émoticônes</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="404" />
@@ -81,17 +81,17 @@
     <message>
         <location filename="config_dialog.ui" line="411" />
         <source>Postal code conversion</source>
-        <translation>Postal code conversion</translation>
+        <translation>Conversion de code postal</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="446" />
         <source>Emoji conversion</source>
-        <translation>Emoji conversion</translation>
+        <translation>Conversion en emoji</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="465" />
         <source>Personalization</source>
-        <translation>Personalization</translation>
+        <translation>Personnalisation</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="497" />
@@ -101,17 +101,17 @@
     <message>
         <location filename="config_dialog.ui" line="640" />
         <source>Input Assistance</source>
-        <translation>Saisie Assistance</translation>
+        <translation>Assistance de saisie</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="672" />
         <source>Fullwidth/Halfwidth</source>
-        <translation>Fullwidth/Halfwidth</translation>
+        <translation>Pleine/demi-chasse</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="711" />
         <source>Shift key mode switch</source>
-        <translation>Shift key mode switch</translation>
+        <translation>Changement de mode par la touche Maj.</translation>
     </message>
     <message utf8="true">
         <location filename="config_dialog.ui" line="734" />
@@ -126,62 +126,62 @@
     <message>
         <location filename="config_dialog.ui" line="800" />
         <source>Show input mode indicator near the cursor</source>
-        <translation>Show saisie mode indicator near the cursor</translation>
+        <translation>Afficher l'indicateur de mode de saisie près du curseur</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="809" />
         <source>Suggest</source>
-        <translation>Suggest</translation>
+        <translation>Suggestions</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="888" />
         <source>Maximum number of suggestions</source>
-        <translation>Maximum number of suggestions</translation>
+        <translation>Nombre maximum de suggestions</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="936" />
         <source>Clear all history</source>
-        <translation>Clear all historique</translation>
+        <translation>Effacer tout l'historique</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="956" />
         <source>Clear unused history</source>
-        <translation>Clear unused historique</translation>
+        <translation>Effacer l'historique non utilisé</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1083" />
         <source>Secret mode</source>
-        <translation>Secret mode</translation>
+        <translation>Mode secret</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1134" />
         <source>Temporarily disable conversion personalization, history-based suggestions and user dictionary</source>
-        <translation>Temporarily disable conversion personalization, historique-based suggestions and user dictionnaire</translation>
+        <translation>Temporairement désactiver la personnalisation de la conversion, les suggestions basées sur l'historique et le dictionnaire utilisateur</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1263" />
         <source>Misc</source>
-        <translation>Misc</translation>
+        <translation>Divers</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1563" />
         <source>Startup</source>
-        <translation>Startup</translation>
+        <translation>Démarrage</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1601" />
         <source>Start conversion engine on login</source>
-        <translation>Start conversion engine on login</translation>
+        <translation>Démarrer le moteur de conversion au login</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1694" />
         <source>Logging level (debug only)</source>
-        <translation>Logging level (debug only)</translation>
+        <translation>Niveau de journalisation (debug uniquement)</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1650" />
         <source>Logging</source>
-        <translation>Logging</translation>
+        <translation>Journalisation</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1447" />
@@ -197,12 +197,12 @@
     <message>
         <location filename="config_dialog.ui" line="1491" />
         <source>Dictionary preloading and UAC settings</source>
-        <translation>Dictionnaire preloading and UAC settings</translation>
+        <translation>Préchargement du dictionnaire et paramètres UAC</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1051" />
         <source>Usage statistics and crash reports</source>
-        <translation>Statistiques d'utilisation and rapports de plantage</translation>
+        <translation>Statistiques d'utilisation et rapports de plantage</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="57" />
@@ -212,82 +212,82 @@
     <message>
         <location filename="config_dialog.ui" line="99" />
         <source>Punctuation style</source>
-        <translation>Punctuation style</translation>
+        <translation>Style de ponctuation</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="106" />
         <source>Symbol style</source>
-        <translation>Symbole style</translation>
+        <translation>Style de symbole</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="113" />
         <source>Space input style</source>
-        <translation>Space saisie style</translation>
+        <translation>Style d'espace</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="123" />
         <source>Candidate selection shortcut</source>
-        <translation>Candidate selection shortcut</translation>
+        <translation>Raccourci de sélection de candidat</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="130" />
         <source>Input from numpad keys</source>
-        <translation>Saisie from numpad keys</translation>
+        <translation>Saisie depuis les touches numpad</translation>
     </message>
     <message utf8="true">
         <location filename="config_dialog.ui" line="147" />
         <source>Input from ¥ or backslash key</source>
-        <translation>Saisie from ¥ or backslash key</translation>
+        <translation>Saisie depuis la touche ¥ ou \</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="287" />
         <source>Clear personalization data</source>
-        <translation>Clear personalization data</translation>
+        <translation>Effacer les données de personnalisation</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="383" />
         <source>Single kanji conversion</source>
-        <translation>Single kanji conversion</translation>
+        <translation>Conversion de kanji unique</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="390" />
         <source>Symbol conversion</source>
-        <translation>Symbole conversion</translation>
+        <translation>Conversion de symbole</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="432" />
         <source>Special number conversion</source>
-        <translation>Special number conversion</translation>
+        <translation>Conversion de nombre spécial</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="425" />
         <source>Calculator</source>
-        <translation>Calculator</translation>
+        <translation>Calculatrice</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="418" />
         <source>Spelling correction</source>
-        <translation>Spelling correction</translation>
+        <translation>Correction orthographique</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="439" />
         <source>Date/time conversion</source>
-        <translation>Date/time conversion</translation>
+        <translation>Conversion de date/heure</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="529" />
         <source>Special conversions</source>
-        <translation>Special conversions</translation>
+        <translation>Conversions spéciales</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="561" />
         <source>Usage dictionary</source>
-        <translation>Usage dictionnaire</translation>
+        <translation>Dictionnaire d'utilisation</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="593" />
         <source>Homonym dictionary</source>
-        <translation>Homonym dictionnaire</translation>
+        <translation>Dictionnaire d'homonymes</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="615" />
@@ -297,7 +297,7 @@
     <message>
         <location filename="config_dialog.ui" line="704" />
         <source>Automatically switch to halfwidth</source>
-        <translation>Automatically switch to halfwidth</translation>
+        <translation>Basculer automatiquement en demi-chasse</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="747" />
@@ -307,7 +307,7 @@
     <message>
         <location filename="config_dialog.ui" line="754" />
         <source>Convert at punctuations</source>
-        <translation>Convert at punctuations</translation>
+        <translation>Convertir à la ponctuation</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="780" />
@@ -322,42 +322,42 @@
     <message>
         <location filename="config_dialog.ui" line="824" />
         <source>Source data</source>
-        <translation>Source data</translation>
+        <translation>Données source</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="856" />
         <source>Other settings</source>
-        <translation>Other settings</translation>
+        <translation>Autres paramètres</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="923" />
         <source>Use input history</source>
-        <translation>Use saisie historique</translation>
+        <translation>Utiliser l'historique de saisie</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="943" />
         <source>Use system dictionary</source>
-        <translation>Use system dictionnaire</translation>
+        <translation>Utiliser le dictionnaire système</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="989" />
         <source>Use realtime conversion</source>
-        <translation>Use realtime conversion</translation>
+        <translation>Utiliser la conversion en temps réel</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1032" />
         <source>Help make [ProductName] better by automatically sending usage statistics and crash reports to Google (changes will take effect after you log out and log back in)</source>
-        <translation>Aide make [ProductName] better by automatiquement sending usage statistics and rapports de plantage to Google (changes will take effect after you log out and log back in)</translation>
+        <translation>Aidez à faire de [ProductName] meilleur en envoyant automatiquement les statistiques d'utilisation et les rapports de plantage à Google (les changements prendront effet après vous vous déconnecter et vous reconnecter)</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1175" />
         <source>Temporarily disable all suggestions</source>
-        <translation>Temporarily disable all suggestions</translation>
+        <translation>Temporairement désactiver toutes les suggestions</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1191" />
         <source>Presentation mode</source>
-        <translation>Presentation mode</translation>
+        <translation>Mode présentation</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1213" />
@@ -367,22 +367,22 @@
     <message>
         <location filename="config_dialog.ui" line="1385" />
         <source>Check if [ProductName] is the default IME on startup</source>
-        <translation>Check if [ProductName] is the default IME on startup</translation>
+        <translation>Vérifier si [ProductName] est le IME par défaut au démarrage</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1338" />
         <source>Default IME</source>
-        <translation>Par défaut IME</translation>
+        <translation>IME par défaut</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1395" />
         <source>Disable Keyboard layout hotkey (Ctrl+Shift)</source>
-        <translation>Désactiver Clavier layout hotkey (Ctrl+Shift)</translation>
+        <translation>Désactiver le raccourci clavier (Ctrl+Shift)</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="1775" />
         <source>Reset to defaults</source>
-        <translation>Réinitialiser to defaults</translation>
+        <translation>Réinitialiser les paramètres par défaut</translation>
     </message>
 </context>
 <context>
@@ -403,12 +403,12 @@
     <message>
         <location filename="keybinding_editor.ui" line="32" />
         <source>[ProductName] key binding editor</source>
-        <translation>[ProductName] key binding editor</translation>
+        <translation>[ProductName] éditeur de raccourcis clavier</translation>
     </message>
     <message>
         <location filename="keybinding_editor.ui" line="92" />
         <source>Input key assignments:</source>
-        <translation>Saisie key assignments:</translation>
+        <translation>Assignations de touches de saisie:</translation>
     </message>
 </context>
 <context>
@@ -429,12 +429,12 @@
         <location filename="character_form_editor.cc" line="26" />
         <location filename="character_form_editor.cc" line="39" />
         <source>Remember</source>
-        <translation>Remember</translation>
+        <translation>Se souvenir</translation>
     </message>
     <message>
         <location filename="character_form_editor.cc" line="29" />
         <source>Unknown</source>
-        <translation>Unknown</translation>
+        <translation>Inconnu</translation>
     </message>
     <message>
         <location filename="character_form_editor.cc" line="48" />
@@ -447,7 +447,7 @@
         <location filename="character_form_editor.cc" line="50" />
         <location filename="character_form_editor.cc" line="61" />
         <source>Numbers</source>
-        <translation>Numbers</translation>
+        <translation>Nombres</translation>
     </message>
     <message>
         <location filename="character_form_editor.cc" line="52" />
@@ -461,22 +461,22 @@
     <message>
         <location filename="character_form_editor.cc" line="73" />
         <source>Fullwidth</source>
-        <translation>Fullwidth</translation>
+        <translation>Pleine chasse</translation>
     </message>
     <message>
         <location filename="character_form_editor.cc" line="73" />
         <source>Halfwidth</source>
-        <translation>Halfwidth</translation>
+        <translation>Demi-chasse</translation>
     </message>
     <message>
         <location filename="character_form_editor.cc" line="73" />
         <source>Remember</source>
-        <translation>Remember</translation>
+        <translation>Se souvenir</translation>
     </message>
     <message>
         <location filename="character_form_editor.cc" line="77" />
         <source>Character form editor</source>
-        <translation>Character form editor</translation>
+        <translation>Éditeur de forme de caractère</translation>
     </message>
     <message>
         <location filename="character_form_editor.cc" line="95" />
@@ -499,7 +499,7 @@
     <message>
         <location filename="config_dialog.cc" line="130" />
         <source>Custom keymap</source>
-        <translation>Personnalisé keymap</translation>
+        <translation>Disposition de clavier personnalisée</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="131" />
@@ -529,45 +529,45 @@
     <message>
         <location filename="config_dialog.cc" line="144" />
         <source>Romaji (switchable)</source>
-        <translation>Romaji (switchable)</translation>
+        <translation>Romaji (basculable)</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="145" />
         <source>Kana (switchable)</source>
-        <translation>Kana (switchable)</translation>
+        <translation>Kana (basculable)</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="148" />
         <location filename="config_dialog.cc" line="164" />
         <source>Follow input mode</source>
-        <translation>Follow saisie mode</translation>
+        <translation>Suivre le mode de saisie</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="149" />
         <location filename="config_dialog.cc" line="165" />
         <source>Fullwidth</source>
-        <translation>Fullwidth</translation>
+        <translation>Pleine chasse</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="150" />
         <location filename="config_dialog.cc" line="166" />
         <source>Halfwidth</source>
-        <translation>Halfwidth</translation>
+        <translation>Demi-chasse</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="152" />
         <source>No shortcut</source>
-        <translation>No shortcut</translation>
+        <translation>Aucun raccourci</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="153" />
         <source>1 -- 9</source>
-        <translation>1 -- 9</translation>
+        <translation>1 à 9</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="154" />
         <source>A -- L</source>
-        <translation>A -- L</translation>
+        <translation>A à L</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="156" />
@@ -577,7 +577,7 @@
     <message>
         <location filename="config_dialog.cc" line="157" />
         <source>Yes (don't record new data)</source>
-        <translation>Yes (don't record new data)</translation>
+        <translation>Oui (ne pas enregistrer de nouvelles données)</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="158" />
@@ -587,7 +587,7 @@
     <message>
         <location filename="config_dialog.cc" line="160" />
         <source>Off</source>
-        <translation>Off</translation>
+        <translation>Désactivé</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="161" />
@@ -622,12 +622,12 @@
     <message>
         <location filename="config_dialog.cc" line="173" />
         <source>Yen Sign Â¥</source>
-        <translation>Yen Sign Â¥</translation>
+        <translation>Signe Yen Â¥</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="174" />
         <source>Backslash \</source>
-        <translation>Backslash \</translation>
+        <translation>Barre oblique inverse \</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="74" />
@@ -637,53 +637,53 @@
     <message>
         <location filename="config_dialog.cc" line="356" />
         <source>Failed to get current config values.</source>
-        <translation>Failed to get current config values.</translation>
+        <translation>Échec de la récupération des valeurs de configuration actuelles.</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="375" />
         <source>The current custom keymap table is empty. When custom keymap is selected, you must customize it.</source>
-        <translation>The current custom keymap table is empty. When custom keymap is selected, you must customize it.</translation>
+        <translation>Le tableau de disposition de clavier personnalisée actuel est vide. Lorsque la disposition de clavier personnalisée est sélectionnée, vous devez la personnaliser.</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="388" />
         <source>Romaji/Kana setting is enabled from new applications.</source>
-        <translation>Romaji/Kana setting is enabled from new applications.</translation>
+        <translation>La configuration Romaji/Kana est activée à partir de nouvelles applications.</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="399" />
         <source>Input mode indicator setting is enabled from new applications.</source>
-        <translation>Saisie mode indicator setting is enabled from new applications.</translation>
+        <translation>La configuration du mode de saisie est activée à partir de nouvelles applications.</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="407" />
         <source>Failed to update config</source>
-        <translation>Failed to update config</translation>
+        <translation>Échec de la mise à jour de la configuration</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="718" />
         <source>Do you want to clear personalization data? Input history is not reset with this operation. Please open "suggestion" tab to remove input history data.</source>
-        <translation>Do you want to clear personalization data? Saisie historique is not reset with this operation. Please open "suggestion" tab to remove saisie historique data.</translation>
+        <translation>Voulez-vous effacer les données de personnalisation? L'historique de saisie n'est pas réinitialisé avec cette opération. Veuillez ouvrir l'onglet "suggestion" pour supprimer les données de l'historique de saisie.</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="732" />
         <location filename="config_dialog.cc" line="754" />
         <source>[ProductName] Converter is not running. Settings were not saved.</source>
-        <translation>[ProductName] Converter is not running. Paramètres were not saved.</translation>
+        <translation>[ProductName] Convertisseur non en cours d'exécution. Les paramètres n'ont pas été enregistrés.</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="742" />
         <source>Do you want to clear all history data?</source>
-        <translation>Do you want to clear all historique data?</translation>
+        <translation>Voulez-vous effacer toutes les données de l'historique?</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="764" />
         <source>Do you want to clear unused history data?</source>
-        <translation>Do you want to clear unused historique data?</translation>
+        <translation>Voulez-vous effacer les données de l'historique non utilisées?</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="776" />
         <source>[ProductName] Converter is not running. Operation was not executed.</source>
-        <translation>[ProductName] Converter is not running. Operation was not executed.</translation>
+        <translation>[ProductName] Convertisseur non en cours d'exécution. L'opération n'a pas été exécutée.</translation>
     </message>
     <message>
         <location filename="config_dialog.cc" line="849" />
@@ -692,11 +692,11 @@
  - Input history
  - Usage statistics and crash reports
  - Administrator settings</source>
-        <translation>When you reset [ProductName] settings, any changes you've made will be reverted to the default settings. Do you want to reset settings? The following items are not reset with this operation.
- - Personalization data
+        <translation>Lorsque vous réinitialisez les paramètres de [ProductName], tous les changements que vous avez apportés seront annulés et remplacés par les paramètres par défaut. Voulez-vous réinitialiser les paramètres? Les éléments suivants ne sont pas réinitialisés avec cette opération.
+ - Données de personnalisation
  - Saisie historique
- - Statistiques d'utilisation and rapports de plantage
- - Administrator settings</translation>
+ - Statistiques d'utilisation et rapports de plantage
+ - Paramètres de l'administrateur</translation>
     </message>
 </context>
 <context>
@@ -710,57 +710,57 @@
         <location filename="generic_table_editor.cc" line="138" />
         <location filename="generic_table_editor.cc" line="204" />
         <source>No entry is selected</source>
-        <translation>No entry is selected</translation>
+        <translation>Aucune entrée n'est sélectionnée</translation>
     </message>
     <message>
         <location filename="generic_table_editor.cc" line="215" />
         <source>You can't have more than [ProductName] entries</source>
-        <translation>You can't have more than [ProductName] entries</translation>
+        <translation>Vous ne pouvez pas avoir plus de [ProductName] entrées</translation>
     </message>
     <message>
         <location filename="generic_table_editor.cc" line="224" />
         <source>import from file</source>
-        <translation>import from file</translation>
+        <translation>importer depuis un fichier</translation>
     </message>
     <message>
         <location filename="generic_table_editor.cc" line="234" />
         <source>File not found</source>
-        <translation>File not found</translation>
+        <translation>Fichier non trouvé</translation>
     </message>
     <message>
         <location filename="generic_table_editor.cc" line="242" />
         <source>The specified file is too large (&gt;=100K byte)</source>
-        <translation>The specified file is too large (&gt;=100K byte)</translation>
+        <translation>Le fichier spécifié est trop grand (&gt;=100K octet)</translation>
     </message>
     <message>
         <location filename="generic_table_editor.cc" line="250" />
         <source>Import failed</source>
-        <translation>Importer failed</translation>
+        <translation>Échec de l'importation</translation>
     </message>
     <message>
         <location filename="generic_table_editor.cc" line="261" />
         <source>export to file</source>
-        <translation>export to file</translation>
+        <translation>exporter vers un fichier</translation>
     </message>
     <message>
         <location filename="generic_table_editor.cc" line="272" />
         <source>Export failed</source>
-        <translation>Exporter failed</translation>
+        <translation>Échec de l'exportation</translation>
     </message>
     <message>
         <location filename="generic_table_editor.cc" line="309" />
         <source>Edit entry</source>
-        <translation>Modifier entry</translation>
+        <translation>Modifier l'entrée</translation>
     </message>
     <message>
         <location filename="generic_table_editor.cc" line="311" />
         <source>New entry</source>
-        <translation>New entry</translation>
+        <translation>Nouvelle entrée</translation>
     </message>
     <message>
         <location filename="generic_table_editor.cc" line="312" />
         <source>Remove entry</source>
-        <translation>Retirer entry</translation>
+        <translation>Retirer l'entrée</translation>
     </message>
 </context>
 <context>
@@ -768,17 +768,17 @@
     <message>
         <location filename="keymap_editor.cc" line="225" />
         <source>New entry</source>
-        <translation>New entry</translation>
+        <translation>Nouvelle entrée</translation>
     </message>
     <message>
         <location filename="keymap_editor.cc" line="227" />
         <source>Remove selected entries</source>
-        <translation>Retirer selected entries</translation>
+        <translation>Retirer les entrées sélectionnées</translation>
     </message>
     <message>
         <location filename="keymap_editor.cc" line="231" />
         <source>Import predefined mapping</source>
-        <translation>Importer predefined mapping</translation>
+        <translation>Importer la mappage prédéfini</translation>
     </message>
     <message>
         <location filename="keymap_editor.cc" line="235" />
@@ -798,17 +798,17 @@
     <message>
         <location filename="keymap_editor.cc" line="241" />
         <source>Import from file...</source>
-        <translation>Importer from file...</translation>
+        <translation>Importer depuis un fichier...</translation>
     </message>
     <message>
         <location filename="keymap_editor.cc" line="243" />
         <source>Export to file...</source>
-        <translation>Exporter to file...</translation>
+        <translation>Exporter vers un fichier...</translation>
     </message>
     <message>
         <location filename="keymap_editor.cc" line="284" />
         <source>[ProductName] keymap editor</source>
-        <translation>[ProductName] keymap editor</translation>
+        <translation>[ProductName] éditeur de disposition de clavier</translation>
     </message>
     <message>
         <location filename="keymap_editor.cc" line="288" />
@@ -828,24 +828,24 @@
     <message>
         <location filename="keymap_editor.cc" line="377" />
         <source>Current keymap table is empty. You might want to import a pre-defined keymap table first.</source>
-        <translation>Current keymap table is empty. You might want to import a pre-defined keymap table first.</translation>
+        <translation>Le tableau de disposition de clavier actuel est vide. Vous voudrez peut-être importer d'abord un tableau de disposition de clavier prédéfini.</translation>
     </message>
     <message>
         <location filename="keymap_editor.cc" line="417" />
         <source>Invalid key:
 %1</source>
-        <translation>Invalid key:
+        <translation>Touche invalide:
 %1</translation>
     </message>
     <message>
         <location filename="keymap_editor.cc" line="436" />
         <source>Changes of keymaps for direct input mode will apply only to applications that are launched after making your modifications.</source>
-        <translation>Changes of keymaps for direct saisie mode will apply only to applications that are launched after making your modifications.</translation>
+        <translation>Les changements de dispositions de clavier pour le mode de saisie direct ne s'appliqueront qu'aux applications qui seront lancées après avoir apporté vos modifications.</translation>
     </message>
     <message>
         <location filename="keymap_editor.cc" line="473" />
         <source>Do you want to overwrite the current keymaps?</source>
-        <translation>Do you want to overwrite the current keymaps?</translation>
+        <translation>Voulez-vous remplacer les dispositions de clavier actuelles?</translation>
     </message>
 </context>
 <context>
@@ -853,32 +853,32 @@
     <message>
         <location filename="roman_table_editor.cc" line="36" />
         <source>New entry</source>
-        <translation>New entry</translation>
+        <translation>Nouvelle entrée</translation>
     </message>
     <message>
         <location filename="roman_table_editor.cc" line="38" />
         <source>Remove selected entries</source>
-        <translation>Retirer selected entries</translation>
+        <translation>Retirer les entrées sélectionnées</translation>
     </message>
     <message>
         <location filename="roman_table_editor.cc" line="41" />
         <source>Import from file...</source>
-        <translation>Importer from file...</translation>
+        <translation>Importer depuis un fichier...</translation>
     </message>
     <message>
         <location filename="roman_table_editor.cc" line="43" />
         <source>Export to file...</source>
-        <translation>Exporter to file...</translation>
+        <translation>Exporter vers un fichier...</translation>
     </message>
     <message>
         <location filename="roman_table_editor.cc" line="46" />
         <source>Reset to defaults</source>
-        <translation>Réinitialiser to defaults</translation>
+        <translation>Réinitialiser vers les valeurs par défaut</translation>
     </message>
     <message>
         <location filename="roman_table_editor.cc" line="48" />
         <source>[ProductName] Romaji table editor</source>
-        <translation>[ProductName] Romaji table editor</translation>
+        <translation>[ProductName] éditeur de table deRomaji</translation>
     </message>
     <message>
         <location filename="roman_table_editor.cc" line="52" />
@@ -888,12 +888,12 @@
     <message>
         <location filename="roman_table_editor.cc" line="52" />
         <source>Output</source>
-        <translation>Output</translation>
+        <translation>Sortie</translation>
     </message>
     <message>
         <location filename="roman_table_editor.cc" line="52" />
         <source>Next input</source>
-        <translation>Next saisie</translation>
+        <translation>Prochaine saisie</translation>
     </message>
     <message>
         <location filename="roman_table_editor.cc" line="131" />
@@ -901,27 +901,27 @@
         <location filename="roman_table_editor.cc" line="192" />
         <location filename="roman_table_editor.cc" line="219" />
         <source>[ProductName] settings</source>
-        <translation>[ProductName] settings</translation>
+        <translation>[ProductName] paramètres</translation>
     </message>
     <message>
         <location filename="roman_table_editor.cc" line="132" />
         <source>You can't have more than %1 entries</source>
-        <translation>You can't have more than %1 entries</translation>
+        <translation>Vous ne pouvez pas avoir plus de %1 entrées</translation>
     </message>
     <message>
         <location filename="roman_table_editor.cc" line="153" />
         <source>Romaji to Kana table is empty.</source>
-        <translation>Romaji to Kana table is empty.</translation>
+        <translation>La table de Romaji à Kana est vide.</translation>
     </message>
     <message>
         <location filename="roman_table_editor.cc" line="193" />
         <source>Input fields contain capital characters. "Shift-mode-switch" function should be Off with this new mapping.</source>
-        <translation>Saisie fields contain capital characters. "Shift-mode-switch" function should be Off with this new mapping.</translation>
+        <translation>Les champs de saisie contiennent des caractères majuscules. La fonction "Shift-mode-switch" doit être désactivée avec cette nouvelle mappage.</translation>
     </message>
     <message>
         <location filename="roman_table_editor.cc" line="220" />
         <source>Do you want to overwrite the current roman table?</source>
-        <translation>Do you want to overwrite the current romain table?</translation>
+        <translation>Voulez-vous remplacer la table de Romaji actuelle?</translation>
     </message>
 </context>
 </TS>

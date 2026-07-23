@@ -1,0 +1,9 @@
+/* Localized versions of Info.plist keys */
+
+CFBundleName = "${CF_BUNDLE_NAME_FR}";
+NSHumanReadableCopyright = "${NS_HUMAN_READABLE_COPYRIGHT}";
+com.apple.inputmethod.Japanese = "marinaMoji";
+com.apple.inputmethod.Japanese.Katakana = "Katakana (${INPUT_MODE_ANNOTATION})";
+com.apple.inputmethod.Japanese.HalfWidthKana = "Katakana demi-chasse (${INPUT_MODE_ANNOTATION})";
+com.apple.inputmethod.Japanese.FullWidthRoman = "Alphanumérique pleine chasse (${INPUT_MODE_ANNOTATION})";
+com.apple.inputmethod.Roman = "Alphanumérique (${INPUT_MODE_ANNOTATION})";
