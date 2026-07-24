@@ -67,6 +67,41 @@ std::optional<bool> ExtractJsonBoolField(absl::string_view object,
   return std::nullopt;
 }
 
+void ExtractPkgAssets(absl::string_view object,
+                      std::vector<MarinaGitHubAsset>* assets) {
+  size_t pos = 0;
+  while (true) {
+    pos = object.find("\"browser_download_url\"", pos);
+    if (pos == absl::string_view::npos) {
+      break;
+    }
+    const auto url = ExtractJsonStringField(object.substr(pos),
+                                            "browser_download_url");
+    pos += 22;
+    if (!url.has_value() ||
+        (!absl::EndsWith(*url, ".pkg") && !absl::EndsWith(*url, ".msi") &&
+         !absl::EndsWith(*url, ".deb"))) {
+      continue;
+    }
+    MarinaGitHubAsset asset;
+    asset.browser_download_url = *url;
+    // Prefer an explicit name field earlier in the same asset object if present.
+    const size_t name_pos = object.rfind("\"name\"", pos);
+    if (name_pos != absl::string_view::npos && pos - name_pos < 400) {
+      if (const auto name =
+              ExtractJsonStringField(object.substr(name_pos), "name");
+          name.has_value()) {
+        asset.name = *name;
+      }
+    }
+    if (asset.name.empty()) {
+      const size_t slash = url->rfind('/');
+      asset.name = slash == std::string::npos ? *url : url->substr(slash + 1);
+    }
+    assets->push_back(std::move(asset));
+  }
+}
+
 }  // namespace
 
 std::vector<MarinaGitHubRelease> ParseMarinaGitHubReleasesJson(
@@ -101,6 +136,7 @@ std::vector<MarinaGitHubRelease> ParseMarinaGitHubReleasesJson(
         release.prerelease =
             ExtractJsonBoolField(object, "prerelease").value_or(false);
         release.draft = ExtractJsonBoolField(object, "draft").value_or(false);
+        ExtractPkgAssets(object, &release.assets);
         releases.push_back(std::move(release));
         object_start = absl::string_view::npos;
       }
@@ -138,6 +174,50 @@ std::optional<MarinaGitHubRelease> SelectNewerMarinaRelease(
     return std::nullopt;
   }
   return *best;
+}
+
+std::optional<std::string> FindMarinaPkgDownloadUrl(
+    const MarinaGitHubRelease& release, absl::string_view arch_token) {
+  const MarinaGitHubAsset* universal = nullptr;
+  const MarinaGitHubAsset* any_pkg = nullptr;
+  for (const MarinaGitHubAsset& asset : release.assets) {
+    const bool is_pkg = absl::EndsWith(asset.name, ".pkg") ||
+                        absl::EndsWith(asset.browser_download_url, ".pkg");
+    if (!is_pkg) {
+      continue;
+    }
+    if (!arch_token.empty() &&
+        (absl::StrContains(asset.name, arch_token) ||
+         absl::StrContains(asset.browser_download_url, arch_token))) {
+      return asset.browser_download_url;
+    }
+    if (absl::StrContains(asset.name, "universal") ||
+        absl::StrContains(asset.browser_download_url, "universal")) {
+      universal = &asset;
+    } else if (any_pkg == nullptr) {
+      any_pkg = &asset;
+    }
+  }
+  if (universal != nullptr) {
+    return universal->browser_download_url;
+  }
+  // Only fall back to an unmatched .pkg when the caller did not request an arch.
+  if (arch_token.empty() && any_pkg != nullptr) {
+    return any_pkg->browser_download_url;
+  }
+  return std::nullopt;
+}
+
+std::string MarinaHostMacPkgArchToken() {
+#if defined(__APPLE__)
+#if defined(__aarch64__) || defined(__arm64__)
+  return "arm64";
+#else
+  return "intel64";
+#endif
+#else
+  return "";
+#endif
 }
 
 }  // namespace mozc

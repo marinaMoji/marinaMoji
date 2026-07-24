@@ -864,6 +864,30 @@ mozc_cc_test(
 )
 
 mozc_cc_library(
+    name = "marina_update_throttle",
+    srcs = ["marina_update_throttle.cc"],
+    hdrs = ["marina_update_throttle.h"],
+    deps = [
+        ":file_util",
+        ":system_util",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+mozc_cc_library(
+    name = "marina_curl_fetch",
+    srcs = ["marina_curl_fetch.cc"],
+    hdrs = ["marina_curl_fetch.h"],
+    deps = [
+        ":process",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_library(
     name = "version",
     srcs = [
         "version.cc",

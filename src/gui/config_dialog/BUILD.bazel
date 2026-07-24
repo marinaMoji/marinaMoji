@@ -261,6 +261,7 @@ mozc_cc_qt_library(
         ],
         macos = [
             "//base/mac:mac_util",
+            "//base:marina_update_throttle",
         ],
         windows = [
             "//gui/base:win_util",

@@ -83,9 +83,13 @@ mozc_cc_qt_library(
     ],
     hdrs = ["github_update_checker.h"],
     deps = [
+        "//base:file_util",
+        "//base:marina_curl_fetch",
         "//base:marina_semver",
+        "//base:system_util",
         "//base:version",
         "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
     ],
 )
 

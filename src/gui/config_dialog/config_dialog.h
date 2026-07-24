@@ -87,14 +87,17 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   virtual void LaunchAdministrationDialog();
   virtual void EnableApplyButton();
   virtual void CheckForUpdates();
-  virtual void OnUpdateAvailable(const QString &tag_name, const QString &html_url);
+  virtual void OnUpdateAvailable(const QString &tag_name, const QString &html_url,
+                                 const QString &pkg_url);
   virtual void OnUpdateUpToDate();
   virtual void OnUpdateCheckFailed(const QString &message);
 
  protected:
   bool eventFilter(QObject *obj, QEvent *event) override;
+  void showEvent(QShowEvent *event) override;
 
  private:
+  void MaybeAutoCheckForUpdates();
   bool GetConfig(config::Config *config);
   bool SetConfig(const config::Config &config);
   // Set/GetSendStatsChechBox read/write registry or file directly
@@ -123,8 +126,11 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   std::unique_ptr<ConfigDialogSyncTab> sync_tab_;
 
   QCheckBox *include_unstable_updates_checkbox_ = nullptr;
+  QCheckBox *auto_check_for_updates_checkbox_ = nullptr;
   QPushButton *check_for_updates_button_ = nullptr;
   std::unique_ptr<GitHubUpdateChecker> update_checker_;
+  bool update_check_silent_ = false;
+  bool auto_update_check_started_ = false;
 };
 
 }  // namespace gui

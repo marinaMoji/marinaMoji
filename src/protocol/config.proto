@@ -377,6 +377,11 @@ message Config {
   // Default is stable-only (final releases without -rc/-alpha/-beta).
   optional bool include_unstable_updates = 74 [default = false];
 
+  // When true (macOS), marinaMoji periodically checks GitHub Releases for a
+  // newer package and offers to download/open the .pkg installer. Manual
+  // "Check for updates…" always works regardless of this setting.
+  optional bool auto_check_for_updates = 75 [default = true];
+
   //////////////////////////////////////////////////////////////
   //
   // Dictionary (80-99)

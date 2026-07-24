@@ -74,5 +74,46 @@ TEST(MarinaGitHubReleasesTest, ParseJson) {
   EXPECT_EQ(releases[1].tag_name, "v0.0.2-rc1");
 }
 
+TEST(MarinaGitHubReleasesTest, FindPkgByArch) {
+  MarinaGitHubRelease release;
+  release.tag_name = "v0.0.2";
+  MarinaGitHubAsset arm;
+  arm.name = "marinaMoji-v0.0.2-arm64.pkg";
+  arm.browser_download_url =
+      "https://example.com/marinaMoji-v0.0.2-arm64.pkg";
+  MarinaGitHubAsset intel;
+  intel.name = "marinaMoji-v0.0.2-intel64.pkg";
+  intel.browser_download_url =
+      "https://example.com/marinaMoji-v0.0.2-intel64.pkg";
+  MarinaGitHubAsset deb;
+  deb.name = "marinamoji_0.0.2_amd64.deb";
+  deb.browser_download_url = "https://example.com/marinamoji_0.0.2_amd64.deb";
+  release.assets = {deb, intel, arm};
+
+  EXPECT_EQ(*FindMarinaPkgDownloadUrl(release, "arm64"),
+            arm.browser_download_url);
+  EXPECT_EQ(*FindMarinaPkgDownloadUrl(release, "intel64"),
+            intel.browser_download_url);
+  EXPECT_FALSE(FindMarinaPkgDownloadUrl(release, "ppc").has_value());
+}
+
+TEST(MarinaGitHubReleasesTest, ParseAssetsFromJson) {
+  constexpr char kJson[] = R"([
+    {"tag_name":"v0.0.2","prerelease":false,"draft":false,
+     "html_url":"https://example/stable",
+     "assets":[
+       {"name":"marinaMoji-v0.0.2-arm64.pkg",
+        "browser_download_url":"https://example.com/a.pkg"},
+       {"name":"marinaMoji-v0.0.2-intel64.pkg",
+        "browser_download_url":"https://example.com/i.pkg"}
+     ]}
+  ])";
+  const auto releases = ParseMarinaGitHubReleasesJson(kJson);
+  ASSERT_EQ(releases.size(), 1u);
+  ASSERT_EQ(releases[0].assets.size(), 2u);
+  EXPECT_EQ(*FindMarinaPkgDownloadUrl(releases[0], "arm64"),
+            "https://example.com/a.pkg");
+}
+
 }  // namespace
 }  // namespace mozc

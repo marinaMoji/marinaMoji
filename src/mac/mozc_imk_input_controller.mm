@@ -71,6 +71,7 @@
 #include "session/marina_number_row_bindings_util.h"
 #include "sync/sync_activity.h"
 #include "mac/mozc_toolbar.h"
+#include "mac/marina_auto_update.h"
 #include "mac/sync_overlay.h"
 #include "renderer/renderer_client.h"
 
@@ -720,6 +721,15 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   [self syncServerActivationIfNeeded:sender];
   if (mozc::mac::MozcToolbarNeedsReshowAfterPaletteClose()) {
     mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+  }
+
+  {
+    mozc::config::Config update_config;
+    if (mozcClient_ && mozcClient_->GetConfig(&update_config)) {
+      mozc::mac::MaybeScheduleMarinaAutoUpdateCheck(
+          update_config.include_unstable_updates(),
+          update_config.auto_check_for_updates());
+    }
   }
 
   DLOG(INFO) << kProductNameInEnglish << " client (" << self << "): activated for " << sender;

@@ -38,6 +38,7 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QShowEvent>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QTimer>
@@ -84,6 +85,7 @@
 
 #ifdef __APPLE__
 #include "base/mac/mac_util.h"
+#include "base/marina_update_throttle.h"
 #endif  // __APPLE__
 
 #if defined(__linux__)
@@ -500,6 +502,14 @@ ConfigDialog::ConfigDialog()
     updates_layout->setContentsMargins(0, 0, 5, 10);
     updates_layout->setSpacing(8);
 
+#ifdef __APPLE__
+    auto_check_for_updates_checkbox_ = new QCheckBox(
+        tr("Automatically check for updates (once a day)"), updates_widget);
+    updates_layout->addWidget(auto_check_for_updates_checkbox_);
+    connect(auto_check_for_updates_checkbox_, &QCheckBox::toggled, this,
+            &ConfigDialog::EnableApplyButton);
+#endif  // __APPLE__
+
     include_unstable_updates_checkbox_ = new QCheckBox(
         tr("Include unstable (rc) releases when checking for updates"),
         updates_widget);
@@ -887,6 +897,10 @@ void ConfigDialog::ConvertFromProto(const config::Config &config) {
     include_unstable_updates_checkbox_->setChecked(
         config.include_unstable_updates());
   }
+  if (auto_check_for_updates_checkbox_ != nullptr) {
+    auto_check_for_updates_checkbox_->setChecked(
+        config.auto_check_for_updates());
+  }
 
   characterFormEditor->Load(config);
 
@@ -1002,6 +1016,10 @@ void ConfigDialog::ConvertToProto(config::Config *config) const {
   if (include_unstable_updates_checkbox_ != nullptr) {
     config->set_include_unstable_updates(
         include_unstable_updates_checkbox_->isChecked());
+  }
+  if (auto_check_for_updates_checkbox_ != nullptr) {
+    config->set_auto_check_for_updates(
+        auto_check_for_updates_checkbox_->isChecked());
   }
 
   characterFormEditor->Save(config);
@@ -1231,23 +1249,86 @@ void ConfigDialog::EnableApplyButton() {
 ConfigDialog::~ConfigDialog() = default;
 
 void ConfigDialog::CheckForUpdates() {
-  if (update_checker_ == nullptr || check_for_updates_button_ == nullptr) {
+  if (update_checker_ == nullptr) {
     return;
   }
-  check_for_updates_button_->setEnabled(false);
-  check_for_updates_button_->setText(tr("Checking…"));
+  update_check_silent_ = false;
+  if (check_for_updates_button_ != nullptr) {
+    check_for_updates_button_->setEnabled(false);
+    check_for_updates_button_->setText(tr("Checking…"));
+  }
   const bool include_unstable =
       include_unstable_updates_checkbox_ != nullptr &&
       include_unstable_updates_checkbox_->isChecked();
   update_checker_->CheckForUpdates(include_unstable);
 }
 
+void ConfigDialog::MaybeAutoCheckForUpdates() {
+#ifdef __APPLE__
+  if (update_checker_ == nullptr || auto_update_check_started_) {
+    return;
+  }
+  const bool enabled =
+      auto_check_for_updates_checkbox_ != nullptr
+          ? auto_check_for_updates_checkbox_->isChecked()
+          : base_config_.auto_check_for_updates();
+  if (!enabled || !ShouldRunMarinaAutoUpdateCheck()) {
+    return;
+  }
+  auto_update_check_started_ = true;
+  update_check_silent_ = true;
+  MarkMarinaAutoUpdateCheckRan();
+  const bool include_unstable =
+      include_unstable_updates_checkbox_ != nullptr &&
+      include_unstable_updates_checkbox_->isChecked();
+  update_checker_->CheckForUpdates(include_unstable);
+#endif  // __APPLE__
+}
+
+void ConfigDialog::showEvent(QShowEvent *event) {
+  QDialog::showEvent(event);
+  MaybeAutoCheckForUpdates();
+}
+
 void ConfigDialog::OnUpdateAvailable(const QString &tag_name,
-                                     const QString &html_url) {
+                                     const QString &html_url,
+                                     const QString &pkg_url) {
   if (check_for_updates_button_ != nullptr) {
     check_for_updates_button_->setEnabled(true);
     check_for_updates_button_->setText(tr("Check for updates…"));
   }
+  update_check_silent_ = false;
+
+#if defined(__APPLE__)
+  if (!pkg_url.isEmpty()) {
+    QMessageBox box(this);
+    box.setWindowTitle(windowTitle());
+    box.setIcon(QMessageBox::Information);
+    box.setText(tr("A newer release is available: %1").arg(tag_name));
+    box.setInformativeText(
+        tr("Download the notarized .pkg and open the macOS Installer? "
+           "You will still need to approve the install."));
+    QPushButton *install_button =
+        box.addButton(tr("Download & Install…"), QMessageBox::AcceptRole);
+    QPushButton *page_button =
+        box.addButton(tr("Open release page"), QMessageBox::ActionRole);
+    box.addButton(QMessageBox::Cancel);
+    box.setDefaultButton(install_button);
+    box.exec();
+    if (box.clickedButton() == install_button) {
+      QString error;
+      if (!GitHubUpdateChecker::DownloadAndOpenInstaller(pkg_url, tag_name,
+                                                         &error)) {
+        QMessageBox::warning(this, windowTitle(),
+                             tr("Update download failed:\n%1").arg(error));
+      }
+    } else if (box.clickedButton() == page_button) {
+      Process::OpenBrowser(html_url.toStdString());
+    }
+    return;
+  }
+#endif  // __APPLE__
+
   const QString message =
       tr("A newer release is available: %1\n\nOpen the download page?")
           .arg(tag_name);
@@ -1264,6 +1345,10 @@ void ConfigDialog::OnUpdateUpToDate() {
     check_for_updates_button_->setEnabled(true);
     check_for_updates_button_->setText(tr("Check for updates…"));
   }
+  if (update_check_silent_) {
+    update_check_silent_ = false;
+    return;
+  }
   QMessageBox::information(
       this, windowTitle(),
       tr("You are using the latest available release for your update channel."));
@@ -1273,6 +1358,10 @@ void ConfigDialog::OnUpdateCheckFailed(const QString &message) {
   if (check_for_updates_button_ != nullptr) {
     check_for_updates_button_->setEnabled(true);
     check_for_updates_button_->setText(tr("Check for updates…"));
+  }
+  if (update_check_silent_) {
+    update_check_silent_ = false;
+    return;
   }
   QMessageBox::warning(this, windowTitle(),
                        tr("Update check failed:\n%1").arg(message));

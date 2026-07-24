@@ -1,8 +1,15 @@
 #include "gui/base/github_update_checker.h"
 
+#include <cctype>
+#include <string>
+
 #include <QProcess>
 
+#include "absl/strings/str_cat.h"
+#include "base/file_util.h"
+#include "base/marina_curl_fetch.h"
 #include "base/marina_github_releases.h"
+#include "base/system_util.h"
 #include "base/version.h"
 
 namespace mozc::gui {
@@ -43,6 +50,51 @@ void GitHubUpdateChecker::CheckForUpdates(bool include_unstable) {
   if (!process_->waitForStarted(5000)) {
     finishWithFailure(tr("Could not start curl to check for updates."));
   }
+}
+
+bool GitHubUpdateChecker::DownloadAndOpenInstaller(const QString& pkg_url,
+                                                   const QString& tag_name,
+                                                   QString* error_message) {
+#if defined(__APPLE__)
+  if (pkg_url.isEmpty()) {
+    if (error_message != nullptr) {
+      *error_message = tr("No installer package URL was found for this release.");
+    }
+    return false;
+  }
+  std::string safe_tag = tag_name.toStdString();
+  for (char& c : safe_tag) {
+    if (!(std::isalnum(static_cast<unsigned char>(c)) || c == '.' || c == '-' ||
+          c == '_')) {
+      c = '_';
+    }
+  }
+  const std::string dest = FileUtil::JoinPath(
+      SystemUtil::GetUserProfileDirectory(),
+      absl::StrCat("marinaMoji-update-", safe_tag, ".pkg"));
+  const auto status =
+      MarinaCurlDownload(pkg_url.toStdString(), dest);
+  if (!status.ok()) {
+    if (error_message != nullptr) {
+      *error_message = tr("Could not download the installer.");
+    }
+    return false;
+  }
+  if (!MarinaOpenLocalPath(dest)) {
+    if (error_message != nullptr) {
+      *error_message = tr("Downloaded the installer but could not open it.");
+    }
+    return false;
+  }
+  return true;
+#else
+  (void)pkg_url;
+  (void)tag_name;
+  if (error_message != nullptr) {
+    *error_message = tr("Installer download is only available on macOS.");
+  }
+  return false;
+#endif
 }
 
 void GitHubUpdateChecker::finishWithFailure(const QString& message) {
@@ -88,8 +140,17 @@ void GitHubUpdateChecker::onProcessFinished(int exit_code) {
     return;
   }
 
+  QString pkg_url;
+#if defined(__APPLE__)
+  if (const auto url =
+          FindMarinaPkgDownloadUrl(*newer, MarinaHostMacPkgArchToken());
+      url.has_value()) {
+    pkg_url = QString::fromStdString(*url);
+  }
+#endif
+
   emit updateAvailable(QString::fromStdString(newer->tag_name),
-                       QString::fromStdString(newer->html_url));
+                       QString::fromStdString(newer->html_url), pkg_url);
 }
 
 }  // namespace mozc::gui

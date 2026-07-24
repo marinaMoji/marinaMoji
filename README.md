@@ -68,9 +68,15 @@ signed and notarized, so Gatekeeper accepts them without warnings. Log out
 and back in, then add marinaMoji in
 System Settings → Keyboard → Input Sources.
 
-In **Preferences → Misc**, use **Check for updates…** to query GitHub
-Releases. By default only final (non-rc) releases are offered; enable
-**Include unstable (rc) releases…** to consider `-rc` / prerelease tags.
+In **Preferences → Misc**, marinaMoji can check GitHub Releases for you:
+
+- **Automatically check for updates (once a day)** is on by default. When you
+  switch to marinaMoji (or open Preferences), it looks for a newer notarized
+  `.pkg`, then offers **Download & Install…** (opens the macOS Installer; you
+  still approve with your password).
+- **Check for updates…** runs the same check immediately.
+- By default only final (non-rc) releases are offered; enable **Include
+  unstable (rc) releases…** to consider `-rc` / prerelease tags.
 
 ### Windows
 

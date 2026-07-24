@@ -213,6 +213,26 @@ mozc_objc_library(
 )
 
 mozc_objc_library(
+    name = "marina_auto_update",
+    srcs = ["marina_auto_update.mm"],
+    hdrs = ["marina_auto_update.h"],
+    sdk_frameworks = [
+        "Cocoa",
+    ],
+    tags = ["manual"],
+    deps = [
+        "//base:file_util",
+        "//base:marina_curl_fetch",
+        "//base:marina_semver",
+        "//base:marina_update_throttle",
+        "//base:system_util",
+        "//base:version",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_objc_library(
     name = "mozc_imk_input_controller",
     srcs = ["mozc_imk_input_controller.mm"],
     hdrs = ["mozc_imk_input_controller.h"],
@@ -229,6 +249,7 @@ mozc_objc_library(
     deps = [
         ":common",
         ":keycode_map",
+        ":marina_auto_update",
         ":marina_localized_string",
         ":mozc_toolbar",
         ":renderer_receiver",
