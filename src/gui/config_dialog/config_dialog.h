@@ -40,11 +40,15 @@
 #include <vector>
 
 #include "client/client_interface.h"
+#include "gui/base/github_update_checker.h"
 #include "gui/config_dialog/config_dialog_shortcuts_tab.h"
 #include "gui/config_dialog/config_dialog_sync_tab.h"
 #include "gui/config_dialog/ui_config_dialog.h"
 #include "protocol/config.pb.h"
 #include "protocol/commands.pb.h"
+
+class QCheckBox;
+class QPushButton;
 
 namespace mozc {
 namespace gui {
@@ -54,6 +58,7 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
 
  public:
   ConfigDialog();
+  ~ConfigDialog() override;
 
   // Methods defined in the 'slots' section (Qt's extension) will be processed
   // by Qt's moc tool (moc.exe on Windows). Unfortunately, preprocessor macros
@@ -81,6 +86,10 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   virtual void SelectSuggestionSetting(int state);
   virtual void LaunchAdministrationDialog();
   virtual void EnableApplyButton();
+  virtual void CheckForUpdates();
+  virtual void OnUpdateAvailable(const QString &tag_name, const QString &html_url);
+  virtual void OnUpdateUpToDate();
+  virtual void OnUpdateCheckFailed(const QString &message);
 
  protected:
   bool eventFilter(QObject *obj, QEvent *event) override;
@@ -112,6 +121,10 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
 
   std::unique_ptr<ConfigDialogShortcutsTab> shortcuts_tab_;
   std::unique_ptr<ConfigDialogSyncTab> sync_tab_;
+
+  QCheckBox *include_unstable_updates_checkbox_ = nullptr;
+  QPushButton *check_for_updates_button_ = nullptr;
+  std::unique_ptr<GitHubUpdateChecker> update_checker_;
 };
 
 }  // namespace gui

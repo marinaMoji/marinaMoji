@@ -811,6 +811,58 @@ mozc_run_build_tool(
     visibility = ["//visibility:private"],
 )
 
+# marinaMoji GitHub-facing product version (semver / -rc), separate from the
+# Mozc MAJOR.MINOR.BUILD.REVISION engine string.
+genrule(
+    name = "product_version_def_h",
+    srcs = ["//:marina_product_version.txt"],
+    outs = ["product_version_def.h"],
+    cmd = """
+set -euo pipefail
+V=$$(grep -v '^[[:space:]]*#' $(location //:marina_product_version.txt) | head -n1 | tr -d '[:space:]')
+if [ -z "$$V" ]; then
+  echo "error: marina_product_version.txt has no version line" >&2
+  exit 1
+fi
+cat > $@ <<EOF
+#ifndef MOZC_BASE_PRODUCT_VERSION_DEF_H_
+#define MOZC_BASE_PRODUCT_VERSION_DEF_H_
+namespace mozc {
+namespace version {
+inline constexpr const char kProductVersion[] = "$$V";
+}  // namespace version
+}  // namespace mozc
+#endif  // MOZC_BASE_PRODUCT_VERSION_DEF_H_
+EOF
+""",
+)
+
+mozc_cc_library(
+    name = "marina_semver",
+    srcs = [
+        "marina_github_releases.cc",
+        "marina_semver.cc",
+    ],
+    hdrs = [
+        "marina_github_releases.h",
+        "marina_semver.h",
+    ],
+    deps = [
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+mozc_cc_test(
+    name = "marina_semver_test",
+    size = "small",
+    srcs = ["marina_semver_test.cc"],
+    deps = [
+        ":marina_semver",
+        "//testing:gunit_main",
+    ],
+)
+
 mozc_cc_library(
     name = "version",
     srcs = [
@@ -818,6 +870,7 @@ mozc_cc_library(
     ],
     hdrs = [
         "version.h",
+        ":product_version_def_h",
         ":version_def_h",
     ],
     deps = [

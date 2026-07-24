@@ -188,7 +188,7 @@ void FillDefaultCompositionShortcuts(std::vector<ShortcutEntry> *composition) {
       {"Enter", "Commit"},
       {"Ctrl Enter", "Commit"},
       {"Ctrl m", "Commit"},
-      {"Ctrl 0", "LaunchWordRegisterDialog"},
+      {"Ctrl Shift 0", "LaunchWordRegisterDialog"},
       {"Ctrl k", "SegmentWidthShrink"},
       {"Shift Left", "SegmentWidthShrink"},
       {"Ctrl l", "SegmentWidthExpand"},

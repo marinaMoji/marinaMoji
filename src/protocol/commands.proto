@@ -482,7 +482,7 @@ message SessionCommand {
     // Toggle privacy mode (incognito + no history learning).
     TOGGLE_PRIVACY_MODE = 33;
 
-    // Open word-register dialog (same as Ctrl+0).
+    // Open word-register dialog (same as Ctrl+Shift+0).
     LAUNCH_WORD_REGISTER_DIALOG = 34;
 
     // marinaMoji: open the preferences dialog (same as the config_dialog

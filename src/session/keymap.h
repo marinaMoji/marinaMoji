@@ -157,7 +157,7 @@ struct CompositionState {
     TOGGLE_MANYOSHU_HIRAGANA,
     INSERT_MACRON_VOWEL,
     SET_MACRON_DEAD_KEY,  // AltGr+umlaut (¨): next vowel → macron
-    LAUNCH_WORD_REGISTER_DIALOG,  // Ctrl+0: add word (expression/reading prefill when available)
+    LAUNCH_WORD_REGISTER_DIALOG,  // Ctrl+Shift+0: add word (expression/reading prefill when available)
     // Switch input mode.
     COMPOSITION_MODE_HIRAGANA,
     COMPOSITION_MODE_FULL_KATAKANA,

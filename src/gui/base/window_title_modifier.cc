@@ -50,7 +50,7 @@ bool WindowTitleModifier::eventFilter(QObject *obj, QEvent *event) {
   // The window title can be empty, even if it is specified.
   // See: https://doc.qt.io/qt-5/qmessagebox.html#setWindowTitle
   if (!title.isEmpty() && title.indexOf(prefix) == -1) {
-    const QString version = prefix + Version::GetMozcVersion().c_str() + ")";
+    const QString version = prefix + Version::GetProductVersion().c_str() + ")";
     w->setWindowTitle(title + version);
   }
 

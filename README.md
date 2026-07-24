@@ -68,6 +68,10 @@ signed and notarized, so Gatekeeper accepts them without warnings. Log out
 and back in, then add marinaMoji in
 System Settings → Keyboard → Input Sources.
 
+In **Preferences → Misc**, use **Check for updates…** to query GitHub
+Releases. By default only final (non-rc) releases are offered; enable
+**Include unstable (rc) releases…** to consider `-rc` / prerelease tags.
+
 ### Windows
 
 Download the `.msi` for your machine — `x64` or `arm64` — and run it. The
@@ -75,18 +79,45 @@ installer is not yet signed, so SmartScreen will warn — choose
 "More info" → "Run anyway". Signed packages through the Microsoft Store
 are planned.
 
+In **Settings → Misc**, use **Check for updates…** the same way as on macOS
+(stable-only by default; optional unstable/rc channel).
+
 ### Linux
 
-**Debian/Ubuntu (amd64, arm64):** download
-`marinamoji_<version>_<arch>.deb` and install it:
+**Register the apt repository and install (Debian/Ubuntu, amd64 or arm64)**
+
+This is the **unstable** channel (tracks release builds, including rc tags).
+A separate stable channel will be added later. Indexes are GPG-signed; see
+[SECURITY.md](SECURITY.md).
 
 ```bash
-sudo apt install ./marinamoji_<version>_amd64.deb
+# 1. Install the archive signing key
+curl -fsSL https://marinamoji.github.io/marinaMoji/marinaMoji-release-public-key.asc \
+  | sudo gpg --dearmor -o /usr/share/keyrings/marinamoji-archive-keyring.gpg
+
+# 2. Register the repository
+echo "deb [signed-by=/usr/share/keyrings/marinamoji-archive-keyring.gpg] https://marinamoji.github.io/marinaMoji unstable main" \
+  | sudo tee /etc/apt/sources.list.d/marinamoji.list
+
+# 3. Install
+sudo apt update
+sudo apt install marinamoji
 ibus restart   # or log out and back in
 ```
 
 Then add "marinaMoji" in your desktop's input-source settings (or with
-`ibus-setup`). An apt repository for automatic updates is planned.
+`ibus-setup`). Packaging details:
+[packaging/linux/README.md](packaging/linux/README.md).
+
+**Manual `.deb`:** each
+[release](https://github.com/marinaMoji/marinaMoji/releases/latest) also
+attaches `marinamoji_<version>_<arch>.deb` if you prefer not to add the
+repository:
+
+```bash
+sudo apt install ./marinamoji_<version>_amd64.deb
+ibus restart
+```
 
 **Arch Linux (x86_64, aarch64):** PKGBUILDs are provided in
 [packaging/arch](packaging/arch) — `marinamoji` builds from source,

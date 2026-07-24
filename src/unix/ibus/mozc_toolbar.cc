@@ -1029,7 +1029,6 @@ static void FillDefaultCompositionShortcuts(std::vector<ShortcutEntry>* composit
       {"Ctrl Enter", "Commit"},
       {"Ctrl m", "Commit"},
       {"VirtualEnter", "Commit"},
-      {"Ctrl 0", "LaunchWordRegisterDialog"},
       {"Ctrl Shift 0", "LaunchWordRegisterDialog"},
       {"Ctrl k", "SegmentWidthShrink"},
       {"Shift Left", "SegmentWidthShrink"},

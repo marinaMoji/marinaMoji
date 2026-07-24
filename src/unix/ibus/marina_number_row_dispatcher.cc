@@ -135,8 +135,10 @@ bool DispatchMarinaNumberRowShortcut(
   SessionCommand command;
   switch (*action) {
     case MarinaNumberRowAction::MARINA_NR_HIRAGANA_DIRECT:
-      if (property_handler->GetOriginalCompositionMode() ==
-          CompositionMode::DIRECT) {
+      // Match macOS/Windows: toggle from activation, not composition mode.
+      // After IME off, original_composition_mode_ is usually still HIRAGANA
+      // (comeback mode), so comparing to DIRECT never flipped Japanese→Direct.
+      if (property_handler->IsActivated()) {
         command.set_type(SessionCommand::TURN_OFF_IME);
         return SendSessionCommand(client, command, output);
       }

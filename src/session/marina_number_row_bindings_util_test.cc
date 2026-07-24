@@ -52,7 +52,9 @@ TEST(MarinaNumberRowBindingsUtilTest, DefaultBindings) {
   EXPECT_EQ(defaults[0].slot(), MarinaPhysicalSlot::MARINA_SLOT_1);
   EXPECT_EQ(defaults[5].action(),
             MarinaNumberRowAction::MARINA_NR_WORD_REGISTER);
-  EXPECT_EQ(defaults[5].modifier(), MarinaShortcutModifier::MARINA_MOD_CTRL);
+  EXPECT_EQ(defaults[5].modifier(),
+            MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT);
+  EXPECT_EQ(defaults[5].slot(), MarinaPhysicalSlot::MARINA_SLOT_0);
 }
 
 TEST(MarinaNumberRowBindingsUtilTest, EffectiveBindingsUsesDefaults) {
@@ -85,6 +87,8 @@ TEST(MarinaNumberRowBindingsUtilTest, KeymapBindingDetection) {
   EXPECT_TRUE(IsMarinaNumberRowKeymapBinding("InsertOdorijiDefault",
                                              "Ctrl Shift 1"));
   EXPECT_TRUE(IsMarinaNumberRowKeymapBinding("LaunchWordRegisterDialog",
+                                             "Ctrl Shift 0"));
+  EXPECT_TRUE(IsMarinaNumberRowKeymapBinding("LaunchWordRegisterDialog",
                                              "Ctrl 0"));
   EXPECT_TRUE(IsMarinaNumberRowKeymapBinding("IMEOn", "Ctrl Shift 5"));
   EXPECT_FALSE(IsMarinaNumberRowKeymapBinding("ToggleTraditionalKanji",
@@ -101,10 +105,15 @@ TEST(MarinaNumberRowBindingsUtilTest, FindActionForKeyEvent) {
   EXPECT_EQ(*action, MarinaNumberRowAction::MARINA_NR_TRADITIONAL_KANJI);
 
   KeyEvent dict_key;
-  ASSERT_TRUE(KeyParser::ParseKey("Ctrl 0", &dict_key));
+  ASSERT_TRUE(KeyParser::ParseKey("Ctrl Shift 0", &dict_key));
   const auto dict_action = FindMarinaActionForKeyEvent(config, dict_key);
   ASSERT_TRUE(dict_action.has_value());
   EXPECT_EQ(*dict_action, MarinaNumberRowAction::MARINA_NR_WORD_REGISTER);
+
+  KeyEvent ctrl_only_dict_key;
+  ASSERT_TRUE(KeyParser::ParseKey("Ctrl 0", &ctrl_only_dict_key));
+  EXPECT_FALSE(
+      FindMarinaActionForKeyEvent(config, ctrl_only_dict_key).has_value());
 }
 
 }  // namespace

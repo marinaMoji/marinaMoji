@@ -365,13 +365,17 @@ message Config {
   optional bytes custom_kaeriten_table = 71;
 
   // Custom marina number-row shortcut bindings. When empty, bundled defaults
-  // apply (Ctrl+Shift+1..5 for marina actions, Ctrl+0 for dictionary).
+  // apply (Ctrl+Shift+1..5 for marina actions, Ctrl+Shift+0 for dictionary).
   repeated MarinaNumberRowBinding marina_number_row_bindings = 72;
 
   // Fixed romaji keyboard layout used to resolve physical keys to characters,
   // independent of the OS's active layout. Default preserves prior behavior.
   optional MarinaKeyboardLayout marina_keyboard_layout = 73
       [default = MARINA_KBD_OS_DEFAULT];
+
+  // When true, Check for updates also considers GitHub prereleases / -rc tags.
+  // Default is stable-only (final releases without -rc/-alpha/-beta).
+  optional bool include_unstable_updates = 74 [default = false];
 
   //////////////////////////////////////////////////////////////
   //

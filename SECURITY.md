@@ -54,8 +54,14 @@ Subkeys:
   subkey, kept offline. Used for signatures made outside CI, such as
   security notices or key-rotation statements.
 - `A1DF B08F D78B 8A8F 941E  AD5F E4A4 FB8B 462A 09F5` — CI signing subkey,
-  held by GitHub Actions. Reserved for signing package-repository metadata
-  (e.g. apt repository indexes); it does not sign release assets.
+  held by GitHub Actions. Used to sign apt repository indexes (`InRelease` /
+  `Release.gpg`) published to GitHub Pages; it does not sign release assets.
+
+The apt repository is served from
+[https://marinamoji.github.io/marinaMoji](https://marinamoji.github.io/marinaMoji)
+(**unstable** suite for now; a stable channel will be added later) and rebuilt
+on every `v*` release. Install instructions are in the
+[README](./README.md#linux).
 
 Release assets are authenticated by notarization and build provenance
 attestations (above), not by detached GPG signatures. Subkey expiries are

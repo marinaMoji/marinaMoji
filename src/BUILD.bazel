@@ -240,7 +240,10 @@ cc_library(
 )
 
 exports_files(
-    ["version.bzl"],
+    [
+        "version.bzl",
+        "marina_product_version.txt",
+    ],
     visibility = [
         "//base:__pkg__",
         "//data_manager:__subpackages__",

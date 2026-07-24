@@ -102,7 +102,7 @@ std::vector<MarinaNumberRowBinding> GetDefaultMarinaNumberRowBindings() {
                   MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
                   MarinaPhysicalSlot::MARINA_SLOT_5),
       MakeBinding(MarinaNumberRowAction::MARINA_NR_WORD_REGISTER,
-                  MarinaShortcutModifier::MARINA_MOD_CTRL,
+                  MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
                   MarinaPhysicalSlot::MARINA_SLOT_0),
   };
 }

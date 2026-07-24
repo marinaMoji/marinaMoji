@@ -40,7 +40,7 @@
 namespace mozc {
 namespace session {
 
-// Bundled default bindings (Ctrl+Shift+1..5, Ctrl+0 dictionary).
+// Bundled default bindings (Ctrl+Shift+1..5, Ctrl+Shift+0 dictionary).
 std::vector<config::MarinaNumberRowBinding> GetDefaultMarinaNumberRowBindings();
 
 // Effective bindings: config repeated field or defaults when empty.

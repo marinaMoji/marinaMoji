@@ -39,6 +39,7 @@ namespace mozc {
 
 TEST(VersionTest, BasicTest) {
   EXPECT_EQ(Version::GetMozcVersion(), version::kMozcVersion);
+  EXPECT_FALSE(Version::GetProductVersion().empty());
 }
 
 TEST(VersionTest, VersionNumberTest) {

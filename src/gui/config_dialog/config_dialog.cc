@@ -33,12 +33,15 @@
 #include "gui/config_dialog/config_dialog_shortcuts_tab.h"
 #include "gui/config_dialog/config_dialog_sync_tab.h"
 
+#include <QCheckBox>
 #include <QFontMetrics>
 #include <QInputDialog>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QTimer>
+#include <QVBoxLayout>
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
@@ -54,6 +57,7 @@
 #include "absl/time/time.h"
 #include "base/config_file_stream.h"
 #include "base/file_util.h"
+#include "base/process.h"
 #include "client/client.h"
 #include "config/config_handler.h"
 #include "config/stats_config_util.h"
@@ -489,6 +493,39 @@ ConfigDialog::ConfigDialog()
       static_cast<client::Client*>(client_.get()), this);
   sync_tab_->AddToTabWidget(configDialogTabWidget);
 
+#if defined(MARINAMOJI) && (defined(_WIN32) || defined(__APPLE__))
+  {
+    auto *updates_widget = new QWidget(miscTab);
+    auto *updates_layout = new QVBoxLayout(updates_widget);
+    updates_layout->setContentsMargins(0, 0, 5, 10);
+    updates_layout->setSpacing(8);
+
+    include_unstable_updates_checkbox_ = new QCheckBox(
+        tr("Include unstable (rc) releases when checking for updates"),
+        updates_widget);
+    updates_layout->addWidget(include_unstable_updates_checkbox_);
+
+    check_for_updates_button_ =
+        new QPushButton(tr("Check for updates…"), updates_widget);
+    updates_layout->addWidget(check_for_updates_button_);
+
+    miscTabLayout->insertWidget(0, updates_widget);
+
+    connect(include_unstable_updates_checkbox_, &QCheckBox::toggled, this,
+            &ConfigDialog::EnableApplyButton);
+    connect(check_for_updates_button_, &QPushButton::clicked, this,
+            &ConfigDialog::CheckForUpdates);
+
+    update_checker_ = std::make_unique<GitHubUpdateChecker>(this);
+    connect(update_checker_.get(), &GitHubUpdateChecker::updateAvailable, this,
+            &ConfigDialog::OnUpdateAvailable);
+    connect(update_checker_.get(), &GitHubUpdateChecker::upToDate, this,
+            &ConfigDialog::OnUpdateUpToDate);
+    connect(update_checker_.get(), &GitHubUpdateChecker::checkFailed, this,
+            &ConfigDialog::OnUpdateCheckFailed);
+  }
+#endif  // MARINAMOJI && (_WIN32 || __APPLE__)
+
   Reload();
 
 #ifdef _WIN32
@@ -846,6 +883,10 @@ void ConfigDialog::ConvertFromProto(const config::Config &config) {
 #if defined(__linux__) || defined(__APPLE__)
   startKanjiModeComboBox->setCurrentIndex(config.use_traditional_kanji() ? 1 : 0);
 #endif
+  if (include_unstable_updates_checkbox_ != nullptr) {
+    include_unstable_updates_checkbox_->setChecked(
+        config.include_unstable_updates());
+  }
 
   characterFormEditor->Load(config);
 
@@ -958,6 +999,10 @@ void ConfigDialog::ConvertToProto(config::Config *config) const {
 #if defined(__linux__) || defined(__APPLE__)
   config->set_use_traditional_kanji(startKanjiModeComboBox->currentIndex() == 1);
 #endif
+  if (include_unstable_updates_checkbox_ != nullptr) {
+    config->set_include_unstable_updates(
+        include_unstable_updates_checkbox_->isChecked());
+  }
 
   characterFormEditor->Save(config);
 
@@ -1181,6 +1226,56 @@ void ConfigDialog::LaunchAdministrationDialog() {
 
 void ConfigDialog::EnableApplyButton() {
   configDialogButtonBox->button(QDialogButtonBox::Apply)->setEnabled(true);
+}
+
+ConfigDialog::~ConfigDialog() = default;
+
+void ConfigDialog::CheckForUpdates() {
+  if (update_checker_ == nullptr || check_for_updates_button_ == nullptr) {
+    return;
+  }
+  check_for_updates_button_->setEnabled(false);
+  check_for_updates_button_->setText(tr("Checking…"));
+  const bool include_unstable =
+      include_unstable_updates_checkbox_ != nullptr &&
+      include_unstable_updates_checkbox_->isChecked();
+  update_checker_->CheckForUpdates(include_unstable);
+}
+
+void ConfigDialog::OnUpdateAvailable(const QString &tag_name,
+                                     const QString &html_url) {
+  if (check_for_updates_button_ != nullptr) {
+    check_for_updates_button_->setEnabled(true);
+    check_for_updates_button_->setText(tr("Check for updates…"));
+  }
+  const QString message =
+      tr("A newer release is available: %1\n\nOpen the download page?")
+          .arg(tag_name);
+  if (QMessageBox::Ok ==
+      QMessageBox::information(this, windowTitle(), message,
+                               QMessageBox::Ok | QMessageBox::Cancel,
+                               QMessageBox::Ok)) {
+    Process::OpenBrowser(html_url.toStdString());
+  }
+}
+
+void ConfigDialog::OnUpdateUpToDate() {
+  if (check_for_updates_button_ != nullptr) {
+    check_for_updates_button_->setEnabled(true);
+    check_for_updates_button_->setText(tr("Check for updates…"));
+  }
+  QMessageBox::information(
+      this, windowTitle(),
+      tr("You are using the latest available release for your update channel."));
+}
+
+void ConfigDialog::OnUpdateCheckFailed(const QString &message) {
+  if (check_for_updates_button_ != nullptr) {
+    check_for_updates_button_->setEnabled(true);
+    check_for_updates_button_->setText(tr("Check for updates…"));
+  }
+  QMessageBox::warning(this, windowTitle(),
+                       tr("Update check failed:\n%1").arg(message));
 }
 
 // Catch MouseButtonRelease event to toggle the CheckBoxes

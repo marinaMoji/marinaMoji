@@ -41,6 +41,7 @@
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
 #include "base/version_def.h"
+#include "base/product_version_def.h"
 
 #ifdef _WIN32
 #include "base/win32/wide_char.h"
@@ -56,6 +57,8 @@ bool StringAsIntegerComparator(absl::string_view lhs, absl::string_view rhs) {
 }  // namespace
 
 std::string Version::GetMozcVersion() { return version::kMozcVersion; }
+
+std::string Version::GetProductVersion() { return version::kProductVersion; }
 
 #ifdef _WIN32
 std::wstring Version::GetMozcVersionW() {
