@@ -9,7 +9,7 @@ workflow runs it for amd64 and arm64.
 ## Product version (About / update checks)
 
 `src/marina_product_version.txt` holds the GitHub-facing version string
-(e.g. `0.0.2-rc1`, no leading `v`). The release workflow overwrites it from
+(e.g. `0.0.2-rc2`, no leading `v`). The release workflow overwrites it from
 the tag before building so About and Win/mac update checks match the release.
 The Mozc four-part engine version in `version.bzl` stays separate (IPC /
 installer PE metadata).

@@ -44,7 +44,7 @@ class Version {
   // Get current mozc version (former called MOZC_VERSION)
   static std::string GetMozcVersion();
 
-  // marinaMoji product / GitHub release version (e.g. "0.0.2-rc1").
+  // marinaMoji product / GitHub release version (e.g. "0.0.2-rc2").
   // Falls back to GetMozcVersion() when the product version header is absent.
   static std::string GetProductVersion();
 

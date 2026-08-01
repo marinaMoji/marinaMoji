@@ -9,7 +9,7 @@
 namespace mozc {
 
 // Parsed marinaMoji product version: MAJOR.MINOR.PATCH[-PRERELEASE].
-// Examples: "0.0.2", "v0.0.1-rc3", "0.0.2-rc1".
+// Examples: "0.0.2", "v0.0.1-rc3", "0.0.2-rc2".
 struct MarinaSemVer {
   int major = 0;
   int minor = 0;
@@ -30,7 +30,7 @@ bool IsMarinaUnstableVersion(absl::string_view text);
 
 // Lexicographic order for update checks: returns true iff lhs < rhs.
 // Final releases sort after prereleases of the same MAJOR.MINOR.PATCH
-// (e.g. 0.0.2 > 0.0.2-rc1). Unknown/unparseable inputs compare as not-less.
+// (e.g. 0.0.2 > 0.0.2-rc2). Unknown/unparseable inputs compare as not-less.
 bool MarinaSemVerLess(absl::string_view lhs, absl::string_view rhs);
 
 // Strip a leading 'v' / 'V' if present.
