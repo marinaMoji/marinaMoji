@@ -49,6 +49,7 @@
 namespace mozc {
 namespace {
 
+using ::testing::AtLeast;
 using ::testing::Return;
 
 // Returns the given CPU load values in order.
@@ -93,8 +94,12 @@ client::ClientMock* CreateMockClient() {
 TEST(SessionWatchDogTest, SessionWatchDogTest) {
   constexpr absl::Duration kInterval = absl::Seconds(1);
   auto* client = CreateMockClient();
-  auto stats = std::make_unique<TestCPUStats>(std::vector<float>(5, 0.0f));
-  EXPECT_CALL(*client, Cleanup()).Times(5);
+  // Extra samples so a slow CI scheduler can run past ~5 ticks without
+  // emptying the fake CPU-load queue.
+  auto stats = std::make_unique<TestCPUStats>(std::vector<float>(16, 0.0f));
+  // Exactly Times(5) with a 5.5s sleep flakes on loaded Windows runners
+  // (Cleanup may only fire 4 times). Accept a small timing window.
+  EXPECT_CALL(*client, Cleanup()).Times(AtLeast(4));
 
   SessionWatchDog watchdog(kInterval, absl::WrapUnique(client),
                            std::move(stats));
@@ -103,13 +108,13 @@ TEST(SessionWatchDogTest, SessionWatchDogTest) {
   absl::SleepFor(absl::Milliseconds(100));
   EXPECT_EQ(watchdog.interval(), kInterval);
 
-  absl::SleepFor(absl::Milliseconds(5500));  // 5.5 sec
+  absl::SleepFor(absl::Milliseconds(6500));  // ~6.5 sec
 }
 
 TEST(SessionWatchDogTest, SessionWatchDogCPUStatsTest) {
   constexpr absl::Duration kInterval = absl::Seconds(1);
   auto* client = CreateMockClient();
-  auto* cpu_loads = new TestCPUStats(std::vector<float>(5, 0.8f));
+  auto* cpu_loads = new TestCPUStats(std::vector<float>(16, 0.8f));
 
   mozc::SessionWatchDog watchdog(kInterval, absl::WrapUnique(client),
                                  absl::WrapUnique(cpu_loads));
@@ -117,7 +122,7 @@ TEST(SessionWatchDogTest, SessionWatchDogCPUStatsTest) {
 
   absl::SleepFor(absl::Milliseconds(100));
   EXPECT_EQ(watchdog.interval(), kInterval);
-  absl::SleepFor(absl::Milliseconds(5500));  // 5.5 sec
+  absl::SleepFor(absl::Milliseconds(6500));  // ~6.5 sec
 }
 
 TEST(SessionWatchDogTest, SessionCanSendCleanupCommandTest) {

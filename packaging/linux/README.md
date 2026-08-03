@@ -29,7 +29,10 @@ second Pages path).
 ### One-time GitHub setup
 
 1. **Pages:** Settings → Pages → Build and deployment → Source: **Deploy from a
-   branch** → Branch: `gh-pages` / `/ (root)`.
+   branch** → Branch: `gh-pages` / `/ (root)`. Without this, `publish_apt` can
+   push a complete `gh-pages` tree while
+   `https://marinamoji.github.io/marinaMoji` still returns **404** (“Site not
+   found”). The release workflow now fails the apt job if Pages is not enabled.
 2. **Repository secrets** (already named this way in the marinaMoji repo):
    - `APT_GPG_PRIVATE_KEY` — ASCII-armored private key material for the
      **CI signing subkey**

@@ -491,3 +491,23 @@ jobs:
           publish_branch: gh-pages
           force_orphan: true
           commit_message: 'apt: update repository for ${{ github.ref_name }}'
+
+      # peaceiris only pushes the branch; Pages must also be enabled once in
+      # repo settings (Settings → Pages → Deploy from a branch → gh-pages).
+      # Fail loudly if that one-time step was skipped, so apt does not look
+      # "published" while https://marinamoji.github.io/marinaMoji is 404.
+      - name: Verify GitHub Pages is serving the apt root
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
+            echo "::error::GitHub Pages is not enabled. Enable it once: Settings → Pages → Source: Deploy from a branch → gh-pages / (root). See packaging/linux/README.md."
+            exit 1
+          fi
+          source_branch="$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .source.branch)"
+          if [[ "$source_branch" != "gh-pages" ]]; then
+            echo "::error::GitHub Pages source branch is '$source_branch', expected 'gh-pages'."
+            exit 1
+          fi
+          echo "GitHub Pages is enabled from branch ${source_branch}"
