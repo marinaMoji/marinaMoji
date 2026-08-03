@@ -629,7 +629,7 @@ message Capability {
       [default = NO_TEXT_DELETION_CAPABILITY];
 }
 
-// Next ID: 151
+// Next ID: 154
 // Bundles together some Android experiment flags so that they can be easily
 // retrieved throughout the native code.  These flags are generally specific to
 // the decoder, and are made available when the decoder is initialized.
@@ -752,6 +752,18 @@ message DecoderExperimentParams {
   // Transition cost bonus for particle omission (e.g. "さかなくう" ->
   // "魚食う"). This is used for experiments to improve core LM conversion.
   optional int32 particle_omission_transition_cost_bonus = 150 [default = 0];
+
+  // Use precomputed top transitions in NgramFst::NextTopStates.
+  optional bool ngram_use_precomputed_top_states = 151 [default = false];
+
+  // If true, suppresses calling the converter (ConverterInterface) in
+  // RealtimeDecoder.
+  optional bool suppress_realtime_conversion_with_converter = 152
+      [default = false];
+
+  // Enables partial match learning for segment-edited compound nouns.
+  optional bool user_history_enable_compound_noun_partial_match = 153
+      [default = false];
 }
 
 // Clients' request to the server.
