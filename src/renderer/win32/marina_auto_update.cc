@@ -20,7 +20,6 @@
 #include <optional>
 #include <string>
 #include <thread>
-#include <type_traits>
 #include <vector>
 
 #include "absl/strings/str_cat.h"
@@ -58,12 +57,15 @@ constexpr int kConnectTimeoutMs = 10'000;
 constexpr int kSendTimeoutMs = 15'000;
 constexpr int kReceiveTimeoutMs = 20'000;
 
+// Functor/stateless WIL deleter (not a raw function pointer): unique_ptr with
+// a function-pointer deleter is not default-constructible, which made
+// WinHttpGet unusable with std::optional and plain `WinHttpGet handles;`.
 using UniqueHInternet =
-    std::unique_ptr<std::remove_pointer_t<HINTERNET>,
-                    decltype(&::WinHttpCloseHandle)>;
+    wil::unique_any<HINTERNET, decltype(&::WinHttpCloseHandle),
+                    ::WinHttpCloseHandle>;
 
 UniqueHInternet WrapHandle(HINTERNET handle) {
-  return UniqueHInternet(handle, &::WinHttpCloseHandle);
+  return UniqueHInternet(handle);
 }
 
 void ApplyTimeouts(HINTERNET handle) {
@@ -136,7 +138,7 @@ std::optional<WinHttpGet> OpenSuccessfulGet(const std::wstring& host,
       status != 200) {
     return std::nullopt;
   }
-  return handles;
+  return std::move(handles);
 }
 
 std::optional<std::string> ReadBody(HINTERNET request) {
@@ -242,7 +244,7 @@ std::optional<std::string> FetchGitHubReleasesJson() {
 
 bool DownloadToFile(const std::string& url_utf8,
                     const std::wstring& dest_path) {
-  const std::wstring url = win32::Utf8ToWide(url_utf8);
+  const std::wstring url = mozc::win32::Utf8ToWide(url_utf8);
   const auto cracked = CrackHttpsUrl(url);
   if (!cracked.has_value()) {
     return false;
@@ -256,7 +258,7 @@ bool DownloadToFile(const std::string& url_utf8,
 }
 
 std::wstring SanitizeForFilename(const std::string& tag_name) {
-  std::wstring safe = win32::Utf8ToWide(tag_name);
+  std::wstring safe = mozc::win32::Utf8ToWide(tag_name);
   for (wchar_t& c : safe) {
     const bool ok = (c < 128) &&
                     (std::isalnum(static_cast<unsigned char>(c)) ||
@@ -274,7 +276,7 @@ std::wstring SanitizeForFilename(const std::string& tag_name) {
 // the renderer's main message loop -- so blocking here is fine.
 void PresentUpdateOffer(const MarinaGitHubRelease& release,
                         const std::string& msi_url) {
-  const std::wstring message = win32::Utf8ToWide(
+  const std::wstring message = mozc::win32::Utf8ToWide(
       absl::StrCat("A newer release is available: ", release.tag_name));
 
   constexpr int kInstallButtonId = 100;
@@ -318,10 +320,11 @@ void PresentUpdateOffer(const MarinaGitHubRelease& release,
   }
 
   if (clicked_id == kInstallButtonId) {
-    const std::wstring dest = win32::Utf8ToWide(FileUtil::JoinPath(
+    const std::wstring dest = mozc::win32::Utf8ToWide(FileUtil::JoinPath(
         SystemUtil::GetUserProfileDirectory(),
         absl::StrCat("marinaMoji-update-",
-                     win32::WideToUtf8(SanitizeForFilename(release.tag_name)),
+                     mozc::win32::WideToUtf8(
+                         SanitizeForFilename(release.tag_name)),
                      ".msi")));
     bool ok = DownloadToFile(msi_url, dest);
     if (ok) {
