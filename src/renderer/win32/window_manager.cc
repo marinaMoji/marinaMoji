@@ -46,6 +46,7 @@
 #include "renderer/win32/infolist_window.h"
 #include "renderer/win32/shortcuts_window.h"
 #include "renderer/win32/symbols_palette_window.h"
+#include "renderer/win32/sync_overlay_window.h"
 #include "renderer/win32/toolbar_window.h"
 #include "renderer/win32/win32_dpi_util.h"
 #include "renderer/win32/win32_renderer_util.h"
@@ -70,6 +71,7 @@ WindowManager::WindowManager()
       toolbar_window_(std::make_unique<ToolbarWindow>()),
       symbols_palette_window_(std::make_unique<SymbolsPaletteWindow>()),
       shortcuts_window_(std::make_unique<ShortcutsWindow>()),
+      sync_overlay_window_(std::make_unique<SyncOverlayWindow>()),
       layout_manager_(std::make_unique<LayoutManager>()),
       send_command_interface_(nullptr),
       last_position_(kInvalidMousePosition),
@@ -93,6 +95,9 @@ void WindowManager::Initialize() {
   toolbar_window_->Initialize();
   symbols_palette_window_->Initialize();
   shortcuts_window_->Initialize();
+  // marinaMoji: drives itself off sync.status.json rather than
+  // RendererCommand, so it is only created here -- see sync_overlay_window.h.
+  sync_overlay_window_->Initialize();
 }
 
 void WindowManager::AsyncHideAllWindows() {
@@ -121,6 +126,7 @@ void WindowManager::DestroyAllWindows() {
   toolbar_window_->Destroy();
   symbols_palette_window_->Destroy();
   shortcuts_window_->Destroy();
+  sync_overlay_window_->Destroy();
 }
 
 void WindowManager::HideAllWindows() {
@@ -131,6 +137,11 @@ void WindowManager::HideAllWindows() {
   toolbar_window_->Hide();
   symbols_palette_window_->Hide();
   shortcuts_window_->Hide();
+  // marinaMoji: |sync_overlay_window_| is deliberately absent here. It
+  // reports that input is being held during a sync, which is exactly the
+  // situation in which the IME has no focus to show anything else for --
+  // hiding it on focus loss would take it away precisely when it is needed.
+  // It hides itself when the sync finishes (see sync_overlay_window.cc).
 }
 
 // TODO(yukawa): Refactor this method by making a new method in LayoutManager

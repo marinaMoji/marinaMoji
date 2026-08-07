@@ -515,6 +515,18 @@ mozc_cc_library(
 )
 
 mozc_cc_library(
+    name = "sync_lock_util",
+    srcs = ["sync_lock_util.cc"],
+    hdrs = ["sync_lock_util.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        "//bazel/win32:user32",
+        "//sync:sync_status",
+    ],
+)
+
+mozc_cc_library(
     name = "toolbar_config",
     srcs = ["toolbar_config.cc"],
     hdrs = ["toolbar_config.h"],

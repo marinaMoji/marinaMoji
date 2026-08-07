@@ -279,6 +279,22 @@ mozc_cc_library(
 )
 
 mozc_cc_library(
+    name = "sync_overlay_window",
+    srcs = ["sync_overlay_window.cc"],
+    hdrs = ["sync_overlay_window.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        ":win32_dpi_util",
+        "//base:const",
+        "//base/win32:wide_char",
+        "//bazel/win32:gdi32",
+        "//bazel/win32:user32",
+        "//sync:sync_status",
+    ],
+)
+
+mozc_cc_library(
     name = "text_renderer",
     srcs = ["text_renderer.cc"],
     hdrs = ["text_renderer.h"],
@@ -352,6 +368,7 @@ mozc_cc_library(
         ":infolist_window",
         ":shortcuts_window",
         ":symbols_palette_window",
+        ":sync_overlay_window",
         ":toolbar_window",
         ":win32_dpi_util",
         ":win32_renderer_util",

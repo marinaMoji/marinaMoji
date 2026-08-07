@@ -93,6 +93,8 @@ inline constexpr wchar_t kSymbolsPaletteWindowClassName[] =
     L"GoogleJapaneseInputSymbolsPaletteWindow";
 inline constexpr wchar_t kShortcutsWindowClassName[] =
     L"GoogleJapaneseInputShortcutsWindow";
+inline constexpr wchar_t kSyncOverlayWindowClassName[] =
+    L"GoogleJapaneseInputSyncOverlayWindow";
 // This UIWnd class name should be used by and only by the actual IMM32
 // version.  Make sure that |kIMEUIWndClassName| is different from
 // |kDummyIMEUIWndClassName| so that the dummy IME and the actual IME can
@@ -149,6 +151,8 @@ inline constexpr wchar_t kSymbolsPaletteWindowClassName[] =
     L"marinaMojiSymbolsPaletteWindow";
 inline constexpr wchar_t kShortcutsWindowClassName[] =
     L"marinaMojiShortcutsWindow";
+inline constexpr wchar_t kSyncOverlayWindowClassName[] =
+    L"marinaMojiSyncOverlayWindow";
 // Must fit kIMEUIwndClassNameLimitInTchars (16 incl. terminator).
 inline constexpr wchar_t kIMEUIWndClassName[] = L"marinaMojiUIWnd";
 inline constexpr char kIPCPrefix[] = "\\\\.\\pipe\\marinamoji.";

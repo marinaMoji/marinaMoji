@@ -91,8 +91,10 @@ mozc_cc_library(
     visibility = [
         "//gui:__subpackages__",
         "//mac:__pkg__",
+        "//renderer/win32:__pkg__",
         "//sync:__pkg__",
         "//unix/ibus:__pkg__",
+        "//win32/base:__pkg__",
     ],
     deps = [
         "//base:file_util",

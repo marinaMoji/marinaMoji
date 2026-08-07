@@ -370,6 +370,7 @@ mozc_cc_library(
         "//win32/base:keyboard",
         "//win32/base:keyevent_handler",
         "//win32/base:surrogate_pair_observer",
+        "//win32/base:sync_lock_util",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_microsoft_wil//:wil",

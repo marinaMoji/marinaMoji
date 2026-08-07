@@ -737,6 +737,7 @@ mozc_cc_test(
         "//testing:mozctest",
         "//testing:test_peer",
         "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/strings",
     ],
 )
 

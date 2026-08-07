@@ -10,6 +10,168 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Decision: Windows ships unsigned; Microsoft Store ruled out
+
+No code change — recorded here because it determines what we release.
+
+The Windows `.exe` ships **unsigned** for now, with the SmartScreen warning
+documented in the README. Code signing comes later via
+[SignPath Foundation](https://signpath.org/), which is free for open-source
+projects and signs the existing MSI unchanged. SignPath require an existing
+release history and don't accept brand-new projects, so shipping first and
+applying later is the correct order rather than a compromise.
+
+**The Microsoft Store was investigated and ruled out.** It cannot supply free
+signing for this project, for two independent reasons:
+
+- Microsoft only re-signs **MSIX** packages during certification. An MSI/EXE
+  Store submission [must already be signed](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/code-signing-options)
+  with a CA-chained certificate.
+- MSIX cannot host a TSF text service at all. Per Microsoft's
+  [MSIX preparation docs](https://learn.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-prepare):
+  *"Your app's modules are loaded in-process to processes that are not in your
+  Windows app package. This isn't permitted, which means that in-process
+  extensions, like shell extensions, aren't supported."* A TIP DLL is loaded
+  in-process into every application that takes text input — architecturally the
+  same shape as a shell extension. Packaged COM does not help: it exposes
+  **out-of-process** servers only, and explicitly "will not work for
+  application extensions that rely upon directly reading the registry", which
+  is how TSF profile registration works. MSIX also blocks the HKLM writes that
+  registration needs, and the Store rejects apps requiring elevation for any
+  part of their functionality.
+
+Sparse packages (`allowExternalContent`) don't rescue it either: Microsoft
+signs only the MSIX package, never the external content, so the actual
+binaries would remain unsigned.
+
+A Store listing may still be worth doing later purely for discoverability, as
+a plain MSI/EXE submission once a SignPath certificate exists. It is not a
+route to obtaining one.
+
+### Windows: uppercase macron vowels (ĀĒĪŌŪ) were unreachable
+
+`Ctrl+Alt+Shift+`vowel produced nothing on Windows, at **every** keyboard
+layout — not just the non-QWERTY layouts this was originally suspected to
+affect. Lowercase `ā ē ī ō ū` worked; the uppercase forms did not.
+
+Cause: the macron rules in the keymap TSVs are written `Ctrl Alt Shift A` ..
+`Ctrl Alt Shift U`, and `KeyParser::ParseKeyVector` stores a single-glyph
+token verbatim, so those rules carry an *uppercase* `key_code`. But the
+alphabet path in [`keyevent_handler.cc`](src/win32/base/keyevent_handler.cc)
+reports `lower_char` whenever Ctrl is held and — unlike the
+Shift-without-Ctrl branch — leaves `SHIFT` in the modifier set. The resulting
+event (`key_code='a'`, `{CTRL, ALT, SHIFT}`) matches no rule at all. There are
+no lowercase-plus-Shift macron rows, so the chord was inert rather than firing
+some other command.
+
+The bug only bites with CapsLock **off**: with CapsLock on, the CAPS branch
+emits `lower_char` and `KeyEventUtil::NormalizeModifiers` flips the case back,
+which happens to produce a match.
+
+Fixed by reporting `upper_char` for `Ctrl+Alt+Shift+`vowel, mirroring the
+`macron_shift` fixup in `mac/KeyCodeMap.mm` and restricted to the same five
+vowels so no other `Ctrl+Alt+Shift+`letter binding changes shape. The test is
+on the produced character rather than the virtual key, because under a fixed
+romaji layout (`MarinaKeyboardLayout`) the character comes from that layout's
+table and it is the character, not the physical key, that the keymap matches.
+
+No Linux-style workaround is needed: `key_translator.cc:341` remaps a Hiragana
+*keysym* that X11 can produce for these chords, and Windows has no keysym
+layer — it delivers virtual-key codes directly.
+
+Two tests added:
+
+- `session/keymap_test.cc` — `MarinaMacronVowelsRequireUppercaseKeyCode` pins
+  the contract cross-platform: uppercase matches, lowercase-plus-SHIFT (the
+  buggy shape) does not, lowercase-without-Shift still matches. **This one
+  runs on macOS and passes**, so the premise of the fix is verified by
+  execution rather than inference.
+- `win32/base/keyevent_handler_test.cc` — `MarinaMacronVowelUppercaseKeyCode`
+  covers the Windows handler itself across all five vowels, the no-Shift case,
+  and two non-vowels (to prove the fixup is scoped). Windows CI only.
+
+macOS and Linux are untouched.
+
+**Verification:** the cross-platform test passes locally, along with
+`session_test` and `key_parser_test`. The Windows handler and its test could
+not be compiled here (no MSVC toolchain) — Bazel graph queries pass, but the
+Windows test is unrun until CI.
+
+### Windows: keystrokes no longer leak into documents during a sync
+
+**This is a data-integrity fix, not a cosmetic one.** While marinaMojiSync
+rewrites user data it takes a global lock on the session handler
+(`sync/sync_runner.cc` → `Client::BeginSyncLock`), after which
+`SessionHandler::SendKey`/`TestSendKey`/`SendCommand` all fail with
+`Output::SYNC_LOCKED` and **no `consumed` field**
+([`session_handler.cc:441`](src/session/session_handler.cc)). macOS and Linux
+guard against this — macOS with a `sync.status.json` poller
+(`mac/sync_overlay.mm`), Linux with both that poller *and* an explicit
+`SYNC_LOCKED` check ([`mozc_engine.cc:758`](src/unix/ibus/mozc_engine.cc)).
+
+Windows had neither. The missing `consumed` field made
+[`keyevent_handler.cc:1114`](src/win32/base/keyevent_handler.cc) set
+`result.succeeded = false`, which made
+[`tip_keyevent_handler.cc`](src/win32/tip/tip_keyevent_handler.cc) set
+`*eaten = FALSE` — handing the keystroke to the application unprocessed. The
+user-visible effect: during any sync run, typing Japanese inserted raw romaji
+(`nihongo` instead of にほんご) into the document, with no beep, no overlay,
+and no indication why. Sync is scheduled as a logon task on Windows
+(`win32/base/task_scheduler_util.cc`), so this was reachable in normal use.
+
+Fixed with the same two-layer defence Linux uses:
+
+- **Proactive** — new `win32/base/sync_lock_util.{h,cc}` exposes
+  `IsSyncLockActive()`, wrapping `sync::IsSyncRunning()` with a 250 ms TTL
+  cache (matching the mac/Linux poll interval). The cache matters: this is
+  called per key event, on the TSF thread, inside the host application's
+  process, so an uncached read would put disk I/O in the input hot path.
+  Guards added to **both** `OnTestKey` and `OnKey` in
+  `win32/tip/tip_keyevent_handler.cc` — TSF consults `OnTestKey` first and
+  routes the key to the application itself if the IME declines it, so a guard
+  in `OnKey` alone would never see the keystroke.
+- **Reactive** — both `result.succeeded == false` paths in
+  `tip_keyevent_handler.cc` now check for `Output::SYNC_LOCKED` and claim the
+  key, covering a lock taken in between polls. That path also invalidates the
+  cache so the proactive guard takes over from the very next key.
+- **Audible feedback** — `NotifySyncBlockedInput()` issues a rate-limited
+  `MessageBeep` (1 s throttle, mirroring `SyncOverlayFlashBlockedInput()` on
+  mac and Linux), on key-down only.
+
+Also added the missing visible overlay: new
+`renderer/win32/sync_overlay_window.{h,cc}`, a borderless, click-through,
+always-on-top window centred on the work area showing the sync message.
+Hosted in the renderer rather than the TIP because the TIP DLL loads into
+every application process (same reasoning as the floating toolbar), and it
+polls `sync.status.json` on a 250 ms `WM_TIMER` exactly as the mac/Linux
+watchers do — so it needs no IPC and stays visible for the whole sync rather
+than only when a key is pressed. Deliberately excluded from
+`WindowManager::HideAllWindows()`: it reports that input is being held, which
+is precisely the situation where the IME has no focus. It uses a uniform
+`LWA_ALPHA` translucency plus a rounded region rather than mac/Linux's opaque
+label over a 55 %-alpha backdrop, since matching that exactly would require
+compositing text into a premultiplied DIB and GDI text drawing does not
+maintain the alpha channel.
+
+macOS and Linux are untouched. (Noted while investigating, not changed:
+macOS relies solely on its proactive poll, so it has a narrow race if a sync
+begins between the poll and a keystroke — microseconds of exposure versus the
+whole sync duration on Windows.)
+
+New files: `win32/base/sync_lock_util.{h,cc}`,
+`renderer/win32/sync_overlay_window.{h,cc}`. Modified:
+`win32/tip/tip_keyevent_handler.cc`, `renderer/win32/window_manager.{h,cc}`,
+`base/const.h`, and the `BUILD.bazel` files for `sync` (visibility),
+`win32/base`, `win32/tip`, and `renderer/win32`.
+
+**Verification:** same constraint as below — the Windows files could not be
+compiled here (no MSVC toolchain). Checked via Bazel graph queries on all new
+targets, `somepath` confirmation that the overlay links into
+`marinamoji_renderer.exe` and that `sync_lock_util` reaches the TIP,
+declaration-vs-definition cross-checks, sync API signature checks, and
+dep-ordering checks. **Needs a real Windows build and a manual test against a
+running sync before it is trusted.**
+
 ### Windows floating toolbar: parity pass with macOS, plus fixes
 
 The Windows toolbar (`renderer/win32/toolbar_window.cc`) and Symbols Palette

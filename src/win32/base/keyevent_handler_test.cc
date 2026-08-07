@@ -38,6 +38,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -2954,6 +2955,112 @@ TEST_F(KeyEventHandlerTest, Issue8524269ComebackMode) {
     // Visible mode should be half alphanumeric.
     EXPECT_EQ(next_state.visible_conversion_mode,
               IME_CMODE_ALPHANUMERIC | IME_CMODE_ROMAN);
+  }
+}
+
+// marinaMoji: Ctrl+Alt+Shift+vowel must reach the server with an *uppercase*
+// key_code, because the macron rules in the keymap TSVs are written
+// `Ctrl Alt Shift A` .. `U` and KeyParser stores a single-glyph token verbatim.
+// Before the |is_macron_vowel| fixup in ConvertToKeyEventMain, the generic
+// alphabet path reported the lowercase letter whenever Ctrl was held (leaving
+// SHIFT in the modifier set), which matched no rule at all -- so ĀĒĪŌŪ were
+// silently unreachable on Windows at every keyboard layout. The cross-platform
+// half of this contract is pinned by
+// session/keymap_test.cc's MarinaMacronVowelsRequireUppercaseKeyCode.
+TEST_F(KeyEventHandlerTest, MarinaMacronVowelUppercaseKeyCode) {
+  constexpr bool kKanaLocked = false;
+
+  struct TestCase {
+    BYTE virtual_key;
+    bool shift;
+    uint32_t expected_key_code;
+    const char* description;
+  };
+  constexpr TestCase kTestCases[] = {
+      // Ctrl+Alt+Shift+vowel -> uppercase, so the macron rules match.
+      {'A', true, 'A', "Ctrl+Alt+Shift+A"},
+      {'E', true, 'E', "Ctrl+Alt+Shift+E"},
+      {'I', true, 'I', "Ctrl+Alt+Shift+I"},
+      {'O', true, 'O', "Ctrl+Alt+Shift+O"},
+      {'U', true, 'U', "Ctrl+Alt+Shift+U"},
+      // Without Shift the lowercase macron rules apply, so key_code stays
+      // lowercase.
+      {'A', false, 'a', "Ctrl+Alt+A"},
+      {'U', false, 'u', "Ctrl+Alt+U"},
+      // Non-vowels keep the upstream behavior even with Shift: the fixup is
+      // deliberately scoped to the five macron vowels.
+      {'K', true, 'k', "Ctrl+Alt+Shift+K (non-vowel)"},
+      {'Z', true, 'z', "Ctrl+Alt+Shift+Z (non-vowel)"},
+  };
+
+  for (const TestCase& test_case : kTestCases) {
+    Output mock_output;
+    mock_output.set_mode(commands::HIRAGANA);
+    mock_output.mutable_status()->set_activated(true);
+    mock_output.mutable_status()->set_mode(commands::HIRAGANA);
+    mock_output.mutable_status()->set_comeback_mode(commands::HIRAGANA);
+    mock_output.set_consumed(true);
+
+    MockState mock(mock_output);
+    KeyboardMock keyboard(kKanaLocked);
+
+    InputBehavior behavior;
+    behavior.prefer_kana_input = kKanaLocked;
+    behavior.disabled = false;
+    behavior.direct_mode_keys = GetDefaultDirectModeKeys();
+
+    Context context;
+    InputState next_state;
+    Output output;
+
+    KeyboardStatus keyboard_status;
+    keyboard_status.SetState(test_case.virtual_key, kPressed);
+    keyboard_status.SetState(VK_CONTROL, kPressed);
+    keyboard_status.SetState(VK_MENU, kPressed);
+    if (test_case.shift) {
+      keyboard_status.SetState(VK_SHIFT, kPressed);
+    }
+
+    const VirtualKey virtual_key =
+        VirtualKey::FromVirtualKey(test_case.virtual_key);
+    constexpr BYTE kScanCode = 0;  // ignored by KeyboardMock
+    constexpr bool kIsKeyDown = true;
+
+    InputState initial_state;
+    initial_state.logical_conversion_mode =
+        IME_CMODE_NATIVE | IME_CMODE_FULLSHAPE | IME_CMODE_ROMAN;
+    initial_state.visible_conversion_mode =
+        initial_state.logical_conversion_mode;
+    initial_state.open = true;
+
+    const KeyEventHandlerResult result = TestableKeyEventHandler::ImeToAsciiEx(
+        virtual_key, kScanCode, kIsKeyDown, keyboard_status, behavior,
+        initial_state, context, mock.mutable_client(), &keyboard, &next_state,
+        &output);
+    EXPECT_TRUE(result.succeeded) << test_case.description;
+
+    commands::Input actual_input;
+    ASSERT_TRUE(mock.GetGeneratedRequest(&actual_input))
+        << test_case.description;
+    ASSERT_TRUE(actual_input.has_key()) << test_case.description;
+    ASSERT_TRUE(actual_input.key().has_key_code()) << test_case.description;
+    EXPECT_EQ(actual_input.key().key_code(), test_case.expected_key_code)
+        << test_case.description;
+
+    // The modifiers must survive intact: the keymap rules carry Ctrl, Alt and
+    // (for the uppercase rows) Shift alongside the key code.
+    std::set<commands::KeyEvent::ModifierKey> modifiers;
+    for (int i = 0; i < actual_input.key().modifier_keys_size(); ++i) {
+      modifiers.insert(actual_input.key().modifier_keys(i));
+    }
+    EXPECT_TRUE(modifiers.contains(commands::KeyEvent::CTRL))
+        << test_case.description;
+    EXPECT_TRUE(modifiers.contains(commands::KeyEvent::ALT))
+        << test_case.description;
+    if (test_case.shift) {
+      EXPECT_TRUE(modifiers.contains(commands::KeyEvent::SHIFT))
+          << test_case.description;
+    }
   }
 }
 

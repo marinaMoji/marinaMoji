@@ -41,6 +41,7 @@
 #include "renderer/win32/infolist_window.h"
 #include "renderer/win32/shortcuts_window.h"
 #include "renderer/win32/symbols_palette_window.h"
+#include "renderer/win32/sync_overlay_window.h"
 #include "renderer/win32/toolbar_window.h"
 #include "renderer/win32/win32_renderer_util.h"
 
@@ -74,6 +75,7 @@ class WindowManager {
   std::unique_ptr<ToolbarWindow> toolbar_window_;
   std::unique_ptr<SymbolsPaletteWindow> symbols_palette_window_;
   std::unique_ptr<ShortcutsWindow> shortcuts_window_;
+  std::unique_ptr<SyncOverlayWindow> sync_overlay_window_;
   std::unique_ptr<LayoutManager> layout_manager_;
   client::SendCommandInterface* send_command_interface_;
   POINT last_position_;

@@ -49,6 +49,7 @@
 #include "win32/base/keyboard.h"
 #include "win32/base/keyevent_handler.h"
 #include "win32/base/surrogate_pair_observer.h"
+#include "win32/base/sync_lock_util.h"
 #include "win32/tip/marina_number_row_dispatcher.h"
 #include "win32/tip/tip_edit_session.h"
 #include "win32/tip/tip_input_mode_manager.h"
@@ -162,6 +163,17 @@ HRESULT OnTestKey(TipTextService* text_service, ITfContext* context,
   TipPrivateContext* private_context = text_service->GetPrivateContext(context);
   if (private_context == nullptr) {
     *eaten = FALSE;
+    return S_OK;
+  }
+
+  // marinaMoji: swallow everything while marinaMojiSync holds the session
+  // lock. Claiming the key here as well as in OnKey matters: TSF asks
+  // OnTestKey first and routes the key to the application itself if we say
+  // no, so a guard in OnKey alone would never see it. Mirrors the
+  // SyncOverlayIsActive() checks in mac/mozc_imk_input_controller.mm and
+  // unix/ibus/mozc_engine.cc.
+  if (mozc::win32::IsSyncLockActive()) {
+    *eaten = TRUE;
     return S_OK;
   }
 
@@ -281,6 +293,16 @@ HRESULT OnTestKey(TipTextService* text_service, ITfContext* context,
       input_state, mozc_context, private_context->GetClient(), keyboard.get(),
       &next_state, &temporal_output);
   if (!result.succeeded) {
+    // marinaMoji: a sync lock taken since the last IsSyncLockActive() poll
+    // fails the call with SYNC_LOCKED and no |consumed| field, which reads
+    // here as "not handled" and would hand the keystroke to the application
+    // as raw text. Claim it instead, and drop the cache so the proactive
+    // guard above takes over from the very next key.
+    if (temporal_output.error_code() == commands::Output::SYNC_LOCKED) {
+      mozc::win32::InvalidateSyncLockCache();
+      *eaten = TRUE;
+      return S_OK;
+    }
     *eaten = FALSE;
     return S_OK;
   }
@@ -352,6 +374,16 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
   TipPrivateContext* private_context = text_service->GetPrivateContext(context);
   if (private_context == nullptr) {
     *eaten = FALSE;
+    return S_OK;
+  }
+
+  // marinaMoji: see the matching guard in OnTestKey. Beep only on key-down so
+  // a single press produces one beep, not two.
+  if (mozc::win32::IsSyncLockActive()) {
+    if (is_key_down) {
+      mozc::win32::NotifySyncBlockedInput();
+    }
+    *eaten = TRUE;
     return S_OK;
   }
 
@@ -500,6 +532,17 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
         &next_state, &temporal_output);
 
     if (!result.succeeded) {
+      // marinaMoji: same reactive sync-lock guard as in OnTestKey above --
+      // without it a lock acquired mid-keystroke leaks raw romaji into the
+      // document.
+      if (temporal_output.error_code() == commands::Output::SYNC_LOCKED) {
+        mozc::win32::InvalidateSyncLockCache();
+        if (is_key_down) {
+          mozc::win32::NotifySyncBlockedInput();
+        }
+        *eaten = TRUE;
+        return S_OK;
+      }
       // no message generated.
       *eaten = FALSE;
       return S_OK;
