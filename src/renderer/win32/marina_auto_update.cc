@@ -3,8 +3,8 @@
 
 #include "renderer/win32/marina_auto_update.h"
 
-#include <commctrl.h>
 #include <windows.h>
+#include <commctrl.h>
 #include <winhttp.h>
 
 #include <wil/resource.h>
