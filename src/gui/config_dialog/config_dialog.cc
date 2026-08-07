@@ -83,9 +83,12 @@
 #include "gui/base/win_util.h"
 #endif  // _WIN32
 
+#if defined(__APPLE__) || defined(_WIN32)
+#include "base/marina_update_throttle.h"
+#endif  // __APPLE__ || _WIN32
+
 #ifdef __APPLE__
 #include "base/mac/mac_util.h"
-#include "base/marina_update_throttle.h"
 #endif  // __APPLE__
 
 #if defined(__linux__)
