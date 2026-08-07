@@ -1467,6 +1467,17 @@ class TipTextServiceImpl
       renderer_callback_window_handle_ = nullptr;
       return E_FAIL;
     }
+    // marinaMoji: Symbols Palette text commits arrive via WM_COPYDATA
+    // (renderer_server.cc). WM_COPYDATA is *not* on the default UIPI allow
+    // list -- it needs its own ChangeMessageFilterEx call just like the
+    // registered message above, or the renderer (medium IL) can never reach
+    // this window when the focused application is elevated (high IL).
+    if (!WindowUtil::ChangeMessageFilter(renderer_callback_window_handle_,
+                                         WM_COPYDATA)) {
+      ::DestroyWindow(renderer_callback_window_handle_);
+      renderer_callback_window_handle_ = nullptr;
+      return E_FAIL;
+    }
     return S_OK;
   }
 
@@ -1496,10 +1507,10 @@ class TipTextServiceImpl
         return 0;
       }
       if (message == WM_COPYDATA) {
-        // marinaMoji: Symbols Palette text commit. WM_COPYDATA is on
-        // Windows' default UIPI-allowed message list (unlike the custom
-        // registered message above), so no ChangeMessageFilter call is
-        // needed for it.
+        // marinaMoji: Symbols Palette text commit. See the
+        // ChangeMessageFilter(WM_COPYDATA) call in
+        // InitRendererCallbackWindow() -- without it this message never
+        // arrives from a lower-IL renderer while an elevated app is focused.
         const auto* cds = reinterpret_cast<const COPYDATASTRUCT*>(lparam);
         if (cds != nullptr && cds->dwData == kSymbolTextCopyDataTag &&
             cds->lpData != nullptr && cds->cbData > 0) {

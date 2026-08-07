@@ -126,20 +126,33 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       return false;
     }
 
+    // marinaMoji: the synchronous sends below (as opposed to the PostMessage
+    // default) target a window that lives inside the *focused application's*
+    // process (Word, a browser, ...), not our own. A plain SendMessage blocks
+    // this renderer's UI thread -- toolbar, candidate window, every palette,
+    // for every application -- for as long as that app's message pump is
+    // stalled, with no way back if it never resumes. SendMessageTimeout with
+    // SMTO_ABORTIFHUNG keeps the same synchronous ordering these commands
+    // need (see the comments below) while bounding the wait.
+    constexpr UINT kSendTimeoutMsec = 500;
+
     if (command.type() == commands::SessionCommand::INSERT_SYMBOL_TEXT) {
       // marinaMoji: the (type, id) PostMessage channel below can't carry
       // arbitrary text, so Symbols Palette commits use WM_COPYDATA instead
-      // (SendMessage, synchronous -- the buffer must stay valid for the
-      // call). |dwData| is tagged so the receiver can tell this apart from
-      // any other WM_COPYDATA traffic; the payload is the symbol's raw UTF-8
-      // bytes (no NUL terminator needed, |cbData| carries the length).
+      // (synchronous -- the buffer must stay valid for the call). |dwData|
+      // is tagged so the receiver can tell this apart from any other
+      // WM_COPYDATA traffic; the payload is the symbol's raw UTF-8 bytes (no
+      // NUL terminator needed, |cbData| carries the length).
       const std::string& text = command.text();
       COPYDATASTRUCT cds = {};
       cds.dwData = kSymbolTextCopyDataTag;
       cds.cbData = static_cast<DWORD>(text.size());
       cds.lpData = const_cast<char*>(text.data());
-      ::SendMessage(target, WM_COPYDATA, reinterpret_cast<WPARAM>(nullptr),
-                   reinterpret_cast<LPARAM>(&cds));
+      DWORD_PTR result = 0;
+      ::SendMessageTimeout(target, WM_COPYDATA,
+                          reinterpret_cast<WPARAM>(nullptr),
+                          reinterpret_cast<LPARAM>(&cds),
+                          SMTO_ABORTIFHUNG, kSendTimeoutMsec, &result);
       return true;
     }
 
@@ -159,7 +172,9 @@ class RendererServerSendCommand : public client::SendCommandInterface {
         command.type() == commands::SessionCommand::SHOW_SHORTCUTS_WINDOW ||
         command.type() == commands::SessionCommand::HIDE_SHORTCUTS_WINDOW ||
         command.type() == commands::SessionCommand::HIDE_TOOLBAR) {
-      ::SendMessage(target, mozc_msg, type, id);
+      DWORD_PTR result = 0;
+      ::SendMessageTimeout(target, mozc_msg, type, id, SMTO_ABORTIFHUNG,
+                          kSendTimeoutMsec, &result);
     } else {
       ::PostMessage(target, mozc_msg, type, id);
     }

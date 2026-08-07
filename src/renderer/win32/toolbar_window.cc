@@ -412,18 +412,20 @@ void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
   const bool use_trad = output.has_config()
                             ? output.config().use_traditional_kanji()
                             : use_traditional_kanji_;
-  const bool dark = IsDarkTheme();
-
+  // marinaMoji: |is_dark_theme_| is not re-polled here -- it is a registry
+  // read, and this function runs on every RendererCommand, i.e. every
+  // keystroke while the toolbar is visible. OnCreate() sets the initial
+  // value and OnSettingChange() (WM_SETTINGCHANGE) keeps it current; a
+  // per-update poll would just repeat that same read up to once per
+  // keystroke for no benefit.
   const bool state_changed =
       !has_state_ || mode != current_mode_ || activated != activated_ ||
-      lock != left_shift_direct_lock_ || use_trad != use_traditional_kanji_ ||
-      dark != is_dark_theme_;
+      lock != left_shift_direct_lock_ || use_trad != use_traditional_kanji_;
 
   current_mode_ = mode;
   activated_ = activated;
   left_shift_direct_lock_ = lock;
   use_traditional_kanji_ = use_trad;
-  is_dark_theme_ = dark;
 
   const bool first_show = !has_state_;
   has_state_ = true;
@@ -484,25 +486,25 @@ void ToolbarWindow::LoadIcons() {
       break;
   }
   icon_cache_[static_cast<int>(ButtonId::kMode)] =
-      LoadToolbarIcon(mode_name, tier, nullptr);
+      GetOrLoadCachedIcon(mode_name, tier, nullptr);
 
   const std::string trad_name = absl::StrCat(
       use_traditional_kanji_ ? "toolbar_kyu_" : "toolbar_shin_", theme);
   icon_cache_[static_cast<int>(ButtonId::kTraditionalKanji)] =
-      LoadToolbarIcon(trad_name, tier, nullptr);
+      GetOrLoadCachedIcon(trad_name, tier, nullptr);
 
-  icon_cache_[static_cast<int>(ButtonId::kSymbols)] =
-      LoadToolbarIcon(absl::StrCat("toolbar_symbols_", theme), tier, nullptr);
-  icon_cache_[static_cast<int>(ButtonId::kDictionary)] =
-      LoadToolbarIcon(absl::StrCat("toolbar_dict_", theme), tier, nullptr);
-  icon_cache_[static_cast<int>(ButtonId::kSettings)] =
-      LoadToolbarIcon(absl::StrCat("toolbar_settings_", theme), tier, nullptr);
-  icon_cache_[static_cast<int>(ButtonId::kShortcuts)] =
-      LoadToolbarIcon(absl::StrCat("toolbar_shortcuts_", theme), tier, nullptr);
+  icon_cache_[static_cast<int>(ButtonId::kSymbols)] = GetOrLoadCachedIcon(
+      absl::StrCat("toolbar_symbols_", theme), tier, nullptr);
+  icon_cache_[static_cast<int>(ButtonId::kDictionary)] = GetOrLoadCachedIcon(
+      absl::StrCat("toolbar_dict_", theme), tier, nullptr);
+  icon_cache_[static_cast<int>(ButtonId::kSettings)] = GetOrLoadCachedIcon(
+      absl::StrCat("toolbar_settings_", theme), tier, nullptr);
+  icon_cache_[static_cast<int>(ButtonId::kShortcuts)] = GetOrLoadCachedIcon(
+      absl::StrCat("toolbar_shortcuts_", theme), tier, nullptr);
 
   CSize logo_natural(0, 0);
-  logo_cache_ =
-      LoadToolbarIcon(absl::StrCat("logo_long_", theme), tier, &logo_natural);
+  logo_cache_ = GetOrLoadCachedIcon(absl::StrCat("logo_long_", theme), tier,
+                                    &logo_natural);
   if (logo_natural.cx > 0 && logo_natural.cy > 0) {
     // Fit the logo to the icon height, preserving its aspect ratio -- the
     // same rule mac's loadLogoSvg: applies.
@@ -514,6 +516,27 @@ void ToolbarWindow::LoadIcons() {
   } else {
     logo_draw_size_ = CSize(0, 0);
   }
+}
+
+HBITMAP ToolbarWindow::GetOrLoadCachedIcon(const std::string& name, int size,
+                                           CSize* out_size) {
+  const std::string path = ToolbarIconPath(name, size);
+  const auto it = icon_disk_cache_.find(path);
+  if (it != icon_disk_cache_.end()) {
+    if (out_size != nullptr) {
+      *out_size = it->second.second;
+    }
+    return it->second.first.get();
+  }
+  CSize loaded_size(0, 0);
+  wil::unique_hbitmap bitmap = LoadToolbarIcon(name, size, &loaded_size);
+  HBITMAP raw = bitmap.get();
+  icon_disk_cache_.emplace(
+      path, std::make_pair(std::move(bitmap), loaded_size));
+  if (out_size != nullptr) {
+    *out_size = loaded_size;
+  }
+  return raw;
 }
 
 int ToolbarWindow::LogoWidth(double scale) const {
@@ -595,7 +618,7 @@ void ToolbarWindow::Redraw() {
   int x_cursor = margin;
   int icon_w = 0;
   int icon_h = 0;
-  uint8_t* logo_bits = GetDibBits(logo_cache_.get(), &icon_w, &icon_h);
+  uint8_t* logo_bits = GetDibBits(logo_cache_, &icon_w, &icon_h);
   if (logo_bits != nullptr && logo_draw_size_.cx > 0) {
     const int y = (height - logo_draw_size_.cy) / 2;
     BlendIcon(bits, width, height, logo_bits, icon_w, icon_h, x_cursor, y,
@@ -639,7 +662,7 @@ void ToolbarWindow::Redraw() {
                       tint, tint, highlight_alpha);
     }
 
-    uint8_t* icon_bits = GetDibBits(icon_cache_[i].get(), &icon_w, &icon_h);
+    uint8_t* icon_bits = GetDibBits(icon_cache_[i], &icon_w, &icon_h);
     if (icon_bits != nullptr) {
       const int icon_x = x_cursor + (button_w - icon_draw_size_) / 2;
       const int icon_y = (height - icon_draw_size_) / 2;

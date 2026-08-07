@@ -8,6 +8,8 @@
 #include <atomic>
 #include <cstdint>
 
+#include "base/file_util.h"
+#include "sync/sync_config.h"
 #include "sync/sync_status.h"
 
 namespace mozc::win32 {
@@ -20,6 +22,15 @@ namespace {
 // rather than one per keystroke.
 constexpr uint64_t kCacheTtlMsec = 250;
 
+// Users who have never opened the Sync tab in Preferences have no
+// sync.conf, so IsSyncLockActive() can never be true for them -- but
+// without this gate every one of them would still pay the same ~4
+// sync.status.json opens/second while typing, on the TSF thread, inside
+// every application. sync.conf is only written by explicit user action in
+// the config dialog, so a much longer TTL is fine here; it just needs to
+// notice within a few seconds of the user enabling sync for the first time.
+constexpr uint64_t kConfiguredCacheTtlMsec = 10000;
+
 // Minimum gap between beeps, mirroring the 1 s throttle in
 // SyncOverlayFlashBlockedInput() on mac and Linux.
 constexpr uint64_t kBeepThrottleMsec = 1000;
@@ -27,10 +38,28 @@ constexpr uint64_t kBeepThrottleMsec = 1000;
 std::atomic<uint64_t> g_cache_expiry_tick{0};
 std::atomic<bool> g_cached_active{false};
 std::atomic<uint64_t> g_last_beep_tick{0};
+std::atomic<uint64_t> g_configured_cache_expiry_tick{0};
+std::atomic<bool> g_cached_configured{false};
+
+bool IsSyncConfigured() {
+  const uint64_t now = ::GetTickCount64();
+  if (now < g_configured_cache_expiry_tick.load(std::memory_order_acquire)) {
+    return g_cached_configured.load(std::memory_order_relaxed);
+  }
+  const bool configured =
+      mozc::FileUtil::FileExists(mozc::sync::GetSyncConfigPath()).ok();
+  g_cached_configured.store(configured, std::memory_order_relaxed);
+  g_configured_cache_expiry_tick.store(now + kConfiguredCacheTtlMsec,
+                                       std::memory_order_release);
+  return configured;
+}
 
 }  // namespace
 
 bool IsSyncLockActive() {
+  if (!IsSyncConfigured()) {
+    return false;
+  }
   const uint64_t now = ::GetTickCount64();
   if (now < g_cache_expiry_tick.load(std::memory_order_acquire)) {
     return g_cached_active.load(std::memory_order_relaxed);

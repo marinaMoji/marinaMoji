@@ -522,6 +522,8 @@ mozc_cc_library(
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
         "//bazel/win32:user32",
+        "//base:file_util",
+        "//sync:sync_config",
         "//sync:sync_status",
     ],
 )

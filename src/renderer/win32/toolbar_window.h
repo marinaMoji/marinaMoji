@@ -26,7 +26,9 @@
 
 #include <array>
 #include <cstdint>
+#include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "base/const.h"
@@ -227,6 +229,16 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   // state into icon_cache_.
   void LoadIcons();
 
+  // Returns the decoded bitmap for toolbar icon |name| at |size|, loading
+  // and WIC-decoding it from disk only on the first request for that exact
+  // (name, size) pair -- LoadIcons() runs on every mode/theme change (and
+  // every re-show) while the same handful of PNGs cycle in and out, so
+  // without this cache a mode toggle re-hits the disk for icons that were
+  // already showing a moment ago. Returned HBITMAP is owned by
+  // |icon_disk_cache_| and stays valid for the lifetime of the window.
+  HBITMAP GetOrLoadCachedIcon(const std::string& name, int size,
+                             CSize* out_size);
+
   bool IsDarkTheme() const;
 
   // Returns the button index hit by a client-coordinate |point|, or -1.
@@ -309,10 +321,19 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   // OS-assigned rect (from Create(nullptr)) is (0,0,0,0) and not meaningful.
   CPoint window_origin_;
 
-  // Icon bitmaps for the current theme/DPI, owned. Index matches ButtonId,
-  // plus the logo at the end.
-  std::vector<wil::unique_hbitmap> icon_cache_;
-  wil::unique_hbitmap logo_cache_;
+  // Icon bitmaps for the current theme/DPI. Index matches ButtonId. Not
+  // owned -- these are borrowed from |icon_disk_cache_|, which outlives any
+  // single LoadIcons() call.
+  std::vector<HBITMAP> icon_cache_;
+  HBITMAP logo_cache_ = nullptr;
+
+  // Every distinct (name, size) icon decoded so far, keyed by the on-disk
+  // path (see GetOrLoadCachedIcon()). Small and unbounded on purpose: the
+  // icon set is fixed (kButtonCount + logo, times 2 themes, times at most a
+  // couple of DPI tiers actually seen on one monitor setup), so this holds
+  // at most a few dozen bitmaps for the life of the renderer process.
+  std::map<std::string, std::pair<wil::unique_hbitmap, CSize>>
+      icon_disk_cache_;
 
   // Client-coordinate rects for hit-testing, recomputed by Redraw(). A fixed
   // array rather than a vector because the MSAA object reads it from an RPC

@@ -10,6 +10,75 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: bug fixes and hot-path perf found in a full-code review pass
+
+A fresh review of `src/win32/` and `src/renderer/win32/` against the mac and
+Linux/ibus implementations, done after the toolbar/sync/macron/auto-update
+work above had all landed. Three real bugs and three hot-path perf issues
+fixed; a longer list of untouched gaps (test coverage, multi-monitor sync
+overlay, stale docs, etc.) recorded in ShareDocs for later triage rather
+than done here. Full writeup: ShareDocs
+`documentation/Implementation/Windows_Improvement_Opportunities.md`.
+
+**Bugs:**
+
+- `win32/tip/tip_text_service.cc`: Symbols Palette text commits travel
+  renderer→TIP via `WM_COPYDATA`. A comment claimed `WM_COPYDATA` is on
+  Windows' default UIPI-allowed message list and skipped the
+  `ChangeMessageFilterEx` call the neighbouring registered message gets --
+  backwards; `WM_COPYDATA` is MSDN's canonical example of a message that
+  *needs* the filter call to cross an integrity-level boundary. Effect: every
+  Kaeriten/Symbols/User palette insertion silently failed whenever the
+  focused application ran elevated (admin PowerShell, an elevated editor,
+  etc.), because the medium-IL renderer's message never reached the high-IL
+  TIP. Odoriji was unaffected (different, already-filtered transport). Fixed
+  by adding the missing `ChangeMessageFilter(..., WM_COPYDATA)` call.
+- `renderer/renderer_server.cc`: the toolbar/palette/shortcuts round-trip
+  added in this branch used plain `SendMessage` (synchronous) into a window
+  owned by the *focused application's* process, unlike upstream's
+  `PostMessage`-only design. A stalled host app (Word mid-save, Excel
+  recalculating, any temporarily-hung process) would freeze the entire
+  renderer UI -- toolbar, candidate window, every palette, for every
+  application -- with no way back. Switched both call sites to
+  `SendMessageTimeout` with `SMTO_ABORTIFHUNG` (500ms), keeping the
+  synchronous ordering these commands need while bounding the damage to one
+  hung app.
+- Investigated and **not a bug**: "Hide toolbar" (the toolbar's own context
+  menu) looked one-way at first read, since nothing on the toolbar itself
+  can turn it back on. It isn't -- the TSF language bar's existing "Tool"
+  menu already has a `kToolbarVisibility` entry
+  (`win32/tip/tip_lang_bar.cc`/`tip_text_service.cc`) that correctly flips
+  `SaveToolbarVisiblePreference(!LoadToolbarVisiblePreference())` both ways,
+  predating this review. Real open question, moved to the Windows testing
+  checklist rather than code: Windows 11 hides the classic language bar by
+  default (consolidated into the taskbar input indicator), so this toggle's
+  practical reachability needs on-hardware confirmation, not a code fix.
+
+**Perf (all three are per-keystroke or per-update costs that scale with how
+much the user types, inside the host application's process):**
+
+- `renderer/win32/toolbar_window.cc`: `OnUpdate()` (called on every
+  `RendererCommand`, i.e. every keystroke while the toolbar is visible) was
+  re-reading `AppsUseLightTheme` from the registry on every call. The value
+  is already tracked correctly via `WM_SETTINGCHANGE`
+  (`OnSettingChange()`), so the per-update poll was pure redundancy. Removed.
+- `renderer/win32/toolbar_window.{h,cc}`: `LoadIcons()` re-read and
+  WIC-decoded all seven toolbar PNGs from disk on every mode/theme change
+  and every re-show, so e.g. toggling hiragana↔direct hit the disk each
+  time. Added `GetOrLoadCachedIcon()` + an `icon_disk_cache_` map keyed on
+  the resolved icon path, so each distinct (name, size) is decoded once for
+  the life of the renderer process. `icon_cache_`/`logo_cache_` changed from
+  owning `wil::unique_hbitmap` to non-owning `HBITMAP` borrowed from the
+  cache (ownership now lives in `icon_disk_cache_`, which outlives any
+  single `LoadIcons()` call).
+- `win32/base/sync_lock_util.cc`: `IsSyncLockActive()` is polled from both
+  `OnTestKey` and `OnKey` on the TSF thread with a 250ms TTL, so a sustained
+  typist caused ~4 `sync.status.json` opens/second *whether or not the user
+  has ever configured sync*. Added a much-longer-TTL (10s) gate on
+  `sync.conf`'s existence -- free for users who never open the Sync tab,
+  since that file is only ever written by explicit user action in the
+  config dialog.
+
 ### Decision: Windows ships unsigned; Microsoft Store ruled out
 
 No code change — recorded here because it determines what we release.
