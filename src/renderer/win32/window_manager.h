@@ -41,6 +41,7 @@
 #include "renderer/win32/infolist_window.h"
 #include "renderer/win32/shortcuts_window.h"
 #include "renderer/win32/symbols_palette_window.h"
+#include "renderer/win32/marina_auto_update.h"
 #include "renderer/win32/sync_overlay_window.h"
 #include "renderer/win32/toolbar_window.h"
 #include "renderer/win32/win32_renderer_util.h"

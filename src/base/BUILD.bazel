@@ -863,6 +863,16 @@ mozc_cc_test(
     ],
 )
 
+mozc_cc_test(
+    name = "marina_github_releases_test",
+    size = "small",
+    srcs = ["marina_github_releases_test.cc"],
+    deps = [
+        ":marina_semver",
+        "//testing:gunit_main",
+    ],
+)
+
 mozc_cc_library(
     name = "marina_update_throttle",
     srcs = ["marina_update_throttle.cc"],

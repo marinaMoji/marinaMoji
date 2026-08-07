@@ -502,13 +502,11 @@ ConfigDialog::ConfigDialog()
     updates_layout->setContentsMargins(0, 0, 5, 10);
     updates_layout->setSpacing(8);
 
-#ifdef __APPLE__
     auto_check_for_updates_checkbox_ = new QCheckBox(
         tr("Automatically check for updates (once a day)"), updates_widget);
     updates_layout->addWidget(auto_check_for_updates_checkbox_);
     connect(auto_check_for_updates_checkbox_, &QCheckBox::toggled, this,
             &ConfigDialog::EnableApplyButton);
-#endif  // __APPLE__
 
     include_unstable_updates_checkbox_ = new QCheckBox(
         tr("Include unstable (rc) releases when checking for updates"),
@@ -1264,7 +1262,7 @@ void ConfigDialog::CheckForUpdates() {
 }
 
 void ConfigDialog::MaybeAutoCheckForUpdates() {
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(_WIN32)
   if (update_checker_ == nullptr || auto_update_check_started_) {
     return;
   }
@@ -1282,7 +1280,7 @@ void ConfigDialog::MaybeAutoCheckForUpdates() {
       include_unstable_updates_checkbox_ != nullptr &&
       include_unstable_updates_checkbox_->isChecked();
   update_checker_->CheckForUpdates(include_unstable);
-#endif  // __APPLE__
+#endif  // __APPLE__ || _WIN32
 }
 
 void ConfigDialog::showEvent(QShowEvent *event) {
@@ -1299,15 +1297,23 @@ void ConfigDialog::OnUpdateAvailable(const QString &tag_name,
   }
   update_check_silent_ = false;
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
   if (!pkg_url.isEmpty()) {
     QMessageBox box(this);
     box.setWindowTitle(windowTitle());
     box.setIcon(QMessageBox::Information);
     box.setText(tr("A newer release is available: %1").arg(tag_name));
+#if defined(__APPLE__)
     box.setInformativeText(
         tr("Download the notarized .pkg and open the macOS Installer? "
            "You will still need to approve the install."));
+#else  // _WIN32
+    box.setInformativeText(
+        tr("Download the installer (.msi) and run it now? You will still "
+           "need to approve the install -- and since this build is "
+           "unsigned for now, Windows SmartScreen may warn first; choose "
+           "\"More info\" → \"Run anyway\", same as the initial install."));
+#endif  // _WIN32
     QPushButton *install_button =
         box.addButton(tr("Download & Install…"), QMessageBox::AcceptRole);
     QPushButton *page_button =
@@ -1327,7 +1333,7 @@ void ConfigDialog::OnUpdateAvailable(const QString &tag_name,
     }
     return;
   }
-#endif  // __APPLE__
+#endif  // __APPLE__ || _WIN32
 
   const QString message =
       tr("A newer release is available: %1\n\nOpen the download page?")

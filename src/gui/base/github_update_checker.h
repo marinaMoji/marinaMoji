@@ -19,14 +19,17 @@ class GitHubUpdateChecker : public QObject {
 
   void CheckForUpdates(bool include_unstable);
 
-  // Downloads |pkg_url| to a temp file and opens it with the OS installer.
-  // Only implemented for macOS .pkg URLs; returns false on failure.
+  // Downloads |pkg_url| to a temp file and opens it with the OS installer
+  // (macOS Installer.app for a .pkg, msiexec via shell association for a
+  // .msi on Windows). Not implemented on other platforms; returns false on
+  // failure.
   static bool DownloadAndOpenInstaller(const QString& pkg_url,
                                        const QString& tag_name,
                                        QString* error_message);
 
  signals:
-  // |pkg_url| is non-empty when a matching macOS .pkg asset was found.
+  // |pkg_url| is non-empty when a matching installer asset was found for
+  // the current platform (a .pkg on macOS, a .msi on Windows).
   void updateAvailable(const QString& tag_name, const QString& html_url,
                        const QString& pkg_url);
   void upToDate();

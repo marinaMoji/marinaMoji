@@ -140,3 +140,7 @@ mozc_win32_lib(
 mozc_win32_lib(
     name = "windowscodecs",
 )
+
+mozc_win32_lib(
+    name = "winhttp",
+)

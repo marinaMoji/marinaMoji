@@ -48,6 +48,138 @@ A Store listing may still be worth doing later purely for discoverability, as
 a plain MSI/EXE submission once a SignPath certificate exists. It is not a
 route to obtaining one.
 
+### Windows: self-hosted auto-update, on the same model as macOS
+
+Windows previously had no update mechanism at all: `win32/installer/`
+produces an unsigned `.msi` with no update path, and the "Decision: Windows
+ships unsigned" entry above ruled out the Microsoft Store as a source of one
+(the Store only gives free signing/auto-update to MSIX packages, and MSIX
+cannot host a TSF text service). **That ruling is about the Store
+specifically and has no bearing on this feature** — this mirrors macOS's own
+`marina_auto_update.mm`, which has nothing to do with the App Store either:
+both are a plain HTTPS poll of GitHub Releases plus a one-click
+download-and-launch of the installer, entirely self-hosted, entirely free.
+
+Reused as-is, unmodified: `base/marina_github_releases.{h,cc}` (JSON parsing,
+version comparison) and `base/marina_update_throttle.{h,cc}` (24h throttle,
+persisted under the user profile dir) were already platform-agnostic — mac
+was simply the only caller. Added Windows-equivalent asset lookup alongside
+the existing mac-only functions, without touching them:
+`FindMarinaMsiDownloadUrl()` and `MarinaHostWindowsArchToken()` ("x64" /
+"arm64"), matching the `marinaMoji-<tag>-<arch>.msi` naming
+`.github/workflows/release.yaml` actually publishes (confirmed by reading
+the workflow, not assumed — the README says ".exe" but the real artifact is
+an `.msi`). Covered by a new `base/marina_github_releases_test.cc`, the
+first tests this file has had; **passes on macOS**, so the parsing/lookup
+logic behind this feature is verified by execution.
+
+**Deliberately hosted in the renderer, not the TIP** — this needed a real
+architectural decision, not just a port:
+
+- `TaskDialogIndirect` (used for the update-offer prompt) requires the
+  *process's* manifest to declare comctl32 v6. The renderer's own
+  (`mozc_renderer.exe.manifest`) already does, because the toolbar work
+  earlier in this session depends on it. The TIP DLL has no such guarantee:
+  it loads in-process into every application that takes text input --
+  Notepad, Chrome, banking software, sandboxed app-container processes --
+  and their manifests aren't ours to control. A TaskDialog call there would
+  be unreliable at best.
+- It also keeps a network stack (WinHTTP) out of a component that runs
+  inside arbitrary, possibly low-integrity host processes -- a materially
+  larger trust footprint than putting it in a single process we own.
+
+New `renderer/win32/marina_auto_update.{h,cc}`:
+
+- WinHTTP for both the GitHub API call and the `.msi` download -- not the
+  `curl.exe`-subprocess pattern `base/marina_curl_fetch.cc` uses on macOS.
+  A TIP-hosted design would have needed subprocess invocation with untrusted
+  data (a GitHub-served URL) in the arguments, and Windows command-line
+  quoting is a real bug class if done by hand (unlike POSIX `popen`, where
+  no shell is invoked once arguments are pre-quoted); avoided entirely by
+  not shelling out. (This turned out to be moot once the design moved to
+  the renderer, but WinHTTP remains the more robust choice there too: no
+  dependency on `curl.exe` being on PATH, no subprocess overhead.)
+- `TaskDialogIndirect` for the update offer (Download & Install… / Open
+  release page / Later), mirroring mac's three-button `NSAlert`.
+- Launch via `WinUtil::ShellExecuteInSystemDir(L"open", path, nullptr)`
+  (already used by `Process::OpenBrowser`) -- triggers the UAC elevation
+  prompt for the MSI's custom actions, the same consent step as macOS
+  Installer.app's password prompt. Since the MSI is unsigned for now (see
+  above), SmartScreen may also warn first; the dialog copy says so.
+- Trigger: mac hooks `activateServer:`, which fires on every focus change
+  into any app using the IME -- there is no safe Windows analogue given the
+  TIP constraints above. Instead, a background thread starts once at
+  `WindowManager::Initialize()` (renderer startup) and re-tests the 24h
+  throttle every 2h for as long as the renderer stays alive, so a process
+  that never restarts still notices the next day's window. The throttle
+  makes both triggers cheap no-ops outside their window; this is an
+  adaptation of *when* to check to Windows' process model, not "more
+  checking."
+- `AutoUpdateChecker::Stop()` (called from `WindowManager::DestroyAllWindows()`)
+  signals and detaches rather than joins: `RunCheckOnce()` can be mid-flight
+  in network I/O with timeouts up to several tens of seconds, and process
+  shutdown must not wait on that. (Header comment matches this — it does not
+  claim to join.)
+
+Also closed the matching gap in the Qt Settings dialog, which is shared
+cross-platform code and had partially rotted on Windows: the manual "Check
+for updates…" button already detected newer releases on Windows (the
+check itself, `gui/base/github_update_checker.cc`'s `CheckForUpdates()`,
+already ran `curl` via `QProcess`'s safe argv-list form, cross-platform,
+with no code change needed), but `DownloadAndOpenInstaller()` was `#if
+defined(__APPLE__)`-only, and `onUpdateAvailable`'s auto-check-on-dialog-open
+was `#ifdef __APPLE__`-only despite the check beneath it being generic --
+so opening Settings on Windows never auto-checked, and a manual check that
+found an update could only fall back to opening the browser. Added the
+Windows branches: `QProcess` + `curl` (the same safe argv pattern already
+used for the check) to download, then `QDesktopServices::openUrl` on a
+`file://` URL to launch. The "Automatically check for updates (once a day)"
+checkbox is now shown on Windows as well as macOS (it was previously
+`#ifdef __APPLE__`-only while the renderer checker already read
+`auto_check_for_updates`, which defaults to true — so Windows users would
+have been prompted with no UI to turn the check off).
+
+**Review fix (2026-08-07):** `OpenSuccessfulGet` originally returned only the
+request `HINTERNET` while destroying the session and connection handles at
+function exit. In WinHTTP, closing a parent handle indirectly invalidates
+its children (`ERROR_INVALID_HANDLE` on later reads), so the GitHub poll and
+`.msi` download would have failed silently after every successful HTTP
+handshake. It now returns a `WinHttpGet` that owns the full
+session → connect → request chain for the lifetime of the body read /
+file write; destructors close in reverse declaration order (request,
+connect, session).
+
+Files changed: `base/marina_github_releases.{h,cc}` (additive; existing mac
+functions untouched), `gui/base/github_update_checker.{h,cc}`,
+`gui/config_dialog/config_dialog.cc`, `protocol/config.proto` (doc comment
+only -- `auto_check_for_updates` was already a shared field, just
+undocumented for Windows), `renderer/win32/window_manager.{h,cc}`, and the
+`BUILD.bazel` files for `base`, `bazel/win32` (new `winhttp` target), and
+`renderer/win32`.
+
+New files: `renderer/win32/marina_auto_update.{h,cc}`,
+`base/marina_github_releases_test.cc`.
+
+macOS and Linux are untouched -- `marina_curl_fetch.cc`'s `__APPLE__` branch
+and `marina_auto_update.mm` were not modified.
+
+**Verification:** `base/marina_github_releases_test.cc` passes on macOS
+(new coverage for previously-untested parsing/lookup logic).
+`config_cc_proto`, `marina_semver`, and `mac:mozc_toolbar` still build
+clean, confirming the proto comment edit and the additive
+`marina_github_releases.cc` changes didn't disturb the mac build.
+**`gui/` targets (`github_update_checker`, `config_dialog`) could not be
+built even for macOS in this environment** -- the local Qt SDK checkout is
+incomplete (confirmed pre-existing and unrelated to this change: the
+identical failure reproduces on the pre-change tree). The
+`renderer/win32/marina_auto_update.cc` WinHTTP/TaskDialog code is new API
+surface for this codebase and could not be compiled at all (no MSVC
+toolchain, as throughout this session) -- checked via Bazel graph queries,
+a `somepath` confirmation that it links into `marinamoji_renderer.exe`, and
+a declaration/definition cross-check. **Awaiting Windows CI build +
+on-laptop smoke test** (update prompt, download/install, Settings
+auto-check checkbox, shutdown while a check is in flight).
+
 ### Windows: uppercase macron vowels (ĀĒĪŌŪ) were unreachable
 
 `Ctrl+Alt+Shift+`vowel produced nothing on Windows, at **every** keyboard

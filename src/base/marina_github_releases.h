@@ -43,6 +43,17 @@ std::optional<std::string> FindMarinaPkgDownloadUrl(
 // "arm64" / "intel64" on macOS hosts; empty elsewhere.
 std::string MarinaHostMacPkgArchToken();
 
+// Prefer marinaMoji-<tag>-x64.msi or marinaMoji-<tag>-arm64.msi from assets,
+// matching the naming .github/workflows/release.yaml publishes. |arch_token|
+// is typically "x64" or "arm64". Unlike FindMarinaPkgDownloadUrl there is no
+// "universal" Windows installer, so an unmatched arch simply returns nullopt
+// rather than falling back to a mismatched asset.
+std::optional<std::string> FindMarinaMsiDownloadUrl(
+    const MarinaGitHubRelease& release, absl::string_view arch_token);
+
+// "x64" / "arm64" on Windows hosts; empty elsewhere.
+std::string MarinaHostWindowsArchToken();
+
 }  // namespace mozc
 
 #endif  // MOZC_BASE_MARINA_GITHUB_RELEASES_H_

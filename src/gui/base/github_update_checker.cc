@@ -3,7 +3,9 @@
 #include <cctype>
 #include <string>
 
+#include <QDesktopServices>
 #include <QProcess>
+#include <QUrl>
 
 #include "absl/strings/str_cat.h"
 #include "base/file_util.h"
@@ -87,11 +89,59 @@ bool GitHubUpdateChecker::DownloadAndOpenInstaller(const QString& pkg_url,
     return false;
   }
   return true;
+#elif defined(_WIN32)
+  if (pkg_url.isEmpty()) {
+    if (error_message != nullptr) {
+      *error_message = tr("No installer package URL was found for this release.");
+    }
+    return false;
+  }
+  std::string safe_tag = tag_name.toStdString();
+  for (char& c : safe_tag) {
+    if (!(std::isalnum(static_cast<unsigned char>(c)) || c == '.' || c == '-' ||
+          c == '_')) {
+      c = '_';
+    }
+  }
+  const QString dest = QString::fromStdString(FileUtil::JoinPath(
+      SystemUtil::GetUserProfileDirectory(),
+      absl::StrCat("marinaMoji-update-", safe_tag, ".msi")));
+
+  // Same safe argv-list QProcess pattern as CheckForUpdates() above: no
+  // shell is involved, so the URL (which comes from parsed GitHub JSON, not
+  // a hardcoded constant) cannot inject extra curl arguments the way a
+  // hand-built command-line string could.
+  QProcess download;
+  download.start(QStringLiteral("curl"),
+                 {QStringLiteral("-fsSL"), QStringLiteral("-A"),
+                  QStringLiteral("marinaMoji-update-check"),
+                  QStringLiteral("-o"), dest, pkg_url});
+  if (!download.waitForStarted(5000) || !download.waitForFinished(-1) ||
+      download.exitStatus() != QProcess::NormalExit ||
+      download.exitCode() != 0) {
+    if (error_message != nullptr) {
+      *error_message = tr("Could not download the installer.");
+    }
+    return false;
+  }
+  // QDesktopServices::openUrl on a file:// URL is Qt's cross-platform
+  // "open with the OS default handler" -- for an .msi that is msiexec via
+  // shell association, which raises the UAC elevation prompt just like the
+  // macOS Installer.app password prompt above. The MSI is unsigned for now
+  // (see CHANGELOG.md), so SmartScreen may also warn first; that is
+  // expected and mirrors the initial install.
+  if (!QDesktopServices::openUrl(QUrl::fromLocalFile(dest))) {
+    if (error_message != nullptr) {
+      *error_message = tr("Downloaded the installer but could not open it.");
+    }
+    return false;
+  }
+  return true;
 #else
   (void)pkg_url;
   (void)tag_name;
   if (error_message != nullptr) {
-    *error_message = tr("Installer download is only available on macOS.");
+    *error_message = tr("Installer download is only available on macOS and Windows.");
   }
   return false;
 #endif
@@ -144,6 +194,12 @@ void GitHubUpdateChecker::onProcessFinished(int exit_code) {
 #if defined(__APPLE__)
   if (const auto url =
           FindMarinaPkgDownloadUrl(*newer, MarinaHostMacPkgArchToken());
+      url.has_value()) {
+    pkg_url = QString::fromStdString(*url);
+  }
+#elif defined(_WIN32)
+  if (const auto url =
+          FindMarinaMsiDownloadUrl(*newer, MarinaHostWindowsArchToken());
       url.has_value()) {
     pkg_url = QString::fromStdString(*url);
   }

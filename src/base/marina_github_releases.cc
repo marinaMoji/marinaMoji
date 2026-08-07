@@ -220,4 +220,33 @@ std::string MarinaHostMacPkgArchToken() {
 #endif
 }
 
+std::optional<std::string> FindMarinaMsiDownloadUrl(
+    const MarinaGitHubRelease& release, absl::string_view arch_token) {
+  for (const MarinaGitHubAsset& asset : release.assets) {
+    const bool is_msi = absl::EndsWith(asset.name, ".msi") ||
+                        absl::EndsWith(asset.browser_download_url, ".msi");
+    if (!is_msi) {
+      continue;
+    }
+    if (arch_token.empty() ||
+        absl::StrContains(asset.name, arch_token) ||
+        absl::StrContains(asset.browser_download_url, arch_token)) {
+      return asset.browser_download_url;
+    }
+  }
+  return std::nullopt;
+}
+
+std::string MarinaHostWindowsArchToken() {
+#if defined(_WIN32)
+#if defined(_M_ARM64)
+  return "arm64";
+#else
+  return "x64";
+#endif
+#else
+  return "";
+#endif
+}
+
 }  // namespace mozc
