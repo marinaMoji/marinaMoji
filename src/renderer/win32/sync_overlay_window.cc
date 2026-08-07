@@ -11,6 +11,7 @@
 
 #include "base/win32/wide_char.h"
 #include "renderer/win32/win32_dpi_util.h"
+#include "renderer/win32/win32_renderer_util.h"
 #include "sync/sync_status.h"
 
 namespace mozc {
@@ -69,11 +70,21 @@ int SyncOverlayWindow::Scaled(int logical_value) const {
 }
 
 LRESULT SyncOverlayWindow::OnCreate(LPCREATESTRUCT create_struct) {
-  dpi_ = GetDpiForPoint(0, 0);
+  const POINT target = TargetScreenPoint();
+  dpi_ = GetDpiForPoint(target.x, target.y);
   CreateFont();
   ::SetLayeredWindowAttributes(m_hWnd, 0, kWindowAlpha, LWA_ALPHA);
   SetTimer(kPollTimerId, kPollIntervalMsec, nullptr);
   return 0;
+}
+
+POINT SyncOverlayWindow::TargetScreenPoint() const {
+  const HWND foreground = ::GetForegroundWindow();
+  RECT rect = {};
+  if (foreground != nullptr && ::GetWindowRect(foreground, &rect)) {
+    return POINT{(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2};
+  }
+  return POINT{0, 0};
 }
 
 void SyncOverlayWindow::OnDestroy() {
@@ -136,6 +147,19 @@ void SyncOverlayWindow::PollStatus() {
 }
 
 void SyncOverlayWindow::UpdateLayout() {
+  // Re-target to whatever monitor the foreground application is on, since
+  // that can change while the overlay is up (or between one sync and the
+  // next) -- Alt+Tab during a sync, or a status poll landing on a freshly
+  // shown overlay after the user switched monitors. Refresh DPI/font first
+  // so the Scaled() calls below and the text measurement use the right
+  // monitor's scale factor, not a stale one.
+  const POINT target = TargetScreenPoint();
+  const uint32_t new_dpi = GetDpiForPoint(target.x, target.y);
+  if (new_dpi != dpi_) {
+    dpi_ = new_dpi;
+    CreateFont();
+  }
+
   const int padding_x = Scaled(kPaddingXLogical);
   const int padding_y = Scaled(kPaddingYLogical);
 
@@ -156,7 +180,7 @@ void SyncOverlayWindow::UpdateLayout() {
   height += padding_y * 2;
 
   RECT work_area = {0, 0, 1920, 1080};
-  ::SystemParametersInfoW(SPI_GETWORKAREA, 0, &work_area, 0);
+  GetWorkingAreaFromPoint(target, &work_area);
   const int x =
       work_area.left + (work_area.right - work_area.left - width) / 2;
   const int y =
@@ -227,11 +251,9 @@ LRESULT SyncOverlayWindow::OnPaint(UINT msg_id, WPARAM wparam, LPARAM lparam,
 
 LRESULT SyncOverlayWindow::OnDisplayChange(UINT msg_id, WPARAM wparam,
                                            LPARAM lparam, BOOL& handled) {
-  const uint32_t new_dpi = GetDpiForPoint(0, 0);
-  if (new_dpi != dpi_) {
-    dpi_ = new_dpi;
-    CreateFont();
-  }
+  // UpdateLayout() re-targets and refreshes DPI/font itself (see there), so
+  // there is nothing further to do here while hidden -- the next show will
+  // pick up the current monitor layout regardless.
   if (active_) {
     UpdateLayout();
   }

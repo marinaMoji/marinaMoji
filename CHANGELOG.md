@@ -10,6 +10,56 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: docs, test coverage, sync overlay, and toolbar hide follow-ups
+
+Second pass on the same review as the bug-fix/perf entry below, working
+through the "gaps" list that pass had deliberately left untouched.
+
+- **Docs**: `docs/build_marinamoji_on_windows.md` still opened with "marinaMoji
+  does not yet ship a Windows port" and pointed every command at
+  `google/mozc`; fixed the banner (now points at
+  [WINDOWS_PORT_PLAN.md](docs/WINDOWS_PORT_PLAN.md)) and every clone/output/
+  GitHub Actions reference to use this repo and `marinaMoji64.msi`.
+  `docs/WINDOWS_PORT_PLAN.md`'s status block still said Phase 4 (toolbar)
+  hadn't started and that the Symbols Palette/Shortcuts buttons were
+  disabled placeholders; both were true when written but false since the
+  toolbar parity pass. Corrected in place (old entries kept, with an
+  "Update (2026-08-07)" note) rather than rewritten, so the doc still reads
+  as a history. Same treatment for the sync-QA checklist item that claimed
+  "no Windows TIP-side implementation at all" for input-blocking during
+  sync -- `win32/base/sync_lock_util` implements exactly that.
+- **Tests**: added `renderer/win32/marina_localized_string_test.cc`, the
+  first test for any of the ~3,300 lines of new Windows UI code from this
+  branch. Checks that a sample of "MM.*" keys resolve to a non-empty,
+  actually-translated string in all three languages, that Japanese wording
+  differs from English (catches an untranslated copy-paste), and the
+  unknown-key/null-key fallback paths. Broader coverage (`PickIconSizeTier`,
+  `ClampToVisibleArea`, the `toolbar.conf` round-trip) would need those
+  helpers exposed from anonymous-namespace/private scope first -- left as a
+  follow-up rather than done as a blind refactor with no Windows compiler
+  available to verify it.
+- **Sync overlay multi-monitor** (`renderer/win32/sync_overlay_window.cc`):
+  the "synchronising…" overlay always centred on the *primary* monitor at
+  the *primary's* DPI (`GetDpiForPoint(0, 0)` / `SPI_GETWORKAREA`), so on a
+  multi-monitor setup it could appear on a screen the user isn't even
+  looking at. Added `TargetScreenPoint()` (center of the foreground
+  window's rect) and route both the DPI lookup and
+  `GetWorkingAreaFromPoint()` through it, refreshing font/layout in
+  `UpdateLayout()` if the target monitor's DPI changed -- the same pattern
+  the toolbar already used for its own drag handling.
+- **Toolbar delayed hide** (`renderer/win32/toolbar_window.{h,cc}`): the
+  toolbar hid immediately on any focus-loss signal (`ShowToolbar` bit
+  clearing in `OnUpdate()`), unlike `unix/ibus`'s 150ms grace period
+  (`MozcToolbarScheduleHideDelayed`). Windows 11 focus transitions (e.g.
+  Alt+Tab bouncing through an intermediate window) can flicker the toolbar
+  as a result. Added a matching `SchedulePendingHide()`/
+  `CancelPendingHide()` pair on a `WM_TIMER`, composing with the existing
+  `menu_open_`-deferred-hide logic unchanged (a still-open context menu at
+  the end of the delay still defers via the existing path). The public
+  `Hide()` entry point (used for a hard hide-all, e.g. renderer shutdown)
+  stays immediate, matching `unix/ibus`'s split between
+  `MozcToolbarHide()` (instant) and the delayed variant.
+
 ### Windows: bug fixes and hot-path perf found in a full-code review pass
 
 A fresh review of `src/win32/` and `src/renderer/win32/` against the mac and

@@ -318,6 +318,7 @@ LRESULT ToolbarWindow::OnCreate(LPCREATESTRUCT create_struct) {
 }
 
 void ToolbarWindow::OnDestroy() {
+  CancelPendingHide();
   if (accessible_ != nullptr) {
     static_cast<IAccessible*>(accessible_)->Release();
     accessible_ = nullptr;
@@ -339,10 +340,36 @@ void ToolbarWindow::Hide() {
     hide_deferred_by_menu_ = true;
     return;
   }
+  CancelPendingHide();
   hide_deferred_by_menu_ = false;
   hovered_button_ = -1;
   pressed_button_ = -1;
   ShowWindow(SW_HIDE);
+}
+
+void ToolbarWindow::SchedulePendingHide() {
+  if (hide_pending_) {
+    return;  // already scheduled; let the existing timer run its course
+  }
+  hide_pending_ = true;
+  SetTimer(kHideDelayTimerId, kHideDelayMsec, nullptr);
+}
+
+void ToolbarWindow::CancelPendingHide() {
+  if (!hide_pending_) {
+    return;
+  }
+  hide_pending_ = false;
+  KillTimer(kHideDelayTimerId);
+}
+
+void ToolbarWindow::OnTimerTick(UINT_PTR timer_id) {
+  if (timer_id != kHideDelayTimerId) {
+    return;
+  }
+  hide_pending_ = false;
+  KillTimer(kHideDelayTimerId);
+  Hide();
 }
 
 bool ToolbarWindow::IsDarkTheme() const {
@@ -379,9 +406,10 @@ void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
   symbols_palette_visible_ = symbols_palette_visible;
   shortcuts_window_visible_ = shortcuts_window_visible;
   if (!show_toolbar || !command.has_output()) {
-    Hide();
+    SchedulePendingHide();
     return;
   }
+  CancelPendingHide();
 
   const commands::Output& output = command.output();
   commands::CompositionMode mode = commands::DIRECT;

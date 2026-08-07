@@ -77,6 +77,7 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   MESSAGE_HANDLER(WM_DISPLAYCHANGE, OnDisplayChange)
   MESSAGE_HANDLER(WM_DPICHANGED, OnDpiChanged)
   MESSAGE_HANDLER(WM_GETOBJECT, OnGetObject)
+  MESSAGE_HANDLER(WM_TIMER, OnTimer)
   END_MSG_MAP()
 
   ToolbarWindow();
@@ -135,6 +136,7 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   void OnDisplayChange();
   void OnDpiChanged(uint32_t dpi, const RECT* suggested_rect);
   LRESULT HandleGetObject(WPARAM wparam, LPARAM lparam, BOOL& handled);
+  void OnTimerTick(UINT_PTR timer_id);
 
   inline LRESULT OnCreate(UINT msg_id, WPARAM wparam, LPARAM lparam,
                           BOOL& handled) {
@@ -220,10 +222,25 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
     }
     return 0;
   }
+  inline LRESULT OnTimer(UINT msg_id, WPARAM wparam, LPARAM lparam,
+                         BOOL& handled) {
+    OnTimerTick(static_cast<UINT_PTR>(wparam));
+    return 0;
+  }
 
   // Redraws the composited logo+button bitmap and pushes it via
   // UpdateLayeredWindow. Called whenever visible state changes.
   void Redraw();
+
+  // Grace period (matching unix/ibus's kHideDelayMs) before OnUpdate()'s
+  // "not focused" signal actually hides the window, so a quick bounce
+  // through an intermediate control (e.g. during Alt+Tab) doesn't flicker
+  // the toolbar. CancelPendingHide() is called whenever a later OnUpdate()
+  // arrives asking to show the toolbar again before the timer fires.
+  static constexpr UINT kHideDelayMsec = 150;
+  static constexpr UINT_PTR kHideDelayTimerId = 1;
+  void SchedulePendingHide();
+  void CancelPendingHide();
 
   // (Re)loads the icon bitmaps for the current DPI/theme/mode/lock/trad-kanji
   // state into icon_cache_.
@@ -367,6 +384,10 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   // stay on screen indefinitely after focus moves away while a menu is up --
   // no further RendererCommand is guaranteed to arrive once unfocused.
   bool hide_deferred_by_menu_;
+
+  // True while a delayed hide (see SchedulePendingHide()) is pending on
+  // kHideDelayTimerId.
+  bool hide_pending_ = false;
 
   // Tooltip control (one tool per button), owned. Created lazily on the first
   // Redraw() so it exists only for a toolbar that is actually shown.

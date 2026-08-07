@@ -311,6 +311,7 @@ mozc_cc_library(
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
         ":win32_dpi_util",
+        ":win32_renderer_util",
         "//base:const",
         "//base/win32:wide_char",
         "//bazel/win32:gdi32",
@@ -492,5 +493,16 @@ mozc_cc_test(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_microsoft_wil//:wil",
+    ],
+)
+
+mozc_cc_test(
+    name = "marina_localized_string_test",
+    srcs = ["marina_localized_string_test.cc"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        ":marina_localized_string",
+        "//testing:gunit_main",
     ],
 )

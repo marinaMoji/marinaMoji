@@ -1,10 +1,17 @@
-# How to build marinaMoji on Windows (upstream reference)
+# How to build marinaMoji on Windows
 
-> **marinaMoji** does not yet ship a Windows port. This file documents upstream **Mozc for Windows** build steps, kept for future port work.
+> **Start here for status/design:** [WINDOWS_PORT_PLAN.md](./WINDOWS_PORT_PLAN.md) —
+> branding, feature-parity checklist, floating toolbar, sync, auto-update, and
+> current known gaps. **marinaMoji does ship a Windows port** (branded
+> `marinamoji_*.exe`/`.dll`, `marinaMoji64.msi`) — this file is the longer
+> build **reference**, largely unchanged from upstream Mozc's own build
+> steps since the Windows toolchain/dependencies (Qt, Bazel, `update_deps.py`)
+> are shared as-is; only the target/output names below differ from stock
+> Mozc.
 
 <!-- disableFinding(LINK_RELATIVE_G3DOC) -->
 
-[![Windows](https://github.com/google/mozc/actions/workflows/windows.yaml/badge.svg)](https://github.com/google/mozc/actions/workflows/windows.yaml)
+[![Windows](https://github.com/marinaMoji/marinaMoji/actions/workflows/windows.yaml/badge.svg)](https://github.com/marinaMoji/marinaMoji/actions/workflows/windows.yaml)
 
 ## Summary
 
@@ -12,20 +19,31 @@ If you are unsure about what the following commands do, please review the
 descriptions below to understand the operations before running them.
 
 ```
-git clone https://github.com/google/mozc.git
-cd mozc\src
+git clone https://github.com/marinaMoji/marinaMoji.git
+cd marinaMoji\src
 
 python build_tools/update_deps.py
 python build_tools/build_qt.py --release --confirm_license
 bazelisk build package --config release_build
 
-python build_tools/open.py bazel-bin/win32/installer/Mozc64.msi
+python build_tools/open.py bazel-bin\win32\installer\marinaMoji64.msi
 ```
+
+💡 Output is **`marinaMoji64.msi`** (target `//win32/installer`, same as CI
+builds — see `.github/workflows/windows.yaml`), not upstream Mozc's
+`Mozc64.msi`; everything else in this file (dependencies, Qt setup,
+`--config x86_simd` for x64, cross-arch notes) matches stock Mozc's own
+Windows build since none of that changed for this fork.
 
 > [!TIP]
 >
-> You can also download `Mozc64.msi` from GitHub Actions. Check
-> [Build with GitHub Actions](#build-with-github-actions) for details.
+> You can also download `marinaMoji64.msi` (or `marinaMoji64_arm64.msi`) as a
+> build artifact from GitHub Actions without building locally. Check
+> [Build with GitHub Actions](#build-with-github-actions) for details. The
+> installer is currently **unsigned**, so Windows SmartScreen will warn on
+> first run — click "More info" → "Run anyway" (see
+> [WINDOWS_PORT_PLAN.md](./WINDOWS_PORT_PLAN.md) and the repo `CHANGELOG.md`
+> for why, and the plan to fix it via SignPath).
 
 ## Setup
 
@@ -69,8 +87,8 @@ Building Mozc on Windows requires the following software.
 ### Download the repository from GitHub
 
 ```
-git clone https://github.com/google/mozc.git
-cd mozc\src
+git clone https://github.com/marinaMoji/marinaMoji.git
+cd marinaMoji\src
 ```
 
 Hereafter you can do all the operations without changing directory.
@@ -109,29 +127,30 @@ for Windows.
 bazelisk build package --config release_build
 ```
 
-#### Install Mozc
+#### Install marinaMoji
 
-After building Mozc, run the following command to install it:
+After building marinaMoji, run the following command to install it:
 
 ```
-python build_tools/open.py bazel-bin/win32/installer/Mozc64.msi
+python build_tools/open.py bazel-bin/win32/installer/marinaMoji64.msi
 ```
 
-#### Uninstall Mozc
+#### Uninstall marinaMoji
 
-To Uninstall Mozc, press <kbd>Win</kbd>+<kbd>R</kbd> to open the Run dialog and
+To uninstall marinaMoji, press <kbd>Win</kbd>+<kbd>R</kbd> to open the Run dialog and
 type `ms-settings:appsfeatures-app`, run the following command in the terminal:
 
 ```
 start ms-settings:appsfeatures-app
 ```
 
-Then, uninstall `Mozc` from the list of installed applications.
+Then, uninstall `marinaMoji` from the list of installed applications.
 
 ### Cross compilation
 
-By default, `Mozc64.msi` is built for the host CPU architecture. To explicitly
-specify the target CPU architecture, specify build options as follows:
+By default, `marinaMoji64.msi` is built for the host CPU architecture. To
+explicitly specify the target CPU architecture, specify build options as
+follows:
 
 #### To build x64 installer
 
@@ -178,28 +197,29 @@ bazelisk test ... --build_tests_only -c dbg
 
 GitHub Actions are already set up in
 [windows.yaml](../.github/workflows/windows.yaml). With that, you can build and
-install Mozc with your own commit as follows.
+install marinaMoji with your own commit as follows.
 
-1.  Fork https://github.com/google/mozc to your GitHub repository.
+1.  Fork https://github.com/marinaMoji/marinaMoji to your GitHub repository.
 2.  Push a new commit to your own fork.
 3.  Click "Actions" tab on your fork.
 4.  Wait until the action triggered by your commit succeeds.
-5.  Download `Mozc64.msi` from the action result page.
-6.  Install `Mozc64.msi`.
+5.  Download `marinaMoji64_x64.msi` (or `marinaMoji64_arm64.msi`) from the
+    action result page.
+6.  Install it. SmartScreen will warn since the installer is currently
+    unsigned — click "More info" → "Run anyway".
 
 Files on the GitHub Actions page remain available for up to 90 days.
 
-You can also find Mozc Installers for Windows in the google/mozc repository.
-Please keep in mind that Mozc is not an officially supported Google product,
-even if downloaded from https://github.com/google/mozc/.
+You can also find marinaMoji installers for Windows built straight from this
+repository, without forking:
 
-1.  Sign in GitHub.
+1.  Sign in to GitHub.
 2.  Check
-    [recent successful Windows runs](https://github.com/google/mozc/actions/workflows/windows.yaml?query=is%3Asuccess)
-    in the google/mozc repository.
+    [recent successful Windows runs](https://github.com/marinaMoji/marinaMoji/actions/workflows/windows.yaml?query=is%3Asuccess)
+    in the marinaMoji repository.
 3.  Find an action from the last 90 days and click it.
-4.  Download `Mozc64.msi` from the action result page if you are using 64-bit
-    Windows.
+4.  Download `marinaMoji64_x64.msi` or `marinaMoji64_arm64.msi` from the
+    action result page depending on your CPU architecture.
 
 --------------------------------------------------------------------------------
 

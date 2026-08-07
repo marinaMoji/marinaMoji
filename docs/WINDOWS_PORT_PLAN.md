@@ -66,12 +66,21 @@ see Phase 4.
   + two new custom actions) replacing the LaunchAgent/systemd-user-unit
   mechanism from mac/Linux, and confirmation that the config-dialog Sync tab
   and all sidecar file paths (`sync.conf`, `.sync_key`, etc.) already work
-  cross-platform with zero Windows-specific code. **Not yet compiled or
-  tested** — first signal comes from Phase 1g. Phase 4 (floating toolbar) is
-  the only phase not yet started.
-- **Phases 1-3 and 5 are all implemented as code, none verified on real
-  Windows hardware yet — Phase 1g (build bring-up + acceptance test) is the
-  actual current blocking phase**, gating confirmation of everything above.
+  cross-platform with zero Windows-specific code.
+- **Update (2026-08-07): Phase 4 (floating toolbar) landed**, including the
+  Symbols Palette and Keyboard Shortcuts windows this section originally
+  deferred — see the Phase 4 checklist below. Sync-lock keystroke blocking
+  (`win32/base/sync_lock_util`) plus a renderer sync overlay, the Windows
+  self-hosted auto-updater (`renderer/win32/marina_auto_update.{h,cc}`,
+  mirroring macOS), and the uppercase-macron-vowel fix
+  (`Ctrl+Alt+Shift+A/E/I/O/U`) also landed the same day. All of Phases 1-6
+  now have code on `feature/windows`; **none of it has a full on-hardware
+  pass yet** — a manual QA pass against the internal testing checklist
+  (tracked outside this public repo) is the actual blocking item now that CI
+  builds green.
+- **Phases 1-6 are all implemented as code — CI confirms the build itself
+  compiles and packages; real-hardware functional verification of the
+  features above is still outstanding.**
 
 ---
 
@@ -430,9 +439,13 @@ exactly how stock Mozc draws its mode **indicator**, see
       mac/Linux. New `LoadPngFileToHBitmap` WIC-based loader in
       `win32_image_util.{h,cc}` (no PNG/SVG decoding existed on Windows
       before this). Buttons: mode indicator, shin/kyū toggle, dict, settings
-      are fully wired; **symbols palette and shortcuts viewer buttons are
-      rendered visually disabled** (reduced opacity, inert) since those
-      windows don't exist on Windows yet — deferred to a follow-on phase.
+      are fully wired; symbols palette and shortcuts viewer buttons were
+      **rendered visually disabled** at this point (reduced opacity, inert)
+      since those windows didn't exist on Windows yet. **Update
+      (2026-08-07): both now exist and both buttons are live** —
+      `SymbolsPaletteWindow` and `ShortcutsWindow` shipped later in this same
+      phase (see their own checklist items below and in the toolbar parity
+      pass), so this is no longer a deferred gap.
 - [x] **Button actions → session commands (2026-07-13)**: reused the
       existing candidate-click round-trip (`RendererServerSendCommand` →
       `PostMessage` to the TIP's renderer-callback window → `TipEditSession::
@@ -581,12 +594,17 @@ platform, just run under a different per-user scheduling mechanism.
       platform (no `mozc_select` gating on these) — the folder-picker/enable
       toggle/generate-key UI in `marinamoji_tool.exe`'s Preferences should
       "just work" once `sync/` compiles with MSVC.
+- [x] **Input-blocking during active sync (2026-08-07): implemented.**
+      `win32/base/sync_lock_util.{h,cc}` guards both `OnTestKey` and `OnKey`
+      in `win32/tip/tip_keyevent_handler.cc` (proactive poll of
+      `sync.status.json` plus a reactive `Output::SYNC_LOCKED` catch),
+      `NotifySyncBlockedInput()` beeps on a blocked keystroke, and
+      `renderer/win32/sync_overlay_window.cc` shows the "synchronising…"
+      overlay — mirroring mac/Linux's Tests 7-8. Not yet exercised on real
+      Windows hardware.
 - [ ] [SYNC_MANUAL_QA.md](SYNC_MANUAL_QA.md) needs a Windows section added
-      (mirroring its existing per-platform checklists) once Phase 1g proves
-      the binary builds; also flag that Tests 7-8 (input-blocking
-      overlay/beep during active sync) have **no Windows TIP-side
-      implementation at all** — that's new UI work, out of scope for this
-      pass, not silently assumed done.
+      (mirroring its existing per-platform checklists) covering the above,
+      once real-hardware testing (not just CI) is available.
 
 # Phase 6 — Polish, packaging, QA
 

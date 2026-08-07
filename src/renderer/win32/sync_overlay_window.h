@@ -91,9 +91,17 @@ class SyncOverlayWindow
   // Reads sync.status.json and shows/hides/relabels the overlay to match.
   void PollStatus();
 
-  // Resizes to fit |message_| and centres on the primary monitor's work
-  // area, then repaints.
+  // Resizes to fit |message_| and centres on the work area of the monitor
+  // returned by TargetScreenPoint(), refreshing DPI/font for that monitor
+  // first if it changed, then repaints.
   void UpdateLayout();
+
+  // Screen point used to pick which monitor the overlay appears on: the
+  // center of the foreground window's rect, since that is the application
+  // the user is (or just was) typing into -- not necessarily the primary
+  // monitor. Falls back to (0, 0), i.e. the primary monitor, if there is no
+  // foreground window or its rect can't be read.
+  POINT TargetScreenPoint() const;
 
   int Scaled(int logical_value) const;
   void CreateFont();
