@@ -184,12 +184,30 @@ mozc_cc_library(
 )
 
 mozc_cc_library(
+    name = "marina_localized_string",
+    srcs = ["marina_localized_string.cc"],
+    hdrs = ["marina_localized_string.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+)
+
+mozc_cc_library(
     name = "toolbar_window",
-    srcs = ["toolbar_window.cc"],
-    hdrs = ["toolbar_window.h"],
+    # toolbar_accessible.cc implements the MSAA tree for the toolbar's
+    # custom-drawn buttons and needs ToolbarWindow, which in turn creates the
+    # object -- they are mutually dependent, so they share one target.
+    srcs = [
+        "toolbar_accessible.cc",
+        "toolbar_window.cc",
+    ],
+    hdrs = [
+        "toolbar_accessible.h",
+        "toolbar_window.h",
+    ],
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
+        ":marina_localized_string",
         ":win32_dpi_util",
         ":win32_image_util",
         ":win32_renderer_util",
@@ -199,7 +217,10 @@ mozc_cc_library(
         "//base:system_util",
         "//base/win32:wide_char",
         "//bazel/win32:advapi32",
+        "//bazel/win32:comctl32",
         "//bazel/win32:gdi32",
+        "//bazel/win32:oleacc",
+        "//bazel/win32:oleaut32",
         "//bazel/win32:user32",
         "//client:client_interface",
         "//protocol:commands_cc_proto",
@@ -217,16 +238,43 @@ mozc_cc_library(
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
+        ":marina_localized_string",
+        ":win32_dpi_util",
         "//base:const",
         "//base:file_util",
         "//base:system_util",
         "//base/win32:wide_char",
+        "//bazel/win32:advapi32",
         "//bazel/win32:comctl32",
+        "//bazel/win32:gdi32",
         "//bazel/win32:user32",
+        "//bazel/win32:uxtheme",
         "//client:client_interface",
         "//protocol:commands_cc_proto",
         "//protocol:renderer_cc_proto",
         "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_library(
+    name = "shortcuts_window",
+    srcs = ["shortcuts_window.cc"],
+    hdrs = ["shortcuts_window.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        ":marina_localized_string",
+        ":win32_dpi_util",
+        "//base:const",
+        "//base/win32:wide_char",
+        "//bazel/win32:advapi32",
+        "//bazel/win32:comctl32",
+        "//bazel/win32:gdi32",
+        "//bazel/win32:user32",
+        "//bazel/win32:uxtheme",
+        "//client:client_interface",
+        "//protocol:commands_cc_proto",
+        "//protocol:renderer_cc_proto",
     ],
 )
 
@@ -302,6 +350,7 @@ mozc_cc_library(
         ":candidate_window",
         ":indicator_window",
         ":infolist_window",
+        ":shortcuts_window",
         ":symbols_palette_window",
         ":toolbar_window",
         ":win32_dpi_util",

@@ -102,11 +102,16 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       case commands::SessionCommand::TOGGLE_TRADITIONAL_KANJI:
       case commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
       case commands::SessionCommand::LAUNCH_CONFIG_DIALOG:
+      case commands::SessionCommand::LAUNCH_DICTIONARY_TOOL:
       case commands::SessionCommand::INSERT_SYMBOL_TEXT:
       case commands::SessionCommand::SHOW_SYMBOLS_PALETTE:
       case commands::SessionCommand::HIDE_SYMBOLS_PALETTE:
-        // marinaMoji: floating toolbar button clicks (mode switch, shin-kyu
-        // toggle, dict, settings), Symbols Palette open/close signals, and
+      case commands::SessionCommand::SHOW_SHORTCUTS_WINDOW:
+      case commands::SessionCommand::HIDE_SHORTCUTS_WINDOW:
+      case commands::SessionCommand::HIDE_TOOLBAR:
+        // marinaMoji: floating toolbar button and context-menu clicks (mode
+        // switch, shin-kyu toggle, dict, dictionary tool, settings, hide),
+        // Symbols Palette and Shortcuts window open/close signals, and
         // Symbols Palette commits, in addition to the original candidate
         // click commands.
         break;
@@ -150,7 +155,10 @@ class RendererServerSendCommand : public client::SendCommandInterface {
     // before the toolbar click returns; a queued PostMessage can otherwise be
     // superseded by the next renderer update and leave the palette unopened.
     if (command.type() == commands::SessionCommand::SHOW_SYMBOLS_PALETTE ||
-        command.type() == commands::SessionCommand::HIDE_SYMBOLS_PALETTE) {
+        command.type() == commands::SessionCommand::HIDE_SYMBOLS_PALETTE ||
+        command.type() == commands::SessionCommand::SHOW_SHORTCUTS_WINDOW ||
+        command.type() == commands::SessionCommand::HIDE_SHORTCUTS_WINDOW ||
+        command.type() == commands::SessionCommand::HIDE_TOOLBAR) {
       ::SendMessage(target, mozc_msg, type, id);
     } else {
       ::PostMessage(target, mozc_msg, type, id);

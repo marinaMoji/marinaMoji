@@ -50,6 +50,7 @@
 #include "win32/base/keyevent_handler.h"
 #include "win32/base/deleter.h"
 #include "win32/base/input_state.h"
+#include "win32/base/toolbar_config.h"
 #include "win32/tip/tip_composition_util.h"
 #include "win32/tip/tip_dll_module.h"
 #include "win32/tip/tip_edit_session_impl.h"
@@ -756,12 +757,35 @@ bool TipEditSession::OnRendererCallbackAsync(TipTextService* text_service,
     case SessionCommand::TURN_OFF_IME:
     case SessionCommand::TOGGLE_TRADITIONAL_KANJI:
     case SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
-    case SessionCommand::LAUNCH_CONFIG_DIALOG: {
+    case SessionCommand::LAUNCH_CONFIG_DIALOG:
+    case SessionCommand::LAUNCH_DICTIONARY_TOOL: {
       // marinaMoji: floating toolbar direct-mode / shin-kyu toggle / dict /
       // settings clicks. None of these need extra fields.
       SessionCommand command;
       command.set_type(type);
       return OnSessionCommandAsync(text_service, context, command);
+    }
+    case SessionCommand::SHOW_SHORTCUTS_WINDOW:
+    case SessionCommand::HIDE_SHORTCUTS_WINDOW: {
+      // marinaMoji: Keyboard Shortcuts window open/close, handled exactly
+      // like the Symbols Palette signals below -- a local UI flag, never
+      // forwarded to the session/converter, with an immediate
+      // RendererCommand refresh so ShortcutsInfo is re-evaluated at once.
+      TipPrivateContext* private_context =
+          text_service->GetPrivateContext(context);
+      if (private_context == nullptr) {
+        return false;
+      }
+      private_context->set_shortcuts_window_visible(
+          type == SessionCommand::SHOW_SHORTCUTS_WINDOW);
+      return OnLayoutChangedAsyncImpl(text_service, context);
+    }
+    case SessionCommand::HIDE_TOOLBAR: {
+      // marinaMoji: "Hide toolbar" from the toolbar's own context menu. The
+      // preference lives on the TIP side (win32/base/toolbar_config.cc) and
+      // gates the ShowToolbar bit, so the renderer can only ask for it.
+      mozc::win32::SaveToolbarVisiblePreference(false);
+      return OnLayoutChangedAsyncImpl(text_service, context);
     }
     case SessionCommand::SHOW_SYMBOLS_PALETTE:
     case SessionCommand::HIDE_SYMBOLS_PALETTE: {

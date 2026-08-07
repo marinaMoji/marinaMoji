@@ -4,10 +4,12 @@
 #include "renderer/win32/symbols_palette_window.h"
 
 #include <commctrl.h>
+#include <uxtheme.h>
 #include <windows.h>
 #include <windowsx.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <string>
 #include <vector>
@@ -18,6 +20,8 @@
 #include "base/win32/wide_char.h"
 #include "protocol/commands.pb.h"
 #include "protocol/renderer_command.pb.h"
+#include "renderer/win32/marina_localized_string.h"
+#include "renderer/win32/win32_dpi_util.h"
 
 namespace mozc {
 namespace renderer {
@@ -27,14 +31,23 @@ namespace {
 
 constexpr int kNumTabs = 4;
 constexpr int kColumns = 8;
-constexpr int kButtonWidth = 40;
-constexpr int kButtonHeight = 32;
-constexpr int kGap = 4;
-constexpr int kMargin = 8;
-constexpr int kTabStripHeight = 28;
-constexpr int kWindowWidth =
-    kMargin * 2 + kColumns * kButtonWidth + (kColumns - 1) * kGap;
-constexpr int kPinCheckboxHeight = 24;
+
+// Logical (96 DPI) metrics. Every use scales these by the window's current
+// DPI -- unlike the toolbar this window is made of ordinary child controls,
+// which Windows does not scale for us in a PerMonitorV2 process.
+constexpr int kButtonWidthLogical = 40;
+constexpr int kButtonHeightLogical = 32;
+constexpr int kGapLogical = 4;
+constexpr int kMarginLogical = 8;
+constexpr int kTabStripHeightLogical = 28;
+constexpr int kPinCheckboxHeightLogical = 24;
+constexpr int kHintHeightLogical = 32;
+// Symbol glyphs (々 ゝ ㆐ …) need a larger face than the shell UI default to
+// be legible and unambiguous at a glance; mac uses an 18pt system font.
+constexpr int kSymbolFontHeightLogical = 20;
+// Rows visible before the symbol area starts scrolling. Four rows fits the
+// stock Odoriji/Kaeriten/Symbols lists; a long user list scrolls.
+constexpr int kMaxVisibleRows = 4;
 
 // marinaMoji: mirrors src/session/odoriji_palette.cc's kOdorijiChars and
 // mac's BuildDefaultOdorijiSymbols()/BuildDefaultGeneralSymbols(). Kept as a
@@ -65,8 +78,60 @@ std::vector<std::wstring> BuildGeneralSymbols() {
 
 constexpr int kTabControlId = 1001;
 constexpr int kPinCheckboxId = 1002;
+constexpr int kHintLabelId = 1003;
 constexpr int kButtonIdBase = 2000;
 constexpr int kButtonsPerTab = 1000;  // must exceed any tab's symbol count
+
+const wchar_t* HintKeyForTab(int tab) {
+  switch (tab) {
+    case 0:
+      return L"MM.OdorijiHint";
+    case 1:
+      return L"MM.KaeritenHint";
+    case 3:
+      return L"MM.UserSymbolsHint";
+    default:
+      return nullptr;  // the general Symbols tab needs no explanation
+  }
+}
+
+// AdjustWindowRectExForDpi is Windows 10 1607+, but the renderer manifest
+// still claims support back to Vista, so resolve it dynamically and fall back
+// to the system-DPI variant rather than taking a hard import that would stop
+// the process loading on an older OS.
+BOOL AdjustWindowRectForDpi(RECT* rect, DWORD style, DWORD ex_style,
+                            uint32_t dpi) {
+  using AdjustForDpiFunc = BOOL(WINAPI*)(LPRECT, DWORD, BOOL, DWORD, UINT);
+  static const AdjustForDpiFunc adjust_for_dpi = []() -> AdjustForDpiFunc {
+    const HMODULE user32 = ::GetModuleHandleW(L"user32.dll");
+    if (user32 == nullptr) {
+      return nullptr;
+    }
+    return reinterpret_cast<AdjustForDpiFunc>(
+        ::GetProcAddress(user32, "AdjustWindowRectExForDpi"));
+  }();
+  if (adjust_for_dpi != nullptr) {
+    return adjust_for_dpi(rect, style, FALSE, ex_style, dpi);
+  }
+  return ::AdjustWindowRectEx(rect, style, FALSE, ex_style);
+}
+
+bool IsDarkTheme() {
+  HKEY key = nullptr;
+  if (::RegOpenKeyExW(
+          HKEY_CURRENT_USER,
+          L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+          0, KEY_READ, &key) != ERROR_SUCCESS) {
+    return false;
+  }
+  DWORD value = 1;
+  DWORD size = sizeof(value);
+  const LSTATUS status =
+      ::RegQueryValueExW(key, L"AppsUseLightTheme", nullptr, nullptr,
+                         reinterpret_cast<BYTE*>(&value), &size);
+  ::RegCloseKey(key);
+  return status == ERROR_SUCCESS && value == 0;
+}
 
 }  // namespace
 
@@ -74,9 +139,16 @@ SymbolsPaletteWindow::SymbolsPaletteWindow()
     : send_command_interface_(nullptr),
       tab_control_(nullptr),
       pin_checkbox_(nullptr),
+      hint_label_(nullptr),
       active_tab_(0),
       pinned_(false),
-      has_shown_once_(false) {}
+      has_shown_once_(false),
+      dpi_(USER_DEFAULT_SCREEN_DPI),
+      is_dark_theme_(false),
+      scroll_offset_(0),
+      ui_font_(nullptr),
+      symbol_font_(nullptr),
+      background_brush_(nullptr) {}
 
 SymbolsPaletteWindow::~SymbolsPaletteWindow() {}
 
@@ -92,6 +164,7 @@ void SymbolsPaletteWindow::Initialize() {
 
   RebuildButtonsForTab(Tab::kOdoriji, BuildOdorijiSymbols());
   RebuildButtonsForTab(Tab::kSymbols, BuildGeneralSymbols());
+  Relayout();
 
   ShowWindow(SW_HIDE);
 }
@@ -109,45 +182,455 @@ void SymbolsPaletteWindow::SetSendCommandInterface(
 
 void SymbolsPaletteWindow::Hide() { ShowWindow(SW_HIDE); }
 
+int SymbolsPaletteWindow::Scaled(int logical_value) const {
+  return std::max(
+      1, static_cast<int>(std::lround(logical_value *
+                                      GetDPIScalingFactor(dpi_))));
+}
+
 LRESULT SymbolsPaletteWindow::OnCreate(LPCREATESTRUCT create_struct) {
-  SetWindowTextW(L"marinaMoji Symbols");
+  // The window has no meaningful on-screen rect yet (Create(nullptr)); this
+  // is the primary monitor's DPI, corrected by WM_DPICHANGED once Relayout()
+  // has actually placed the window.
+  dpi_ = GetDpiForPoint(0, 0);
+  is_dark_theme_ = IsDarkTheme();
+
+  SetWindowTextW(MarinaLocalizedString(L"MM.SymbolsPalette"));
+  CreateFonts();
+  CreateBackgroundBrush();
   CreateTabControl();
 
   pin_checkbox_ = ::CreateWindowExW(
-      0, L"BUTTON", L"Pin", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-      kMargin, kTabStripHeight, 100, kPinCheckboxHeight, m_hWnd,
-      reinterpret_cast<HMENU>(static_cast<INT_PTR>(kPinCheckboxId)),
-      nullptr, nullptr);
+      0, L"BUTTON", MarinaLocalizedString(L"MM.PinPalette"),
+      WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 0, 0, 0, 0, m_hWnd,
+      reinterpret_cast<HMENU>(static_cast<INT_PTR>(kPinCheckboxId)), nullptr,
+      nullptr);
   if (pin_checkbox_ != nullptr) {
     Button_SetCheck(pin_checkbox_, pinned_ ? BST_CHECKED : BST_UNCHECKED);
+    ApplyFont(pin_checkbox_, ui_font_);
+    ApplyDarkModeTheme(pin_checkbox_);
   }
+
+  hint_label_ = ::CreateWindowExW(
+      0, L"STATIC", L"", WS_CHILD | WS_VISIBLE | SS_LEFT | SS_EDITCONTROL,
+      0, 0, 0, 0, m_hWnd,
+      reinterpret_cast<HMENU>(static_cast<INT_PTR>(kHintLabelId)), nullptr,
+      nullptr);
+  ApplyFont(hint_label_, ui_font_);
+  ApplyDarkModeTheme(hint_label_);
 
   return 0;
 }
 
+void SymbolsPaletteWindow::OnDestroy() {
+  DeleteFonts();
+  if (background_brush_ != nullptr) {
+    ::DeleteObject(background_brush_);
+    background_brush_ = nullptr;
+  }
+}
+
+void SymbolsPaletteWindow::CreateFonts() {
+  DeleteFonts();
+
+  // NONCLIENTMETRICS gives the shell UI font (Segoe UI / Yu Gothic UI /
+  // Meiryo UI depending on the system language) at the *system* DPI; scale it
+  // to this window's DPI. Without an explicit WM_SETFONT every child control
+  // would silently fall back to the legacy bitmap SYSTEM_FONT, which renders
+  // CJK poorly or not at all.
+  NONCLIENTMETRICSW metrics = {};
+  metrics.cbSize = sizeof(metrics);
+  if (::SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(metrics),
+                              &metrics, 0)) {
+    LOGFONTW ui_log_font = metrics.lfMessageFont;
+    const double system_scale =
+        GetDPIScalingFactor(GetDpiForPoint(0, 0));
+    const double window_scale = GetDPIScalingFactor(dpi_);
+    if (system_scale > 0.0) {
+      ui_log_font.lfHeight = static_cast<LONG>(
+          std::lround(ui_log_font.lfHeight * window_scale / system_scale));
+    }
+    ui_font_ = ::CreateFontIndirectW(&ui_log_font);
+
+    LOGFONTW symbol_log_font = ui_log_font;
+    symbol_log_font.lfHeight = -Scaled(kSymbolFontHeightLogical);
+    symbol_log_font.lfWidth = 0;
+    symbol_font_ = ::CreateFontIndirectW(&symbol_log_font);
+  }
+  if (ui_font_ == nullptr) {
+    ui_font_ = static_cast<HFONT>(::GetStockObject(DEFAULT_GUI_FONT));
+    owns_ui_font_ = false;
+  } else {
+    owns_ui_font_ = true;
+  }
+  if (symbol_font_ == nullptr) {
+    symbol_font_ = ui_font_;
+    owns_symbol_font_ = false;
+  } else {
+    owns_symbol_font_ = true;
+  }
+}
+
+void SymbolsPaletteWindow::DeleteFonts() {
+  if (owns_symbol_font_ && symbol_font_ != nullptr) {
+    ::DeleteObject(symbol_font_);
+  }
+  symbol_font_ = nullptr;
+  owns_symbol_font_ = false;
+  if (owns_ui_font_ && ui_font_ != nullptr) {
+    ::DeleteObject(ui_font_);
+  }
+  ui_font_ = nullptr;
+  owns_ui_font_ = false;
+}
+
+void SymbolsPaletteWindow::CreateBackgroundBrush() {
+  if (background_brush_ != nullptr) {
+    ::DeleteObject(background_brush_);
+  }
+  // The window class brush is COLOR_WINDOW, which stays white in dark mode --
+  // common controls have no automatic dark theme. Paint the background (and
+  // the static/checkbox text below, via WM_CTLCOLOR*) ourselves so the
+  // palette matches the toolbar that opened it.
+  background_brush_ = ::CreateSolidBrush(BackgroundColor());
+}
+
+COLORREF SymbolsPaletteWindow::BackgroundColor() const {
+  return is_dark_theme_ ? RGB(32, 35, 40) : ::GetSysColor(COLOR_WINDOW);
+}
+
+COLORREF SymbolsPaletteWindow::TextColor() const {
+  return is_dark_theme_ ? RGB(235, 235, 235) : ::GetSysColor(COLOR_WINDOWTEXT);
+}
+
+void SymbolsPaletteWindow::ApplyFont(HWND control, HFONT font) {
+  if (control != nullptr && font != nullptr) {
+    ::SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font),
+                   MAKELPARAM(TRUE, 0));
+  }
+}
+
+void SymbolsPaletteWindow::ApplyDarkModeTheme(HWND control) {
+  if (control == nullptr) {
+    return;
+  }
+  // Themed common controls draw their own light background regardless of
+  // WM_CTLCOLOR*. Opting them into the shell's dark theme class is what
+  // Explorer itself does; on Windows versions that don't know the class this
+  // simply fails and the control keeps its light appearance, which is why no
+  // version check is needed.
+  ::SetWindowTheme(control, is_dark_theme_ ? L"DarkMode_Explorer" : nullptr,
+                   nullptr);
+}
+
 void SymbolsPaletteWindow::CreateTabControl() {
   tab_control_ = ::CreateWindowExW(
-      0, WC_TABCONTROLW, L"", WS_CHILD | WS_VISIBLE,
-      0, 0, kWindowWidth, kTabStripHeight, m_hWnd,
-      reinterpret_cast<HMENU>(static_cast<INT_PTR>(kTabControlId)),
-      nullptr, nullptr);
+      0, WC_TABCONTROLW, L"", WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, m_hWnd,
+      reinterpret_cast<HMENU>(static_cast<INT_PTR>(kTabControlId)), nullptr,
+      nullptr);
   if (tab_control_ == nullptr) {
     return;
   }
+  ApplyFont(tab_control_, ui_font_);
+  ApplyDarkModeTheme(tab_control_);
 
-  const wchar_t* labels[] = {L"Odoriji", L"Kaeriten", L"Symbols", L"User"};
+  const wchar_t* const label_keys[] = {L"MM.Odoriji", L"MM.Kaeriten",
+                                       L"MM.Symbols", L"MM.User"};
   for (int i = 0; i < kNumTabs; ++i) {
     TCITEMW item = {};
     item.mask = TCIF_TEXT;
-    item.pszText = const_cast<wchar_t*>(labels[i]);
+    item.pszText = const_cast<wchar_t*>(MarinaLocalizedString(label_keys[i]));
     TabCtrl_InsertItem(tab_control_, i, &item);
   }
   TabCtrl_SetCurSel(tab_control_, active_tab_);
 }
 
+int SymbolsPaletteWindow::RowCountForTab(int tab) const {
+  const size_t count = tab_symbols_[static_cast<size_t>(tab)].size();
+  if (count == 0) {
+    return 0;
+  }
+  return static_cast<int>((count + kColumns - 1) / kColumns);
+}
+
+int SymbolsPaletteWindow::SymbolAreaTop() const {
+  int top = Scaled(kTabStripHeightLogical) + Scaled(kMarginLogical);
+  if (HintKeyForTab(active_tab_) != nullptr) {
+    top += Scaled(kHintHeightLogical);
+  }
+  return top;
+}
+
+CSize SymbolsPaletteWindow::ComputeClientSize() const {
+  int width = Scaled(kMarginLogical) * 2 +
+              kColumns * Scaled(kButtonWidthLogical) +
+              (kColumns - 1) * Scaled(kGapLogical);
+  if (MaxScrollOffset() > 0) {
+    // A visible scrollbar eats client width; widen so the last column keeps
+    // its margin rather than being clipped.
+    width += ::GetSystemMetrics(SM_CXVSCROLL);
+  }
+  const int visible_rows =
+      std::clamp(RowCountForTab(active_tab_), 1, kMaxVisibleRows);
+  const int height = SymbolAreaTop() +
+                     visible_rows * (Scaled(kButtonHeightLogical) +
+                                     Scaled(kGapLogical)) +
+                     Scaled(kMarginLogical) +
+                     Scaled(kPinCheckboxHeightLogical) +
+                     Scaled(kMarginLogical);
+  return CSize(width, height);
+}
+
+void SymbolsPaletteWindow::Relayout() {
+  const CSize client_size = ComputeClientSize();
+
+  // SetWindowPos takes the *window* size, not the client size: without this
+  // the caption and borders eat into the layout and clip the bottom row of
+  // symbols. AdjustWindowRectEx converts one to the other for our styles.
+  RECT desired = {0, 0, client_size.cx, client_size.cy};
+  const DWORD style = static_cast<DWORD>(::GetWindowLongW(m_hWnd, GWL_STYLE));
+  const DWORD ex_style =
+      static_cast<DWORD>(::GetWindowLongW(m_hWnd, GWL_EXSTYLE));
+  AdjustWindowRectForDpi(&desired, style, ex_style, dpi_);
+  const int window_width = desired.right - desired.left;
+  const int window_height = desired.bottom - desired.top;
+
+  const int max_scroll = MaxScrollOffset();
+  scroll_offset_ = std::clamp(scroll_offset_, 0, max_scroll);
+
+  const int margin = Scaled(kMarginLogical);
+  const int tab_height = Scaled(kTabStripHeightLogical);
+  if (tab_control_ != nullptr) {
+    ::SetWindowPos(tab_control_, nullptr, 0, 0, client_size.cx, tab_height,
+                   SWP_NOZORDER | SWP_NOACTIVATE);
+  }
+
+  if (hint_label_ != nullptr) {
+    const wchar_t* hint_key = HintKeyForTab(active_tab_);
+    if (hint_key != nullptr) {
+      ::SetWindowTextW(hint_label_, MarinaLocalizedString(hint_key));
+      ::SetWindowPos(hint_label_, nullptr, margin, tab_height + margin,
+                     client_size.cx - margin * 2, Scaled(kHintHeightLogical),
+                     SWP_NOZORDER | SWP_NOACTIVATE);
+      ::ShowWindow(hint_label_, SW_SHOW);
+    } else {
+      ::ShowWindow(hint_label_, SW_HIDE);
+    }
+  }
+
+  if (pin_checkbox_ != nullptr) {
+    ::SetWindowPos(pin_checkbox_, nullptr, margin,
+                   client_size.cy - Scaled(kPinCheckboxHeightLogical) - margin,
+                   client_size.cx - margin * 2,
+                   Scaled(kPinCheckboxHeightLogical),
+                   SWP_NOZORDER | SWP_NOACTIVATE);
+  }
+
+  LayoutButtons();
+  UpdateScrollBar();
+
+  const UINT flags = SWP_NOZORDER | SWP_NOACTIVATE |
+                     (has_shown_once_ ? SWP_NOMOVE : 0);
+  int x = 0;
+  int y = 0;
+  if (!has_shown_once_) {
+    // marinaMoji: mirrors mac's [window center] -- the palette isn't anchored
+    // to the toolbar's position, unlike the toolbar's own bottom-right
+    // default.
+    RECT work_area = {0, 0, 1920, 1080};
+    ::SystemParametersInfoW(SPI_GETWORKAREA, 0, &work_area, 0);
+    x = work_area.left + (work_area.right - work_area.left - window_width) / 2;
+    y = work_area.top + (work_area.bottom - work_area.top - window_height) / 2;
+  }
+  SetWindowPos(HWND_TOPMOST, x, y, window_width, window_height, flags);
+  Invalidate(TRUE);
+}
+
+void SymbolsPaletteWindow::LayoutButtons() {
+  const int button_w = Scaled(kButtonWidthLogical);
+  const int button_h = Scaled(kButtonHeightLogical);
+  const int gap = Scaled(kGapLogical);
+  const int margin = Scaled(kMarginLogical);
+  const int area_top = SymbolAreaTop();
+  const int area_bottom = area_top + std::clamp(RowCountForTab(active_tab_), 1,
+                                                kMaxVisibleRows) *
+                                         (button_h + gap);
+
+  for (int tab = 0; tab < kNumTabs; ++tab) {
+    const auto& buttons = tab_buttons_[static_cast<size_t>(tab)];
+    const bool tab_visible = (tab == active_tab_);
+    for (size_t i = 0; i < buttons.size(); ++i) {
+      HWND button = buttons[i];
+      if (button == nullptr) {
+        continue;
+      }
+      if (!tab_visible) {
+        ::ShowWindow(button, SW_HIDE);
+        continue;
+      }
+      const int row = static_cast<int>(i) / kColumns;
+      const int col = static_cast<int>(i) % kColumns;
+      const int x = margin + col * (button_w + gap);
+      const int y = area_top + row * (button_h + gap) - scroll_offset_;
+      ::SetWindowPos(button, nullptr, x, y, button_w, button_h,
+                     SWP_NOZORDER | SWP_NOACTIVATE);
+      // Rows scrolled out of the symbol area are hidden rather than clipped:
+      // these are plain child controls with no clipping parent of their own.
+      const bool row_visible = (y + button_h > area_top) && (y < area_bottom);
+      ::ShowWindow(button, row_visible ? SW_SHOW : SW_HIDE);
+    }
+  }
+}
+
+int SymbolsPaletteWindow::MaxScrollOffset() const {
+  const int rows = RowCountForTab(active_tab_);
+  if (rows <= kMaxVisibleRows) {
+    return 0;
+  }
+  return (rows - kMaxVisibleRows) *
+         (Scaled(kButtonHeightLogical) + Scaled(kGapLogical));
+}
+
+void SymbolsPaletteWindow::UpdateScrollBar() {
+  const int rows = RowCountForTab(active_tab_);
+  const int row_height = Scaled(kButtonHeightLogical) + Scaled(kGapLogical);
+  SCROLLINFO info = {};
+  info.cbSize = sizeof(info);
+  info.fMask = SIF_RANGE | SIF_PAGE | SIF_POS | SIF_DISABLENOSCROLL;
+  info.nMin = 0;
+  info.nMax = std::max(0, rows * row_height - 1);
+  info.nPage = static_cast<UINT>(kMaxVisibleRows * row_height);
+  info.nPos = scroll_offset_;
+  SetScrollInfo(SB_VERT, &info, TRUE);
+  ShowScrollBar(SB_VERT, MaxScrollOffset() > 0);
+}
+
+void SymbolsPaletteWindow::ScrollTo(int offset) {
+  const int clamped = std::clamp(offset, 0, MaxScrollOffset());
+  if (clamped == scroll_offset_) {
+    return;
+  }
+  scroll_offset_ = clamped;
+  LayoutButtons();
+  SetScrollPos(SB_VERT, scroll_offset_, TRUE);
+  Invalidate(TRUE);
+}
+
+LRESULT SymbolsPaletteWindow::OnVScroll(UINT msg_id, WPARAM wparam,
+                                        LPARAM lparam, BOOL& handled) {
+  const int row_height = Scaled(kButtonHeightLogical) + Scaled(kGapLogical);
+  switch (LOWORD(wparam)) {
+    case SB_LINEUP:
+      ScrollTo(scroll_offset_ - row_height);
+      break;
+    case SB_LINEDOWN:
+      ScrollTo(scroll_offset_ + row_height);
+      break;
+    case SB_PAGEUP:
+      ScrollTo(scroll_offset_ - row_height * kMaxVisibleRows);
+      break;
+    case SB_PAGEDOWN:
+      ScrollTo(scroll_offset_ + row_height * kMaxVisibleRows);
+      break;
+    case SB_THUMBTRACK:
+    case SB_THUMBPOSITION: {
+      SCROLLINFO info = {};
+      info.cbSize = sizeof(info);
+      info.fMask = SIF_TRACKPOS;
+      if (GetScrollInfo(SB_VERT, &info)) {
+        ScrollTo(info.nTrackPos);
+      }
+      break;
+    }
+    default:
+      break;
+  }
+  handled = TRUE;
+  return 0;
+}
+
+LRESULT SymbolsPaletteWindow::OnMouseWheel(UINT msg_id, WPARAM wparam,
+                                           LPARAM lparam, BOOL& handled) {
+  const int delta = GET_WHEEL_DELTA_WPARAM(wparam);
+  const int row_height = Scaled(kButtonHeightLogical) + Scaled(kGapLogical);
+  ScrollTo(scroll_offset_ - delta * row_height / WHEEL_DELTA);
+  handled = TRUE;
+  return 0;
+}
+
+LRESULT SymbolsPaletteWindow::OnEraseBackground(UINT msg_id, WPARAM wparam,
+                                                LPARAM lparam, BOOL& handled) {
+  auto dc = reinterpret_cast<HDC>(wparam);
+  if (dc == nullptr || background_brush_ == nullptr) {
+    handled = FALSE;
+    return 0;
+  }
+  CRect client_rect;
+  GetClientRect(&client_rect);
+  ::FillRect(dc, &client_rect, background_brush_);
+  handled = TRUE;
+  return 1;
+}
+
+LRESULT SymbolsPaletteWindow::OnCtlColor(UINT msg_id, WPARAM wparam,
+                                         LPARAM lparam, BOOL& handled) {
+  auto dc = reinterpret_cast<HDC>(wparam);
+  if (dc == nullptr || background_brush_ == nullptr) {
+    handled = FALSE;
+    return 0;
+  }
+  ::SetTextColor(dc, TextColor());
+  ::SetBkColor(dc, BackgroundColor());
+  handled = TRUE;
+  return reinterpret_cast<LRESULT>(background_brush_);
+}
+
+LRESULT SymbolsPaletteWindow::OnDpiChanged(UINT msg_id, WPARAM wparam,
+                                           LPARAM lparam, BOOL& handled) {
+  const uint32_t new_dpi = static_cast<uint32_t>(LOWORD(wparam));
+  if (new_dpi != 0 && new_dpi != dpi_) {
+    dpi_ = new_dpi;
+    CreateFonts();
+    ApplyFont(tab_control_, ui_font_);
+    ApplyFont(pin_checkbox_, ui_font_);
+    ApplyFont(hint_label_, ui_font_);
+    for (const auto& buttons : tab_buttons_) {
+      for (HWND button : buttons) {
+        ApplyFont(button, symbol_font_);
+      }
+    }
+    Relayout();
+  }
+  handled = TRUE;
+  return 0;
+}
+
+LRESULT SymbolsPaletteWindow::OnSettingChange(UINT msg_id, WPARAM wparam,
+                                              LPARAM lparam, BOOL& handled) {
+  const bool dark = IsDarkTheme();
+  if (dark != is_dark_theme_) {
+    is_dark_theme_ = dark;
+    CreateBackgroundBrush();
+    ApplyDarkModeTheme(tab_control_);
+    ApplyDarkModeTheme(pin_checkbox_);
+    ApplyDarkModeTheme(hint_label_);
+    for (const auto& buttons : tab_buttons_) {
+      for (HWND button : buttons) {
+        ApplyDarkModeTheme(button);
+      }
+    }
+    Invalidate(TRUE);
+  }
+  handled = FALSE;
+  return 0;
+}
+
 void SymbolsPaletteWindow::RebuildButtonsForTab(
     Tab tab, const std::vector<std::wstring>& symbols) {
   const size_t idx = static_cast<size_t>(tab);
+  if (tab_symbols_[idx] == symbols && !tab_buttons_[idx].empty()) {
+    return;  // unchanged; don't churn HWNDs on every update
+  }
   for (HWND button : tab_buttons_[idx]) {
     if (button != nullptr) {
       ::DestroyWindow(button);
@@ -156,33 +639,17 @@ void SymbolsPaletteWindow::RebuildButtonsForTab(
   tab_buttons_[idx].clear();
   tab_symbols_[idx] = symbols;
 
-  const int button_top = kTabStripHeight + kPinCheckboxHeight + kMargin;
   for (size_t i = 0; i < symbols.size(); ++i) {
-    const int row = static_cast<int>(i) / kColumns;
-    const int col = static_cast<int>(i) % kColumns;
-    const int x = kMargin + col * (kButtonWidth + kGap);
-    const int y = button_top + row * (kButtonHeight + kGap);
     const int control_id =
         kButtonIdBase + static_cast<int>(idx) * kButtonsPerTab +
         static_cast<int>(i);
     HWND button = ::CreateWindowExW(
-        0, L"BUTTON", symbols[i].c_str(),
-        WS_CHILD | (static_cast<int>(tab) == active_tab_ ? WS_VISIBLE : 0),
-        x, y, kButtonWidth, kButtonHeight, m_hWnd,
+        0, L"BUTTON", symbols[i].c_str(), WS_CHILD, 0, 0, 0, 0, m_hWnd,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(control_id)), nullptr,
         nullptr);
+    ApplyFont(button, symbol_font_);
+    ApplyDarkModeTheme(button);
     tab_buttons_[idx].push_back(button);
-  }
-}
-
-void SymbolsPaletteWindow::ShowOnlyActiveTab() {
-  for (int t = 0; t < kNumTabs; ++t) {
-    const bool visible = (t == active_tab_);
-    for (HWND button : tab_buttons_[static_cast<size_t>(t)]) {
-      if (button != nullptr) {
-        ::ShowWindow(button, visible ? SW_SHOW : SW_HIDE);
-      }
-    }
   }
 }
 
@@ -192,7 +659,10 @@ LRESULT SymbolsPaletteWindow::OnNotify(UINT msg_id, WPARAM wparam,
   if (header != nullptr && header->hwndFrom == tab_control_ &&
       header->code == TCN_SELCHANGE) {
     active_tab_ = TabCtrl_GetCurSel(tab_control_);
-    ShowOnlyActiveTab();
+    scroll_offset_ = 0;
+    // Tabs differ in row count (and whether they carry a hint), so the whole
+    // window is resized, not just the button rows.
+    Relayout();
     SavePreferences();
     handled = TRUE;
     return 0;
@@ -318,22 +788,8 @@ void SymbolsPaletteWindow::OnUpdate(const commands::RendererCommand& command) {
   }
   RebuildButtonsForTab(Tab::kUser, user);
 
-  if (!has_shown_once_) {
-    // marinaMoji: mirrors mac's [window center] -- the palette isn't
-    // anchored to the toolbar's position, unlike the toolbar's own
-    // bottom-right default.
-    RECT work_area = {0, 0, 1920, 1080};
-    ::SystemParametersInfoW(SPI_GETWORKAREA, 0, &work_area, 0);
-    const int total_height = kTabStripHeight + kPinCheckboxHeight + kMargin +
-                             4 * (kButtonHeight + kGap) + kMargin;
-    const int x =
-        work_area.left + (work_area.right - work_area.left - kWindowWidth) / 2;
-    const int y = work_area.top +
-                  (work_area.bottom - work_area.top - total_height) / 2;
-    SetWindowPos(HWND_TOPMOST, x, y, kWindowWidth, total_height,
-                 SWP_NOACTIVATE);
-    has_shown_once_ = true;
-  }
+  Relayout();
+  has_shown_once_ = true;
 
   if (!IsWindowVisible()) {
     ShowWindow(SW_SHOWNA);

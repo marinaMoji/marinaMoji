@@ -502,6 +502,24 @@ message SessionCommand {
     // the session/converter, never actually dispatched server-side.
     SHOW_SYMBOLS_PALETTE = 37;
     HIDE_SYMBOLS_PALETTE = 38;
+
+    // marinaMoji: open the dictionary tool (same as the dictionary_tool
+    // keymap shortcut). Like LAUNCH_CONFIG_DIALOG above, this exists because
+    // the Windows floating toolbar can only send SessionCommands, not raw
+    // KeyEvents; mac reaches the same tool from its own toolbar menu.
+    LAUNCH_DICTIONARY_TOOL = 39;
+
+    // marinaMoji: open/close the Windows floating Keyboard Shortcuts window.
+    // Pure local UI-visibility signal, handled exactly like SHOW/HIDE_
+    // SYMBOLS_PALETTE -- intercepted by the TIP before reaching the session.
+    SHOW_SHORTCUTS_WINDOW = 40;
+    HIDE_SHORTCUTS_WINDOW = 41;
+
+    // marinaMoji: turn the floating toolbar off from its own context menu.
+    // Also TIP-local: it writes the toolbar_visible preference (owned by
+    // win32/base/toolbar_config.cc) and refreshes the renderer, rather than
+    // reaching the session.
+    HIDE_TOOLBAR = 42;
   }
   required CommandType type = 1;
 

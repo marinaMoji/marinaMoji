@@ -114,6 +114,14 @@ mozc_win32_lib(
 )
 
 mozc_win32_lib(
+    name = "oleacc",
+)
+
+mozc_win32_lib(
+    name = "oleaut32",
+)
+
+mozc_win32_lib(
     name = "pathcch",
 )
 
@@ -123,6 +131,10 @@ mozc_win32_lib(
 
 mozc_win32_lib(
     name = "user32",
+)
+
+mozc_win32_lib(
+    name = "uxtheme",
 )
 
 mozc_win32_lib(

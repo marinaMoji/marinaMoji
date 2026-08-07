@@ -76,6 +76,11 @@ class TipPrivateContext {
   bool symbols_palette_visible() const;
   void set_symbols_palette_visible(bool visible);
 
+  // marinaMoji: same idea for the Keyboard Shortcuts window -- gates whether
+  // RendererCommand carries ShortcutsInfo.
+  bool shortcuts_window_visible() const;
+  void set_shortcuts_window_visible(bool visible);
+
   // marinaMoji: spacing form of the dead key pending in direct input mode
   // when a fixed romaji keyboard layout is selected ('\0' if none). Fed into
   // InputState::pending_dead_key on each key event and persisted from the

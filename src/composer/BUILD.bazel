@@ -117,6 +117,7 @@ mozc_cc_library(
     visibility = [
         "//gui/config_dialog:__pkg__",
         "//mac:__pkg__",
+        "//session:__pkg__",
         "//unix/ibus:__pkg__",
         "//win32/tip:__pkg__",
     ],

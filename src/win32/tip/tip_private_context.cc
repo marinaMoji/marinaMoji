@@ -64,6 +64,7 @@ class TipPrivateContext::InternalState {
   TipUiElementManager ui_element_manager_;
   VKBackBasedDeleter deleter_;
   bool symbols_palette_visible_ = false;
+  bool shortcuts_window_visible_ = false;
   wchar_t pending_dead_key_ = L'\0';
 };
 
@@ -143,6 +144,14 @@ bool TipPrivateContext::symbols_palette_visible() const {
 
 void TipPrivateContext::set_symbols_palette_visible(bool visible) {
   state_->symbols_palette_visible_ = visible;
+}
+
+bool TipPrivateContext::shortcuts_window_visible() const {
+  return state_->shortcuts_window_visible_;
+}
+
+void TipPrivateContext::set_shortcuts_window_visible(bool visible) {
+  state_->shortcuts_window_visible_ = visible;
 }
 
 wchar_t TipPrivateContext::pending_dead_key() const {

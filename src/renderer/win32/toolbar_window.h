@@ -24,6 +24,7 @@
 // and fails at link time instead of compile time.
 #undef StrCat
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -52,14 +53,28 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
  public:
   DECLARE_WND_CLASS_EX(kToolbarWindowClassName, 0, COLOR_WINDOW);
 
+  // Posted by the MSAA object (toolbar_accessible.cc) so a screen reader's
+  // accDoDefaultAction runs the button on this window's thread. MSAA
+  // delivers that call on an RPC thread, and some button actions (the mode
+  // menu's TrackPopupMenuEx) are only valid on the thread owning the window.
+  static constexpr UINT kActivateButtonMessage = WM_APP + 1;
+
   BEGIN_MSG_MAP(ToolbarWindow)
+  MESSAGE_HANDLER(kActivateButtonMessage, OnActivateButtonMessage)
   MESSAGE_HANDLER(WM_CREATE, OnCreate)
+  MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
   MESSAGE_HANDLER(WM_LBUTTONDOWN, OnLButtonDown)
   MESSAGE_HANDLER(WM_LBUTTONUP, OnLButtonUp)
+  MESSAGE_HANDLER(WM_RBUTTONUP, OnRButtonUp)
+  MESSAGE_HANDLER(WM_NCRBUTTONUP, OnNcRButtonUp)
+  MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
+  MESSAGE_HANDLER(WM_MOUSELEAVE, OnMouseLeave)
   MESSAGE_HANDLER(WM_NCHITTEST, OnNcHitTest)
   MESSAGE_HANDLER(WM_EXITSIZEMOVE, OnExitSizeMove)
   MESSAGE_HANDLER(WM_SETTINGCHANGE, OnSettingChange)
   MESSAGE_HANDLER(WM_DISPLAYCHANGE, OnDisplayChange)
+  MESSAGE_HANDLER(WM_DPICHANGED, OnDpiChanged)
+  MESSAGE_HANDLER(WM_GETOBJECT, OnGetObject)
   END_MSG_MAP()
 
   ToolbarWindow();
@@ -92,19 +107,43 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
     kNumButtons,
   };
 
+  // Screen-coordinate rect of |button|, for the MSAA accessible object.
+  // Returns false before the first Redraw() has laid the buttons out.
+  bool GetButtonScreenRect(ButtonId button, CRect* out_rect) const;
+
+  // Localized accessible name / tooltip text for |button|.
+  static const wchar_t* GetButtonName(ButtonId button);
+
+  // Performs |button|'s default action, as if it had been clicked. Used by
+  // both the mouse path and the accessible object's accDoDefaultAction.
+  void ActivateButton(ButtonId button);
+
  private:
   LRESULT OnCreate(LPCREATESTRUCT create_struct);
+  void OnDestroy();
   void OnLButtonDown(UINT flags, CPoint point);
   void OnLButtonUp(UINT flags, CPoint point);
+  void OnRButtonUp(UINT flags, CPoint point);
+  void OnNcRButtonUp(UINT hit_test, CPoint screen_point);
+  void OnMouseMove(UINT flags, CPoint point);
+  void OnMouseLeave();
   LRESULT OnNcHitTest(CPoint point);
   void OnExitSizeMove();
   void OnSettingChange(UINT flags, LPCTSTR section);
   void OnDisplayChange();
+  void OnDpiChanged(uint32_t dpi, const RECT* suggested_rect);
+  LRESULT HandleGetObject(WPARAM wparam, LPARAM lparam, BOOL& handled);
 
   inline LRESULT OnCreate(UINT msg_id, WPARAM wparam, LPARAM lparam,
                           BOOL& handled) {
     return static_cast<LRESULT>(
         OnCreate(reinterpret_cast<LPCREATESTRUCT>(lparam)));
+  }
+  inline LRESULT OnDestroy(UINT msg_id, WPARAM wparam, LPARAM lparam,
+                           BOOL& handled) {
+    OnDestroy();
+    handled = FALSE;  // let ATL/DefWindowProc finish the teardown too
+    return 0;
   }
   inline LRESULT OnLButtonDown(UINT msg_id, WPARAM wparam, LPARAM lparam,
                                BOOL& handled) {
@@ -116,6 +155,29 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
                              BOOL& handled) {
     OnLButtonUp(static_cast<UINT>(wparam),
                 CPoint(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)));
+    return 0;
+  }
+  inline LRESULT OnRButtonUp(UINT msg_id, WPARAM wparam, LPARAM lparam,
+                             BOOL& handled) {
+    OnRButtonUp(static_cast<UINT>(wparam),
+                CPoint(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)));
+    return 0;
+  }
+  inline LRESULT OnNcRButtonUp(UINT msg_id, WPARAM wparam, LPARAM lparam,
+                               BOOL& handled) {
+    OnNcRButtonUp(static_cast<UINT>(wparam),
+                  CPoint(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)));
+    return 0;
+  }
+  inline LRESULT OnMouseMove(UINT msg_id, WPARAM wparam, LPARAM lparam,
+                             BOOL& handled) {
+    OnMouseMove(static_cast<UINT>(wparam),
+                CPoint(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)));
+    return 0;
+  }
+  inline LRESULT OnMouseLeave(UINT msg_id, WPARAM wparam, LPARAM lparam,
+                              BOOL& handled) {
+    OnMouseLeave();
     return 0;
   }
   inline LRESULT OnNcHitTest(UINT msg_id, WPARAM wparam, LPARAM lparam,
@@ -138,6 +200,24 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
     OnDisplayChange();
     return 0;
   }
+  inline LRESULT OnDpiChanged(UINT msg_id, WPARAM wparam, LPARAM lparam,
+                              BOOL& handled) {
+    OnDpiChanged(static_cast<uint32_t>(LOWORD(wparam)),
+                 reinterpret_cast<const RECT*>(lparam));
+    return 0;
+  }
+  inline LRESULT OnGetObject(UINT msg_id, WPARAM wparam, LPARAM lparam,
+                             BOOL& handled) {
+    return HandleGetObject(wparam, lparam, handled);
+  }
+  inline LRESULT OnActivateButtonMessage(UINT msg_id, WPARAM wparam,
+                                         LPARAM lparam, BOOL& handled) {
+    const int index = static_cast<int>(wparam);
+    if (index >= 0 && index < static_cast<int>(ButtonId::kNumButtons)) {
+      ActivateButton(static_cast<ButtonId>(index));
+    }
+    return 0;
+  }
 
   // Redraws the composited logo+button bitmap and pushes it via
   // UpdateLayeredWindow. Called whenever visible state changes.
@@ -153,17 +233,45 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   int HitTestButton(const CPoint& point) const;
 
   void ShowModeMenu();
+  void ShowContextMenu(const CPoint& client_point);
   void SendSwitchCompositionMode(commands::CompositionMode mode);
   void SendTurnOffIme();
   void SendToggleTraditionalKanji();
   void SendLaunchWordRegisterDialog();
+  void SendLaunchDictionaryTool();
   void SendLaunchConfigDialog();
   void SendToggleSymbolsPalette();
+  void SendToggleShortcutsWindow();
+  void SendHideToolbar();
+
+  // Runs |menu| at |screen_point| and returns the chosen command id (0 when
+  // dismissed), handling the shared bookkeeping both menus need: hide
+  // suppression while the modal loop runs, clearing the hover/press
+  // highlight the loop leaves stale, and applying any hide that arrived
+  // meanwhile. See the comment on the implementation for why the owner
+  // window is deliberately left non-foreground.
+  int TrackMenu(HMENU menu, const CPoint& screen_point);
+
+  // Creates the tooltip control (once) and syncs one tool rect per button to
+  // the current layout. Called from Redraw(), since the rects move with DPI.
+  void UpdateTooltips();
+
+  // Re-reads the DPI for the monitor the window currently sits on; reloads
+  // icons and redraws when it changed. Called on WM_DPICHANGED, after a drag
+  // (WM_EXITSIZEMOVE) and on WM_DISPLAYCHANGE.
+  bool SyncDpiForCurrentMonitor();
 
   std::string ConfigFilePath() const;
   void LoadSavedPosition(CPoint* out_position, const CSize& window_size) const;
   void SavePosition() const;
   CPoint DefaultWindowOrigin(const CSize& window_size) const;
+
+  // Returns |origin| moved back onto a monitor if a window of |window_size|
+  // placed there would be (almost) entirely off every current display -- e.g.
+  // a position saved while a since-unplugged monitor was attached, which
+  // would otherwise strand the toolbar somewhere it can't be dragged from.
+  CPoint ClampToVisibleArea(const CPoint& origin,
+                            const CSize& window_size) const;
 
   // Width in pixels reserved for the logo: the loaded logo bitmap's actual
   // width, or kLogoWidthLogical scaled by |scale| before icons are loaded.
@@ -182,6 +290,17 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   bool left_shift_direct_lock_;
   bool use_traditional_kanji_;
   bool symbols_palette_visible_;
+  bool shortcuts_window_visible_;
+
+  // Pixel size the square icons are drawn at for the current DPI, i.e.
+  // round(24 * scale). The loaded bitmap is whatever tier is nearest and is
+  // resampled to this, so 125% / 175% scaling gets correctly sized icons
+  // rather than the tier's raw pixels.
+  int icon_draw_size_;
+
+  // Pixel size the logo is drawn at: |icon_draw_size_| tall, with the
+  // bitmap's natural aspect ratio.
+  CSize logo_draw_size_;
 
   // Top-left corner of the window in screen coordinates, restored from
   // toolbar.conf (or defaulted to bottom-right of the primary monitor) on
@@ -194,20 +313,51 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   // plus the logo at the end.
   std::vector<wil::unique_hbitmap> icon_cache_;
   wil::unique_hbitmap logo_cache_;
-  CSize logo_size_;
 
-  // Client-coordinate rects for hit-testing, recomputed by Redraw().
-  std::vector<CRect> button_rects_;
+  // Client-coordinate rects for hit-testing, recomputed by Redraw(). A fixed
+  // array rather than a vector because the MSAA object reads it from an RPC
+  // thread: a stale coordinate there is harmless, a reallocation underneath
+  // the reader would not be.
+  std::array<CRect, static_cast<size_t>(ButtonId::kNumButtons)> button_rects_;
+
+  // False until the first Redraw() has filled in |button_rects_|.
+  bool has_layout_;
 
   // Index of the button WM_LBUTTONDOWN landed on, so WM_LBUTTONUP only fires
   // the action when release lands back on the same button (standard button
   // press/release semantics). -1 when no button is currently pressed.
   int pressed_button_;
 
-  // True while ShowModeMenu()'s TrackPopupMenuEx modal loop is running. The
-  // loop can dispatch a focus-loss hide before the selected mode command
-  // reaches the TIP, so Hide() is suppressed while this is set.
-  bool mode_menu_open_;
+  // Index of the button the cursor is currently over, or -1. Drives the hover
+  // highlight; kept in sync by WM_MOUSEMOVE / WM_MOUSELEAVE.
+  int hovered_button_;
+
+  // True once TrackMouseEvent(TME_LEAVE) has been armed for the current
+  // hover, so WM_MOUSEMOVE doesn't re-arm it on every pixel of movement.
+  bool tracking_mouse_leave_;
+
+  // True while TrackMenu()'s TrackPopupMenuEx modal loop is running. The loop
+  // can dispatch a focus-loss hide before the selected command reaches the
+  // TIP, so Hide() is suppressed while this is set.
+  bool menu_open_;
+
+  // Set when Hide() was suppressed because |menu_open_| was true, so the menu
+  // teardown can apply the hide it swallowed. Without this the toolbar can
+  // stay on screen indefinitely after focus moves away while a menu is up --
+  // no further RendererCommand is guaranteed to arrive once unfocused.
+  bool hide_deferred_by_menu_;
+
+  // Tooltip control (one tool per button), owned. Created lazily on the first
+  // Redraw() so it exists only for a toolbar that is actually shown.
+  HWND tooltip_window_;
+
+  // |button_rects_[0]| as of the last tooltip rect sync, so Redraw()'s
+  // hover-driven calls don't re-push unchanged rects.
+  CRect tooltip_layout_rect_;
+
+  // MSAA object for this window, created on the first WM_GETOBJECT and
+  // released in OnDestroy(). Void to keep <oleacc.h> out of this header.
+  void* accessible_;
 };
 
 }  // namespace win32

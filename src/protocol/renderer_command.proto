@@ -97,6 +97,29 @@ message RendererCommand {
     repeated string user_symbols = 2;
   }
 
+  // marinaMoji: content of the Windows floating Keyboard Shortcuts window
+  // (renderer/win32/shortcuts_window.cc), populated by the TIP only while
+  // that window is open (see TipPrivateContext::shortcuts_window_visible()).
+  // Unlike the symbol lists this is entirely config-derived -- the effective
+  // keymap table, the marina number-row bindings and the kaeriten table all
+  // live behind config parsing the renderer deliberately doesn't link -- so
+  // every row travels over IPC. Rows are pre-grouped and pre-formatted by
+  // session/marina_shortcut_list_util.cc, the same code mac's shortcuts
+  // window uses, so the two platforms can't drift.
+  message ShortcutsInfo {
+    message Row {
+      // Left column: keymap command name ("ToggleTraditionalKanji") for the
+      // Script/Composition tabs, or the produced glyph for Kaeriten.
+      optional string function = 1;
+      // Right column: the key combinations bound to it, already joined with
+      // ", " when a command has several.
+      optional string keys = 2;
+    }
+    repeated Row script = 1;
+    repeated Row composition = 2;
+    repeated Row kaeriten = 3;
+  }
+
   // Application information Mozc UI is attaching
   message ApplicationInfo {
     optional uint32 process_id = 1;
@@ -170,6 +193,9 @@ message RendererCommand {
 
     // used in Windows:
     optional SymbolsPaletteInfo symbols_palette_info = 15;
+
+    // used in Windows:
+    optional ShortcutsInfo shortcuts_info = 16;
   }
 
   optional ApplicationInfo application_info = 5;

@@ -618,6 +618,30 @@ mozc_cc_library(
     ],
 )
 
+mozc_cc_library(
+    name = "marina_shortcut_list_util",
+    srcs = ["marina_shortcut_list_util.cc"],
+    hdrs = ["marina_shortcut_list_util.h"],
+    visibility = ["//win32/tip:__pkg__"],
+    deps = [
+        ":marina_number_row_bindings_util",
+        "//base:config_file_stream",
+        "//composer:kaeriten_table_util",
+        "//protocol:config_cc_proto",
+    ],
+)
+
+mozc_cc_test(
+    name = "marina_shortcut_list_util_test",
+    size = "small",
+    srcs = ["marina_shortcut_list_util_test.cc"],
+    deps = [
+        ":marina_shortcut_list_util",
+        "//protocol:config_cc_proto",
+        "//testing:gunit_main",
+    ],
+)
+
 mozc_cc_test(
     name = "marina_number_row_bindings_util_test",
     size = "small",

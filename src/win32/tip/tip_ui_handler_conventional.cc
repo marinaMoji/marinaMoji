@@ -51,6 +51,7 @@
 #include "protocol/config.pb.h"
 #include "protocol/renderer_command.pb.h"
 #include "renderer/win32/win32_renderer_client.h"
+#include "session/marina_shortcut_list_util.h"
 #include "win32/base/input_state.h"
 #include "win32/base/toolbar_config.h"
 #include "win32/tip/tip_composition_util.h"
@@ -237,6 +238,38 @@ void FillSymbolsPaletteInfo(TipPrivateContext* private_context,
   for (const std::string& symbol : user_symbols) {
     info->add_user_symbols(symbol);
   }
+}
+
+// marinaMoji: populates ShortcutsInfo while the Windows Keyboard Shortcuts
+// window is open. The rows are derived from the keymap table, the marina
+// number-row bindings and the kaeriten table -- all config parsing the
+// renderer deliberately doesn't link -- so they are built here and shipped
+// whole.
+void FillShortcutsInfo(TipPrivateContext* private_context,
+                       ApplicationInfo* app_info) {
+  if (private_context == nullptr ||
+      !private_context->shortcuts_window_visible()) {
+    return;
+  }
+
+  config::Config config;
+  if (!private_context->GetClient()->GetConfig(&config)) {
+    config.Clear();  // fall back to the bundled defaults
+  }
+  const auto lists = session::BuildMarinaShortcutLists(config);
+
+  RendererCommand::ShortcutsInfo* info = app_info->mutable_shortcuts_info();
+  const auto fill = [](const std::vector<session::MarinaShortcutRow>& rows,
+                       auto* out) {
+    for (const session::MarinaShortcutRow& row : rows) {
+      auto* proto_row = out->Add();
+      proto_row->set_function(row.function);
+      proto_row->set_keys(row.keys);
+    }
+  };
+  fill(lists.script, info->mutable_script());
+  fill(lists.composition, info->mutable_composition());
+  fill(lists.kaeriten, info->mutable_kaeriten());
 }
 
 bool FillWindowHandle(ITfContext* context, ApplicationInfo* app_info) {
@@ -446,6 +479,7 @@ void UpdateCommand(TipTextService* text_service, ITfContext* context,
   }
 
   FillSymbolsPaletteInfo(private_context, app_info);
+  FillShortcutsInfo(private_context, app_info);
 
   // Regardless of the value of |command->visible()| here, we should hide
   // all the UI elements whenever the current threads is not focused.
@@ -463,8 +497,10 @@ void UpdateCommand(TipTextService* text_service, ITfContext* context,
     // SymbolsPaletteInfo so this UPDATE doesn't ask the renderer to show it.
     if (private_context != nullptr) {
       private_context->set_symbols_palette_visible(false);
+      private_context->set_shortcuts_window_visible(false);
     }
     app_info->clear_symbols_palette_info();
+    app_info->clear_shortcuts_info();
   }
 }
 

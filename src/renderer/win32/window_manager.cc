@@ -44,6 +44,7 @@
 #include "renderer/win32/candidate_window.h"
 #include "renderer/win32/indicator_window.h"
 #include "renderer/win32/infolist_window.h"
+#include "renderer/win32/shortcuts_window.h"
 #include "renderer/win32/symbols_palette_window.h"
 #include "renderer/win32/toolbar_window.h"
 #include "renderer/win32/win32_dpi_util.h"
@@ -68,6 +69,7 @@ WindowManager::WindowManager()
       infolist_window_(std::make_unique<InfolistWindow>()),
       toolbar_window_(std::make_unique<ToolbarWindow>()),
       symbols_palette_window_(std::make_unique<SymbolsPaletteWindow>()),
+      shortcuts_window_(std::make_unique<ShortcutsWindow>()),
       layout_manager_(std::make_unique<LayoutManager>()),
       send_command_interface_(nullptr),
       last_position_(kInvalidMousePosition),
@@ -90,6 +92,7 @@ void WindowManager::Initialize() {
   infolist_window_->ShowWindow(SW_HIDE);
   toolbar_window_->Initialize();
   symbols_palette_window_->Initialize();
+  shortcuts_window_->Initialize();
 }
 
 void WindowManager::AsyncHideAllWindows() {
@@ -117,6 +120,7 @@ void WindowManager::DestroyAllWindows() {
   }
   toolbar_window_->Destroy();
   symbols_palette_window_->Destroy();
+  shortcuts_window_->Destroy();
 }
 
 void WindowManager::HideAllWindows() {
@@ -126,6 +130,7 @@ void WindowManager::HideAllWindows() {
   infolist_window_->DelayHide(0);
   toolbar_window_->Hide();
   symbols_palette_window_->Hide();
+  shortcuts_window_->Hide();
 }
 
 // TODO(yukawa): Refactor this method by making a new method in LayoutManager
@@ -145,6 +150,9 @@ void WindowManager::UpdateLayout(const commands::RendererCommand& command) {
   // SymbolsPaletteInfo (see tip_ui_handler_conventional.cc), not by
   // candidate/suggest/indicator visibility.
   symbols_palette_window_->OnUpdate(command);
+  // marinaMoji: likewise gated by ShortcutsInfo rather than
+  // |command.visible()|.
+  shortcuts_window_->OnUpdate(command);
 
   // Hide all UI elements if |command.visible()| is false.
   if (!command.visible()) {
@@ -431,6 +439,7 @@ void WindowManager::SetSendCommandInterface(
   infolist_window_->SetSendCommandInterface(send_command_interface);
   toolbar_window_->SetSendCommandInterface(send_command_interface);
   symbols_palette_window_->SetSendCommandInterface(send_command_interface);
+  shortcuts_window_->SetSendCommandInterface(send_command_interface);
 }
 
 void WindowManager::PreTranslateMessage(const MSG& message) {
