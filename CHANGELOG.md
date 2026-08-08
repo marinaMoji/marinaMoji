@@ -10,6 +10,92 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: first on-hardware bug round (English installer + diagnostics)
+
+First real install of a CI artifact on Windows hardware (2026-08-08). The
+build is broadly functional; four bugs came back. One is fixed, one is
+diagnosed but needs a design decision, and two are instrumented rather than
+guessed at.
+
+**Fixed — installer was entirely in Japanese** (`win32/installer/
+installer_marinamoji_64bit.wxs`). The `<Package>` element still carried
+upstream Mozc's `Language="1041" Codepage="932"` (Japanese / Shift-JIS), and
+all four user-visible strings — the Windows-version gate, the
+administrator-privileges gate, the ARM64 gate, and the
+newer-version-installed error — were Japanese text inherited unchanged from
+upstream. On an English Windows the install and uninstall dialogs came up in
+Japanese. Switched to `1033`/`1252` and translated the strings. Note this
+makes it an English-only MSI: a genuinely multilingual installer needs WiX
+`.wxl` localization files and a per-culture build, which is a larger change
+tracked separately.
+
+**Diagnosed, not yet fixed — macron vowels dead on Dvorak.**
+`Ctrl+Alt+O` on a Dvorak machine typed nothing and fell through to the host
+app (Notepad opened its Open dialog). Root cause is a **double translation**:
+`win32/base/keyboard_layout_tables.h` documents its premise as "Windows
+assigns VK_A..VK_Z by physical key position (not by printed character)", and
+that premise is false for Dvorak and AZERTY, where Windows remaps virtual-key
+codes to follow the *printed* character. So with the OS layout set to Dvorak
+*and* marinaMoji's `MarinaKeyboardLayout` also set to Dvorak, the key that
+types `o` reports `VK_O`, and `RomajiKeyboardLayoutEmulator::
+GetCharacterForKeyDown` then maps `VK_O` through the Dvorak table as though
+it were a physical QWERTY-O key, yielding a different letter entirely. No
+macron rule matches and the chord passes through to the application.
+Interestingly `WINDOWS_TESTING.md` already had this right (Part 3.2: "Windows
+assigns virtual-key codes by the character a key produces"); it is the code's
+own header comment that is wrong.
+
+- **Workaround, no rebuild needed**: set marinaMoji's keyboard layout to *OS
+  default* whenever the OS layout already is the layout you want. The
+  emulator exists for the opposite case (wanting AZERTY behaviour on a
+  US-layout machine), and is actively harmful when the two agree.
+- **The real fix** is to index the layout tables by **scan code** (genuinely
+  physical and layout-independent) rather than by virtual key. `VirtualKey`
+  (`win32/base/keyboard.h`) does not currently carry a scan code, so this
+  means plumbing it through the TIP key path — a real refactor of the most
+  test-sensitive code in the port, deliberately not attempted blind with no
+  Windows toolchain here.
+
+**Related, separate, also not fixed — `RIGHT_ALT` is never emitted on
+Windows.** `grep` finds zero `RIGHT_ALT` in `win32/`, while `unix/ibus`
+emits it in three places (`key_event_handler.cc:222`, `key_translator.cc:402`,
+`mozc_engine.cc:514`) — with a comment at `key_event_handler.cc:215-218`
+about this *specifically for Dvorak*. `KeyParser` maps the `RightAlt` token
+to both `ALT` and `RIGHT_ALT`, so the 20 `Ctrl RightAlt …` rows per keymap
+TSV can never match on Windows; they are dead weight there. The comment at
+`win32/base/keyevent_handler.cc:429-430` claiming left/right Alt fidelity "is
+not required by any marina shortcut today" is contradicted by those rows.
+Not fixed this pass because `KeyEventUtil::NormalizeModifiers` strips
+`RIGHT_ALT` on some paths and not others, so adding the emission could change
+which keymap row wins and regress the lowercase macrons that currently work
+— needs a Windows build to verify, not a guess.
+
+**Instrumented — Symbols Palette insert, odoriji palette flicker, shortcuts
+button.** Three reported failures that could not be diagnosed from source
+alone, so rather than guess, added temporary `OutputDebugString` tracing at
+the three points that would distinguish the candidate causes. All sites are
+marked `marinaMoji TEMPORARY (2026-08-08)` with removal instructions.
+
+- `renderer/renderer_server.cc` — `[marinaMoji/renderer]`: logs the target
+  HWND, our PID, payload size, and whether `SendMessageTimeout` actually
+  succeeded, distinguishing "never sent" from "sent but rejected."
+- `win32/tip/tip_text_service.cc` — `[marinaMoji/tip]`: the `WM_COPYDATA`
+  handler now reports **each rejection gate separately** (null struct, wrong
+  tag, empty payload, over the size cap, failed sender check) instead of one
+  silent compound `if`. This specifically covers the possibility that the
+  new `IsTrustedRendererSender` check from the entry below is itself the
+  thing dropping legitimate inserts — e.g. if `GetProcessInitialNtPath` or
+  `GetNtPath` fails under a sandboxed host application.
+- `renderer/win32/toolbar_window.cc` — `[marinaMoji/toolbar]`: logs the three
+  visibility bits plus previous state on every `RendererCommand`, which
+  should show whether a palette is being closed by a follow-up command that
+  simply omits its info field (the race already flagged in
+  `renderer_server.cc`) or whether the show request never arrives.
+
+Read with Sysinternals DebugView, run as administrator with "Capture Global
+Win32" enabled — required to see output from the TIP, which runs in-process
+inside whatever application has focus. See `WINDOWS_TESTING.md` Part 6.
+
 ### Windows: verify sender of the TIP's renderer-callback window
 
 A third review pass (Explore agent + manual verification) found that fixing

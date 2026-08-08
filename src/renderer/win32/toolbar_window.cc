@@ -403,6 +403,24 @@ void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
     shortcuts_window_visible =
         command.application_info().has_shortcuts_info();
   }
+  // marinaMoji TEMPORARY (2026-08-08): diagnosing "odoriji palette opens then
+  // disappears" and "shortcuts button opens nothing" on real hardware. Every
+  // RendererCommand that reaches the toolbar is reported with the three
+  // visibility bits, so DebugView shows whether a palette is being closed by a
+  // follow-up command that simply doesn't carry its info field (the suspected
+  // race -- see the SHOW_SYMBOLS_PALETTE comment in renderer_server.cc) or
+  // whether the show request never arrives at all. Remove with the other
+  // marinaMoji TEMPORARY logging once these are fixed.
+  {
+    const std::string line = absl::StrCat(
+        "[marinaMoji/toolbar] OnUpdate: show_toolbar=", show_toolbar,
+        " symbols_palette=", symbols_palette_visible,
+        " shortcuts=", shortcuts_window_visible,
+        " has_output=", command.has_output(),
+        " (was symbols=", symbols_palette_visible_,
+        " shortcuts=", shortcuts_window_visible_, ")\n");
+    ::OutputDebugStringA(line.c_str());
+  }
   symbols_palette_visible_ = symbols_palette_visible;
   shortcuts_window_visible_ = shortcuts_window_visible;
   if (!show_toolbar || !command.has_output()) {
