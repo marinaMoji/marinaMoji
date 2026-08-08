@@ -13,6 +13,10 @@ namespace mozc {
 struct MarinaGitHubAsset {
   std::string name;
   std::string browser_download_url;
+  // Lowercase hex SHA-256 GitHub published for this asset (its "digest"
+  // field, with the "sha256:" prefix stripped), or empty if GitHub didn't
+  // provide one.
+  std::string digest_sha256;
 };
 
 struct MarinaGitHubRelease {
@@ -50,6 +54,15 @@ std::string MarinaHostMacPkgArchToken();
 // rather than falling back to a mismatched asset.
 std::optional<std::string> FindMarinaMsiDownloadUrl(
     const MarinaGitHubRelease& release, absl::string_view arch_token);
+
+// The SHA-256 digest (lowercase hex, no "sha256:" prefix) GitHub published
+// for the same asset FindMarinaMsiDownloadUrl(release, arch_token) would
+// return, or empty if GitHub didn't provide a digest for it. Callers should
+// treat an empty result as "no integrity check available" rather than as an
+// error -- GitHub only started publishing asset digests in 2024, so older
+// releases won't have one.
+std::string FindMarinaMsiSha256Digest(const MarinaGitHubRelease& release,
+                                      absl::string_view arch_token);
 
 // "x64" / "arm64" on Windows hosts; empty elsewhere.
 std::string MarinaHostWindowsArchToken();

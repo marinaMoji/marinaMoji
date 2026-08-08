@@ -293,6 +293,7 @@ mozc_cc_library(
         "//base:version",
         "//base/win32:wide_char",
         "//base/win32:win_util",
+        "//bazel/win32:bcrypt",
         "//bazel/win32:comctl32",
         "//bazel/win32:user32",
         "//bazel/win32:winhttp",

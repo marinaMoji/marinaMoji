@@ -68,6 +68,29 @@ TEST(FindMarinaMsiDownloadUrlTest, IgnoresNonMsiAssets) {
   EXPECT_EQ(FindMarinaMsiDownloadUrl(release, "x64"), std::nullopt);
 }
 
+TEST(FindMarinaMsiSha256DigestTest, PicksDigestOfMatchingArchAsset) {
+  MarinaGitHubRelease release;
+  MarinaGitHubAsset x64 = Asset("marinaMoji-v1.2.3-x64.msi",
+                                "https://example.com/marinaMoji-v1.2.3-x64.msi");
+  x64.digest_sha256 = "1111111111111111111111111111111111111111111111111111111111111111";
+  MarinaGitHubAsset arm64 = Asset(
+      "marinaMoji-v1.2.3-arm64.msi",
+      "https://example.com/marinaMoji-v1.2.3-arm64.msi");
+  // arm64.digest_sha256 left empty -- GitHub didn't publish one.
+  release.assets = {x64, arm64};
+
+  EXPECT_EQ(FindMarinaMsiSha256Digest(release, "x64"), x64.digest_sha256);
+  EXPECT_EQ(FindMarinaMsiSha256Digest(release, "arm64"), "");
+}
+
+TEST(FindMarinaMsiSha256DigestTest, EmptyWhenNoMatchingAsset) {
+  MarinaGitHubRelease release;
+  release.assets = {Asset("marinaMoji-v1.2.3-x64.msi",
+                          "https://example.com/marinaMoji-v1.2.3-x64.msi")};
+
+  EXPECT_EQ(FindMarinaMsiSha256Digest(release, "arm64"), "");
+}
+
 TEST(MarinaHostWindowsArchTokenTest, ReturnsPlausibleTokenOrEmpty) {
   // Hermetic across build hosts: on Windows this is "x64" or "arm64"; on
   // every other platform (this test typically runs on macOS/Linux CI) it

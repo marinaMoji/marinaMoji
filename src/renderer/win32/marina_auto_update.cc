@@ -4,6 +4,7 @@
 #include "renderer/win32/marina_auto_update.h"
 
 #include <windows.h>
+#include <bcrypt.h>
 #include <commctrl.h>
 #include <winhttp.h>
 
@@ -23,6 +24,7 @@
 #include <vector>
 
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "base/file_util.h"
 #include "base/marina_github_releases.h"
 #include "base/marina_update_throttle.h"
@@ -83,6 +85,10 @@ struct WinHttpGet {
   UniqueHInternet session;
   UniqueHInternet connect;
   UniqueHInternet request;
+  // The response's Content-Length header, if the server sent one. Used to
+  // catch a connection that drops mid-transfer but still leaves
+  // WinHttpQueryDataAvailable/WinHttpReadData looking like a clean EOF.
+  std::optional<int64_t> content_length;
 
   explicit operator bool() const { return static_cast<bool>(request); }
   HINTERNET get() const { return request.get(); }
@@ -138,6 +144,15 @@ std::optional<WinHttpGet> OpenSuccessfulGet(const std::wstring& host,
       status != 200) {
     return std::nullopt;
   }
+
+  DWORD content_length = 0;
+  DWORD content_length_size = sizeof(content_length);
+  if (::WinHttpQueryHeaders(
+          handles.request.get(),
+          WINHTTP_QUERY_CONTENT_LENGTH | WINHTTP_QUERY_FLAG_NUMBER, nullptr,
+          &content_length, &content_length_size, nullptr)) {
+    handles.content_length = content_length;
+  }
   return std::move(handles);
 }
 
@@ -166,7 +181,14 @@ std::optional<std::string> ReadBody(HINTERNET request) {
   return body;
 }
 
-bool WriteBodyToFile(HINTERNET request, const std::wstring& dest_path) {
+// Writes the full response body to |dest_path|. If |expected_length| is set
+// (from the response's Content-Length header), the total bytes actually
+// written must match it exactly -- WinHttpQueryDataAvailable/WinHttpReadData
+// returning 0 can otherwise look like a clean end-of-stream even when the
+// connection dropped mid-transfer, which would silently hand the caller a
+// truncated installer.
+bool WriteBodyToFile(HINTERNET request, const std::wstring& dest_path,
+                     std::optional<int64_t> expected_length) {
   wil::unique_hfile file(::CreateFileW(
       dest_path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
       FILE_ATTRIBUTE_NORMAL, nullptr));
@@ -174,6 +196,7 @@ bool WriteBodyToFile(HINTERNET request, const std::wstring& dest_path) {
     return false;
   }
   std::string buffer;
+  int64_t total_written = 0;
   for (;;) {
     DWORD available = 0;
     if (!::WinHttpQueryDataAvailable(request, &available)) {
@@ -195,8 +218,86 @@ bool WriteBodyToFile(HINTERNET request, const std::wstring& dest_path) {
         written != read) {
       return false;
     }
+    total_written += written;
+  }
+  if (expected_length.has_value() && total_written != *expected_length) {
+    return false;
   }
   return true;
+}
+
+// Lowercase-hex SHA-256 of |path|'s contents, or nullopt on any I/O or
+// BCrypt failure. Re-reads the file after WriteBodyToFile rather than
+// hashing while streaming: installers are a few tens of MB at most, so the
+// extra pass is cheap, and it keeps the download loop above unchanged.
+std::optional<std::string> Sha256HexOfFile(const std::wstring& path) {
+  wil::unique_hfile file(::CreateFileW(path.c_str(), GENERIC_READ,
+                                       FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+                                       FILE_ATTRIBUTE_NORMAL, nullptr));
+  if (!file) {
+    return std::nullopt;
+  }
+
+  wil::unique_bcrypt_algorithm alg_owner;
+  if (!BCRYPT_SUCCESS(::BCryptOpenAlgorithmProvider(
+          &alg_owner, BCRYPT_SHA256_ALGORITHM, nullptr, 0))) {
+    return std::nullopt;
+  }
+  const BCRYPT_ALG_HANDLE alg = alg_owner.get();
+
+  DWORD hash_object_size = 0;
+  DWORD result_size = 0;
+  if (!BCRYPT_SUCCESS(::BCryptGetProperty(
+          alg, BCRYPT_OBJECT_LENGTH,
+          reinterpret_cast<PUCHAR>(&hash_object_size), sizeof(hash_object_size),
+          &result_size, 0))) {
+    return std::nullopt;
+  }
+  DWORD hash_length = 0;
+  if (!BCRYPT_SUCCESS(::BCryptGetProperty(
+          alg, BCRYPT_HASH_LENGTH, reinterpret_cast<PUCHAR>(&hash_length),
+          sizeof(hash_length), &result_size, 0))) {
+    return std::nullopt;
+  }
+
+  std::vector<UCHAR> hash_object(hash_object_size);
+  wil::unique_bcrypt_hash hash_owner;
+  if (!BCRYPT_SUCCESS(::BCryptCreateHash(alg, &hash_owner, hash_object.data(),
+                                         hash_object_size, nullptr, 0, 0))) {
+    return std::nullopt;
+  }
+  const BCRYPT_HASH_HANDLE hash = hash_owner.get();
+
+  std::vector<UCHAR> buffer(1 << 16);
+  for (;;) {
+    DWORD read = 0;
+    if (!::ReadFile(file.get(), buffer.data(),
+                    static_cast<DWORD>(buffer.size()), &read, nullptr)) {
+      return std::nullopt;
+    }
+    if (read == 0) {
+      break;
+    }
+    if (!BCRYPT_SUCCESS(
+            ::BCryptHashData(hash, buffer.data(), read, 0))) {
+      return std::nullopt;
+    }
+  }
+
+  std::vector<UCHAR> digest(hash_length);
+  if (!BCRYPT_SUCCESS(
+          ::BCryptFinishHash(hash, digest.data(), hash_length, 0))) {
+    return std::nullopt;
+  }
+
+  static constexpr char kHex[] = "0123456789abcdef";
+  std::string hex;
+  hex.reserve(digest.size() * 2);
+  for (UCHAR byte : digest) {
+    hex.push_back(kHex[byte >> 4]);
+    hex.push_back(kHex[byte & 0xF]);
+  }
+  return hex;
 }
 
 // Splits a full https URL into (host, path-and-query) for WinHttpConnect /
@@ -242,8 +343,13 @@ std::optional<std::string> FetchGitHubReleasesJson() {
   return ReadBody(handles->get());
 }
 
-bool DownloadToFile(const std::string& url_utf8,
-                    const std::wstring& dest_path) {
+// Downloads |url_utf8| to |dest_path|, verifying the transfer completed (via
+// Content-Length) and, if |expected_sha256_hex| is non-empty, that the
+// downloaded bytes hash to it. A mismatch on either check deletes the
+// partial/untrusted file and returns false rather than leaving something on
+// disk the caller might go on to execute.
+bool DownloadToFile(const std::string& url_utf8, const std::wstring& dest_path,
+                    absl::string_view expected_sha256_hex) {
   const std::wstring url = mozc::win32::Utf8ToWide(url_utf8);
   const auto cracked = CrackHttpsUrl(url);
   if (!cracked.has_value()) {
@@ -254,7 +360,20 @@ bool DownloadToFile(const std::string& url_utf8,
   if (!handles.has_value()) {
     return false;
   }
-  return WriteBodyToFile(handles->get(), dest_path);
+  if (!WriteBodyToFile(handles->get(), dest_path, handles->content_length)) {
+    ::DeleteFileW(dest_path.c_str());
+    return false;
+  }
+  if (!expected_sha256_hex.empty()) {
+    // Both sides are lowercase hex by construction (Sha256HexOfFile above;
+    // GitHub's asset "digest" field), so a plain compare is enough.
+    const auto actual = Sha256HexOfFile(dest_path);
+    if (!actual.has_value() || *actual != expected_sha256_hex) {
+      ::DeleteFileW(dest_path.c_str());
+      return false;
+    }
+  }
+  return true;
 }
 
 std::wstring SanitizeForFilename(const std::string& tag_name) {
@@ -326,7 +445,9 @@ void PresentUpdateOffer(const MarinaGitHubRelease& release,
                      mozc::win32::WideToUtf8(
                          SanitizeForFilename(release.tag_name)),
                      ".msi")));
-    bool ok = DownloadToFile(msi_url, dest);
+    const std::string expected_sha256 =
+        FindMarinaMsiSha256Digest(release, MarinaHostWindowsArchToken());
+    bool ok = DownloadToFile(msi_url, dest, expected_sha256);
     if (ok) {
       ok = WinUtil::ShellExecuteInSystemDir(L"open", dest.c_str(), nullptr);
     }

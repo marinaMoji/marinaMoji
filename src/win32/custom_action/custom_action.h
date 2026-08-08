@@ -100,4 +100,14 @@ UINT __stdcall WriteApValue(MSIHANDLE msi_handle);
 // A rollback custom action for WriteApValue.
 UINT __stdcall WriteApValueRollback(MSIHANDLE msi_handle);
 
+// Registers a per-user Task Scheduler logon task that runs the sync daemon.
+UINT __stdcall RegisterSyncTask(MSIHANDLE msi_handle);
+
+// A rollback custom action for RegisterSyncTask.
+UINT __stdcall RegisterSyncTaskRollback(MSIHANDLE msi_handle);
+
+// Unregisters the per-user Task Scheduler logon task registered by
+// RegisterSyncTask.
+UINT __stdcall UnregisterSyncTask(MSIHANDLE msi_handle);
+
 #endif  // MOZC_WIN32_CUSTOM_ACTION_CUSTOM_ACTION_H_

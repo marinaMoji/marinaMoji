@@ -115,5 +115,33 @@ TEST(MarinaGitHubReleasesTest, ParseAssetsFromJson) {
             "https://example.com/a.pkg");
 }
 
+TEST(MarinaGitHubReleasesTest, ParseAssetDigestFromJson) {
+  // Mirrors the field order GitHub's REST API actually uses for release
+  // assets: "digest" appears before "browser_download_url" in the same
+  // object. The x64 .msi carries a digest; the .zip (and the arm64 .msi)
+  // don't, matching an older release published before GitHub started
+  // sending asset digests.
+  constexpr char kJson[] = R"([
+    {"tag_name":"v0.0.2","prerelease":false,"draft":false,
+     "html_url":"https://example/stable",
+     "assets":[
+       {"name":"marinaMoji-v0.0.2-x64.msi","size":123,
+        "digest":"sha256:aaaabbbbccccddddeeeeffff00001111222233334444555566667777888899",
+        "browser_download_url":"https://example.com/marinaMoji-v0.0.2-x64.msi"},
+       {"name":"marinaMoji-v0.0.2-arm64.msi",
+        "browser_download_url":"https://example.com/marinaMoji-v0.0.2-arm64.msi"},
+       {"name":"marinaMoji-v0.0.2.zip",
+        "browser_download_url":"https://example.com/marinaMoji-v0.0.2.zip"}
+     ]}
+  ])";
+  const auto releases = ParseMarinaGitHubReleasesJson(kJson);
+  ASSERT_EQ(releases.size(), 1u);
+  ASSERT_EQ(releases[0].assets.size(), 3u);
+  EXPECT_EQ(
+      FindMarinaMsiSha256Digest(releases[0], "x64"),
+      "aaaabbbbccccddddeeeeffff00001111222233334444555566667777888899");
+  EXPECT_EQ(FindMarinaMsiSha256Digest(releases[0], "arm64"), "");
+}
+
 }  // namespace
 }  // namespace mozc

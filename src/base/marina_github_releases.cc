@@ -98,6 +98,20 @@ void ExtractPkgAssets(absl::string_view object,
       const size_t slash = url->rfind('/');
       asset.name = slash == std::string::npos ? *url : url->substr(slash + 1);
     }
+    // GitHub lists "digest" earlier in the same asset object, before
+    // "browser_download_url" (see the REST API docs for the release-assets
+    // shape) -- same backward-search window used for "name" above.
+    const size_t digest_pos = object.rfind("\"digest\"", pos);
+    if (digest_pos != absl::string_view::npos && pos - digest_pos < 400) {
+      if (const auto digest =
+              ExtractJsonStringField(object.substr(digest_pos), "digest");
+          digest.has_value()) {
+        constexpr absl::string_view kSha256Prefix = "sha256:";
+        if (absl::StartsWith(*digest, kSha256Prefix)) {
+          asset.digest_sha256 = digest->substr(kSha256Prefix.size());
+        }
+      }
+    }
     assets->push_back(std::move(asset));
   }
 }
@@ -220,8 +234,12 @@ std::string MarinaHostMacPkgArchToken() {
 #endif
 }
 
-std::optional<std::string> FindMarinaMsiDownloadUrl(
-    const MarinaGitHubRelease& release, absl::string_view arch_token) {
+namespace {
+
+// Shared by FindMarinaMsiDownloadUrl and FindMarinaMsiSha256Digest so both
+// agree on exactly which asset they mean.
+const MarinaGitHubAsset* FindMarinaMsiAsset(const MarinaGitHubRelease& release,
+                                            absl::string_view arch_token) {
   for (const MarinaGitHubAsset& asset : release.assets) {
     const bool is_msi = absl::EndsWith(asset.name, ".msi") ||
                         absl::EndsWith(asset.browser_download_url, ".msi");
@@ -231,10 +249,30 @@ std::optional<std::string> FindMarinaMsiDownloadUrl(
     if (arch_token.empty() ||
         absl::StrContains(asset.name, arch_token) ||
         absl::StrContains(asset.browser_download_url, arch_token)) {
-      return asset.browser_download_url;
+      return &asset;
     }
   }
+  return nullptr;
+}
+
+}  // namespace
+
+std::optional<std::string> FindMarinaMsiDownloadUrl(
+    const MarinaGitHubRelease& release, absl::string_view arch_token) {
+  if (const MarinaGitHubAsset* asset = FindMarinaMsiAsset(release, arch_token);
+      asset != nullptr) {
+    return asset->browser_download_url;
+  }
   return std::nullopt;
+}
+
+std::string FindMarinaMsiSha256Digest(const MarinaGitHubRelease& release,
+                                      absl::string_view arch_token) {
+  if (const MarinaGitHubAsset* asset = FindMarinaMsiAsset(release, arch_token);
+      asset != nullptr) {
+    return asset->digest_sha256;
+  }
+  return "";
 }
 
 std::string MarinaHostWindowsArchToken() {

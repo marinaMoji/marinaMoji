@@ -554,6 +554,14 @@ UINT __stdcall RegisterSyncTask(MSIHANDLE msi_handle) {
   return ERROR_SUCCESS;
 }
 
+// A rollback custom action for RegisterSyncTask. If a later step in the
+// install transaction fails after the sync task was registered, undo it so
+// a failed/aborted install doesn't leave the logon task behind.
+UINT __stdcall RegisterSyncTaskRollback(MSIHANDLE msi_handle) {
+  DEBUG_BREAK_FOR_DEBUGGER();
+  return UnregisterSyncTask(msi_handle);
+}
+
 // [Return='ignore']
 UINT __stdcall UnregisterSyncTask(MSIHANDLE msi_handle) {
   DEBUG_BREAK_FOR_DEBUGGER();

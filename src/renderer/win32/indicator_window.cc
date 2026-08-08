@@ -88,10 +88,9 @@ constexpr DWORD kStartFadingOutDelay = 2500;  // msec
 constexpr DWORD kFadingOutInterval = 16;      // msec
 constexpr int kFadingOutAlphaDelta = 32;
 
-double GetDPIScaling() {
+uint32_t GetInitialDPI() {
   wil::unique_hdc desktop_dc(::GetDC(nullptr));
-  const int dpi_x = ::GetDeviceCaps(desktop_dc.get(), LOGPIXELSX);
-  return static_cast<double>(dpi_x) / kDefaultDPI;
+  return static_cast<uint32_t>(::GetDeviceCaps(desktop_dc.get(), LOGPIXELSX));
 }
 
 }  // namespace
@@ -101,7 +100,10 @@ class IndicatorWindow::WindowImpl
                          IndicatorWindowTraits> {
  public:
   DECLARE_WND_CLASS_EX(kIndicatorWindowClassName, 0, COLOR_WINDOW);
-  WindowImpl() : alpha_(255), dpi_scaling_(GetDPIScaling()) {
+  WindowImpl()
+      : alpha_(255),
+        dpi_(GetInitialDPI()),
+        dpi_scaling_(static_cast<double>(dpi_) / kDefaultDPI) {
     sprites_.resize(commands::NUM_OF_COMPOSITIONS);
   }
   WindowImpl(const WindowImpl&) = delete;
@@ -111,6 +113,7 @@ class IndicatorWindow::WindowImpl
   MESSAGE_HANDLER(WM_CREATE, OnCreate)
   MESSAGE_HANDLER(WM_TIMER, OnTimer)
   MESSAGE_HANDLER(WM_SETTINGCHANGE, OnSettingChange)
+  MESSAGE_HANDLER(WM_DPICHANGED, OnDpiChanged)
   END_MSG_MAP()
 
   void OnUpdate(const commands::RendererCommand& command,
@@ -237,6 +240,21 @@ class IndicatorWindow::WindowImpl
     }
   }
 
+  void OnDpiChanged(uint32_t dpi, const RECT* /*suggested_rect*/) {
+    if (dpi == 0 || dpi == dpi_) {
+      return;
+    }
+    dpi_ = dpi;
+    dpi_scaling_ = static_cast<double>(dpi_) / kDefaultDPI;
+    constexpr int kModes[] = {
+        commands::DIRECT,     commands::HIRAGANA,   commands::FULL_KATAKANA,
+        commands::HALF_ASCII, commands::FULL_ASCII, commands::HALF_KATAKANA,
+    };
+    for (size_t i = 0; i < std::size(kModes); ++i) {
+      LoadSprite(kModes[i]);
+    }
+  }
+
   void EnableOrDisableWindowForWorkaround() {
     // Disable the window if SPI_GETACTIVEWINDOWTRACKING is enabled.
     // See b/2317702 for details.
@@ -319,10 +337,17 @@ class IndicatorWindow::WindowImpl
                     reinterpret_cast<LPCTSTR>(lparam));
     return 0;
   }
+  inline LRESULT OnDpiChanged(UINT msg_id, WPARAM wparam, LPARAM lparam,
+                              BOOL& handled) {
+    OnDpiChanged(static_cast<uint32_t>(LOWORD(wparam)),
+                 reinterpret_cast<const RECT*>(lparam));
+    return 0;
+  }
 
   HBITMAP current_image_;
   CPoint top_left_;
   BYTE alpha_;
+  uint32_t dpi_;
   double dpi_scaling_;
   std::vector<Sprite> sprites_;
 };

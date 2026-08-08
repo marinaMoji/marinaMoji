@@ -10,6 +10,112 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: verify sender of the TIP's renderer-callback window
+
+A third review pass (Explore agent + manual verification) found that fixing
+the WM_COPYDATA UIPI-filter bug two rounds back had an unintended side
+effect: `TipTextServiceImpl`'s renderer-callback window
+(`win32/tip/tip_text_service.cc`) now accepts `WM_COPYDATA` from *any*
+process at or below the box's integrity level, not just
+`marinamoji_renderer.exe`. `kMessageReceiverClassName` and the symbol-text
+copy-data tag are plain public constants (`base/const.h`), so any other
+process could `FindWindow` the class and send a spoofed Symbols-Palette
+"commit," inserting arbitrary text into whatever the user is currently
+typing into -- a password field, an elevated installer prompt, anything.
+The registered-message path (candidate clicks, mode switches) has the same
+lack of sender validation but a much smaller blast radius (only affects
+mozc's own in-session state), and structurally can't carry a sender handle
+in-band the way `WM_COPYDATA` can -- left as a known, documented residual
+gap rather than redesigned this pass.
+
+- `renderer/renderer_server.cc`: `RendererServerSendCommand::SendCommand`'s
+  `WM_COPYDATA` call now puts this process's own PID in `wParam` (was
+  `nullptr`) instead of leaving it empty.
+- `win32/tip/tip_text_service.cc`: new `IsTrustedRendererSender(DWORD)`
+  resolves that PID's *initial* process image path via
+  `WinUtil::GetProcessInitialNtPath` (NT path, so a later same-name
+  substitution doesn't fool it) and compares it against
+  `SystemUtil::GetRendererPath()`. `RendererCallbackWidnowProc` now requires
+  this to pass, plus a 4096-byte cap on the inserted text, before calling
+  `OnRendererSymbolTextCallback`.
+- This is **not** a cryptographic guarantee -- a sender can claim any PID it
+  likes, and if that PID happens to belong to a real
+  `marinamoji_renderer.exe` (discoverable without special privilege), the
+  check passes even though the claimed PID isn't actually who sent the
+  message. It raises the bar from "any process, trivially" to "a process
+  that already knows how to find a running renderer," which is the
+  practical ceiling reachable without redesigning this channel around a
+  shared secret carried over the existing (already-authenticated) TIP<->
+  renderer IPC connection -- worth doing before a wider release, not done
+  this pass.
+- Untested against a real Windows build -- no Windows compiler available
+  here, same caveat as everything else in this file.
+
+### Windows: auto-updater downloaded-installer integrity checks
+
+`renderer/win32/marina_auto_update.cc` downloaded the update MSI over HTTPS
+and ran it straight away: no hash check against release metadata, no
+signature check (the UI copy already admits the build is unsigned), and the
+download loop treated `WinHttpQueryDataAvailable`/`WinHttpReadData` returning
+0 as "done" even though that's indistinguishable from a connection that
+dropped mid-transfer -- a truncated download could still get executed as a
+"success."
+
+- **Truncation check**: `OpenSuccessfulGet()` now also reads the response's
+  `Content-Length` header; `WriteBodyToFile()` takes it as an expected byte
+  count and fails if the total actually written doesn't match. `DownloadToFile()`
+  deletes the partial file on that failure rather than leaving it for the
+  caller to launch.
+- **Hash check**: GitHub has published a `digest` (`sha256:...`) field on
+  release assets since 2024. `base/marina_github_releases.{h,cc}` now parses
+  it into `MarinaGitHubAsset::digest_sha256` and exposes
+  `FindMarinaMsiSha256Digest()` alongside the existing
+  `FindMarinaMsiDownloadUrl()` (both now share one internal asset lookup so
+  they can't disagree on which asset they mean). `marina_auto_update.cc`
+  hashes the downloaded file with BCrypt (`Sha256HexOfFile()`, new `bcrypt`
+  win32-lib target) and deletes it on a mismatch. When GitHub hasn't
+  published a digest for a given asset (older releases), the check is
+  skipped rather than treated as an error -- there's nothing to compare
+  against, and refusing every pre-2024 release's installer would be worse
+  than not checking.
+- This is **not** a substitute for code signing -- it only guards against a
+  corrupted/truncated transfer, since the digest itself is fetched over the
+  same GitHub API channel as the download. The SmartScreen warning in the
+  install-offer dialog (from the unsigned-build decision above) is still the
+  only thing standing between the user and an unverified publisher at
+  present.
+- Added test coverage for the new digest parsing/lookup path
+  (`marina_semver_test.cc`, `marina_github_releases_test.cc`). The WinHTTP/
+  BCrypt plumbing in `marina_auto_update.cc` itself is untested here, same
+  caveat as everything else in this file -- no Windows compiler available.
+
+### Windows: indicator DPI handling and installer sync-task rollback
+
+Two more items off the same "gaps" list as the round below.
+
+- **Indicator DPI** (`renderer/win32/indicator_window.cc`): the mode-switch
+  indicator balloon read its DPI scaling once at construction
+  (`GetDPIScaling()`/`dpi_scaling_`) and never again, unlike the toolbar and
+  sync overlay, which both got `WM_DPICHANGED` handling in the round below.
+  Effect: drag the window (or its monitor) to a display with a different
+  scale factor and the indicator's sprites stay sized for the old DPI.
+  Added a `WM_DPICHANGED` handler that recomputes `dpi_scaling_` from the new
+  DPI and reloads all six mode sprites, mirroring `ToolbarWindow::OnDpiChanged`
+  / `LoadIcons()`.
+- **Installer sync-task rollback** (`win32/installer/installer_marinamoji_64bit.wxs`,
+  `win32/custom_action/custom_action.{h,cc,def}`): every other state-mutating
+  install step (`RegisterTIP64`, `RestoreServiceState`, ...) has a paired
+  `Execute="rollback"` action, but `RegisterSyncTask` -- which creates the
+  `marinamoji_sync.exe --daemon` Task Scheduler logon task -- didn't. It also
+  ran as `Execute="commit"`, which sits outside the rollback transaction
+  entirely. Effect: a failed or aborted install/upgrade could leave the sync
+  logon task registered with nothing else installed to back it. Switched
+  `RegisterSyncTask` to `Execute="deferred"` and added
+  `RegisterSyncTaskRollback` (a thin wrapper around the existing
+  `UnregisterSyncTask`), scheduled `Before="RegisterSyncTask"`, matching the
+  `RegisterTIP64`/`RegisterTIPRollback64` pattern. Untested against a real
+  MSI build -- no Windows toolchain available here.
+
 ### Windows: docs, test coverage, sync overlay, and toolbar hide follow-ups
 
 Second pass on the same review as the bug-fix/perf entry below, working

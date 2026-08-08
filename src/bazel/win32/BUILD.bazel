@@ -78,6 +78,10 @@ mozc_win32_lib(
 )
 
 mozc_win32_lib(
+    name = "bcrypt",
+)
+
+mozc_win32_lib(
     name = "crypt32",
 )
 

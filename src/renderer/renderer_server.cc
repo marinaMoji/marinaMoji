@@ -142,7 +142,12 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       // (synchronous -- the buffer must stay valid for the call). |dwData|
       // is tagged so the receiver can tell this apart from any other
       // WM_COPYDATA traffic; the payload is the symbol's raw UTF-8 bytes (no
-      // NUL terminator needed, |cbData| carries the length).
+      // NUL terminator needed, |cbData| carries the length). |wParam| carries
+      // this process's own PID -- the receiver (tip_text_service.cc's
+      // IsTrustedRendererSender) uses it to confirm the sender is actually
+      // marinamoji_renderer.exe before trusting the text, since opening this
+      // window to WM_COPYDATA (below) also opens it to every other process
+      // on the box.
       const std::string& text = command.text();
       COPYDATASTRUCT cds = {};
       cds.dwData = kSymbolTextCopyDataTag;
@@ -150,7 +155,7 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       cds.lpData = const_cast<char*>(text.data());
       DWORD_PTR result = 0;
       ::SendMessageTimeout(target, WM_COPYDATA,
-                          reinterpret_cast<WPARAM>(nullptr),
+                          static_cast<WPARAM>(::GetCurrentProcessId()),
                           reinterpret_cast<LPARAM>(&cds),
                           SMTO_ABORTIFHUNG, kSendTimeoutMsec, &result);
       return true;

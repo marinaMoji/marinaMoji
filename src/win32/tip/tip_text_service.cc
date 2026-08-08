@@ -51,11 +51,13 @@
 #include "absl/log/log.h"
 #include "base/const.h"
 #include "base/process.h"
+#include "base/system_util.h"
 #include "base/update_util.h"
 #include "base/win32/com.h"
 #include "base/win32/com_implements.h"
 #include "base/win32/hresult.h"
 #include "base/win32/hresultor.h"
+#include "base/win32/wide_char.h"
 #include "base/win32/win_util.h"
 #include "config/config_handler.h"
 #include "protocol/commands.pb.h"
@@ -1490,6 +1492,40 @@ class TipTextServiceImpl
     return S_OK;
   }
 
+  // marinaMoji: WM_COPYDATA carries the sender's own claimed PID in wParam
+  // (see renderer_server.cc), but Win32 does not enforce that a sender tells
+  // the truth about its own identity -- this is not a cryptographic
+  // guarantee, just a compensating check for having had to open this window
+  // to WM_COPYDATA from every process on the box (see
+  // InitRendererCallbackWindow()'s ChangeMessageFilter(WM_COPYDATA) call).
+  // It raises the bar from "any process, no matter who" to "a process
+  // willing to claim a PID that resolves to a real marinamoji_renderer.exe"
+  // -- enough to stop opportunistic/naive abuse of this channel to inject
+  // text into whatever the user is typing into. |sender_pid| is compared by
+  // its process's *initial* image path (via NT paths, so a later same-name
+  // substitution or symlink trick on the DOS path doesn't fool it) against
+  // the renderer binary this install actually ships.
+  static bool IsTrustedRendererSender(DWORD sender_pid) {
+    if (sender_pid == 0) {
+      return false;
+    }
+    std::wstring sender_nt_path;
+    if (!WinUtil::GetProcessInitialNtPath(sender_pid, &sender_nt_path)) {
+      return false;
+    }
+    const std::string renderer_path = SystemUtil::GetRendererPath();
+    if (renderer_path.empty()) {
+      return false;
+    }
+    std::wstring renderer_nt_path;
+    if (!WinUtil::GetNtPath(Utf8ToWide(renderer_path),
+                            &renderer_nt_path)) {
+      return false;
+    }
+    return WinUtil::SystemEqualString(sender_nt_path, renderer_nt_path,
+                                      /*ignore_case=*/true);
+  }
+
   static LRESULT WINAPI RendererCallbackWidnowProc(HWND window_handle,
                                                    UINT message, WPARAM wparam,
                                                    LPARAM lparam) {
@@ -1511,9 +1547,17 @@ class TipTextServiceImpl
         // ChangeMessageFilter(WM_COPYDATA) call in
         // InitRendererCallbackWindow() -- without it this message never
         // arrives from a lower-IL renderer while an elevated app is focused.
+        // Opening that filter means *any* process (at or below this box's
+        // integrity level) can now reach this window, not just our own
+        // renderer -- IsTrustedRendererSender() (see above) is the
+        // compensating check, plus a sane length cap since this text gets
+        // inserted straight into whatever the user is typing into.
+        constexpr size_t kMaxSymbolTextBytes = 4096;
         const auto* cds = reinterpret_cast<const COPYDATASTRUCT*>(lparam);
         if (cds != nullptr && cds->dwData == kSymbolTextCopyDataTag &&
-            cds->lpData != nullptr && cds->cbData > 0) {
+            cds->lpData != nullptr && cds->cbData > 0 &&
+            cds->cbData <= kMaxSymbolTextBytes &&
+            IsTrustedRendererSender(static_cast<DWORD>(wparam))) {
           self->OnRendererSymbolTextCallback(
               std::string(static_cast<const char*>(cds->lpData),
                          cds->cbData));
