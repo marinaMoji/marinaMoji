@@ -22,8 +22,10 @@ jobs:
         include:
           - arch: x86_64
             runner: ubuntu-24.04
+            deb_arch: amd64
           - arch: arm64
             runner: ubuntu-24.04-arm
+            deb_arch: arm64
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
 
@@ -37,7 +39,7 @@ jobs:
       - name: Setup
         run: |
           sudo apt-get update
-          sudo apt-get install -y libibus-1.0-dev qt6-base-dev libgtk-3-dev librsvg2-dev libopencc-dev
+          sudo apt-get install -y libibus-1.0-dev qt6-base-dev libgtk-3-dev librsvg2-dev libopencc-dev dpkg-dev unzip
           #
           # Unset the Android NDK setting to skip the unnecessary configuration.
           echo "ANDROID_NDK_HOME=" >> $GITHUB_ENV
@@ -58,6 +60,26 @@ jobs:
           name: mozc-linux-${{ matrix.arch }}
           path: src/bazel-bin/unix/mozc-linux-${{ matrix.arch }}.zip
           if-no-files-found: warn
+
+      - name: Build .deb
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          # Not a tagged release build, so derive a non-clashing dev version
+          # (Debian versions must start with a digit).
+          VERSION="0.0.0+g$(git rev-parse --short HEAD)"
+          bash packaging/linux/build_deb.sh \
+            --zip src/bazel-bin/unix/mozc.zip \
+            --version "$VERSION" \
+            --arch ${{ matrix.deb_arch }} \
+            --output-dir dist
+
+      - name: Upload .deb
+        uses: actions/upload-artifact@v7
+        with:
+          name: mozc-linux-${{ matrix.arch }}-deb
+          path: dist/*.deb
+          if-no-files-found: error
 
   test:
     # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md

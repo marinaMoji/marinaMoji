@@ -26,7 +26,8 @@ marinaMoji provides the following features for scholarly Japanese text input:
 6. **Floating toolbar** - Visual mode indicator showing current input mode, shin/kyu,  with quick access to historical marks
 7. **Macron vowels** - Input of macron vowels (ā, ē, ī, ō, ū) for scholarly transliteration in ASCII mode
 8. **Quick dictionary injection:** type `ctrl+shift+0` in compose mode to immediately save kanji phrase and pronunciation to user dictionary.
-9. **Encrypted cross-device sync:** sync your user dictionary and learning history via one encrypted file in a folder you choose (Nextcloud, Syncthing, iCloud Drive, etc.). Opt-in; see [How sync works](docs/HOW_SYNC_WORKS.md).
+9. **Docket:** every rare compound you commit but don't register (e.g. 大元宮) is quietly queued; review the queue at your leisure in a table UI and register, skip, or permanently ignore each one. See [docs/DOCKET.md](docs/DOCKET.md).
+10. **Encrypted cross-device sync:** sync your user dictionary and learning history via one encrypted file in a folder you choose (Nextcloud, Syncthing, iCloud Drive, etc.). Opt-in; see [How sync works](docs/HOW_SYNC_WORKS.md).
 
 ## Support
 

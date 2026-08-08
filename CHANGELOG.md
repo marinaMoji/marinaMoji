@@ -10,6 +10,29 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Docket: a review queue for unregistered committed vocabulary (2026-08-08)
+
+Added the **docket** — a persistent queue of dictionary-unknown compounds
+committed in passing (e.g. 大元宮/daigenguu), reviewed later in a new
+`docket_tool` table UI with per-row Yes/No/Never triage, replacing what the
+Windows toolbar's "Add Word" button opens (`Ctrl+Shift+0`'s single-entry
+dialog is unchanged). Grew out of `LaunchWordRegisterDialog`'s existing
+single-slot commit-buffer prefill, which is fine for "register this right
+now" but gets overwritten before there's leisure to deal with it. See
+[docs/DOCKET.md](docs/DOCKET.md) for the full design.
+
+New: `dictionary/docket_store.{h,cc}` (locked JSON store, mirrors
+`UserDictionaryStorage`'s `ProcessMutex` pattern), `gui/docket/` (the review
+dialog, built without a `.ui`/`moc` step since it needs neither). Touched:
+`engine/engine.{h,cc}` (`IsKnownWord`/`RecordDocketCandidate`, backed by
+`Modules::GetDictionary()`/`GetUserDictionary()`/`GetPosMatcher()`),
+`session/session.cc` (`CommitInternal` gate, reusing `lid`/`rid` already
+carried on `commands::Result.tokens`), `protocol/commands.proto`
+(`DOCKET_DIALOG` tool mode), `renderer/win32/toolbar_window.cc` (button
+repoint + a presence-dot badge — deliberately not a digit count, since GDI
+text in the toolbar's raw alpha-blended pixel buffer needs its own
+alpha-channel bookkeeping to composite correctly).
+
 ### Windows: first on-hardware bug round (English installer + diagnostics)
 
 First real install of a CI artifact on Windows hardware (2026-08-08). The

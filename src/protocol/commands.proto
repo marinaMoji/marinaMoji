@@ -520,6 +520,12 @@ message SessionCommand {
     // win32/base/toolbar_config.cc) and refreshes the renderer, rather than
     // reaching the session.
     HIDE_TOOLBAR = 42;
+
+    // marinaMoji: open the docket review dialog (the queue of recently
+    // committed, dictionary-unknown compounds). Same reasoning as
+    // LAUNCH_DICTIONARY_TOOL above: the Windows floating toolbar can only
+    // send SessionCommands, not raw KeyEvents.
+    LAUNCH_DOCKET_DIALOG = 43;
   }
   required CommandType type = 1;
 
@@ -1542,6 +1548,7 @@ message Output {
     CONFIG_DIALOG = 1;
     DICTIONARY_TOOL = 2;
     WORD_REGISTER_DIALOG = 3;
+    DOCKET_DIALOG = 4;
   }
   optional ToolMode launch_tool_mode = 17 [default = NO_TOOL];
 

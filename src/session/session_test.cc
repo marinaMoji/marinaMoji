@@ -42,6 +42,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "base/clock_mock.h"
 #include "base/strings/assign.h"
 #include "base/strings/unicode.h"
 #include "base/vlog.h"
@@ -91,6 +92,7 @@ class SessionTestPeer : testing::TestPeer<Session> {
   PEER_VARIABLE(last_committed_reading_);
   PEER_VARIABLE(saved_japanese_mode_);
   PEER_VARIABLE(left_shift_mode_lock_);
+  PEER_VARIABLE(macron_dead_key_pending_);
 };
 
 namespace {
@@ -1139,6 +1141,119 @@ TEST_F(SessionTest, RightShiftAloneIgnoresAsciiCompositionMode) {
   EXPECT_EQ(command.output().status().mode(), commands::HIRAGANA);
 }
 
+TEST_F(SessionTest, RightShiftAloneInDirectArmsMacronDeadKey) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToDirect(&session);
+  commands::Command command;
+  SessionTestPeer peer(session);
+
+  // Tap arms the dead key and shows the pending placeholder (◌̄).
+  EXPECT_TRUE(SendKey("RightShift", &session, &command));
+  EXPECT_TRUE(command.output().consumed());
+  EXPECT_TRUE(peer.macron_dead_key_pending_());
+  ASSERT_EQ(command.output().preedit().segment_size(), 1);
+  EXPECT_EQ(command.output().preedit().segment(0).value(), "◌̄");
+
+  // The following vowel commits the macron and disarms the dead key.
+  command.Clear();
+  EXPECT_TRUE(SendKey("o", &session, &command));
+  EXPECT_FALSE(peer.macron_dead_key_pending_());
+  EXPECT_EQ(command.output().result().value(), "ō");
+}
+
+TEST_F(SessionTest, MacronDeadKeyProducesUppercaseWithShift) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToDirect(&session);
+  commands::Command command;
+
+  // Tap Right Shift, then *hold* Shift for the vowel: Ō.
+  EXPECT_TRUE(SendKey("RightShift", &session, &command));
+  command.Clear();
+  EXPECT_TRUE(SendKey("Shift O", &session, &command));
+  EXPECT_EQ(command.output().result().value(), "Ō");
+}
+
+TEST_F(SessionTest, MacronDeadKeyCancelledByEscapeAndBackspace) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToDirect(&session);
+  commands::Command command;
+  SessionTestPeer peer(session);
+
+  for (const char *cancel_key : {"ESC", "BACKSPACE"}) {
+    EXPECT_TRUE(SendKey("RightShift", &session, &command));
+    ASSERT_TRUE(peer.macron_dead_key_pending_());
+
+    command.Clear();
+    EXPECT_TRUE(SendKey(cancel_key, &session, &command));
+    EXPECT_FALSE(peer.macron_dead_key_pending_()) << cancel_key;
+    // Placeholder is gone and nothing was committed.
+    EXPECT_EQ(command.output().preedit().segment_size(), 0) << cancel_key;
+    EXPECT_FALSE(command.output().has_result()) << cancel_key;
+  }
+}
+
+TEST_F(SessionTest, LeftShiftDoubleTapTogglesModeLock) {
+  ScopedClockMock clock(absl::FromUnixSeconds(1000));
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+  commands::Command command;
+
+  config::Config cfg;
+  cfg.set_disable_left_shift_direct_toggle(false);
+  session.SetConfig(cfg);
+
+  SessionTestPeer peer(session);
+  ASSERT_FALSE(peer.left_shift_mode_lock_());
+
+  // Two taps in quick succession: lock engages, and the mode ends up back
+  // where it started (the first tap's toggle is undone by the second).
+  EXPECT_TRUE(SendKey("LeftShift", &session, &command));
+  clock->Advance(absl::Milliseconds(120));
+  EXPECT_TRUE(SendKey("LeftShift", &session, &command));
+  EXPECT_TRUE(peer.left_shift_mode_lock_());
+  EXPECT_EQ(command.output().status().mode(), commands::HIRAGANA);
+
+  // A second double tap unlocks again.
+  clock->Advance(absl::Seconds(5));
+  EXPECT_TRUE(SendKey("LeftShift", &session, &command));
+  clock->Advance(absl::Milliseconds(120));
+  EXPECT_TRUE(SendKey("LeftShift", &session, &command));
+  EXPECT_FALSE(peer.left_shift_mode_lock_());
+}
+
+TEST_F(SessionTest, LeftShiftSlowTapsDoNotLock) {
+  ScopedClockMock clock(absl::FromUnixSeconds(1000));
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+  commands::Command command;
+
+  config::Config cfg;
+  cfg.set_disable_left_shift_direct_toggle(false);
+  session.SetConfig(cfg);
+
+  SessionTestPeer peer(session);
+
+  // Taps spaced beyond the double-tap window stay plain mode toggles: the
+  // lock never engages, no matter how many of them there are.
+  for (int i = 0; i < 4; ++i) {
+    EXPECT_TRUE(SendKey("LeftShift", &session, &command));
+    EXPECT_FALSE(peer.left_shift_mode_lock_()) << "tap " << i;
+    clock->Advance(absl::Seconds(2));
+  }
+  // ...and they are still toggling: an even number of taps returns to Hiragana.
+  EXPECT_EQ(command.output().status().mode(), commands::HIRAGANA);
+}
+
 TEST_F(SessionTest, ManyoshuPreeditShowsKatakanaWhileTyping) {
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
@@ -1308,6 +1423,52 @@ TEST_F(SessionTest, StoreLastCommitBufferOnConversionCommit) {
   SessionTestPeer peer(session);
   EXPECT_EQ(peer.last_committed_expression_(), "あいうえお");
   EXPECT_EQ(peer.last_committed_reading_(), "あいうえお");
+}
+
+TEST_F(SessionTest, DocketCandidateRecordedForUnknownWord) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+  EXPECT_CALL(engine, IsKnownWord(absl::string_view("あいうえお")))
+      .WillOnce(Return(false));
+  EXPECT_CALL(engine,
+             RecordDocketCandidate(absl::string_view("あいうえお"),
+                                   absl::string_view("あいうえお"), _, _))
+      .Times(1);
+  Session session(engine);
+  InitSessionToConversionWithAiueo(&session, converter.get());
+
+  commands::Command command;
+  session.Commit(&command);
+  EXPECT_EQ(command.output().result().value(), "あいうえお");
+}
+
+TEST_F(SessionTest, DocketCandidateSkippedForKnownWord) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+  EXPECT_CALL(engine, IsKnownWord(absl::string_view("あいうえお")))
+      .WillOnce(Return(true));
+  EXPECT_CALL(engine, RecordDocketCandidate).Times(0);
+  Session session(engine);
+  InitSessionToConversionWithAiueo(&session, converter.get());
+
+  commands::Command command;
+  session.Commit(&command);
+  EXPECT_EQ(command.output().result().value(), "あいうえお");
+}
+
+TEST_F(SessionTest, DocketCandidateSkippedForSingleCharacterCommit) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  EXPECT_CALL(engine, IsKnownWord).Times(0);
+  EXPECT_CALL(engine, RecordDocketCandidate).Times(0);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  commands::Command command;
+  InsertCharacterChars("a", &session, &command);
+  command.Clear();
+  session.Commit(&command);
+  EXPECT_EQ(command.output().result().value(), "あ");
 }
 
 TEST_F(SessionTest, ClearLastCommitBufferOnResetContext) {

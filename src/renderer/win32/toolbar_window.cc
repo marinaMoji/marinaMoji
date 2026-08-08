@@ -16,10 +16,12 @@
 #include <vector>
 
 #include "absl/log/log.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "base/file_util.h"
 #include "base/system_util.h"
 #include "base/win32/wide_char.h"
+#include "dictionary/docket_store.h"
 #include "protocol/commands.pb.h"
 #include "protocol/renderer_command.pb.h"
 #include "renderer/win32/marina_localized_string.h"
@@ -608,6 +610,12 @@ CSize ToolbarWindow::ComputeWindowSize() const {
 }
 
 void ToolbarWindow::Redraw() {
+  if (const absl::StatusOr<dictionary::DocketData> docket_data =
+          dictionary::ReadDocketDataUnlocked();
+      docket_data.ok()) {
+    docket_pending_count_ = static_cast<int>(docket_data->pending.size());
+  }
+
   const double scale = GetDPIScalingFactor(dpi_);
   const int margin = static_cast<int>(std::lround(4 * scale));
   const int button_w = static_cast<int>(std::lround(kButtonWidthLogical * scale));
@@ -714,6 +722,21 @@ void ToolbarWindow::Redraw() {
       const int icon_y = (height - icon_draw_size_) / 2;
       BlendIcon(bits, width, height, icon_bits, icon_w, icon_h, icon_x, icon_y,
                 icon_draw_size_, icon_draw_size_, 1.0);
+
+      // Docket badge: a small solid dot in the icon's top-right corner
+      // when there's anything awaiting review. Reuses FillRoundedRect
+      // (already alpha-correct for this same layered-window composite,
+      // see the hover highlight above) rather than drawing a digit count,
+      // since GDI text drawn into this raw premultiplied-alpha buffer
+      // would need its own alpha-channel bookkeeping to composite
+      // correctly.
+      if (id == ButtonId::kDictionary && docket_pending_count_ > 0) {
+        const int dot_d = std::max(1, static_cast<int>(std::lround(6 * scale)));
+        const CRect dot_rect(icon_x + icon_draw_size_ - dot_d, icon_y,
+                             icon_x + icon_draw_size_, icon_y + dot_d);
+        FillRoundedRect(bits, width, height, dot_rect, dot_d / 2.0, 220, 60,
+                        40, 255);
+      }
     }
     x_cursor += button_w;
   }
@@ -766,7 +789,7 @@ const wchar_t* ToolbarWindow::GetButtonName(ButtonId button) {
     case ButtonId::kSymbols:
       return MarinaLocalizedString(L"MM.SymbolsPalette");
     case ButtonId::kDictionary:
-      return MarinaLocalizedString(L"MM.RegisterWord");
+      return MarinaLocalizedString(L"MM.Docket");
     case ButtonId::kSettings:
       return MarinaLocalizedString(L"MM.Settings");
     case ButtonId::kShortcuts:
@@ -861,7 +884,7 @@ void ToolbarWindow::ActivateButton(ButtonId button) {
       SendToggleTraditionalKanji();
       break;
     case ButtonId::kDictionary:
-      SendLaunchWordRegisterDialog();
+      SendLaunchDocketDialog();
       break;
     case ButtonId::kSettings:
       SendLaunchConfigDialog();
@@ -1165,12 +1188,12 @@ void ToolbarWindow::SendToggleTraditionalKanji() {
   send_command_interface_->SendCommand(command, &output);
 }
 
-void ToolbarWindow::SendLaunchWordRegisterDialog() {
+void ToolbarWindow::SendLaunchDocketDialog() {
   if (send_command_interface_ == nullptr) {
     return;
   }
   commands::SessionCommand command;
-  command.set_type(commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG);
+  command.set_type(commands::SessionCommand::LAUNCH_DOCKET_DIALOG);
   commands::Output output;
   send_command_interface_->SendCommand(command, &output);
 }

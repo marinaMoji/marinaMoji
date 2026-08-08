@@ -27,44 +27,15 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef MOZC_ENGINE_ENGINE_MOCK_H_
-#define MOZC_ENGINE_ENGINE_MOCK_H_
+#include "base/init_mozc.h"
 
-#include <cstdint>
-#include <memory>
-#include <string>
-#include <vector>
+#ifdef _WIN32
+#include "base/win32/winmain.h"
+#endif  // _WIN32
 
-#include "absl/strings/string_view.h"
-#include "engine/engine_converter_interface.h"
-#include "engine/engine_interface.h"
-#include "protocol/commands.pb.h"
-#include "protocol/config.pb.h"
-#include "testing/gmock.h"
+int RunDocketDialog(int argc, char *argv[]);
 
-namespace mozc {
-
-class MockEngine : public EngineInterface {
- public:
-  MOCK_METHOD(absl::string_view, GetDataVersion, (), (const, override));
-  MOCK_METHOD(std::unique_ptr<engine::EngineConverterInterface>,
-              CreateEngineConverter, (), (const, override));
-  MOCK_METHOD(bool, Reload, (), (override));
-  MOCK_METHOD(bool, Sync, (), (override));
-  MOCK_METHOD(bool, Wait, (), (override));
-  MOCK_METHOD(bool, ClearUserHistory, (), (override));
-  MOCK_METHOD(bool, ClearUserPrediction, (), (override));
-  MOCK_METHOD(bool, ClearUnusedUserPrediction, (), (override));
-  MOCK_METHOD(bool, ReloadAndWait, (), (override));
-  MOCK_METHOD(std::vector<std::string>, GetPosList, (), (const, override));
-  MOCK_METHOD(bool, IsKnownWord, (absl::string_view surface),
-              (const, override));
-  MOCK_METHOD(void, RecordDocketCandidate,
-              (absl::string_view surface, absl::string_view reading,
-               int32_t lid, int32_t rid),
-              (const, override));
-};
-
-}  // namespace mozc
-
-#endif  // MOZC_ENGINE_ENGINE_MOCK_H_
+int main(int argc, char *argv[]) {
+  mozc::InitMozc(argv[0], &argc, &argv);
+  return RunDocketDialog(argc, argv);
+}

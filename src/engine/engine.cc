@@ -195,4 +195,43 @@ void Engine::ImportUserDictionary(std::string name, std::string tsv) {
   }
 }
 
+bool Engine::IsKnownWord(absl::string_view surface) const {
+  if (!converter_) {
+    return false;
+  }
+  const engine::Modules& modules = converter_->modules();
+  return modules.GetDictionary().HasValue(surface) ||
+        modules.GetUserDictionary().HasValue(surface);
+}
+
+namespace {
+// Best-effort user-dictionary POS category guess from a committed
+// candidate's lid. Only a handful of broad, unambiguous PosMatcher rules
+// are used; anything else (including verbs/adjectives, for which there's
+// no equally broad rule) falls back to the same 名詞 default the word
+// register dialog itself defaults to.
+std::string GuessDocketPos(const dictionary::PosMatcher& pos_matcher,
+                           int32_t lid) {
+  if (lid >= 0) {
+    const uint16_t id = static_cast<uint16_t>(lid);
+    if (pos_matcher.IsAdverb(id)) {
+      return "副詞";
+    }
+  }
+  return "名詞";
+}
+}  // namespace
+
+void Engine::RecordDocketCandidate(absl::string_view surface,
+                                   absl::string_view reading, int32_t lid,
+                                   int32_t rid) const {
+  const std::string pos =
+      converter_ ? GuessDocketPos(converter_->modules().GetPosMatcher(), lid)
+                : "名詞";
+  const absl::Status status =
+      docket_store_.AddPending(surface, reading, lid, rid, pos);
+  LOG_IF(WARNING, !status.ok()) << "Failed to record docket candidate: "
+                                << status;
+}
+
 }  // namespace mozc

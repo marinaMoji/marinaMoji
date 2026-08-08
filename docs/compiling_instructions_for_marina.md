@@ -245,8 +245,15 @@ Open marinaMoji settings from the IBus input-method menu: **marinaMoji → Prope
 The **Shortcuts** tab controls Left Shift toggling between Japanese input and Direct input. By default:
 
 - **Left Shift alone** (press and release without typing) switches hiragana, full katakana, or Manyōshū ↔ Direct input.
-- **Ctrl+Alt+Right Shift alone** locks or unlocks the current mode (toolbar shows a lock icon).
-- **Right Shift alone** toggles hiragana ↔ Manyōshū.
+- **Double-tap Left Shift** locks or unlocks the current mode (toolbar shows a lock icon).
+  The first tap of the pair toggles the mode as usual and the second toggles it
+  back, so a double tap locks the mode you were already in. Taps more than 500 ms
+  apart are treated as two ordinary toggles.
+- **Ctrl+Alt+Right Shift alone** also locks or unlocks the current mode. This
+  older chord is assembled by the Windows client only; on Linux/macOS use the
+  double tap.
+- **Right Shift alone** toggles hiragana ↔ Manyōshū — except in Direct input,
+  where it arms the macron dead key (see `docs/MACRON_VOWELS.md`).
 
 After installing a new build, restart IBus (`ibus write-cache && ibus restart`) so the engine picks up shortcut changes.
 

@@ -27,44 +27,35 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef MOZC_ENGINE_ENGINE_MOCK_H_
-#define MOZC_ENGINE_ENGINE_MOCK_H_
-
-#include <cstdint>
-#include <memory>
+#include <QGuiApplication>
+#include <QtGui>
 #include <string>
-#include <vector>
 
-#include "absl/strings/string_view.h"
-#include "engine/engine_converter_interface.h"
-#include "engine/engine_interface.h"
-#include "protocol/commands.pb.h"
-#include "protocol/config.pb.h"
-#include "testing/gmock.h"
+#include "base/system_util.h"
+#include "gui/base/singleton_window_helper.h"
+#include "gui/base/util.h"
+#include "gui/docket/docket_dialog.h"
 
-namespace mozc {
+int RunDocketDialog(int argc, char *argv[]) {
+  auto app = mozc::gui::GuiUtil::InitQt(argc, argv);
 
-class MockEngine : public EngineInterface {
- public:
-  MOCK_METHOD(absl::string_view, GetDataVersion, (), (const, override));
-  MOCK_METHOD(std::unique_ptr<engine::EngineConverterInterface>,
-              CreateEngineConverter, (), (const, override));
-  MOCK_METHOD(bool, Reload, (), (override));
-  MOCK_METHOD(bool, Sync, (), (override));
-  MOCK_METHOD(bool, Wait, (), (override));
-  MOCK_METHOD(bool, ClearUserHistory, (), (override));
-  MOCK_METHOD(bool, ClearUserPrediction, (), (override));
-  MOCK_METHOD(bool, ClearUnusedUserPrediction, (), (override));
-  MOCK_METHOD(bool, ReloadAndWait, (), (override));
-  MOCK_METHOD(std::vector<std::string>, GetPosList, (), (const, override));
-  MOCK_METHOD(bool, IsKnownWord, (absl::string_view surface),
-              (const, override));
-  MOCK_METHOD(void, RecordDocketCandidate,
-              (absl::string_view surface, absl::string_view reading,
-               int32_t lid, int32_t rid),
-              (const, override));
-};
+  std::string name = "docket_dialog.";
+  name += mozc::SystemUtil::GetDesktopNameAsString();
 
-}  // namespace mozc
+  mozc::gui::SingletonWindowHelper window_helper(name);
+  if (window_helper.FindPreviousWindow()) {
+    // already running
+    window_helper.ActivatePreviousWindow();
+    return -1;
+  }
 
-#endif  // MOZC_ENGINE_ENGINE_MOCK_H_
+  mozc::gui::DocketDialog docket_dialog;
+  if (!docket_dialog.IsAvailable()) {
+    return -1;
+  }
+
+  docket_dialog.show();
+  docket_dialog.raise();
+
+  return app->exec();
+}

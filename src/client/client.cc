@@ -913,6 +913,9 @@ bool Client::TranslateProtoBufToMozcToolArg(const commands::Output &output,
     case commands::Output::WORD_REGISTER_DIALOG:
       mode->assign("word_register_dialog");
       break;
+    case commands::Output::DOCKET_DIALOG:
+      mode->assign("docket_dialog");
+      break;
     case commands::Output::NO_TOOL:
     default:
       // do nothing

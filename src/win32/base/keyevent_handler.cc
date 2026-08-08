@@ -1222,6 +1222,9 @@ void KeyEventHandler::MaybeSpawnTool(mozc::client::ClientInterface* client,
       case commands::Output::DICTIONARY_TOOL:
         mode = "dictionary_tool";
         break;
+      case commands::Output::DOCKET_DIALOG:
+        mode = "docket_dialog";
+        break;
       case commands::Output::NO_TOOL:
       default:
         // Do nothing.

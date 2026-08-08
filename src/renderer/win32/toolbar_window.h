@@ -266,7 +266,7 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   void SendSwitchCompositionMode(commands::CompositionMode mode);
   void SendTurnOffIme();
   void SendToggleTraditionalKanji();
-  void SendLaunchWordRegisterDialog();
+  void SendLaunchDocketDialog();
   void SendLaunchDictionaryTool();
   void SendLaunchConfigDialog();
   void SendToggleSymbolsPalette();
@@ -357,6 +357,13 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   // thread: a stale coordinate there is harmless, a reallocation underneath
   // the reader would not be.
   std::array<CRect, static_cast<size_t>(ButtonId::kNumButtons)> button_rects_;
+
+  // Number of docket entries awaiting review (see dictionary/docket_store.h),
+  // re-read from disk at the top of each Redraw() -- best-effort, unlocked,
+  // since this is a read-only snapshot for a small local file and Redraw()
+  // only fires on discrete hover/state transitions, not continuously.
+  // Drives the small badge dot drawn on the docket (kDictionary) button.
+  int docket_pending_count_ = 0;
 
   // False until the first Redraw() has filled in |button_rects_|.
   bool has_layout_;

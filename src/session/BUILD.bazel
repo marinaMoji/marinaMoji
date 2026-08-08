@@ -102,6 +102,7 @@ mozc_cc_test(
         ":ime_context",
         ":keymap",
         ":session",
+        "//base:clock_mock",
         "//base:vlog",
         "//base/strings:assign",
         "//base/strings:unicode",

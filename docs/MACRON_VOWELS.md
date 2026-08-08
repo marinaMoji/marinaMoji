@@ -1,6 +1,32 @@
-# Macron vowels (Ctrl+Alt+vowel)
+# Macron vowels
 
-You can type vowels with a macron (long-vowel mark) using the keyboard in **ASCII mode** (half-width or full-width alphanumeric) and in **Direct input**:
+## Right Shift tap (Direct input)
+
+In **Direct input**, tap **Right Shift** on its own (press and release without
+typing anything else) and then type a vowel:
+
+| Keys | Output |
+|------|--------|
+| Right Shift, then a | ā |
+| Right Shift, then Shift+A | Ā |
+
+While the dead key is armed, a **◌̄** placeholder appears on screen so you can
+see that a macron is pending. Because the vowel's case comes from ordinary
+Shift, you can tap Right Shift and then simply *hold* Right Shift for the vowel
+to get the capital form (Ō).
+
+- **Esc** or **Backspace** cancels the pending macron: the placeholder
+  disappears and nothing is inserted. Backspace here only clears the
+  placeholder — it never deletes the character before it.
+- Any other non-vowel key cancels the pending state and is handled normally.
+- This is Direct input only. In Hiragana/Katakana/Manyōshū modes, Right Shift
+  alone keeps its usual Hiragana ↔ Manyōshū toggle; in ASCII composition modes
+  it is still passed through to the application. Use Ctrl+Alt+vowel there.
+
+## Ctrl+Alt+vowel
+
+You can also type macron vowels in **ASCII mode** (half-width or full-width
+alphanumeric) and in **Direct input**:
 
 | Keys | Output |
 |------|--------|

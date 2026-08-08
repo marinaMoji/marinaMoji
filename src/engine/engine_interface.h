@@ -30,6 +30,7 @@
 #ifndef MOZC_ENGINE_ENGINE_INTERFACE_H_
 #define MOZC_ENGINE_ENGINE_INTERFACE_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -95,6 +96,15 @@ class EngineInterface {
 
   // Gets the user POS list.
   virtual std::vector<std::string> GetPosList() const { return {}; }
+
+  // Returns true if `surface` is present in the system or user dictionary.
+  virtual bool IsKnownWord(absl::string_view surface) const { return false; }
+
+  // Records a dictionary-unknown committed compound for later review in
+  // the docket (see dictionary/docket_store.h). No-op unless overridden.
+  virtual void RecordDocketCandidate(absl::string_view surface,
+                                     absl::string_view reading, int32_t lid,
+                                     int32_t rid) const {}
 
   // Maybe reload a new data manager. Returns true if reloaded.
   virtual bool MaybeReloadEngine(EngineReloadResponse* response) {

@@ -363,6 +363,38 @@ mozc_cc_library(
     ],
 )
 
+mozc_cc_library(
+    name = "docket_store",
+    srcs = ["docket_store.cc"],
+    hdrs = ["docket_store.h"],
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//base:file_util",
+        "//base:process_mutex",
+        "//base:system_util",
+        "@com_google_absl//absl/algorithm:container",
+        "@com_google_absl//absl/functional:function_ref",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+mozc_cc_test(
+    name = "docket_store_test",
+    size = "small",
+    srcs = ["docket_store_test.cc"],
+    deps = [
+        ":docket_store",
+        "//base:file_util",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 mozc_cc_test(
     name = "user_dictionary_storage_test",
     size = "small",

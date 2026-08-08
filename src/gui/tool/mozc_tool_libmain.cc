@@ -64,6 +64,7 @@ int RunAboutDialog(int argc, char *argv[]);
 int RunConfigDialog(int argc, char *argv[]);
 int RunDictionaryTool(int argc, char *argv[]);
 int RunWordRegisterDialog(int argc, char *argv[]);
+int RunDocketDialog(int argc, char *argv[]);
 int RunErrorMessageDialog(int argc, char *argv[]);
 
 #ifdef _WIN32
@@ -143,6 +144,8 @@ int RunMozcTool(int argc, char *argv[]) {
     return RunDictionaryTool(argc, argv);
   } else if (absl::GetFlag(FLAGS_mode) == "word_register_dialog") {
     return RunWordRegisterDialog(argc, argv);
+  } else if (absl::GetFlag(FLAGS_mode) == "docket_dialog") {
+    return RunDocketDialog(argc, argv);
   } else if (absl::GetFlag(FLAGS_mode) == "error_message_dialog") {
     return RunErrorMessageDialog(argc, argv);
   } else if (absl::GetFlag(FLAGS_mode) == "about_dialog") {

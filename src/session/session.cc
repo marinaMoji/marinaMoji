@@ -374,6 +374,7 @@ ImeContext::State GetEffectiveStateForTestSendKey(const commands::KeyEvent& key,
 
 Session::Session(const EngineInterface& engine)
     : context_(CreateContext(engine)),
+      engine_(engine),
       left_shift_mode_lock_(LoadLeftShiftDirectLock()) {}
 
 std::unique_ptr<ImeContext> Session::CreateContext(
@@ -584,6 +585,9 @@ bool Session::SendCommand(commands::Command* command) {
     case commands::SessionCommand::LAUNCH_DICTIONARY_TOOL:
       result = LaunchDictionaryTool(command);
       break;
+    case commands::SessionCommand::LAUNCH_DOCKET_DIALOG:
+      result = LaunchDocketDialog(command);
+      break;
     case commands::SessionCommand::INSERT_MACRON_VOWEL: {
       const absl::string_view text = command->input().command().text();
       if (text.size() == 1) {
@@ -749,6 +753,14 @@ bool Session::TestSendKey(commands::Command* command) {
     }
   }
 
+  // Likewise for the keys that cancel the pending macron: SendKey must see them
+  // to clear the state and the on-screen placeholder.
+  if (macron_dead_key_pending_ && key.has_special_key() &&
+      (key.special_key() == commands::KeyEvent::ESCAPE ||
+       key.special_key() == commands::KeyEvent::BACKSPACE)) {
+    return DoNothing(command);
+  }
+
   // To support indirect IME on/off by using KeyEvent::activated, use effective
   // state instead of directly using context_->state().
   const ImeContext::State state =
@@ -860,6 +872,11 @@ bool Session::SendKey(commands::Command* command) {
   // Right Shift alone: toggle Hiragana / Manyōshū (project katakana). Handle at
   // top level so it works in all states and regardless of keymap/client encoding.
   if (IsRightShiftAlone(command->input().key())) {
+    // In Direct input / ASCII the Hiragana-Manyōshū toggle is meaningless, so
+    // the tap is repurposed as the macron dead key instead.
+    if (IsMacronEligibleContext()) {
+      return ArmMacronDeadKey(command);
+    }
     return ToggleManyoshuHiragana(command);
   }
 
@@ -867,11 +884,21 @@ bool Session::SendKey(commands::Command* command) {
     return ToggleLeftShiftModeLock(command);
   }
   if (IsLeftShiftAlone(command->input().key())) {
-    return ToggleLeftShiftDirect(command);
+    return HandleLeftShiftTap(command);
   }
 
-  // Macron dead key (AltGr+umlaut): next key a/e/i/o/u → ā ē ī ō ū
+  // Macron dead key (AltGr+umlaut, or Right Shift tap): next key a/e/i/o/u → ā ē ī ō ū
   if (macron_dead_key_pending_) {
+    // Escape/Backspace back out of the pending state without inserting.
+    // Backspace clears the placeholder only; it never deletes the previously
+    // committed character.
+    if (command->input().has_key() &&
+        command->input().key().has_special_key() &&
+        (command->input().key().special_key() == commands::KeyEvent::ESCAPE ||
+         command->input().key().special_key() ==
+             commands::KeyEvent::BACKSPACE)) {
+      return CancelMacronDeadKey(command);
+    }
     macron_dead_key_pending_ = false;
     if (command->input().has_key() && command->input().key().has_key_code()) {
       const uint32_t code = command->input().key().key_code();
@@ -2311,6 +2338,22 @@ bool Session::CommitInternal(commands::Command* command,
   if (command->output().has_result() && !command->output().result().value().empty()) {
     last_committed_expression_ = command->output().result().value();
     last_committed_reading_ = reading_before_commit;
+
+    // Stash dictionary-unknown compounds in the docket for later review
+    // (see dictionary/docket_store.h). lid/rid ride along on the result
+    // tokens already, copied from the committed candidate.
+    const commands::Result& result = command->output().result();
+    if (Util::CharsLen(result.value()) >= 2 &&
+        !engine_.IsKnownWord(result.value())) {
+      int32_t lid = -1;
+      int32_t rid = -1;
+      if (result.tokens_size() > 0) {
+        lid = result.tokens(0).lid();
+        rid = result.tokens(result.tokens_size() - 1).rid();
+      }
+      engine_.RecordDocketCandidate(result.value(), reading_before_commit,
+                                    lid, rid);
+    }
   }
   return true;
 }
@@ -2865,6 +2908,20 @@ bool Session::LaunchDictionaryTool(commands::Command* command) {
   return true;
 }
 
+bool Session::LaunchDocketDialog(commands::Command* command) {
+  command->mutable_output()->set_launch_tool_mode(
+      commands::Output::DOCKET_DIALOG);
+  ClearUndoContext();
+  context_->mutable_converter()->Reset();
+  context_->mutable_composer()->Reset();
+  if (context_->state() != ImeContext::DIRECT) {
+    SetSessionState(ImeContext::PRECOMPOSITION, context_.get());
+  }
+  command->mutable_output()->set_consumed(true);
+  OutputMode(command);
+  return true;
+}
+
 namespace {
 void AddWordRegisterReadingCandidateIfNew(
     commands::Output* output, const std::string& reading) {
@@ -3064,6 +3121,37 @@ bool Session::ToggleLeftShiftModeLock(commands::Command* command) {
   return true;
 }
 
+namespace {
+// Two Left Shift taps closer together than this count as a double tap. Long
+// enough to be comfortable, short enough that two *deliberate* mode toggles
+// are never merged -- toggling twice in under half a second is a no-op anyway.
+constexpr absl::Duration kLeftShiftDoubleTapWindow = absl::Milliseconds(500);
+}  // namespace
+
+bool Session::HandleLeftShiftTap(commands::Command* command) {
+  const absl::Time now = context_->last_command_time();
+  const absl::Time previous = last_left_shift_tap_time_;
+  last_left_shift_tap_time_ = now;
+
+  if (previous == absl::InfinitePast() ||
+      now - previous > kLeftShiftDoubleTapWindow) {
+    return ToggleLeftShiftDirect(command);
+  }
+
+  // Second tap of a pair. Reset so a third tap starts a fresh pair instead of
+  // pairing with this one.
+  last_left_shift_tap_time_ = absl::InfinitePast();
+  if (!left_shift_mode_lock_) {
+    // Currently unlocked, so the first tap of the pair already flipped the
+    // mode. Flip it back, so that a double tap locks the mode the user was
+    // actually in rather than the one they just bounced through. When already
+    // locked the first tap was a no-op (ToggleLeftShiftDirect returns early),
+    // so there is nothing to undo.
+    ToggleLeftShiftDirect(command);
+  }
+  return ToggleLeftShiftModeLock(command);
+}
+
 bool Session::ToggleTraditionalKanji(commands::Command* command) {
   command->mutable_output()->set_consumed(true);
   config::Config config = config::ConfigHandler::GetCopiedConfig();
@@ -3105,6 +3193,50 @@ bool Session::InsertOdorijiDefault(commands::Command* command) {
   result->set_type(commands::Result::STRING);
   result->set_value(OdorijiPalette::GetCharacter(idx));
   OutputFromState(command);
+  return true;
+}
+
+namespace {
+// U+25CC DOTTED CIRCLE + U+0304 COMBINING MACRON. Shown as a one-character
+// preedit while the macron dead key is armed, matching how desktop dead keys
+// render a diacritic that has no base character yet.
+constexpr absl::string_view kMacronPendingPlaceholder = "\xE2\x97\x8C\xCC\x84";
+
+void SetMacronPendingPreedit(commands::Command* command) {
+  commands::Preedit* preedit = command->mutable_output()->mutable_preedit();
+  preedit->Clear();
+  preedit->set_cursor(1);
+  commands::Preedit::Segment* segment = preedit->add_segment();
+  segment->set_annotation(commands::Preedit::Segment::UNDERLINE);
+  segment->set_value(std::string(kMacronPendingPlaceholder));
+  segment->set_value_length(1);
+}
+}  // namespace
+
+bool Session::IsMacronEligibleContext() const {
+  // Direct input only. InsertMacronVowel itself also accepts ASCII composition
+  // modes, but there Right Shift alone is deliberately passed through to the
+  // application (see RightShiftAloneIgnoresAsciiCompositionMode), so the dead
+  // key is not armed from a tap in those modes -- Ctrl+Alt+vowel still works.
+  return context_->state() == ImeContext::DIRECT;
+}
+
+bool Session::ArmMacronDeadKey(commands::Command* command) {
+  macron_dead_key_pending_ = true;
+  // OutputFromState first so mode/status are populated, then overwrite the
+  // preedit with the placeholder: in Direct input there is no composer preedit
+  // to build on, so the placeholder is synthesized rather than composed.
+  OutputFromState(command);
+  SetMacronPendingPreedit(command);
+  command->mutable_output()->set_consumed(true);
+  return true;
+}
+
+bool Session::CancelMacronDeadKey(commands::Command* command) {
+  macron_dead_key_pending_ = false;
+  // OutputFromState emits an empty preedit here, which clears the placeholder.
+  OutputFromState(command);
+  command->mutable_output()->set_consumed(true);
   return true;
 }
 

@@ -47,6 +47,7 @@ constexpr LocalizedEntry kEntries[] = {
     {L"MM.SymbolsPalette", L"Symbols Palette", L"Palette de symboles",
      L"記号パレット"},
     {L"MM.RegisterWord", L"Add Word...", L"Ajouter un mot...", L"単語登録..."},
+    {L"MM.Docket", L"Docket...", L"File d'attente...", L"未登録語リスト..."},
     {L"MM.DictionaryTool", L"Dictionary Tool...", L"Outil dictionnaire...",
      L"辞書ツール..."},
     {L"MM.Settings", L"Settings...", L"Paramètres...", L"設定..."},

@@ -211,6 +211,16 @@ class Session {
   bool ShowOdorijiPalette(mozc::commands::Command* command);
   bool InsertOdorijiDefault(mozc::commands::Command* command);
   bool InsertMacronVowel(mozc::commands::Command* command);
+  // Right Shift tapped alone in a macron-eligible context: arm the macron dead
+  // key and show the pending placeholder. Escape/Backspace cancel it.
+  bool ArmMacronDeadKey(mozc::commands::Command* command);
+  bool CancelMacronDeadKey(mozc::commands::Command* command);
+  // True where InsertMacronVowel would actually emit a macron: Direct input,
+  // or an ASCII composition mode.
+  bool IsMacronEligibleContext() const;
+  // Left Shift tapped alone: single tap toggles Japanese/direct, double tap
+  // toggles the mode lock.
+  bool HandleLeftShiftTap(mozc::commands::Command* command);
   // marinaMoji: Symbols Palette commit (Kaeriten/Symbols/User tabs) --
   // inserts command.input().command().text() verbatim, no validation.
   bool InsertSymbolText(mozc::commands::Command* command);
@@ -235,6 +245,9 @@ class Session {
 
   // Let client launch dictionary tool
   bool LaunchDictionaryTool(mozc::commands::Command* command);
+
+  // Let client launch the docket review dialog
+  bool LaunchDocketDialog(mozc::commands::Command* command);
 
   // Let client launch word register dialog
   bool LaunchWordRegisterDialog(mozc::commands::Command* command);
@@ -316,6 +329,12 @@ class Session {
   std::string last_committed_expression_;
   std::string last_committed_reading_;
 
+  // Borrowed from the caller (SessionHandler owns the Engine for the
+  // process lifetime and only ever constructs short-lived Sessions
+  // against it, so this reference always outlives the Session). Used to
+  // gate docket capture on commit (see CommitInternal).
+  const EngineInterface& engine_;
+
   // When true, next key that is a/e/i/o/u (or shifted) will insert macron vowel
   // (ā ē ī ō ū). Set by AltGr+umlaut (SetMacronDeadKey), cleared after use or
   // on non-vowel / ResetContext.
@@ -324,6 +343,9 @@ class Session {
   // Left Shift alone: Japanese ↔ direct input (restores saved_japanese_mode_).
   commands::CompositionMode saved_japanese_mode_ = commands::HIRAGANA;
   bool left_shift_mode_lock_ = false;
+  // Time of the last Left Shift tap, for double-tap (mode lock) detection.
+  // InfinitePast means "no pending first tap".
+  absl::Time last_left_shift_tap_time_ = absl::InfinitePast();
 
   std::unique_ptr<ImeContext> CreateContext(
       const EngineInterface& engine) const;
