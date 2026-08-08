@@ -131,6 +131,12 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   std::unique_ptr<GitHubUpdateChecker> update_checker_;
   bool update_check_silent_ = false;
   bool auto_update_check_started_ = false;
+
+  // marinaMoji: one checkbox per mozc::kDictionaryPackIds entry, built at
+  // runtime in the constructor rather than in the .ui file so new packs
+  // (e.g. a future Kyōgen pack) need no GUI code change. Keyed by pack id.
+  // See ConvertFromProto/ConvertToProto and request/dictionary_pack_ids.h.
+  std::map<std::string, QCheckBox *> dictionary_pack_checkboxes_;
 };
 
 }  // namespace gui

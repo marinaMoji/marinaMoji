@@ -51,6 +51,29 @@ MOZC_DATASET_MAGIC_NUMBER = magic_number([
     0x0A,  # <LF>
 ])
 
+# marinaMoji: compiles the optional "experimental" dictionary pack (archaic
+# vocabulary, era/emperor names, court titles) into its own section of the
+# dataset blob, separate from the always-shipped main dictionary. Modeled on
+# the "@dictionary" genrule inside mozc_dataset() in mozc_data.bzl -- same
+# tool, same user_pos_manager_data dependency (produced by the
+# mozc_dataset() call below; label order in this file doesn't matter, Bazel
+# resolves labels after the whole package loads).
+genrule(
+    name = "dictionary_experimental_data",
+    srcs = [
+        "//data/dictionary_oss:dictionary_experimental.tsv",
+        ":mozc_dataset_for_oss@user_pos_manager_data",
+    ],
+    outs = ["dictionary_experimental.data"],
+    cmd = (
+        "$(location //dictionary:gen_system_dictionary_data_main) " +
+        "--input=$(location //data/dictionary_oss:dictionary_experimental.tsv) " +
+        "--user_pos_manager_data=$(location :mozc_dataset_for_oss@user_pos_manager_data) " +
+        "--output=$@"
+    ),
+    tools = ["//dictionary:gen_system_dictionary_data_main"],
+)
+
 mozc_dataset(
     name = "mozc_dataset_for_oss",
     outs = [
@@ -76,6 +99,9 @@ mozc_dataset(
         "//data/dictionary_manual:domain.txt",
     ],
     emoji_src = "//data/emoji:emoji_data.tsv",
+    extra_data = [
+        "dict_experimental:32::dictionary_experimental_data",
+    ],
     emoticon_categorized_src = (
         "//data/emoticon:categorized.tsv"
     ),

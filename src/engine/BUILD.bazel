@@ -152,6 +152,7 @@ mozc_cc_library(
         "//data_manager",
         "//dictionary:dictionary_impl",
         "//dictionary:dictionary_interface",
+        "//dictionary:dictionary_pack_manifest",
         "//dictionary:pos_group",
         "//dictionary:pos_matcher",
         "//dictionary:single_kanji_dictionary",

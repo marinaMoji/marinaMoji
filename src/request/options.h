@@ -129,6 +129,16 @@ struct ConversionOptions {
   // T13N conversion. Populated from Config.
   bool use_t13n_conversion = true;
 
+  // marinaMoji: bitmask of enabled optional dictionary packs. Bit i
+  // corresponds to mozc::kDictionaryPackIds[i] (request/dictionary_pack_ids.h)
+  // -- DictionaryImpl checks this per lookup rather than rebuilding the
+  // engine on toggle, since every pack is compiled into the binary already.
+  // Populated from Config in ConversionRequestBuilder::Build(). Defaults to
+  // "all packs enabled" so tests and other ConversionOptions{} call sites
+  // that don't touch this field see full dictionary content, matching
+  // pre-pack-toggle behavior.
+  uint32_t enabled_dictionary_packs_mask = ~uint32_t{0};
+
   // Enables incognito mode even when Config.incognito_mode() or
   // Request.is_incognito_mode() is false. Use this flag to dynamically change
   // the incognito_mode per client request.

@@ -73,6 +73,7 @@ mozc_cc_test(
     deps = [
         ":dictionary_impl",
         ":dictionary_interface",
+        ":dictionary_mock",
         ":dictionary_token",
         ":pos_matcher",
         ":user_dictionary",
@@ -111,6 +112,20 @@ mozc_cc_library(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
+    ],
+)
+
+# marinaMoji: registry of optional compiled-in supplementary dictionary
+# packs. See dictionary_pack_manifest.h.
+mozc_cc_library(
+    name = "dictionary_pack_manifest",
+    srcs = ["dictionary_pack_manifest.cc"],
+    hdrs = ["dictionary_pack_manifest.h"],
+    visibility = ["//engine:__pkg__"],
+    deps = [
+        "//data_manager",
+        "//request:dictionary_pack_ids",
+        "@com_google_absl//absl/strings",
     ],
 )
 

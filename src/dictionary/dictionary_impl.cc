@@ -53,10 +53,20 @@ DictionaryImpl::DictionaryImpl(
     std::unique_ptr<const DictionaryInterface> value_dictionary,
     const UserDictionaryInterface& user_dictionary,
     const PosMatcher& pos_matcher)
+    : DictionaryImpl(std::move(system_dictionary), std::move(value_dictionary),
+                      user_dictionary, pos_matcher, {}) {}
+
+DictionaryImpl::DictionaryImpl(
+    std::unique_ptr<const DictionaryInterface> system_dictionary,
+    std::unique_ptr<const DictionaryInterface> value_dictionary,
+    const UserDictionaryInterface& user_dictionary,
+    const PosMatcher& pos_matcher,
+    std::vector<std::unique_ptr<const DictionaryInterface>> pack_dictionaries)
     : pos_matcher_(pos_matcher),
       system_dictionary_(std::move(system_dictionary)),
       value_dictionary_(std::move(value_dictionary)),
-      user_dictionary_(user_dictionary) {
+      user_dictionary_(user_dictionary),
+      pack_dictionaries_(std::move(pack_dictionaries)) {
   CHECK(system_dictionary_.get());
   CHECK(value_dictionary_.get());
   dics_.push_back(system_dictionary_.get());
@@ -147,7 +157,7 @@ void DictionaryImpl::LookupPredictive(absl::string_view key,
   CallbackWithFilter callback_with_filter(options, pos_matcher_,
                                           user_dictionary_, callback);
   for (const DictionaryInterface* dic :
-       GetDictionaries(options.incognito_mode)) {
+       GetDictionaries(options)) {
     dic->LookupPredictive(key, &callback_with_filter);
   }
 }
@@ -158,7 +168,7 @@ void DictionaryImpl::LookupPrefix(absl::string_view key,
   CallbackWithFilter callback_with_filter(options, pos_matcher_,
                                           user_dictionary_, callback);
   for (const DictionaryInterface* dic :
-       GetDictionaries(options.incognito_mode)) {
+       GetDictionaries(options)) {
     dic->LookupPrefix(key, &callback_with_filter);
   }
 }
@@ -169,7 +179,7 @@ void DictionaryImpl::LookupExact(absl::string_view key,
   CallbackWithFilter callback_with_filter(options, pos_matcher_,
                                           user_dictionary_, callback);
   for (const DictionaryInterface* dic :
-       GetDictionaries(options.incognito_mode)) {
+       GetDictionaries(options)) {
     dic->LookupExact(key, &callback_with_filter);
   }
 }
@@ -180,7 +190,7 @@ void DictionaryImpl::LookupReverse(absl::string_view str,
   CallbackWithFilter callback_with_filter(options, pos_matcher_,
                                           user_dictionary_, callback);
   for (const DictionaryInterface* dic :
-       GetDictionaries(options.incognito_mode)) {
+       GetDictionaries(options)) {
     dic->LookupReverse(str, &callback_with_filter);
   }
 }
@@ -189,7 +199,7 @@ bool DictionaryImpl::LookupComment(absl::string_view key,
                                    absl::string_view value,
                                    const ConversionOptions& options,
                                    std::string* comment) const {
-  auto dics = GetDictionaries(options.incognito_mode);
+  auto dics = GetDictionaries(options);
   // Access dics in reverse order to prefer UserDictionary (if not in incognito)
   return std::any_of(dics.rbegin(), dics.rend(),
                      [&](const DictionaryInterface* dic) {
@@ -247,12 +257,25 @@ void DictionaryImpl::ClearReverseLookupCache() const {
   }
 }
 
-absl::Span<const DictionaryInterface* const> DictionaryImpl::GetDictionaries(
-    bool incognito_mode) const {
+std::vector<const DictionaryInterface*> DictionaryImpl::GetDictionaries(
+    const ConversionOptions& options) const {
   // Removes the last user dictionary when incognito_mode.
   DCHECK_EQ(dics_.back(), &user_dictionary_);
-  const int size = (incognito_mode && !dics_.empty()) ? 1 : 0;
-  return absl::MakeConstSpan(dics_).first(dics_.size() - size);
+  const int trim = (options.incognito_mode && !dics_.empty()) ? 1 : 0;
+  absl::Span<const DictionaryInterface* const> base =
+      absl::MakeConstSpan(dics_).first(dics_.size() - trim);
+
+  std::vector<const DictionaryInterface*> result(base.begin(), base.end());
+  for (size_t i = 0; i < pack_dictionaries_.size(); ++i) {
+    if (pack_dictionaries_[i] == nullptr) {
+      continue;  // Not bundled by this data-manager variant.
+    }
+    if (!(options.enabled_dictionary_packs_mask & (uint32_t{1} << i))) {
+      continue;  // Disabled for this request.
+    }
+    result.push_back(pack_dictionaries_[i].get());
+  }
+  return result;
 }
 
 }  // namespace dictionary

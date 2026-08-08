@@ -407,6 +407,20 @@ message Config {
   // See: http://unicode.org/reports/tr51/#Presentation_Style
   optional bool use_emoji_conversion = 89 [default = false];
 
+  // Ids of optional compiled-in supplementary dictionary packs the user has
+  // enabled (e.g. "experimental" -- archaic vocabulary, era/emperor names,
+  // court titles). Checked per-lookup by DictionaryImpl; see
+  // dictionary/dictionary_pack_manifest.h for the known pack ids.
+  //
+  // Protobuf `repeated` fields have no wire-level presence bit, so an empty
+  // list is ambiguous between "never configured" and "user disabled
+  // everything." dictionary_packs_configured below resolves that: while
+  // false, readers fall back to each pack's own default-enabled flag
+  // (dictionary_pack_manifest.h) instead of trusting this list. The GUI sets
+  // it true the first time the user touches a pack checkbox.
+  repeated string enabled_dictionary_packs = 91;
+  optional bool dictionary_packs_configured = 92 [default = false];
+
   message InformationListConfig {
     optional bool use_local_usage_dictionary = 1 [default = true];
     reserved 2;

@@ -33,6 +33,7 @@
 #include <cstdint>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
@@ -46,6 +47,7 @@
 #include "data_manager/data_manager.h"
 #include "dictionary/dictionary_impl.h"
 #include "dictionary/dictionary_interface.h"
+#include "dictionary/dictionary_pack_manifest.h"
 #include "dictionary/pos_group.h"
 #include "dictionary/pos_matcher.h"
 #include "dictionary/single_kanji_dictionary.h"
@@ -118,9 +120,38 @@ absl::Status Modules::Init(std::unique_ptr<const DataManager> data_manager) {
                                                        (*sysdic)->value_trie());
     RETURN_IF_NULL(user_dictionary_);
     RETURN_IF_NULL(pos_matcher_);
+
+    // marinaMoji: build one SystemDictionary per manifest entry that this
+    // data-manager variant actually bundles. Every pack is built here
+    // regardless of the user's enabled/disabled choice -- DictionaryImpl
+    // gates inclusion per lookup from ConversionOptions, so toggling a pack
+    // needs no engine reload (see dictionary_pack_manifest.h,
+    // dictionary_impl.cc's GetDictionaries()). A pack this variant doesn't
+    // bundle (empty blob) gets a null entry, which GetDictionaries() skips.
+    std::vector<std::unique_ptr<const dictionary::DictionaryInterface>>
+        pack_dictionaries;
+    for (const dictionary::DictionaryPackInfo& pack :
+         dictionary::kDictionaryPacks) {
+      const absl::string_view pack_data = pack.get_data(*data_manager_);
+      if (pack_data.empty()) {
+        pack_dictionaries.push_back(nullptr);
+        continue;
+      }
+      absl::StatusOr<std::unique_ptr<SystemDictionary>> pack_sysdic =
+          SystemDictionary::Builder(pack_data.data(), pack_data.size())
+              .Build();
+      if (!pack_sysdic.ok()) {
+        LOG(ERROR) << "Failed to build dictionary pack '" << pack.id_info->id
+                   << "': " << pack_sysdic.status();
+        pack_dictionaries.push_back(nullptr);
+        continue;
+      }
+      pack_dictionaries.push_back(*std::move(pack_sysdic));
+    }
+
     dictionary_ = std::make_unique<DictionaryImpl>(
         *std::move(sysdic), std::move(value_dic), *user_dictionary_,
-        *pos_matcher_);
+        *pos_matcher_, std::move(pack_dictionaries));
     RETURN_IF_NULL(dictionary_);
   }
 

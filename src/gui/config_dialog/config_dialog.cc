@@ -67,6 +67,7 @@
 #include "gui/config_dialog/kaeriten_table_editor.h"
 #include "gui/config_dialog/roman_table_editor.h"
 #include "protocol/config.pb.h"
+#include "request/dictionary_pack_ids.h"
 #include "session/keymap.h"
 
 #if defined(__ANDROID__) || defined(__wasm__)
@@ -537,6 +538,30 @@ ConfigDialog::ConfigDialog()
   }
 #endif  // MARINAMOJI && (_WIN32 || __APPLE__)
 
+  // marinaMoji: one checkbox per optional supplementary dictionary pack
+  // (mozc::kDictionaryPackIds), built at runtime rather than in the .ui file
+  // so new packs need no GUI code change -- see dictionary_pack_checkboxes_.
+  // Same dialog on every platform (no separate Windows settings panel
+  // exists), so this covers all of them.
+  {
+    auto *packs_widget = new QWidget(miscTab);
+    auto *packs_layout = new QVBoxLayout(packs_widget);
+    packs_layout->setContentsMargins(0, 0, 5, 10);
+    packs_layout->setSpacing(8);
+
+    for (const DictionaryPackId &pack : kDictionaryPackIds) {
+      auto *checkbox = new QCheckBox(
+          QString::fromUtf8(pack.display_name.data(), pack.display_name.size()),
+          packs_widget);
+      packs_layout->addWidget(checkbox);
+      connect(checkbox, &QCheckBox::toggled, this,
+              &ConfigDialog::EnableApplyButton);
+      dictionary_pack_checkboxes_[std::string(pack.id)] = checkbox;
+    }
+
+    miscTabLayout->insertWidget(0, packs_widget);
+  }
+
   Reload();
 
 #ifdef _WIN32
@@ -903,6 +928,34 @@ void ConfigDialog::ConvertFromProto(const config::Config &config) {
         config.auto_check_for_updates());
   }
 
+  // marinaMoji: dictionary packs. While the user has never touched these
+  // settings (dictionary_packs_configured() == false), each pack's own
+  // default_enabled wins -- an empty enabled_dictionary_packs list can't by
+  // itself distinguish "never configured" from "user disabled everything."
+  // See protocol/config.proto. Same logic, independently, in
+  // request/conversion_request.h's ComputeEnabledDictionaryPacksMask --
+  // update both if this changes.
+  {
+    const bool configured = config.dictionary_packs_configured();
+    for (const DictionaryPackId &pack : kDictionaryPackIds) {
+      auto it = dictionary_pack_checkboxes_.find(std::string(pack.id));
+      if (it == dictionary_pack_checkboxes_.end()) {
+        continue;
+      }
+      bool enabled = pack.default_enabled;
+      if (configured) {
+        enabled = false;
+        for (const std::string &enabled_id : config.enabled_dictionary_packs()) {
+          if (enabled_id == pack.id) {
+            enabled = true;
+            break;
+          }
+        }
+      }
+      it->second->setChecked(enabled);
+    }
+  }
+
   characterFormEditor->Load(config);
 
   if (shortcuts_tab_) {
@@ -1006,6 +1059,21 @@ void ConfigDialog::ConvertToProto(config::Config *config) const {
   GetSendStatsCheckBox();
   GET_CHECKBOX(incognitoModeCheckBox, incognito_mode);
   GET_CHECKBOX(presentationModeCheckBox, presentation_mode);
+
+  // marinaMoji: dictionary packs. Any Apply touches this dialog's checkbox
+  // state at least once, so from here on dictionary_packs_configured() is
+  // true and the saved list -- not each pack's default_enabled -- is
+  // authoritative. See ConvertFromProto above.
+  if (!dictionary_pack_checkboxes_.empty()) {
+    config->set_dictionary_packs_configured(true);
+    config->clear_enabled_dictionary_packs();
+    for (const DictionaryPackId &pack : kDictionaryPackIds) {
+      auto it = dictionary_pack_checkboxes_.find(std::string(pack.id));
+      if (it != dictionary_pack_checkboxes_.end() && it->second->isChecked()) {
+        config->add_enabled_dictionary_packs(std::string(pack.id));
+      }
+    }
+  }
 
   // tab6 (Misc)
   config->set_verbose_level(verboseLevelComboBox->currentIndex());

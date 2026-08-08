@@ -52,6 +52,18 @@ exports_files(
     visibility = ["//data_manager:__subpackages__"],
 )
 
+# marinaMoji: content for the optional "experimental" dictionary pack
+# (archaic vocabulary, era/emperor names, court titles). Same TSV format as
+# dictionary00.txt etc (key\tlid\trid\tcost\tvalue, no header row). Copied
+# from marinaMoji/dictionary's tables_final/supplementary_experimental.tsv via
+# that repo's scripts/sync_experimental_pack_to_marinamozc.py -- regenerate
+# and sync there, rather than hand-editing this file. See dictionary/README.md's
+# "Experimental pack" section in that repo.
+exports_files(
+    srcs = ["dictionary_experimental.tsv"],
+    visibility = ["//data_manager:__subpackages__"],
+)
+
 exports_files(
     # dictionary00.txt is used in system_dictionary_test.cc.
     srcs = ["dictionary00.txt"],

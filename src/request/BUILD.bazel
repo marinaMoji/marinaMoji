@@ -48,6 +48,23 @@ mozc_cc_library(
     ],
 )
 
+# marinaMoji: dependency-free pack-id metadata, shared by ConversionOptions
+# (here) and dictionary/dictionary_pack_manifest.h (adds the DataManager
+# accessor). See dictionary_pack_ids.h for why this lives in request/ rather
+# than dictionary/ -- request/ is the lower layer.
+mozc_cc_library(
+    name = "dictionary_pack_ids",
+    hdrs = ["dictionary_pack_ids.h"],
+    visibility = [
+        "//:__subpackages__",
+        "//dictionary:__subpackages__",
+        "//engine:__pkg__",
+    ],
+    deps = [
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 mozc_cc_library(
     name = "conversion_request",
     hdrs = ["conversion_request.h"],
@@ -60,6 +77,7 @@ mozc_cc_library(
         "//rewriter:__pkg__",
     ],
     deps = [
+        ":dictionary_pack_ids",
         ":options",
         "//base:util",
         "//base/strings:assign",

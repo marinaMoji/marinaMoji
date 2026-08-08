@@ -35,6 +35,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "dictionary/dictionary_interface.h"
 #include "dictionary/pos_matcher.h"
 #include "request/options.h"
@@ -57,6 +58,24 @@ class DictionaryImpl : public DictionaryInterface {
                  std::unique_ptr<const DictionaryInterface> value_dictionary,
                  const UserDictionaryInterface& user_dictionary,
                  const PosMatcher& pos_matcher);
+
+  // marinaMoji: `pack_dictionaries[i]` is consulted only when bit i of
+  // ConversionOptions::enabled_dictionary_packs_mask is set (i.e. it
+  // corresponds to dictionary::kDictionaryPacks[i] -- see
+  // dictionary_pack_manifest.h). May be a null entry for a pack this
+  // data-manager variant doesn't bundle (empty blob -> engine/modules.cc
+  // passes nullptr rather than building an empty SystemDictionary). Unlike
+  // the base three dictionaries, packs are NOT consulted by the
+  // options-less Lookup*(key, callback) overloads below -- those have no
+  // way to know which packs to enable and have no real caller today (see
+  // dictionary_impl.cc); only the ConversionOptions-aware overloads see
+  // pack content.
+  DictionaryImpl(std::unique_ptr<const DictionaryInterface> system_dictionary,
+                 std::unique_ptr<const DictionaryInterface> value_dictionary,
+                 const UserDictionaryInterface& user_dictionary,
+                 const PosMatcher& pos_matcher,
+                 std::vector<std::unique_ptr<const DictionaryInterface>>
+                     pack_dictionaries);
 
   DictionaryImpl(const DictionaryImpl&) = delete;
   DictionaryImpl& operator=(const DictionaryImpl&) = delete;
@@ -96,8 +115,15 @@ class DictionaryImpl : public DictionaryInterface {
   void ClearReverseLookupCache() const override;
 
  private:
-  absl::Span<const DictionaryInterface* const> GetDictionaries(
-      bool incognito_mode) const;
+  // Returns the base three dictionaries (system/value/user, trimming user
+  // when incognito) plus whichever pack_dictionaries_ entries are enabled
+  // by options.enabled_dictionary_packs_mask. Unlike the old bool-only
+  // signature, this builds a small vector per call rather than returning a
+  // view into dics_ -- packs vary per request, so a static span no longer
+  // covers every case. The vector is tiny (a handful of dictionaries), and
+  // this runs once per Lookup* call, not per candidate.
+  std::vector<const DictionaryInterface*> GetDictionaries(
+      const ConversionOptions& options) const;
 
   enum LookupType {
     PREDICTIVE,
@@ -115,8 +141,15 @@ class DictionaryImpl : public DictionaryInterface {
   const UserDictionaryInterface& user_dictionary_;
 
   // Convenient container to handle the above three dictionaries as one
-  // composite dictionary.
+  // composite dictionary. Consulted unconditionally by the options-less
+  // Lookup*(key, callback) overloads; packs are never included here -- see
+  // pack_dictionaries_ and GetDictionaries().
   std::vector<const DictionaryInterface*> dics_;
+
+  // marinaMoji: optional compiled-in supplementary packs, index-aligned
+  // with dictionary::kDictionaryPacks. Entry may be null if this
+  // data-manager variant doesn't bundle that pack.
+  std::vector<std::unique_ptr<const DictionaryInterface>> pack_dictionaries_;
 };
 
 }  // namespace dictionary

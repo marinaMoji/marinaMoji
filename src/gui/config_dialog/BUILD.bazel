@@ -239,6 +239,7 @@ mozc_cc_qt_library(
         "//gui/base:singleton_window_helper",
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",
+        "//request:dictionary_pack_ids",
         "//session:keymap",
         "//session:marina_number_row_bindings_util",
         "//sync:sync_config",

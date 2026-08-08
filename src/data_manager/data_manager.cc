@@ -215,6 +215,10 @@ absl::Status DataManager::InitFromReader(const DataSetReader& reader) {
   if (!reader.Get("dict", &dictionary_data_)) {
     return absl::NotFoundError("Cannot find a dictionary data");
   }
+  // Optional: not every data-manager variant bundles the experimental pack.
+  // Missing section leaves dictionary_experimental_data_ empty rather than
+  // failing init.
+  reader.Get("dict_experimental", &dictionary_experimental_data_);
   if (!reader.Get("sugg", &suggestion_filter_data_)) {
     return absl::NotFoundError("Cannot find a suggestion filter data");
   }
@@ -475,6 +479,10 @@ absl::string_view DataManager::GetConnectorData() const {
 
 absl::string_view DataManager::GetSystemDictionaryData() const {
   return dictionary_data_;
+}
+
+absl::string_view DataManager::GetExperimentalDictionaryData() const {
+  return dictionary_experimental_data_;
 }
 
 std::array<absl::string_view, 2> DataManager::GetCollocationData() const {

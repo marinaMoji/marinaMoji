@@ -41,6 +41,7 @@
 #include "config/config_handler.h"
 #include "data_manager/testing/mock_data_manager.h"
 #include "dictionary/dictionary_interface.h"
+#include "dictionary/dictionary_mock.h"
 #include "dictionary/dictionary_token.h"
 #include "dictionary/pos_matcher.h"
 #include "dictionary/system/system_dictionary.h"
@@ -390,6 +391,100 @@ TEST_F(DictionaryImplTest, HasKeyValue) {
 
   EXPECT_FALSE(d->HasKey("__きょうと__"));
   EXPECT_FALSE(d->HasValue("__京都__"));
+}
+
+// marinaMoji: proves the "experimental" dictionary pack toggle actually
+// gates lookups -- ConversionOptions::enabled_dictionary_packs_mask bit 0
+// controls whether pack_dictionaries_[0] is consulted at all. A tiny fake
+// stands in for a real pack's compiled SystemDictionary; what's under test
+// is DictionaryImpl::GetDictionaries()'s masking, not SystemDictionary
+// itself (covered elsewhere).
+//
+// Overrides the 2-arg LookupExact(key, callback), not the 3-arg
+// ConversionOptions-taking one: DictionaryImpl::LookupExact() consumes
+// `options` once (to build the CallbackWithFilter wrapper) and dispatches
+// to each sub-dictionary via the 2-arg overload -- see dictionary_impl.cc.
+// gmock's MockDictionary only mocks the 3-arg overload, which this call
+// path never reaches, so it can't be reused here without a false negative.
+class CountingFakeDictionary : public DictionaryInterface {
+ public:
+  void LookupExact(absl::string_view key, Callback* callback) const override {
+    ++lookup_exact_calls_;
+  }
+  int lookup_exact_calls() const { return lookup_exact_calls_; }
+
+ private:
+  mutable int lookup_exact_calls_ = 0;
+};
+
+class DictionaryPackToggleTest : public ::testing::Test {
+ protected:
+  std::unique_ptr<DictionaryData> CreateDictionaryDataWithPack(
+      std::unique_ptr<DictionaryInterface> pack) {
+    auto ret = std::make_unique<DictionaryData>();
+    testing::MockDataManager data_manager;
+    ret->pos_matcher =
+        std::make_unique<PosMatcher>(data_manager.GetPosMatcherData());
+    absl::string_view dictionary_data = data_manager.GetSystemDictionaryData();
+    std::unique_ptr<SystemDictionary> sys_dict =
+        SystemDictionary::Builder(dictionary_data.data(),
+                                  dictionary_data.size())
+            .Build()
+            .value();
+    auto val_dict = std::make_unique<ValueDictionary>(*ret->pos_matcher,
+                                                      sys_dict->value_trie());
+    auto user_pos =
+        make_unique_from_tuples<UserPos>(data_manager.GetUserPosData());
+    ret->user_dictionary = std::make_unique<dictionary::UserDictionary>(
+        std::move(user_pos), *ret->pos_matcher);
+
+    std::vector<std::unique_ptr<const DictionaryInterface>> packs;
+    packs.push_back(std::move(pack));
+    ret->dictionary = std::make_unique<DictionaryImpl>(
+        std::move(sys_dict), std::move(val_dict), *ret->user_dictionary,
+        *ret->pos_matcher, std::move(packs));
+    return ret;
+  }
+
+  config::Config config_;
+};
+
+TEST_F(DictionaryPackToggleTest, EnabledPackIsConsulted) {
+  auto fake = std::make_unique<CountingFakeDictionary>();
+  CountingFakeDictionary* fake_ptr = fake.get();
+
+  std::unique_ptr<DictionaryData> data =
+      CreateDictionaryDataWithPack(std::move(fake));
+  DictionaryInterface* d = data->dictionary.get();
+
+  const ConversionRequest convreq =
+      ConversionRequestBuilder().SetConfig(config_).Build();
+  ConversionOptions options = convreq.options();
+  options.enabled_dictionary_packs_mask = 1u << 0;  // bit 0: pack enabled
+
+  MockCallback callback;
+  d->LookupExact("key", options, &callback);
+
+  EXPECT_EQ(fake_ptr->lookup_exact_calls(), 1);
+}
+
+TEST_F(DictionaryPackToggleTest, DisabledPackIsNotConsulted) {
+  auto fake = std::make_unique<CountingFakeDictionary>();
+  CountingFakeDictionary* fake_ptr = fake.get();
+
+  std::unique_ptr<DictionaryData> data =
+      CreateDictionaryDataWithPack(std::move(fake));
+  DictionaryInterface* d = data->dictionary.get();
+
+  const ConversionRequest convreq =
+      ConversionRequestBuilder().SetConfig(config_).Build();
+  ConversionOptions options = convreq.options();
+  options.enabled_dictionary_packs_mask = 0u;  // no packs enabled
+
+  MockCallback callback;
+  d->LookupExact("key", options, &callback);
+
+  EXPECT_EQ(fake_ptr->lookup_exact_calls(), 0);
 }
 
 }  // namespace dictionary

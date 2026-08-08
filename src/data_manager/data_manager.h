@@ -92,6 +92,13 @@ class DataManager {
 
   virtual absl::string_view GetSystemDictionaryData() const;
 
+  // Compiled blob for the optional "experimental" supplementary dictionary
+  // pack (archaic vocabulary, era/emperor names, court titles). Empty if this
+  // data-manager variant doesn't bundle it -- unlike the sections above, this
+  // one is read as optional in InitFromReader() so variants without the pack
+  // still initialize normally. See dictionary/dictionary_pack_manifest.h.
+  virtual absl::string_view GetExperimentalDictionaryData() const;
+
   virtual absl::Span<const uint32_t> GetSuggestionFilterData() const;
 
   // [collocation_data, collocation_suppression_data]
@@ -185,6 +192,7 @@ class DataManager {
   absl::string_view user_pos_string_array_data_;
   absl::string_view connection_data_;
   absl::string_view dictionary_data_;
+  absl::string_view dictionary_experimental_data_;
   absl::string_view suggestion_filter_data_;
   absl::string_view collocation_data_;
   absl::string_view collocation_suppression_data_;

@@ -50,6 +50,7 @@
 #include "prediction/result.h"
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
+#include "request/dictionary_pack_ids.h"
 #include "request/options.h"
 
 namespace mozc {
@@ -123,6 +124,34 @@ class copy_or_view_ptr {
   std::unique_ptr<T> copy_;
 };
 }  // namespace internal
+
+// marinaMoji: bit i is set iff kDictionaryPackIds[i] should be consulted
+// for this request. While the user has never touched dictionary-pack
+// settings (dictionary_packs_configured() == false), each pack's own
+// default_enabled wins -- see protocol/config.proto for why an empty
+// enabled_dictionary_packs list can't carry that meaning by itself.
+inline uint32_t ComputeEnabledDictionaryPacksMask(
+    const config::Config& config) {
+  uint32_t mask = 0;
+  const bool configured = config.dictionary_packs_configured();
+  for (size_t i = 0; i < std::size(kDictionaryPackIds); ++i) {
+    const DictionaryPackId& pack = kDictionaryPackIds[i];
+    bool enabled = pack.default_enabled;
+    if (configured) {
+      enabled = false;
+      for (const std::string& enabled_id : config.enabled_dictionary_packs()) {
+        if (enabled_id == pack.id) {
+          enabled = true;
+          break;
+        }
+      }
+    }
+    if (enabled) {
+      mask |= (uint32_t{1} << i);
+    }
+  }
+  return mask;
+}
 
 // Contains utilizable information for conversion, suggestion and prediction,
 // including composition, preceding text, etc.
@@ -268,6 +297,8 @@ class ConversionRequestBuilder {
         request_.config().use_zip_code_conversion();
     request_.options_.use_t13n_conversion =
         request_.config().use_t13n_conversion();
+    request_.options_.enabled_dictionary_packs_mask =
+        ComputeEnabledDictionaryPacksMask(request_.config());
     if (request_.config().preedit_method() == config::Config::ROMAN) {
       request_.options_.input_mode = ConversionOptions::InputMode::ROMAN;
     } else {
