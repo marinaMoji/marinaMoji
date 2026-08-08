@@ -99,13 +99,13 @@ mozc_dataset(
         "//data/dictionary_manual:domain.txt",
     ],
     emoji_src = "//data/emoji:emoji_data.tsv",
-    extra_data = [
-        "dict_experimental:32::dictionary_experimental_data",
-    ],
     emoticon_categorized_src = (
         "//data/emoticon:categorized.tsv"
     ),
     emoticon_src = "//data/emoticon:emoticon.tsv",
+    extra_data = [
+        "dict_experimental:32::dictionary_experimental_data",
+    ],
     id_def = "//data/dictionary_oss:id.def",
     magic = MOZC_DATASET_MAGIC_NUMBER,
     pos_group_def = (
