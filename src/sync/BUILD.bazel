@@ -71,6 +71,7 @@ mozc_cc_library(
         "//gui:__subpackages__",
         "//mac:__pkg__",
         "//sync:__pkg__",
+        "//win32/base:__pkg__",
     ],
     deps = [
         ":sync_key",

@@ -136,7 +136,9 @@ TEST(MarinaGitHubReleasesTest, ParseAssetDigestFromJson) {
   ])";
   const auto releases = ParseMarinaGitHubReleasesJson(kJson);
   ASSERT_EQ(releases.size(), 1u);
-  ASSERT_EQ(releases[0].assets.size(), 3u);
+  // The .zip isn't a .pkg/.msi/.deb, so ExtractPkgAssets skips it -- only
+  // the two .msi assets are captured.
+  ASSERT_EQ(releases[0].assets.size(), 2u);
   EXPECT_EQ(
       FindMarinaMsiSha256Digest(releases[0], "x64"),
       "aaaabbbbccccddddeeeeffff00001111222233334444555566667777888899");

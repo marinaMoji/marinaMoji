@@ -67,17 +67,63 @@ std::optional<bool> ExtractJsonBoolField(absl::string_view object,
   return std::nullopt;
 }
 
+// Splits a JSON array's contents (the text between its enclosing '[' and
+// ']', exclusive) into its top-level '{...}' elements, respecting nesting.
+std::vector<absl::string_view> SplitJsonObjects(absl::string_view array_body) {
+  std::vector<absl::string_view> objects;
+  int depth = 0;
+  size_t object_start = absl::string_view::npos;
+  for (size_t i = 0; i < array_body.size(); ++i) {
+    const char c = array_body[i];
+    if (c == '{') {
+      if (depth == 0) {
+        object_start = i;
+      }
+      ++depth;
+    } else if (c == '}') {
+      --depth;
+      if (depth == 0 && object_start != absl::string_view::npos) {
+        objects.push_back(
+            array_body.substr(object_start, i - object_start + 1));
+        object_start = absl::string_view::npos;
+      }
+    }
+  }
+  return objects;
+}
+
 void ExtractPkgAssets(absl::string_view object,
                       std::vector<MarinaGitHubAsset>* assets) {
-  size_t pos = 0;
-  while (true) {
-    pos = object.find("\"browser_download_url\"", pos);
-    if (pos == absl::string_view::npos) {
-      break;
+  const size_t assets_key = object.find("\"assets\"");
+  if (assets_key == absl::string_view::npos) {
+    return;
+  }
+  const size_t array_start = object.find('[', assets_key);
+  if (array_start == absl::string_view::npos) {
+    return;
+  }
+  int depth = 0;
+  size_t array_end = absl::string_view::npos;
+  for (size_t i = array_start; i < object.size(); ++i) {
+    if (object[i] == '[') {
+      ++depth;
+    } else if (object[i] == ']') {
+      --depth;
+      if (depth == 0) {
+        array_end = i;
+        break;
+      }
     }
-    const auto url = ExtractJsonStringField(object.substr(pos),
-                                            "browser_download_url");
-    pos += 22;
+  }
+  if (array_end == absl::string_view::npos) {
+    return;
+  }
+  const absl::string_view array_body = object.substr(
+      array_start + 1, array_end - array_start - 1);
+
+  for (const absl::string_view asset_object : SplitJsonObjects(array_body)) {
+    const auto url =
+        ExtractJsonStringField(asset_object, "browser_download_url");
     if (!url.has_value() ||
         (!absl::EndsWith(*url, ".pkg") && !absl::EndsWith(*url, ".msi") &&
          !absl::EndsWith(*url, ".deb"))) {
@@ -85,31 +131,19 @@ void ExtractPkgAssets(absl::string_view object,
     }
     MarinaGitHubAsset asset;
     asset.browser_download_url = *url;
-    // Prefer an explicit name field earlier in the same asset object if present.
-    const size_t name_pos = object.rfind("\"name\"", pos);
-    if (name_pos != absl::string_view::npos && pos - name_pos < 400) {
-      if (const auto name =
-              ExtractJsonStringField(object.substr(name_pos), "name");
-          name.has_value()) {
-        asset.name = *name;
-      }
+    if (const auto name = ExtractJsonStringField(asset_object, "name");
+        name.has_value()) {
+      asset.name = *name;
     }
     if (asset.name.empty()) {
       const size_t slash = url->rfind('/');
       asset.name = slash == std::string::npos ? *url : url->substr(slash + 1);
     }
-    // GitHub lists "digest" earlier in the same asset object, before
-    // "browser_download_url" (see the REST API docs for the release-assets
-    // shape) -- same backward-search window used for "name" above.
-    const size_t digest_pos = object.rfind("\"digest\"", pos);
-    if (digest_pos != absl::string_view::npos && pos - digest_pos < 400) {
-      if (const auto digest =
-              ExtractJsonStringField(object.substr(digest_pos), "digest");
-          digest.has_value()) {
-        constexpr absl::string_view kSha256Prefix = "sha256:";
-        if (absl::StartsWith(*digest, kSha256Prefix)) {
-          asset.digest_sha256 = digest->substr(kSha256Prefix.size());
-        }
+    if (const auto digest = ExtractJsonStringField(asset_object, "digest");
+        digest.has_value()) {
+      constexpr absl::string_view kSha256Prefix = "sha256:";
+      if (absl::StartsWith(*digest, kSha256Prefix)) {
+        asset.digest_sha256 = digest->substr(kSha256Prefix.size());
       }
     }
     assets->push_back(std::move(asset));
