@@ -452,6 +452,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   cursorPosition_ = -1;
   mode_ = mozc::commands::DIRECT;
   suppressSuggestion_ = false;
+  macronDeadKeyPending_ = false;
   spotlightHost_ = false;
   syncingDisplayMode_ = false;
   handlingKeyboardEvent_ = false;
@@ -1023,9 +1024,12 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
 }
 
 - (BOOL)dispatchRightShiftAlone:(const KeyEvent &)keyEvent client:(id)sender {
-  // Direct input: Right Shift is just a modifier key (Linux IBus parity).
+  // Right Shift alone used to be treated as "just a modifier key" in DIRECT.
+  // It now has to reach the server, where a tap in DIRECT arms the macron dead
+  // key (Session::ArmMacronDeadKey).  Holding Shift for a capital is a chord,
+  // not a tap, so KeyCodeMap never produces this event for it.
   if (mode_ == mozc::commands::DIRECT) {
-    return NO;
+    macronDeadKeyPending_ = YES;
   }
 
   if (![self isConverterSessionActivated]) {
@@ -2049,9 +2053,19 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     }
   }
 
+  // Read before updating: the key that *completes* a pending macron must still
+  // be sent to the server below, even though it clears the state.  A bare
+  // modifier event while pending (e.g. holding Shift for the capital form) is
+  // not the awaited vowel, so it leaves the state armed.
+  const BOOL macronWasPending = macronDeadKeyPending_;
+  if (macronDeadKeyPending_ && keyEvent.has_key_code()) {
+    macronDeadKeyPending_ = NO;
+  }
+
   // If the key event is turn on event, the key event has to be sent
   // to the server anyway.
-  if (mode_ == mozc::commands::DIRECT && !mozcClient_->IsDirectModeCommand(keyEvent)) {
+  if (mode_ == mozc::commands::DIRECT && !mozcClient_->IsDirectModeCommand(keyEvent) &&
+      !macronWasPending) {
     // Yen sign special hack: although the current mode is DIRECT,
     // backslash is sent instead of yen sign for JIS yen key with no
     // modifiers.  This behavior is based on the configuration.
@@ -2072,7 +2086,10 @@ bool IsConfigOnlySessionOutput(const Output &output) {
 
   keyEvent.set_mode(mode_);
 
-  if (mode_ != mozc::commands::DIRECT && ![self isConverterSessionActivated]) {
+  // The macron completion runs while mode_ is DIRECT, so the converter session
+  // has to be activated for it too or SendKeyWithContext has nowhere to go.
+  if ((mode_ != mozc::commands::DIRECT || macronWasPending) &&
+      ![self isConverterSessionActivated]) {
     if (![self ensureConverterActivated:sender context:&context]) {
       return NO;
     }

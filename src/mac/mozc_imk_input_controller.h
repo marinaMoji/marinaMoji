@@ -96,6 +96,13 @@
   /** Last mode id passed to |selectInputMode:| (skip redundant macOS sync). */
   std::string lastDisplayModeId_;
 
+  /** Mirrors |Session::macron_dead_key_pending_|.  In DIRECT the controller
+   * normally returns NO for ordinary keys without sending them to the server,
+   * so the vowel completing a macron would never arrive.  Set when a Right
+   * Shift tap is sent in DIRECT, cleared by the next key sent (which the
+   * server either consumes as the macron or treats as a cancel). */
+  bool macronDeadKeyPending_;
+
   /** |keyCodeMap_| manages the mapping between Mac key code and mozc key events. */
   KeyCodeMap *keyCodeMap_;
 

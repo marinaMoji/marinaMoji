@@ -193,6 +193,13 @@ class MozcEngine : public EngineInterface {
   // After Enter echo-back, surrounding text lags until set_cursor_location.
   // Backspace uses left-then-return-false until a consumed key clears this.
   bool surround_stale_after_echo_back_ = false;
+  // Mirrors Session::macron_dead_key_pending_. In Direct input the IME is
+  // inactive, so ProcessKey normally forwards keys to the application without
+  // sending them to the server; while a macron is pending the following vowel
+  // has to get through. Set when a Right Shift tap is sent in Direct, cleared
+  // by the next key sent (which the server either consumes as the macron or
+  // treats as a cancel).
+  bool macron_dead_key_pending_ = false;
 
   // Whether the last Backspace key-down was consumed. Its key-up must take
   // the same path: consuming a release whose press was forwarded leaves the

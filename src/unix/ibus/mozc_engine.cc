@@ -687,16 +687,32 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
                       "return_direct_translated_switch_key_consumed");
     return true;  // Consume; do not send to server.
   }
-  if (property_handler_->GetOriginalCompositionMode() == commands::DIRECT &&
-      IsRightShiftAlone(key)) {
-    MaybeLogIbusDebug("engine.key", "return_direct_right_shift_forward");
-    return false;  // Direct input: Right Shift is just a modifier key.
-  }
+  // Right Shift alone used to be forwarded here as "just a modifier key" in
+  // Direct input. It now has to reach the server, where a tap in Direct arms
+  // the macron dead key (Session::ArmMacronDeadKey). Holding Shift to type a
+  // capital is a chord, not a tap, so it never produces this event and is
+  // unaffected. The key-up is still forwarded to the application by the
+  // modifier-release failsafe below, so Shift cannot get stuck.
 
-  const bool is_left_shift_toggle =
-      IsLeftShiftAlone(key) || IsCtrlLeftShiftAlone(key);
+  const bool is_shift_toggle = IsLeftShiftAlone(key) ||
+                               IsCtrlLeftShiftAlone(key) ||
+                               IsRightShiftAlone(key);
+  const bool in_direct =
+      property_handler_->GetOriginalCompositionMode() == commands::DIRECT;
+  // Read before updating: the key that *completes* a pending macron must still
+  // be let through by the gate below, even though it clears the state.
+  const bool macron_was_pending = macron_dead_key_pending_;
+  if (in_direct && IsRightShiftAlone(key)) {
+    macron_dead_key_pending_ = true;
+  } else if (macron_was_pending && !key.has_key_code() &&
+             !key.has_special_key()) {
+    // A bare modifier press/release while pending (e.g. holding Shift for the
+    // capital form) is not the awaited vowel; leave the state armed.
+  } else {
+    macron_dead_key_pending_ = false;
+  }
   if (!property_handler_->IsActivated() && !client_->IsDirectModeCommand(key) &&
-      !is_left_shift_toggle) {
+      !is_shift_toggle && !macron_was_pending) {
     MaybeLogIbusDebug("engine.key", "return_inactive_forward");
     return false;
   }
@@ -791,6 +807,9 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
   if (output.consumed() && !key.has_key_code() && !key.has_special_key()) {
     if (IsRightShiftAlone(key) || IsLeftShiftAlone(key) ||
         IsCtrlLeftShiftAlone(key)) {
+      // UpdateAll already ran above, so the macron placeholder preedit is on
+      // screen; returning false here only forwards the Shift key-up to the
+      // application as well, which is what keeps Shift from sticking.
       MaybeLogIbusDebug("engine.key",
                         "return_modifier_release_failsafe_forward");
       return false;
