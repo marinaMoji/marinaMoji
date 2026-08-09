@@ -697,18 +697,13 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
   const bool is_shift_toggle = IsLeftShiftAlone(key) ||
                                IsCtrlLeftShiftAlone(key) ||
                                IsRightShiftAlone(key);
-  const bool in_direct =
-      property_handler_->GetOriginalCompositionMode() == commands::DIRECT;
-  // Read before updating: the key that *completes* a pending macron must still
-  // be let through by the gate below, even though it clears the state.
+  // Read before clearing: the key that *completes* a pending macron must still
+  // be let through by the gate below, even though it resolves the state.
   const bool macron_was_pending = macron_dead_key_pending_;
-  if (in_direct && IsRightShiftAlone(key)) {
-    macron_dead_key_pending_ = true;
-  } else if (macron_was_pending && !key.has_key_code() &&
-             !key.has_special_key()) {
-    // A bare modifier press/release while pending (e.g. holding Shift for the
-    // capital form) is not the awaited vowel; leave the state armed.
-  } else {
+  if (key.has_key_code() || key.has_special_key()) {
+    // A real key resolves the dead key: the server turns a vowel into the
+    // macron and treats anything else as a cancel. Bare modifier events (e.g.
+    // holding Shift for the capital form) leave it armed.
     macron_dead_key_pending_ = false;
   }
   if (!property_handler_->IsActivated() && !client_->IsDirectModeCommand(key) &&
@@ -776,6 +771,16 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
     GetCandidateWindowHandler(engine)->Hide(engine);
     MaybeLogIbusDebug("engine.key", "return_sync_locked_consumed");
     return true;
+  }
+
+  // Arm the macron dead key from the server's answer rather than from the
+  // client's idea of the mode. With the IME switched off, IsActivated() is
+  // false while GetOriginalCompositionMode() can still report Hiragana, so a
+  // mode test here would miss exactly the Direct-input case this is for.
+  // Session::ArmMacronDeadKey consumes the key; ToggleManyoshuHiragana
+  // deliberately does not, so consumed() distinguishes them exactly.
+  if (IsRightShiftAlone(key) && output.consumed()) {
+    macron_dead_key_pending_ = true;
   }
 
   const bool had_preedit_before = had_preedit_;

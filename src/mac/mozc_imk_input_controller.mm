@@ -1028,10 +1028,6 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   // It now has to reach the server, where a tap in DIRECT arms the macron dead
   // key (Session::ArmMacronDeadKey).  Holding Shift for a capital is a chord,
   // not a tap, so KeyCodeMap never produces this event for it.
-  if (mode_ == mozc::commands::DIRECT) {
-    macronDeadKeyPending_ = YES;
-  }
-
   if (![self isConverterSessionActivated]) {
     if (![self ensureConverterActivated:sender context:nullptr]) {
       return NO;
@@ -1045,6 +1041,11 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
     return NO;
   }
   [self processOutput:&output client:sender];
+  // Arm the macron dead key from the server's answer rather than from |mode_|:
+  // the client's mode can disagree with the session's state when the IME is
+  // off.  ArmMacronDeadKey consumes the key; ToggleManyoshuHiragana
+  // deliberately does not, so consumed() distinguishes them exactly.
+  macronDeadKeyPending_ = output.consumed() ? YES : NO;
   // Session leaves consumed=false so Shift modifier state clears in the app.
   return output.consumed() ? YES : NO;
 }
