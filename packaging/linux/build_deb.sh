@@ -62,6 +62,25 @@ mkdir -p "$ROOT/debian"
 touch "$ROOT/debian/control"
 SHLIB_DEPS="$(cd "$ROOT" && dpkg-shlibdeps -O --ignore-missing-info "${BINARIES[@]}" | sed 's/^shlibs:Depends=//')"
 rm -rf "$ROOT/debian"
+
+# CI builds on Ubuntu 24.04 (noble), where the 64-bit time_t transition
+# left packages like libqt6gui6t64 with a "t64" suffix. Releases where the
+# transition has completed drop the suffix again (libqt6gui6), so pin
+# dpkg-shlibdeps' t64 names as alternatives rather than hard requirements,
+# letting apt pick whichever name the target release actually has.
+SHLIB_DEPS="$(echo "$SHLIB_DEPS" | awk -F', ' '{
+  for (i = 1; i <= NF; i++) {
+    dep = $i
+    n = split(dep, parts, " ")
+    pkg = parts[1]
+    if (pkg ~ /t64$/) {
+      alt = pkg
+      sub(/t64$/, "", alt)
+      dep = dep " | " alt
+    }
+    printf "%s%s", dep, (i < NF ? ", " : "")
+  }
+}')"
 DEPS="ibus (>= 1.5.0), hicolor-icon-theme${SHLIB_DEPS:+, $SHLIB_DEPS}"
 
 INSTALLED_SIZE="$(du -sk "$ROOT" | cut -f1)"
