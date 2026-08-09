@@ -10,8 +10,11 @@ typing anything else) and then type a vowel:
 | Right Shift, then a | ā |
 | Right Shift, then Shift+A | Ā |
 
-While the dead key is armed, a **◌̄** placeholder appears on screen so you can
-see that a macron is pending. Because the vowel's case comes from ordinary
+While the dead key is armed, a **¯** placeholder (U+00AF MACRON) appears on
+screen so you can see that a macron is pending. It was previously **◌̄**
+(dotted circle + combining macron), the usual way to show a diacritic with no
+base letter, but Windows renders the dotted circle at full size beside the bar
+rather than under it. Because the vowel's case comes from ordinary
 Shift, you can tap Right Shift and then simply *hold* Right Shift for the vowel
 to get the capital form (Ō).
 
@@ -22,6 +25,16 @@ to get the capital form (Ō).
 - This is Direct input only. In Hiragana/Katakana/Manyōshū modes, Right Shift
   alone keeps its usual Hiragana ↔ Manyōshū toggle; in ASCII composition modes
   it is still passed through to the application. Use Ctrl+Alt+vowel there.
+- **Windows StickyKeys:** tapping Shift five times in a row is a Windows
+  accessibility gesture that normally pops up a "turn on StickyKeys?" dialog
+  -- a pattern our own Left/Right Shift tap shortcuts can trigger by
+  accident. marinaMoji's renderer process turns off that specific popup for
+  as long as it's running (see `win32/base/sticky_keys_util.h`) and restores
+  the previous setting on exit; it never touches whether StickyKeys itself is
+  on. If you use StickyKeys deliberately, a plain Shift tap latches Shift for
+  the next key, so Right Shift, a can land as Ā instead of ā -- the Settings
+  → Shortcuts tab shows a warning with a link to Ease of Access settings when
+  it detects this. Ctrl+Alt+vowel is unaffected either way.
 
 ## Ctrl+Alt+vowel
 

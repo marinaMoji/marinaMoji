@@ -35,6 +35,8 @@ class ConfigDialogShortcutsTab {
   QWidget* tab_;
   QCheckBox* disable_left_shift_direct_toggle_;
   QLabel* left_shift_help_;
+  QLabel* sticky_keys_warning_;
+  QPushButton* open_sticky_keys_settings_button_;
   QLabel* number_row_help_;
   QLabel* mac_number_row_note_;
   QTableWidget* number_row_table_;

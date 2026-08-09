@@ -11,6 +11,11 @@
 
 #include "session/marina_number_row_bindings_util.h"
 
+#ifdef _WIN32
+#include "base/process.h"
+#include "win32/base/sticky_keys_util.h"
+#endif  // _WIN32
+
 namespace mozc {
 namespace gui {
 namespace {
@@ -109,6 +114,42 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
       tab_);
   left_shift_help_->setWordWrap(true);
   layout->addWidget(left_shift_help_);
+
+#ifdef _WIN32
+  // marinaMoji: the renderer process turns off the "press Shift 5 times"
+  // popup for its own lifetime (see win32/base/sticky_keys_util.h), so that
+  // case is handled automatically and silently. What that never does is
+  // switch StickyKeys itself off -- if the user (or a previous accidental
+  // 5x-tap, before marinaMoji started disabling the hotkey) already has it
+  // on, a lone Shift tap latches Shift for the next key, which breaks the
+  // gestures above (e.g. capitalizing the next macron vowel unexpectedly).
+  // Surface that instead of silently overriding a real accessibility choice.
+  sticky_keys_warning_ = new QLabel(
+      QObject::tr(
+          "Windows StickyKeys is currently on. It will interfere with the "
+          "Left/Right Shift shortcuts above (a tap latches Shift for the "
+          "next key). If you don't need it, turn it off in Ease of Access "
+          "settings."),
+      tab_);
+  sticky_keys_warning_->setWordWrap(true);
+  sticky_keys_warning_->setStyleSheet("color: #b45309;");  // amber, not error-red
+  layout->addWidget(sticky_keys_warning_);
+
+  open_sticky_keys_settings_button_ =
+      new QPushButton(QObject::tr("Open Ease of Access keyboard settings..."), tab_);
+  layout->addWidget(open_sticky_keys_settings_button_);
+  QObject::connect(open_sticky_keys_settings_button_, &QPushButton::clicked,
+                   [] {
+                     Process::OpenBrowser("ms-settings:easeofaccess-keyboard");
+                   });
+
+  const bool sticky_keys_on = win32::StickyKeysUtil::IsCurrentlyOn();
+  sticky_keys_warning_->setVisible(sticky_keys_on);
+  open_sticky_keys_settings_button_->setVisible(sticky_keys_on);
+#else   // _WIN32
+  sticky_keys_warning_ = nullptr;
+  open_sticky_keys_settings_button_ = nullptr;
+#endif  // _WIN32
 
   layout->addSpacing(16);
 

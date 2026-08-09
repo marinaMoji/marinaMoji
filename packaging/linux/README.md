@@ -6,6 +6,54 @@
 `bazelisk build package` into `marinamoji_<version>_<arch>.deb`. The release
 workflow runs it for amd64 and arm64.
 
+### Installing a local `.deb`
+
+`dpkg -i` never fetches dependencies; it only unpacks and then fails
+configuration if something is missing. Use apt, which resolves them:
+
+```bash
+sudo apt install ./marinamoji_*.deb
+```
+
+(If `dpkg -i` was already run and left the package unconfigured,
+`sudo apt -f install` finishes the job.) Installing from the apt repository
+below resolves dependencies the same way.
+
+### Desktop metadata
+
+`data/` holds the files that make the package presentable to GNOME Software /
+Ubuntu App Center / KDE Discover and to application menus.
+`install_desktop_metadata.sh --root <tree> --version <v>` stages them into an
+install tree; `build_deb.sh` and both Arch PKGBUILDs
+(`packaging/arch/marinamoji{,-bin}`) call it, so every Linux package presents
+itself identically:
+
+| Source | Installed as |
+| --- | --- |
+| `io.github.marinamoji.marinaMoji.desktop` | `/usr/share/applications/` (settings) |
+| `io.github.marinamoji.marinaMoji.Dictionary.desktop` | `/usr/share/applications/` (dictionary tool) |
+| `io.github.marinamoji.marinaMoji.metainfo.xml.in` | `/usr/share/metainfo/…metainfo.xml` (`@VERSION@` / `@DATE@` substituted) |
+| `copyright` | `/usr/share/doc/marinamoji/copyright` (`.deb` only; Arch uses `/usr/share/licenses`) |
+| `usr/share/icons/marinamoji/mozc.{png,svg}` from the zip | `/usr/share/icons/hicolor/{128x128,scalable}/apps/io.github.marinamoji.marinaMoji.{png,svg}` |
+
+The AppStream metainfo is what supplies the publisher name, licence, summary,
+description and release date in software centres; the hicolor copies are what
+make the icon resolve (an `Icon=` name is looked up in icon *themes*, and
+`/usr/share/icons/marinamoji` is not one). When the build host has
+`desktop-file-validate` or `appstreamcli`, the script validates the files.
+
+Keep `<release>` and the `.desktop` `Exec=` paths in step with any change to
+the install layout in `src/unix/build_package.py`.
+
+`marinamoji-bin` repacks the release zip, which contains only the install
+tree, so it fetches `install_desktop_metadata.sh` and `data/*` from the release
+tag over raw.githubusercontent. Those four extra `source=()` entries need real
+`sha256sums` before an AUR upload (`makepkg -g`), like the rest.
+
+The metainfo has no `<screenshots>` yet — software centres rank and display
+entries much better with them, but they must be served from stable URLs (the
+gh-pages site). Tracked in the project TODO under Block 2: Deployment.
+
 ## Product version (About / update checks)
 
 `src/marina_product_version.txt` holds the GitHub-facing version string

@@ -10,6 +10,49 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: avoid the StickyKeys popup our own Shift-tap shortcuts trigger (2026-08-09)
+
+The Left/Right Shift tap gestures (mode toggle, hiragana/manyōshū toggle,
+macron dead key) are exactly the "press Shift 5 times" pattern Windows uses
+to offer turning StickyKeys on, so switching modes briskly could pop up that
+system dialog mid-typing. New `win32/base/sticky_keys_util.{h,cc}`
+(`StickyKeysUtil`) wraps `SystemParametersInfo(SPI_*STICKYKEYS)` to disable
+just that activation hotkey -- never StickyKeys itself -- for the lifetime of
+the renderer process (`renderer/win32/win32_renderer_main.cc`), restoring the
+previous setting on exit (also via the destructor as a safety net). It is
+this one long-lived, single-instance process (unlike the TIP DLL, which loads
+into every focused application) that makes a clean disable/restore lifecycle
+possible.
+
+This only stops the popup; it does not touch StickyKeys itself, which is a
+deliberate accessibility choice for some users -- and if it's already on, a
+plain Shift tap latches Shift for the next key (so a macron vowel can come out
+capitalized). `gui/config_dialog/config_dialog_shortcuts_tab.cc` now detects
+that case (Windows only, via `StickyKeysUtil::IsCurrentlyOn`) and shows a
+warning with a button to open Ease of Access keyboard settings, rather than
+silently overriding it.
+
+### Windows: docket button did nothing; macron placeholder redrawn (2026-08-09)
+
+Second on-hardware round. Two fixes from the same session:
+
+`LAUNCH_DOCKET_DIALOG` was missing from both allowlists on the Windows
+renderer→TIP path, so clicking the toolbar's docket button was silently
+dropped and the dialog never opened. The command type was added to
+`protocol/commands.proto`, `session/session.cc`, `client/client.cc` and
+`win32/base/keyevent_handler.cc` when the docket landed, but not to
+`renderer/renderer_server.cc`'s `SendCommand` switch (which returns false for
+unlisted types before the PostMessage) or
+`win32/tip/tip_edit_session.cc`'s `OnRendererCallbackAsync`. Both now list it
+next to `LAUNCH_CONFIG_DIALOG`/`LAUNCH_DICTIONARY_TOOL`. Worth remembering
+that a new toolbar→session command needs *five* edits, not three.
+
+The armed-macron placeholder changed from `◌̄` (U+25CC DOTTED CIRCLE +
+U+0304 COMBINING MACRON) to a plain `¯` (U+00AF MACRON). The dotted circle is
+the textbook way to display a diacritic with no base character, and it looks
+right on Linux/macOS, but Windows renders it at full glyph size *beside* the
+bar rather than under it — a big circle followed by a stray macron.
+
 ### Docket: a review queue for unregistered committed vocabulary (2026-08-08)
 
 Added the **docket** — a persistent queue of dictionary-unknown compounds

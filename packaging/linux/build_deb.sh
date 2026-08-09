@@ -27,6 +27,8 @@ while [[ $# -gt 0 ]]; do
 done
 [[ -n "$ZIP" && -n "$VERSION" && -n "$ARCH" && -n "$OUTDIR" ]] || usage
 
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 ROOT="$WORK/root"
@@ -34,6 +36,12 @@ mkdir -p "$ROOT"
 unzip -q "$ZIP" -d "$ROOT"
 # tmp/icons.zip is a staging artifact of build_package.py, not an installed file.
 rm -rf "$ROOT/tmp"
+
+# Desktop entries, hicolor icons and AppStream metadata (shared with the Arch
+# packages), plus the Debian copyright file.
+bash "$HERE/install_desktop_metadata.sh" --root "$ROOT" --version "$VERSION"
+install -d "$ROOT/usr/share/doc/marinamoji"
+install -m 644 "$HERE/data/copyright" "$ROOT/usr/share/doc/marinamoji/copyright"
 
 find "$ROOT" -type d -exec chmod 755 {} +
 find "$ROOT" -type f -exec chmod 644 {} +
@@ -54,7 +62,7 @@ mkdir -p "$ROOT/debian"
 touch "$ROOT/debian/control"
 SHLIB_DEPS="$(cd "$ROOT" && dpkg-shlibdeps -O --ignore-missing-info "${BINARIES[@]}" | sed 's/^shlibs:Depends=//')"
 rm -rf "$ROOT/debian"
-DEPS="ibus (>= 1.5.0)${SHLIB_DEPS:+, $SHLIB_DEPS}"
+DEPS="ibus (>= 1.5.0), hicolor-icon-theme${SHLIB_DEPS:+, $SHLIB_DEPS}"
 
 INSTALLED_SIZE="$(du -sk "$ROOT" | cut -f1)"
 

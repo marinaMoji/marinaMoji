@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- @VERSION@ / @DATE@ are substituted by packaging/linux/build_deb.sh. -->
+<component type="desktop-application">
+  <id>io.github.marinamoji.marinaMoji</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>BSD-3-Clause AND Apache-2.0</project_license>
+
+  <name>marinaMoji</name>
+  <summary>Japanese input method for classical and literary Japanese</summary>
+
+  <developer id="io.github.marinamoji">
+    <name>Marina Pandolfino and Daniel Patrick Morgan</name>
+  </developer>
+  <update_contact>daniel.morgan_AT_college-de-france.fr</update_contact>
+
+  <description>
+    <p>
+      marinaMoji is a Japanese input method for historical and pre-modern
+      Japanese text. It is a fork of Mozc tuned for scholarly workflows and
+      installs alongside stock Mozc rather than replacing it.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Kyūjitai/shinjitai conversion via a curated OpenCC table</li>
+      <li>Historical kana input (ゐ, ゑ, and historical distinctions)</li>
+      <li>Full katakana conversion mode, toggled with the right shift key</li>
+      <li>A palette of historical repetition marks (々, 〻, 〱, ゝ, ヽ, ヾ, ゞ, ヶ)</li>
+      <li>Kaeriten input (㆑, ㆒, ㆓, …) as superscript Unicode</li>
+      <li>Macron vowels for romanized transcription</li>
+      <li>Encrypted cross-device synchronization of user dictionaries</li>
+    </ul>
+    <p>
+      The package provides an IBus engine, the settings and dictionary tools,
+      and an Emacs helper.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.marinamoji.marinaMoji.desktop</launchable>
+
+  <provides>
+    <binary>mozc_emacs_helper</binary>
+  </provides>
+
+  <categories>
+    <category>Utility</category>
+    <category>Settings</category>
+  </categories>
+
+  <keywords>
+    <keyword>Japanese</keyword>
+    <keyword>IME</keyword>
+    <keyword>input method</keyword>
+    <keyword>kanji</keyword>
+    <keyword>kana</keyword>
+    <keyword>kyujitai</keyword>
+    <keyword>classical</keyword>
+    <keyword>Mozc</keyword>
+  </keywords>
+
+  <url type="homepage">https://github.com/marinaMoji/marinaMoji</url>
+  <url type="bugtracker">https://github.com/marinaMoji/marinaMoji/issues</url>
+  <url type="help">https://github.com/marinaMoji/marinaMoji#readme</url>
+  <url type="vcs-browser">https://github.com/marinaMoji/marinaMoji</url>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="@VERSION@" date="@DATE@"/>
+  </releases>
+</component>

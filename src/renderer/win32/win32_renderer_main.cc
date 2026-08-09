@@ -33,11 +33,22 @@
 #include "base/win32/winmain.h"
 #include "renderer/init_mozc_renderer.h"
 #include "renderer/win32/win32_server.h"
+#include "win32/base/sticky_keys_util.h"
 
 int main(int argc, char* argv[]) {
   mozc::renderer::InitMozcRenderer(argv[0], &argc, &argv);
 
   mozc::ScopedCOMInitializer com_initializer;
+
+  // marinaMoji: this renderer process is the one long-lived, single-instance
+  // Windows process in the marinaMoji stack (unlike the TIP DLL, which loads
+  // into every focused application), so it is the natural place to hold the
+  // "press Shift 5 times" StickyKeys popup off for as long as marinaMoji is
+  // running, restoring the previous setting on exit. See
+  // win32/base/sticky_keys_util.h for why our own Shift-tap shortcuts need
+  // this, and what it deliberately does not touch.
+  mozc::win32::StickyKeysUtil sticky_keys;
+  sticky_keys.DisableHotkey();
 
   mozc::renderer::win32::Win32Server server;
   server.SetRendererInterface(&server);

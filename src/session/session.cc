@@ -3197,10 +3197,14 @@ bool Session::InsertOdorijiDefault(commands::Command* command) {
 }
 
 namespace {
-// U+25CC DOTTED CIRCLE + U+0304 COMBINING MACRON. Shown as a one-character
-// preedit while the macron dead key is armed, matching how desktop dead keys
-// render a diacritic that has no base character yet.
-constexpr absl::string_view kMacronPendingPlaceholder = "\xE2\x97\x8C\xCC\x84";
+// U+00AF MACRON. Shown as a one-character preedit while the macron dead key
+// is armed. This used to be U+25CC DOTTED CIRCLE + U+0304 COMBINING MACRON,
+// the textbook way to display a diacritic with no base character, but on
+// Windows the dotted circle renders at full glyph size next to the bar rather
+// than under it -- visually a big circle followed by a stray macron. The
+// spacing macron is a single glyph, present in every Latin-1 font, and reads
+// as "a macron is waiting" on its own.
+constexpr absl::string_view kMacronPendingPlaceholder = "\xC2\xAF";
 
 void SetMacronPendingPreedit(commands::Command* command) {
   commands::Preedit* preedit = command->mutable_output()->mutable_preedit();

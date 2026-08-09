@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=marinaMoji Dictionary Tool
+GenericName=Japanese Input Method Dictionary
+Comment=Edit the marinaMoji user dictionary
+Exec=/usr/lib/marinamoji/mozc_tool --mode=dictionary_tool
+Icon=io.github.marinamoji.marinaMoji
+Terminal=false
+Categories=Utility;
+Keywords=Japanese;IME;dictionary;kanji;kana;
+StartupNotify=true
+X-GNOME-SingleWindow=true

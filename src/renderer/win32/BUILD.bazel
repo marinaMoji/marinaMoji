@@ -65,6 +65,7 @@ mozc_win32_cc_prod_binary(
         "//base/win32:scoped_com",
         "//base/win32:winmain",
         "//renderer:init_mozc_renderer",
+        "//win32/base:sticky_keys_util",
     ],
 )
 

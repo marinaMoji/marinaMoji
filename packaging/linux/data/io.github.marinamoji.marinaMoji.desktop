@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=marinaMoji Settings
+GenericName=Japanese Input Method Settings
+Comment=Configure the marinaMoji Japanese input method
+Exec=/usr/lib/marinamoji/mozc_tool --mode=config_dialog
+Icon=io.github.marinamoji.marinaMoji
+Terminal=false
+Categories=Settings;DesktopSettings;Utility;
+Keywords=Japanese;IME;input method;kanji;kana;classical;kyujitai;
+StartupNotify=true
+X-GNOME-SingleWindow=true

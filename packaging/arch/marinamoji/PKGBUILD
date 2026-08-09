@@ -14,7 +14,7 @@ pkgdesc='Japanese input method for classical and literary Japanese (Mozc fork)'
 arch=('x86_64' 'aarch64')
 url='https://github.com/marinaMoji/marinaMoji'
 license=('BSD-3-Clause')
-depends=('ibus' 'qt6-base' 'opencc')
+depends=('ibus' 'qt6-base' 'opencc' 'hicolor-icon-theme')
 makedepends=('bazel' 'python' 'unzip' 'librsvg' 'gtk3')
 provides=('marinamoji')
 conflicts=('marinamoji-bin')
@@ -47,6 +47,12 @@ package() {
   for bin in "${binaries[@]}"; do
     chmod 755 "${pkgdir}/${bin}"
   done
+
+  # .desktop entries, AppStream metainfo and hicolor icons, so the package is
+  # presentable in GNOME Software / KDE Discover and the GUI tools have menu
+  # entries. Shared with the .deb build.
+  bash "${srcdir}/marinaMoji-${pkgver}/packaging/linux/install_desktop_metadata.sh" \
+    --root "${pkgdir}" --version "${pkgver}"
 
   install -Dm644 "${srcdir}/marinaMoji-${pkgver}/LICENSE" \
     "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"

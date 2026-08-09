@@ -1149,12 +1149,12 @@ TEST_F(SessionTest, RightShiftAloneInDirectArmsMacronDeadKey) {
   commands::Command command;
   SessionTestPeer peer(session);
 
-  // Tap arms the dead key and shows the pending placeholder (◌̄).
+  // Tap arms the dead key and shows the pending placeholder (¯).
   EXPECT_TRUE(SendKey("RightShift", &session, &command));
   EXPECT_TRUE(command.output().consumed());
   EXPECT_TRUE(peer.macron_dead_key_pending_());
   ASSERT_EQ(command.output().preedit().segment_size(), 1);
-  EXPECT_EQ(command.output().preedit().segment(0).value(), "◌̄");
+  EXPECT_EQ(command.output().preedit().segment(0).value(), "¯");
 
   // The following vowel commits the macron and disarms the dead key.
   command.Clear();

@@ -117,6 +117,7 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       case commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
       case commands::SessionCommand::LAUNCH_CONFIG_DIALOG:
       case commands::SessionCommand::LAUNCH_DICTIONARY_TOOL:
+      case commands::SessionCommand::LAUNCH_DOCKET_DIALOG:
       case commands::SessionCommand::INSERT_SYMBOL_TEXT:
       case commands::SessionCommand::SHOW_SYMBOLS_PALETTE:
       case commands::SessionCommand::HIDE_SYMBOLS_PALETTE:
@@ -124,7 +125,7 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       case commands::SessionCommand::HIDE_SHORTCUTS_WINDOW:
       case commands::SessionCommand::HIDE_TOOLBAR:
         // marinaMoji: floating toolbar button and context-menu clicks (mode
-        // switch, shin-kyu toggle, dict, dictionary tool, settings, hide),
+        // switch, shin-kyu toggle, docket, dictionary tool, settings, hide),
         // Symbols Palette and Shortcuts window open/close signals, and
         // Symbols Palette commits, in addition to the original candidate
         // click commands.

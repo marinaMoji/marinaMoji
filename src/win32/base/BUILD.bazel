@@ -177,6 +177,32 @@ mozc_cc_library(
 )
 
 mozc_cc_library(
+    name = "sticky_keys_util",
+    srcs = ["sticky_keys_util.cc"],
+    hdrs = ["sticky_keys_util.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    visibility = [
+        "//gui:__subpackages__",
+        "//renderer:__subpackages__",
+    ],
+    deps = [
+        "@com_google_absl//absl/log",
+    ],
+)
+
+mozc_cc_test(
+    name = "sticky_keys_util_test",
+    srcs = ["sticky_keys_util_test.cc"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        ":sticky_keys_util",
+        "//testing:gunit_main",
+    ],
+)
+
+mozc_cc_library(
     name = "indicator_visibility_tracker",
     srcs = ["indicator_visibility_tracker.cc"],
     hdrs = ["indicator_visibility_tracker.h"],

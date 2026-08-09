@@ -11,13 +11,27 @@ pkgdesc='Japanese input method for classical and literary Japanese (Mozc fork)'
 arch=('x86_64' 'aarch64')
 url='https://github.com/marinaMoji/marinaMoji'
 license=('BSD-3-Clause')
-depends=('ibus' 'qt6-base' 'opencc')
+depends=('ibus' 'qt6-base' 'opencc' 'hicolor-icon-theme')
 provides=('marinamoji')
 conflicts=('marinamoji')
-source=("LICENSE-${pkgver}::https://raw.githubusercontent.com/marinaMoji/marinaMoji/v${pkgver}/LICENSE")
+
+# The release zips carry the install tree only, so the desktop entries and
+# AppStream metainfo are fetched from the tag. These are the same files the
+# .deb build stages (packaging/linux/), applied by the same script.
+_raw="https://raw.githubusercontent.com/marinaMoji/marinaMoji/v${pkgver}"
+_appid='io.github.marinamoji.marinaMoji'
+source=("LICENSE-${pkgver}::${_raw}/LICENSE"
+        "install_desktop_metadata-${pkgver}.sh::${_raw}/packaging/linux/install_desktop_metadata.sh"
+        "${_appid}.desktop::${_raw}/packaging/linux/data/${_appid}.desktop"
+        "${_appid}.Dictionary.desktop::${_raw}/packaging/linux/data/${_appid}.Dictionary.desktop"
+        "${_appid}.metainfo.xml.in::${_raw}/packaging/linux/data/${_appid}.metainfo.xml.in")
 source_x86_64=("${url}/releases/download/v${pkgver}/marinaMoji-v${pkgver}-linux-x86_64.zip")
 source_aarch64=("${url}/releases/download/v${pkgver}/marinaMoji-v${pkgver}-linux-arm64.zip")
-sha256sums=('SKIP')
+sha256sums=('SKIP'
+            'SKIP'
+            'SKIP'
+            'SKIP'
+            'SKIP')
 sha256sums_x86_64=('SKIP')
 sha256sums_aarch64=('SKIP')
 
@@ -38,6 +52,17 @@ package() {
   for bin in "${binaries[@]}"; do
     chmod 755 "${pkgdir}/${bin}"
   done
+
+  # install_desktop_metadata.sh expects the data files in one directory named
+  # as in the repository; makepkg drops the downloads flat into ${srcdir}.
+  local data_dir="${srcdir}/desktop-data"
+  install -d "${data_dir}"
+  install -m 644 "${srcdir}/${_appid}.desktop" \
+                 "${srcdir}/${_appid}.Dictionary.desktop" \
+                 "${srcdir}/${_appid}.metainfo.xml.in" \
+                 "${data_dir}/"
+  bash "${srcdir}/install_desktop_metadata-${pkgver}.sh" \
+    --root "${pkgdir}" --version "${pkgver}" --data-dir "${data_dir}"
 
   install -Dm644 "${srcdir}/LICENSE-${pkgver}" \
     "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
