@@ -26,7 +26,7 @@ This document describes the toolbar Symbols Palette in marinaMoji (macOS and Lin
 
 - `Odoriji`: common iteration marks (e.g. `々`, `ゝ`, `ゞ`, `ヽ`, `ヾ`, `〻`, `〱`, `〲`).
 - `Kaeriten`: loaded from `kaeriten.tsv` (the single source of truth; user-modifiable via `custom_kaeriten_table` in Preferences).
-- `Symbols`: general text/editorial symbols (brackets, marks, etc.), excluding odoriji duplicates.
+- `Symbols`: general text/editorial symbols (brackets, marks, etc.), excluding odoriji duplicates. Also includes `ヶ` (katakana small ke, e.g. 三ヶ日) — it isn't a repetition mark so it doesn't belong on the Odoriji tab, but it's common enough in place names to warrant one-click access rather than requiring the `xke` romaji chord.
 - `User`: short strings from `user_symbols.txt`, editable in Preferences (macOS and Linux).
 
 ## Preferences integration

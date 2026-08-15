@@ -244,7 +244,7 @@ std::vector<std::string> BuildKaeritenSymbols(
 std::vector<std::string> BuildDefaultGeneralSymbols() {
   return {"〔", "〕", "［", "］", "【", "】", "〈", "〉", "《", "》", "（", "）",
           "｛", "｝", "□", "■", "○", "△", "×", "※", "〓", "◆", "◇", "◎",
-          "▲", "▽", "…", "—"};
+          "▲", "▽", "…", "—", "ヶ"};
 }
 
 std::string UserSymbolsPath() {

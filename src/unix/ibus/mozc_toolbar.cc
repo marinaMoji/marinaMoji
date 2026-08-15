@@ -1084,7 +1084,7 @@ static std::vector<std::string> BuildDefaultKaeritenSymbols() {
 static std::vector<std::string> BuildDefaultGeneralSymbols() {
   return {"〔", "〕", "［", "］", "【", "】", "〈", "〉", "《", "》", "（", "）",
           "｛", "｝", "□", "■", "○", "△", "×", "※", "〓", "◆", "◇", "◎",
-          "▲", "▽", "…", "—"};
+          "▲", "▽", "…", "—", "ヶ"};
 }
 
 static std::string UserSymbolsFilePath() {

@@ -63,7 +63,7 @@ const wchar_t* const kGeneralSymbols[] = {
     L"\x3008", L"\x3009", L"\x300A", L"\x300B", L"\xFF08", L"\xFF09",
     L"\xFF5B", L"\xFF5D", L"\x25A1", L"\x25A0", L"\x25CB", L"\x25B3",
     L"\xFF0D", L"\x203B", L"\x3013", L"\x25C6", L"\x25C7", L"\x25CE",
-    L"\x25B2", L"\x25BD", L"\x2026", L"\x2014",
+    L"\x25B2", L"\x25BD", L"\x2026", L"\x2014", L"\x30F6",
 };
 
 std::vector<std::wstring> BuildOdorijiSymbols() {

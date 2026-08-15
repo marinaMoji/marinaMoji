@@ -10,6 +10,20 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Symbols Palette: added ヶ to the Symbols tab (2026-08-15)
+
+[#19](https://github.com/marinaMoji/marinaMoji/issues/19): ヶ (katakana
+small ke, as in 三ヶ日) isn't a repetition mark, so it doesn't belong on the
+Odoriji tab, but it's common enough in place names to deserve one-click
+access alongside the `xke` romaji chord. Added to the three duplicated
+`BuildDefaultGeneralSymbols`/`kGeneralSymbols` literal lists that back the
+Symbols Palette's "Symbols" tab: `unix/ibus/mozc_toolbar.cc`,
+`mac/mozc_toolbar.mm`, `renderer/win32/symbols_palette_window.cc`. Also
+noted in `docs/SYMBOLS_PALETTE.md`. In passing: the Windows list uses
+`－` (fullwidth hyphen-minus, `\xFF0D`) at the position where mac/Linux use
+`×` (multiplication sign, U+00D7) — a pre-existing mismatch, left alone
+since it's out of scope here.
+
 ### Linux: odoriji palette flashed top-left and vanished when opened from the IME menu (2026-08-15)
 
 [#20](https://github.com/marinaMoji/marinaMoji/issues/20): `MozcEngine::FocusOut`
