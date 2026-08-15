@@ -21,6 +21,7 @@ This document describes the toolbar Symbols Palette in marinaMoji (macOS and Lin
 - Default behavior is **insert and close**.
 - If `Pin palette` is checked, the palette stays open after insertion.
 - `Odoriji` and `Kaeriten` tabs include a note that keyboard shortcuts exist in the active keymap.
+- The palette also closes on **Escape**, or when focus leaves the composing text field (clicking into a different field or application). Both are handled outside the palette window itself, since it deliberately never takes keyboard focus (so opening it doesn't interrupt typing) — see each platform's key-event/focus-loss handling (`unix/ibus/mozc_engine.cc`, `mac/mozc_toolbar.mm`'s `-cancelOperation:`/`-windowDidResignKey:`, `win32/tip/tip_keyevent_handler.cc`). Without this, a palette left open with nothing clicked had no way to close and would sit on screen indefinitely.
 
 ## Tab contents
 

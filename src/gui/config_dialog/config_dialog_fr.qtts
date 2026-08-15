@@ -74,6 +74,11 @@
         <translation>Conversion en émoticônes</translation>
     </message>
     <message>
+        <location filename="config_dialog.ui" line="400" />
+        <source>Text-based faces, e.g. (T_T), ＼(^o^)／ -- not the same as Emoji conversion below</source>
+        <translation>Visages composés de texte, ex. (T_T), ＼(^o^)／ -- à ne pas confondre avec la conversion en emoji ci-dessous</translation>
+    </message>
+    <message>
         <location filename="config_dialog.ui" line="404" />
         <source>Katakana to English conversion</source>
         <translation>Conversion katakana vers anglais</translation>
@@ -87,6 +92,11 @@
         <location filename="config_dialog.ui" line="446" />
         <source>Emoji conversion</source>
         <translation>Conversion en emoji</translation>
+    </message>
+    <message>
+        <location filename="config_dialog.ui" line="449" />
+        <source>Pictograph characters, e.g. 😀, 🐶 -- not the same as Emoticon conversion above</source>
+        <translation>Pictogrammes emoji, ex. 😀, 🐶 -- à ne pas confondre avec la conversion en émoticônes ci-dessus</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="465" />

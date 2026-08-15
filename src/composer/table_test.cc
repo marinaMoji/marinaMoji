@@ -225,6 +225,38 @@ TEST_F(TableTest, KanaCombination) {
   EXPECT_TRUE(entry->pending().empty());
 }
 
+TEST_F(TableTest, KaeritenShortcuts) {
+  constexpr struct TestCase {
+    absl::string_view input;
+    absl::string_view expected;
+  } test_cases[] = {
+      {";te", "㆝"}, {";ti", "㆞"}, {";ji", "㆟"}, {";jo", "㆖"},
+      {";to", "㆜"}, {";r", "㆑"},  {";1", "㆒"},  {";2", "㆓"},
+      {";3", "㆔"},  {";4", "㆕"},  {";c", "㆗"},  {";g", "㆘"},
+      {";k", "㆙"},  {";o", "㆚"},  {";h", "㆛"},  {";.", "・"},
+      {";,", "、"},
+  };
+
+  Table table;
+  commands::Request request;
+  ASSERT_TRUE(table.InitializeWithRequestAndConfig(request, config_));
+
+  for (const TestCase& test_case : test_cases) {
+    const Entry* entry = table.LookUp(test_case.input);
+    ASSERT_NE(entry, nullptr) << "input = " << test_case.input;
+    EXPECT_EQ(entry->result(), test_case.expected)
+        << "input = " << test_case.input;
+  }
+
+  // The old ;u/;m/;d/;t mappings must not still be present, or a stale
+  // custom_kaeriten_table (or a build that predates the remap) would shadow
+  // the new bundled defaults without any visible error.
+  for (const absl::string_view stale_input : {";u", ";m", ";d", ";t"}) {
+    const Entry* entry = table.LookUp(stale_input);
+    EXPECT_EQ(entry, nullptr) << "input = " << stale_input;
+  }
+}
+
 TEST_F(TableTest, InvalidEntryTest) {
   {
     Table table;

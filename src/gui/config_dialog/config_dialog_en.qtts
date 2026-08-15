@@ -75,6 +75,11 @@
         <translation></translation>
     </message>
     <message>
+        <location filename="config_dialog.ui" line="400"/>
+        <source>Text-based faces, e.g. (T_T), ＼(^o^)／ -- not the same as Emoji conversion below</source>
+        <translation></translation>
+    </message>
+    <message>
         <location filename="config_dialog.ui" line="404"/>
         <source>Katakana to English conversion</source>
         <translation></translation>
@@ -87,6 +92,11 @@
     <message>
         <location filename="config_dialog.ui" line="446"/>
         <source>Emoji conversion</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="config_dialog.ui" line="449"/>
+        <source>Pictograph characters, e.g. 😀, 🐶 -- not the same as Emoticon conversion above</source>
         <translation></translation>
     </message>
     <message>

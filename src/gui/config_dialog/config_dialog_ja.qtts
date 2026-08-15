@@ -225,6 +225,11 @@
         <translation>顔文字変換</translation>
     </message>
     <message>
+        <location filename="config_dialog.ui" line="400"/>
+        <source>Text-based faces, e.g. (T_T), ＼(^o^)／ -- not the same as Emoji conversion below</source>
+        <translation>(T_T)、＼(^o^)／ のようなテキストの顔文字。下の絵文字変換とは異なります</translation>
+    </message>
+    <message>
         <location filename="config_dialog.ui" line="404"/>
         <source>Katakana to English conversion</source>
         <translation>カタカナ英語変換</translation>
@@ -238,6 +243,11 @@
         <location filename="config_dialog.ui" line="446"/>
         <source>Emoji conversion</source>
         <translation>絵文字変換</translation>
+    </message>
+    <message>
+        <location filename="config_dialog.ui" line="449"/>
+        <source>Pictograph characters, e.g. 😀, 🐶 -- not the same as Emoticon conversion above</source>
+        <translation>😀、🐶 のような絵文字（ピクトグラム）。上の顔文字変換とは異なります</translation>
     </message>
     <message>
         <location filename="config_dialog.ui" line="465"/>

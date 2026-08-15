@@ -379,6 +379,18 @@ void MozcEngine::FocusIn(IbusEngineWrapper* engine) {
 }
 
 void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
+  // Losing IME focus means the user clicked (or tabbed) into a different
+  // text field or application -- treat that as "clicked outside" the
+  // palette and close it, the same way Escape does. Left open, an unpinned
+  // palette that the user never clicks a symbol in has no way to close and
+  // sits on screen indefinitely (an always-on-top, undecorated,
+  // never-focusable window -- exactly the shape that can wedge some window
+  // managers/compositors). Do this before the toolbar-hide check below so a
+  // focus-out that closes the palette also unblocks the toolbar's own hide.
+  if (MozcToolbarAvailable()) {
+    MozcToolbarHideSymbolsPalette();
+  }
+
   if (MozcToolbarAvailable() && !MozcToolbarIsSymbolsPaletteVisible()) {
     // Always hide toolbar when engine loses focus (e.g. switching to another IME).
     MozcToolbarScheduleHideDelayed(150);
@@ -690,6 +702,18 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
       HasModifier(key, commands::KeyEvent::LEFT_SHIFT),
       HasModifier(key, commands::KeyEvent::RIGHT_SHIFT),
       IsRightShiftAlone(key));
+
+  // The symbols palette window never accepts keyboard focus (so it doesn't
+  // steal focus from the composing text field), which means it can never
+  // receive Escape itself -- without this, a palette left open with nothing
+  // clicked had no way to close via the keyboard at all. Consume Escape here
+  // instead, for as long as MozcToolbarUpdate keeps the palette in sync.
+  if (key.has_special_key() && key.special_key() == commands::KeyEvent::ESCAPE &&
+      MozcToolbarAvailable() && MozcToolbarIsSymbolsPaletteVisible()) {
+    MozcToolbarHideSymbolsPalette();
+    MaybeLogIbusDebug("engine.key", "return_symbols_palette_escape_consumed");
+    return true;
+  }
 
   // In Direct input there are no Hiragana; the Hiragana/ON key would only
   // trigger IMEOn and switch mode. Consume any KANA or ON key (with or without

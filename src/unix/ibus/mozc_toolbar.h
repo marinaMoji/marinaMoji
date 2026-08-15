@@ -43,6 +43,12 @@ void MozcToolbarSaveVisiblePreference(bool visible);
 // True while the symbols palette window is open (toolbar should stay visible).
 bool MozcToolbarIsSymbolsPaletteVisible();
 
+// Closes the symbols palette window, if open. Call on Escape (the window
+// never accepts keyboard focus, so Escape reaches the engine's normal key
+// pipeline, not the window itself) or when the IME context loses focus
+// (treated as "clicked outside" -- see FocusOut in mozc_engine.cc).
+void MozcToolbarHideSymbolsPalette();
+
 }  // namespace ibus
 }  // namespace mozc
 

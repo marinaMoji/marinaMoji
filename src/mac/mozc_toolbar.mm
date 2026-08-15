@@ -716,11 +716,32 @@ std::string GetKeymapPath(const std::string &filename) {
   }
 
   if (pinCheckbox_.state != NSControlStateValueOn) {
-    g_symbols_palette_visible = false;
-    [[self window] orderOut:nil];
-    g_toolbar_reshow_after_palette_close = true;
-    mozc::mac::MozcToolbarReshowAfterPaletteClose();
+    [self dismissPalette];
   }
+}
+
+// Escape closes the palette. Standard NSResponder action for Esc/Cmd-.;
+// reaches us because the panel is made key on open (see symbolsClicked:).
+- (void)cancelOperation:(id)sender {
+  [self dismissPalette];
+}
+
+// "Clicked outside" the palette: it was made key on open (nonactivating
+// panels can become key for their own controls without stealing app
+// activation from the composing text field's app), so clicking anywhere
+// else -- including back into that text field -- resigns key status. Left
+// unhandled, a palette the user opens and then ignores (clicks nothing,
+// hits nothing) has no way to close and sits on screen indefinitely.
+- (void)windowDidResignKey:(NSNotification *)notification {
+  [self dismissPalette];
+}
+
+- (void)dismissPalette {
+  if (!g_symbols_palette_visible) return;
+  g_symbols_palette_visible = false;
+  [[self window] orderOut:nil];
+  g_toolbar_reshow_after_palette_close = true;
+  mozc::mac::MozcToolbarReshowAfterPaletteClose();
 }
 
 - (void)windowWillClose:(NSNotification *)notification {

@@ -10,6 +10,109 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Settings: clarify Emoticon vs. Emoji conversion with an example (2026-08-15)
+
+[#10](https://github.com/marinaMoji/marinaMoji/issues/10): the two "special
+conversions" checkboxes (顔文字変換/Emoticon and 絵文字変換/Emoji) were
+easy to mix up from the label alone. Added a `toolTip` to each in
+`gui/config_dialog/config_dialog.ui` with a concrete example: Emoticon is
+text-based faces like `(T_T)`, `＼(^o^)／`; Emoji is pictograph characters
+like `😀`, `🐶` — each tooltip also points at the other checkbox by name so
+the distinction is visible without needing both tooltips open at once.
+Added matching `<source>`/`<translation>` entries to
+`config_dialog_{en,fr,ja}.qtts` and regenerated the corresponding `.qm`
+catalogs with `lrelease` (verified via `strings`/UTF-16 decode that all
+three landed in the compiled binaries). Couldn't build the actual GUI
+target locally to see the tooltip rendered (`//gui/config_dialog:config_dialog`
+fails here on a pre-existing, unrelated Qt toolchain gap — the Bazel-fetched
+`qt_mac` repository doesn't have `libexec/uic`/`QtCore.framework` on this
+machine) — validated `config_dialog.ui` and all three `.qtts` as well-formed
+XML instead, and matched the existing `text` property's exact tag structure
+for the new `toolTip` property.
+
+### Symbols Palette: close on Escape or on focus loss, all three platforms (2026-08-15)
+
+Leaving the palette open without clicking a symbol left it stuck on screen
+permanently on Linux (Ubuntu/Wayland), reportedly triggering a compositor
+error — an always-on-top, undecorated, never-focusable window with no way to
+dismiss it. Root cause on all three platforms is the same design choice: the
+palette window deliberately never takes keyboard focus/activation (GTK
+`accept_focus=FALSE`, macOS `NSWindowStyleMaskNonactivatingPanel`, Windows
+`WS_EX_NOACTIVATE` + `SW_SHOWNA`), so it doesn't interrupt the text field
+being composed in — but that also means it can never receive an Escape key
+press directly, and "click outside to dismiss" can't rely on the window
+losing focus the normal way, since it never has it.
+
+- **Linux** (`unix/ibus/mozc_engine.cc`, `unix/ibus/mozc_toolbar.{h,cc}`):
+  Escape is intercepted early in `ProcessKeyEventInternal` — since the
+  palette window can't receive it, it has to be caught in the engine's
+  normal key pipeline instead, via a new `MozcToolbarHideSymbolsPalette()`.
+  "Click outside" is handled in `FocusOut`, which now closes the palette
+  unconditionally before its existing (unrelated) toolbar-hide-scheduling
+  check — as a side effect this also unblocks that check, which previously
+  stayed blocked forever once the palette opened, since it explicitly skips
+  scheduling the toolbar hide while the palette is visible.
+- **macOS** (`mac/mozc_toolbar.mm`): added `-cancelOperation:` (the standard
+  NSResponder hook for Escape) and `-windowDidResignKey:` on
+  `MozcSymbolsPaletteWindowController`, both calling a new shared
+  `-dismissPalette` (extracted from the existing "close after inserting a
+  symbol, unless pinned" path). This works because the panel *is* made key
+  on open (`-symbolsClicked:`'s `makeKeyAndOrderFront:`) despite being
+  non-activating — nonactivating panels can become key for their own
+  controls without stealing app activation from the composing field's app,
+  so both Escape and losing key status route to us reliably.
+- **Windows** (`win32/tip/tip_keyevent_handler.cc`): added
+  `TryCloseSymbolsPaletteOnEscape`, intercepted in `OnKey` the same way as
+  the existing marina number-row shortcuts, directly flipping
+  `TipPrivateContext::symbols_palette_visible()` and forcing a layout
+  refresh (`TipEditSession::OnLayoutChangedAsync`) — no round trip to
+  `mozc_server`, matching how `SHOW_SYMBOLS_PALETTE`/`HIDE_SYMBOLS_PALETTE`
+  are already local-only UI signals never forwarded to the session
+  (`win32/tip/tip_edit_session.cc`). "Click outside" needed **no code
+  change**: `OnKillThreadFocus` → `TipUiHandlerConventional::OnFocusChange`
+  already sends a `RendererCommand` with no `application_info` on real
+  focus loss, and `SymbolsPaletteWindow::OnUpdate` already treats that as
+  "close the palette" — that path just wasn't being exercised by Escape
+  because Escape doesn't change focus at all.
+
+**Verification:** `//mac:mozc_toolbar` builds clean. The Linux and Windows
+changes could not be compile-verified on this host (GTK headers and the
+Win32/TSF toolchain both unavailable on macOS) — brace/paren balance and
+every touched dependency were checked by hand, but both need a real
+Linux/Windows build before merging, same limitation as the other Linux/
+Windows fixes in this batch.
+
+### Diagnosed: new kaeriten shortcuts not taking effect was a stale Bazel build, not a code bug (2026-08-15)
+
+Reported after the `;jo`/`;c`/`;g`/`;to` remap (#21, above): the new shortcuts
+didn't work when actually typed on Linux. Traced end-to-end through the real
+`composer::Table` (not just the display-only shortcut list) and found the
+compiled-in `system://kaeriten.tsv` resource — embedded at build time via
+`base/gen_config_file_stream_data.py` into `config_file_stream_data.inc` —
+was serving the **old** `;u`/`;m`/`;d`/`;t` mapping under this repo's test
+build configuration (`bazel-out/*-ST-*/`), while a plain `bazel build` of
+the same genrule, and the default `bazel-out/*-fastbuild/` config, both
+correctly reflected the new mapping already committed to
+`data/preedit/kaeriten.tsv`. I.e. the source and default build were correct
+throughout; one specific cached build-graph configuration had a stale
+`config_file_stream_data.inc` left over from before the remap. `bazel clean`
+followed by a full rebuild resolved it — every config now agrees.
+
+Given this affects the same file (`data/preedit/kaeriten.tsv`), and Linux
+package builds are also plain Bazel builds subject to the same staleness
+risk, this most likely explains the Linux report directly: rebuild from a
+clean state before repackaging.
+
+Added `TableTest.KaeritenShortcuts` (`composer/table_test.cc`) as a
+permanent regression test — it initializes a real `Table` through
+`InitializeWithRequestAndConfig` (the production path, not synthetic test
+data) and checks every current kaeriten shortcut resolves correctly, and
+that none of the four retired `;u`/`;m`/`;d`/`;t` inputs still resolve. This
+is the first test coverage of the kaeriten table through the actual
+composer, rather than just the TSV-parsing helpers or the shortcuts-display
+list — it would have caught this class of staleness (or a real mapping
+regression) immediately.
+
 ### Symbols Palette: added ヶ to the Symbols tab (2026-08-15)
 
 [#19](https://github.com/marinaMoji/marinaMoji/issues/19): ヶ (katakana

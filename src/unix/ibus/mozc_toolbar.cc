@@ -1836,6 +1836,12 @@ void MozcToolbarUpdate(const commands::Output& output) {
 
 bool MozcToolbarIsSymbolsPaletteVisible() { return g_symbols_palette_visible; }
 
+void MozcToolbarHideSymbolsPalette() {
+  if (!g_symbols_window) return;
+  gtk_widget_hide(g_symbols_window);
+  g_symbols_palette_visible = false;
+}
+
 bool MozcToolbarAvailable() { return true; }
 
 // Load toolbar visibility. Default true (on) for first install; thereafter use saved value.
@@ -1895,6 +1901,7 @@ bool MozcToolbarShouldHideOnFocusLoss() { return false; }
 void MozcToolbarScheduleHideDelayed(unsigned int /*delay_ms*/) {}
 void MozcToolbarUpdate(const commands::Output& /*output*/) {}
 bool MozcToolbarIsSymbolsPaletteVisible() { return false; }
+void MozcToolbarHideSymbolsPalette() {}
 bool MozcToolbarAvailable() { return false; }
 bool MozcToolbarLoadVisiblePreference() { return true; }
 void MozcToolbarSaveVisiblePreference(bool /*visible*/) {}

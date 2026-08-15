@@ -367,6 +367,29 @@ bool TryDispatchMarinaNumberRowShortcut(TipPrivateContext* private_context,
       private_context->GetClient(), output);
 }
 
+// marinaMoji: closes the Symbols Palette on Escape. The palette window is
+// WS_EX_NOACTIVATE + shown via SW_SHOWNA (see
+// renderer/win32/symbols_palette_window.cc) so it never takes keyboard
+// focus -- Escape reaches the focused document's key pipeline here, not the
+// palette window itself. Without this, a palette left open with nothing
+// clicked had no way to close via the keyboard. Mirrors
+// unix/ibus/mozc_engine.cc's Escape handling and
+// mac/mozc_toolbar.mm's -cancelOperation:.
+bool TryCloseSymbolsPaletteOnEscape(TipTextService* text_service,
+                                    ITfContext* context,
+                                    TipPrivateContext* private_context,
+                                    const VirtualKey& vk, bool is_key_down) {
+  if (!is_key_down || vk.virtual_key() != VK_ESCAPE) {
+    return false;
+  }
+  if (!private_context->symbols_palette_visible()) {
+    return false;
+  }
+  private_context->set_symbols_palette_visible(false);
+  TipEditSession::OnLayoutChangedAsync(text_service, context);
+  return true;
+}
+
 HRESULT OnKey(TipTextService* text_service, ITfContext* context,
               bool is_key_down, WPARAM wparam, LPARAM lparam, BOOL* eaten) {
   DCHECK(text_service);
@@ -470,6 +493,10 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
     // In this case, we have a pending output. So no need to call
     // KeyEventHandler::ImeToAsciiEx.
     temporal_output = private_context->GetDeleter()->pending_output();
+  } else if (TryCloseSymbolsPaletteOnEscape(text_service, context,
+                                            private_context, vk,
+                                            is_key_down)) {
+    ignore_this_keyevent = false;
   } else if (open && is_key_down &&
              (vk.wide_char() == kTouchKeyboardPreviousPage)) {
     // Handle PrevPage button on the on-screen keyboard.
