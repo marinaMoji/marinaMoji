@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/log/log.h"
 #include "base/config_file_stream.h"
 #include "composer/kaeriten_table_util.h"
 #include "protocol/config.pb.h"
@@ -171,35 +172,18 @@ void FillDefaultCompositionShortcuts(std::vector<ShortcutEntry>* composition) {
   }
 }
 
-void FillDefaultKaeritenShortcuts(std::vector<ShortcutEntry>* kaeriten) {
-  if (!kaeriten->empty()) {
-    return;
-  }
-  const std::pair<const char*, const char*> kDefault[] = {
-      {";te", "\xe3\x86\x9d"}, {";ti", "\xe3\x86\x9e"},
-      {";ji", "\xe3\x86\x9f"}, {";r", "\xe3\x86\x91"},
-      {";1", "\xe3\x86\x92"},  {";2", "\xe3\x86\x93"},
-      {";3", "\xe3\x86\x94"},  {";4", "\xe3\x86\x95"},
-      {";u", "\xe3\x86\x96"},  {";m", "\xe3\x86\x97"},
-      {";d", "\xe3\x86\x98"},  {";k", "\xe3\x86\x99"},
-      {";o", "\xe3\x86\x9a"},  {";h", "\xe3\x86\x9b"},
-      {";t", "\xe3\x86\x9c"},  {";.", "\xe3\x83\xbb"},
-      {";,", "\xe3\x80\x81"},
-  };
-  for (const auto& entry : kDefault) {
-    kaeriten->emplace_back(entry.first, entry.second);
-  }
-}
-
 void LoadKaeritenEntries(const config::Config& config,
                          std::vector<ShortcutEntry>* kaeriten) {
   kaeriten->clear();
   std::vector<std::pair<std::string, std::string>> pairs;
   mozc::composer::LoadKaeritenShortcutEntries(config, &pairs);
+  if (pairs.empty()) {
+    LOG(ERROR) << "Kaeriten shortcut table loaded empty; "
+               << "system://kaeriten.tsv may be missing from the build.";
+  }
   for (const auto& pair : pairs) {
     kaeriten->emplace_back(pair.first, pair.second);
   }
-  FillDefaultKaeritenShortcuts(kaeriten);
 }
 
 // Collapses several bindings of one command into a single row, following

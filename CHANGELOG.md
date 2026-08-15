@@ -10,6 +10,42 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Kaeriten shortcuts: fix `;t` prefix collision, remap to readings, drop duplicate default tables (2026-08-15)
+
+[#21](https://github.com/marinaMoji/marinaMoji/issues/21): `;t` (丁) was a
+strict prefix of `;te` (天) and `;ti` (地) in `data/preedit/kaeriten.tsv`, so
+pressing space right after `;t` committed 丁 even when typing toward `;te`/`;ti`.
+Remapped the colliding/less-intuitive entries to equal-length, reading-based
+keys: `;jo` 上 (was `;u`), `;c` 中 (was `;m`), `;g` 下 (was `;d`), `;to` 丁 (was
+`;t`) — mirrors the existing `;te`/`;ti` pattern, so no entry is a prefix of
+another.
+
+While auditing this, found the same default-shortcut list hardcoded three
+times beyond the actual source of truth: `unix/ibus/mozc_toolbar.cc`,
+`mac/mozc_toolbar.mm`, and `session/marina_shortcut_list_util.cc` each had a
+literal `FillDefaultKaeritenShortcuts` array used only as a fallback when
+`composer::LoadKaeritenShortcutEntries` returned empty. Since
+`data/preedit/kaeriten.tsv` is compiled into every process via
+`config_file_stream`'s embedded-data generation (`base/gen_config_file_stream_data.py`),
+that fallback path is unreachable in practice — it just meant three
+hand-copied literals to keep in sync (or, as here, forget to). Removed all
+three; the tsv (overridable per-user via `config.custom_kaeriten_table`,
+already wired to the "Edit kaeriten shortcuts..." dialog) is now the sole
+source, with a `LOG(ERROR)` in each call site if it's ever actually empty
+instead of a silent stale substitute.
+
+### Linux: user symbols didn't appear in the Symbols Palette until reboot (2026-08-15)
+
+[#18](https://github.com/marinaMoji/marinaMoji/issues/18): `ShowSymbolsPalette()`
+in `unix/ibus/mozc_toolbar.cc` caches the whole palette window as a static
+singleton and only builds the "User" tab (from `user_symbols.txt`) the first
+time it's opened after `mozc_toolbar` starts; every later click just re-raised
+the same cached window, so symbols added later via Preferences were saved
+correctly but never re-read until the long-lived toolbar process itself
+restarted. macOS and Windows were unaffected — both already rebuild/reload the
+palette on every open. Added `RefreshUserSymbolsTab()`, which rebuilds just
+the User tab's notebook page from disk before raising the cached window.
+
 ### Windows: avoid the StickyKeys popup our own Shift-tap shortcuts trigger (2026-08-09)
 
 The Left/Right Shift tap gestures (mode toggle, hiragana/manyōshū toggle,

@@ -7,6 +7,7 @@
 
 #include "unix/ibus/mozc_toolbar.h"
 
+#include "absl/log/log.h"
 #include "base/file_util.h"
 #include "composer/kaeriten_table_util.h"
 #include "session/marina_number_row_bindings_util.h"
@@ -1040,30 +1041,6 @@ static void FillDefaultCompositionShortcuts(std::vector<ShortcutEntry>* composit
   for (const auto& p : kDefault) composition->emplace_back(p.first, p.second);
 }
 
-static void FillDefaultKaeritenShortcuts(std::vector<ShortcutEntry>* kaeriten) {
-  if (!kaeriten->empty()) return;
-  const std::pair<const char*, const char*> kDefault[] = {
-      {";te", "\xe3\x86\x9d"},   // ㆝
-      {";ti", "\xe3\x86\x9e"},   // ㆞
-      {";ji", "\xe3\x86\x9f"},   // ㆟
-      {";r", "\xe3\x86\x91"},    // ㆑
-      {";1", "\xe3\x86\x92"},    // ㆒
-      {";2", "\xe3\x86\x93"},    // ㆓
-      {";3", "\xe3\x86\x94"},    // ㆔
-      {";4", "\xe3\x86\x95"},    // ㆕
-      {";u", "\xe3\x86\x96"},    // ㆖
-      {";m", "\xe3\x86\x97"},    // ㆗
-      {";d", "\xe3\x86\x98"},    // ㆘
-      {";k", "\xe3\x86\x99"},    // ㆙
-      {";o", "\xe3\x86\x9a"},    // ㆚
-      {";h", "\xe3\x86\x9b"},    // ㆛
-      {";t", "\xe3\x86\x9c"},    // ㆜
-      {";.", "\xe3\x83\xbb"},    // ・
-      {";,", "\xe3\x80\x81"},    // 、
-  };
-  for (const auto& p : kDefault) kaeriten->emplace_back(p.first, p.second);
-}
-
 static void LoadKaeritenEntries(const config::Config* config,
                                 std::vector<ShortcutEntry>* kaeriten) {
   kaeriten->clear();
@@ -1073,11 +1050,12 @@ static void LoadKaeritenEntries(const config::Config* config,
   }
   std::vector<std::pair<std::string, std::string>> pairs;
   composer::LoadKaeritenShortcutEntries(effective, &pairs);
+  if (pairs.empty()) {
+    LOG(ERROR) << "Kaeriten shortcut table loaded empty; "
+               << "system://kaeriten.tsv may be missing from the build.";
+  }
   for (const auto& pair : pairs) {
     kaeriten->emplace_back(pair.first, pair.second);
-  }
-  if (kaeriten->empty()) {
-    FillDefaultKaeritenShortcuts(kaeriten);
   }
 }
 

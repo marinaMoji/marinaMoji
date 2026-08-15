@@ -629,6 +629,7 @@ mozc_cc_library(
         "//base:config_file_stream",
         "//composer:kaeriten_table_util",
         "//protocol:config_cc_proto",
+        "@com_google_absl//absl/log",
     ],
 )
 

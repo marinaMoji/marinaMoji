@@ -196,6 +196,7 @@ mozc_objc_library(
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",
         "//session:marina_number_row_bindings_util",
+        "@com_google_absl//absl/log",
     ],
 )
 
