@@ -477,7 +477,7 @@ ConfigDialog::ConfigDialog()
 #ifndef GOOGLE_JAPANESE_INPUT_BUILD
   usageStatsCheckBox->setChecked(false);
   usageStatsCheckBox->setEnabled(false);
-  usageStatsCheckBox->setVisible(true);
+  usageStatsCheckBox->setVisible(false);
   usageStatsLabel->setVisible(true);
   usageStatsLabel->setEnabled(true);
   usageStatsLine->setVisible(true);
@@ -502,6 +502,7 @@ ConfigDialog::ConfigDialog()
 #if defined(MARINAMOJI) && (defined(_WIN32) || defined(__APPLE__))
   {
     auto *updates_widget = new QWidget(miscTab);
+    updates_widget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     auto *updates_layout = new QVBoxLayout(updates_widget);
     updates_layout->setContentsMargins(0, 0, 5, 10);
     updates_layout->setSpacing(8);
@@ -545,6 +546,7 @@ ConfigDialog::ConfigDialog()
   // exists), so this covers all of them.
   {
     auto *packs_widget = new QWidget(miscTab);
+    packs_widget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     auto *packs_layout = new QVBoxLayout(packs_widget);
     packs_layout->setContentsMargins(0, 0, 5, 10);
     packs_layout->setSpacing(8);
