@@ -706,15 +706,16 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
     // holding Shift for the capital form) leave it armed.
     macron_dead_key_pending_ = false;
   }
-  if (!property_handler_->IsActivated() && !client_->IsDirectModeCommand(key) &&
-      !is_shift_toggle && !macron_was_pending) {
-    MaybeLogIbusDebug("engine.key", "return_inactive_forward");
-    return false;
-  }
-
-  key.set_activated(property_handler_->IsActivated());
-  key.set_mode(property_handler_->GetOriginalCompositionMode());
-
+  // Not gated on IsActivated(): these shortcuts (e.g. Ctrl+Shift+5 to turn
+  // Hiragana on, odoriji palette, Manyoshu) must reach the dispatcher from a
+  // closed/direct state too, since they turn the IME on themselves via
+  // EnsureImeOn/TURN_ON_IME when invoked while inactive. Gating this behind
+  // the inactive-forward check below made the toggle one-directional: it
+  // only ran once the IME was already active, so Hiragana->ASCII worked but
+  // ASCII->Hiragana silently forwarded the keystroke to the application
+  // instead (https://github.com/marinaMoji/marinaMoji/issues/13). Mirrors
+  // win32/tip/tip_keyevent_handler.cc's OnKey, which dispatches this
+  // unconditionally on |open| for the same reason.
   config::Config marina_config;
   if (!IsBackspaceKeyEvent(key) && client_->GetConfig(&marina_config)) {
     commands::Output marina_output;
@@ -728,6 +729,15 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
       return true;
     }
   }
+
+  if (!property_handler_->IsActivated() && !client_->IsDirectModeCommand(key) &&
+      !is_shift_toggle && !macron_was_pending) {
+    MaybeLogIbusDebug("engine.key", "return_inactive_forward");
+    return false;
+  }
+
+  key.set_activated(property_handler_->IsActivated());
+  key.set_mode(property_handler_->GetOriginalCompositionMode());
 
   commands::Context context;
   SurroundingTextInfo surrounding_text_info;

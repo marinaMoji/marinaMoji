@@ -10,6 +10,23 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Linux: Ctrl+Shift+5 only toggled Hiragana→ASCII, not the reverse (2026-08-15)
+
+[#13](https://github.com/marinaMoji/marinaMoji/issues/13): `MozcEngine::ProcessKeyEventInternal`
+(`unix/ibus/mozc_engine.cc`) only called `DispatchMarinaNumberRowShortcut` —
+which already handles both toggle directions correctly via
+`TURN_ON_IME`/`TURN_OFF_IME` — *after* the "IME inactive, forward to
+application" early-return gate. That gate only lets a key through while
+inactive if it's in the keymap's `DirectInput` table, and `Ctrl Shift 5`
+isn't (only backtick is, for plain `IMEOn`). So with the IME off (ASCII),
+Ctrl+Shift+5 never reached the dispatcher at all and was forwarded straight
+to the focused application; with the IME on (Hiragana), the gate doesn't
+apply and the toggle worked. Moved the dispatch call above the gate so it
+runs unconditionally, matching `win32/tip/tip_keyevent_handler.cc`'s `OnKey`
+(added during the recent Windows number-row port), whose "not gated on
+`open`" comment already claimed this was how ibus behaved — it wasn't, until
+now.
+
 ### Kaeriten shortcuts: fix `;t` prefix collision, remap to readings, drop duplicate default tables (2026-08-15)
 
 [#21](https://github.com/marinaMoji/marinaMoji/issues/21): `;t` (丁) was a
