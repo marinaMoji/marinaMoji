@@ -1280,9 +1280,22 @@ static void RaiseSymbolsPaletteWithoutFocus() {
   if (gw) gdk_window_raise(gw);
 }
 
+constexpr int kSymbolsTabUser = 3;
+
+static void RefreshUserSymbolsTab() {
+  if (!g_symbols_notebook) return;
+  GtkWidget* new_page = CreateSymbolsTabPage(
+      LoadUserSymbolsFromFile(), "Edit user symbols in Preferences.", false);
+  gtk_notebook_remove_page(GTK_NOTEBOOK(g_symbols_notebook), kSymbolsTabUser);
+  gtk_notebook_insert_page(GTK_NOTEBOOK(g_symbols_notebook), new_page,
+                           gtk_label_new("User"), kSymbolsTabUser);
+  gtk_widget_show_all(new_page);
+}
+
 static void ShowSymbolsPalette() {
   CancelPendingHide();
   if (g_symbols_window) {
+    RefreshUserSymbolsTab();
     RaiseSymbolsPaletteWithoutFocus();
     g_symbols_palette_visible = true;
     return;
