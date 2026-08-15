@@ -10,6 +10,39 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Linux: odoriji palette flashed top-left and vanished when opened from the IME menu (2026-08-15)
+
+[#20](https://github.com/marinaMoji/marinaMoji/issues/20): `MozcEngine::FocusOut`
+(`unix/ibus/mozc_engine.cc`) unconditionally hides the candidate window and
+calls `RevertSession` on every focus loss. Clicking "Odoriji" in the ibus
+panel/property menu — a separate surface from the focused text field —
+tends to bounce keyboard focus off and back, so `FocusOut` fires right after
+`PropertyActivate` shows the palette. `Session::Revert` (`session/session.cc`)
+is a genuine no-op for the odoriji palette when there's no preedit (it only
+touches undo-context/converter state in `PRECOMPOSITION`), so the palette
+stays alive server-side — but `FocusOut`'s own `Hide()` call tears it down
+client-side anyway, orphaning it until the next real keystroke (e.g. Space)
+resyncs client and server state. That resync is what made the bug look like
+"press Space once and it works": the underlying session was fine the whole
+time, only the client's window got prematurely hidden. Also explains the
+top-left flash: candidate window positioning is fully delegated to ibus
+(`IBusCandidateWindowHandler::UpdateCursorRect` is a no-op by design), which
+falls back to a default position when the palette opens without a
+recently-established cursor context — as happens when triggered from the
+menu rather than a real keystroke.
+
+Fix: added `odoriji_property_show_time_` (`unix/ibus/mozc_engine.h`), set
+when the property-menu handler sends `SHOW_ODORIJI_PALETTE`. `FocusOut`
+skips its `Hide()`/`RevertSession()` calls if it lands within 500ms of that
+timestamp, treating it as the spurious focus bounce rather than a genuine
+focus change — everything else in `FocusOut` (toolbar-hide scheduling,
+`ResetContentType`, `SyncData`, tracked-modifier release) still runs
+normally. Follows the same "don't tear down a just-opened palette on a
+focus blip" precedent already used for the Symbols Palette
+(`!MozcToolbarIsSymbolsPaletteVisible()`, one line above), and the same
+debounce-window shape already used elsewhere in this file (300ms
+autorepeat suppression, 150ms toolbar-hide delay).
+
 ### Linux: Ctrl+Shift+5 only toggled Hiragana→ASCII, not the reverse (2026-08-15)
 
 [#13](https://github.com/marinaMoji/marinaMoji/issues/13): `MozcEngine::ProcessKeyEventInternal`

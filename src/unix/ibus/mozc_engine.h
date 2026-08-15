@@ -207,6 +207,17 @@ class MozcEngine : public EngineInterface {
   // Wayland/GTK, which drive repeat client-side from press/release pairs).
   bool backspace_down_consumed_ = false;
 
+  // Set right after the IME-menu "Odoriji" property is activated. Clicking
+  // the ibus panel menu (a separate surface from the focused text field) can
+  // bounce keyboard focus off and back, delivering a FocusOut immediately
+  // after the palette is shown. FocusOut normally hides the candidate window
+  // and reverts the session; the odoriji palette survives that revert
+  // server-side (it isn't a preedit), so hiding it client-side just orphans
+  // it until the next real keystroke resyncs -- the "flashes then
+  // disappears until you press Space" bug. Suppresses that one Hide/Revert
+  // if it lands within the debounce window below.
+  absl::Time odoriji_property_show_time_;
+
   friend class MozcEngineTestPeer;
 };
 

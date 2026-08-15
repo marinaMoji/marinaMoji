@@ -92,6 +92,11 @@ constexpr char kMozcDefaultUILocale[] = "en_US.UTF-8";
 // for every 5 minutes, call SyncData
 const absl::Duration kSyncDataInterval = absl::Minutes(5);
 
+// How long after the IME-menu "Odoriji" property is activated a FocusOut is
+// treated as the spurious focus bounce from clicking the panel menu itself,
+// rather than a genuine focus change. See odoriji_property_show_time_.
+const absl::Duration kOdorijiPropertyFocusOutGrace = absl::Milliseconds(500);
+
 const char* kUILocaleEnvNames[] = {
     "LC_ALL",
     "LC_MESSAGES",
@@ -378,7 +383,19 @@ void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
     // Always hide toolbar when engine loses focus (e.g. switching to another IME).
     MozcToolbarScheduleHideDelayed(150);
   }
-  GetCandidateWindowHandler(engine)->Hide(engine);
+
+  // Clicking the ibus panel menu's "Odoriji" item can bounce focus off the
+  // text field and back, delivering a FocusOut right after the palette was
+  // shown. The palette isn't a preedit, so RevertSession's PRECOMPOSITION
+  // path leaves it alone server-side -- but Hide() below would still tear it
+  // down client-side, orphaning it until the next real keystroke resyncs.
+  // Skip both calls once for a FocusOut landing in that narrow window.
+  const bool suppress_for_odoriji_menu =
+      Clock::GetAbslTime() - odoriji_property_show_time_ <
+      kOdorijiPropertyFocusOutGrace;
+  if (!suppress_for_odoriji_menu) {
+    GetCandidateWindowHandler(engine)->Hide(engine);
+  }
   property_handler_->ResetContentType(engine);
 
   // Note that the preedit string (if any) will be committed by IBus runtime
@@ -388,7 +405,9 @@ void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
   // preedit text. Note that |RevertSession| is supposed to do nothing when
   // there is no preedit text.
   // See https://github.com/google/mozc/issues/255 for details.
-  RevertSession(engine);
+  if (!suppress_for_odoriji_menu) {
+    RevertSession(engine);
+  }
   SyncData(false);
   ReleaseTrackedModifiers(engine);
 }
@@ -888,6 +907,7 @@ void MozcEngine::PropertyActivate(IbusEngineWrapper* engine,
     command.set_type(commands::SessionCommand::SHOW_ODORIJI_PALETTE);
     commands::Output output;
     if (client_->SendCommand(command, &output)) {
+      odoriji_property_show_time_ = Clock::GetAbslTime();
       UpdateAll(engine, output);
     }
     return;
