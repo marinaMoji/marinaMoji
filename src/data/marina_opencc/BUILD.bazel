@@ -1,5 +1,6 @@
-# Curated marinaMoji OpenCC data (shin→kyū). Sync from character_conversion:
-#   bash sync_marina_opencc.sh   # from marinaMozc/src/
+# Curated marinaMoji OpenCC data (shin→kyū). Source CSVs live in tables/;
+# regenerate marinaShin2Kyu.json and the .ocd2 files with:
+#   bash regen_opencc.sh   # from marinaMozc/src/
 package(default_visibility = ["//visibility:public"])
 
 filegroup(

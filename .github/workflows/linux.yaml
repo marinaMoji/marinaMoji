@@ -13,6 +13,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  verify_opencc_tables:
+    # Ensures the committed marina OpenCC dictionaries (.json/.ocd2) match
+    # what src/regen_opencc.sh produces from the hand-edited CSVs in
+    # src/data/marina_opencc/tables/. Catches a CSV edit that wasn't
+    # followed by a local `bash regen_opencc.sh` + commit.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: false
+          persist-credentials: false
+
+      - name: Install OpenCC
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y opencc libopencc-dev
+
+      - name: Regenerate tables
+        working-directory: ./src
+        run: bash regen_opencc.sh
+
+      - name: Fail if regeneration produced a diff
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet -- src/data/marina_opencc; then
+            echo "::error::src/data/marina_opencc is stale. Run 'bash regen_opencc.sh' from src/ and commit the result."
+            git diff --stat -- src/data/marina_opencc
+            exit 1
+          fi
+
   build:
     # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md
     # ubuntu-24.04-arm is GitHub's hosted arm64 runner (free for public repos).

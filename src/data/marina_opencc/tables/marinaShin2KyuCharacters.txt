@@ -1,0 +1,15 @@
+# marinaMoji OpenCC dictionary (jp2t layer 2 - Characters, one-to-many only)
+# File: marinaShin2KyuCharacters.txt
+# Format: shin_char<TAB>kyu1 kyu2 ...
+# Source: char_complete_shin_kyu_table_manual.csv + char_one_to_many_table_manual.csv
+# OpenCC analogue: JPShinjitaiCharacters.txt
+
+予	予 豫
+亘	亘 亙
+余	余 餘
+台	台 臺
+弁	瓣 辨 辮 辯
+欠	欠 缺
+欲	慾 欲
+着	着 著
+缶	缶 罐

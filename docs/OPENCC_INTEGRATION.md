@@ -15,17 +15,57 @@ This document describes **OpenCC**-based character conversion is integrated in t
 
 ## Updating conversion tables
 
-Table curation happens in **`character_conversion`** (sibling repo / marinaMoji monorepo). Step-by-step: edit CSVs → generate → compile → sync → rebuild.
+**`character_conversion` (sibling repo) is the source of truth** for the
+curated shin/kyu CSV tables — it has the fuller tooling (provenance columns,
+expansion scripts) and stays private (it holds copyrighted source material
+elsewhere in that repo), so marinaMozc CI cannot fetch from it directly. Add
+or edit pairs there, in `tables_output/`:
 
-**Runbook:** [`character_conversion/Documentation/PORTING_TO_IME.md`](../../marinaMoji/character_conversion/Documentation/PORTING_TO_IME.md) (in the marinaMoji checkout beside marinaMozc).
+- `char_complete_shin_kyu_table_manual.csv` and `char_one_to_many_table_manual.csv`
+  — character pairs (columns `shin,kyu,...`).
+- `phrases_substitution_table_final.csv` — phrase pairs (columns `kyu,shin`,
+  read by header name so order doesn't matter to the generator, but easy to
+  get backwards when adding a row by hand).
 
-**Quick sync** (after `opencc_runtime/` is ready), from `marinaMozc/src`:
+**marinaMozc keeps its own imported copy** of those same CSVs, under
+[`src/data/marina_opencc/tables/`](../src/data/marina_opencc/tables/), plus
+the generated `.txt` tables, `marinaShin2Kyu.json`, and the compiled `.ocd2`
+binaries — all committed here so the IME builds without needing a sibling
+checkout.
+
+**Normal flow — edit upstream, pull in:** edit a table in
+`character_conversion`, then from `marinaMozc/src`:
 
 ```bash
-bash sync_marina_opencc.sh
+bash import_opencc_tables.sh
 ```
 
-Then rebuild and reinstall the IME (macOS or Linux). Sync alone does not update a running app.
+(Set `MARINA_OPENCC_SRC` if `character_conversion` isn't checked out as a
+sibling of `marinaMoji`/`marinaMozc`.) This copies the three CSVs in, then
+runs `regen_opencc.sh`, which regenerates the `.txt` tables and
+`marinaShin2Kyu.json` and compiles the three `.ocd2` binaries via the
+`opencc_dict` CLI (Debian/Ubuntu: `apt-get install opencc libopencc-dev`;
+macOS: `brew install opencc`). Commit the CSV + `.txt`/`.json`/`.ocd2`
+changes together, then rebuild and reinstall the IME (macOS or Linux) to see
+it in a running app.
+
+**Quick-fix flow — edit here instead:** you can also hand-edit a CSV
+directly in `src/data/marina_opencc/tables/` and run `bash regen_opencc.sh`
+(recompile only, no import). Afterward, run `bash export_opencc_tables.sh` to
+push that CSV back to `character_conversion`, or the next
+`import_opencc_tables.sh` will silently overwrite your edit with the stale
+upstream version — and `character_conversion`'s own copy (which also feeds
+the Rime-based marinaMoji IME) will stay out of sync until you do.
+
+CI enforces that the committed dictionaries stay in sync with the committed
+CSVs: the `verify_opencc_tables` job in
+[`.github/workflows/linux.yaml`](../.github/workflows/linux.yaml) reruns
+`regen_opencc.sh` (not the import — CI has no access to the private
+`character_conversion` repo) on every push and fails if it produces any diff,
+i.e. if someone committed a stale `.txt`/`.json`/`.ocd2` for the CSVs that
+are actually checked in here. It cannot detect that marinaMozc's CSV copies
+themselves are behind `character_conversion` — that still requires someone
+to run `import_opencc_tables.sh` and commit the result.
 
 ## How marinaMoji does it (reference)
 
