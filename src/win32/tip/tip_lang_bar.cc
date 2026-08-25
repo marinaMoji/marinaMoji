@@ -406,7 +406,7 @@ HRESULT TipLangBar::UpdateMenu(bool enabled, uint32_t composition_mode) {
   // The custom toolbar already surfaces the input mode, so the langbar mode
   // icon would just duplicate it in the taskbar. Hide the mode icon there
   // while the toolbar is visible; the tool icon (and its right-click menu)
-  // stays shown in the taskbar regardless. See b/marinaMozc-22.
+  // stays shown in the taskbar regardless. See GitHub issue #22.
   const bool shown_in_tray = !mozc::win32::LoadToolbarVisiblePreference();
   input_button_menu_->SetShownInTray(shown_in_tray);
   input_mode_button_for_win8_->SetShownInTray(shown_in_tray);

@@ -312,7 +312,11 @@ void TipLangBarButton::SetShownInTray(bool shown_in_tray) {
     item_info_.dwStyle &= ~TF_LBI_STYLE_SHOWNINTRAY;
   }
   if (item_info_.dwStyle != old_style) {
-    OnUpdate(TF_LBI_STYLE);
+    // There is no dedicated "style changed" flag; GetInfo() returns the
+    // whole TF_LANGBARITEMINFO (dwStyle included) on any OnUpdate, so reuse
+    // the same flag combination already used elsewhere in this file to force
+    // a refresh.
+    OnUpdate(TF_LBI_ICON | TF_LBI_STATUS | TF_LBI_TEXT);
   }
 }
 
