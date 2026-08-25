@@ -461,6 +461,7 @@ mozc_cc_library(
         "//base/win32:hresultor",
         "//protocol:commands_cc_proto",
         "//win32/base:msctf_dll",  # buildcleaner: keep
+        "//win32/base:toolbar_config",
         "@com_google_absl//absl/log",
         "@com_microsoft_wil//:wil",
     ],

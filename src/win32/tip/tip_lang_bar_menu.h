@@ -159,6 +159,11 @@ class TipLangBarButton : public TipComImplements<ITfLangBarItemButton,
   // Notifies the language bar of a change in a language bar item.
   STDMETHODIMP OnUpdate(DWORD update_flag);
 
+  // Shows or hides this item when the language bar is minimized to the
+  // taskbar/tray. Notifies the system via OnUpdate(TF_LBI_STYLE) only when
+  // the visibility actually changes.
+  void SetShownInTray(bool shown_in_tray);
+
   // Returns true if a 32-bpp icon can be displayed as a context menu item on
   // the LangBar.  See http://b/2260057 and http://b/2265755
   // for details.

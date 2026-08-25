@@ -304,6 +304,18 @@ STDMETHODIMP TipLangBarButton::GetStatus(DWORD* status) {
   return S_OK;
 }
 
+void TipLangBarButton::SetShownInTray(bool shown_in_tray) {
+  const DWORD old_style = item_info_.dwStyle;
+  if (shown_in_tray) {
+    item_info_.dwStyle |= TF_LBI_STYLE_SHOWNINTRAY;
+  } else {
+    item_info_.dwStyle &= ~TF_LBI_STYLE_SHOWNINTRAY;
+  }
+  if (item_info_.dwStyle != old_style) {
+    OnUpdate(TF_LBI_STYLE);
+  }
+}
+
 // Implements the ITfLangBarItem::Show() function.
 // This function is called by Windows to notify the display status of this
 // button menu has been updated.

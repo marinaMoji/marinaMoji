@@ -42,6 +42,7 @@
 #include "base/win32/com.h"
 #include "base/win32/hresultor.h"
 #include "protocol/commands.pb.h"
+#include "win32/base/toolbar_config.h"
 #include "win32/tip/tip_dll_module.h"
 #include "win32/tip/tip_lang_bar_callback.h"
 #include "win32/tip/tip_lang_bar_menu.h"
@@ -287,6 +288,11 @@ HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
          IDI_DICTIONARY},  // Use Dictionary icon temporarily
         {kTipLangBarItemTypeDefault, TipLangBarCallback::kProperty,
          IDS_PROPERTY, IDI_PROPERTY_NT, IDI_PROPERTY},
+        {kTipLangBarItemTypeSeparator, 0, 0, 0, 0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kAbout, IDS_ABOUT, 0,
+         0},
+        {kTipLangBarItemTypeDefault, TipLangBarCallback::kHelp, IDS_HELP, 0,
+         0},
     };
 
     // Always show the tool icon so that a user can find the icon.
@@ -396,6 +402,14 @@ HRESULT TipLangBar::UpdateMenu(bool enabled, uint32_t composition_mode) {
   input_button_menu_->SetEnabled(enabled);
   tool_button_menu_->SetEnabled(enabled);
   input_mode_button_for_win8_->SetEnabled(enabled);
+
+  // The custom toolbar already surfaces the input mode, so the langbar mode
+  // icon would just duplicate it in the taskbar. Hide the mode icon there
+  // while the toolbar is visible; the tool icon (and its right-click menu)
+  // stays shown in the taskbar regardless. See b/marinaMozc-22.
+  const bool shown_in_tray = !mozc::win32::LoadToolbarVisiblePreference();
+  input_button_menu_->SetShownInTray(shown_in_tray);
+  input_mode_button_for_win8_->SetShownInTray(shown_in_tray);
   return S_OK;
 }
 
