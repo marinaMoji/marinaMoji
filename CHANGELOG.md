@@ -10,6 +10,61 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS toolbar: Shortcuts button opened a window nobody could see (2026-08-26)
+
+The toolbar's **Shortcuts** button appeared dead: clicking it did
+nothing. `MozcShortcutsWindowController` built a plain `NSWindow`, and
+the IME bundle is `LSBackgroundOnly` + `LSUIElement`
+([`src/mac/Info.plist`](src/mac/Info.plist)) — a background-only process
+cannot order an ordinary window to the front, so
+`makeKeyAndOrderFront:` silently did nothing. Every other window the IME
+shows (the toolbar itself, the symbols palette) is a non-activating
+floating `NSPanel`, which is why those work.
+
+The shortcuts window is now built like the symbols palette:
+`NSWindowStyleMaskNonactivatingPanel`, `floatingPanel:YES`,
+`NSPopUpMenuWindowLevel`, `hidesOnDeactivate:NO`,
+`becomesKeyOnlyIfNeeded:YES` (so its three tables stay scrollable and
+selectable without stealing focus from the app being typed into), and
+`CanJoinAllSpaces`.
+
+### macOS: Right Shift in Direct input toggled Manyōshū instead of arming the macron (2026-08-26)
+
+A Right Shift tap in Direct input switched to katakana rather than
+arming the macron dead key. `-dispatchRightShiftAlone:` called
+`-ensureConverterActivated:` before sending the tap, so the session had
+already left `ImeContext::DIRECT` by the time it arrived;
+`Session::IsMacronEligibleContext()` was then false and the tap fell
+through to `ToggleManyoshuHiragana`. Because that path does not consume
+the key, `macronDeadKeyPending_` was cleared too — the dead key could
+never arm on macOS at all.
+
+The client no longer activates the session while `mode_` is DIRECT:
+`Session::SendKey` is answered whether or not the session is activated,
+so the tap reaches the server either way. The same activation was
+removed from the macron *completion* key in `-handleEvent:client:`
+(previously `mode_ != DIRECT || macronWasPending`), since
+`Session::InsertMacronVowel` commits the vowel directly only while the
+session is still in `ImeContext::DIRECT` — otherwise it falls through to
+`InsertCharacter` and would have composed あ instead of committing ā.
+Linux never had this bug: `mozc_engine.cc`'s inactive-key gate lets the
+tap and the completion through without any `TURN_ON_IME`.
+
+### Number-row shortcuts: unbound slots beep (not a macOS bug) (2026-08-26)
+
+Investigated `Ctrl+Shift+2` (odoriji palette) and `Ctrl+Shift+5`
+(hiragana/direct) beeping on macOS while `Ctrl+Shift+1` and `3` worked.
+The key path was innocent: `KeyCodeMap` maps *physical* `kVK_ANSI_1`…`0`
+under Ctrl+Shift to US digits before any layout translation, so Dvorak
+and AZERTY match QWERTY slots. The saved config simply had the palette
+on slot **6** and hiragana/direct on slot **9**;
+`GetEffectiveMarinaNumberRowBindings` falls back to the defaults only
+when the stored list is *empty*, so a saved list is used verbatim and
+the unbound chords fall through to the ordinary keymap, are consumed by
+nobody, and beep. No code changed. Worth knowing that there is no
+"restore defaults" control in the Shortcuts tab — a slot moved by
+accident has to be moved back by hand.
+
 ### macOS: diagnosed ad-hoc-signed Converter/Renderer getting SIGKILLed (2026-08-26)
 
 Investigated a local install where the Input Sources list showed the raw

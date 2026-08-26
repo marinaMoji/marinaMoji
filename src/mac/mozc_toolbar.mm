@@ -307,16 +307,26 @@ std::string GetKeymapPath(const std::string &filename) {
 @implementation MozcShortcutsWindowController
 
 - (instancetype)initWithClient:(mozc::client::ClientInterface *)client {
-  NSWindow *window =
-      [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 440, 400)
-                                  styleMask:NSWindowStyleMaskTitled |
-                                            NSWindowStyleMaskClosable |
-                                            NSWindowStyleMaskResizable
-                                    backing:NSBackingStoreBuffered
-                                      defer:YES];
+  // Must be a non-activating floating NSPanel, exactly like the symbols
+  // palette below: the IME bundle is LSBackgroundOnly/LSUIElement, and a
+  // background-only process cannot order a plain NSWindow to the front --
+  // |makeKeyAndOrderFront:| silently did nothing, so the button looked dead.
+  NSPanel *window =
+      [[NSPanel alloc] initWithContentRect:NSMakeRect(0, 0, 440, 400)
+                                 styleMask:NSWindowStyleMaskTitled |
+                                           NSWindowStyleMaskClosable |
+                                           NSWindowStyleMaskResizable |
+                                           NSWindowStyleMaskNonactivatingPanel
+                                   backing:NSBackingStoreBuffered
+                                     defer:YES];
   window.title = MarinaLocalizedString(@"MM.KeyboardShortcuts");
   window.releasedWhenClosed = NO;
   window.delegate = self;
+  [window setFloatingPanel:YES];
+  [window setLevel:NSPopUpMenuWindowLevel];
+  [window setHidesOnDeactivate:NO];
+  [window setBecomesKeyOnlyIfNeeded:YES];
+  window.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces;
   [window center];
 
   self = [super initWithWindow:window];
