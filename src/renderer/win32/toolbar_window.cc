@@ -293,6 +293,7 @@ ToolbarWindow::~ToolbarWindow() {}
 
 void ToolbarWindow::Initialize() {
   Create(nullptr);
+  shadow_.Initialize();
   // Gives the window an accessible name for screen readers and window
   // enumerators; the toolbar draws no text of its own.
   SetWindowTextW(MarinaLocalizedString(L"MM.Toolbar"));
@@ -321,6 +322,7 @@ LRESULT ToolbarWindow::OnCreate(LPCREATESTRUCT create_struct) {
 
 void ToolbarWindow::OnDestroy() {
   CancelPendingHide();
+  shadow_.Destroy();
   if (accessible_ != nullptr) {
     static_cast<IAccessible*>(accessible_)->Release();
     accessible_ = nullptr;
@@ -347,6 +349,7 @@ void ToolbarWindow::Hide() {
   hovered_button_ = -1;
   pressed_button_ = -1;
   ShowWindow(SW_HIDE);
+  shadow_.Hide();
 }
 
 void ToolbarWindow::SchedulePendingHide() {
@@ -506,6 +509,9 @@ void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
   if (!IsWindowVisible()) {
     SetWindowPos(HWND_TOPMOST, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    // Redraw() above ran while the toolbar was still hidden, so UpdateShadow()
+    // declined to show the shadow. Now that the toolbar is up, restack it.
+    UpdateShadow();
   }
 }
 
@@ -764,7 +770,26 @@ void ToolbarWindow::Redraw() {
   ::UpdateLayeredWindow(m_hWnd, nullptr, &top_left, &size, mem_dc.get(),
                         &src_origin, 0, &blend, ULW_ALPHA);
 
+  UpdateShadow();
   UpdateTooltips();
+}
+
+void ToolbarWindow::UpdateShadow() {
+  // Redraw() runs before the first show, and WM_WINDOWPOSCHANGED arrives on
+  // hide as well; in both cases the shadow must stay down rather than appear
+  // by itself.
+  if (!IsWindow() || !IsWindowVisible() || updating_shadow_) {
+    return;
+  }
+  CRect window_rect;
+  if (!GetWindowRect(&window_rect)) {
+    return;
+  }
+  const double scale = GetDPIScalingFactor(dpi_);
+  // Only the restack can come back at us, so the guard wraps just that.
+  updating_shadow_ = true;
+  shadow_.Update(m_hWnd, window_rect, kCornerRadiusLogical * scale, scale);
+  updating_shadow_ = false;
 }
 
 int ToolbarWindow::HitTestButton(const CPoint& point) const {

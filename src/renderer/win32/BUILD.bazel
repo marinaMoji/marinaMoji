@@ -193,6 +193,19 @@ mozc_cc_library(
 )
 
 mozc_cc_library(
+    name = "shadow_window",
+    srcs = ["shadow_window.cc"],
+    hdrs = ["shadow_window.h"],
+    tags = MOZC_TAGS.WIN_ONLY,
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = [
+        "//base:const",
+        "//bazel/win32:gdi32",
+        "//bazel/win32:user32",
+    ],
+)
+
+mozc_cc_library(
     name = "toolbar_window",
     # toolbar_accessible.cc implements the MSAA tree for the toolbar's
     # custom-drawn buttons and needs ToolbarWindow, which in turn creates the
@@ -209,6 +222,7 @@ mozc_cc_library(
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
         ":marina_localized_string",
+        ":shadow_window",
         ":win32_dpi_util",
         ":win32_image_util",
         ":win32_renderer_util",

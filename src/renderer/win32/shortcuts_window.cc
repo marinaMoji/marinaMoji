@@ -91,7 +91,7 @@ RECT CurrentMonitorWorkArea(const commands::RendererCommand& command) {
   HMONITOR monitor = nullptr;
   if (command.has_application_info() &&
       command.application_info().has_target_window_handle()) {
-    const HWND target = ::mozc::win32::WinUtil::DecodeWindowHandle(
+    const HWND target = ::mozc::WinUtil::DecodeWindowHandle(
         command.application_info().target_window_handle());
     if (target != nullptr) {
       monitor = ::MonitorFromWindow(target, MONITOR_DEFAULTTONULL);

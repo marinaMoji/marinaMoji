@@ -10,6 +10,103 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows CI: wrong namespace on WinUtil::DecodeWindowHandle (2026-08-27)
+
+The Windows build broke on master (run 33020383634, both x64 and arm64) with
+`'mozc::WinUtil' is not a class, namespace, or enumeration` from
+`shortcuts_window.cc`. `DecodeWindowHandle` is a static member of
+`mozc::WinUtil` in `base/win32/win_util.h`, but two of the windows added in
+"Big Windows batch" qualified it as `::mozc::win32::WinUtil` — the namespace
+that `base/win32/wide_char.h`'s `Utf8ToWide` / `WideToUtf8` live in, which is
+probably where the habit came from. Fixed in both `shortcuts_window.cc` and
+`symbols_palette_window.cc`; only the first had been reached before Bazel
+aborted, so the second would have failed the next run. The BUILD deps were
+already correct.
+
+Note the build stopped at the first error, so targets after it were never
+compiled — a green run is the only real confirmation there was nothing else.
+
+### Drop shadows for the frameless popup windows (2026-08-27)
+
+Both popups are frameless (`Qt::ToolTip | Qt::FramelessWindowHint`), so no
+window manager decorates them and they sat on whatever was behind them with
+no visible edge. Qt clips a `QGraphicsDropShadowEffect` to its top-level
+widget's bounds, so a frameless popup cannot cast one itself; it has to sit
+inside a slightly larger translucent parent for the shadow to spill into.
+`CreateShadowFrame()` in
+[`qt_window_manager.cc`](src/renderer/qt/qt_window_manager.cc) builds that
+parent, and geometry now goes through `MoveContent` / `ResizeContent` /
+`ContentRect`, which all speak in terms of the *content* rect. The
+positioning maths and the rect reported back to the IME are unchanged — the
+12px margin never leaks into either.
+
+The frame deliberately has **no layout**. The first attempt used a
+`QVBoxLayout` with contents margins, which imposed the table's
+`minimumSizeHint()` — 90x90 for a `QAbstractScrollArea` — on the frame. A
+top-level `resize()` was never clamped that way, so short candidate lists
+(a single row is ~24px tall) would have been silently inflated to 90px.
+Positioning the child by hand keeps the requested size exact. This was
+caught by modelling the call sequence in PySide6 and comparing old against
+new across a range of sizes: 180x60 came back as 180x90 and 64x24 as 90x90
+under the layout, and exact without it.
+
+Translucency needs a compositor. Wayland and GNOME/X11 always composite; on
+bare X11 with no compositing manager the margin degrades to an unpainted
+border rather than breaking the popup.
+
+On Windows the candidate and infolist windows already carried
+`CS_DROPSHADOW`, and the symbols palette and shortcuts window have real
+chrome that DWM shadows. The toolbar had none: it is `WS_EX_LAYERED`, which
+`CS_DROPSHADOW` does not apply to, and DWM does not decorate a caption-less
+`WS_POPUP`. It now gets one from a separate click-through window,
+[`shadow_window.{h,cc}`](src/renderer/win32/shadow_window.h), stacked
+immediately behind it.
+
+The alternative — inflating the toolbar's own bitmap and drawing the shadow
+into the margin — was rejected because it would move the origin of every
+button rect, and with it hit testing, dragging, screen-edge clamping and the
+MSAA rects in `toolbar_accessible.cc`. A separate window leaves all of that
+untouched; `WS_EX_TRANSPARENT` keeps it out of hit testing entirely. It is
+driven from `ToolbarWindow::UpdateShadow()`, called from `Redraw()`, from
+the first show, and from `WM_WINDOWPOSCHANGED` so it stays glued during a
+drag (the system moves the toolbar itself, so no redraw happens until
+`WM_EXITSIZEMOVE`). The bitmap is rebuilt only when size, radius or DPI
+scale changed, so a hover repaint costs one `SetWindowPos`. Restacking the
+shadow behind the toolbar can send the toolbar its own
+`WM_WINDOWPOSCHANGED`, so `updating_shadow_` guards against recursing.
+
+The shadow is a signed-distance rounded rect with a quadratic falloff rather
+than a real Gaussian convolution — visually equivalent for a solid rounded
+rect, at one `sqrt` per pixel.
+
+The Windows sync overlay is deliberately left alone. It is uniformly
+translucent (`SetLayeredWindowAttributes`), so a shadow behind it would show
+*through* it.
+
+On macOS the renderer panels are `NSPanel`s with `hasShadow` left at its
+default of YES and nothing turning it off, so they should already have one.
+
+None of the Windows code here has been compiled or run; it was written on
+macOS. The shadow's appearance was checked by rendering the same constants
+and formulas offscreen, but the window plumbing — z-order, the drag path,
+DPI changes, and that clicks still reach the toolbar — needs a Windows test.
+
+### Settings: Advanced tab was vertically centred, not top-aligned (2026-08-27)
+
+The Advanced tab (`inputSupportTab`, "Avancé") was the only one of the six
+`.ui` tabs whose `QVBoxLayout` had no trailing expanding spacer. With
+nothing in the layout able to absorb the leftover height, Qt spreads it
+around the items instead, so the two setting groups drifted apart and away
+from the top of the page as the dialog grew. Added the same
+`Minimum`/`Expanding` spacer the other five tabs already end with.
+
+Measured before and after by loading `config_dialog.ui` through PySide6 with
+the dialog's real stylesheet and the Linux visibility rules applied, at the
+same size as the reported screenshot. Advanced went from first item at
+y=134 with a 124px inter-group gap to y=11 with a 1px gap; the other five
+tabs were already at y=11 and were unchanged. The two tabs built in code,
+Shortcuts and Sync, both end in `addStretch()` and were never affected.
+
 ### Remove Ctrl+Alt+vowel macron shortcuts (2026-08-27)
 
 The default way to type ā ē ī ō ū is **Right Shift tap, then a vowel** in

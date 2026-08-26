@@ -91,6 +91,11 @@ class QtWindowManager {
  private:
   QTableWidget *candidates_ = nullptr;
   QTableWidget *infolist_ = nullptr;
+  // Translucent parents that give candidates_ / infolist_ room to cast a
+  // drop shadow; see CreateShadowFrame(). Geometry and visibility go through
+  // these, cell contents through the tables above.
+  QWidget *candidates_frame_ = nullptr;
+  QWidget *infolist_frame_ = nullptr;
 
   RendererStyle style_;
   commands::RendererCommand prev_command_;

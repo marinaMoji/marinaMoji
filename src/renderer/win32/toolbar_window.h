@@ -36,6 +36,7 @@
 #include "client/client_interface.h"
 #include "protocol/commands.pb.h"
 #include "protocol/renderer_command.pb.h"
+#include "renderer/win32/shadow_window.h"
 
 namespace mozc {
 namespace renderer {
@@ -73,6 +74,7 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   MESSAGE_HANDLER(WM_MOUSELEAVE, OnMouseLeave)
   MESSAGE_HANDLER(WM_NCHITTEST, OnNcHitTest)
   MESSAGE_HANDLER(WM_EXITSIZEMOVE, OnExitSizeMove)
+  MESSAGE_HANDLER(WM_WINDOWPOSCHANGED, OnWindowPosChanged)
   MESSAGE_HANDLER(WM_SETTINGCHANGE, OnSettingChange)
   MESSAGE_HANDLER(WM_DISPLAYCHANGE, OnDisplayChange)
   MESSAGE_HANDLER(WM_DPICHANGED, OnDpiChanged)
@@ -193,6 +195,16 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
     OnExitSizeMove();
     return 0;
   }
+  // Keeps the shadow glued to the toolbar while the user drags it. Dragging
+  // is done by the system (OnNcHitTest returns HTCAPTION), so no redraw
+  // happens until WM_EXITSIZEMOVE and the shadow would otherwise be left
+  // behind for the whole drag.
+  inline LRESULT OnWindowPosChanged(UINT msg_id, WPARAM wparam, LPARAM lparam,
+                                    BOOL& handled) {
+    handled = FALSE;  // let the default handler run too
+    UpdateShadow();
+    return 0;
+  }
   inline LRESULT OnSettingChange(UINT msg_id, WPARAM wparam, LPARAM lparam,
                                  BOOL& handled) {
     OnSettingChange(static_cast<UINT>(wparam),
@@ -285,6 +297,12 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   // the current layout. Called from Redraw(), since the rects move with DPI.
   void UpdateTooltips();
 
+  // Repositions and, if its size changed, repaints the drop shadow to match
+  // the toolbar's current on-screen rect. Cheap enough to call from every
+  // redraw and every position change. Does nothing while the toolbar is
+  // hidden, so the shadow never appears on its own.
+  void UpdateShadow();
+
   // Re-reads the DPI for the monitor the window currently sits on; reloads
   // icons and redraws when it changed. Called on WM_DPICHANGED, after a drag
   // (WM_EXITSIZEMOVE) and on WM_DISPLAYCHANGE.
@@ -337,6 +355,16 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   // this directly rather than GetWindowRect(), since the window's initial
   // OS-assigned rect (from Create(nullptr)) is (0,0,0,0) and not meaningful.
   CPoint window_origin_;
+
+  // Draws the toolbar's drop shadow. A separate window because the toolbar
+  // is layered, which rules out CS_DROPSHADOW; see shadow_window.h.
+  ShadowWindow shadow_;
+
+  // Guards against re-entering UpdateShadow(): restacking the shadow behind
+  // this window can itself send us a WM_WINDOWPOSCHANGED, whose handler
+  // calls UpdateShadow() again. Without this the pair could recurse until
+  // the stack runs out.
+  bool updating_shadow_ = false;
 
   // Icon bitmaps for the current theme/DPI. Index matches ButtonId. Not
   // owned -- these are borrowed from |icon_disk_cache_|, which outlives any

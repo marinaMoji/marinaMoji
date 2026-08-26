@@ -70,6 +70,77 @@ QBrush QBrushFromColor(const RendererStyle::RGBAColor& rgba) {
   return QBrush(QColorFromColor(rgba));
 }
 
+// Frameless popups get no shadow from any window manager -- there is nothing
+// for one to decorate -- so the candidate and infolist windows used to sit on
+// whatever was behind them with no visible edge. Qt clips a
+// QGraphicsDropShadowEffect to the bounds of its top-level widget, so the
+// popup cannot cast one itself; it has to live inside a slightly larger
+// translucent parent for the shadow to spill into. kShadowMargin is that
+// inset on every side, and every geometry call below works in terms of the
+// *content* rect so the window-positioning maths is unaffected by it.
+constexpr int kShadowMargin = 12;
+constexpr int kShadowBlurRadius = 16;
+constexpr int kShadowOffsetY = 4;
+constexpr int kShadowAlpha = 110;
+
+// Wraps `content` in that parent and returns it. The caller keeps using
+// `content` for everything except geometry and visibility.
+QWidget* CreateShadowFrame(QWidget* content) {
+  auto* frame = new QWidget();
+  frame->setWindowFlags(Qt::ToolTip | Qt::FramelessWindowHint |
+                        Qt::WindowStaysOnTopHint);
+  // Without this the margin around the popup would paint as opaque
+  // background instead of letting the shadow fade out over the desktop. It
+  // needs a compositor; every platform we ship on composites unconditionally
+  // except bare X11 with no compositing manager, where the margin degrades to
+  // an unpainted border rather than breaking the popup.
+  frame->setAttribute(Qt::WA_TranslucentBackground, true);
+
+  // Deliberately no layout: a QVBoxLayout would impose the table's
+  // minimumSizeHint (90x90 for a QAbstractScrollArea) on the frame, and a
+  // short candidate list is legitimately smaller than that. A top-level
+  // resize() was never clamped that way, so going through a layout would
+  // silently inflate small candidate windows. Positioning the child by hand
+  // keeps the size the caller asked for.
+  content->setParent(frame);
+  content->move(kShadowMargin, kShadowMargin);
+
+  // The table is no longer a top-level window, so it has to paint its own
+  // background rather than inheriting the (now transparent) window one.
+  content->setAutoFillBackground(true);
+
+  auto* shadow = new QGraphicsDropShadowEffect(content);
+  shadow->setBlurRadius(kShadowBlurRadius);
+  shadow->setOffset(0, kShadowOffsetY);
+  shadow->setColor(QColor(0, 0, 0, kShadowAlpha));
+  content->setGraphicsEffect(shadow);
+
+  return frame;
+}
+
+// Moves `content` so its top-left lands at the given global position,
+// offsetting the frame by the margin.
+void MoveContent(QWidget* content, int x, int y) {
+  QWidget* const frame = content->window();
+  frame->move(x - kShadowMargin, y - kShadowMargin);
+}
+
+// Resizes `content` to exactly the given size and inflates its frame to
+// match, so callers reading content->width()/height() straight back get what
+// they asked for.
+void ResizeContent(QWidget* content, int width, int height) {
+  content->resize(width, height);
+  content->window()->resize(width + 2 * kShadowMargin,
+                            height + 2 * kShadowMargin);
+}
+
+// The content rect in global coordinates, excluding the shadow margin. This
+// is what the IME sees as the candidate window, so it must not grow.
+Rect ContentRect(const QWidget* content) {
+  const QPoint top_left = content->mapToGlobal(QPoint(0, 0));
+  return Rect(top_left.x(), top_left.y(), content->width(), content->height());
+}
+
 }  // namespace
 
 QtWindowManager::QtWindowManager() {
@@ -96,8 +167,7 @@ void QtWindowManager::OnClicked(int row, int column) {
 
 void QtWindowManager::Initialize() {
   const auto initialize_table = [](QTableWidget* table) {
-    table->setWindowFlags(Qt::ToolTip | Qt::FramelessWindowHint |
-                          Qt::WindowStaysOnTopHint);
+    // Window flags live on the shadow frame created below, not here.
     table->setSelectionMode(QTableWidget::NoSelection);
     table->setShowGrid(false);
 
@@ -114,11 +184,13 @@ void QtWindowManager::Initialize() {
 
   candidates_ = new QTableWidget();
   initialize_table(candidates_);
+  candidates_frame_ = CreateShadowFrame(candidates_);
   QObject::connect(candidates_, &QTableWidget::cellClicked,
                    [&](int row, int col) { OnClicked(row, col); });
 
   infolist_ = new QTableWidget();
   initialize_table(infolist_);
+  infolist_frame_ = CreateShadowFrame(infolist_);
   infolist_->setColumnCount(1);
   infolist_->setRowCount(3);
   infolist_->setColumnWidth(0, kInfolistWidth);
@@ -146,13 +218,13 @@ void QtWindowManager::ApplyStyleToWidgets() {
 }
 
 void QtWindowManager::HideAllWindows() {
-  candidates_->hide();
-  infolist_->hide();
+  candidates_frame_->hide();
+  infolist_frame_->hide();
 }
 
 void QtWindowManager::ShowAllWindows() {
-  candidates_->show();
-  infolist_->show();
+  candidates_frame_->show();
+  infolist_frame_->show();
 }
 
 // static
@@ -394,7 +466,7 @@ void FillCandidateWindow(const commands::CandidateWindow& candidate_window,
   table->setColumnWidth(1, max_width1);
   table->setColumnWidth(2, max_width2);
   const int width = kColumn0Width + max_width1 + max_width2 + kColumn3Width;
-  table->resize(width, total_height);
+  ResizeContent(table, width, total_height);
 }
 
 class VirtualRect {
@@ -477,7 +549,7 @@ Rect QtWindowManager::UpdateCandidateWindow(
     FillCandidateWindow(candidate_window, style_, candidates_);
     const Size win_size(candidates_->width(), candidates_->height());
     const Point win_pos = GetWindowPosition(command, win_size);
-    candidates_->move(win_pos.x, win_pos.y);
+    MoveContent(candidates_, win_pos.x, win_pos.y);
   } else {
     // Reset the previous focused highlight
     const int prev_focused =
@@ -493,9 +565,9 @@ Rect QtWindowManager::UpdateCandidateWindow(
   candidates_->item(candidates_->rowCount() - 1, 2)
       ->setText(QStr(GetIndexGuideString(candidate_window)));
 
-  candidates_->show();
+  candidates_frame_->show();
   prev_command_ = command;
-  return GetRect(candidates_->geometry());
+  return ContentRect(candidates_);
 }
 
 bool QtWindowManager::ShouldShowInfolistWindow(
@@ -548,7 +620,7 @@ void QtWindowManager::UpdateInfolistWindow(
     const commands::RendererCommand& command,
     const Rect& candidate_window_rect) {
   if (!ShouldShowInfolistWindow(command)) {
-    infolist_->hide();
+    infolist_frame_->hide();
     return;
   }
 
@@ -610,9 +682,9 @@ void QtWindowManager::UpdateInfolistWindow(
       WindowUtil::WindowUtil::GetWindowRectForInfolistWindow(
           infolist_size, candidate_window_rect, monitor_rect);
 
-  infolist_->move(infolist_rect.Left(), infolist_rect.Top());
-  infolist_->resize(kInfolistWidth, total_height);
-  infolist_->show();
+  ResizeContent(infolist_, kInfolistWidth, total_height);
+  MoveContent(infolist_, infolist_rect.Left(), infolist_rect.Top());
+  infolist_frame_->show();
 }
 
 void QtWindowManager::UpdateLayout(const commands::RendererCommand& command) {
@@ -665,7 +737,9 @@ bool QtWindowManager::SetSendCommandInterface(
   return true;
 }
 
-void QtWindowManager::SetWindowPos(int x, int y) { candidates_->move(x, y); }
+void QtWindowManager::SetWindowPos(int x, int y) {
+  MoveContent(candidates_, x, y);
+}
 
 }  // namespace renderer
 }  // namespace mozc
