@@ -3,6 +3,7 @@
 #include <QAbstractItemView>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QFontMetrics>
 #include <QHeaderView>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -91,6 +92,25 @@ QString SlotComboLabel(MarinaPhysicalSlot slot) {
   return base;
 }
 
+QString ActionLabel(MarinaNumberRowAction action) {
+  switch (action) {
+    case MarinaNumberRowAction::MARINA_NR_ODORIJI_DEFAULT:
+      return QObject::tr("Insert default odoriji");
+    case MarinaNumberRowAction::MARINA_NR_ODORIJI_PALETTE:
+      return QObject::tr("Odoriji palette");
+    case MarinaNumberRowAction::MARINA_NR_TRADITIONAL_KANJI:
+      return QObject::tr("Shin / kyū kanji");
+    case MarinaNumberRowAction::MARINA_NR_MANYOSHU_HIRAGANA:
+      return QObject::tr("Hiragana ↔ Manyōshū");
+    case MarinaNumberRowAction::MARINA_NR_HIRAGANA_DIRECT:
+      return QObject::tr("Japanese ↔ direct input");
+    case MarinaNumberRowAction::MARINA_NR_WORD_REGISTER:
+      return QObject::tr("Dictionary entry");
+    default:
+      return QString();
+  }
+}
+
 }  // namespace
 
 ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
@@ -113,6 +133,7 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
           "still works for capitals and shortcuts while locked."),
       tab_);
   left_shift_help_->setWordWrap(true);
+  left_shift_help_->setContentsMargins(0, 2, 0, 6);
   layout->addWidget(left_shift_help_);
 
 #ifdef _WIN32
@@ -161,6 +182,7 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
           "layouts."),
       tab_);
   number_row_help_->setWordWrap(true);
+  number_row_help_->setContentsMargins(0, 2, 0, 6);
   layout->addWidget(number_row_help_);
 
 #if defined(__APPLE__)
@@ -170,6 +192,7 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
           "macOS still uses the default bindings until a future update."),
       tab_);
   mac_number_row_note_->setWordWrap(true);
+  mac_number_row_note_->setContentsMargins(0, 2, 0, 6);
   layout->addWidget(mac_number_row_note_);
 #else
   mac_number_row_note_ = nullptr;
@@ -183,8 +206,7 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
   number_row_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
   for (int row = 0; row < 6; ++row) {
     const MarinaNumberRowAction action = ActionForRow(row);
-    auto* action_item = new QTableWidgetItem(
-        QObject::tr(session::MarinaActionDisplayName(action)));
+    auto* action_item = new QTableWidgetItem(ActionLabel(action));
     number_row_table_->setItem(row, kColumnAction, action_item);
 
     auto* modifier_combo = new QComboBox(number_row_table_);
@@ -208,6 +230,8 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
     number_row_table_->setCellWidget(row, kColumnSlot, slot_combo);
   }
   number_row_table_->resizeColumnsToContents();
+  const int row_h = QFontMetrics(number_row_table_->font()).height() + 14;
+  number_row_table_->verticalHeader()->setDefaultSectionSize(row_h);
   layout->addWidget(number_row_table_);
 
   layout->addSpacing(16);
@@ -219,6 +243,7 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
           "linking mark ㆐) can be added with New entry."),
       tab_);
   kaeriten_help_->setWordWrap(true);
+  kaeriten_help_->setContentsMargins(0, 2, 0, 6);
   layout->addWidget(kaeriten_help_);
 
   layout->addSpacing(8);

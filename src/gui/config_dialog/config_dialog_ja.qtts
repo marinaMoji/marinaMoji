@@ -1,398 +1,488 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
-<TS version="2.0" language="ja_JP">
+<?xml version='1.0' encoding='utf-8'?>
+<TS version="2.1" language="ja_JP">
 <context>
     <name>ConfigDialog</name>
     <message>
-        <location filename="config_dialog.ui" line="32"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="45" />
         <source>[ProductName] Settings</source>
         <translation>[ProductName] プロパティ</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="57"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="66" />
         <source>General</source>
         <translation>一般</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="92"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="151" />
         <source>Input mode</source>
         <translation>ローマ字入力・かな入力</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="99"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="158" />
         <source>Punctuation style</source>
         <translation>句読点</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="106"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="165" />
         <source>Symbol style</source>
         <translation>記号</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="113"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="172" />
         <source>Space input style</source>
         <translation>スペースの入力</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="123"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="182" />
         <source>Candidate selection shortcut</source>
         <translation>候補選択ショートカット</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="130"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="189" />
         <source>Input from numpad keys</source>
         <translation>テンキーからの入力</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="172"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="281" />
         <source>Keymap style</source>
         <translation>キー設定の選択</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="185"/>
-        <location filename="config_dialog.ui" line="192"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="288" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="295" />
         <source>Customize...</source>
         <translation>編集...</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="218"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="90" />
         <source>Basics</source>
         <translation>基本設定</translation>
     </message>
-    <message utf8="true">
-        <location filename="config_dialog.ui" line="147"/>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="199" />
         <source>Input from ¥ or backslash key</source>
         <translation>¥キーで入力する文字</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="998"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1326" />
         <source>Privacy</source>
         <translation>プライバシー</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="250"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="237" />
         <source>Keymap</source>
         <translation>キー設定</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="287"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="327" />
         <source>Appearance</source>
         <translation>表示</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="322"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="368" />
         <source>Candidate window font size</source>
         <translation>候補ウィンドウの文字サイズ</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1213"/>
         <source>Cloud</source>
-        <translation>クラウド</translation>
+        <translation type="vanished">クラウド</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="272"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="399" />
         <source>Dictionary</source>
         <translation>辞書</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="287"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="464" />
         <source>Clear personalization data</source>
         <translation>学習履歴のクリア</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="294"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="471" />
         <source>Adjust conversion based on previous input</source>
         <translation>学習機能</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="383"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="752" />
         <source>Single kanji conversion</source>
         <translation>単漢字変換</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="390"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="759" />
         <source>Symbol conversion</source>
         <translation>記号変換</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="439"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="811" />
         <source>Date/time conversion</source>
         <translation>日付変換</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="432"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="804" />
         <source>Special number conversion</source>
         <translation>特殊数字変換</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="425"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="797" />
         <source>Calculator</source>
         <translation>計算機機能</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="418"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="790" />
         <source>Spelling correction</source>
         <translation>「もしかして」変換</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="529"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="711" />
         <source>Special conversions</source>
         <translation>特殊変換</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="561"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="632" />
         <source>Usage dictionary</source>
         <translation>用例辞書</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="593"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="84" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="231" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="321" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="417" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="516" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="626" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="705" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="863" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1025" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1104" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1239" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1344" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1429" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1501" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1789" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1898" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="2017" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="2110" />
+        <source>setting-group-header</source>
+        <translation>setting-group-header</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="106" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="253" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="343" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="439" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="538" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="648" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="727" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="885" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1047" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1126" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1261" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1366" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1451" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1523" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1811" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1920" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="2039" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="2132" />
+        <source>setting-group-line</source>
+        <translation>setting-group-line</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="125" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="272" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="362" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="458" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="557" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="667" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="746" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="904" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1066" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1145" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1280" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1385" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1470" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1542" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1586" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1830" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1939" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="2058" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="2151" />
+        <source>setting-group-layout</source>
+        <translation>setting-group-layout</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="209" />
+        <source>Romaji keyboard layout</source>
+        <translation>ローマ字配列</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="375" />
+        <source> pt</source>
+        <translation> pt</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="607" />
+        <source>Edit user symbols...</source>
+        <translation>ユーザー記号を編集...</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="673" />
         <source>Homonym dictionary</source>
         <translation>同音異義語辞書</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="615"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="845" />
         <source>Advanced</source>
         <translation>入力補助</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="704"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="910" />
         <source>Automatically switch to halfwidth</source>
         <translation>自動英数変換を有効にする</translation>
     </message>
-    <message utf8="true">
-        <location filename="config_dialog.ui" line="734"/>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="940" />
         <source>、</source>
-        <translation></translation>
+        <translation />
     </message>
     <message>
-        <location filename="config_dialog.ui" line="747"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="953" />
         <source>?</source>
-        <translation></translation>
+        <translation />
     </message>
     <message>
-        <location filename="config_dialog.ui" line="754"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="960" />
         <source>Convert at punctuations</source>
         <translation>句読点変換を有効にする</translation>
     </message>
-    <message utf8="true">
-        <location filename="config_dialog.ui" line="767"/>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="973" />
         <source>。</source>
-        <translation></translation>
+        <translation />
     </message>
     <message>
-        <location filename="config_dialog.ui" line="780"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="986" />
         <source>!</source>
-        <translation></translation>
+        <translation />
     </message>
     <message>
-        <location filename="config_dialog.ui" line="790"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="996" />
         <source>Always use Japanese keyboard layout for Japanese input</source>
         <translation>日本語入力では常に日本語キー配列を使う</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="824"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1110" />
         <source>Source data</source>
         <translation>サジェストの種類</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="856"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1245" />
         <source>Other settings</source>
         <translation>その他の設定</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="923"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1151" />
         <source>Use input history</source>
         <translation>入力履歴からのサジェスト自動表示を有効にする</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="943"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1171" />
         <source>Use system dictionary</source>
         <translation>システム辞書からのサジェスト自動表示を有効にする</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="364"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="588" />
         <source>Edit user dictionary...</source>
         <translation>ユーザ辞書の編集...</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="199"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="302" />
         <source>Romaji table</source>
         <translation>ローマ字テーブル</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="397"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="766" />
         <source>Emoticon conversion</source>
         <translation>顔文字変換</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="400"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="769" />
         <source>Text-based faces, e.g. (T_T), ＼(^o^)／ -- not the same as Emoji conversion below</source>
         <translation>(T_T)、＼(^o^)／ のようなテキストの顔文字。下の絵文字変換とは異なります</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="404"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="776" />
         <source>Katakana to English conversion</source>
         <translation>カタカナ英語変換</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="411"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="783" />
         <source>Postal code conversion</source>
         <translation>郵便番号変換</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="446"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="818" />
         <source>Emoji conversion</source>
         <translation>絵文字変換</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="449"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="821" />
         <source>Pictograph characters, e.g. 😀, 🐶 -- not the same as Emoticon conversion above</source>
         <translation>😀、🐶 のような絵文字（ピクトグラム）。上の顔文字変換とは異なります</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="465"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="423" />
         <source>Personalization</source>
         <translation>学習</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="497"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="522" />
         <source>User dictionary</source>
         <translation>ユーザー辞書</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="640"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="869" />
         <source>Input Assistance</source>
         <translation>入力補助</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="672"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1031" />
         <source>Fullwidth/Halfwidth</source>
         <translation>半角・全角</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="711"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="917" />
         <source>Shift key mode switch</source>
         <translation>シフトキーでの入力切替</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="800"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1006" />
         <source>Show input mode indicator near the cursor</source>
         <translation>カーソル周辺に入力モードを表示する</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="809"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1086" />
         <source>Suggest</source>
         <translation>サジェスト</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="888"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1286" />
         <source>Maximum number of suggestions</source>
         <translation>サジェストの最大候補数</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="936"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1164" />
         <source>Clear all history</source>
         <translation>全入力履歴を削除</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="956"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1184" />
         <source>Clear unused history</source>
         <translation>未使用の履歴を削除</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="989"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1220" />
         <source>Use realtime conversion</source>
         <translation>リアルタイム変換を有効にする</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1083"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1350" />
         <source>Secret mode</source>
         <translation>シークレットモード</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1134"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1407" />
         <source>Temporarily disable conversion personalization, history-based suggestions and user dictionary</source>
         <translation>一時的に学習機能、入力履歴からのサジェスト機能、ユーザ辞書機能を無効にする</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1175"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1482" />
         <source>Temporarily disable all suggestions</source>
         <translation>一時的にすべてのサジェスト機能を無効にする</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1191"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1435" />
         <source>Presentation mode</source>
         <translation>プレゼンテーションモード</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1263"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1641" />
         <source>Misc</source>
         <translation>その他</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1563"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1680" />
+        <source>Candidate window</source>
+        <translation>候補ウィンドウ</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1733" />
+        <source>Initial kanji style</source>
+        <translation>起動時の漢字字体</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="2023" />
         <source>Startup</source>
         <translation>スタートアップ</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1601"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="2064" />
         <source>Start conversion engine on login</source>
         <translation>ログイン時に変換エンジンプログラムを起動する</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1694"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="2157" />
         <source>Logging level (debug only)</source>
         <translation>ログレベル（デバッグ）</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1650"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="2116" />
         <source>Logging</source>
         <translation>ログ</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1447"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1904" />
         <source>Administration</source>
         <translation>管理</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1162"/>
-        <location filename="config_dialog.ui" line="1504"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1617" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1958" />
         <source>Settings...</source>
         <translation>設定変更...</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1491"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1945" />
         <source>Dictionary preloading and UAC settings</source>
         <translation>オンメモリ辞書とUACの設定</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1051"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1507" />
         <source>Usage statistics and crash reports</source>
         <translation>使用統計情報と障害レポート</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1032"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1564" />
         <source>Help make [ProductName] better by automatically sending usage statistics and crash reports to Google (changes will take effect after you log out and log back in)</source>
         <translation>使用統計データや障害レポートを Google に自動送信して
 [ProductName]の機能向上に役立てる（再ログイン後に変更は完了します）</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1385"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1842" />
         <source>Check if [ProductName] is the default IME on startup</source>
         <translation>起動時に [ProductName]が既定の IME であるか確認する</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1395"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1852" />
         <source>Disable Keyboard layout hotkey (Ctrl+Shift)</source>
         <translation>ホットキー(Ctrl+Shift)による IME の切り替えを無効化する</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1338"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1795" />
         <source>Default IME</source>
         <translation>既定の IME</translation>
     </message>
     <message>
-        <location filename="config_dialog.ui" line="1775"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="2220" />
         <source>Reset to defaults</source>
         <translation>初期値に戻す</translation>
     </message>
@@ -400,12 +490,12 @@
 <context>
     <name>GenericTableEditorDialog</name>
     <message>
-        <location filename="generic_table_editor.ui" line="14"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.ui" line="45" />
         <source>[ProductName]</source>
         <translation>[ProductName]</translation>
     </message>
     <message>
-        <location filename="generic_table_editor.ui" line="62"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.ui" line="93" />
         <source>Edit</source>
         <translation>編集</translation>
     </message>
@@ -413,12 +503,12 @@
 <context>
     <name>KeyBindingEditor</name>
     <message>
-        <location filename="keybinding_editor.ui" line="32"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keybinding_editor.ui" line="63" />
         <source>[ProductName] key binding editor</source>
         <translation>[ProductName] キーバインディング 設定</translation>
     </message>
     <message>
-        <location filename="keybinding_editor.ui" line="92"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keybinding_editor.ui" line="123" />
         <source>Input key assignments:</source>
         <translation>割り当てるキーの入力:</translation>
     </message>
@@ -426,82 +516,421 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="character_form_editor.cc" line="20"/>
-        <location filename="character_form_editor.cc" line="35"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="49" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="64" />
         <source>Fullwidth</source>
         <translation>全角</translation>
     </message>
     <message>
-        <location filename="character_form_editor.cc" line="23"/>
-        <location filename="character_form_editor.cc" line="37"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="52" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="66" />
         <source>Halfwidth</source>
         <translation>半角</translation>
     </message>
     <message>
-        <location filename="character_form_editor.cc" line="26"/>
-        <location filename="character_form_editor.cc" line="39"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="55" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="68" />
         <source>Remember</source>
         <translation>学習</translation>
     </message>
     <message>
-        <location filename="character_form_editor.cc" line="29"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="58" />
         <source>Unknown</source>
         <translation>不明</translation>
     </message>
     <message>
-        <location filename="character_form_editor.cc" line="48"/>
-        <location filename="character_form_editor.cc" line="58"/>
-        <location filename="character_form_editor.cc" line="128"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="77" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="87" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="156" />
         <source>Katakana</source>
         <translation>カタカナ</translation>
     </message>
     <message>
-        <location filename="character_form_editor.cc" line="50"/>
-        <location filename="character_form_editor.cc" line="61"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="79" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="90" />
         <source>Numbers</source>
         <translation>数字</translation>
     </message>
     <message>
-        <location filename="character_form_editor.cc" line="52"/>
-        <location filename="character_form_editor.cc" line="63"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="81" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="92" />
         <source>Alphabets</source>
         <translation>アルファベット</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="98" />
+        <source>Insert default odoriji</source>
+        <translation>既定の踊り字を挿入</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="100" />
+        <source>Odoriji palette</source>
+        <translation>踊り字パレット</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="102" />
+        <source>Shin / kyū kanji</source>
+        <translation>新字体 / 旧字体</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="104" />
+        <source>Hiragana ↔ Manyōshū</source>
+        <translation>ひらがな ↔ 万葉仮名</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="106" />
+        <source>Japanese ↔ direct input</source>
+        <translation>日本語 ↔ 直接入力</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="108" />
+        <source>Dictionary entry</source>
+        <translation>辞書登録</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="121" />
+        <source>Disable Left Shift toggle (Japanese ↔ Direct input)</source>
+        <translation>左Shiftトグルを無効化（日本語 ↔ 直接入力）</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="125" />
+        <source>When enabled (default), press and release Left Shift alone to switch between hiragana and direct input only (Manyōshū, half-width, and other modes are unaffected). From direct input, Left Shift returns to the hiragana or full-katakana mode you were using before. Press and release Ctrl+Alt+Right Shift alone to lock the current mode and prevent accidental toggles; use the same chord again to unlock. Right Shift alone toggles hiragana and Manyōshū (katakana). Shift still works for capitals and shortcuts while locked.</source>
+        <translation>有効時（既定）は、左Shiftを押して離すとひらがなと直接入力だけが切り替わります（万葉仮名・半角など他のモードは変わりません）。直接入力からは、直前のひらがなまたは全角カタカナに戻ります。Ctrl+Alt+右Shiftを押して離すと現在のモードをロックし、誤切替を防ぎます。同じ操作でもう一度押すと解除します。右Shift単独はひらがなと万葉仮名（カタカナ）を切り替えます。ロック中も大文字やショートカットのShiftは使えます。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="149" />
+        <source>Windows StickyKeys is currently on. It will interfere with the Left/Right Shift shortcuts above (a tap latches Shift for the next key). If you don't need it, turn it off in Ease of Access settings.</source>
+        <translation>Windows の StickyKeys がオンです。上記の左/右 Shift ショートカットと干渉します（タップすると次のキーまで Shift が保持されます）。不要ならイージー オブ アクセスの設定でオフにしてください。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="160" />
+        <source>Open Ease of Access keyboard settings...</source>
+        <translation>イージー オブ アクセスのキーボード設定を開く...</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="178" />
+        <source>Assign marina actions to physical number-row keys (the top row on your keyboard). Shortcuts follow the key position, not the letter printed on the key, so they work on Dvorak, AZERTY, and other layouts.</source>
+        <translation>数字キー列（最上段）の物理キーに marina の操作を割り当てます。ショートカットは印字ではなくキーの位置に従うので、Dvorak や AZERTY などでも使えます。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="190" />
+        <source>Custom number-row bindings are saved here and apply on Linux. macOS still uses the default bindings until a future update.</source>
+        <translation>数字キー列の割り当てはここに保存され、Linux で有効になります。macOS は今後の更新まで既定の割り当てを使います。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="203" />
+        <source>Action</source>
+        <translation>操作</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="203" />
+        <source>Modifier</source>
+        <translation>修飾キー</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="203" />
+        <source>Key</source>
+        <translation>キー</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="213" />
+        <source>Ctrl</source>
+        <translation>Ctrl</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="214" />
+        <source>Ctrl+Shift</source>
+        <translation>Ctrl+Shift</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="240" />
+        <source>In direct input, type semicolon then your keys to insert kaeriten marks (for example ;r → ㆑). Marks not in the default set (e.g. linking mark ㆐) can be added with New entry.</source>
+        <translation>直接入力では、セミコロンのあとキーを打つと返り点を挿入します（例: ;r → ㆑）。既定にない記号（連結符 ㆐ など）は「新規エントリ」で追加できます。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="252" />
+        <source>Edit kaeriten shortcuts...</source>
+        <translation>返り点ショートカットを編集...</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="261" />
+        <source>Shortcuts</source>
+        <translation>ショートカット</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="33" />
+        <source>Enable encrypted sync (dictionary and history)</source>
+        <translation>暗号化同期を有効化（辞書と履歴）</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="39" />
+        <source>Path to sync file (e.g. in your Nextcloud folder)</source>
+        <translation>同期ファイルのパス（例: Nextcloud フォルダ内）</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="40" />
+        <source>Browse...</source>
+        <translation>参照...</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="46" />
+        <source>Generate sync key</source>
+        <translation>同期キーを生成</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="47" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="210" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="279" />
+        <source>Enter sync key</source>
+        <translation>同期キーを入力</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="52" />
+        <source>What to sync</source>
+        <translation>同期する内容</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="54" />
+        <source>User dictionary</source>
+        <translation>ユーザー辞書</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="56" />
+        <source>Commit / learning history</source>
+        <translation>確定 / 学習履歴</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="64" />
+        <source>Bidirectional</source>
+        <translation>双方向</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="66" />
+        <source>Upload only</source>
+        <translation>送信のみ</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="68" />
+        <source>Download only</source>
+        <translation>受信のみ</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="72" />
+        <source>Never</source>
+        <translation>しない</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="73" />
+        <source>Manual only</source>
+        <translation>手動のみ</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="75" />
+        <source>Every N minutes</source>
+        <translation>N分ごと</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="77" />
+        <source>On shutdown</source>
+        <translation>終了時</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="83" />
+        <source> min</source>
+        <translation>  min</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="88" />
+        <source> sec</source>
+        <translation>  sec</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="91" />
+        <source>Direction</source>
+        <translation>方向</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="92" />
+        <source>Auto-sync</source>
+        <translation>自動同期</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="93" />
+        <source>Interval</source>
+        <translation>間隔</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="94" />
+        <source>Cooldown after typing</source>
+        <translation>入力後の待機</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="97" />
+        <source>Sync now</source>
+        <translation>今すぐ同期</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="120" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="170" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="255" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="286" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="300" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="306" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="311" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="334" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="340" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="346" />
+        <source>Sync</source>
+        <translation>同期</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="137" />
+        <source>Last sync: %1 — %2</source>
+        <translation>前回の同期: %1 — %2</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="171" />
+        <source>No sync key is stored on this device yet. Generate one or enter a key from your other device.</source>
+        <translation>この端末にはまだ同期キーがありません。生成するか、他の端末のキーを入力してください。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="177" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="266" />
+        <source>Your sync key</source>
+        <translation>同期キー</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="178" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="267" />
+        <source>Copy this key to your other device(s). marinaMoji stores it only on this computer, not in the cloud.</source>
+        <translation>このキーを他の端末にコピーしてください。marinaMoji はクラウドではなくこのコンピュータにだけ保存します。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="206" />
+        <source>Show sync key</source>
+        <translation>同期キーを表示</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="207" />
+        <source>Display the sync key stored on this device (after a successful sync).</source>
+        <translation>この端末に保存された同期キーを表示します（同期成功後）。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="211" />
+        <source>Paste the sync key from your other device, or after changing the sync file path.</source>
+        <translation>他の端末の同期キーを貼り付けるか、同期ファイルのパスを変更したあとに入力します。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="228" />
+        <source>Choose sync file</source>
+        <translation>同期ファイルを選択</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="232" />
+        <source>Encrypted sync file (*.mmz.enc *.enc);;All files (*)</source>
+        <translation>暗号化同期ファイル (*.mmz.enc *.enc);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="242" />
+        <source>Replace sync key?</source>
+        <translation>同期キーを置き換えますか？</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="243" />
+        <source>Generating a new key replaces the one stored on this device. Enter the new key on your other devices, then sync again from this device so the shared file uses the new key.
+
+Continue?</source>
+        <translation>新しいキーを生成すると、この端末に保存されているキーが置き換わります。他の端末に新しいキーを入力し、この端末から再度同期して共有ファイルを新しいキーに合わせてください。
+
+続けますか？</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="256" />
+        <source>Could not generate sync key.</source>
+        <translation>同期キーを生成できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="280" />
+        <source>Paste the sync key from your other device:</source>
+        <translation>他の端末の同期キーを貼り付けてください:</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="287" />
+        <source>Could not save sync key.</source>
+        <translation>同期キーを保存できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="301" />
+        <source>Sync is disabled. Check "Enable encrypted sync" and save, then try again.</source>
+        <translation>同期は無効です。「暗号化同期を有効化」をオンにして保存してから、もう一度試してください。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="307" />
+        <source>Could not save sync configuration.</source>
+        <translation>同期設定を保存できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="312" />
+        <source>Could not start sync process.</source>
+        <translation>同期プロセスを開始できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="315" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="328" />
+        <source>Synchronising…</source>
+        <translation>同期中…</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="335" />
+        <source>Sync completed.</source>
+        <translation>同期が完了しました。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_sync_tab.cc" line="347" />
+        <source>Sync timed out (last state: %1).
+%2
+
+Try running %3 in Terminal and check %4.</source>
+        <translation>同期がタイムアウトしました（最後の状態: %1）。
+%2
+
+ターミナルで %3 を実行し、%4 を確認してください。</translation>
     </message>
 </context>
 <context>
     <name>mozc::gui::CharacterFormEditor</name>
     <message>
-        <location filename="character_form_editor.cc" line="73"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="102" />
         <source>Fullwidth</source>
         <translation>全角</translation>
     </message>
     <message>
-        <location filename="character_form_editor.cc" line="73"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="102" />
         <source>Halfwidth</source>
         <translation>半角</translation>
     </message>
     <message>
-        <location filename="character_form_editor.cc" line="73"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="102" />
         <source>Remember</source>
         <translation>学習</translation>
     </message>
     <message>
-        <location filename="character_form_editor.cc" line="77"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="106" />
         <source>Character form editor</source>
         <translation>半角・全角設定</translation>
     </message>
     <message>
-        <location filename="character_form_editor.cc" line="95"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="123" />
         <source>Group</source>
         <translation>文字グループ</translation>
     </message>
     <message>
-        <location filename="character_form_editor.cc" line="95"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="123" />
         <source>Composition</source>
         <translation>変換前文字列</translation>
     </message>
     <message>
-        <location filename="character_form_editor.cc" line="95"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="123" />
         <source>Conversion</source>
         <translation>変換中文字列</translation>
     </message>
@@ -509,172 +938,373 @@
 <context>
     <name>mozc::gui::ConfigDialog</name>
     <message>
-        <location filename="config_dialog.cc" line="133"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="310" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="314" />
         <source>Kotoeri</source>
         <translation>ことえり</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="130"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="307" />
         <source>Custom keymap</source>
         <translation>カスタム</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="74"/>
         <source>[ProductName] Preferences</source>
-        <translation>[ProductName] 環境設定</translation>
+        <translation type="vanished">[ProductName] 環境設定</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="131"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="258" />
+        <source>%1 Preferences</source>
+        <translation>%1 の環境設定</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="270" />
+        <source>IBus</source>
+        <translation>IBus</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="271" />
+        <source>Mozc</source>
+        <translation>Mozc</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="278" />
+        <source>Shin (modern)</source>
+        <translation>新字体</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="279" />
+        <source>Kyu (traditional)</source>
+        <translation>旧字体</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="308" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="312" />
         <source>ATOK</source>
-        <translation></translation>
+        <translation />
     </message>
     <message>
-        <location filename="config_dialog.cc" line="132"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="309" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="313" />
         <source>MS-IME</source>
-        <translation></translation>
+        <translation />
     </message>
     <message>
-        <location filename="config_dialog.cc" line="139"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="316" />
         <source>Romaji</source>
         <translation>ローマ字入力</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="140"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="317" />
         <source>Kana</source>
         <translation>かな入力</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="144"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="321" />
         <source>Romaji (switchable)</source>
         <translation>ローマ字入力 (切替可)</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="145"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="322" />
         <source>Kana (switchable)</source>
         <translation>かな入力 (切替可)</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="148"/>
-        <location filename="config_dialog.cc" line="164"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="325" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="341" />
         <source>Follow input mode</source>
         <translation>入力モードに従う</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="149"/>
-        <location filename="config_dialog.cc" line="165"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="326" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="342" />
         <source>Fullwidth</source>
         <translation>全角</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="150"/>
-        <location filename="config_dialog.cc" line="166"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="327" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="343" />
         <source>Halfwidth</source>
         <translation>半角</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="152"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="329" />
         <source>No shortcut</source>
         <translation>なし</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="153"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="330" />
         <source>1 -- 9</source>
-        <translation></translation>
+        <translation />
     </message>
     <message>
-        <location filename="config_dialog.cc" line="154"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="331" />
         <source>A -- L</source>
-        <translation></translation>
+        <translation />
     </message>
     <message>
-        <location filename="config_dialog.cc" line="156"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="333" />
         <source>Yes</source>
         <translation>有効</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="157"/>
-        <source>Yes (don&apos;t record new data)</source>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="334" />
+        <source>Yes (don't record new data)</source>
         <translation>有効（新規学習はしない）</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="158"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="335" />
         <source>No</source>
         <translation>無効</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="160"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="337" />
         <source>Off</source>
         <translation>オフ</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="161"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="338" />
         <source>Alphanumeric</source>
         <translation>英数字</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="162"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="339" />
         <source>Katakana</source>
         <translation>カタカナ</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="167"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="344" />
         <source>Direct input</source>
         <translation>直接入力</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="169"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="346" />
         <source>0</source>
-        <translation></translation>
+        <translation />
     </message>
     <message>
-        <location filename="config_dialog.cc" line="170"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="347" />
         <source>1</source>
-        <translation></translation>
+        <translation />
     </message>
     <message>
-        <location filename="config_dialog.cc" line="171"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="348" />
         <source>2</source>
-        <translation></translation>
+        <translation />
     </message>
     <message>
-        <location filename="config_dialog.cc" line="173"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="350" />
         <source>Yen Sign ¥</source>
         <translation>円記号(¥)</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="174"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="351" />
         <source>Backslash \</source>
         <translation>バックスラッシュ(\)</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="356"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="355" />
+        <source>System default (current OS layout)</source>
+        <translation>システムの既定（現在の配列）</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="356" />
+        <source>US QWERTY</source>
+        <translation>米国 QWERTY</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="357" />
+        <source>UK QWERTY</source>
+        <translation>英国 QWERTY</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="358" />
+        <source>French AZERTY</source>
+        <translation>フランス AZERTY</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="359" />
+        <source>German QWERTZ</source>
+        <translation>ドイツ QWERTZ</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="360" />
+        <source>Spanish</source>
+        <translation>スペイン語</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="361" />
+        <source>Italian</source>
+        <translation>イタリア語</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="362" />
+        <source>Dutch</source>
+        <translation>オランダ語</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="363" />
+        <source>Dvorak</source>
+        <translation>Dvorak</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="364" />
+        <source>BÉPO</source>
+        <translation>BÉPO</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="365" />
+        <source>Japanese JIS</source>
+        <translation>日本語 JIS</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="387" />
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="513" />
+        <source>%1 does not send usage statistics or crash reports to Google or to the marinaMoji developers. Upstream Mozc includes an optional telemetry setting; that setting is permanently disabled here.</source>
+        <translation>%1 は利用統計やクラッシュ報告を Google にも marinaMoji 開発者にも送りません。上流の Mozc には任意のテレメトリ設定がありますが、ここでは常に無効です。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="539" />
+        <source>Automatically check for updates (once a day)</source>
+        <translation>更新を自動確認する（1日1回）</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="545" />
+        <source>Include unstable (rc) releases when checking for updates</source>
+        <translation>更新確認に不安定版（rc）を含める</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="550" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1403" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1459" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1473" />
+        <source>Check for updates…</source>
+        <translation>更新を確認...</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="585" />
+        <source>Experimental vocabulary (archaic words, era names, court titles)</source>
+        <translation>実験的語彙（古語・元号・官職名）</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="646" />
         <source>Failed to get current config values.</source>
         <translation>設定の取得に失敗しました。</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="388"/>
-        <source>Romaji/Kana setting is enabled from new applications.</source>
-        <translation>ローマ字・かな入力の設定は新しいアプリケーションから有効になります。</translation>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1177" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1196" />
+        <source>%1 Converter is not running. Settings were not saved.</source>
+        <translation>%1 の変換エンジンが起動していません。設定は保存されませんでした。</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="399"/>
-        <source>Input mode indicator setting is enabled from new applications.</source>
-        <translation>入力モード表示の設定は新しいアプリケーションから有効になります。</translation>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1214" />
+        <source>%1 Converter is not running. Operation was not executed.</source>
+        <translation>%1 の変換エンジンが起動していません。操作は実行されませんでした。</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="732"/>
-        <location filename="config_dialog.cc" line="754"/>
-        <source>[ProductName] Converter is not running. Settings were not saved.</source>
-        <translation>変換サーバが反応していません。設定の反映に失敗しました。</translation>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1236" />
+        <source>User symbols for Symbols Palette (one entry per line):</source>
+        <translation>記号パレットのユーザー記号（1行に1件）:</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="849"/>
-        <source>When you reset [ProductName] settings, any changes you&apos;ve made will be reverted to the default settings. Do you want to reset settings? The following items are not reset with this operation.
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1254" />
+        <source>User symbols editor is not available on this platform.</source>
+        <translation>このプラットフォームではユーザー記号エディタを使えません。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1325" />
+        <source>When you reset %1 settings, any changes you've made will be reverted to the default settings. Do you want to reset settings? The following items are not reset with this operation.
  - Personalization data
  - Input history
  - Usage statistics and crash reports
  - Administrator settings</source>
-        <translation>この機能を実行すると [ProductName]の設定が標準状態に戻ります。実行しますか？ 以下の設定はリセットされません。
+        <translation>%1 の設定をリセットすると、変更内容は既定に戻ります。リセットしますか？次の項目はこの操作ではリセットされません。
+ - 個人適応データ
+ - 入力履歴
+ - 利用統計とクラッシュ報告
+ - 管理者設定</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1363" />
+        <source>Checking…</source>
+        <translation>確認中…</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1412" />
+        <source>A newer release is available: %1</source>
+        <translation>新しいリリースがあります: %1</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1415" />
+        <source>Download the notarized .pkg and open the macOS Installer? You will still need to approve the install.</source>
+        <translation>公証済み .pkg をダウンロードして macOS インストーラを開きますか？インストールの承認は別途必要です。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1419" />
+        <source>Download the installer (.msi) and run it now? You will still need to approve the install -- and since this build is unsigned for now, Windows SmartScreen may warn first; choose "More info" → "Run anyway", same as the initial install.</source>
+        <translation>インストーラ (.msi) をダウンロードして今すぐ実行しますか？インストールの承認は別途必要です。このビルドはまだ署名されていないため、Windows SmartScreen が警告する場合があります。初回インストールと同様に「詳細情報」→「実行」を選んでください。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1425" />
+        <source>Download &amp; Install…</source>
+        <translation>ダウンロードしてインストール...</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1427" />
+        <source>Open release page</source>
+        <translation>リリースページを開く</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1436" />
+        <source>Update download failed:
+%1</source>
+        <translation>更新のダウンロードに失敗しました:
+%1</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1446" />
+        <source>A newer release is available: %1
+
+Open the download page?</source>
+        <translation>新しいリリースがあります: %1
+
+ダウンロードページを開きますか？</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1467" />
+        <source>You are using the latest available release for your update channel.</source>
+        <translation>更新チャネルの最新リリースを使用しています。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1480" />
+        <source>Update check failed:
+%1</source>
+        <translation>更新確認に失敗しました: %1</translation>
+    </message>
+    <message>
+        <source>Romaji/Kana setting is enabled from new applications.</source>
+        <translation type="vanished">ローマ字・かな入力の設定は新しいアプリケーションから有効になります。</translation>
+    </message>
+    <message>
+        <source>Input mode indicator setting is enabled from new applications.</source>
+        <translation type="vanished">入力モード表示の設定は新しいアプリケーションから有効になります。</translation>
+    </message>
+    <message>
+        <source>[ProductName] Converter is not running. Settings were not saved.</source>
+        <translation type="vanished">変換サーバが反応していません。設定の反映に失敗しました。</translation>
+    </message>
+    <message>
+        <source>When you reset [ProductName] settings, any changes you've made will be reverted to the default settings. Do you want to reset settings? The following items are not reset with this operation.
+ - Personalization data
+ - Input history
+ - Usage statistics and crash reports
+ - Administrator settings</source>
+        <translation type="vanished">この機能を実行すると [ProductName]の設定が標準状態に戻ります。実行しますか？ 以下の設定はリセットされません。
  - 学習履歴
  - 入力履歴
  - 使用統計と障害レポート
@@ -685,47 +1315,50 @@
         <translation type="obsolete">オンメモリ辞書の設定</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="375"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="668" />
         <source>The current custom keymap table is empty. When custom keymap is selected, you must customize it.</source>
         <translation>有効なキー設定がありません。カスタム キーマップを選択した場合は、キーマップを編集する必要があります。</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="407"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="680" />
+        <source>Number-row shortcut bindings are invalid.</source>
+        <translation>数字キー列のショートカット割り当てが不正です。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="694" />
         <source>Failed to update config</source>
         <translation>設定の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="718"/>
-        <source>Do you want to clear personalization data? Input history is not reset with this operation. Please open &quot;suggestion&quot; tab to remove input history data.</source>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1166" />
+        <source>Do you want to clear personalization data? Input history is not reset with this operation. Please open "suggestion" tab to remove input history data.</source>
         <translation>学習結果がリセットされます。実行しますか？ 入力履歴データはリセットされません。入力履歴データのリセットは「サジェスト→全入力履歴の削除」で行えます。</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="776"/>
         <source>[ProductName] Converter is not running. Operation was not executed.</source>
-        <translation>[ProductName]コンバーターが起動していません。設定の反映に失敗しました。</translation>
+        <translation type="vanished">[ProductName]コンバーターが起動していません。設定の反映に失敗しました。</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="742"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1186" />
         <source>Do you want to clear all history data?</source>
         <translation>すべての入力履歴が削除されます。実行しますか？</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="764"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1204" />
         <source>Do you want to clear unused history data?</source>
         <translation>サジェスト経由で入力されなかった履歴が削除されます。実行しますか？</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="198"/>
         <source>  Ok  </source>
-        <translation>  OK  </translation>
+        <translation type="vanished">  OK  </translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="200"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="389" />
         <source>Cancel</source>
         <translation>キャンセル</translation>
     </message>
     <message>
-        <location filename="config_dialog.cc" line="201"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="390" />
         <source>Apply</source>
         <translation>適用</translation>
     </message>
@@ -733,148 +1366,222 @@
 <context>
     <name>mozc::gui::GenericTableEditorDialog</name>
     <message>
-        <location filename="generic_table_editor.cc" line="61"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.cc" line="85" />
         <source>Edit</source>
         <translation>編集</translation>
     </message>
     <message>
-        <location filename="generic_table_editor.cc" line="138"/>
-        <location filename="generic_table_editor.cc" line="204"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.cc" line="140" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.cc" line="209" />
         <source>No entry is selected</source>
         <translation>エントリーが選択されていません</translation>
     </message>
     <message>
-        <location filename="generic_table_editor.cc" line="215"/>
-        <source>You can&apos;t have more than %1 entries</source>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.cc" line="219" />
+        <source>You can't have more than %1 entries</source>
         <translation>%1 個以上のエントリーは登録できません</translation>
     </message>
     <message>
-        <location filename="generic_table_editor.cc" line="224"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.cc" line="228" />
         <source>import from file</source>
         <translation>インポート</translation>
     </message>
     <message>
-        <location filename="generic_table_editor.cc" line="234"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.cc" line="235" />
         <source>File not found</source>
         <translation>ファイルが見つかりません</translation>
     </message>
     <message>
-        <location filename="generic_table_editor.cc" line="242"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.cc" line="242" />
         <source>The specified file is too large (&gt;=100K byte)</source>
         <translation>ファイルサイズが大きすぎて読み込めません</translation>
     </message>
     <message>
-        <location filename="generic_table_editor.cc" line="250"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.cc" line="248" />
         <source>Import failed</source>
         <translation>インポートに失敗しました</translation>
     </message>
     <message>
-        <location filename="generic_table_editor.cc" line="261"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.cc" line="259" />
         <source>export to file</source>
         <translation>エクスポート</translation>
     </message>
     <message>
-        <location filename="generic_table_editor.cc" line="272"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.cc" line="267" />
         <source>Export failed</source>
         <translation>エクスポートに失敗しました</translation>
     </message>
     <message>
-        <location filename="generic_table_editor.cc" line="309"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.cc" line="304" />
         <source>Edit entry</source>
         <translation>エントリーを編集</translation>
     </message>
     <message>
-        <location filename="generic_table_editor.cc" line="311"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.cc" line="306" />
         <source>New entry</source>
         <translation>エントリーを追加</translation>
     </message>
     <message>
-        <location filename="generic_table_editor.cc" line="312"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/generic_table_editor.cc" line="307" />
         <source>Remove entry</source>
         <translation>エントリーを削除</translation>
     </message>
 </context>
 <context>
+    <name>mozc::gui::KaeritenTableEditorDialog</name>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="80" />
+        <source>New entry</source>
+        <translation>新規エントリ</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="82" />
+        <source>Remove selected entries</source>
+        <translation>選択したエントリを削除</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="85" />
+        <source>Import from file...</source>
+        <translation>ファイルからインポート...</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="87" />
+        <source>Export to file...</source>
+        <translation>ファイルへエクスポート...</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="90" />
+        <source>Reset to defaults</source>
+        <translation>既定に戻す</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="92" />
+        <source>Kaeriten shortcuts</source>
+        <translation>返り点ショートカット</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="94" />
+        <source>[ProductName] settings</source>
+        <translation>[ProductName] の設定</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="98" />
+        <source>Keys (after ;)</source>
+        <translation>キー（; のあと）</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="98" />
+        <source>Inserts</source>
+        <translation>挿入</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="133" />
+        <source>You can't have more than %1 entries</source>
+        <translation>%1 件を超えるエントリは登録できません</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="158" />
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="190" />
+        <source>Kaeriten shortcut table is empty.</source>
+        <translation>返り点ショートカット表が空です。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="175" />
+        <source>Each row needs keys (after ;) and an inserted character. Keys must be unique and cannot contain ; or tab.</source>
+        <translation>各行にはキー（; のあと）と挿入文字が必要です。キーは一意で、; やタブを含められません。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="181" />
+        <source>Duplicate keys after semicolon: %1</source>
+        <translation>セミコロン後のキーが重複しています: %1</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/kaeriten_table_editor.cc" line="216" />
+        <source>Do you want to overwrite the current kaeriten table?</source>
+        <translation>現在の返り点表を上書きしますか？</translation>
+    </message>
+</context>
+<context>
     <name>mozc::gui::KeyMapEditorDialog</name>
     <message>
-        <location filename="keymap_editor.cc" line="225"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="256" />
         <source>New entry</source>
         <translation>エントリーを追加</translation>
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="227"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="258" />
         <source>Remove selected entries</source>
         <translation>選択されたエントリーを削除</translation>
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="231"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="262" />
         <source>Import predefined mapping</source>
         <translation>定義済みのキーマップからインポート</translation>
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="235"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="266" />
         <source>ATOK</source>
-        <translation></translation>
+        <translation />
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="236"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="267" />
         <source>MS-IME</source>
-        <translation></translation>
+        <translation />
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="237"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="268" />
         <source>Kotoeri</source>
         <translation>ことえり</translation>
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="241"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="272" />
         <source>Import from file...</source>
         <translation>インポート...</translation>
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="243"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="274" />
         <source>Export to file...</source>
         <translation>エクスポート...</translation>
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="284"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="313" />
         <source>[ProductName] keymap editor</source>
         <translation>[ProductName] キー設定</translation>
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="288"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="319" />
         <source>Mode</source>
         <translation>モード</translation>
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="288"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="319" />
         <source>Key</source>
         <translation>入力キー</translation>
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="288"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="319" />
         <source>Command</source>
         <translation>コマンド</translation>
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="377"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="400" />
         <source>Current keymap table is empty. You might want to import a pre-defined keymap table first.</source>
         <translation>有効なキーマップがありません。定義済みのキーマップをインポートするか、有効なキーマップを追加してください。</translation>
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="417"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="437" />
         <source>Invalid key:
 %1</source>
         <translation>無効な入力キーです:
 %1</translation>
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="436"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="453" />
         <source>Changes of keymaps for direct input mode will apply only to applications that are launched after making your modifications.</source>
         <translation>直接入力モードに対するキーマップの変更は、新しいアプリケーションから有効になります。</translation>
     </message>
     <message>
-        <location filename="keymap_editor.cc" line="473"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/keymap_editor.cc" line="488" />
         <source>Do you want to overwrite the current keymaps?</source>
         <translation>現在のキー設定が上書きされます。実行しますか？</translation>
     </message>
@@ -882,75 +1589,76 @@
 <context>
     <name>mozc::gui::RomanTableEditorDialog</name>
     <message>
-        <location filename="roman_table_editor.cc" line="36"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="65" />
         <source>New entry</source>
         <translation>新しいエントリー</translation>
     </message>
     <message>
-        <location filename="roman_table_editor.cc" line="38"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="67" />
         <source>Remove selected entries</source>
         <translation>選択されたエントリーを削除</translation>
     </message>
     <message>
-        <location filename="roman_table_editor.cc" line="41"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="70" />
         <source>Import from file...</source>
         <translation>インポート...</translation>
     </message>
     <message>
-        <location filename="roman_table_editor.cc" line="43"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="72" />
         <source>Export to file...</source>
         <translation>エクスポート...</translation>
     </message>
     <message>
-        <location filename="roman_table_editor.cc" line="46"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="75" />
         <source>Reset to defaults</source>
         <translation>初期値に戻す</translation>
     </message>
     <message>
-        <location filename="roman_table_editor.cc" line="48"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="77" />
         <source>[ProductName] Romaji table editor</source>
         <translation>[ProductName]ローマ字テーブル設定</translation>
     </message>
     <message>
-        <location filename="roman_table_editor.cc" line="52"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="83" />
         <source>Input</source>
         <translation>入力</translation>
     </message>
     <message>
-        <location filename="roman_table_editor.cc" line="52"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="83" />
         <source>Output</source>
         <translation>出力</translation>
     </message>
     <message>
-        <location filename="roman_table_editor.cc" line="52"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="83" />
         <source>Next input</source>
         <translation>次の入力</translation>
     </message>
     <message>
-        <location filename="roman_table_editor.cc" line="131"/>
-        <location filename="roman_table_editor.cc" line="152"/>
-        <location filename="roman_table_editor.cc" line="192"/>
-        <location filename="roman_table_editor.cc" line="219"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="218" />
+        <source>Input fields contain capital characters. "Shift-mode-switch" function is disabled with this new mapping.</source>
+        <translation>入力欄に大文字が含まれています。この新しい割り当てでは「Shift モード切替」は無効です。</translation>
+    </message>
+    <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="79" />
         <source>[ProductName] settings</source>
         <translation>[ProductName]プロパティ</translation>
     </message>
     <message>
-        <location filename="roman_table_editor.cc" line="132"/>
-        <source>You can&apos;t have more than %1 entries</source>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="159" />
+        <source>You can't have more than %1 entries</source>
         <translation>%1 個以上のエントリーは登録できません</translation>
     </message>
     <message>
-        <location filename="roman_table_editor.cc" line="153"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="180" />
         <source>Romaji to Kana table is empty.</source>
         <translation>ローマ字テーブルが空です</translation>
     </message>
     <message>
-        <location filename="roman_table_editor.cc" line="193"/>
-        <source>Input fields contain capital characters. &quot;Shift-mode-switch&quot; function should be Off with this new mapping.</source>
-        <translation>入力フィールドに大文字のアルファベットが含まれています。新しい設定では「シフトキーによる入力切替」をオフにしてください。</translation>
+        <source>Input fields contain capital characters. "Shift-mode-switch" function should be Off with this new mapping.</source>
+        <translation type="vanished">入力フィールドに大文字のアルファベットが含まれています。新しい設定では「シフトキーによる入力切替」をオフにしてください。</translation>
     </message>
     <message>
-        <location filename="roman_table_editor.cc" line="220"/>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/roman_table_editor.cc" line="244" />
         <source>Do you want to overwrite the current roman table?</source>
         <translation>現在のローマ字テーブルを上書きしますか？</translation>
     </message>

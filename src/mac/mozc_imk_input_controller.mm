@@ -400,6 +400,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
 - (void)setupMarinaImeMenuIfNeeded;
 - (void)loadConfigNibKeepingTopLevelObjects;
 - (void)buildImeMenuProgrammatically;
+- (void)applyLocalizedImeMenuTitles;
 - (void)updateImeMenuState:(const Output *)output;
 - (void)syncCandidatesWithOutput:(const Output *)output;
 - (void)cancelPendingCandidateUpdate;
@@ -559,6 +560,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
     }
     if (menu_) {
       configNibTopLevelObjects_ = topLevel;
+      [self applyLocalizedImeMenuTitles];
       return;
     }
   }
@@ -602,6 +604,34 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
       keyEquivalent:@""];
   about.target = self;
   [menu_ addItem:about];
+}
+
+- (void)applyLocalizedImeMenuTitles {
+  if (!menu_) {
+    return;
+  }
+  static const struct {
+    SEL action;
+    NSString *key;
+  } kItems[] = {
+      {@selector(reconversionClicked:), @"MM.Reconversion"},
+      {@selector(configClicked:), @"MM.Preferences"},
+      {@selector(registerWordClicked:), @"MM.AddWord"},
+      {@selector(dictionaryToolClicked:), @"MM.DictionaryTool"},
+      {@selector(aboutDialogClicked:), @"MM.About"},
+      {@selector(traditionalKanjiMenuClicked:), @"MM.TraditionalKanji"},
+      {@selector(odorijiPaletteMenuClicked:), @"MM.Odoriji"},
+      {@selector(toolbarVisibilityMenuClicked:), @"MM.Toolbar"},
+      {@selector(privacyModeMenuClicked:), @"MM.PrivacyMode"},
+  };
+  for (NSMenuItem *item in menu_.itemArray) {
+    for (const auto &entry : kItems) {
+      if (item.action == entry.action) {
+        item.title = MarinaLocalizedString(entry.key);
+        break;
+      }
+    }
+  }
 }
 
 - (void)setupMarinaImeMenuIfNeeded {
@@ -766,6 +796,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
 
 - (NSMenu *)menu {
   [self setupMarinaImeMenuIfNeeded];
+  [self applyLocalizedImeMenuTitles];
   [self updateImeMenuState:nullptr];
   return menu_;
 }

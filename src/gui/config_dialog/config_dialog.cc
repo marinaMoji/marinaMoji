@@ -111,8 +111,8 @@ void AdjustTabBarForDescenders(QTabWidget *tab_widget) {
     return;
   }
   const QFontMetrics fm(tab_bar->font());
-  const int pad_top = 5;
-  const int pad_bottom = 7;
+  const int pad_top = 8;
+  const int pad_bottom = 10;
   const int min_height =
       fm.boundingRect(QStringLiteral("SgyjpQ")).height() + pad_top + pad_bottom;
   tab_bar->setMinimumHeight(min_height);
@@ -194,9 +194,35 @@ constexpr absl::string_view kQss = R"(
 QFrame[class="setting-group-layout"] {
   padding: 0em 1em;
 }
-QFrame[class="setting-group-header"] {
+QLabel {
+  padding-top: 2px;
+  padding-bottom: 4px;
 }
-QFrame[class="setting-group-line"] {
+QCheckBox {
+  min-height: 1.35em;
+  padding-top: 3px;
+  padding-bottom: 5px;
+}
+QPushButton {
+  min-height: 1.4em;
+  padding-top: 6px;
+  padding-bottom: 8px;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+QTabBar::tab {
+  padding-top: 8px;
+  padding-bottom: 10px;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+QGroupBox {
+  padding-top: 1.15em;
+  margin-top: 0.5em;
+}
+QTableWidget::item {
+  padding-top: 4px;
+  padding-bottom: 6px;
 }
 )";
 
@@ -358,7 +384,7 @@ ConfigDialog::ConfigDialog()
 #endif  // !_WIN32
 
   // Reset texts explicitly for translations.
-  configDialogButtonBox->button(QDialogButtonBox::Ok)->setText(tr("  Ok  "));
+  configDialogButtonBox->button(QDialogButtonBox::Ok)->setText(tr("OK"));
   configDialogButtonBox->button(QDialogButtonBox::Cancel)
       ->setText(tr("Cancel"));
   configDialogButtonBox->button(QDialogButtonBox::Apply)->setText(tr("Apply"));
@@ -488,6 +514,8 @@ ConfigDialog::ConfigDialog()
          "to the marinaMoji developers. Upstream Mozc includes an optional "
          "telemetry setting; that setting is permanently disabled here.")
           .arg(GuiUtil::ProductName()));
+  usageStatsMessage->setWordWrap(true);
+  usageStatsMessage->setContentsMargins(0, 2, 0, 6);
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD
 
   shortcuts_tab_ = std::make_unique<ConfigDialogShortcutsTab>(this);
@@ -552,9 +580,15 @@ ConfigDialog::ConfigDialog()
     packs_layout->setSpacing(8);
 
     for (const DictionaryPackId &pack : kDictionaryPackIds) {
-      auto *checkbox = new QCheckBox(
-          QString::fromUtf8(pack.display_name.data(), pack.display_name.size()),
-          packs_widget);
+      QString label;
+      if (pack.id == "experimental") {
+        label = tr("Experimental vocabulary (archaic words, era names, court "
+                   "titles)");
+      } else {
+        label = QString::fromUtf8(pack.display_name.data(),
+                                  pack.display_name.size());
+      }
+      auto *checkbox = new QCheckBox(label, packs_widget);
       packs_layout->addWidget(checkbox);
       connect(checkbox, &QCheckBox::toggled, this,
               &ConfigDialog::EnableApplyButton);
