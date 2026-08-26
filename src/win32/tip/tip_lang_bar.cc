@@ -404,12 +404,24 @@ HRESULT TipLangBar::UpdateMenu(bool enabled, uint32_t composition_mode) {
   input_mode_button_for_win8_->SetEnabled(enabled);
 
   // The custom toolbar already surfaces the input mode, so the langbar mode
-  // icon would just duplicate it in the taskbar. Hide the mode icon there
-  // while the toolbar is visible; the tool icon (and its right-click menu)
-  // stays shown in the taskbar regardless. See GitHub issue #22.
+  // icon would just duplicate it in the taskbar. GUID_LBI_INPUTMODE is the
+  // system-recognized taskbar mode indicator on Windows 8+, and Windows
+  // shows it whenever it is registered regardless of
+  // TF_LBI_STYLE_SHOWNINTRAY, so hiding it requires actually removing it
+  // from the item manager while the toolbar is visible, re-adding it once
+  // the toolbar is hidden again. The tool icon (and its right-click menu)
+  // stays registered either way. See GitHub issue #22.
   const bool shown_in_tray = !mozc::win32::LoadToolbarVisiblePreference();
-  input_button_menu_->SetShownInTray(shown_in_tray);
-  input_mode_button_for_win8_->SetShownInTray(shown_in_tray);
+  if (shown_in_tray != mode_icon_registered_ && lang_bar_item_mgr_) {
+    if (shown_in_tray) {
+      lang_bar_item_mgr_->AddItem(input_button_menu_.get());
+      lang_bar_item_mgr_->AddItem(input_mode_button_for_win8_.get());
+    } else {
+      lang_bar_item_mgr_->RemoveItem(input_button_menu_.get());
+      lang_bar_item_mgr_->RemoveItem(input_mode_button_for_win8_.get());
+    }
+    mode_icon_registered_ = shown_in_tray;
+  }
   return S_OK;
 }
 

@@ -52,7 +52,8 @@ class TipLangBar {
   TipLangBar()
       : tool_button_menu_(nullptr),
         help_menu_(nullptr),
-        help_menu_cookie_(TF_INVALID_COOKIE) {}
+        help_menu_cookie_(TF_INVALID_COOKIE),
+        mode_icon_registered_(true) {}
   TipLangBar(const TipLangBar&) = delete;
   TipLangBar& operator=(const TipLangBar&) = delete;
   ~TipLangBar() = default;
@@ -90,6 +91,13 @@ class TipLangBar {
 
   // The cookie issued for installing ITfSystemLangBarItemSink of help_menu_.
   DWORD help_menu_cookie_;
+
+  // Whether input_button_menu_ and input_mode_button_for_win8_ are currently
+  // registered with lang_bar_item_mgr_. GUID_LBI_INPUTMODE in particular is
+  // treated as the system-recognized taskbar mode indicator on Windows 8+,
+  // so toggling TF_LBI_STYLE_SHOWNINTRAY alone does not hide it there; it
+  // must actually be removed from the item manager.
+  bool mode_icon_registered_;
 };
 
 }  // namespace tsf
