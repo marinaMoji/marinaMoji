@@ -10,6 +10,10 @@
 "MM.Odoriji" = "踊り字（繰り返し記号）";
 "MM.Toolbar" = "ツールバー";
 "MM.PrivacyMode" = "プライバシーモード";
+"MM.Reconversion" = "再変換";
+"MM.Preferences" = "環境設定...";
+"MM.AddWord" = "単語登録...";
+"MM.About" = "marinaMojiについて";
 
 /* Toolbar */
 "MM.KeyboardShortcuts" = "キーボードショートカット";

@@ -398,6 +398,8 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
 - (BOOL)dispatchCtrlLeftShiftModeLock:(const KeyEvent &)keyEvent client:(id)sender;
 - (BOOL)tryMacronVowelChord:(NSEvent *)event client:(id)sender;
 - (void)setupMarinaImeMenuIfNeeded;
+- (void)loadConfigNibKeepingTopLevelObjects;
+- (void)buildImeMenuProgrammatically;
 - (void)updateImeMenuState:(const Output *)output;
 - (void)syncCandidatesWithOutput:(const Output *)output;
 - (void)cancelPendingCandidateUpdate;
@@ -468,8 +470,14 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   lastKeyDownTime_ = 0;
   lastKeyCode_ = 0;
 
-  // We don't check the return value of NSBundle because it fails during tests.
-  [[NSBundle mainBundle] loadNibNamed:@"Config" owner:self topLevelObjects:nil];
+  // Config.nib lives in English.lproj / Japanese.lproj / Base.lproj.  On a
+  // French system, fr.lproj exists (Localizable.strings) so NSBundle will not
+  // fall back to English.lproj and loadNibNamed:@"Config" returns NO.  Search
+  // known localizations, then build the menu in code if the nib is missing.
+  [self loadConfigNibKeepingTopLevelObjects];
+  if (!menu_) {
+    [self buildImeMenuProgrammatically];
+  }
   [self setupMarinaImeMenuIfNeeded];
   if (!originalString_ || !composedString_ || !mozcRenderer_ || !mozcClient_) {
     self = nil;
@@ -513,8 +521,94 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   return [super client];
 }
 
+- (void)loadConfigNibKeepingTopLevelObjects {
+  NSBundle *bundle = [NSBundle mainBundle];
+  NSArray<NSString *> *localizations = @[
+    @"Base",
+    @"English",
+    @"Japanese",
+    @"French",
+    @"en",
+    @"ja",
+    @"fr",
+  ];
+  NSMutableArray<NSString *> *candidates = [NSMutableArray array];
+  NSString *preferred = [bundle pathForResource:@"Config" ofType:@"nib"];
+  if (preferred) {
+    [candidates addObject:preferred];
+  }
+  for (NSString *loc in localizations) {
+    NSString *path = [bundle pathForResource:@"Config"
+                                      ofType:@"nib"
+                                 inDirectory:nil
+                             forLocalization:loc];
+    if (path && ![candidates containsObject:path]) {
+      [candidates addObject:path];
+    }
+  }
+
+  for (NSString *path in candidates) {
+    NSData *data = [NSData dataWithContentsOfFile:path];
+    if (!data) {
+      continue;
+    }
+    NSNib *nib = [[NSNib alloc] initWithNibData:data bundle:bundle];
+    NSArray *topLevel = nil;
+    if (![nib instantiateWithOwner:self topLevelObjects:&topLevel]) {
+      continue;
+    }
+    if (menu_) {
+      configNibTopLevelObjects_ = topLevel;
+      return;
+    }
+  }
+}
+
+- (void)buildImeMenuProgrammatically {
+  menu_ = [[NSMenu alloc] initWithTitle:@"marinaMoji"];
+
+  NSMenuItem *reconversion = [[NSMenuItem alloc]
+      initWithTitle:MarinaLocalizedString(@"MM.Reconversion")
+             action:@selector(reconversionClicked:)
+      keyEquivalent:@"r"];
+  reconversion.target = self;
+  reconversion.keyEquivalentModifierMask = NSEventModifierFlagControl;
+  [menu_ addItem:reconversion];
+
+  NSMenuItem *prefs = [[NSMenuItem alloc]
+      initWithTitle:MarinaLocalizedString(@"MM.Preferences")
+             action:@selector(configClicked:)
+      keyEquivalent:@""];
+  prefs.target = self;
+  [menu_ addItem:prefs];
+
+  NSMenuItem *addWord = [[NSMenuItem alloc]
+      initWithTitle:MarinaLocalizedString(@"MM.AddWord")
+             action:@selector(registerWordClicked:)
+      keyEquivalent:@""];
+  addWord.target = self;
+  [menu_ addItem:addWord];
+
+  NSMenuItem *dictTool = [[NSMenuItem alloc]
+      initWithTitle:MarinaLocalizedString(@"MM.DictionaryTool")
+             action:@selector(dictionaryToolClicked:)
+      keyEquivalent:@""];
+  dictTool.target = self;
+  [menu_ addItem:dictTool];
+
+  NSMenuItem *about = [[NSMenuItem alloc]
+      initWithTitle:MarinaLocalizedString(@"MM.About")
+             action:@selector(aboutDialogClicked:)
+      keyEquivalent:@""];
+  about.target = self;
+  [menu_ addItem:about];
+}
+
 - (void)setupMarinaImeMenuIfNeeded {
-  if (!menu_ || traditionalKanjiMenuItem_ != nil) {
+  if (!menu_) {
+    [self buildImeMenuProgrammatically];
+  }
+  if (traditionalKanjiMenuItem_ != nil) {
     return;
   }
 

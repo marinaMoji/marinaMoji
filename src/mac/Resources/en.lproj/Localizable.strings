@@ -10,6 +10,10 @@
 "MM.Odoriji" = "Odoriji (iteration marks)";
 "MM.Toolbar" = "Toolbar";
 "MM.PrivacyMode" = "Privacy mode";
+"MM.Reconversion" = "Reconversion";
+"MM.Preferences" = "Preferences...";
+"MM.AddWord" = "Add a word";
+"MM.About" = "About marinaMoji";
 
 /* Toolbar */
 "MM.KeyboardShortcuts" = "Keyboard Shortcuts";

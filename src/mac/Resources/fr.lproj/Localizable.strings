@@ -10,6 +10,10 @@
 "MM.Odoriji" = "Odoriji (marques d'itération)";
 "MM.Toolbar" = "Barre d'outils";
 "MM.PrivacyMode" = "Mode confidentialité";
+"MM.Reconversion" = "Reconversion";
+"MM.Preferences" = "Préférences...";
+"MM.AddWord" = "Ajouter un mot";
+"MM.About" = "À propos de marinaMoji";
 
 /* Toolbar */
 "MM.KeyboardShortcuts" = "Raccourcis clavier";

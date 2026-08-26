@@ -238,6 +238,7 @@ mozc_objc_library(
     srcs = ["mozc_imk_input_controller.mm"],
     hdrs = ["mozc_imk_input_controller.h"],
     data = [
+        "Base.lproj/Config.xib",
         "English.lproj/Config.xib",
         "Japanese.lproj/Config.xib",
     ],

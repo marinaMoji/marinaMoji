@@ -782,6 +782,8 @@ std::string GetKeymapPath(const std::string &filename) {
 - (mozc::client::ClientInterface *)mozcClient;
 - (mozc::commands::CompositionMode)compositionMode;
 - (bool)leftShiftDirectLocked;
+- (NSPoint)loadPosition;
+- (void)clampWindowToVisibleScreen;
 
 @end
 
@@ -1222,8 +1224,50 @@ std::string GetKeymapPath(const std::string &filename) {
   return existing ? [existing mutableCopy] : [NSMutableDictionary dictionary];
 }
 
+- (NSSize)toolbarSize {
+  NSSize size = self.frame.size;
+  if (size.width < 1 || size.height < 1) {
+    size = NSMakeSize(kLogoWidth + kButtonWidth * 5 + 10, kToolbarHeight);
+  }
+  return size;
+}
+
+- (NSPoint)defaultOrigin {
+  NSRect screen = [NSScreen mainScreen].visibleFrame;
+  NSSize size = [self toolbarSize];
+  return NSMakePoint(NSMaxX(screen) - size.width - kToolbarMargin,
+                     NSMinY(screen) + kToolbarMargin);
+}
+
+// Saved coordinates from a now-unplugged display would park the toolbar where
+// it cannot be seen or dragged. Keep the saved origin only if a grabbable
+// strip still intersects some screen's work area (same idea as Windows).
+- (NSPoint)clampedOrigin:(NSPoint)origin {
+  NSSize size = [self toolbarSize];
+  const CGFloat minVisibleX = MIN(size.width, (CGFloat)48);
+  const CGFloat minVisibleY = MIN(size.height, (CGFloat)16);
+  NSRect windowRect = NSMakeRect(origin.x, origin.y, size.width, size.height);
+  for (NSScreen *screen in [NSScreen screens]) {
+    NSRect inter = NSIntersectionRect(windowRect, screen.visibleFrame);
+    if (inter.size.width >= minVisibleX && inter.size.height >= minVisibleY) {
+      return origin;
+    }
+  }
+  return [self defaultOrigin];
+}
+
+- (void)clampWindowToVisibleScreen {
+  if (!self.window) {
+    return;
+  }
+  NSPoint clamped = [self clampedOrigin:self.window.frame.origin];
+  if (!NSEqualPoints(clamped, self.window.frame.origin)) {
+    [self.window setFrameOrigin:clamped];
+  }
+}
+
 - (void)savePosition {
-  NSPoint origin = self.window.frame.origin;
+  NSPoint origin = [self clampedOrigin:self.window.frame.origin];
   NSMutableDictionary *dict = [self mutablePrefs];
   dict[@"x"] = @(origin.x);
   dict[@"y"] = @(origin.y);
@@ -1234,13 +1278,10 @@ std::string GetKeymapPath(const std::string &filename) {
   NSDictionary *dict =
       [NSDictionary dictionaryWithContentsOfFile:[self prefsPath]];
   if (dict && dict[@"x"] != nil && dict[@"y"] != nil) {
-    return NSMakePoint([dict[@"x"] doubleValue], [dict[@"y"] doubleValue]);
+    return [self clampedOrigin:NSMakePoint([dict[@"x"] doubleValue],
+                                           [dict[@"y"] doubleValue])];
   }
-  // Default: bottom-right of main screen
-  NSRect screen = [NSScreen mainScreen].visibleFrame;
-  return NSMakePoint(
-      NSMaxX(screen) - self.frame.size.width - kToolbarMargin,
-      NSMinY(screen) + kToolbarMargin);
+  return [self defaultOrigin];
 }
 
 #pragma mark - Dark Mode Observation
@@ -1280,6 +1321,7 @@ static void EnsureToolbar(mozc::client::ClientInterface *client,
                           mozc::commands::CompositionMode mode) {
   if (g_toolbar_panel) {
     [g_toolbar_view setClient:client];
+    [g_toolbar_view clampWindowToVisibleScreen];
     return;
   }
 
@@ -1354,6 +1396,7 @@ void MozcToolbarShow(client::ClientInterface *client,
       return;
     }
     EnsureToolbar(client, mode);
+    [g_toolbar_view clampWindowToVisibleScreen];
     const bool locked =
         g_toolbar_view ? [g_toolbar_view leftShiftDirectLocked] : false;
     [g_toolbar_view updateMode:mode locked:locked];

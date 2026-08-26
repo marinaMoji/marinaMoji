@@ -5,7 +5,7 @@
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22505"/>
     </dependencies>
     <objects>
-        <customObject id="-2" userLabel="File's Owner" customClass="GoogleJapaneseInputController">
+        <customObject id="-2" userLabel="File's Owner" customClass="MozcImkInputController">
             <connections>
                 <outlet property="menu_" destination="6" id="11"/>
             </connections>

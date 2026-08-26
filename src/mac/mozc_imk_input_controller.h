@@ -131,6 +131,9 @@
   /** |menu_| is the NSMenu to be shown in the pulldown menu-list of the IME. */
   IBOutlet NSMenu *menu_;
 
+  /** Retains Config.nib top-level objects so the menu is not released under ARC. */
+  NSArray *configNibTopLevelObjects_;
+
   /** Checkmark item for showing/hiding the floating toolbar. */
   NSMenuItem *toolbarMenuItem_;
 
