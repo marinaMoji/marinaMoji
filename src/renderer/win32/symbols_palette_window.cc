@@ -18,6 +18,7 @@
 #include "base/file_util.h"
 #include "base/system_util.h"
 #include "base/win32/wide_char.h"
+#include "base/win32/win_util.h"
 #include "protocol/commands.pb.h"
 #include "protocol/renderer_command.pb.h"
 #include "renderer/win32/marina_localized_string.h"
@@ -133,6 +134,38 @@ bool IsDarkTheme() {
   return status == ERROR_SUCCESS && value == 0;
 }
 
+// marinaMoji: SPI_GETWORKAREA reports the *primary* monitor's work area, which
+// is not necessarily the monitor the user is typing on -- centring on it drops
+// the palette onto another screen entirely. Anchor to the monitor holding the
+// application being typed into, falling back to the cursor's monitor and only
+// then to the primary. Mirrors shortcuts_window.cc's copy of this, and the
+// "keep it where the user is looking" rule the toolbar already follows.
+RECT CurrentMonitorWorkArea(const commands::RendererCommand& command) {
+  HMONITOR monitor = nullptr;
+  if (command.has_application_info() &&
+      command.application_info().has_target_window_handle()) {
+    const HWND target = ::mozc::win32::WinUtil::DecodeWindowHandle(
+        command.application_info().target_window_handle());
+    if (target != nullptr) {
+      monitor = ::MonitorFromWindow(target, MONITOR_DEFAULTTONULL);
+    }
+  }
+  if (monitor == nullptr) {
+    POINT cursor = {0, 0};
+    if (::GetCursorPos(&cursor)) {
+      monitor = ::MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST);
+    }
+  }
+  MONITORINFO info = {};
+  info.cbSize = sizeof(info);
+  if (monitor != nullptr && ::GetMonitorInfoW(monitor, &info)) {
+    return info.rcWork;
+  }
+  RECT work_area = {0, 0, 1920, 1080};
+  ::SystemParametersInfoW(SPI_GETWORKAREA, 0, &work_area, 0);
+  return work_area;
+}
+
 }  // namespace
 
 SymbolsPaletteWindow::SymbolsPaletteWindow()
@@ -143,6 +176,7 @@ SymbolsPaletteWindow::SymbolsPaletteWindow()
       active_tab_(0),
       pinned_(false),
       has_shown_once_(false),
+      initial_work_area_{0, 0, 0, 0},
       dpi_(USER_DEFAULT_SCREEN_DPI),
       is_dark_theme_(false),
       scroll_offset_(0),
@@ -436,9 +470,16 @@ void SymbolsPaletteWindow::Relayout() {
   if (!has_shown_once_) {
     // marinaMoji: mirrors mac's [window center] -- the palette isn't anchored
     // to the toolbar's position, unlike the toolbar's own bottom-right
-    // default.
-    RECT work_area = {0, 0, 1920, 1080};
-    ::SystemParametersInfoW(SPI_GETWORKAREA, 0, &work_area, 0);
+    // default. Centred on the monitor the user is typing on, not the primary
+    // one (see CurrentMonitorWorkArea).
+    RECT work_area = initial_work_area_;
+    if (work_area.right <= work_area.left ||
+        work_area.bottom <= work_area.top) {
+      // Relayout is also reached from tab/scroll handling, which can run
+      // before any OnUpdate has captured a monitor. Fall back rather than
+      // centring inside an empty rect at negative coordinates.
+      ::SystemParametersInfoW(SPI_GETWORKAREA, 0, &work_area, 0);
+    }
     x = work_area.left + (work_area.right - work_area.left - window_width) / 2;
     y = work_area.top + (work_area.bottom - work_area.top - window_height) / 2;
   }
@@ -775,6 +816,10 @@ void SymbolsPaletteWindow::OnUpdate(const commands::RendererCommand& command) {
   }
 
   const auto& info = command.application_info().symbols_palette_info();
+
+  if (!has_shown_once_) {
+    initial_work_area_ = CurrentMonitorWorkArea(command);
+  }
 
   std::vector<std::wstring> kaeriten;
   for (const std::string& s : info.kaeriten_symbols()) {

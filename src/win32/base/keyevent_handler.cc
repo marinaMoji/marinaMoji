@@ -592,32 +592,6 @@ bool ConvertToKeyEventMain(const VirtualKey& virtual_key, BYTE scan_code,
     DCHECK(!keyboard_status_wo_kana_lock.IsPressed(VK_CAPITAL));
     if (keyboard_status_wo_kana_lock.IsPressed(VK_CONTROL)) {
       modifer_keys->insert(KeyEvent::CTRL);
-      // marinaMoji: Ctrl+Alt+Shift+vowel must report an *uppercase* key_code.
-      // The macron rows in the keymap TSVs are written `Ctrl Alt Shift A` ..
-      // `Ctrl Alt Shift U`, and KeyParser::ParseKeyVector stores a one-glyph
-      // token verbatim -- so those rules carry key_code 'A'..'U'. The generic
-      // path below reports |lower_char| whenever Ctrl is held (and, unlike the
-      // Shift-without-Ctrl branch, leaves SHIFT in the modifier set), which can
-      // never match them: the uppercase macron vowels ĀĒĪŌŪ were unreachable on
-      // Windows at *every* keyboard layout. Note this only bites with CapsLock
-      // off; with CapsLock on it happens to work already, because the CAPS
-      // branch above emits lower_char and KeyEventUtil::NormalizeModifiers then
-      // flips the case back.
-      //
-      // Mirrors the |macron_shift| fixup in mac/KeyCodeMap.mm, and is likewise
-      // restricted to the five vowels so that no other Ctrl+Alt+Shift+letter
-      // binding changes shape. The test is on |lower_char| rather than the
-      // virtual key because under a fixed romaji layout (MarinaKeyboardLayout)
-      // lower_char comes from that layout's table, and it is the produced
-      // character -- not the physical key -- that the keymap matches on.
-      const bool is_macron_vowel =
-          (lower_char == L'a' || lower_char == L'e' || lower_char == L'i' ||
-           lower_char == L'o' || lower_char == L'u');
-      if (is_macron_vowel && keyboard_status_wo_kana_lock.IsPressed(VK_MENU) &&
-          keyboard_status_wo_kana_lock.IsPressed(VK_SHIFT)) {
-        key->set_key_code(upper_char);
-        return true;
-      }
       key->set_key_code(lower_char);
       return true;
     }

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  marinaMoji installer strings, fr-FR. See loc/en-us.wxl for what is and is
+  not localizable from these files.
+-->
+<WixLocalization Culture="fr-FR" Codepage="65001" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+
+  <String Id="InstallerDescription" Value="Programme d'installation de marinaMoji" />
+
+  <String Id="LaunchConditionWindowsVersion" Value="marinaMoji nécessite Windows 10 version 1809 ou ultérieure. Veuillez mettre à jour Windows, puis réessayer." />
+
+  <String Id="LaunchConditionPrivileged" Value="L'installation de marinaMoji nécessite des privilèges d'administrateur." />
+
+  <String Id="LaunchConditionArm64" Value="Ce programme d'installation ne prend pas en charge ARM64. Veuillez télécharger le programme d'installation ARM64." />
+
+  <String Id="ErrorNewerVersionInstalled" Value="Une version plus récente de marinaMoji est déjà installée." />
+
+</WixLocalization>

@@ -247,6 +247,7 @@ mozc_cc_library(
         "//base:file_util",
         "//base:system_util",
         "//base/win32:wide_char",
+        "//base/win32:win_util",
         "//bazel/win32:advapi32",
         "//bazel/win32:comctl32",
         "//bazel/win32:gdi32",
@@ -270,6 +271,7 @@ mozc_cc_library(
         ":win32_dpi_util",
         "//base:const",
         "//base/win32:wide_char",
+        "//base/win32:win_util",
         "//bazel/win32:advapi32",
         "//bazel/win32:comctl32",
         "//bazel/win32:gdi32",
@@ -278,6 +280,7 @@ mozc_cc_library(
         "//client:client_interface",
         "//protocol:commands_cc_proto",
         "//protocol:renderer_cc_proto",
+        "@com_google_absl//absl/strings",
     ],
 )
 

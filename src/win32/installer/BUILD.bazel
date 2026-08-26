@@ -32,12 +32,9 @@
 load("@bazel_skylib//lib:selects.bzl", "selects")
 load("//:build_defs.bzl", "mozc_py_binary")
 load("//:config.bzl", "BRANDING")
+load(":installer.bzl", "mozc_win_installer")
 
 package(default_visibility = ["//visibility:private"])
-
-_TARGET_COMPATIBLE_WITH = [
-    "@platforms//os:windows",
-]
 
 mozc_py_binary(
     # Note, "build_installer" cannot be used as a name here, since "install" is a keyword that
@@ -45,12 +42,24 @@ mozc_py_binary(
     # https://github.com/google/mozc/issues/1519
     # https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/architecture
     name = "build_msi",
-    srcs = ["build_installer.py"],
+    srcs = [
+        "build_installer.py",
+        "installer_cultures.py",
+    ],
     test_lib = False,
     deps = [
         "//build_tools:mozc_version_lib",
         "//build_tools:vs_util",
     ],
+)
+
+mozc_py_binary(
+    name = "embed_transforms",
+    srcs = [
+        "embed_transforms.py",
+        "installer_cultures.py",
+    ],
+    test_lib = False,
 )
 
 exports_files([
@@ -72,9 +81,22 @@ _WXS_FILE = {
     "marinaMoji": ":installer_marinamoji_64bit.wxs",
 }.get(BRANDING, ":installer_64bit.wxs")
 
+# marinaMoji builds one MSI per culture (see loc/*.wxl and the shared culture
+# table in installer_cultures.py), then folds them into the single
+# multilingual marinaMoji64.msi that actually ships. These per-culture
+# packages are intermediates -- buildable on their own for debugging, but not
+# what any consumer depends on. Keep the culture keys in step with
+# installer_cultures.py; the .msi rule below fails if they drift.
+# The upstream brandings hardcode their own language in their .wxs and get a
+# single unlocalized MSI.
+_MSI_CULTURES = {
+    "en-US": ("marinaMoji64.en-US.msi", "loc/en-us.wxl"),
+    "fr-FR": ("marinaMoji64.fr-FR.msi", "loc/fr-fr.wxl"),
+    "ja-JP": ("marinaMoji64.ja-JP.msi", "loc/ja-jp.wxl"),
+} if BRANDING == "marinaMoji" else {}
+
 _MSI_FILE = {
     "Mozc": "Mozc64.msi",
-    "marinaMoji": "marinaMoji64.msi",
 }.get(BRANDING, "GoogleJapaneseInput64.msi")
 
 selects.config_setting_group(
@@ -85,83 +107,59 @@ selects.config_setting_group(
     ],
 )
 
-genrule(
-    name = "installer",
-    srcs = [
-        "//gui/tool:mozc_tool_win",
-        "//renderer/win32:win32_renderer_main",
-        "//server:mozc_server_win",
-        "//win32/broker:mozc_broker_main",
-        "//win32/cache_service:mozc_cache_service",
-        "//win32/tip:mozc_tip32",
-        "//win32/tip:mozc_tip64",
-        "//win32/custom_action",
-        "//sync:marinaMojiSync_win",
-        "//data/marina_opencc:marinaShin2Kyu.json",
-        "//data/marina_opencc:marinaShin2KyuCharacters.ocd2",
-        "//data/marina_opencc:marinaShin2KyuPhrases.ocd2",
-        "//data/marina_opencc:marinaShin2KyuVariants.ocd2",
-        "//data/images/win:toolbar_icons",
-        "//data/images/win:toolbar_icons/logo_long_light_24.png",
-        _WXS_FILE,
-        "//base:mozc_version_txt",
-        "//data/images/win:product_icon.ico",
-        "//data/installer:credits_en.html",
-        "@qt_win//:bin/Qt6Core.dll",
-        "@wix//:wix.exe",
-    ] + select({
-        ":build_arm64_binaries": [
-            "//win32/tip:mozc_tip64arm",
-            "//win32/tip:mozc_tip64x",
+[
+    mozc_win_installer(
+        name = "installer_" + culture.lower().replace("-", "_"),
+        out = out_and_loc[0],
+        branding = BRANDING,
+        culture = culture,
+        loc_file = out_and_loc[1],
+        wxs_file = _WXS_FILE,
+    )
+    # Starlark has no nested tuple unpacking, hence the indexing.
+    for culture, out_and_loc in _MSI_CULTURES.items()
+]
+
+# One unlocalized MSI for the brandings that have no per-culture build.
+[
+    mozc_win_installer(
+        name = "installer_default",
+        out = _MSI_FILE,
+        branding = BRANDING,
+        wxs_file = _WXS_FILE,
+    )
+    for _ in ([] if _MSI_CULTURES else [None])
+]
+
+# The multilingual package: the en-US database with the other cultures
+# embedded as language transforms, so Windows Installer picks the language
+# from the machine. This is the only MSI that ships.
+[
+    genrule(
+        name = "installer_multilingual",
+        srcs = [
+            ":installer_" + culture.lower().replace("-", "_")
+            for culture in _MSI_CULTURES
         ],
-        "//conditions:default": [],
-    }),
-    outs = [_MSI_FILE],
-    cmd = " ".join([
-        "$(location :build_msi)",
-        "--output=$@",
-        "--version_file=$(location //base:mozc_version_txt)",
-        "--mozc_tool=$(location //gui/tool:mozc_tool_win)",
-        "--mozc_renderer=$(location //renderer/win32:win32_renderer_main)",
-        "--mozc_server=$(location //server:mozc_server_win)",
-        "--mozc_broker=$(location //win32/broker:mozc_broker_main)",
-        "--mozc_cache_service=$(location //win32/cache_service:mozc_cache_service)",
-        "--mozc_tip32=$(location //win32/tip:mozc_tip32)",
-        "--mozc_tip64=$(location //win32/tip:mozc_tip64)",
-        "--custom_action=$(location //win32/custom_action)",
-        "--marinamoji_sync=$(location //sync:marinaMojiSync_win)",
-        "--opencc_config=$(location //data/marina_opencc:marinaShin2Kyu.json)",
-        "--opencc_characters=$(location //data/marina_opencc:marinaShin2KyuCharacters.ocd2)",
-        "--opencc_phrases=$(location //data/marina_opencc:marinaShin2KyuPhrases.ocd2)",
-        "--opencc_variants=$(location //data/marina_opencc:marinaShin2KyuVariants.ocd2)",
-        "--toolbar_icons_sample=$(location //data/images/win:toolbar_icons/logo_long_light_24.png)",
-        "--icon_path=$(location //data/images/win:product_icon.ico)",
-        "--credit_file=$(location //data/installer:credits_en.html)",
-        "--qt_core_dll=$(location @qt_win//:bin/Qt6Core.dll)",
-        "--wxs_path=$(location " + _WXS_FILE + ")",
-        "--wix_path=$(location @wix//:wix.exe)",
-        "--branding=" + BRANDING,
-        "--vs_install_dir=\"$$BAZEL_VC\"",
-    ]) + select({
-        ":build_arm64_binaries": " " + " ".join([
-            "--mozc_tip64arm=$(location //win32/tip:mozc_tip64arm)",
-            "--mozc_tip64x=$(location //win32/tip:mozc_tip64x)",
+        outs = ["marinaMoji64.msi"],
+        cmd = " ".join([
+            "$(location :embed_transforms)",
+            "--output=$@",
+        ] + [
+            "--msi=" + culture + "=$(location :installer_" +
+            culture.lower().replace("-", "_") + ")"
+            for culture in _MSI_CULTURES
         ]),
-        "//conditions:default": "",
-    }) + select({
-        ":debug_build": " --debug_build",
-        "//conditions:default": "",
-    }) + select({
-        "@platforms//cpu:x86_64": " --arch=x64",
-        "@platforms//cpu:arm64": " --arch=arm64",
-        "//conditions:default": "",
-    }) + select({
-        "//:enable_win_universal_installer": " --enable_win_universal_installer",
-        "//conditions:default": "",
-    }),
-    target_compatible_with = _TARGET_COMPATIBLE_WITH,
-    tools = [
-        ":build_msi",
-    ],
+        target_compatible_with = ["@platforms//os:windows"],
+        tools = [":embed_transforms"],
+    )
+    for _ in ([None] if _MSI_CULTURES else [])
+]
+
+# The name every consumer depends on (//:package, CI, docs).
+filegroup(
+    name = "installer",
+    srcs = [":installer_multilingual"] if _MSI_CULTURES else [":installer_default"],
+    target_compatible_with = ["@platforms//os:windows"],
     visibility = ["//:__subpackages__"],
 )

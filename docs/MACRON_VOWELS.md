@@ -2,6 +2,8 @@
 
 ## Right Shift tap (Direct input)
 
+This is the default way to type ā ē ī ō ū on **Windows, macOS, and Linux**.
+
 In **Direct input**, tap **Right Shift** on its own (press and release without
 typing anything else) and then type a vowel:
 
@@ -24,7 +26,8 @@ to get the capital form (Ō).
 - Any other non-vowel key cancels the pending state and is handled normally.
 - This is Direct input only. In Hiragana/Katakana/Manyōshū modes, Right Shift
   alone keeps its usual Hiragana ↔ Manyōshū toggle; in ASCII composition modes
-  it is still passed through to the application. Use Ctrl+Alt+vowel there.
+  it is still passed through to the application (use **AltGr+¨** then a vowel
+  there, or switch to Direct input).
 - **Windows StickyKeys:** tapping Shift five times in a row is a Windows
   accessibility gesture that normally pops up a "turn on StickyKeys?" dialog
   -- a pattern our own Left/Right Shift tap shortcuts can trigger by
@@ -34,37 +37,15 @@ to get the capital form (Ō).
   on. If you use StickyKeys deliberately, a plain Shift tap latches Shift for
   the next key, so Right Shift, a can land as Ā instead of ā -- the Settings
   → Shortcuts tab shows a warning with a link to Ease of Access settings when
-  it detects this. Ctrl+Alt+vowel is unaffected either way.
+  it detects this.
 
-## Ctrl+Alt+vowel
+`Ctrl+Alt`+vowel is **not** bound. That chord used to insert macrons in Direct
+input and ASCII composition; it collided with desktop shortcuts and with
+AZERTY `AltGr` (which Windows reports as Ctrl+Alt). The Right Shift dead key
+replaced it.
 
-You can also type macron vowels in **ASCII mode** (half-width or full-width
-alphanumeric) and in **Direct input**:
-
-| Keys | Output |
-|------|--------|
-| Ctrl+Alt+a | ā |
-| Ctrl+Alt+e | ē |
-| Ctrl+Alt+i | ī |
-| Ctrl+Alt+o | ō |
-| Ctrl+Alt+u | ū |
-| Ctrl+Alt+Shift+A | Ā |
-| Ctrl+Alt+Shift+E | Ē |
-| Ctrl+Alt+Shift+I | Ī |
-| Ctrl+Alt+Shift+O | Ō |
-| Ctrl+Alt+Shift+U | Ū |
-
-- **Active in ASCII mode and in Direct input**; in Hiragana/Katakana mode the key is passed through as normal input.
-- Available in all keymap layouts (MS-IME, ATOK, Kotoeri, Chrome OS, mobile).
-
-## Alternatives when Ctrl+Alt is grabbed by the desktop
-
-Many desktop environments (Cinnamon, GNOME, KDE, etc.) use **Ctrl+LeftAlt** for global shortcuts, so Ctrl+Alt+vowel may not reach the IME. The same macron output is also bound to:
-
-- **Ctrl+RightAlt+vowel** — e.g. Ctrl+RightAlt+a → ā. Right Alt is often left alone by the DE.
-- **Ctrl+AltGr+vowel** — same as Ctrl+RightAlt (AltGr is an alias for Right Alt in the keymap).
-
-Use these when Ctrl+Alt+vowel does nothing or triggers a system shortcut.
+`Ctrl+Alt+Right Shift` on Windows is unrelated: it toggles Left Shift mode
+lock, the same as a double-tap of Left Shift.
 
 ## Macron dead key (AltGr+umlaut or AltGr+circumflex)
 
@@ -77,7 +58,4 @@ On some layouts (e.g. Dvorak or others where the macron dead key is on **^**), u
 
 This works in Composition, Conversion, Precomposition, and Direct input. If the next key is not a vowel, the dead state is cancelled and the key is handled normally.
 
-- **Dvorak with Right Alt:** If Right Alt sends only “Alt” (not AltGr), **Ctrl+Left Alt+vowel** still works for macrons; **Right Alt+vowel** is also supported (Right Alt is detected from the physical key).
-- **AZERTY / Dvorak:** If **Ctrl+LeftAlt+vowel** inserted ā but also switched to Hiragana, a follow-up “ghost” Hiragana key from the layout is now suppressed so only the macron is inserted and the mode stays unchanged.
-- **Right Ctrl+Alt+a:** Some desktops or apps bind **Right Ctrl+Alt+a** to “Select all” and consume it before the IME. Use **Left Ctrl+Left Alt+a** (or **Ctrl+RightAlt+a** / **Ctrl+AltGr+a** where available) for macrons if Right Ctrl+Alt does nothing or selects all.
 - **AltGr+deadkey still not working:** If **AltGr+¨** or **AltGr+^** does nothing, your layout may send a different keysym for the dead key or AltGr may not set the modifiers we use. Check the debug log (see development docs) for the keyval and modifiers received; we support diaeresis keyval 0xA8 and 0xFE20, and circumflex 0x5E and 0xFE22.

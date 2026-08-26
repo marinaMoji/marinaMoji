@@ -40,7 +40,6 @@
 #include <iterator>
 
 #include "absl/container/flat_hash_set.h"
-#include "absl/strings/str_cat.h"
 #include "base/config_file_stream.h"
 #include "composer/key_parser.h"
 #include "protocol/commands.pb.h"
@@ -290,71 +289,6 @@ TEST_F(KeyMapTest, GetCommand_overlay) {
     EXPECT_TRUE(manager.GetCommandDirect(key_event, &command));
     // MSIME defines HENKAN as Reconvert, but the overlay defines it as IME_ON.
     EXPECT_EQ(command, DirectInputState::Commands::IME_ON);
-  }
-}
-
-// marinaMoji: pins the key_code case that the macron rows require.
-//
-// The macron rules in the keymap TSVs are written `Ctrl Alt Shift A` .. `U`,
-// and KeyParser stores a single-glyph token verbatim, so they carry an
-// *uppercase* key_code. A client that reports the lowercase letter plus a
-// SHIFT modifier -- which is what the Windows key handler did until
-// win32/base/keyevent_handler.cc grew its |is_macron_vowel| fixup, and what
-// mac/KeyCodeMap.mm's |macron_shift| block exists to correct -- silently fails
-// to match, making ĀĒĪŌŪ unreachable. This test fails if that contract is ever
-// relaxed or the rows are rewritten in lowercase.
-TEST_F(KeyMapTest, MarinaMacronVowelsRequireUppercaseKeyCode) {
-  config::Config config;
-  config.set_session_keymap(config::Config::MSIME);
-  KeyMapManager manager(config);
-
-  constexpr char kUpper[] = {'A', 'E', 'I', 'O', 'U'};
-  constexpr char kLower[] = {'a', 'e', 'i', 'o', 'u'};
-
-  for (size_t i = 0; i < std::size(kUpper); ++i) {
-    // Uppercase key_code + Ctrl/Alt/Shift: matches.
-    {
-      commands::KeyEvent key_event;
-      ASSERT_TRUE(KeyParser::ParseKey(
-          absl::StrCat("Ctrl Alt Shift ", std::string(1, kUpper[i])),
-          &key_event));
-      EXPECT_EQ(key_event.key_code(), static_cast<uint32_t>(kUpper[i]))
-          << "KeyParser should store the glyph verbatim, not fold its case";
-
-      CompositionState::Commands command;
-      EXPECT_TRUE(manager.GetCommandComposition(key_event, &command))
-          << "no macron rule for Ctrl Alt Shift " << kUpper[i];
-      EXPECT_EQ(command, CompositionState::INSERT_MACRON_VOWEL);
-    }
-
-    // Lowercase key_code + an explicit SHIFT modifier: must NOT match the
-    // uppercase rule. This is the shape the buggy Windows path produced.
-    {
-      commands::KeyEvent key_event;
-      ASSERT_TRUE(KeyParser::ParseKey(
-          absl::StrCat("Ctrl Alt Shift ", std::string(1, kLower[i])),
-          &key_event));
-      CompositionState::Commands command;
-      const bool matched =
-          manager.GetCommandComposition(key_event, &command) &&
-          command == CompositionState::INSERT_MACRON_VOWEL;
-      EXPECT_FALSE(matched)
-          << "lowercase '" << kLower[i]
-          << "' + SHIFT unexpectedly matches the macron rule; if the keymap "
-             "gained a lowercase row, the Windows uppercase fixup in "
-             "win32/base/keyevent_handler.cc is now redundant";
-    }
-
-    // Lowercase without Shift stays on the lowercase macron rule.
-    {
-      commands::KeyEvent key_event;
-      ASSERT_TRUE(KeyParser::ParseKey(
-          absl::StrCat("Ctrl Alt ", std::string(1, kLower[i])), &key_event));
-      CompositionState::Commands command;
-      EXPECT_TRUE(manager.GetCommandComposition(key_event, &command))
-          << "no macron rule for Ctrl Alt " << kLower[i];
-      EXPECT_EQ(command, CompositionState::INSERT_MACRON_VOWEL);
-    }
   }
 }
 

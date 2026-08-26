@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  marinaMoji installer strings, en-US (the source language).
+
+  Only strings the installer itself renders live here. The cache service's
+  display name and description are pulled from the binary's own string
+  resources (@[#marinamoji_cache_service.exe],-100 / -101), and the progress
+  and uninstall chrome is drawn by msiexec in the OS UI language, so neither
+  is localizable from this file.
+
+  Codepage is the MSI database codepage, not the encoding of this file, which
+  is always UTF-8. It is 65001 for every culture so the multilingual MSI's
+  single string pool can hold all three languages at once; see
+  installer_cultures.py.
+-->
+<WixLocalization Culture="en-US" Codepage="65001" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+
+  <String Id="InstallerDescription" Value="marinaMoji Installer" />
+
+  <String Id="LaunchConditionWindowsVersion" Value="marinaMoji requires Windows 10 version 1809 or later. Please update Windows and try again." />
+
+  <String Id="LaunchConditionPrivileged" Value="Installing marinaMoji requires administrator privileges." />
+
+  <String Id="LaunchConditionArm64" Value="This installer does not support ARM64. Please download the ARM64 installer instead." />
+
+  <String Id="ErrorNewerVersionInstalled" Value="A newer version of marinaMoji is already installed." />
+
+</WixLocalization>

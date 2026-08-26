@@ -164,6 +164,11 @@ class SymbolsPaletteWindow
   int active_tab_;
   bool pinned_;
   bool has_shown_once_;
+  // Work area of the monitor the palette should first appear on, captured in
+  // OnUpdate (which has the RendererCommand naming the target application) and
+  // consumed by Relayout, which is also reached from tab/scroll handling that
+  // has no command to hand. Only read while |has_shown_once_| is false.
+  RECT initial_work_area_;
 
   // DPI of the monitor this window is on. All layout metrics are logical
   // (96 DPI) constants scaled by this -- the renderer is PerMonitorV2, so

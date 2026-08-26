@@ -58,7 +58,7 @@ struct DirectInputState {
     COMPOSITION_MODE_HALF_ALPHANUMERIC,
     RECONVERT,
     LAUNCH_WORD_REGISTER_DIALOG,
-    INSERT_MACRON_VOWEL,  // Ctrl+Alt+vowel → ā ē ī ō ū (also in direct input)
+    INSERT_MACRON_VOWEL,  // Optional keymap / SessionCommand; default is Right Shift dead key
     SET_MACRON_DEAD_KEY,  // AltGr+umlaut (¨): next vowel → macron (ā ē ī ō ū)
   };
 };
@@ -81,7 +81,7 @@ struct PrecompositionState {
     INSERT_ODORIJI_DEFAULT,    // insert session default odoriji (e.g. 々) without opening palette
     TOGGLE_FULL_HALF_WIDTH,    // toggle half/full width
     TOGGLE_MANYOSHU_HIRAGANA,  // toggle 万葉集 (katakana preedit/candidates, dedupe) / Hiragana
-    INSERT_MACRON_VOWEL,       // Ctrl+Alt+vowel → ā ē ī ō ū (ASCII mode only)
+    INSERT_MACRON_VOWEL,       // Optional keymap / SessionCommand; default is Right Shift dead key
     SET_MACRON_DEAD_KEY,       // AltGr+umlaut (¨): next vowel → macron
     // Switch input mode.
     COMPOSITION_MODE_HIRAGANA,

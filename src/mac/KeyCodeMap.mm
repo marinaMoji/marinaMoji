@@ -468,39 +468,9 @@ void PostShiftKeyUp(CGKeyCode keyCode) {
       (nsModifiers & NSEventModifierFlagControl) &&
       (nsModifiers & NSEventModifierFlagOption) &&
       !(nsModifiers & NSEventModifierFlagCommand);
-  const bool macron_shift = ctrl_alt_no_command && (nsModifiers & NSEventModifierFlagShift);
 
   NSString *inputString = [event characters];
   NSString *inputStringRaw = [event charactersIgnoringModifiers];
-
-  if ([inputString length] == 0 && [inputStringRaw length] == 0 && macron_shift) {
-    // Some layouts deliver the Ctrl+Alt+Shift macron combo with no
-    // |characters| at all. Fall back to the QWERTY-position base vowel from
-    // the physical keyCode so the macron shortcut still works.
-    unichar fallback = 0;
-    switch (keyCode) {
-      case kVK_ANSI_A:
-        fallback = 'a';
-        break;
-      case kVK_ANSI_E:
-        fallback = 'e';
-        break;
-      case kVK_ANSI_I:
-        fallback = 'i';
-        break;
-      case kVK_ANSI_O:
-        fallback = 'o';
-        break;
-      case kVK_ANSI_U:
-        fallback = 'u';
-        break;
-      default:
-        break;
-    }
-    if (fallback != 0) {
-      inputStringRaw = [NSString stringWithCharacters:&fallback length:1];
-    }
-  }
 
   if ([inputString length] == 0 && [inputStringRaw length] == 0) {
     return NO;
@@ -516,29 +486,6 @@ void PostShiftKeyUp(CGKeyCode keyCode) {
   unichar inputChar =
       [((use_shifted_chars) ? inputString : inputStringRaw) characterAtIndex:0];
 
-  // Dvorak etc.: Ctrl+Alt+Shift often yields 'a' + SHIFT in modifiers, not key_code 'A'.
-  // InsertMacronVowel needs uppercase key_code for ĀĒĪŌŪ.
-  if (macron_shift) {
-    switch (inputChar) {
-      case 'a':
-        inputChar = 'A';
-        break;
-      case 'e':
-        inputChar = 'E';
-        break;
-      case 'i':
-        inputChar = 'I';
-        break;
-      case 'o':
-        inputChar = 'O';
-        break;
-      case 'u':
-        inputChar = 'U';
-        break;
-      default:
-        break;
-    }
-  }
   std::map<unsigned short, KeyEvent::SpecialKey>::const_iterator sp_iter =
       kSpecialKeyMap->find(keyCode);
   if (sp_iter != kSpecialKeyMap->end()) {

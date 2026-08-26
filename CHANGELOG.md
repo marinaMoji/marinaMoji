@@ -10,6 +10,241 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Remove Ctrl+Alt+vowel macron shortcuts (2026-08-27)
+
+The default way to type ā ē ī ō ū is **Right Shift tap, then a vowel** in
+Direct input, on Windows, macOS, and Linux. `Ctrl+Alt`+vowel (and the
+`Ctrl+RightAlt` / `Ctrl+AltGr` aliases, plus Shift for capitals) is no longer
+bound: that chord collided with desktop shortcuts and with AZERTY `AltGr`
+(which Windows reports as Ctrl+Alt).
+
+Removed from every default keymap TSV (`ms-ime`, `atok`, `kotoeri`,
+`chromeos`, `mobile`). Dropped the client hacks that existed only for the
+chord: macOS `tryMacronVowelChord` / `macron_shift` in
+`mac/mozc_imk_input_controller.mm` and `mac/KeyCodeMap.mm`; the Windows
+uppercase `key_code` fixup in `win32/base/keyevent_handler.cc`; IBus
+Ctrl+Alt+Hiragana → `a` in `unix/ibus/key_translator.cc`. Tests that pinned
+those hacks are gone.
+
+Unchanged: **`Ctrl+Alt+Right Shift`** on Windows (Left Shift mode lock);
+**AltGr+¨** / **AltGr+^** as a layout dead key. ASCII composition still does
+not arm Right Shift — switch to Direct input (or use AltGr+¨) for macrons
+there.
+
+Docs: `docs/MACRON_VOWELS.md`; ShareDocs `WINDOWS_TESTING.md`,
+`MACOS_TESTING.md`, `Testing_Checklist_WP7.md`, `Keybinding_notes.md`,
+`Fonctions.md`.
+
+### Windows: multilingual MSI (en-US / fr-FR / ja-JP) (2026-08-27)
+
+`marinaMoji64.msi` is now a single package that installs in English, French
+or Japanese according to the machine's language. It had been English-only
+since 2026-08-08, when the four user-visible installer strings inherited
+from upstream Mozc were translated out of Japanese and `<Package>` moved
+from `1041`/`932` to `1033`/`1252`; that entry noted a genuinely
+multilingual installer as a larger change, and this is it.
+
+**Strings.** The four messages — the Windows-version gate, the
+administrator-privileges gate, the ARM64 gate, and the
+newer-version-installed error — plus the summary-information description now
+come from [`win32/installer/loc/*.wxl`](src/win32/installer/loc/) via
+`!(loc.*)`, with `<Package>`'s `Language`/`Codepage` from
+`$(var.InstallerLanguage)` / `$(var.InstallerCodepage)`. Those defines have
+no fallback, so a culture whose `.wxl` is missing fails the build instead of
+producing a mislabelled MSI.
+[`installer_cultures.py`](src/win32/installer/installer_cultures.py) holds
+the one culture table that `build_installer.py` and `embed_transforms.py`
+both read, so they cannot disagree about which cultures exist.
+
+**Packaging.** `build_installer.py` gained `--culture` and `--loc_file` and
+runs once per culture, producing `marinaMoji64.<culture>.msi`. Those are
+intermediates — individually buildable for debugging, but not what ships.
+[`embed_transforms.py`](src/win32/installer/embed_transforms.py) then diffs
+the fr-FR and ja-JP databases against the en-US one with
+`MsiDatabaseGenerateTransformW`, stores each result in the en-US database's
+`_Storages` table under its LCID, and rewrites the summary `Template` to
+`<platform>;1033,1036,1041`, which is what tells Windows Installer there are
+language transforms to choose between. It drives msi.dll through ctypes
+rather than shelling out to `msidb.exe` or the SDK's `WiSubStg.vbs`: msi.dll
+is on every Windows machine, the SDK tools would be a new build dependency,
+and the VBScript samples are no longer shipped at all. Both validation
+arguments to `MsiCreateTransformSummaryInfoW` are zero — a language
+transform legitimately changes the package language, so validating it
+against the base would reject it.
+
+The genrule body moved to
+[`installer.bzl`](src/win32/installer/installer.bzl) because BUILD files
+cannot define functions, and `//win32/installer` is a filegroup over the
+combined package. The output path is unchanged, so `//:package`, the CI
+artifact paths, the release asset name and the docs all keep working; the
+Windows CI workflow is byte-identical to before this work, and the release
+workflow differs only by a comment. The upstream Mozc and
+GoogleJapaneseInput brandings pass no culture and still build a single
+unlocalized MSI from their own .wxs.
+
+**Two consequences worth knowing about.**
+
+*ProductCode is derived, not minted per build.* A language transform may not
+change the ProductCode, so all three cultures of a version must share one,
+ruling out the fresh GUID WiX generates by default. It is now
+`uuid5(namespace, branding-version-arch)`. That preserves what upstream
+relied on — the ProductCode changes with the version, so upgrades do not
+trip "Another version of this product is already installed" — and adds
+reproducibility: rebuilding a version yields the same ProductCode rather
+than a new one.
+
+*Codepage is 65001 everywhere,* including ja-JP, which was 932. A single
+database string pool has to hold French accents and Japanese kana at once,
+and no ANSI codepage does. UTF-8 MSI support long predates the Windows 10
+1809 floor this package already enforces.
+
+`embed_transforms.py` also refuses to embed a transform over 512 KB. One
+should be a few KB here; a large one would mean WiX did not produce
+byte-identical cabs across the three passes and the transform is carrying a
+second copy of the payload. Failing the build beats shipping a package
+several times the intended size.
+
+**Untested on Windows.** None of the msi.dll code has executed — it cannot
+run on the macOS host the rest of this was written on. What was checked
+offline: ProductCode identical across cultures and distinct per
+version/arch, the culture tables and `.wxl` files agreeing on LCID and
+codepage, every `!(loc.*)` and `$(var.*)` resolving, and the
+argument-validation paths. Still to check on the first Windows build, in
+order: that transform sizes come back small, that `Template` reads
+`x64;1033,1036,1041`, that **upgrading over an already-installed version
+still works** (the ProductCode change lands here), and that a non-elevated
+run on a French or Japanese machine shows a translated message.
+
+**Scope.** This only ever covered the installer's own strings, all of which
+are error-path: a successful install looks the same in every language. The
+progress and uninstall chrome is drawn by msiexec in the OS UI language, and
+the cache service's display name and description come from the binary's
+string resources (`@[#marinamoji_cache_service.exe],-100`/`-101`), so
+neither was the MSI's to localize. The installed credits file is still
+`credits_en.html` in all three languages.
+
+### Windows: Left Shift double tap looked like it needed a third tap (2026-08-26)
+
+On Windows the mode lock appeared to engage only on the *third* Left
+Shift tap: tap 1 flipped Hiragana → Direct, tap 2 flipped back with no
+padlock, tap 3 showed the padlock. The gesture itself was fine all
+along — the lock engages on tap 2 as designed, and the toolbar was
+drawing the wrong flag.
+
+`left_shift_direct_lock` only ever exists on `output.status()`, where
+`Session::OutputMode` sets it. But `ToolbarWindow::OnUpdate` prefers
+`application_info().indicator_info().status()` whenever it is present
+(deliberately, for mode/activated: the TIP's `TipInputModeManager` is
+the authoritative state there and renderer output can lag during focus
+transitions). That Status is built field by field in
+[`tip_ui_handler_conventional.cc`](src/win32/tip/tip_ui_handler_conventional.cc)
+-- `activated` and `mode`, nothing else — so the lock flag read back as
+its proto default `false`.
+
+The timing is what disguised it as a lost keystroke: `indicator_info`
+is attached exactly when `IsIndicatorVisible()`, i.e. just after a mode
+change. Tap 2 changes the mode *and* engages the lock, so that update
+carried `indicator_info` and the toolbar drew the unlocked icon. Tap 3
+changes nothing (`ToggleLeftShiftDirect` early-returns once locked), the
+indicator has gone, the toolbar falls back to `output.status()` — and
+the padlock finally appears.
+
+`ToolbarWindow::OnUpdate` now reads the lock from `output.status()`
+only, never from whichever Status supplied mode/activated, and keeps it
+sticky when an update carries no status at all (the same pattern as
+`use_traditional_kanji_` beside it). The TIP also copies the flag into
+`indicator_info.status()` so the two sources agree and the next reader
+of `indicator_info` does not fall into the same partial-Status trap.
+
+Ruled out first, with a test rather than by reading: `session_test.cc`
+gained `LeftShiftDoubleTapLocksWithWindowsClientKeyShape`, which replays
+the Windows key shape through the engine — every tap as a *key-up*
+whose `KeyEvent` carries the client's cached `mode`/`activated`,
+`TestSendKey` before each `SendKey`, each reply's status fed into the
+next event — and two taps lock. The pre-existing tests sent a bare
+modifier-only event, which macOS and Linux do but the TSF client never
+does, so the mode-dependent early returns in `ToggleLeftShiftDirect` and
+`ToggleLeftShiftModeLock` had no Windows-shaped coverage. Neither Win32
+change is compiled here (macOS tree); the session test passes.
+
+### Windows: taskbar mode indicator returned after a Deactivate/Activate cycle (2026-08-26)
+
+The fix from "Actually hide taskbar mode icon by removing it from the
+langbar" worked only until TSF cycled the text service. `TipLangBar`
+started `mode_icon_registered_` at `true`, `UninitLangBar()` never reset
+it, and `InitLangBar()` re-added both input-mode items unconditionally.
+TSF calls `Deactivate()` and `ActivateEx()` repeatedly on the *same*
+text service object — switching keyboard layouts and back is enough --
+so after the first cycle the flag read `false` while the items had just
+been re-registered. `UpdateMenu()` then saw its state as already matching
+the preference, removed nothing, and the mode icon stayed in the taskbar
+regardless of the toolbar setting.
+
+Registration is now derived in one place, `SyncModeIconRegistration()`,
+which reconciles the two items against `LoadToolbarVisiblePreference()`.
+`InitLangBar()` only *creates* them and calls the helper, so when the
+toolbar is visible they are never added in the first place (no window
+where the icon flashes up between activation and the first focus
+change); `UninitLangBar()` clears the flag, which now starts `false`
+since nothing is registered before init. Unverified from macOS.
+
+Still open if the icon persists: the Windows 10/11 tray indicator may
+not be the langbar item at all but the shell's own input indicator
+reading the TSF open/close and conversion-mode compartments, in which
+case no `ITfLangBarItemMgr` juggling can hide it.
+
+### Windows toolbar: Shortcuts window opened behind the focused app (2026-08-26)
+
+The toolbar's **Shortcuts** button looked dead on Windows for the same
+reason it did on macOS, expressed in Win32 terms.
+`ShortcutsWindowTraits` was `WS_OVERLAPPEDWINDOW, WS_EX_TOOLWINDOW` —
+no `WS_EX_TOPMOST` — while `ShortcutsWindow::OnUpdate` shows the window
+with `ShowWindow(SW_SHOWNA)` (show without activating). The renderer is
+not the foreground process, so the window was created and shown
+*underneath* the application being typed into: no error, nothing
+visible.
+
+The Symbols Palette already documents this trap in
+[`symbols_palette_window.h`](src/renderer/win32/symbols_palette_window.h)
+("The toolbar is topmost, so the palette must be as well. Otherwise
+`SW_SHOWNA` succeeds but the palette is immediately covered by the
+focused application") — the shortcuts window was the one window that
+had not been given the same treatment. It is now `WS_EX_TOPMOST` too.
+`WS_OVERLAPPEDWINDOW` and `SW_SHOWNA` are kept, so it stays resizable
+and focusable but does not steal focus from the text field until the
+user clicks it. Not yet built or run: this is Win32/ATL, unverified
+from a macOS tree.
+
+### Windows toolbar: wordmark rendered soft at every DPI (2026-08-26)
+
+The long marinaMoji logo looked noticeably less crisp than the six
+square icons beside it. The generated logo PNGs are one pixel too tall
+— `logo_long_light_24.png` is **108x25**, not 108x24 (likewise 162x37
+and 216x49) — because `resvg` honours the requested *width* and derives
+the height from the aspect ratio, rounding up (108 / 4.4901 = 24.05 ->
+25).
+
+`ToolbarWindow` fits the logo to the icon height, so it computes a draw
+size of `round(108 * 24 / 25) x 24 = 104x24`, which differs from the
+asset's `108x25` and therefore trips `BlendIcon`'s resample path: a
+0.96x bilinear pass over letterforms whose stems are about a pixel
+wide, at *every* DPI including 100%. The square icons are `24x24` drawn
+at 24 and are blitted 1:1, which is why only the wordmark looked soft.
+
+[`generate_toolbar_icons.py`](src/data/images/win/generate_toolbar_icons.py)
+now renders the logo at 4x and does one Lanczos downsample to exactly
+`(width, size)`, so the shipped PNG is exactly the tier height whatever
+resvg rounds to; `verify_pngs()` asserts the dimensions (square icons
+exactly `size x size`, logo exactly `size` tall) so this cannot regress
+silently. **The PNGs themselves have not been regenerated** — that needs
+`pip install resvg-py pillow` and a run of the script.
+
+Not addressed: at 125% and 175% scaling everything is resampled anyway,
+because `kIconSizeTiers` is {24, 36, 48} while `icon_draw_size_` becomes
+30 or 42. Adding 30 and 42 tiers would make the two most common Windows
+laptop scale factors 1:1, at the cost of two more PNGs per icon and a
+full asset regeneration.
+
 ### macOS toolbar: Shortcuts button opened a window nobody could see (2026-08-26)
 
 The toolbar's **Shortcuts** button appeared dead: clicking it did

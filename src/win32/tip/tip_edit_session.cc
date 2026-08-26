@@ -41,6 +41,7 @@
 #include <vector>
 
 #include "absl/log/check.h"
+#include "absl/strings/str_cat.h"
 #include "base/win32/com.h"
 #include "base/win32/wide_char.h"
 #include "client/client_interface.h"
@@ -800,6 +801,21 @@ bool TipEditSession::OnRendererCallbackAsync(TipTextService* text_service,
           text_service->GetPrivateContext(context);
       if (private_context == nullptr) {
         return false;
+      }
+      // marinaMoji TEMPORARY (2026-08-08): "odoriji palette opens then
+      // disappears". |ctx| here is the context the toolbar click landed on;
+      // compare it with the |ctx=| in tip_ui_handler_conventional.cc's
+      // UpdateCommand line on the following updates. Two different addresses
+      // mean the flag was written where nobody reads it.
+      {
+        const std::string line = absl::StrCat(
+            "[marinaMoji/tip-ui] ",
+            type == SessionCommand::SHOW_SYMBOLS_PALETTE ? "SHOW" : "HIDE",
+            "_SYMBOLS_PALETTE received: ctx=",
+            reinterpret_cast<uintptr_t>(context),
+            " private_ctx=", reinterpret_cast<uintptr_t>(private_context),
+            "\n");
+        ::OutputDebugStringA(line.c_str());
       }
       private_context->set_symbols_palette_visible(
           type == SessionCommand::SHOW_SYMBOLS_PALETTE);

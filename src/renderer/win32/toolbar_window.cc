@@ -434,7 +434,6 @@ void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
   const commands::Output& output = command.output();
   commands::CompositionMode mode = commands::DIRECT;
   bool activated = false;
-  bool lock = false;
   // Keep the toolbar in sync with the taskbar/indicator. The TIP populates
   // indicator_info from TipInputModeManager's effective state, which is the
   // authoritative state used by the language bar. Renderer output can lag or
@@ -451,8 +450,20 @@ void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
   if (status != nullptr) {
     activated = status->activated();
     mode = activated ? status->mode() : commands::DIRECT;
-    lock = status->left_shift_direct_lock();
   }
+  // marinaMoji: the lock flag comes from the session, so it only ever exists
+  // on |output.status()|. Never read it from |status| above: that may be the
+  // indicator_info status, which the TIP builds field by field and which
+  // therefore reports |left_shift_direct_lock| as its default false. The
+  // indicator is visible exactly when the mode has just changed -- i.e. on
+  // the second tap of the Left Shift double tap, the one that engages the
+  // lock -- so reading it from there showed no lock until some later update
+  // arrived without indicator_info, making the gesture look like it needed a
+  // third tap. Sticky like |use_traditional_kanji_| below, so an update that
+  // carries no status at all does not clear the icon.
+  const bool lock = output.has_status()
+                        ? output.status().left_shift_direct_lock()
+                        : left_shift_direct_lock_;
   // marinaMoji: |output.config()| is only populated on the specific Output
   // that toggles it (ToggleTraditionalKanji et al.); ordinary per-keystroke
   // updates carry no config at all. Treat |use_traditional_kanji_| as sticky
@@ -1224,6 +1235,19 @@ void ToolbarWindow::SendToggleSymbolsPalette() {
   }
   commands::SessionCommand command;
   const bool show = !symbols_palette_visible_;
+  // marinaMoji TEMPORARY (2026-08-08): the OnUpdate line below reports only
+  // what comes *back*, so a capture with no palette in it was ambiguous
+  // between "never clicked" and "clicked, nothing happened". This is the
+  // outbound half. Note the toggle is driven by |symbols_palette_visible_|,
+  // which every OnUpdate overwrites from the TIP -- so if the flag gets
+  // cleared behind our back, the user's second click sends SHOW again rather
+  // than HIDE (or vice versa), which is worth seeing here too.
+  {
+    const std::string line = absl::StrCat(
+        "[marinaMoji/toolbar] symbols button clicked -> sending ",
+        show ? "SHOW" : "HIDE", "_SYMBOLS_PALETTE\n");
+    ::OutputDebugStringA(line.c_str());
+  }
   symbols_palette_visible_ = show;
   command.set_type(show ? commands::SessionCommand::SHOW_SYMBOLS_PALETTE
                         : commands::SessionCommand::HIDE_SYMBOLS_PALETTE);

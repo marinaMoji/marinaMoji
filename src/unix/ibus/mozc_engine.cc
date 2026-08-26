@@ -648,14 +648,10 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
   }
 
   // Consume Hiragana/ON key in Direct before GetKeyEvent so we catch the ghost
-  // even when Translate would fail (e.g. unknown keysym). Do not consume when
-  // Ctrl+Alt are held (macron chord, translator converts to key_code 0x61).
+  // even when Translate would fail (e.g. unknown keysym).
   if (property_handler_->GetOriginalCompositionMode() == commands::DIRECT) {
-    const bool has_ctrl_alt = (modifiers & IBUS_CONTROL_MASK) &&
-                              (modifiers & IBUS_MOD1_MASK);
-    if (!has_ctrl_alt &&
-        (keyval == IBUS_Hiragana || keyval == IBUS_Hiragana_Katakana ||
-         keyval == IBUS_Hangul)) {
+    if (keyval == IBUS_Hiragana || keyval == IBUS_Hiragana_Katakana ||
+        keyval == IBUS_Hangul) {
       MaybeLogIbusDebug("engine.key", "return_direct_switch_key_consumed");
       return true;  // Consume; do not send to server.
     }
@@ -717,9 +713,8 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
 
   // In Direct input there are no Hiragana; the Hiragana/ON key would only
   // trigger IMEOn and switch mode. Consume any KANA or ON key (with or without
-  // modifiers) so it never reaches the server. Ctrl+Alt+Hiragana is converted
-  // to key_code 0x61 in the translator, so it has no special_key and is not
-  // consumed. User switches to Hiragana via toolbar or Ctrl+Shift+5.
+  // modifiers) so it never reaches the server. User switches to Hiragana via
+  // toolbar or Ctrl+Shift+5.
   const bool switch_key =
       key.has_special_key() && !key.has_key_code() &&
       (key.special_key() == commands::KeyEvent::KANA ||
@@ -841,22 +836,6 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
 
   if (output.consumed()) {
     surround_stale_after_echo_back_ = false;
-  }
-
-  // After inserting a macron (Ctrl+Alt+vowel), force DIRECT so the next key
-  // (ghost Hiragana/ON from the layout) is consumed and does not switch mode.
-  if (key.has_key_code()) {
-    const uint32_t kc = key.key_code();
-    const bool is_vowel = (kc == 0x61 || kc == 0x65 || kc == 0x69 || kc == 0x6f || kc == 0x75) ||
-                          (kc == 0x41 || kc == 0x45 || kc == 0x49 || kc == 0x4f || kc == 0x55);
-    bool has_ctrl = false, has_alt = false;
-    for (int i = 0; i < key.modifier_keys_size(); ++i) {
-      if (key.modifier_keys(i) == commands::KeyEvent::CTRL) has_ctrl = true;
-      if (key.modifier_keys(i) == commands::KeyEvent::ALT) has_alt = true;
-    }
-    if (is_vowel && has_ctrl && has_alt) {
-      property_handler_->SetOriginalCompositionMode(commands::DIRECT);
-    }
   }
 
   // Do not consume Right/Left Shift release so IBus forwards the key-up to the

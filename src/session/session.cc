@@ -3221,7 +3221,7 @@ bool Session::IsMacronEligibleContext() const {
   // Direct input only. InsertMacronVowel itself also accepts ASCII composition
   // modes, but there Right Shift alone is deliberately passed through to the
   // application (see RightShiftAloneIgnoresAsciiCompositionMode), so the dead
-  // key is not armed from a tap in those modes -- Ctrl+Alt+vowel still works.
+  // key is not armed from a tap in those modes.
   return context_->state() == ImeContext::DIRECT;
 }
 

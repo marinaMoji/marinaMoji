@@ -34,9 +34,17 @@ import argparse
 import os
 import pathlib
 import subprocess
+import uuid
 
 from build_tools import mozc_version
 from build_tools import vs_util
+from installer_cultures import CULTURES
+
+
+# Fixed namespace for uuid5-derived ProductCodes. Arbitrary but must never
+# change: it is what makes a given branding+version+arch always hash to the
+# same ProductCode.
+_PRODUCT_CODE_NAMESPACE = uuid.UUID('b1d0e6f4-6c3a-4f5e-9a2b-7c8d9e0f1a2b')
 
 
 def exec_command(args: list[str], cwd: str) -> None:
@@ -145,6 +153,20 @@ def run_wix4(args) -> None:
   elif branding == 'marinaMoji':
     upgrade_code = 'F01BE4B5-4749-46C1-B714-DFF9FE9744A0'
 
+  version_string = version.GetVersionString()
+
+  # Windows Installer emits "Another version of this product is already
+  # installed" on upgrade unless the ProductCode changes with the version, so
+  # upstream let WiX mint a fresh GUID on every build. That is incompatible
+  # with the multilingual MSI: a language transform may not change the
+  # ProductCode, so all cultures of one version must share one. Deriving it
+  # from branding+version+arch keeps the per-version change upstream relies
+  # on while making it identical across cultures and reproducible across
+  # builds of the same version.
+  product_code = str(
+      uuid.uuid5(_PRODUCT_CODE_NAMESPACE, f'{branding}-{version_string}-{arch}')
+  ).upper()
+
   omaha_channel_type = 'dev' if version.IsDevChannel() else 'stable'
   vs_configuration_name = 'Debug' if args.debug_build else 'Release'
 
@@ -153,8 +175,9 @@ def run_wix4(args) -> None:
       'build',
       '-nologo',
       '-arch', arch,
-      '-define', f'MozcVersion={version.GetVersionString()}',
+      '-define', f'MozcVersion={version_string}',
       '-define', f'UpgradeCode={upgrade_code}',
+      '-define', f'ProductCode={product_code}',
       '-define', f'OmahaGuid={omaha_guid}',
       '-define', f'OmahaClientKey={omaha_client_key}',
       '-define', f'OmahaClientStateKey={omaha_clientstate_key}',
@@ -182,6 +205,22 @@ def run_wix4(args) -> None:
       '-out', args.output,
       '-src', args.wxs_path,
   ]
+  if args.culture:
+    if args.culture not in CULTURES:
+      raise ValueError(
+          f'Unknown culture {args.culture!r}. Known: '
+          + ', '.join(sorted(CULTURES))
+      )
+    if not args.loc_file:
+      raise ValueError('--culture requires --loc_file.')
+    language, codepage = CULTURES[args.culture]
+    loc_file = pathlib.Path(args.loc_file).resolve()
+    commands += [
+        '-culture', args.culture,
+        '-loc', f'{loc_file}',
+        '-define', f'InstallerLanguage={language}',
+        '-define', f'InstallerCodepage={codepage}',
+    ]
   if args.mozc_tip64arm and args.mozc_tip64x:
     mozc_tip64arm = pathlib.Path(args.mozc_tip64arm).resolve()
     mozc_tip64x = pathlib.Path(args.mozc_tip64x).resolve()
@@ -220,6 +259,22 @@ def main():
   parser.add_argument('--wxs_path', type=str)
   parser.add_argument('--wix_path', type=str)
   parser.add_argument('--branding', type=str)
+  parser.add_argument(
+      '--culture',
+      type=str,
+      default='',
+      help=(
+          'Culture to build the installer for, e.g. "fr-FR". Requires'
+          ' --loc_file. Omit for the upstream Mozc/GoogleJapaneseInput .wxs'
+          ' files, which hardcode their own language.'
+      ),
+  )
+  parser.add_argument(
+      '--loc_file',
+      type=str,
+      default='',
+      help='Path to the WiX .wxl localization file matching --culture.',
+  )
   parser.add_argument(
       '--debug_build', dest='debug_build', default=False, action='store_true'
   )

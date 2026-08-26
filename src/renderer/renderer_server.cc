@@ -203,8 +203,22 @@ class RendererServerSendCommand : public client::SendCommandInterface {
         command.type() == commands::SessionCommand::HIDE_SHORTCUTS_WINDOW ||
         command.type() == commands::SessionCommand::HIDE_TOOLBAR) {
       DWORD_PTR result = 0;
-      ::SendMessageTimeout(target, mozc_msg, type, id, SMTO_ABORTIFHUNG,
-                          kSendTimeoutMsec, &result);
+      ::SetLastError(0);
+      const LRESULT sent =
+          ::SendMessageTimeout(target, mozc_msg, type, id, SMTO_ABORTIFHUNG,
+                               kSendTimeoutMsec, &result);
+      // marinaMoji TEMPORARY (2026-08-08): this send was silent, unlike
+      // INSERT_SYMBOL_TEXT above -- so a timed-out or dropped palette signal
+      // looked exactly like one the TIP received and ignored. |ret=0| means
+      // the signal never arrived and no [marinaMoji/tip-ui] line will follow
+      // it; anything else means the TIP has it and the fault is downstream.
+      MarinaDebugLog(absl::StrCat(
+          "signal type=", static_cast<int>(command.type()),
+          " target_hwnd=", reinterpret_cast<uintptr_t>(target),
+          " SendMessageTimeout_ret=", static_cast<long long>(sent),
+          " last_error=", ::GetLastError(),
+          sent == 0 ? "  <-- SEND FAILED (0 = timeout/hung, or target gone)"
+                    : ""));
     } else {
       ::PostMessage(target, mozc_msg, type, id);
     }

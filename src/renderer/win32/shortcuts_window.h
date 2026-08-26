@@ -37,7 +37,16 @@ namespace win32 {
 // *activatable* one: it shows reference text the user reads and scrolls, so
 // taking focus is correct here -- and unlike the palette, nothing about it
 // commits text into the application, so there is no context to preserve.
-typedef ATL::CWinTraits<WS_OVERLAPPEDWINDOW, WS_EX_TOOLWINDOW>
+//
+// It must still be WS_EX_TOPMOST, for the same reason the Symbols Palette is
+// (see symbols_palette_window.h): OnUpdate shows it with SW_SHOWNA, and the
+// renderer is not the foreground process, so a non-topmost window is created
+// and shown *behind* the application being typed into -- the button looked
+// dead because the window was there, just never on top. Topmost puts it in
+// the same band as the toolbar that opened it; SW_SHOWNA still leaves typing
+// focus where it was until the user clicks the window.
+typedef ATL::CWinTraits<WS_OVERLAPPEDWINDOW,
+                        WS_EX_TOOLWINDOW | WS_EX_TOPMOST>
     ShortcutsWindowTraits;
 
 class ShortcutsWindow

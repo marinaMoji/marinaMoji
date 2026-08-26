@@ -274,6 +274,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
+          # One asset per arch: marinaMoji64.msi carries en-US, fr-FR and
+          # ja-JP as embedded language transforms.
           cp src/bazel-bin/win32/installer/marinaMoji64.msi \
             "dist/marinaMoji-${GITHUB_REF_NAME}-${{ matrix.arch }}.msi"
 

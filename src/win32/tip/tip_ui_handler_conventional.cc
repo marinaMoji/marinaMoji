@@ -35,11 +35,14 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/log/check.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "base/file_util.h"
 #include "base/system_util.h"
 #include "base/win32/com.h"
@@ -437,6 +440,15 @@ bool FillCharPosition(TipPrivateContext* private_context, ITfContext* context,
   return true;
 }
 
+// marinaMoji TEMPORARY (2026-08-08): counterpart to renderer_server.cc's
+// MarinaDebugLog, for "odoriji palette opens then disappears". Read with
+// DebugView alongside the [marinaMoji/renderer] and [marinaMoji/toolbar]
+// lines. Remove with the rest of the marinaMoji TEMPORARY logging.
+void MarinaDebugLog(absl::string_view message) {
+  const std::string line = absl::StrCat("[marinaMoji/tip-ui] ", message, "\n");
+  ::OutputDebugStringA(line.c_str());
+}
+
 void UpdateCommand(TipTextService* text_service, ITfContext* context,
                    TfEditCookie read_cookie, RendererCommand* command,
                    bool* no_layout) {
@@ -475,11 +487,41 @@ void UpdateCommand(TipTextService* text_service, ITfContext* context,
           input_mode_manager->GetEffectiveOpenClose());
       info->mutable_status()->set_mode(
           input_mode_manager->GetEffectiveConversionMode());
+      // marinaMoji: TipInputModeManager tracks open/close and conversion mode
+      // only, so carry the session's Left Shift lock flag over from the last
+      // output. Without it this Status reports the field's default false, and
+      // any consumer that prefers indicator_info over output.status() (the
+      // floating toolbar does, for the mode) would draw an unlocked icon on
+      // the very tap that engages the lock.
+      if (command->output().has_status()) {
+        info->mutable_status()->set_left_shift_direct_lock(
+            command->output().status().left_shift_direct_lock());
+      }
     }
   }
 
   FillSymbolsPaletteInfo(private_context, app_info);
   FillShortcutsInfo(private_context, app_info);
+
+  // marinaMoji TEMPORARY (2026-08-08): the palette-visible flag lives on the
+  // per-ITfContext TipPrivateContext, but the toolbar click writes it to the
+  // *base* context (tip_text_service.cc GetRendererCallbackContext ->
+  // GetBase) while keystroke-driven updates run on the *top* context
+  // (GetTop). Where those differ -- any app using the TSF transitory
+  // extension -- the click sets the flag on one context and this function
+  // reads another, emits no SymbolsPaletteInfo, and the renderer hides a
+  // palette that just opened. Log the context pointer with the flag so a
+  // DebugView capture shows the two addresses directly: a |ctx=| that changes
+  // between the click and the next keystroke confirms it.
+  MarinaDebugLog(absl::StrCat(
+      "UpdateCommand: ctx=", reinterpret_cast<uintptr_t>(context),
+      " private_ctx=", reinterpret_cast<uintptr_t>(private_context),
+      " symbols_flag=",
+      private_context != nullptr && private_context->symbols_palette_visible(),
+      " shortcuts_flag=",
+      private_context != nullptr && private_context->shortcuts_window_visible(),
+      " emitted_symbols=", app_info->has_symbols_palette_info(),
+      " emitted_shortcuts=", app_info->has_shortcuts_info()));
 
   // Regardless of the value of |command->visible()| here, we should hide
   // all the UI elements whenever the current threads is not focused.
@@ -487,6 +529,13 @@ void UpdateCommand(TipTextService* text_service, ITfContext* context,
   const HRESULT hr =
       text_service->GetThreadManager()->IsThreadFocus(&thread_focus);
   if (SUCCEEDED(hr) && (thread_focus == FALSE)) {
+    // marinaMoji TEMPORARY (2026-08-08): the other way a just-opened palette
+    // dies. If this fires on the update immediately after the toolbar click,
+    // the culprit is thread focus, not the context mismatch above.
+    MarinaDebugLog(absl::StrCat(
+        "thread focus lost -- clearing toolbar/palette/shortcuts (was symbols=",
+        app_info->has_symbols_palette_info(),
+        " shortcuts=", app_info->has_shortcuts_info(), ")"));
     command->set_visible(false);
     // marinaMoji: also hide the floating toolbar, which is otherwise gated
     // by |ShowToolbar| independent of |command->visible()|.

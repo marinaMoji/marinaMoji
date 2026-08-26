@@ -337,14 +337,9 @@ bool KeyTranslator::Translate(uint keyval, uint keycode, uint modifiers,
     keyval = IBUS_Katakana;
   }
   std::string kana_key_string;
-  // On AZERTY, Ctrl+Alt+vowel can send Hiragana keysym and trigger IMEOn (schema
-  // switch). Treat Ctrl+Alt+Hiragana as Ctrl+Alt+a so InsertMacronVowel matches.
-  if ((modifiers & IBUS_CONTROL_MASK) && (modifiers & IBUS_MOD1_MASK) &&
-      keyval == IBUS_Hiragana) {
-    out_event->set_key_code(0x61);  // 'a' -> insert ā
-  } else if ((method == config::Config::KANA) &&
-             IsKanaAvailable(keyval, keycode, modifiers, layout_is_jp,
-                            &kana_key_string)) {
+  if ((method == config::Config::KANA) &&
+      IsKanaAvailable(keyval, keycode, modifiers, layout_is_jp,
+                      &kana_key_string)) {
     out_event->set_key_code(keyval);
     out_event->set_key_string(kana_key_string);
   } else if (IsAscii(keyval, keycode, modifiers)) {

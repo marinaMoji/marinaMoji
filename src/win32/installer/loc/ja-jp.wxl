@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  marinaMoji installer strings, ja-JP. See loc/en-us.wxl for what is and is
+  not localizable from these files.
+  Codepage is 65001, not upstream's 932 (Shift-JIS), because these strings
+  have to share one string pool with the Latin-1 ones in the multilingual
+  MSI.
+-->
+<WixLocalization Culture="ja-JP" Codepage="65001" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+
+  <String Id="InstallerDescription" Value="marinaMoji インストーラー" />
+
+  <String Id="LaunchConditionWindowsVersion" Value="marinaMoji には Windows 10 バージョン 1809 以降が必要です。Windows を更新してからもう一度お試しください。" />
+
+  <String Id="LaunchConditionPrivileged" Value="marinaMoji のインストールには管理者権限が必要です。" />
+
+  <String Id="LaunchConditionArm64" Value="このインストーラーは ARM64 に対応していません。ARM64 版のインストーラーをダウンロードしてください。" />
+
+  <String Id="ErrorNewerVersionInstalled" Value="より新しいバージョンの marinaMoji が既にインストールされています。" />
+
+</WixLocalization>

@@ -10836,5 +10836,63 @@ TEST_F(SessionTest, RequestNWP) {
   EXPECT_FALSE(command.output().has_all_candidate_words());
 }
 
+// Windows sends every Left Shift tap as a *key-up* whose KeyEvent carries the
+// client's cached mode and open/close state (KeyEventHandler::HandleKey ->
+// key->set_mode()/set_activated()), and asks TestSendKey before SendKey for
+// each one. macOS and Linux send a bare modifier-only event instead. Replay
+// the Windows shape -- feeding each reply's status back as the next event's
+// mode/activated, exactly as the TSF client does -- so a regression in the
+// mode-dependent early returns of ToggleLeftShiftDirect/ToggleLeftShiftModeLock
+// cannot make the lock take three taps there while two still work here.
+TEST_F(SessionTest, LeftShiftDoubleTapLocksWithWindowsClientKeyShape) {
+  ScopedClockMock clock(absl::FromUnixSeconds(1000));
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+  commands::Command command;
+  config::Config cfg;
+  cfg.set_disable_left_shift_direct_toggle(false);
+  session.SetConfig(cfg);
+  SessionTestPeer peer(session);
+
+  bool activated = true;
+  commands::CompositionMode mode = commands::HIRAGANA;
+  auto tap = [&](Session *session, commands::Command *command) {
+    commands::Command test_command;
+    EXPECT_TRUE(TestSendKeyWithModeAndActivated("LeftShift", activated, mode,
+                                                session, &test_command));
+    // TSF only delivers the real key event when the test phase claims it.
+    EXPECT_TRUE(test_command.output().consumed());
+    EXPECT_TRUE(SendKeyWithModeAndActivated("LeftShift", activated, mode,
+                                            session, command));
+    if (command->output().has_status()) {
+      activated = command->output().status().activated();
+      // Status never reports DIRECT (see ConvertStatusFromMozcToNative); the
+      // closed IME is activated=false with the comeback mode still set.
+      if (command->output().status().mode() != commands::DIRECT) {
+        mode = command->output().status().mode();
+      }
+    }
+  };
+
+  // First tap: Hiragana -> Direct, no lock yet.
+  tap(&session, &command);
+  EXPECT_FALSE(peer.left_shift_mode_lock_());
+  EXPECT_FALSE(command.output().status().activated());
+
+  // Second tap inside the window: back to Hiragana *and* locked.
+  clock->Advance(absl::Milliseconds(120));
+  tap(&session, &command);
+  EXPECT_TRUE(peer.left_shift_mode_lock_());
+  EXPECT_TRUE(command.output().status().activated());
+  EXPECT_EQ(command.output().status().mode(), commands::HIRAGANA);
+
+  // A third tap must not be needed, and must not undo the lock on its own.
+  clock->Advance(absl::Milliseconds(120));
+  tap(&session, &command);
+  EXPECT_TRUE(peer.left_shift_mode_lock_());
+}
+
 }  // namespace session
 }  // namespace mozc

@@ -10,10 +10,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <string>
 #include <vector>
 
+#include "absl/strings/str_cat.h"
 #include "base/win32/wide_char.h"
+#include "base/win32/win_util.h"
 #include "protocol/commands.pb.h"
 #include "protocol/renderer_command.pb.h"
 #include "renderer/win32/marina_localized_string.h"
@@ -74,6 +77,40 @@ bool IsDarkTheme() {
                          reinterpret_cast<BYTE*>(&value), &size);
   ::RegCloseKey(key);
   return status == ERROR_SUCCESS && value == 0;
+}
+
+// marinaMoji: SPI_GETWORKAREA reports the *primary* monitor's work area, which
+// is not necessarily the monitor the user is typing on -- centring on it drops
+// this window onto another screen entirely, and the button looks dead. Anchor
+// instead to the monitor holding the application being typed into (the toolbar
+// that opens this window is on that monitor too), falling back to the cursor's
+// monitor and only then to the primary. Same "keep it where the user is
+// looking" rule ToolbarWindow::ClampOriginToVisibleArea already applies to the
+// toolbar, and that mac's -clampedOrigin: got.
+RECT CurrentMonitorWorkArea(const commands::RendererCommand& command) {
+  HMONITOR monitor = nullptr;
+  if (command.has_application_info() &&
+      command.application_info().has_target_window_handle()) {
+    const HWND target = ::mozc::win32::WinUtil::DecodeWindowHandle(
+        command.application_info().target_window_handle());
+    if (target != nullptr) {
+      monitor = ::MonitorFromWindow(target, MONITOR_DEFAULTTONULL);
+    }
+  }
+  if (monitor == nullptr) {
+    POINT cursor = {0, 0};
+    if (::GetCursorPos(&cursor)) {
+      monitor = ::MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST);
+    }
+  }
+  MONITORINFO info = {};
+  info.cbSize = sizeof(info);
+  if (monitor != nullptr && ::GetMonitorInfoW(monitor, &info)) {
+    return info.rcWork;
+  }
+  RECT work_area = {0, 0, 1920, 1080};
+  ::SystemParametersInfoW(SPI_GETWORKAREA, 0, &work_area, 0);
+  return work_area;
 }
 
 }  // namespace
@@ -496,22 +533,62 @@ void ShortcutsWindow::OnUpdate(const commands::RendererCommand& command) {
   SetRowsForTab(Tab::kComposition, to_rows(info.composition()));
   SetRowsForTab(Tab::kKaeriten, to_rows(info.kaeriten()));
 
-  if (!has_shown_once_) {
-    RECT work_area = {0, 0, 1920, 1080};
-    ::SystemParametersInfoW(SPI_GETWORKAREA, 0, &work_area, 0);
-    const int width = Scaled(kWindowWidthLogical);
-    const int height = Scaled(kWindowHeightLogical);
+  // Re-anchor on every open rather than once per process lifetime: the user
+  // may have moved to another monitor, or changed its scaling, since the last
+  // time the window was up. While it stays open its position is the user's --
+  // only reposition when it is (re)appearing.
+  const bool reappearing = !IsWindowVisible();
+  if (reappearing) {
+    const RECT work_area = CurrentMonitorWorkArea(command);
+    // |dpi_| was sampled in OnCreate from whatever monitor the renderer
+    // started on, and the has_shown_once_ gate used to freeze the resulting
+    // size forever. Re-sample for the monitor we are about to appear on so
+    // the window is scaled for the screen it actually lands on.
+    const uint32_t dpi = GetDpiForPoint((work_area.left + work_area.right) / 2,
+                                        (work_area.top + work_area.bottom) / 2);
+    if (dpi != 0 && dpi != dpi_) {
+      dpi_ = dpi;
+      CreateFonts();
+      ApplyFont(tab_control_, ui_font_);
+      for (HWND list : list_views_) {
+        ApplyFont(list, ui_font_);
+      }
+    }
+    // Clamp to the work area as well as centring: a monitor smaller than the
+    // nominal window size would otherwise put the title bar off the top, out
+    // of the user's reach.
+    const int width =
+        std::min<int>(Scaled(kWindowWidthLogical), work_area.right - work_area.left);
+    const int height =
+        std::min<int>(Scaled(kWindowHeightLogical), work_area.bottom - work_area.top);
     const int x =
         work_area.left + (work_area.right - work_area.left - width) / 2;
     const int y =
         work_area.top + (work_area.bottom - work_area.top - height) / 2;
-    SetWindowPos(nullptr, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
+    SetWindowPos(HWND_TOPMOST, x, y, width, height, SWP_NOACTIVATE);
     has_shown_once_ = true;
   }
 
-  if (!IsWindowVisible()) {
+  if (reappearing) {
     ShowWindow(SW_SHOWNA);
     LayoutChildren();
+    // marinaMoji TEMPORARY (2026-08-08): diagnosing "shortcuts button opens
+    // nothing". By this point the TIP has sent ShortcutsInfo and we have asked
+    // for the window -- so anything still wrong is local. |hwnd=0| means
+    // Create() in Initialize() failed and every ShowWindow here has been a
+    // silent no-op; a rect outside the work area above means it opened where
+    // the user cannot see it; visible=0 with a good rect means something is
+    // overriding the show. Remove with the other marinaMoji TEMPORARY logging.
+    RECT rect = {};
+    if (IsWindow()) {
+      GetWindowRect(&rect);
+    }
+    const std::string line = absl::StrCat(
+        "[marinaMoji/shortcuts] shown: hwnd=",
+        reinterpret_cast<uintptr_t>(m_hWnd), " rect=", rect.left, ",", rect.top,
+        ",", rect.right, ",", rect.bottom, " dpi=", dpi_,
+        " visible=", IsWindowVisible() ? 1 : 0, "\n");
+    ::OutputDebugStringA(line.c_str());
   }
 }
 

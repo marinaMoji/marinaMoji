@@ -16,6 +16,7 @@ Requirements:
     pip install resvg-py pillow
 """
 
+import io
 import re
 import sys
 from pathlib import Path
@@ -93,6 +94,17 @@ def generate_square_icons() -> None:
         print(f"  {svg_path.name} -> {name}_{{{','.join(map(str, SIZES))}}}.png")
 
 
+# Supersampling factor for the wide logo. resvg honours the requested *width*
+# and derives the height from the aspect ratio, rounding up -- asking for
+# 108x24 gave a 108x25 PNG. That one extra row made ToolbarWindow resample the
+# logo (108x25 -> 104x24) at *every* DPI, including 100%, while the square
+# icons hit their tier exactly and were blitted 1:1; the wordmark's thin
+# strokes went soft as a result. Rendering large and doing one high-quality
+# Lanczos downsample to the exact target here makes the shipped PNG exactly
+# `size` tall whatever resvg rounds to.
+LOGO_SUPERSAMPLE = 4
+
+
 def generate_logo_icons() -> None:
     print("Generating logo icons...")
     for name in LOGO_ICON_NAMES:
@@ -106,9 +118,13 @@ def generate_logo_icons() -> None:
         aspect = natural_w / natural_h
         for size in SIZES:
             width = round(size * aspect)
-            png_bytes = render_svg(svg_path, width, size)
+            png_bytes = render_svg(svg_path, width * LOGO_SUPERSAMPLE,
+                                   size * LOGO_SUPERSAMPLE)
             out_path = OUT_DIR / f"{name}_{size}.png"
-            out_path.write_bytes(png_bytes)
+            with Image.open(io.BytesIO(png_bytes)) as im:
+                im.load()
+                im.convert("RGBA").resize(
+                    (width, size), Image.LANCZOS).save(out_path)
         print(f"  {svg_path.name} -> {name}_{{{','.join(map(str, SIZES))}}}.png")
 
 
@@ -120,6 +136,20 @@ def verify_pngs() -> None:
             im.load()
             if im.mode != "RGBA":
                 sys.exit(f"ERROR: {png_path.name} is not RGBA (got {im.mode})")
+            # Height must be exactly the tier: ToolbarWindow blits an icon
+            # 1:1 only when the asset's pixel size equals the size it draws
+            # at, and it derives that from the height. A single extra row
+            # forces a resample of every glyph at every DPI.
+            stem, _, tier = png_path.stem.rpartition("_")
+            if tier.isdigit():
+                expected_h = int(tier)
+                expected_w = expected_h if stem in SQUARE_ICON_NAMES else None
+                if im.height != expected_h:
+                    sys.exit(f"ERROR: {png_path.name} is {im.width}x{im.height},"
+                             f" expected height {expected_h}")
+                if expected_w is not None and im.width != expected_w:
+                    sys.exit(f"ERROR: {png_path.name} is {im.width}x{im.height},"
+                             f" expected {expected_w}x{expected_h}")
         count += 1
     print(f"  {count} PNGs OK")
 

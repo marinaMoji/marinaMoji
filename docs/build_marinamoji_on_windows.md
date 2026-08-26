@@ -35,6 +35,28 @@ builds — see `.github/workflows/windows.yaml`), not upstream Mozc's
 `--config x86_simd` for x64, cross-arch notes) matches stock Mozc's own
 Windows build since none of that changed for this fork.
 
+💡 `marinaMoji64.msi` is **multilingual**: one package that installs in
+English, French or Japanese depending on the machine's language. Getting
+there takes three WiX passes — `marinaMoji64.en-US.msi`,
+`marinaMoji64.fr-FR.msi` and `marinaMoji64.ja-JP.msi`, identical but for the
+five strings in `win32/installer/loc/*.wxl` — after which
+`embed_transforms.py` diffs the fr and ja packages against the en-US one and
+stores the differences in it as MSI language transforms. Only
+`marinaMoji64.msi` ships; the per-culture packages are intermediates left in
+`bazel-bin` for inspection.
+
+That means the WiX packaging step, the slow part of the installer build,
+runs three times. While iterating on something that is not language-related,
+build one culture directly and skip the fold:
+
+```
+bazelisk build //win32/installer:installer_en_us
+```
+
+To see which languages a built package advertises, check the `Template`
+summary property (`;` separates the platform from the language list) — it
+should read `x64;1033,1036,1041`.
+
 > [!TIP]
 >
 > You can also download `marinaMoji64.msi` (or `marinaMoji64_arm64.msi`) as a

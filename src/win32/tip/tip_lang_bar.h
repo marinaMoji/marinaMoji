@@ -53,7 +53,7 @@ class TipLangBar {
       : tool_button_menu_(nullptr),
         help_menu_(nullptr),
         help_menu_cookie_(TF_INVALID_COOKIE),
-        mode_icon_registered_(true) {}
+        mode_icon_registered_(false) {}
   TipLangBar(const TipLangBar&) = delete;
   TipLangBar& operator=(const TipLangBar&) = delete;
   ~TipLangBar() = default;
@@ -69,6 +69,11 @@ class TipLangBar {
   bool IsInitialized() const;
 
  private:
+  // Adds or removes the two input-mode items so that their registration
+  // matches the current toolbar visibility preference. Safe to call at any
+  // time; a no-op when the state already matches.
+  void SyncModeIconRegistration();
+
   // Represents the language bar item manager.
   // NOTE: We must use the same instance of this class to initialize and
   //     uninitialize LangBar items. Otherwise, you will see weird crashes
@@ -96,7 +101,11 @@ class TipLangBar {
   // registered with lang_bar_item_mgr_. GUID_LBI_INPUTMODE in particular is
   // treated as the system-recognized taskbar mode indicator on Windows 8+,
   // so toggling TF_LBI_STYLE_SHOWNINTRAY alone does not hide it there; it
-  // must actually be removed from the item manager.
+  // must actually be removed from the item manager. This must stay in sync
+  // with lang_bar_item_mgr_ across every Init/Uninit cycle: TSF calls
+  // Deactivate() and ActivateEx() repeatedly on the same text service (for
+  // instance whenever the user switches keyboard layouts and back), so a
+  // stale value here would let the items be re-added and never removed.
   bool mode_icon_registered_;
 };
 

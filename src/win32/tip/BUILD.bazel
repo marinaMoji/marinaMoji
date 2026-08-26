@@ -738,6 +738,7 @@ mozc_cc_library(
         "//win32/base:input_state",
         "//win32/base:toolbar_config",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
         "@com_microsoft_wil//:wil",
     ],
 )
@@ -797,6 +798,7 @@ mozc_cc_library(
         "//win32/base:string_util",
         "//win32/base:toolbar_config",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
         "@com_microsoft_wil//:wil",
     ],
 )
