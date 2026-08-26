@@ -408,6 +408,8 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
                                  client:(id)sender
                 allowClearWithoutPreedit:(BOOL)allowClearWithoutPreedit;
 - (void)flushCompositionBeforeDeactivate:(id)sender;
+- (NSAttributedString *)composedStringSnapshot;
+- (NSRange)markedTextSelectionRange;
 @end
 
 @implementation MozcImkInputController
@@ -1153,7 +1155,12 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   // It now has to reach the server, where a tap in DIRECT arms the macron dead
   // key (Session::ArmMacronDeadKey).  Holding Shift for a capital is a chord,
   // not a tap, so KeyCodeMap never produces this event for it.
-  if (![self isConverterSessionActivated]) {
+  // Do NOT activate the converter session in DIRECT: Session arms the dead key
+  // only while it is in ImeContext::DIRECT (Session::IsMacronEligibleContext),
+  // so a TURN_ON_IME here would make the tap a Hiragana/Manyoshu toggle
+  // instead.  Session::SendKey is answered whether or not the session is
+  // activated, so the tap reaches the server either way.
+  if (mode_ != mozc::commands::DIRECT && ![self isConverterSessionActivated]) {
     if (![self ensureConverterActivated:sender context:nullptr]) {
       return NO;
     }
@@ -1851,8 +1858,11 @@ bool IsConfigOnlySessionOutput(const Output &output) {
   }
 
   // Update the composed string of the client applications.
-  [[self client] setMarkedText:composedString_
-                selectionRange:[self selectionRange]
+  // Pass an immutable snapshot: Word and other hosts retain the marked-text
+  // object. Mutating the same NSMutableAttributedString later corrupts that
+  // pointer; the next retain in composedString: then SIGSEGVs.
+  [[self client] setMarkedText:[self composedStringSnapshot]
+                selectionRange:[self markedTextSelectionRange]
               replacementRange:replacementRange_];
 }
 
@@ -1871,8 +1881,24 @@ bool IsConfigOnlySessionOutput(const Output &output) {
   [self updateComposedString:nullptr];
 }
 
+- (NSAttributedString *)composedStringSnapshot {
+  if (composedString_ == nil) {
+    return [[NSAttributedString alloc] init];
+  }
+  return [composedString_ copy];
+}
+
+- (NSRange)markedTextSelectionRange {
+  const NSUInteger length = [composedString_ length];
+  if (cursorPosition_ < 0) {
+    return NSMakeRange(length, 0);
+  }
+  const NSUInteger pos = static_cast<NSUInteger>(cursorPosition_);
+  return NSMakeRange(MIN(pos, length), 0);
+}
+
 - (id)composedString:(id)sender {
-  return composedString_;
+  return [self composedStringSnapshot];
 }
 
 - (void)cancelPendingCandidateUpdate {
@@ -1898,9 +1924,12 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     return NSMakeRange(cursorPosition_, 0);
   }
 
-  return (cursorPosition_ == -1)
-             ? [super selectionRange]  // default behavior defined at super class
-             : NSMakeRange(cursorPosition_, 0);
+  // Do not call [super selectionRange]. Apple's implementation immediately
+  // calls composedString: and retains the result. After a commit the preedit
+  // is empty (cursorPosition_ == -1) and that retain has crashed the IME
+  // (SIGSEGV in objc_storeStrong) — typing then appears to "die" until the
+  // input source is toggled. Compute the caret from our own preedit instead.
+  return [self markedTextSelectionRange];
 }
 
 - (void)delayedUpdateCandidates {
@@ -2038,8 +2067,8 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     return YES;
   }
   if ([event type] == NSEventTypeCursorUpdate) {
-    [[self client] setMarkedText:composedString_
-                  selectionRange:[self selectionRange]
+    [[self client] setMarkedText:[self composedStringSnapshot]
+                  selectionRange:[self markedTextSelectionRange]
                 replacementRange:replacementRange_];
     return NO;
   }
@@ -2212,10 +2241,11 @@ bool IsConfigOnlySessionOutput(const Output &output) {
 
   keyEvent.set_mode(mode_);
 
-  // The macron completion runs while mode_ is DIRECT, so the converter session
-  // has to be activated for it too or SendKeyWithContext has nowhere to go.
-  if ((mode_ != mozc::commands::DIRECT || macronWasPending) &&
-      ![self isConverterSessionActivated]) {
+  // The macron completion deliberately does not activate the session: it runs
+  // while mode_ is DIRECT, and Session::InsertMacronVowel commits the vowel
+  // directly only while the session is still in ImeContext::DIRECT (otherwise
+  // it falls through to InsertCharacter and starts a composition).
+  if (mode_ != mozc::commands::DIRECT && ![self isConverterSessionActivated]) {
     if (![self ensureConverterActivated:sender context:&context]) {
       return NO;
     }

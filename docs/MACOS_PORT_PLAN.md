@@ -418,7 +418,7 @@ Look for repeated `processOutput depth=` (loop) or `handleEvent ... no mozc mapp
    - [ ] `Ctrl+Shift+3` / `#` shin/kyū while composing (Kotoeri / MS-IME / ATOK)
    - [ ] `Ctrl+Shift+1` default odoriji, `Ctrl+Shift+2` palette while composing
    - [ ] `Ctrl+Shift+4` / `$` Manyōshū toggle, `Ctrl+Shift+5` / `%` hiragana/direct
-   - [ ] **Right Shift** alone toggles hiragana ↔ Manyōshū (release without typing)
+   - [ ] **Right Shift** alone: in hiragana ↔ Manyōshū; in **Direct input**, macron dead key (`¯` then vowel) — all platforms
    - [ ] Candidate window F5/F6 behavior unchanged
    - [ ] Preferences → General → Appearance: candidate font size 14 vs 36 updates the candidate list (and usage examples) after OK, without restarting the IME
    - [ ] Candidate window: **rounded** panel; **light mode:** opaque white, border `rgba(0,0,0,0.08)`; **dark mode:** `#202328` panel, white 12% border (matches toolbar)

@@ -10,6 +10,130 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: diagnosed ad-hoc-signed Converter/Renderer getting SIGKILLed (2026-08-26)
+
+Investigated a local install where the Input Sources list showed the raw
+mode key (`com.apple.inputmethod.J…`) instead of "marinaMoji", and the
+input source had no mode submenu or candidate toolbar at all.
+
+The bundle's own localization was fine (`English.lproj/InfoPlist.strings`
+correctly maps `com.apple.inputmethod.Japanese` → `marinaMoji`), so the
+menu-label issue is HIToolbox caching the mode name from an earlier,
+incomplete registration — cleared by removing the input source, deleting
+`~/Library/Preferences/com.apple.HIToolbox.plist`, logging out/in, and
+re-adding it.
+
+The missing submenu/toolbar had a different, more consequential cause:
+`~/Library/Logs/DiagnosticReports/marinaMoji{Converter,Renderer}-*.ips`
+showed both helper processes killed on launch with `SIGKILL (Code
+Signature Invalid)`, `CODESIGNING` / Launch Constraint Violation — the
+main `marinaMoji` binary loads leniently via IMKit, but `launchd`-spawned
+agents (`org.mozc.inputmethod.Japanese.Converter`/`.Renderer`) hit a
+stricter signature check on current macOS that plain ad-hoc signing
+(`codesign -s -`) doesn't satisfy. [`src/config.bzl`](src/config.bzl)
+hardcodes every codesign identity — release, testing, and installer — to
+`MACOS_CODESIGN_IDENTITY_PSEUDO` ("-"). No code changed yet; the fix is
+to sign with a real (free, self-generated) Apple Development certificate
+and point `MACOS_CODESIGN_IDENTITY_TESTING` at it before rebuilding.
+
+Also noted: the `.pkg` installer being unsigned only blocks the initial
+double-click (right-click → Open, or `xattr -d com.apple.quarantine`
+works around it) and is unrelated to the launch-constraint crash above.
+
+### macOS: IME process crash while typing (empty preedit / `;r`) (2026-08-26)
+
+Typing sometimes stopped until the input source was switched away and
+back. Crash reports (`marinaMoji-*.ips`) showed the IME process
+(`marinaMoji`) dying with `EXC_BAD_ACCESS` in `objc_retain` /
+`objc_storeStrong`, not the converter daemon. Stack:
+
+`handleEvent` → `updateComposedString:` → `-selectionRange` →
+`[IMKInputController selectionRange]` → `composedString:`.
+
+After a commit with an empty preedit (including `;r` inserting a
+kaeriten then clearing marked text), `cursorPosition_` is `-1` and the
+code called Apple's `selectionRange`, which immediately retains
+`composedString_`. Word and other hosts also retain the marked-text
+object; we were handing them the same `NSMutableAttributedString` we
+keep mutating, so that pointer could already be bad. Switching IMEs
+relaunches the IMK process, which is why that recovered it.
+
+`mac/mozc_imk_input_controller.mm`: compute the caret from our own
+preedit (`markedTextSelectionRange`) instead of `[super selectionRange]`;
+`composedString:` and `setMarkedText:` now use an immutable snapshot
+(`composedStringSnapshot`).
+
+### macOS Preferences: leftover English and clipped descenders (2026-08-26)
+
+The Qt Preferences window still showed English on Shortcuts, Sync,
+privacy copy, updates, Apply/Cancel/OK, and the experimental-vocabulary
+checkbox: those strings used `tr()` / `QObject::tr()` but had never been
+extracted into `config_dialog_fr.qtts` / `.qm`. Filled unfinished FR/JA
+catalogs (including long Shortcuts/Sync strings), regenerated
+`config_dialog_{en,fr,ja}.qm` via `lupdate`/`lrelease` (`.qtts` copied
+through a temporary `.ts`). Shortcut-table actions now use explicit
+`QObject::tr(...)` in `ActionLabel()`; dictionary-pack checkbox uses a
+literal `tr("Experimental vocabulary…")`; OK is `tr("OK")`.
+
+Descenders (`g`, `p`, `y`) were clipped: stylesheet padding on labels,
+checkboxes, buttons, tab bar, and table items; `AdjustTabBarForDescenders`;
+`usageStatsMessageGroup` size policy Fixed → Minimum; wrapped-label
+contentsMargins; shortcuts table row height = font height + 14. Relabelled
+"Start in at system startup" → "Initial kanji style".
+
+### macOS IME menu: localize leftover English; ellipsis only for dialogs (2026-08-26)
+
+After the Config nib loaded, several extra-menu titles stayed English
+because they were hardcoded in the xib; code-inserted items already used
+`MarinaLocalizedString`. `applyLocalizedImeMenuTitles` now maps actions to
+`MM.*` keys after nib load and in `-menu`. Added
+`MM.Reconversion`, `MM.Preferences`, `MM.AddWord`, `MM.About`,
+`MM.DictionaryTool` in `mac/Resources/{en,fr,ja}.lproj/Localizable.strings`.
+
+Ellipsis follows the macOS convention: **…** means the item opens another
+window; immediate actions have no dots. "Add a word" got an ellipsis.
+
+### macOS IME extra menu missing under French (and similar) locales (2026-08-26)
+
+marinaMoji was selected in the input menu but only system items appeared
+(no Traditional kanji, Odoriji, Toolbar, Preferences, …). Extra commands
+come from `Config.nib`. That nib lived only in `English.lproj` /
+`Japanese.lproj`. `fr.lproj` and `French.lproj` had strings but **no**
+`Config.nib`. As the main bundle, `loadNibNamed:@"Config"` returns `NO`
+when preferred localizations are `fr`/`French`, so `menu_` stayed nil.
+
+Japanese usually still found `Japanese.lproj/Config.nib`. Languages
+without their own Config nib (e.g. Chinese) would fail the same way;
+adding a strings-only lproj without a Base/nib would reproduce it.
+
+Fix: `mac/Base.lproj/Config.xib` (always found); File's Owner in
+English/Japanese/Base xibs is `MozcImkInputController` (was
+`GoogleJapaneseInputController`); nib load retains `topLevelObjects_`,
+searches known localizations, and falls back to a programmatic menu.
+`mac/BUILD.bazel` includes `Base.lproj/Config.xib`.
+
+### macOS toolbar restored off-screen after an external monitor (2026-08-26)
+
+After a source build the floating toolbar seemed missing. The IME was
+running; `~/Library/Application Support/marinaMoji/toolbar.conf` still
+had `x=1591` from an external display, off a 1512-wide built-in screen
+(`onscreen=false`). Immediate workaround: move the saved origin on-screen.
+
+`mac/mozc_toolbar.mm` now clamps restored and dragged origin onto a
+visible screen (same idea as Windows `ClampToVisibleArea`).
+`MozcToolbarShow` / `EnsureToolbar` call `clampWindowToVisibleScreen`.
+
+### Shortcuts tab: Right Shift macron dead key and mode lock (2026-08-26)
+
+The Shortcuts help paragraph still described Right Shift only as the
+hiragana ↔ Manyōshū toggle, and mentioned only the Windows
+`Ctrl+Alt+Right Shift` lock chord. It now matches the engine: in Direct
+input a Right Shift tap arms the macron dead key; in Japanese modes it
+still toggles Manyōshū; double-tap Left Shift locks the mode on all
+platforms (Windows can also use `Ctrl+Alt+Right Shift`). Updated
+`config_dialog_shortcuts_tab.cc` and the FR/JA `config_dialog_*.qtts` /
+`.qm` catalogs.
+
 ### Settings: clarify Emoticon vs. Emoji conversion with an example (2026-08-15)
 
 [#10](https://github.com/marinaMoji/marinaMoji/issues/10): the two "special

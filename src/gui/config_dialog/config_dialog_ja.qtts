@@ -594,8 +594,8 @@
     </message>
     <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="125" />
-        <source>When enabled (default), press and release Left Shift alone to switch between hiragana and direct input only (Manyōshū, half-width, and other modes are unaffected). From direct input, Left Shift returns to the hiragana or full-katakana mode you were using before. Press and release Ctrl+Alt+Right Shift alone to lock the current mode and prevent accidental toggles; use the same chord again to unlock. Right Shift alone toggles hiragana and Manyōshū (katakana). Shift still works for capitals and shortcuts while locked.</source>
-        <translation>有効時（既定）は、左Shiftを押して離すとひらがなと直接入力だけが切り替わります（万葉仮名・半角など他のモードは変わりません）。直接入力からは、直前のひらがなまたは全角カタカナに戻ります。Ctrl+Alt+右Shiftを押して離すと現在のモードをロックし、誤切替を防ぎます。同じ操作でもう一度押すと解除します。右Shift単独はひらがなと万葉仮名（カタカナ）を切り替えます。ロック中も大文字やショートカットのShiftは使えます。</translation>
+        <source>When enabled (default), press and release Left Shift alone to switch between hiragana and direct input only (Manyōshū, half-width, and other modes are unaffected). From direct input, Left Shift returns to the hiragana or full-katakana mode you were using before. Double-tap Left Shift to lock or unlock the current mode; on Windows, Ctrl+Alt+Right Shift does the same. Right Shift alone toggles hiragana and Manyōshū, except in Direct input, where it arms the macron dead key (tap Right Shift, then a vowel). Shift still works for capitals and shortcuts while locked.</source>
+        <translation>有効時（既定）は、左Shiftを押して離すとひらがなと直接入力だけが切り替わります（万葉仮名・半角など他のモードは変わりません）。直接入力からは、直前のひらがなまたは全角カタカナに戻ります。左Shiftを素早く二回押すと現在のモードをロック／解除します。Windowsでは Ctrl+Alt+右Shift でも同じです。右Shift単独はひらがなと万葉仮名を切り替えますが、直接入力ではマクロン用のデッドキーになります（右Shiftのあと母音）。ロック中も大文字やショートカットのShiftは使えます。</translation>
     </message>
     <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="149" />
