@@ -10,6 +10,125 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Diagnostics: LOG() does not exist in the builds we test (2026-08-27)
+
+Debugging the two open Windows problems below stalled on the discovery that
+logging is entirely absent from a CI artifact. `.bazelrc`'s `release_build`
+config, which CI uses for both architectures, passes:
+
+- `--compilation_mode=opt`, which defines `NDEBUG`. `base/log_file.cc` wraps
+  its whole `RegisterLogFileSink` body in `#if !defined(NDEBUG)`, so no log
+  file sink is ever registered.
+- `--copt=-DABSL_MIN_LOG_LEVEL=100`, which makes absl discard every `LOG`
+  statement at compile time. The calls are not merely unrouted; they are not
+  in the binary.
+
+`MOZC_VLOG` is dead twice over: `config_handler.cc`'s `NormalizeConfig` also
+force-clears `verbose_level` to 0 under `NDEBUG`, which is why the settings
+dialog hides its Logging section on release builds.
+
+Added [`base/marina_debug_log.h`](src/base/marina_debug_log.h): a
+`MarinaDebugLog()` that survives all of that, writing to `OutputDebugString`
+on Windows and stderr elsewhere. Read it with Sysinternals DebugView with
+"Capture Win32" enabled, filtering on `[marinaMoji]`. It is cross-platform so
+that `session/` can use it too, and it is the only channel available in
+`marinamoji_tip64.dll` at all: the TIP is loaded into arbitrary host
+applications that never call `InitMozc`, so it has no log file even in a
+debug build.
+
+Keep the text ASCII; `OutputDebugStringA` passes bytes through unconverted.
+
+This and every call site are marked TEMPORARY. Removing them is deleting the
+header, its four BUILD deps, and everything `grep MarinaDebugLog` finds.
+
+### Windows: Ctrl+Shift+3 and Ctrl+Shift+F do not toggle kyūjitai — OPEN (2026-08-27)
+
+Both bindings for `ToggleTraditionalKanji` are swallowed and do nothing,
+while other shortcuts work. Not fixed; instrumented. Recording what has been
+eliminated so it does not get re-derived:
+
+- **Not the action.** The toolbar's Traditional kanji button sends the same
+  `SessionCommand::TOGGLE_TRADITIONAL_KANJI` and works fully, which also
+  clears the config round-trip and the OpenCC converter on Windows.
+- **Not the binding.** The Shortcuts tab shows slot 3 bound to Traditional
+  kanji, and `ScanCodeToPhysicalSlot` maps `0x04` to `MARINA_SLOT_3`
+  contiguously with slots 4 and 5, which do work in the same window at the
+  same moment.
+- **Not the keymap stripper.** `IsMarinaNumberRowKeymapBinding` only matches
+  number-row key *names*, so `ms-ime.tsv`'s `Ctrl Shift F` rule survives.
+- **Not a shared gate.** `OnTestKey` and `OnKey` are separate functions; the
+  TIP never writes config; `Client::SendCommand` calls `EnsureSession`.
+- **Not Dvorak, for Ctrl+Shift+3.** That path is driven by scan code, which
+  is layout-independent.
+
+The two keys reach the action by completely different routes — `Ctrl+Shift+F`
+through the keymap, `Ctrl+Shift+3` through the physical-slot dispatcher, since
+`ms-ime.tsv` has no `Ctrl Shift 3` row — so this may well be two faults
+rather than one.
+
+Probes are in `marina_number_row_dispatcher.cc` (slot, action, autorepeat
+suppression, whether the command was sent and accepted),
+`tip_keyevent_handler.cc` (the OnTestKey claim, and the `ToMozcMode` gate that
+could bail before dispatch), and `keyevent_handler.cc` (the Mozc KeyEvent a
+Ctrl chord produced, in both key phases). That last one is the Ctrl+Shift+F
+question: if it reports a letter other than `f`, it is the Dvorak double
+translation, the same family as the macron dead-key bug.
+
+### Odoriji palette disappears when the chord is released — OPEN (2026-08-27)
+
+Ctrl+Shift+2 shows the palette; releasing the modifiers hides it again, and
+Space brings it back. Windows only. Not fixed; instrumented, with a specific
+hypothesis worth recording.
+
+The palette is not a window of its own — it is drawn *as the candidate
+window*, via `OdorijiPalette::OverlayOutput` filling
+`output.candidate_window()`. That overlay is applied in exactly one place,
+`Session::Output`. `OutputComposition` and `OutputKey` do not apply it, though
+both do apply the neighbouring `manyoshu_mode_` display conversion — the same
+asymmetry that a missing case usually looks like. So any output path other
+than `Session::Output` emits an Output with no candidate window, and the
+client drops the palette. A modifier key-up round-tripping to the server on
+Windows would do exactly that, and would explain why Linux is unaffected.
+
+Probes log which output path runs and whether the overlay was applied, plus,
+on the Windows side, every key phase with whether the Output coming back
+carries a candidate window. The confirming sequence is `ShowOdorijiPalette:
+visible=1`, then `OnKey: down=0 … has_candidate_window=0`, with an
+`OutputKey`/`OutputComposition` line reporting `palette_visible=1`. If that is
+what appears, the fix is to apply the overlay at a choke point rather than in
+`Session::Output` alone.
+
+Note the `Session::Output` probe fires on every keystroke, and these probes
+sit in cross-platform code, so they also print to stderr on Linux and macOS.
+
+### Settings dialog has no visible edge on GNOME Wayland (2026-08-27)
+
+The settings window ran straight into whatever was behind it, with no shadow
+and no border. This is not something marinaMoji turns off: GNOME's compositor
+deliberately does not implement `xdg-decoration`, so on a Wayland session Qt
+draws its own decorations and the window manager contributes no shadow. Every
+Qt application on GNOME Wayland behaves this way.
+
+Added a hairline border to the dialog instead of chasing the shadow, since
+the point is to see where the window ends. It uses `palette(mid)` rather than
+a fixed colour so it follows light and dark themes, and
+`Qt::WA_StyledBackground`, without which Qt will not paint a stylesheet box on
+a top-level widget at all.
+
+Applied only when `QGuiApplication::platformName()` starts with "wayland". An
+X11 session gets a real server-side frame and shadow from the window manager,
+and macOS and Windows have native frames, so an extra inner border there would
+just look wrong.
+
+Verified by loading `config_dialog.ui` through PySide6 offscreen with the
+dialog's real stylesheet and grabbing the rendered pixels: the edge goes from
+`#efefef`, identical to the dialog background, to `#b8b8b8`, distinct from the
+`#9f9f9f` interior.
+
+The alternative considered and rejected was forcing the GUI onto XWayland with
+`QT_QPA_PLATFORM=xcb`, which would restore real decorations and a shadow but
+costs blurry rendering under fractional scaling and per-monitor DPI.
+
 ### Mode indicator: Katakana / Manyōshū waited for a keystroke (2026-08-27)
 
 Picking Katakana (Manyōshū) from the toolbar or language bar left the mode
@@ -223,6 +342,21 @@ rect, at one `sqrt` per pixel.
 The Windows sync overlay is deliberately left alone. It is uniformly
 translucent (`SetLayeredWindowAttributes`), so a shadow behind it would show
 *through* it.
+
+The Linux toolbar ([`unix/ibus/mozc_toolbar.cc`](src/unix/ibus/mozc_toolbar.cc))
+was missed by the first pass, which only covered the candidate and infolist
+windows. It is a GTK3 undecorated toplevel whose chrome is an event box
+styled by CSS; it had a 1px border but no `box-shadow`. Added one, plus a
+12px `margin` on the frame for the shadow to fade into, since GTK draws
+box-shadow into a widget's margin. The toplevel's default size and height
+request grew by twice that so the chrome keeps its own dimensions.
+
+That margin is transparent but still part of the window, and an ARGB toplevel
+accepts input across its whole surface, so it would have become a halo that
+swallowed clicks meant for the window behind. `UpdateToolbarInputShape()`
+restricts the input region to the frame's allocation on every size-allocate.
+GTK does this itself for its own client-side decorations, but not for a
+margin applied to a child widget.
 
 On macOS the renderer panels are `NSPanel`s with `hasShadow` left at its
 default of YES and nothing turning it off, so they should already have one.

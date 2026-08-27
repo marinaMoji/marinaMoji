@@ -49,6 +49,12 @@ namespace ibus {
 namespace {
 
 constexpr int kToolbarHeight = 36;
+// Room reserved around the toolbar frame for its drop shadow to fade into.
+// GTK draws box-shadow into a widget's margin, so the toplevel has to be this
+// much bigger than the visible chrome on every side, and the margin has to be
+// transparent -- hence the RGBA visual and the transparent window background
+// in the CSS below. Same trick GTK's own client-side decorations use.
+constexpr int kToolbarShadowMargin = 12;
 constexpr int kToolbarMargin = 20;
 constexpr int kIconSize = 24;
 constexpr int kToolbarLogoWidth = 120;
@@ -374,6 +380,31 @@ static GtkWidget* CreateLogoImage(bool dark) {
   GtkWidget* img = gtk_image_new_from_pixbuf(pixbuf);
   g_object_unref(pixbuf);
   return img;
+}
+
+// The shadow margin is part of the toplevel but invisible, and an ARGB window
+// accepts input across its whole surface by default -- so without this the
+// toolbar would sit inside a transparent halo that swallowed clicks meant for
+// whatever is behind it. Restricting the input region to the frame keeps the
+// halo purely decorative. GTK does the equivalent automatically for its own
+// client-side decorations, but not for a margin we put on a child widget.
+static void UpdateToolbarInputShape() {
+  if (!g_toolbar_window || !g_toolbar_frame) return;
+  if (!gtk_widget_get_realized(g_toolbar_window)) return;
+  GtkAllocation alloc;
+  gtk_widget_get_allocation(g_toolbar_frame, &alloc);
+  if (alloc.width <= 0 || alloc.height <= 0) return;
+  const cairo_rectangle_int_t rect = {alloc.x, alloc.y, alloc.width,
+                                      alloc.height};
+  cairo_region_t* region = cairo_region_create_rectangle(&rect);
+  gtk_widget_input_shape_combine_region(g_toolbar_window, region);
+  cairo_region_destroy(region);
+}
+
+static void OnToolbarFrameSizeAllocate(GtkWidget* /*widget*/,
+                                       GdkRectangle* /*allocation*/,
+                                       gpointer /*data*/) {
+  UpdateToolbarInputShape();
 }
 
 static void MoveToBottomRight() {
@@ -744,6 +775,11 @@ static void EnsureToolbarCSS(bool dark) {
   const char* border = dark
       ? "rgba(255, 255, 255, 0.12)"
       : "rgba(0, 0, 0, 0.08)";
+  // Heavier on light backgrounds, where the toolbar chrome is nearly white and
+  // otherwise dissolves into whatever is behind it.
+  const char* shadow = dark
+      ? "rgba(0, 0, 0, 0.55)"
+      : "rgba(0, 0, 0, 0.30)";
   if (!g_toolbar_css_provider) {
     g_toolbar_css_provider = gtk_css_provider_new();
     gtk_style_context_add_provider_for_screen(
@@ -759,6 +795,8 @@ static void EnsureToolbarCSS(bool dark) {
       "  border-radius: 10px;"
       "  border: 1px solid " + std::string(border) + ";"
       "  padding: 6px 10px;"
+      "  margin: " + std::to_string(kToolbarShadowMargin) + "px;"
+      "  box-shadow: 0 3px 8px " + std::string(shadow) + ";"
       "}"
       "#marinamoji-mode-indicator,"
       "#marinamoji-trad-btn, #marinamoji-trad-btn:hover, #marinamoji-trad-btn:active,"
@@ -1629,7 +1667,9 @@ void EnsureToolbarCreated() {
   gtk_window_set_decorated(GTK_WINDOW(g_toolbar_window), FALSE);
   gtk_window_set_resizable(GTK_WINDOW(g_toolbar_window), FALSE);
   ApplyToolbarWindowHints(g_toolbar_window);
-  gtk_window_set_default_size(GTK_WINDOW(g_toolbar_window), 380, kToolbarHeight);
+  gtk_window_set_default_size(GTK_WINDOW(g_toolbar_window),
+                              380 + 2 * kToolbarShadowMargin,
+                              kToolbarHeight + 2 * kToolbarShadowMargin);
   gtk_container_set_border_width(GTK_CONTAINER(g_toolbar_window), 0);
   gtk_widget_set_app_paintable(g_toolbar_window, TRUE);
   gtk_widget_set_name(g_toolbar_window, "marinamoji-toolbar-window");
@@ -1664,7 +1704,8 @@ void EnsureToolbarCreated() {
 #endif
   }
 
-  gtk_widget_set_size_request(g_toolbar_window, -1, kToolbarHeight);
+  gtk_widget_set_size_request(g_toolbar_window, -1,
+                              kToolbarHeight + 2 * kToolbarShadowMargin);
 
   g_toolbar_frame = gtk_event_box_new();
   gtk_event_box_set_visible_window(GTK_EVENT_BOX(g_toolbar_frame), TRUE);
@@ -1673,6 +1714,8 @@ void EnsureToolbarCreated() {
   gtk_widget_add_events(g_toolbar_frame, GDK_BUTTON_PRESS_MASK);
   g_signal_connect(g_toolbar_frame, "button-press-event",
                    G_CALLBACK(OnButtonPress), nullptr);
+  g_signal_connect(g_toolbar_frame, "size-allocate",
+                   G_CALLBACK(OnToolbarFrameSizeAllocate), nullptr);
   gtk_container_add(GTK_CONTAINER(g_toolbar_window), g_toolbar_frame);
 
   g_toolbar_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);

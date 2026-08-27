@@ -35,6 +35,7 @@
 
 #include <QCheckBox>
 #include <QFontMetrics>
+#include <QGuiApplication>
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QPushButton>
@@ -239,6 +240,28 @@ ConfigDialog::ConfigDialog()
   client_->set_suppress_error_dialog(true);
   setupUi(this);
   setStyleSheet(QString::fromUtf8(kQss.data(), kQss.size()));
+
+#if defined(__linux__)
+  // marinaMoji: GNOME's compositor deliberately does not implement
+  // xdg-decoration, so on a Wayland session Qt draws its own decorations and
+  // the window gets no shadow from the window manager -- leaving no visible
+  // edge at all between this dialog and whatever is behind it. A hairline
+  // border is the cheap substitute. palette(mid) rather than a fixed colour so
+  // it follows light/dark themes.
+  //
+  // Wayland only: an X11 session gets a real server-side frame and shadow from
+  // the WM, and macOS and Windows have native frames, so an extra inner border
+  // there would just look wrong. WA_StyledBackground is required for Qt to
+  // paint the stylesheet box on a top-level widget at all.
+  if (QGuiApplication::platformName().startsWith(QLatin1String("wayland"))) {
+    setAttribute(Qt::WA_StyledBackground, true);
+    setStyleSheet(styleSheet() +
+                  QStringLiteral("\nQDialog#ConfigDialog {"
+                                 "  background-color: palette(window);"
+                                 "  border: 1px solid palette(mid);"
+                                 "}"));
+  }
+#endif  // __linux__
   AdjustTabBarForDescenders(configDialogTabWidget);
 
   // Remove the context help button (question mark button) from the window.
