@@ -1,5 +1,7 @@
 #include <chrono>
+#include <cstdio>
 #include <cstdlib>
+#include <ios>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -13,6 +15,14 @@
 #include "sync/sync_poll.h"
 #include "sync/sync_runner.h"
 #include "sync/sync_status.h"
+
+#ifdef _WIN32
+// Makes this a Windows-subsystem binary: main() below is reached via a
+// generated WinMain. The installer registers a Task Scheduler logon task that
+// runs this with --daemon, and a console-subsystem binary would show an empty
+// console window at every sign-in.
+#include "base/win32/winmain.h"
+#endif  // _WIN32
 
 namespace mozc {
 namespace sync {
@@ -119,6 +129,20 @@ int RunDaemon() {
 
 int main(int argc, char* argv[]) {
   mozc::InitMozc(argv[0], &argc, &argv);
+
+#ifdef _WIN32
+  // A Windows-subsystem process gets no console of its own, but this is also
+  // a command-line tool -- --help, --status and --now all print. Adopt the
+  // console of whatever launched us, when there is one, and point the C++
+  // streams back at it. The logon task has no parent console, so the daemon
+  // path silently does nothing here, which is the point.
+  if (::AttachConsole(ATTACH_PARENT_PROCESS)) {
+    FILE* reopened = nullptr;
+    freopen_s(&reopened, "CONOUT$", "w", stdout);
+    freopen_s(&reopened, "CONOUT$", "w", stderr);
+    std::ios::sync_with_stdio(true);
+  }
+#endif  // _WIN32
 
   bool run_now = false;
   bool run_daemon = false;

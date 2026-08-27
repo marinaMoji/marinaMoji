@@ -10,11 +10,10 @@
 // statement at compile time, so the calls do not even exist in the binary.
 //
 // This writes somewhere that survives both:
-//   Windows: OutputDebugString. View with Sysinternals DebugView, with
-//     "Capture > Capture Win32" enabled ("Capture Global Win32" too if the
-//     target application runs elevated). Works in every process, including
-//     marinamoji_tip64.dll, which is loaded into arbitrary host applications
-//     that never call InitMozc and so has no log file even in a debug build.
+//   Windows: OutputDebugString (DebugView) *and* an append-only file
+//     %TEMP%\marinamoji-debug.log. DebugView's File→Save As often crashes
+//     under a busy capture; the file is the reliable copy. The TIP lives
+//     inside Notepad/Word and often cannot write Mozc's normal log path.
 //   elsewhere: stderr.
 //
 // Keep the text ASCII: OutputDebugStringA is passed through unconverted.
@@ -38,10 +37,33 @@
 
 namespace mozc {
 
+#ifdef _WIN32
+inline void MarinaDebugLogAppendFile(absl::string_view text) {
+  char temp_dir[MAX_PATH] = {};
+  const DWORD n = ::GetTempPathA(MAX_PATH, temp_dir);
+  if (n == 0 || n >= MAX_PATH) {
+    return;
+  }
+  const std::string path = absl::StrCat(temp_dir, "marinamoji-debug.log");
+  const HANDLE file = ::CreateFileA(
+      path.c_str(), FILE_APPEND_DATA,
+      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+      OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if (file == INVALID_HANDLE_VALUE) {
+    return;
+  }
+  DWORD written = 0;
+  ::WriteFile(file, text.data(), static_cast<DWORD>(text.size()), &written,
+              nullptr);
+  ::CloseHandle(file);
+}
+#endif  // _WIN32
+
 inline void MarinaDebugLog(absl::string_view line) {
   const std::string text = absl::StrCat("[marinaMoji] ", line, "\n");
 #ifdef _WIN32
   ::OutputDebugStringA(text.c_str());
+  MarinaDebugLogAppendFile(text);
 #else   // _WIN32
   std::fputs(text.c_str(), stderr);
 #endif  // _WIN32

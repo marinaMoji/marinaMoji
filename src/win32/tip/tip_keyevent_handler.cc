@@ -204,7 +204,12 @@ HRESULT OnTestKey(TipTextService* text_service, ITfContext* context,
   // the Dvorak/other fixed keyboard-layout emulation is active in direct
   // mode), which would otherwise stop TSF from ever delivering the key to
   // OnKeyDown, where TryDispatchMarinaNumberRowShortcut actually handles it.
-  if (is_key_down) {
+  // GetConfig is an IPC round trip to the server, so it must not run on every
+  // keystroke -- only once the scan code and Ctrl state say this could be a
+  // number-row chord at all.
+  if (is_key_down &&
+      CouldBeMarinaNumberRowShortcut(key_info.GetScanCode(),
+                                     keyboard_status.IsPressed(VK_CONTROL))) {
     config::Config marina_config;
     if (private_context->GetClient()->GetConfig(&marina_config) &&
         WouldConsumeMarinaNumberRowShortcut(
@@ -214,6 +219,11 @@ HRESULT OnTestKey(TipTextService* text_service, ITfContext* context,
       mozc::MarinaDebugLog(absl::StrCat(
           "OnTestKey: ate number-row chord, scan=0x",
           absl::Hex(key_info.GetScanCode())));
+      // Record this key as last_down_key so a following Shift/Ctrl release
+      // is not treated as a lone modifier tap (Left Shift → Direct, which
+      // wipes the odoriji candidate window).
+      *private_context->mutable_last_down_key() = vk;
+      private_context->set_ignore_modifier_keyup_taps(true);
       *eaten = TRUE;
       return S_OK;
     }
@@ -353,6 +363,12 @@ bool TryDispatchMarinaNumberRowShortcut(TipPrivateContext* private_context,
                                         uint32_t visible_mode,
                                         bool open,
                                         commands::Output* output) {
+  // Same reasoning as OnTestKey: skip the config IPC unless this key could
+  // possibly be a chord.
+  if (!CouldBeMarinaNumberRowShortcut(key_info.GetScanCode(),
+                                      keyboard_status.IsPressed(VK_CONTROL))) {
+    return false;
+  }
   config::Config config;
   if (!private_context->GetClient()->GetConfig(&config)) {
     return false;
@@ -376,8 +392,8 @@ bool TryDispatchMarinaNumberRowShortcut(TipPrivateContext* private_context,
   }
   return DispatchMarinaNumberRowShortcut(
       key_info.GetScanCode(), keyboard_status.IsPressed(VK_CONTROL),
-      keyboard_status.IsPressed(VK_SHIFT), open, original_mode, config,
-      private_context->GetClient(), output);
+      keyboard_status.IsPressed(VK_SHIFT), key_info.IsPreviousStateDwon(), open,
+      original_mode, config, private_context->GetClient(), output);
 }
 
 // marinaMoji: closes the Symbols Palette on Escape. The palette window is
@@ -441,6 +457,24 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
   const LParamKeyInfo key_info(lparam);
   const KeyboardStatus keyboard_status(key_state);
   VirtualKey vk = GetVK(wparam, keyboard_status);
+
+  // Ctrl+Shift+3 (and the other number-row chords) leave Shift/Ctrl key-ups.
+  // If Ctrl is released first, Mozc treats the leftover Left Shift release as
+  // a Japanese↔Direct tap — the toolbar then flips kana/Direct as well as
+  // shin/kyū. Swallow those modifier-ups; do not send them to the session.
+  if (!is_key_down && private_context->ignore_modifier_keyup_taps()) {
+    const UINT vk_code = vk.virtual_key();
+    if (vk_code == VK_SHIFT || vk_code == VK_CONTROL || vk_code == VK_MENU) {
+      if (vk_code == VK_SHIFT) {
+        private_context->set_ignore_modifier_keyup_taps(false);
+      }
+      mozc::MarinaDebugLog(absl::StrCat(
+          "OnKey: swallow modifier-up after number-row, vk=",
+          static_cast<int>(vk_code)));
+      *eaten = FALSE;
+      return S_OK;
+    }
+  }
 
   const ClientAction vk_back_action = private_context->GetDeleter()->OnKeyEvent(
       vk.virtual_key(), is_key_down, false);
@@ -540,6 +574,8 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
     // via EnsureImeOn when invoked from a closed/direct state, mirroring
     // unix/ibus/mozc_engine.cc's unconditional dispatch.
     ignore_this_keyevent = false;
+    *private_context->mutable_last_down_key() = vk;
+    private_context->set_ignore_modifier_keyup_taps(true);
   } else {
     InputBehavior behavior = private_context->input_behavior();
 
@@ -632,6 +668,20 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
           : -1,
       " has_preedit=", temporal_output.has_preedit(),
       " eaten=", !ignore_this_keyevent));
+
+  // Modifier key-up can produce an empty Output (no candidates, no preedit).
+  // Applying that after SHOW_ODORIJI_PALETTE hides the 8-item list. Keep the
+  // last candidate UI until a key-down (or a key-up that still carries
+  // candidates) replaces it.
+  const bool empty_ui = !temporal_output.has_candidate_window() &&
+                        !temporal_output.has_preedit() &&
+                        !temporal_output.has_result();
+  if (!is_key_down && empty_ui &&
+      private_context->last_output().has_candidate_window()) {
+    mozc::MarinaDebugLog("OnKey: skip empty key-up that would hide candidates");
+    *eaten = !ignore_this_keyevent ? TRUE : FALSE;
+    return S_OK;
+  }
 
   // TSF spec guarantees that key event handling can always be a synchronous
   // operation.

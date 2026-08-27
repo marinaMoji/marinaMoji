@@ -259,7 +259,12 @@ mozc_cc_library(
         "//client",
         "//protocol:commands_cc_proto",
         "@com_google_absl//absl/strings",
-    ],
+    ] + mozc_select(
+        # Forces /SUBSYSTEM:WINDOWS. Without it this links as a console
+        # application and the Task Scheduler logon task registered by the
+        # installer pops an empty console window at every sign-in.
+        windows = ["//base/win32:winmain"],
+    ),
 )
 
 mozc_cc_binary(

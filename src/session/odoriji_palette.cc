@@ -69,6 +69,23 @@ bool IsNumberKey(const commands::KeyEvent& key) {
          key.key_code() <= 0x38;
 }
 
+// Ctrl+Shift+2 leaves a Shift/Ctrl key-up with only modifier_keys set. If
+// that event falls through, Windows Mozc treats Left Shift release as
+// Japanese↔Direct and the palette disappears.
+bool IsModifierOnlyKey(const commands::KeyEvent& key) {
+  if (key.modifier_keys_size() == 0) {
+    return false;
+  }
+  if (key.has_key_code() && key.key_code() != 0) {
+    return false;
+  }
+  if (key.has_special_key() &&
+      key.special_key() != commands::KeyEvent::NO_SPECIALKEY) {
+    return false;
+  }
+  return true;
+}
+
 }  // namespace
 
 const char* OdorijiPalette::GetCharacter(size_t index) {
@@ -103,7 +120,7 @@ bool OdorijiPalette::WouldConsumeKey(const commands::KeyEvent& key) {
         break;
     }
   }
-  return IsSpaceKey(key) || IsNumberKey(key);
+  return IsSpaceKey(key) || IsNumberKey(key) || IsModifierOnlyKey(key);
 }
 
 bool OdorijiPalette::HandleKey(const commands::KeyEvent& key,
@@ -173,6 +190,9 @@ bool OdorijiPalette::HandleKey(const commands::KeyEvent& key,
     if (commit_result) *commit_result = kOdorijiChars[id];
     if (session_default_index) *session_default_index = id;
     *visible = false;
+    return true;
+  }
+  if (IsModifierOnlyKey(key)) {
     return true;
   }
   return false;

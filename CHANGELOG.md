@@ -10,9 +10,143 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: empty console window at every sign-in (2026-08-27)
+
+A blank terminal titled with the install path opened on every logon. The
+installer registers a per-user Task Scheduler logon task that runs
+`marinamoji_sync.exe --daemon` (`RegisterSyncTask` in
+[`custom_action.cc`](src/win32/custom_action/custom_action.cc)), and that
+binary was the one Windows executable in the tree not linked against
+[`//base/win32:winmain`](src/base/win32/BUILD.bazel), which forces
+`/SUBSYSTEM:WINDOWS`. `mozc_server`, the renderer, the broker, the cache
+service and `mozc_tool` all use it; `marinaMojiSync_win` did not, so it linked
+as a console application and Task Scheduler gave it a console window. Task
+Scheduler has no "hide window" setting for an interactive task, so the
+subsystem is the only real lever.
+
+Added the dep via `mozc_select(windows = ...)` on `sync_main_lib`, which the
+Linux binary shares, and added `//sync:__pkg__` to winmain's visibility list.
+No console is created at all now, rather than one being hidden or closed
+quickly. The installed binary is what the task runs, so this needs a new MSI,
+not just a rebuilt executable; the task itself needs no re-registration, since
+its command path and arguments are unchanged.
+
+There turned out to be **two** autostart mechanisms, so all six installed
+executables were audited rather than just the obvious one:
+
+1. the Task Scheduler logon task above, and
+2. an `HKLM\...\CurrentVersion\Run` value registering
+   `marinamoji_broker.exe --mode=prelaunch_processes`
+   ([installer_marinamoji_64bit.wxs:849](src/win32/installer/installer_marinamoji_64bit.wxs:849)).
+
+`mozc_server_win`, `mozc_tool_win` and `marinaMojiSync_win` reach winmain
+through their main libraries; the renderer, broker and cache service depend on
+it directly. `marinaMojiSync_win` was the only one missing it. Nothing else
+the installer ships can open a console at logon.
+
+`marinamoji_sync.exe` is also a command-line tool -- `--help`, `--status` and
+`--now` all print -- and a Windows-subsystem process has no console of its
+own, so those would have gone silent when run from a prompt. `main()` now
+calls `AttachConsole(ATTACH_PARENT_PROCESS)` and reopens the standard streams
+on `CONOUT$` when there is a parent console. The logon task has no parent
+console, so the daemon path does nothing there, which is the point. Note the
+usual caveat of this pattern: cmd.exe does not wait for a Windows-subsystem
+process, so its prompt returns before the output appears.
+
+Unrelated but visible in the same report: the product installs into
+`C:\Program Files (x86)` despite being a 64-bit package, because the .wxs
+uses `ProgramFilesFolder` (32-bit) rather than `ProgramFiles64Folder`. That is
+inherited from upstream -- `installer_oss_64bit.wxs` and
+`installer_64bit.wxs` do the same, and Google Japanese Input has always
+installed there. Left alone: it is cosmetic, and moving an installed
+product's directory has upgrade consequences worth deciding on deliberately.
+
+### Diagnostics: also write %TEMP%\\marinamoji-debug.log (2026-08-27)
+
+Sysinternals DebugView often crashes on File→Save As when the capture is
+busy (every keystroke plus toolbar updates). `MarinaDebugLog` now appends
+the same ASCII lines to `%TEMP%\marinamoji-debug.log` as well as
+`OutputDebugString`, so a capture does not depend on DebugView exporting.
+TIP, renderer and server share the file (`FILE_APPEND_DATA`). Delete the
+file before a clean run. Until that MSI is installed: do not use DebugView
+File→Save As (it crashes on a busy capture); filter Include to `dispatch`
+and copy-paste. Sysinternals DebugView is often blank on Windows 10/11
+until “Capture Global Win32” is on and it is run as administrator;
+DebugView++ is more reliable.
+
+### Windows: Ctrl+Shift+3 also flipped kana/Direct (2026-08-27)
+
+Reported as the toolbar randomly switching kana/Direct, then after many
+presses doing shin/kyū *and* kana/Direct. DebugView showed the shortcut
+itself was always correct (`scan=0x4`, `slot=3 action=3`,
+`TOGGLE_TRADITIONAL_KANJI`, `use_traditional_kanji` 0→1→0…). Kyū/shin is
+applied on the **next conversion**; the current preedit is not rewritten
+in place (that used to freeze the client).
+
+The extra kana/Direct flip is a second gesture on the same chord. Left
+Shift alone toggles Japanese ↔ Direct. After Ctrl+Shift+3 you still
+release Shift; if **Ctrl is already up**, that release looks like a lone
+Left Shift tap. Release order made it look random; both icons together
+meant both gestures had fired.
+
+Number-row dispatch now records the digit as `last_down_key` and marks
+leftover Shift/Ctrl key-ups so they are not sent to the session. A real
+Left Shift tap with no Ctrl still toggles Direct. Same leftover-Shift
+family as the odoriji palette vanishing on Shift key-up.
+
+### Windows: odoriji palette vanishes on Shift key-up (2026-08-27)
+
+DebugView of `Ctrl+Shift+2` showed the list opening (`ShowOdorijiPalette
+visible=1`, 8 candidates) and then a Shift **key-up** (`vk=16 scan=0x2a`)
+applying an empty Output, which hid the candidate window. The `2` is handled
+by the number-row dispatcher and never recorded as `last_down_key`, so Mozc
+still thought the last key was Shift and treated the release as a Left Shift
+tap (Japanese → Direct). The palette is a candidate window, not the Symbols
+window.
+
+The digit is now stored as `last_down_key`. While the palette is open,
+modifier-only events are consumed and Left/Right Shift taps are ignored. An
+empty key-up is not applied if a candidate list is already showing.
+
+### Windows: number-row shortcuts dropped fast repeat presses, and cost an IPC per keystroke (2026-08-27)
+
+Two faults in the same dispatcher, both found from the report that
+Ctrl+Shift+1 was too slow to insert odoriji at any speed and that
+Ctrl+Shift+3 "does nothing several times".
+
+**Genuine repeat presses were being swallowed.** `ShouldSuppressAutorepeat`
+existed to stop a *held* chord re-firing on OS key-repeat, but implemented
+that as "same slot and action within 300ms" — which cannot tell OS key-repeat
+from a fast second press. Tapping a shortcut faster than about three times a
+second silently dropped presses, and because `last_time` was only updated on
+a press that fired, a steady tap landed in and out of the window and looked
+random. Windows reports this authoritatively in the WM_KEYDOWN lparam:
+`LParamKeyInfo::IsPreviousStateDwon()` is bit 30, set only when the previous
+key state was already down. `DispatchMarinaNumberRowShortcut` now takes that
+flag and drops the timer. A held chord is still claimed — letting it fall
+through would type the digit — but fires once; a real second press always
+fires, however fast.
+
+The Linux dispatcher keeps its time window: IBus offers no equivalent flag,
+X11 autorepeat being indistinguishable press/release pairs.
+
+**The config was fetched over IPC on every key-down.** `OnTestKey` called
+`GetClient()->GetConfig()` for every key the user pressed, before knowing
+whether the key was even in the number row, and `TryDispatchMarinaNumberRowShortcut`
+did it again in the real key phase — two server round trips per keystroke on
+all typing, not just shortcuts. Added `CouldBeMarinaNumberRowShortcut()`, a
+scan-code and Ctrl test with no config lookup, as a guard in front of both.
+Ordinary typing now pays nothing.
+
+The DebugView capture of Ctrl+Shift+3 (2026-08-27) closed the “wrong action”
+suspicion: every press was `slot=3 action=3` (shin/kyū) and
+`use_traditional_kanji` flipped in the session. The kana/Direct toolbar jumps
+were a leftover Left Shift tap when Ctrl was released first — see
+“Ctrl+Shift+3 also flipped kana/Direct” above, not a mis-bound slot 5.
+
 ### Diagnostics: LOG() does not exist in the builds we test (2026-08-27)
 
-Debugging the two open Windows problems below stalled on the discovery that
+Debugging the Windows shortcut problems below stalled on the discovery that
 logging is entirely absent from a CI artifact. `.bazelrc`'s `release_build`
 config, which CI uses for both architectures, passes:
 
@@ -41,11 +175,13 @@ Keep the text ASCII; `OutputDebugStringA` passes bytes through unconverted.
 This and every call site are marked TEMPORARY. Removing them is deleting the
 header, its four BUILD deps, and everything `grep MarinaDebugLog` finds.
 
-### Windows: Ctrl+Shift+3 and Ctrl+Shift+F do not toggle kyūjitai — OPEN (2026-08-27)
+### Windows: Ctrl+Shift+3 and Ctrl+Shift+F do not toggle kyūjitai — resolved (2026-08-27)
 
-Both bindings for `ToggleTraditionalKanji` are swallowed and do nothing,
-while other shortcuts work. Not fixed; instrumented. Recording what has been
-eliminated so it does not get re-derived:
+First report: both bindings for `ToggleTraditionalKanji` seemed swallowed.
+DebugView later showed Ctrl+Shift+3 *did* fire (`slot=3 action=3`); the
+visible kana/Direct jump was a leftover Left Shift tap. See “Ctrl+Shift+3
+also flipped kana/Direct” above. Recording what was eliminated so it does
+not get re-derived:
 
 - **Not the action.** The toolbar's Traditional kanji button sends the same
   `SessionCommand::TOGGLE_TRADITIONAL_KANJI` and works fully, which also
@@ -61,24 +197,21 @@ eliminated so it does not get re-derived:
 - **Not Dvorak, for Ctrl+Shift+3.** That path is driven by scan code, which
   is layout-independent.
 
-The two keys reach the action by completely different routes — `Ctrl+Shift+F`
-through the keymap, `Ctrl+Shift+3` through the physical-slot dispatcher, since
-`ms-ime.tsv` has no `Ctrl Shift 3` row — so this may well be two faults
-rather than one.
+The two keys reach the action by different routes — `Ctrl+Shift+F`
+through the keymap, `Ctrl+Shift+3` through the physical-slot dispatcher,
+since `ms-ime.tsv` has no `Ctrl Shift 3` row. Ctrl+Shift+3 is closed.
+Ctrl+Shift+F is still worth a capture if it fails: the Mozc KeyEvent in
+`keyevent_handler.cc` should report `f`; any other letter is the Dvorak
+double translation, the same family as the macron dead-key bug.
 
-Probes are in `marina_number_row_dispatcher.cc` (slot, action, autorepeat
-suppression, whether the command was sent and accepted),
-`tip_keyevent_handler.cc` (the OnTestKey claim, and the `ToMozcMode` gate that
-could bail before dispatch), and `keyevent_handler.cc` (the Mozc KeyEvent a
-Ctrl chord produced, in both key phases). That last one is the Ctrl+Shift+F
-question: if it reports a letter other than `f`, it is the Dvorak double
-translation, the same family as the macron dead-key bug.
+### Odoriji palette disappears when the chord is released — resolved (2026-08-27)
 
-### Odoriji palette disappears when the chord is released — OPEN (2026-08-27)
-
-Ctrl+Shift+2 shows the palette; releasing the modifiers hides it again, and
-Space brings it back. Windows only. Not fixed; instrumented, with a specific
-hypothesis worth recording.
+Ctrl+Shift+2 showed the palette; releasing the modifiers hid it again, and
+Space brought it back. Windows only. Confirmed by DebugView and fixed: see
+“odoriji palette vanishes on Shift key-up” above. The first hypothesis
+(overlay missing on `OutputKey`) was close but not the actual path — the
+palette *was* applied, then a leftover Shift key-up applied an empty Output
+and hid the candidate window. Recording the investigation:
 
 The palette is not a window of its own — it is drawn *as the candidate
 window*, via `OdorijiPalette::OverlayOutput` filling
@@ -90,16 +223,10 @@ than `Session::Output` emits an Output with no candidate window, and the
 client drops the palette. A modifier key-up round-tripping to the server on
 Windows would do exactly that, and would explain why Linux is unaffected.
 
-Probes log which output path runs and whether the overlay was applied, plus,
-on the Windows side, every key phase with whether the Output coming back
-carries a candidate window. The confirming sequence is `ShowOdorijiPalette:
-visible=1`, then `OnKey: down=0 … has_candidate_window=0`, with an
-`OutputKey`/`OutputComposition` line reporting `palette_visible=1`. If that is
-what appears, the fix is to apply the overlay at a choke point rather than in
-`Session::Output` alone.
-
-Note the `Session::Output` probe fires on every keystroke, and these probes
-sit in cross-platform code, so they also print to stderr on Linux and macOS.
+The confirming sequence was `ShowOdorijiPalette: visible=1`, then a Shift
+key-up applying an empty Output (`candidates=-1`). The overlay was already
+in place; the leftover Shift tap hid it. Probes remain until the TEMPORARY
+`MarinaDebugLog` sites are removed.
 
 ### Settings dialog has no visible edge on GNOME Wayland (2026-08-27)
 

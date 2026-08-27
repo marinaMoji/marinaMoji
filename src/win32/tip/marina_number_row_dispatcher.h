@@ -45,11 +45,21 @@ namespace tsf {
 // unix/ibus/marina_number_row_dispatcher.cc; call only for key-down events,
 // before the normal KeyEventHandler::ImeToAsciiEx path, so these physical
 // shortcuts bypass the per-character key pipeline the same way IBus/macOS do.
+// |is_autorepeat| must come from the WM_KEYDOWN lparam's previous-key-state
+// bit (LParamKeyInfo::IsPreviousStateDwon). A held-down chord is claimed but
+// fires only once; a genuine second press always fires, however fast it
+// follows the first.
 bool DispatchMarinaNumberRowShortcut(
-    BYTE scan_code, bool ctrl, bool shift, bool is_open,
+    BYTE scan_code, bool ctrl, bool shift, bool is_autorepeat, bool is_open,
     commands::CompositionMode original_composition_mode,
     const config::Config& config, client::ClientInterface* client,
     commands::Output* output);
+
+// Cheap pre-check with no config lookup: true when this key could possibly be
+// a number-row chord at all. Fetching the config costs an IPC round trip to
+// the server, so callers use this first rather than paying that on every
+// keystroke the user types.
+bool CouldBeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl);
 
 // Non-mutating check for OnTestKeyDown: returns true iff
 // DispatchMarinaNumberRowShortcut would consume this scan_code/Ctrl/Shift

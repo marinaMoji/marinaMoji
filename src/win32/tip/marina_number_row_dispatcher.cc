@@ -31,8 +31,6 @@
 
 #include <optional>
 
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
 #include "session/marina_number_row_bindings_util.h"
 #include "absl/strings/str_cat.h"
 #include "base/marina_debug_log.h"
@@ -49,30 +47,6 @@ using ::mozc::commands::SessionCommand;
 using ::mozc::config::MarinaNumberRowAction;
 using ::mozc::config::MarinaPhysicalSlot;
 using ::mozc::config::MarinaShortcutModifier;
-
-// Same 300ms autorepeat-suppression window as
-// unix/ibus/marina_number_row_dispatcher.cc, to avoid re-firing on OS
-// key-repeat while a Ctrl+Shift+digit chord is held down.
-bool ShouldSuppressAutorepeat(MarinaShortcutModifier modifier,
-                              MarinaPhysicalSlot slot,
-                              MarinaNumberRowAction action) {
-  if (modifier != MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT) {
-    return false;
-  }
-  static MarinaPhysicalSlot last_slot = MarinaPhysicalSlot::MARINA_SLOT_1;
-  static MarinaNumberRowAction last_action =
-      MarinaNumberRowAction::MARINA_NR_ODORIJI_DEFAULT;
-  static absl::Time last_time;
-  const absl::Time now = absl::Now();
-  if (slot == last_slot && action == last_action &&
-      now - last_time < absl::Milliseconds(300)) {
-    return true;
-  }
-  last_slot = slot;
-  last_action = action;
-  last_time = now;
-  return false;
-}
 
 bool SendSessionCommand(client::ClientInterface* client, SessionCommand command,
                         Output* output) {
@@ -116,8 +90,12 @@ bool WouldConsumeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl, bool shift,
       .has_value();
 }
 
+bool CouldBeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl) {
+  return ctrl && ScanCodeToPhysicalSlot(scan_code).has_value();
+}
+
 bool DispatchMarinaNumberRowShortcut(
-    BYTE scan_code, bool ctrl, bool shift, bool is_open,
+    BYTE scan_code, bool ctrl, bool shift, bool is_autorepeat, bool is_open,
     CompositionMode original_composition_mode, const config::Config& config,
     client::ClientInterface* client, Output* output) {
   if (!ctrl) {
@@ -139,15 +117,20 @@ bool DispatchMarinaNumberRowShortcut(
   // TEMPORARY: see base/marina_debug_log.h.
   MarinaDebugLog(absl::StrCat(
       "dispatch: scan=0x", absl::Hex(scan_code), " ctrl=", ctrl,
-      " shift=", shift, " open=", is_open, " slot=", static_cast<int>(*slot),
+      " shift=", shift, " repeat=", is_autorepeat, " open=", is_open,
+      " slot=", static_cast<int>(*slot),
       " action=", action.has_value() ? static_cast<int>(*action) : -1,
       " bindings_in_config=", config.marina_number_row_bindings_size()));
   if (!action.has_value()) {
     return false;
   }
 
-  if (ShouldSuppressAutorepeat(modifier, *slot, *action)) {
-    MarinaDebugLog("dispatch: suppressed as autorepeat, sending nothing");
+  // Claimed either way -- letting a held chord fall through would type the
+  // digit -- but a repeat fires nothing. This replaces a 300ms time window
+  // that could not tell OS key-repeat from a fast second press, and so
+  // silently dropped presses when a shortcut was used in quick succession.
+  if (is_autorepeat) {
+    MarinaDebugLog("dispatch: OS key-repeat, claimed but sending nothing");
     return true;
   }
 

@@ -66,6 +66,7 @@ class TipPrivateContext::InternalState {
   bool symbols_palette_visible_ = false;
   bool shortcuts_window_visible_ = false;
   wchar_t pending_dead_key_ = L'\0';
+  bool ignore_modifier_keyup_taps_ = false;
 };
 
 TipPrivateContext::TipPrivateContext()
@@ -160,6 +161,14 @@ wchar_t TipPrivateContext::pending_dead_key() const {
 
 void TipPrivateContext::set_pending_dead_key(wchar_t accent) {
   state_->pending_dead_key_ = accent;
+}
+
+bool TipPrivateContext::ignore_modifier_keyup_taps() const {
+  return state_->ignore_modifier_keyup_taps_;
+}
+
+void TipPrivateContext::set_ignore_modifier_keyup_taps(bool ignore) {
+  state_->ignore_modifier_keyup_taps_ = ignore;
 }
 
 }  // namespace tsf

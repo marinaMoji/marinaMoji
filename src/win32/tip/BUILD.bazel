@@ -413,7 +413,6 @@ mozc_cc_library(
         "//protocol:config_cc_proto",
         "//session:marina_number_row_bindings_util",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/time",
     ],
 )
 

@@ -45,6 +45,20 @@ TEST(OdorijiPaletteTest, NumberKeyWithNoSpecialKeyCommitsCandidate) {
   EXPECT_EQ(commit_result, OdorijiPalette::GetCharacter(1));
 }
 
+TEST(OdorijiPaletteTest, ModifierOnlyKeyKeepsPaletteOpen) {
+  commands::Command command;
+  bool visible = true;
+  int focused_index = 3;
+
+  commands::KeyEvent key;
+  key.add_modifier_keys(commands::KeyEvent::LEFT_SHIFT);
+  EXPECT_TRUE(OdorijiPalette::WouldConsumeKey(key));
+  EXPECT_TRUE(OdorijiPalette::HandleKey(key, &command, &visible,
+                                       &focused_index));
+  EXPECT_TRUE(visible);
+  EXPECT_EQ(focused_index, 3);
+}
+
 TEST(OdorijiPaletteTest, OverlayDoesNotInjectPreeditText) {
   commands::Output output;
 

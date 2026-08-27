@@ -177,6 +177,7 @@ mozc_cc_library(
         "//gui/tool:__subpackages__",
         "//renderer/win32:__subpackages__",
         "//server:__pkg__",
+        "//sync:__pkg__",
         "//win32/broker:__subpackages__",
         "//win32/cache_service:__subpackages__",
     ],

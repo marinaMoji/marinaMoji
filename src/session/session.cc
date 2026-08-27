@@ -874,7 +874,10 @@ bool Session::SendKey(commands::Command* command) {
 
   // Right Shift alone: toggle Hiragana / Manyōshū (project katakana). Handle at
   // top level so it works in all states and regardless of keymap/client encoding.
-  if (IsRightShiftAlone(command->input().key())) {
+  // Skip while the odoriji palette is open: the Shift release of Ctrl+Shift+2
+  // would otherwise be a Left/Right Shift tap and close the palette.
+  if (!odoriji_palette_visible_ &&
+      IsRightShiftAlone(command->input().key())) {
     // In Direct input / ASCII the Hiragana-Manyōshū toggle is meaningless, so
     // the tap is repurposed as the macron dead key instead.
     if (IsMacronEligibleContext()) {
@@ -883,10 +886,12 @@ bool Session::SendKey(commands::Command* command) {
     return ToggleManyoshuHiragana(command);
   }
 
-  if (IsCtrlAltRightShiftAlone(command->input().key())) {
+  if (!odoriji_palette_visible_ &&
+      IsCtrlAltRightShiftAlone(command->input().key())) {
     return ToggleLeftShiftModeLock(command);
   }
-  if (IsLeftShiftAlone(command->input().key())) {
+  if (!odoriji_palette_visible_ &&
+      IsLeftShiftAlone(command->input().key())) {
     return HandleLeftShiftTap(command);
   }
 

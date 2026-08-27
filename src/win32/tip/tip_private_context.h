@@ -88,6 +88,12 @@ class TipPrivateContext {
   wchar_t pending_dead_key() const;
   void set_pending_dead_key(wchar_t accent);
 
+  // After Ctrl+Shift+number-row, the Shift/Ctrl releases must not be sent as
+  // lone modifier taps (Left Shift → Direct). Set on a successful dispatch;
+  // cleared when the leftover Shift key-up is swallowed.
+  bool ignore_modifier_keyup_taps() const;
+  void set_ignore_modifier_keyup_taps(bool ignore);
+
  private:
   class InternalState;
   std::unique_ptr<InternalState> state_;
