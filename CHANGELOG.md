@@ -26,6 +26,12 @@ already correct.
 Note the build stopped at the first error, so targets after it were never
 compiled — a green run is the only real confirmation there was nothing else.
 
+That played out immediately: run 33025045301 got past both of those files
+and then failed on `'wil/resource.h' file not found` in the new
+`shadow_window` target, which was missing `@com_microsoft_wil//:wil` from
+its deps. Added. Because `toolbar_window` depends on `shadow_window`, the
+toolbar's own changes still have not been compiled by anything.
+
 ### Drop shadows for the frameless popup windows (2026-08-27)
 
 Both popups are frameless (`Qt::ToolTip | Qt::FramelessWindowHint`), so no
