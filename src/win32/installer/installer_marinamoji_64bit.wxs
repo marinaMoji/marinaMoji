@@ -68,17 +68,23 @@
   <!-- marinaMoji: localized, not upstream Mozc's Japanese-only (1041/932).
        marinaMoji's primary audience is Western scholars of Japanese/Chinese,
        so a Japanese-only installer on an English Windows is wrong for most
-       users. Language/Codepage and the strings below come from the culture
-       being built: build_installer.py's "culture" flag selects one of
-       loc/*.wxl and defines InstallerLanguage/InstallerCodepage to match.
-       These are required defines with no fallback, so a culture mismatch
-       fails the build rather than silently producing a mislabelled MSI.
+       users. Language, the two codepages and the strings below all come from
+       the culture being built: the culture set lives in BUILD.bazel, which
+       passes each one's .wxl and numbers to build_installer.py. These are
+       required defines with no fallback, so a culture mismatch fails the
+       build rather than silently producing a mislabelled MSI.
 
-       This still yields one MSI per culture rather than a single
-       multilingual one; collapsing them into one package with embedded
-       language transforms is tracked separately. -->
+       The two codepages are deliberately different and are not
+       interchangeable. InstallerCodepage is the *database* codepage, 65001
+       so that one string pool can hold English, French and Japanese at once,
+       which the multilingual package needs, since the other cultures are
+       applied over this database as language transforms.
+       InstallerSummaryCodepage is the *summary information* codepage, which
+       Windows Installer requires to be ANSI; WiX rejects 65001 there
+       outright (WIX0349), so it is 1252 for the Latin cultures and 932 for
+       Japanese. -->
   <Package Name="marinaMoji" Language="$(var.InstallerLanguage)" Codepage="$(var.InstallerCodepage)" Version="$(var.MozcVersion)" Manufacturer="CRCAO" UpgradeCode="$(var.UpgradeCode)" ProductCode="$(var.ProductCode)" InstallerVersion="500">
-    <SummaryInformation Keywords="Installer" Description="!(loc.InstallerDescription)" Manufacturer="CRCAO" Codepage="$(var.InstallerCodepage)" />
+    <SummaryInformation Keywords="Installer" Description="!(loc.InstallerDescription)" Manufacturer="CRCAO" Codepage="$(var.InstallerSummaryCodepage)" />
 
     <!--
        While obtaining the OS build number from the registry does not seem to be officially

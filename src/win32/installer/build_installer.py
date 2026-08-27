@@ -205,9 +205,11 @@ def run_wix4(args) -> None:
       '-src', args.wxs_path,
   ]
   if args.culture:
-    if not (args.loc_file and args.language and args.codepage):
+    if not (args.loc_file and args.language and args.codepage and
+            args.summary_codepage):
       raise ValueError(
-          '--culture requires --loc_file, --language and --codepage.'
+          '--culture requires --loc_file, --language, --codepage and'
+          ' --summary_codepage.'
       )
     loc_file = pathlib.Path(args.loc_file).resolve()
     commands += [
@@ -215,6 +217,7 @@ def run_wix4(args) -> None:
         '-loc', f'{loc_file}',
         '-define', f'InstallerLanguage={args.language}',
         '-define', f'InstallerCodepage={args.codepage}',
+        '-define', f'InstallerSummaryCodepage={args.summary_codepage}',
     ]
   if args.mozc_tip64arm and args.mozc_tip64x:
     mozc_tip64arm = pathlib.Path(args.mozc_tip64arm).resolve()
@@ -289,6 +292,14 @@ def main():
       default=0,
       help='MSI database codepage for --culture. 65001 for every culture we '
            'ship, so the multilingual package can hold them all at once.',
+  )
+  parser.add_argument(
+      '--summary_codepage',
+      type=int,
+      default=0,
+      help='Summary-information codepage for --culture. Windows Installer '
+           'requires this one to be ANSI and WiX rejects 65001 outright '
+           '(WIX0349), so it is not the same value as --codepage.',
   )
   parser.add_argument(
       '--debug_build', dest='debug_build', default=False, action='store_true'

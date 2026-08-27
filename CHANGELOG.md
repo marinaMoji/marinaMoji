@@ -10,6 +10,93 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows CI: summary-information codepage must be ANSI (2026-08-27)
+
+Run 33048427675 got past the Python and into wix itself, which rejected the
+package: `WIX0349: The code page '65001' is invalid for summary information.
+You must specify an ANSI code page.`
+
+An MSI has two codepages and I had been passing one value to both. The
+*database* codepage is the string pool's, and 65001 is right there and
+necessary: the multilingual package holds English, French and Japanese
+strings in one pool and no ANSI codepage covers both French accents and
+Japanese kana. The *summary information* codepage is separate and Windows
+Installer requires it to be ANSI. `<Package Codepage>` took 65001 without
+complaint; `<SummaryInformation Codepage>` on the next line did not.
+
+Split them: `InstallerSummaryCodepage` is now its own define, 1252 for the
+Latin cultures and 932 for Japanese, while `InstallerCodepage` stays 65001
+everywhere. Only one string reaches summary information — the installer
+description — and each culture's now round-trips through its own ANSI
+codepage, which is checked offline rather than assumed.
+
+### ibus: stale synthetic key-releases leaked into the focused client (2026-08-27)
+
+Reported as "Return not working, clicking elsewhere fixes it", once during the
+day. The ibus debug log for 2026-08-27 (pid 14265) clears the Return path
+itself: all 203 Return presses were handled correctly — 96 committed a
+composition (`consumed=1 has_result=1`), 34 passed through unconsumed, 73 hit
+`return_inactive_forward` with the IME off — with no silent swallow
+(`consumed=1` and nothing to show for it), no `return_disabled_forward`, no
+`return_sync_overlay_consumed`, and `mods=0 pressed=0 pending=0` on 201 of 203.
+Nothing wedged in `ProcessKeyEventInternal`.
+
+What the log does show is a real leak one step upstream.
+`KeyEventHandler::currently_pressed_non_modifiers_` — the failsafe that
+synthesizes a key-release when the real key-up never arrives, so a key cannot
+stick across a focus change — was keyed on **keyval**. Keyval reflects the
+modifier state of each event individually, so one physical key produces two of
+them:
+
+```
+11:23:32.565  Shift_L  65505  keycode=42  down
+11:23:33.151  'C'      67     keycode=46  down   -> map[67] = 46
+11:23:33.212  Shift_L  65505              UP
+11:23:33.267  'c'      99     keycode=46  UP     -> erase(99): no-op, 67 leaks
+```
+
+Lifting Shift before the letter — the ordinary way to type a capital — leaked
+an entry that nothing could ever erase. Every one of the 202 synthetic releases
+forwarded that day came from the leaked map: 72 had been "held" over a second,
+31 over thirty seconds, worst case 541s (`K`) and 530s (`D`). At 11:54:33 the
+map claimed seven letters were down at once (`B C D E U V W`). Every stale
+keyval was a shifted character, `0` and `.` included, which on the AZERTY
+layout in use need Shift too (matching the 118 `translate_failed keyval=233`
+and 23 `keyval=224` lines from the unshifted forms of those same keys).
+
+`ForwardTrackedReleases` flushes that map via `ForwardKeyEvent`, and it runs
+from `FocusOut`, `Disable` and `SetContentType` — precisely when focus has just
+moved. So the leaked key-ups were injected into the *newly* focused client, and
+`ReleaseTrackedModifiers`' following `Clear()` is why clicking elsewhere heals
+it. Return leaks by the same map whenever its own key-up never arrives (a press
+forwarded to an app that then moves focus): 5 such presses that day, 8 dumps
+carried a synthetic Return release, and one was still marked held when the log
+ended.
+
+Two changes, both in `unix/ibus/key_event_handler.{h,cc}`:
+
+- The map is keyed on hardware **keycode** (modifier-independent) and stores
+  the keyval last seen for that key, which is what the synthetic release
+  reports. Fixes the Shift case outright.
+- Entries carry a press timestamp, and `TrackedReleaseKeys` skips any older
+  than 2s, logging `key_handler.release skip_stale_release`. Keycode-keying
+  cannot help where the release was genuinely missed; a key "held" for minutes
+  is not held, and forwarding for it is exactly the stray-key-up bug.
+
+Replaying the day's log through both algorithms: keycode-keying removes 67 of
+the 70 stale forwards, the age guard removes the remaining 3 (worst 153s).
+Zero stale synthetic releases after the fix. Regression tests for both in
+`key_event_handler_test.cc`.
+
+The log could only get this far by inference, because there was no focus
+logging at all — `engine.lifecycle` only ever emitted
+`release_tracked_modifiers`, from three of its call sites. Added
+`MozcEngine::LogLifecycle`, called from `Enable`, `Disable`, `FocusIn`,
+`FocusOut` and `Reset` with the engine name and the activated/disabled/mode
+triple, plus a `set_content_type` line with purpose and hints. A stuck-key
+report should be readable directly from the log next time rather than
+reconstructed from what is missing.
+
 ### Windows CI: installer culture table moved out of Python (2026-08-27)
 
 Run 33043605671 got through all the C++ — the toolbar shadow work compiled —

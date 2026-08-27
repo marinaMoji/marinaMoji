@@ -36,6 +36,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/time/time.h"
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
 #include "unix/ibus/key_translator.h"
@@ -75,6 +76,14 @@ class KeyEventHandler {
  private:
   friend class KeyEventHandlerTest;
 
+  // A key tracked as physically held: the keyval to report in the synthetic
+  // release, plus when the press was seen so stale entries (a release we
+  // never received) can be dropped instead of forwarded.
+  struct PressedKey {
+    uint keyval = 0;
+    absl::Time press_time;
+  };
+
   // Returns (keyval, keycode) pairs for keys whose release should be
   // forwarded by ForwardTrackedReleases.
   std::vector<std::pair<uint, uint>> TrackedReleaseKeys() const;
@@ -103,10 +112,16 @@ class KeyEventHandler {
   bool is_non_modifier_key_pressed_;
   // Currently pressed modifier keys: keyval -> hardware keycode.
   std::map<uint, uint> currently_pressed_modifiers_;
-  // Currently pressed non-modifier keys (Return, BackSpace, ...):
-  // keyval -> hardware keycode. Only used to forward missing releases on
-  // lifecycle events; takes no part in the modifier state machine.
-  std::map<uint, uint> currently_pressed_non_modifiers_;
+  // Currently pressed non-modifier keys (Return, BackSpace, ...), keyed by
+  // hardware keycode -> the keyval last seen for that key. Keyed on keycode
+  // rather than keyval because keyval depends on the modifier state at the
+  // time of the event: Shift + 'c' arrives as 'C' (keyval 67) on key-down,
+  // but as 'c' (keyval 99) on key-up if Shift is lifted first, so a
+  // keyval-keyed erase misses and the entry leaks forever. Leaked entries got
+  // a spurious key-release forwarded into whatever had focus at the next
+  // lifecycle event. Only used to forward missing releases; takes no part in
+  // the modifier state machine.
+  std::map<uint, PressedKey> currently_pressed_non_modifiers_;
   // Pending modifier keys.
   std::set<commands::KeyEvent::ModifierKey> modifiers_to_be_sent_;
   // True when Left Shift was pressed in the current modifier chord.

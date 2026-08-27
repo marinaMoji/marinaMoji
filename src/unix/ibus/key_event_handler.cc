@@ -38,6 +38,8 @@
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "absl/time/time.h"
+#include "base/clock.h"
 #include "unix/ibus/ibus_debug_log.h"
 #include "unix/ibus/ibus_wrapper.h"
 
@@ -145,6 +147,14 @@ uint FallbackKeycode(uint keyval) {
   }
 }
 
+// A non-modifier key tracked as held for longer than this is not really held:
+// its release was missed (focus change, grab, a press forwarded to an app that
+// then moved focus). Forwarding a synthetic release for such an entry injects a
+// stray key-up into whatever has focus at the next lifecycle event, so drop it
+// instead. Comfortably longer than any deliberate hold that matters here, and
+// far shorter than the multi-minute leaks this guards against.
+const absl::Duration kMaxTrackedPressAge = absl::Seconds(2);
+
 void ForwardRelease(IbusEngineWrapper* engine, uint keyval, uint keycode) {
   if (engine == nullptr) {
     return;
@@ -169,14 +179,19 @@ bool KeyEventHandler::GetKeyEvent(uint keyval, uint keycode, uint modifiers,
   const bool is_key_up_raw = ((modifiers & IBUS_RELEASE_MASK) != 0);
 
   // Track physically pressed non-modifier keys (Return, BackSpace, arrows,
-  // ...) by keyval so ForwardTrackedReleases can synthesize a release if the
-  // real key-up never reaches us (focus change mid-hold). This bookkeeping is
-  // independent of the modifier state machine below.
+  // ...) by hardware keycode so ForwardTrackedReleases can synthesize a
+  // release if the real key-up never reaches us (focus change mid-hold). Keyed
+  // on keycode, not keyval: keyval reflects the modifier state of each event
+  // individually, so Shift + 'c' is tracked as 'C' on key-down and would be
+  // looked up as 'c' on key-up whenever Shift is lifted first. The keycode is
+  // the same for both. This bookkeeping is independent of the modifier state
+  // machine below.
   if (!IsModifierKeyval(keyval)) {
     if (is_key_up_raw) {
-      currently_pressed_non_modifiers_.erase(keyval);
+      currently_pressed_non_modifiers_.erase(keycode);
     } else {
-      currently_pressed_non_modifiers_[keyval] = keycode;
+      currently_pressed_non_modifiers_[keycode] = PressedKey{
+          .keyval = keyval, .press_time = Clock::GetAbslTime()};
     }
   }
 
@@ -276,8 +291,19 @@ std::vector<std::pair<uint, uint>> KeyEventHandler::TrackedReleaseKeys()
       result.emplace_back(keyval, keycode);
     }
   }
-  for (const auto& [keyval, keycode] : currently_pressed_non_modifiers_) {
-    result.emplace_back(keyval, keycode);
+  const absl::Time now = Clock::GetAbslTime();
+  for (const auto& [keycode, pressed] : currently_pressed_non_modifiers_) {
+    // Skip entries whose press is too old to be a real hold: forwarding a
+    // release for those puts a stray key-up into the newly focused client.
+    if (now - pressed.press_time > kMaxTrackedPressAge) {
+      MaybeLogIbusDebug("key_handler.release",
+                        "skip_stale_release keyval=%u keycode=%u age_ms=%d",
+                        pressed.keyval, keycode,
+                        static_cast<int>(absl::ToInt64Milliseconds(
+                            now - pressed.press_time)));
+      continue;
+    }
+    result.emplace_back(pressed.keyval, keycode);
   }
   return result;
 }
@@ -288,9 +314,10 @@ void KeyEventHandler::NotifyKeyState(uint keyval, uint keycode,
     return;
   }
   if (is_key_up) {
-    currently_pressed_non_modifiers_.erase(keyval);
+    currently_pressed_non_modifiers_.erase(keycode);
   } else {
-    currently_pressed_non_modifiers_[keyval] = keycode;
+    currently_pressed_non_modifiers_[keycode] =
+        PressedKey{.keyval = keyval, .press_time = Clock::GetAbslTime()};
   }
 }
 

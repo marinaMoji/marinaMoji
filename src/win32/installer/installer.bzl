@@ -46,7 +46,8 @@ def mozc_win_installer(
         culture = None,
         loc_file = None,
         language = None,
-        codepage = None):
+        codepage = None,
+        summary_codepage = None):
     """Builds one MSI with wix.exe.
 
     Args:
@@ -59,12 +60,14 @@ def mozc_win_installer(
       loc_file: label of the .wxl holding this culture's strings.
       language: LCID for the culture, e.g. 1036. Sets <Package Language>.
       codepage: MSI database codepage for the culture.
+      summary_codepage: summary-information codepage, which must be ANSI and
+        so differs from codepage.
     """
-    localized = [culture, loc_file, language, codepage]
+    localized = [culture, loc_file, language, codepage, summary_codepage]
     if any([v != None for v in localized]) and any([v == None for v in localized]):
-        fail(("culture, loc_file, language and codepage must be given " +
-              "together (got %r / %r / %r / %r).") %
-             (culture, loc_file, language, codepage))
+        fail(("culture, loc_file, language, codepage and summary_codepage " +
+              "must be given together (got %r / %r / %r / %r / %r).") %
+             (culture, loc_file, language, codepage, summary_codepage))
 
     srcs = [
         "//gui/tool:mozc_tool_win",
@@ -126,6 +129,7 @@ def mozc_win_installer(
         "--loc_file=$(location " + loc_file + ")",
         "--language=" + str(language),
         "--codepage=" + str(codepage),
+        "--summary_codepage=" + str(summary_codepage),
     ] if loc_file else [])) + select({
         ":build_arm64_binaries": " " + " ".join([
             "--mozc_tip64arm=$(location //win32/tip:mozc_tip64arm)",

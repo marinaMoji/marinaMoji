@@ -298,6 +298,7 @@ void MozcEngine::CursorUp(IbusEngineWrapper* engine) {
 }
 
 void MozcEngine::Disable(IbusEngineWrapper* engine) {
+  LogLifecycle("disable", engine);
   if (MozcToolbarAvailable()) {
     MozcToolbarHide();
   }
@@ -333,6 +334,7 @@ commands::CompositionMode ConvertCompositionMode(
 }  // namespace
 
 void MozcEngine::Enable(IbusEngineWrapper* engine) {
+  LogLifecycle("enable", engine);
   // Launch mozc_server
   client_->EnsureConnection();
   UpdatePreeditMethod();
@@ -367,6 +369,7 @@ void MozcEngine::Enable(IbusEngineWrapper* engine) {
 }
 
 void MozcEngine::FocusIn(IbusEngineWrapper* engine) {
+  LogLifecycle("focus_in", engine);
   current_engine_ = engine->GetEngine();
   property_handler_->Register(engine);
   if (MozcToolbarAvailable()) {
@@ -379,6 +382,7 @@ void MozcEngine::FocusIn(IbusEngineWrapper* engine) {
 }
 
 void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
+  LogLifecycle("focus_out", engine);
   // Losing IME focus means the user clicked (or tabbed) into a different
   // text field or application -- treat that as "clicked outside" the
   // palette and close it, the same way Escape does. Left open, an unpinned
@@ -930,6 +934,7 @@ void MozcEngine::PropertyShow(IbusEngineWrapper* engine,
 }
 
 void MozcEngine::Reset(IbusEngineWrapper* engine) {
+  LogLifecycle("reset", engine);
   // IBus/GTK sends Reset when process_key_event returns false (echo-back:
   // Enter, arrows, app shortcuts). RevertSession when preedit is clear breaks
   // the next Backspace delete (surrounding text). Disable/Enable still revert.
@@ -952,6 +957,8 @@ void MozcEngine::SetCursorLocation(IbusEngineWrapper* engine, int x, int y,
 
 void MozcEngine::SetContentType(IbusEngineWrapper* engine, uint purpose,
                                 uint hints) {
+  MaybeLogIbusDebug("engine.lifecycle",
+                    "set_content_type purpose=%u hints=%u", purpose, hints);
   const bool prev_disabled = property_handler_->IsDisabled();
   property_handler_->UpdateContentType(engine);
   if (!prev_disabled && property_handler_->IsDisabled()) {
@@ -1142,6 +1149,23 @@ bool MozcEngine::LaunchTool(const commands::Output& output) const {
   }
 
   return true;
+}
+
+void MozcEngine::LogLifecycle(const char* event, IbusEngineWrapper* engine) {
+  if (!IsIbusDebugLogEnabled()) {
+    return;
+  }
+  // Focus moves are what heal (and what expose) stale key-tracking state, so
+  // record enough of the engine's view to tell an app switch from a widget
+  // change within one app when reading a log after the fact.
+  MaybeLogIbusDebug(
+      "engine.lifecycle", "%s name=%s activated=%d disabled=%d mode=%d", event,
+      engine == nullptr ? "(null)" : std::string(engine->GetName()).c_str(),
+      property_handler_ == nullptr ? -1 : property_handler_->IsActivated(),
+      property_handler_ == nullptr ? -1 : property_handler_->IsDisabled(),
+      property_handler_ == nullptr
+          ? -1
+          : property_handler_->GetOriginalCompositionMode());
 }
 
 void MozcEngine::ReleaseTrackedModifiers(IbusEngineWrapper* engine) {

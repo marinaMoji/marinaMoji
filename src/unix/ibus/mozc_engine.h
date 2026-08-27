@@ -157,6 +157,11 @@ class MozcEngine : public EngineInterface {
   void RevertSession(IbusEngineWrapper* engine);
 
   // Forwards IBUS_RELEASE for tracked Shift keys, then clears modifier state.
+  // Records a lifecycle callback (focus, enable/disable, reset) in the ibus
+  // debug log. Focus changes are when tracked key state is flushed and
+  // cleared, so a log without them cannot explain a stuck-key report.
+  void LogLifecycle(const char* event, IbusEngineWrapper* engine);
+
   void ReleaseTrackedModifiers(IbusEngineWrapper* engine);
 
   CandidateWindowHandlerInterface* GetCandidateWindowHandler(

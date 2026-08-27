@@ -87,13 +87,18 @@ _WXS_FILE = {
 # sibling module from a nested package, so the import had no working form to
 # copy. Both scripts now take these values as flags instead.
 #
-# culture: (output MSI, .wxl, LCID, MSI database codepage). The codepage is
-# 65001 for every culture, including ja-JP -- one string pool has to hold
-# French accents and Japanese kana at once, and no ANSI codepage does.
+# culture: (output MSI, .wxl, LCID, database codepage, summary codepage).
+#
+# The two codepages are different on purpose. The database codepage is 65001
+# for every culture, including ja-JP, because the multilingual package keeps
+# all three languages' strings in one pool and no ANSI codepage covers both
+# French accents and Japanese kana. The summary-information codepage must be
+# ANSI -- WiX fails the build with WIX0349 if it is 65001 -- so it is 1252
+# for the Latin cultures and 932 for Japanese.
 _MSI_CULTURES = {
-    "en-US": ("marinaMoji64.en-US.msi", "loc/en-us.wxl", 1033, 65001),
-    "fr-FR": ("marinaMoji64.fr-FR.msi", "loc/fr-fr.wxl", 1036, 65001),
-    "ja-JP": ("marinaMoji64.ja-JP.msi", "loc/ja-jp.wxl", 1041, 65001),
+    "en-US": ("marinaMoji64.en-US.msi", "loc/en-us.wxl", 1033, 65001, 1252),
+    "fr-FR": ("marinaMoji64.fr-FR.msi", "loc/fr-fr.wxl", 1036, 65001, 1252),
+    "ja-JP": ("marinaMoji64.ja-JP.msi", "loc/ja-jp.wxl", 1041, 65001, 932),
 } if BRANDING == "marinaMoji" else {}
 
 # The culture whose strings stay in the shipped database; the rest ride along
@@ -121,6 +126,7 @@ selects.config_setting_group(
         culture = culture,
         language = info[2],
         loc_file = info[1],
+        summary_codepage = info[4],
         wxs_file = _WXS_FILE,
     )
     # Starlark has no nested tuple unpacking, hence the indexing.

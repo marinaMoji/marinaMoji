@@ -36,6 +36,8 @@
 
 #include "absl/random/random.h"
 #include "absl/strings/str_format.h"
+#include "absl/time/time.h"
+#include "base/clock_mock.h"
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
 #include "testing/gunit.h"
@@ -440,6 +442,57 @@ TEST_F(KeyEventHandlerTest, NonModifierKeysTrackedForRelease) {
   key.Clear();
   handler_->GetKeyEvent(IBUS_Return, kReturnKeycode, IBUS_RELEASE_MASK,
                         config::Config::ROMAN, true, &key);
+  EXPECT_TRUE(TrackedReleaseKeys().empty());
+}
+
+TEST_F(KeyEventHandlerTest, ShiftedKeyReleasedAfterShiftIsUntracked) {
+  // Regression test for the leaking release failsafe: the held-key map is
+  // keyed on hardware keycode, not keyval, because keyval follows the modifier
+  // state of each individual event. Typing Shift + 'c' and lifting Shift first
+  // delivers the key-down as 'C' and the key-up as 'c' -- one physical key,
+  // two keyvals. Keyed on keyval, the erase missed and the entry survived
+  // until the next Clear(), so an unrelated focus change then forwarded a
+  // stray 'C' key-release into the newly focused client. Observed in the wild
+  // with entries "held" for up to nine minutes.
+  commands::KeyEvent key;
+  constexpr uint kShiftLKeycode = 42;
+  constexpr uint kCKeycode = 46;
+
+  handler_->GetKeyEvent(IBUS_Shift_L, kShiftLKeycode, 0, config::Config::ROMAN,
+                        true, &key);
+  key.Clear();
+  handler_->GetKeyEvent(IBUS_C, kCKeycode, IBUS_SHIFT_MASK,
+                        config::Config::ROMAN, true, &key);
+  ASSERT_EQ(TrackedReleaseKeys().size(), 2u);  // Shift_L and the 'C' key.
+
+  // Shift up first, then the letter -- which now reports the unshifted keyval.
+  key.Clear();
+  handler_->GetKeyEvent(IBUS_Shift_L, kShiftLKeycode,
+                        IBUS_SHIFT_MASK | IBUS_RELEASE_MASK,
+                        config::Config::ROMAN, true, &key);
+  key.Clear();
+  handler_->GetKeyEvent(IBUS_c, kCKeycode, IBUS_RELEASE_MASK,
+                        config::Config::ROMAN, true, &key);
+  EXPECT_TRUE(TrackedReleaseKeys().empty());
+}
+
+TEST_F(KeyEventHandlerTest, StalePressIsNotForwarded) {
+  // A key tracked as held for longer than any plausible hold had its release
+  // missed (focus moved away mid-press). Forwarding a synthetic release then
+  // injects a stray key-up into whatever holds focus at that later moment, so
+  // the entry is dropped instead.
+  ScopedClockMock clock(absl::FromUnixSeconds(1));
+  commands::KeyEvent key;
+  constexpr uint kReturnKeycode = 28;
+
+  handler_->GetKeyEvent(IBUS_Return, kReturnKeycode, 0, config::Config::ROMAN,
+                        true, &key);
+  EXPECT_EQ(TrackedReleaseKeys().size(), 1u);
+
+  clock->Advance(absl::Milliseconds(500));
+  EXPECT_EQ(TrackedReleaseKeys().size(), 1u);
+
+  clock->Advance(absl::Seconds(3));
   EXPECT_TRUE(TrackedReleaseKeys().empty());
 }
 
