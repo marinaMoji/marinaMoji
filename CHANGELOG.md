@@ -10,6 +10,26 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Mode indicator: Katakana / Manyōshū waited for a keystroke (2026-08-27)
+
+Picking Katakana (Manyōshū) from the toolbar or language bar left the mode
+icon on hiragana until you typed. Hiragana did not do this.
+
+Manyōshū is implemented as hiragana in the composer with a katakana *display*
+conversion, so `status.comeback_mode()` stayed HIRAGANA after the switch.
+Windows only flashed the near-caret balloon and wrote TSF conversion bits
+when that logical/comeback value changed, and the balloon sprite had no
+Manyōshū case (it fell back to the Direct “A”). Linux updated the IME-panel
+icon only when the stored mode differed, but the toolbar path had already
+written the new mode, so the panel skipped the refresh. macOS never told
+the system `selectInputMode:` on a toolbar pick (keyboard toggles still
+must not, or they can freeze).
+
+`status.comeback_mode()` is now MANYOSHU while Manyōshū is on. Windows
+treats a visible-mode change as a conversion-mode notify and draws ア for
+Manyōshū. Linux lets `UpdateAll` see the change. macOS calls
+`switchDisplayMode` for non-keyboard picks.
+
 ### Windows CI: summary-information codepage must be ANSI (2026-08-27)
 
 Run 33048427675 got past the Python and into wix itself, which rejected the

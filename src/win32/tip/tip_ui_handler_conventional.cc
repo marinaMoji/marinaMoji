@@ -43,6 +43,7 @@
 #include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "base/const.h"
 #include "base/file_util.h"
 #include "base/system_util.h"
 #include "base/win32/com.h"
@@ -78,6 +79,34 @@ using Annotation = ::mozc::commands::Preedit_Segment::Annotation;
 using IndicatorInfo = ::mozc::commands::RendererCommand_IndicatorInfo;
 using RendererCommand = ::mozc::commands::RendererCommand;
 using ApplicationInfo = ::mozc::commands::RendererCommand::ApplicationInfo;
+
+// True when the OS foreground window is marinaMoji renderer UI (toolbar,
+// shortcuts, palette, candidate, …). Clicking a Shortcuts tab activates that
+// window, which fires ITfThreadFocusSink::OnKillThreadFocus in the app. The
+// handler used to treat that as "user left the IME" and hide toolbar +
+// shortcuts until the app was focused again.
+bool IsMarinaRendererUiForeground() {
+  HWND foreground = ::GetForegroundWindow();
+  if (foreground == nullptr) {
+    return false;
+  }
+  HWND root = ::GetAncestor(foreground, GA_ROOT);
+  if (root == nullptr) {
+    root = foreground;
+  }
+  wchar_t class_name[256] = {};
+  if (::GetClassNameW(root, class_name, ARRAYSIZE(class_name)) <= 0) {
+    return false;
+  }
+  return wcscmp(class_name, kShortcutsWindowClassName) == 0 ||
+         wcscmp(class_name, kToolbarWindowClassName) == 0 ||
+         wcscmp(class_name, kSymbolsPaletteWindowClassName) == 0 ||
+         wcscmp(class_name, kCandidateWindowClassName) == 0 ||
+         wcscmp(class_name, kInfolistWindowClassName) == 0 ||
+         wcscmp(class_name, kCompositionWindowClassName) == 0 ||
+         wcscmp(class_name, kIndicatorWindowClassName) == 0 ||
+         wcscmp(class_name, kSyncOverlayWindowClassName) == 0;
+}
 
 size_t GetTargetPos(const commands::Output& output) {
   if (!output.has_candidate_window() ||
@@ -528,7 +557,8 @@ void UpdateCommand(TipTextService* text_service, ITfContext* context,
   BOOL thread_focus = FALSE;
   const HRESULT hr =
       text_service->GetThreadManager()->IsThreadFocus(&thread_focus);
-  if (SUCCEEDED(hr) && (thread_focus == FALSE)) {
+  if (SUCCEEDED(hr) && (thread_focus == FALSE) &&
+      !IsMarinaRendererUiForeground()) {
     // marinaMoji TEMPORARY (2026-08-08): the other way a just-opened palette
     // dies. If this fires on the update immediately after the toolbar click,
     // the culprit is thread focus, not the context mismatch above.
@@ -621,7 +651,13 @@ void TipUiHandlerConventional::OnDeactivate() {
 void TipUiHandlerConventional::OnFocusChange(
     TipTextService* text_service, ITfDocumentMgr* focused_document_manager) {
   if (!focused_document_manager) {
-    // Empty document. Hide the renderer.
+    // Empty document (including TSF thread-focus loss). Hide the renderer,
+    // unless the user is clicking marinaMoji UI in the renderer process
+    // (Shortcuts tabs, palette, toolbar). That also kills thread focus but
+    // is not "left the IME".
+    if (IsMarinaRendererUiForeground()) {
+      return;
+    }
     RendererCommand command;
     command.set_type(RendererCommand::UPDATE);
     command.set_visible(false);

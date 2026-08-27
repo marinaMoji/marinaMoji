@@ -1003,6 +1003,7 @@ TEST_F(SessionTest, LeftShiftTogglesManyoshuAndDirect) {
   EXPECT_TRUE(
       SwitchCompositionModeCommand(commands::MANYOSHU, &session, &command));
   EXPECT_EQ(command.output().status().mode(), commands::MANYOSHU);
+  EXPECT_EQ(command.output().status().comeback_mode(), commands::MANYOSHU);
 
   EXPECT_TRUE(SendKeyWithMode("LeftShift", commands::MANYOSHU, &session,
                               &command));

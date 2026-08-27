@@ -181,6 +181,17 @@ mozc_cc_library(
     ],
 )
 
+# TEMPORARY: diagnostics that survive an opt build, where LOG() is compiled
+# out entirely. Remove with base/marina_debug_log.h and its call sites.
+mozc_cc_library(
+    name = "marina_debug_log",
+    hdrs = ["marina_debug_log.h"],
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 mozc_cc_library(
     name = "vlog",
     srcs = ["vlog.cc"],

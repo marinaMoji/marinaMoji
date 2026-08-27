@@ -35,6 +35,7 @@
 
 #include "protocol/commands.pb.h"
 #include "testing/gunit.h"
+#include "win32/base/keyboard.h"
 
 namespace mozc {
 namespace win32 {
@@ -269,6 +270,23 @@ TEST(TipInputModeManagerTest, ChangeInputScope) {
   EXPECT_EQ(input_mode_manager.GetEffectiveConversionMode(),
             commands::HIRAGANA);
   EXPECT_FALSE(input_mode_manager.IsIndicatorVisible());
+}
+
+TEST(TipInputModeManagerTest, VisibleManyoshuShowsIndicatorImmediately) {
+  TipInputModeManager input_mode_manager(GetThreadLocalMode());
+  input_mode_manager.OnInitialize(true, kNativeHiragana);
+  std::vector<InputScope> input_scope_empty;
+  input_mode_manager.OnSetFocus(true, kNativeHiragana, input_scope_empty);
+  input_mode_manager.OnKey(VirtualKey(), true, true);
+  EXPECT_FALSE(input_mode_manager.IsIndicatorVisible());
+
+  // Session reports logical/comeback HIRAGANA (composer) and visible MANYOSHU.
+  const auto actions = input_mode_manager.OnReceiveCommand(
+      true, commands::HIRAGANA, commands::MANYOSHU);
+  EXPECT_NE(actions & TipInputModeManager::kNotifySystemConversionMode, 0);
+  EXPECT_EQ(input_mode_manager.GetEffectiveConversionMode(),
+            commands::MANYOSHU);
+  EXPECT_TRUE(input_mode_manager.IsIndicatorVisible());
 }
 
 TEST(TipInputModeManagerTest, HonorOpenCloseModeFromApps_Issue8661096) {

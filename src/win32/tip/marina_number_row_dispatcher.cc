@@ -34,6 +34,8 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "session/marina_number_row_bindings_util.h"
+#include "absl/strings/str_cat.h"
+#include "base/marina_debug_log.h"
 #include "win32/tip/win32_physical_slot.h"
 
 namespace mozc {
@@ -134,11 +136,18 @@ bool DispatchMarinaNumberRowShortcut(
 
   const std::optional<MarinaNumberRowAction> action =
       session::FindMarinaActionForPhysicalSlot(config, modifier, *slot);
+  // TEMPORARY: see base/marina_debug_log.h.
+  MarinaDebugLog(absl::StrCat(
+      "dispatch: scan=0x", absl::Hex(scan_code), " ctrl=", ctrl,
+      " shift=", shift, " open=", is_open, " slot=", static_cast<int>(*slot),
+      " action=", action.has_value() ? static_cast<int>(*action) : -1,
+      " bindings_in_config=", config.marina_number_row_bindings_size()));
   if (!action.has_value()) {
     return false;
   }
 
   if (ShouldSuppressAutorepeat(modifier, *slot, *action)) {
+    MarinaDebugLog("dispatch: suppressed as autorepeat, sending nothing");
     return true;
   }
 
@@ -184,9 +193,18 @@ bool DispatchMarinaNumberRowShortcut(
       command.set_type(SessionCommand::SHOW_ODORIJI_PALETTE);
       return SendSessionCommand(client, command, output);
 
-    case MarinaNumberRowAction::MARINA_NR_TRADITIONAL_KANJI:
+    case MarinaNumberRowAction::MARINA_NR_TRADITIONAL_KANJI: {
       command.set_type(SessionCommand::TOGGLE_TRADITIONAL_KANJI);
-      return SendSessionCommand(client, command, output);
+      const bool sent = SendSessionCommand(client, command, output);
+      // TEMPORARY: see base/marina_debug_log.h.
+      MarinaDebugLog(absl::StrCat("dispatch: TOGGLE_TRADITIONAL_KANJI sent=", sent,
+                                " client=", client != nullptr,
+                                " output_has_config=", output->has_config(),
+                                " use_traditional_kanji=",
+                                output->has_config() &&
+                                    output->config().use_traditional_kanji()));
+      return sent;
+    }
 
     case MarinaNumberRowAction::MARINA_NR_WORD_REGISTER:
       command.set_type(SessionCommand::LAUNCH_WORD_REGISTER_DIALOG);

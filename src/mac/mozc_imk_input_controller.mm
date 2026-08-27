@@ -1624,8 +1624,12 @@ bool IsConfigOnlySessionOutput(const Output &output) {
       if (ShouldPreserveClientCompositionMode(*output, mode_, new_mode)) {
         new_mode = mode_;
       }
+      const bool mode_changed = new_mode != mode_;
       mode_ = new_mode;
       mozc::mac::MozcToolbarShow(mozcClient_.get(), mode_);
+      if (mode_changed && !handlingKeyboardEvent_) {
+        [self switchDisplayMode];
+      }
     }
     [self syncCandidatesWithOutput:output];
     if (launching_tool) {
@@ -1691,12 +1695,14 @@ bool IsConfigOnlySessionOutput(const Output &output) {
       PersistLastCompositionMode(mode_);
       if (handlingKeyboardEvent_) {
         suppressSetValueUntil_ = [[NSDate date] timeIntervalSinceReferenceDate] + 0.2;
+        // Keyboard-driven toggles skip |selectInputMode:|: it used to re-enter
+        // |-setValue:forTag:client:| and freeze the session. Toolbar + |mode_|
+        // still update below.
+      } else {
+        // Toolbar / IME-menu picks: tell macOS so the menu-bar あ/ア indicator
+        // matches immediately (Manyōshū shares Apple's Katakana mode id).
+        [self switchDisplayMode];
       }
-      // Do not call |-switchDisplayMode| here.  Keyboard-driven mode changes
-      // (e.g. Ctrl+Shift+5 / ToggleHiraganaDirect) used to call
-      // |selectInputMode:|, which re-entered |-setValue:forTag:client:| and
-      // could freeze the session.  Toolbar + |mode_| are updated below; the
-      // system menu icon stays on the visible marinaMoji entry (see M8).
     }
   }
 

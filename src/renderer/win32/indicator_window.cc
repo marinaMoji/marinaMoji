@@ -157,6 +157,12 @@ class IndicatorWindow::WindowImpl
           current_image_ = sprites_[mode].bitmap.get();
           offset = sprites_[mode].offset;
           break;
+        case commands::MANYOSHU:
+          // Same balloon as full-width katakana (ア). MANYOSHU is not loaded
+          // as its own sprite.
+          current_image_ = sprites_[commands::FULL_KATAKANA].bitmap.get();
+          offset = sprites_[commands::FULL_KATAKANA].offset;
+          break;
       }
     }
     if (current_image_ == nullptr) {

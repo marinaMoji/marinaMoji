@@ -75,6 +75,7 @@ mozc_cc_library(
         ":keymap",
         ":odoriji_palette",
         "//base:clock",
+        "//base:marina_debug_log",
         "//base:util",
         "//composer",
         "//composer:key_event_util",

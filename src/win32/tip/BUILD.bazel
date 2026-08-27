@@ -363,6 +363,7 @@ mozc_cc_library(
         ":tip_surrounding_text",
         ":tip_text_service",
         ":tip_thread_context",
+        "//base:marina_debug_log",
         "//base/win32:wide_char",
         "//client:client_interface",
         "//protocol:commands_cc_proto",
@@ -376,6 +377,7 @@ mozc_cc_library(
         "//win32/base:sync_lock_util",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
         "@com_microsoft_wil//:wil",
     ],
 )
@@ -405,10 +407,12 @@ mozc_cc_library(
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
         ":win32_physical_slot",
+        "//base:marina_debug_log",
         "//client:client_interface",
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",
         "//session:marina_number_row_bindings_util",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
     ],
 )

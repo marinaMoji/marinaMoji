@@ -1018,19 +1018,23 @@ void MozcEngine::SetCompositionModeFromToolbar(
     LOG(ERROR) << "SetCompositionModeFromToolbar SendCommand failed";
     return;
   }
-  // Always sync property state from session so the chosen mode (e.g. Direct
-  // input) takes effect. When the user picks from the toolbar menu, focus is
-  // often on the toolbar so current_engine_ may be null; without this, state
-  // was only updated in the else branch and direct mode did not activate.
-  property_handler_->UpdateStateFromOutput(output);
+  // When the user picks from the toolbar menu, focus is often on the toolbar
+  // so current_engine_ may be null. Sync property state directly in that case.
+  // If the engine is focused, UpdateAll → PropertyHandler::Update does the
+  // same work *and* refreshes the IME-panel icon; calling
+  // UpdateStateFromOutput first made original_composition_mode_ already match
+  // the new status, so Update skipped the icon (Katakana/Manyōshū then only
+  // appeared on the next keystroke).
+  if (current_engine_ != nullptr) {
+    IbusEngineWrapper wrapper(current_engine_);
+    UpdateAll(&wrapper, output);
+  } else {
+    property_handler_->UpdateStateFromOutput(output);
+  }
   // When user selected Direct, force mode to DIRECT so next key sees it (server
   // may return comeback mode in output).
   if (mode == commands::DIRECT) {
     property_handler_->SetOriginalCompositionMode(commands::DIRECT);
-  }
-  if (current_engine_ != nullptr) {
-    IbusEngineWrapper wrapper(current_engine_);
-    UpdateAll(&wrapper, output);
   }
   if (MozcToolbarAvailable()) {
     MozcToolbarUpdate(output);

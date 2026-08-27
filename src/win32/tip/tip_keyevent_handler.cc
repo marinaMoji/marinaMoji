@@ -50,6 +50,8 @@
 #include "win32/base/keyevent_handler.h"
 #include "win32/base/surrogate_pair_observer.h"
 #include "win32/base/sync_lock_util.h"
+#include "absl/strings/str_cat.h"
+#include "base/marina_debug_log.h"
 #include "win32/tip/marina_number_row_dispatcher.h"
 #include "win32/tip/tip_edit_session.h"
 #include "win32/tip/tip_input_mode_manager.h"
@@ -208,6 +210,10 @@ HRESULT OnTestKey(TipTextService* text_service, ITfContext* context,
         WouldConsumeMarinaNumberRowShortcut(
             key_info.GetScanCode(), keyboard_status.IsPressed(VK_CONTROL),
             keyboard_status.IsPressed(VK_SHIFT), marina_config)) {
+      // TEMPORARY: see base/marina_debug_log.h.
+      mozc::MarinaDebugLog(absl::StrCat(
+          "OnTestKey: ate number-row chord, scan=0x",
+          absl::Hex(key_info.GetScanCode())));
       *eaten = TRUE;
       return S_OK;
     }
@@ -358,7 +364,14 @@ bool TryDispatchMarinaNumberRowShortcut(TipPrivateContext* private_context,
   // reading it here made the Manyoshu direction check always see Hiragana
   // and only ever switch forward, never back.
   CompositionMode original_mode = CompositionMode::HIRAGANA;
-  if (!ConversionModeUtil::ToMozcMode(visible_mode, &original_mode)) {
+  const bool mode_ok =
+      ConversionModeUtil::ToMozcMode(visible_mode, &original_mode);
+  // TEMPORARY: see base/marina_debug_log.h.
+  mozc::MarinaDebugLog(absl::StrCat(
+      "TryDispatch: scan=0x", absl::Hex(key_info.GetScanCode()),
+      " visible_mode=", visible_mode, " open=", open,
+      " ToMozcMode=", mode_ok, " mode=", static_cast<int>(original_mode)));
+  if (!mode_ok) {
     return false;
   }
   return DispatchMarinaNumberRowShortcut(
@@ -604,6 +617,21 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
 
     ignore_this_keyevent = !result.should_be_eaten;
   }
+
+  // TEMPORARY: see base/marina_debug_log.h. The odoriji palette is drawn as
+  // the candidate window, so an Output arriving here with no candidate window
+  // is what makes it vanish. Logging every key phase shows whether a modifier
+  // key-up is round-tripping to the server and coming back empty.
+  mozc::MarinaDebugLog(absl::StrCat(
+      "OnKey: down=", is_key_down, " vk=", static_cast<int>(vk.virtual_key()),
+      " scan=0x", absl::Hex(key_info.GetScanCode()),
+      " has_candidate_window=", temporal_output.has_candidate_window(),
+      " candidates=",
+      temporal_output.has_candidate_window()
+          ? temporal_output.candidate_window().candidate_size()
+          : -1,
+      " has_preedit=", temporal_output.has_preedit(),
+      " eaten=", !ignore_this_keyevent));
 
   // TSF spec guarantees that key event handling can always be a synchronous
   // operation.

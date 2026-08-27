@@ -302,6 +302,7 @@ mozc_cc_library(
         ":keyboard",
         ":keyboard_layout_tables",
         "//base:japanese_util",
+        "//base:marina_debug_log",
         "//base:util",
         "//base/win32:wide_char",
         "//client:client_interface",
@@ -309,6 +310,7 @@ mozc_cc_library(
         "//protocol:config_cc_proto",
         "//session:key_info_util",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
     ],
 )
 

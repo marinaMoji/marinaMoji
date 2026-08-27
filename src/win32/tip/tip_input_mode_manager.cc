@@ -166,6 +166,7 @@ TipInputModeManager::NotifyActionSet TipInputModeManager::OnReceiveCommand(
     bool mozc_open_close_mode, commands::CompositionMode mozc_logical_mode,
     commands::CompositionMode mozc_visible_mode) {
   const StatePair prev_tsf_state = tsf_state_;
+  const StatePair prev_mozc_state = mozc_state_;
 
   tsf_state_.open_close = mozc_open_close_mode;
   tsf_state_.conversion_mode = mozc_logical_mode;
@@ -177,6 +178,13 @@ TipInputModeManager::NotifyActionSet TipInputModeManager::OnReceiveCommand(
     action_set |= kNotifySystemOpenClose;
   }
   if (prev_tsf_state.conversion_mode != tsf_state_.conversion_mode) {
+    action_set |= kNotifySystemConversionMode;
+  }
+  // marinaMoji: Manyōshū is a visible-only mode (composer stays hiragana), so
+  // logical/comeback can remain HIRAGANA while status.mode is MANYOSHU. The
+  // near-caret balloon and TSF conversion bits follow this notify set; without
+  // it the icon only changed once the next keystroke produced a UI update.
+  if (prev_mozc_state.conversion_mode != mozc_state_.conversion_mode) {
     action_set |= kNotifySystemConversionMode;
   }
   if (action_set != kNotifyNothing) {
