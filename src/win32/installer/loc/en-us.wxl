@@ -10,8 +10,8 @@
 
   Codepage is the MSI database codepage, not the encoding of this file, which
   is always UTF-8. It is 65001 for every culture so the multilingual MSI's
-  single string pool can hold all three languages at once; see
-  installer_cultures.py.
+  single string pool can hold all three languages at once; the culture table
+  in BUILD.bazel has to agree with it.
 -->
 <WixLocalization Culture="en-US" Codepage="65001" xmlns="http://wixtoolset.org/schemas/v4/wxl">
 

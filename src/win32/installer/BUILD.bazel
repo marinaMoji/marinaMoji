@@ -42,10 +42,7 @@ mozc_py_binary(
     # https://github.com/google/mozc/issues/1519
     # https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/architecture
     name = "build_msi",
-    srcs = [
-        "build_installer.py",
-        "installer_cultures.py",
-    ],
+    srcs = ["build_installer.py"],
     test_lib = False,
     deps = [
         "//build_tools:mozc_version_lib",
@@ -55,10 +52,7 @@ mozc_py_binary(
 
 mozc_py_binary(
     name = "embed_transforms",
-    srcs = [
-        "embed_transforms.py",
-        "installer_cultures.py",
-    ],
+    srcs = ["embed_transforms.py"],
     test_lib = False,
 )
 
@@ -81,19 +75,30 @@ _WXS_FILE = {
     "marinaMoji": ":installer_marinamoji_64bit.wxs",
 }.get(BRANDING, ":installer_64bit.wxs")
 
-# marinaMoji builds one MSI per culture (see loc/*.wxl and the shared culture
-# table in installer_cultures.py), then folds them into the single
+# marinaMoji builds one MSI per culture, then folds them into the single
 # multilingual marinaMoji64.msi that actually ships. These per-culture
 # packages are intermediates -- buildable on their own for debugging, but not
-# what any consumer depends on. Keep the culture keys in step with
-# installer_cultures.py; the .msi rule below fails if they drift.
-# The upstream brandings hardcode their own language in their .wxs and get a
-# single unlocalized MSI.
+# what any consumer depends on. The upstream brandings hardcode their own
+# language in their .wxs and get a single unlocalized MSI.
+#
+# This is the one definition of the culture set. It used to be a shared
+# installer_cultures.py imported by both scripts, but Bazel stages them in
+# runfiles under win32/installer/ and nothing else in the tree imports a
+# sibling module from a nested package, so the import had no working form to
+# copy. Both scripts now take these values as flags instead.
+#
+# culture: (output MSI, .wxl, LCID, MSI database codepage). The codepage is
+# 65001 for every culture, including ja-JP -- one string pool has to hold
+# French accents and Japanese kana at once, and no ANSI codepage does.
 _MSI_CULTURES = {
-    "en-US": ("marinaMoji64.en-US.msi", "loc/en-us.wxl"),
-    "fr-FR": ("marinaMoji64.fr-FR.msi", "loc/fr-fr.wxl"),
-    "ja-JP": ("marinaMoji64.ja-JP.msi", "loc/ja-jp.wxl"),
+    "en-US": ("marinaMoji64.en-US.msi", "loc/en-us.wxl", 1033, 65001),
+    "fr-FR": ("marinaMoji64.fr-FR.msi", "loc/fr-fr.wxl", 1036, 65001),
+    "ja-JP": ("marinaMoji64.ja-JP.msi", "loc/ja-jp.wxl", 1041, 65001),
 } if BRANDING == "marinaMoji" else {}
+
+# The culture whose strings stay in the shipped database; the rest ride along
+# as embedded language transforms.
+_MSI_BASE_CULTURE = "en-US"
 
 _MSI_FILE = {
     "Mozc": "Mozc64.msi",
@@ -110,14 +115,16 @@ selects.config_setting_group(
 [
     mozc_win_installer(
         name = "installer_" + culture.lower().replace("-", "_"),
-        out = out_and_loc[0],
+        out = info[0],
         branding = BRANDING,
+        codepage = info[3],
         culture = culture,
-        loc_file = out_and_loc[1],
+        language = info[2],
+        loc_file = info[1],
         wxs_file = _WXS_FILE,
     )
     # Starlark has no nested tuple unpacking, hence the indexing.
-    for culture, out_and_loc in _MSI_CULTURES.items()
+    for culture, info in _MSI_CULTURES.items()
 ]
 
 # One unlocalized MSI for the brandings that have no per-culture build.
@@ -145,10 +152,15 @@ selects.config_setting_group(
         cmd = " ".join([
             "$(location :embed_transforms)",
             "--output=$@",
+            "--base=$(location :installer_" +
+            _MSI_BASE_CULTURE.lower().replace("-", "_") + ")",
+            "--base_language=" + str(_MSI_CULTURES[_MSI_BASE_CULTURE][2]),
         ] + [
-            "--msi=" + culture + "=$(location :installer_" +
+            "--transform=" + str(_MSI_CULTURES[culture][2]) +
+            "=$(location :installer_" +
             culture.lower().replace("-", "_") + ")"
             for culture in _MSI_CULTURES
+            if culture != _MSI_BASE_CULTURE
         ]),
         target_compatible_with = ["@platforms//os:windows"],
         tools = [":embed_transforms"],

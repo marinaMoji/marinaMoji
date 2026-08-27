@@ -10,6 +10,34 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows CI: installer culture table moved out of Python (2026-08-27)
+
+Run 33043605671 got through all the C++ — the toolbar shadow work compiled —
+and then failed in the installer genrules with `ModuleNotFoundError: No
+module named 'installer_cultures'`. Bazel stages `build_installer.py` in
+runfiles under `win32/installer/`, and the bootstrap puts the runfiles root
+on `sys.path`, not the script's own directory, so a bare `import
+installer_cultures` cannot resolve. The repo has no precedent to copy
+either: every Python cross-module import here is from a top-level directory
+(`from build_tools import mozc_version`), and nothing imports a sibling out
+of a nested package, so there was no known-good form for
+`win32.installer.installer_cultures` and no way to test one short of another
+hour-long CI run.
+
+Deleted the shared module. `win32/installer/BUILD.bazel` is now the one
+definition of the culture set — culture, output MSI, `.wxl`, LCID and
+codepage — and passes them down as flags: `build_installer.py` gained
+`--language` and `--codepage`, and `embed_transforms.py` now takes
+`--base` / `--base_language` / `--transform LCID=PATH` instead of culture
+names. Neither script imports the other or anything outside stdlib and
+`build_tools`.
+
+Also fixed a latent bug in `embed_transforms.py` while in there: MSIHANDLE
+is a 32-bit table index, not a pointer, and the handles were declared
+`c_void_p`. It would most likely have worked by accident on x64 — the upper
+half stays zero and the calling convention ignores it — but it is now
+`c_uint32`, with `MsiCreateRecord`'s return type declared to match.
+
 ### Windows CI: wrong namespace on WinUtil::DecodeWindowHandle (2026-08-27)
 
 The Windows build broke on master (run 33020383634, both x64 and arm64) with

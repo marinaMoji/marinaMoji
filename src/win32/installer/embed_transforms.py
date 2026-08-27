@@ -32,7 +32,8 @@
 """Folds the per-culture MSIs into one multilingual MSI.
 
 build_installer.py produces one MSI per culture, identical except for the
-five installer strings and the declared language. This script turns the extra
+five installer strings and the declared language. BUILD.bazel names them
+here, each keyed by its LCID. This script turns the extra
 cultures into MSI language transforms embedded in the base (en-US) package,
 so a single .msi picks its language from the machine at install time.
 
@@ -48,9 +49,6 @@ import ctypes
 import pathlib
 import shutil
 import tempfile
-
-from installer_cultures import BASE_CULTURE
-from installer_cultures import CULTURES
 
 # A language transform for this package carries five strings and a summary
 # stream: a few KB. If one comes back large, the two MSIs differed in their
@@ -70,14 +68,24 @@ _PID_TEMPLATE = 7
 _VT_LPSTR = 30
 
 
+# MSIHANDLE is `typedef unsigned long MSIHANDLE`, i.e. 32 bits wide on both
+# x86 and x64 -- it is a table index, not a pointer. Declaring it explicitly
+# keeps the out-parameters the right size instead of relying on the upper
+# half of a c_void_p happening to stay zero.
+MSIHANDLE = ctypes.c_uint32
+
+
 def _msi():
   """Returns the msi.dll binding, or raises on a non-Windows host."""
   try:
-    return ctypes.WinDLL('msi.dll')
+    library = ctypes.WinDLL('msi.dll')
   except AttributeError as e:
     raise RuntimeError(
         'embed_transforms.py needs msi.dll and can only run on Windows.'
     ) from e
+  # Returns a handle, not the default int, so it must be declared.
+  library.MsiCreateRecord.restype = MSIHANDLE
+  return library
 
 
 def _check(rc: int, what: str) -> None:
@@ -85,8 +93,8 @@ def _check(rc: int, what: str) -> None:
     raise ChildProcessError(f'{what} failed with Windows Installer error {rc}.')
 
 
-def _open_database(msi, path: pathlib.Path, mode: int) -> ctypes.c_void_p:
-  handle = ctypes.c_void_p()
+def _open_database(msi, path: pathlib.Path, mode: int) -> MSIHANDLE:
+  handle = MSIHANDLE()
   _check(
       msi.MsiOpenDatabaseW(
           ctypes.c_wchar_p(str(path)),
@@ -149,7 +157,7 @@ def embed_transform(
         (f'DELETE FROM `_Storages` WHERE `Name` = \'{lcid}\'', False),
         ('INSERT INTO `_Storages` (`Name`, `Data`) VALUES (?, ?)', True),
     ):
-      h_view = ctypes.c_void_p()
+      h_view = MSIHANDLE()
       _check(
           msi.MsiDatabaseOpenViewW(
               h_db, ctypes.c_wchar_p(sql), ctypes.byref(h_view)
@@ -157,9 +165,9 @@ def embed_transform(
           f'MsiDatabaseOpenViewW({sql})',
       )
       try:
-        h_rec = ctypes.c_void_p()
+        h_rec = MSIHANDLE()
         if set_stream:
-          h_rec = ctypes.c_void_p(msi.MsiCreateRecord(2))
+          h_rec = MSIHANDLE(msi.MsiCreateRecord(2))
           _check(
               msi.MsiRecordSetStringW(h_rec, 1, ctypes.c_wchar_p(str(lcid))),
               'MsiRecordSetStringW',
@@ -184,7 +192,7 @@ def embed_transform(
 def declare_languages(msi, package: pathlib.Path, lcids: list[int]) -> None:
   """Lists `lcids` in the summary Template, which is how Windows Installer
   learns the package has embedded language transforms to choose between."""
-  h_sum = ctypes.c_void_p()
+  h_sum = MSIHANDLE()
   _check(
       msi.MsiGetSummaryInformationW(
           None, ctypes.c_wchar_p(str(package)), 1, ctypes.byref(h_sum)
@@ -228,55 +236,67 @@ def main() -> None:
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument('--output', type=str, required=True)
   parser.add_argument(
-      '--msi',
+      '--base',
+      type=str,
+      required=True,
+      help=(
+          'The MSI whose strings stay in the database itself. Every other'
+          ' culture is applied over it as an embedded language transform.'
+      ),
+  )
+  parser.add_argument(
+      '--base_language',
+      type=int,
+      required=True,
+      help='LCID of --base, e.g. 1033. Listed first in the summary Template.',
+  )
+  # The culture set lives in win32/installer/BUILD.bazel, which passes each
+  # non-base culture's LCID and MSI here. See build_installer.py for why the
+  # table is not a shared Python module.
+  parser.add_argument(
+      '--transform',
       action='append',
       default=[],
-      metavar='CULTURE=PATH',
+      required=True,
+      metavar='LCID=PATH',
       help=(
-          'A per-culture MSI from build_installer.py. Repeat once per culture.'
-          f' The {BASE_CULTURE} package becomes the base; the rest are'
-          ' embedded as language transforms.'
+          'A per-culture MSI to fold in as a language transform, keyed by its'
+          ' LCID. Repeat once per culture beyond the base.'
       ),
   )
   args = parser.parse_args()
 
-  packages = {}
-  for pair in args.msi:
-    culture, _, path = pair.partition('=')
-    if culture not in CULTURES:
+  transforms = {}
+  for pair in args.transform:
+    lcid_text, separator, path = pair.partition('=')
+    if not separator or not lcid_text.isdigit():
+      raise ValueError(f'--transform expects LCID=PATH, got {pair!r}.')
+    lcid = int(lcid_text)
+    if lcid == args.base_language:
       raise ValueError(
-          f'Unknown culture {culture!r}. Known: ' + ', '.join(sorted(CULTURES))
+          f'--transform {lcid} is the base language; it is already the'
+          ' database itself and must not also be a transform.'
       )
-    packages[culture] = pathlib.Path(path).resolve()
+    transforms[lcid] = pathlib.Path(path).resolve()
 
-  if set(packages) != set(CULTURES):
-    raise ValueError(
-        'Expected one --msi per culture. Missing: '
-        + ', '.join(sorted(set(CULTURES) - set(packages)))
-    )
-
+  base = pathlib.Path(args.base).resolve()
   output = pathlib.Path(args.output).resolve()
   msi = _msi()
 
   # Work on the copy from the start, so a failure part-way through cannot
   # leave a half-transformed package behind under the output name.
-  shutil.copyfile(packages[BASE_CULTURE], output)
+  shutil.copyfile(base, output)
 
   with tempfile.TemporaryDirectory() as tmp:
-    for culture in sorted(set(CULTURES) - {BASE_CULTURE}):
-      lcid = CULTURES[culture][0]
-      transform = pathlib.Path(tmp).joinpath(f'{culture}.mst')
-      generate_transform(msi, packages[BASE_CULTURE], packages[culture],
-                         transform)
+    for lcid in sorted(transforms):
+      transform = pathlib.Path(tmp).joinpath(f'{lcid}.mst')
+      generate_transform(msi, base, transforms[lcid], transform)
       embed_transform(msi, output, transform, lcid)
-      print(f'Embedded {culture} ({lcid}), {transform.stat().st_size} bytes.')
+      print(f'Embedded {lcid}, {transform.stat().st_size} bytes.')
 
   # Base language first: Windows Installer falls back to it when the machine
   # language matches no transform.
-  lcids = [CULTURES[BASE_CULTURE][0]] + sorted(
-      CULTURES[c][0] for c in CULTURES if c != BASE_CULTURE
-  )
-  declare_languages(msi, output, lcids)
+  declare_languages(msi, output, [args.base_language] + sorted(transforms))
 
 
 if __name__ == '__main__':

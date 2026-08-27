@@ -44,7 +44,9 @@ def mozc_win_installer(
         wxs_file,
         branding,
         culture = None,
-        loc_file = None):
+        loc_file = None,
+        language = None,
+        codepage = None):
     """Builds one MSI with wix.exe.
 
     Args:
@@ -52,13 +54,17 @@ def mozc_win_installer(
       out: the MSI filename to produce.
       wxs_file: label of the .wxs to compile.
       branding: BRANDING, forwarded to build_installer.py for the UpgradeCode.
-      culture: WiX culture, e.g. "fr-FR". Must be one of build_installer.py's
-        _CULTURES. When set, loc_file is required.
+      culture: WiX culture, e.g. "fr-FR". When set, loc_file, language and
+        codepage are all required.
       loc_file: label of the .wxl holding this culture's strings.
+      language: LCID for the culture, e.g. 1036. Sets <Package Language>.
+      codepage: MSI database codepage for the culture.
     """
-    if (culture == None) != (loc_file == None):
-        fail("culture and loc_file must be given together (got %r / %r)." %
-             (culture, loc_file))
+    localized = [culture, loc_file, language, codepage]
+    if any([v != None for v in localized]) and any([v == None for v in localized]):
+        fail(("culture, loc_file, language and codepage must be given " +
+              "together (got %r / %r / %r / %r).") %
+             (culture, loc_file, language, codepage))
 
     srcs = [
         "//gui/tool:mozc_tool_win",
@@ -118,6 +124,8 @@ def mozc_win_installer(
     ] + ([
         "--culture=" + culture,
         "--loc_file=$(location " + loc_file + ")",
+        "--language=" + str(language),
+        "--codepage=" + str(codepage),
     ] if loc_file else [])) + select({
         ":build_arm64_binaries": " " + " ".join([
             "--mozc_tip64arm=$(location //win32/tip:mozc_tip64arm)",

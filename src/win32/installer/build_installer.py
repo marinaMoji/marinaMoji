@@ -38,7 +38,6 @@ import uuid
 
 from build_tools import mozc_version
 from build_tools import vs_util
-from installer_cultures import CULTURES
 
 
 # Fixed namespace for uuid5-derived ProductCodes. Arbitrary but must never
@@ -206,20 +205,16 @@ def run_wix4(args) -> None:
       '-src', args.wxs_path,
   ]
   if args.culture:
-    if args.culture not in CULTURES:
+    if not (args.loc_file and args.language and args.codepage):
       raise ValueError(
-          f'Unknown culture {args.culture!r}. Known: '
-          + ', '.join(sorted(CULTURES))
+          '--culture requires --loc_file, --language and --codepage.'
       )
-    if not args.loc_file:
-      raise ValueError('--culture requires --loc_file.')
-    language, codepage = CULTURES[args.culture]
     loc_file = pathlib.Path(args.loc_file).resolve()
     commands += [
         '-culture', args.culture,
         '-loc', f'{loc_file}',
-        '-define', f'InstallerLanguage={language}',
-        '-define', f'InstallerCodepage={codepage}',
+        '-define', f'InstallerLanguage={args.language}',
+        '-define', f'InstallerCodepage={args.codepage}',
     ]
   if args.mozc_tip64arm and args.mozc_tip64x:
     mozc_tip64arm = pathlib.Path(args.mozc_tip64arm).resolve()
@@ -259,14 +254,21 @@ def main():
   parser.add_argument('--wxs_path', type=str)
   parser.add_argument('--wix_path', type=str)
   parser.add_argument('--branding', type=str)
+  # The set of cultures lives in win32/installer/BUILD.bazel, which passes
+  # each one's culture name, .wxl, LCID and codepage down here. Keeping it
+  # there rather than in a shared Python module avoids a cross-module import:
+  # Bazel puts this script in runfiles under win32/installer/, and nothing
+  # else in the tree imports a sibling module from a nested package, so there
+  # is no established import path to follow.
   parser.add_argument(
       '--culture',
       type=str,
       default='',
       help=(
           'Culture to build the installer for, e.g. "fr-FR". Requires'
-          ' --loc_file. Omit for the upstream Mozc/GoogleJapaneseInput .wxs'
-          ' files, which hardcode their own language.'
+          ' --loc_file, --language and --codepage. Omit for the upstream'
+          ' Mozc/GoogleJapaneseInput .wxs files, which hardcode their own'
+          ' language.'
       ),
   )
   parser.add_argument(
@@ -274,6 +276,19 @@ def main():
       type=str,
       default='',
       help='Path to the WiX .wxl localization file matching --culture.',
+  )
+  parser.add_argument(
+      '--language',
+      type=int,
+      default=0,
+      help='LCID for --culture, e.g. 1036 for fr-FR. Sets <Package Language>.',
+  )
+  parser.add_argument(
+      '--codepage',
+      type=int,
+      default=0,
+      help='MSI database codepage for --culture. 65001 for every culture we '
+           'ship, so the multilingual package can hold them all at once.',
   )
   parser.add_argument(
       '--debug_build', dest='debug_build', default=False, action='store_true'
