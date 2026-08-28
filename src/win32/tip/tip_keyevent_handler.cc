@@ -198,6 +198,16 @@ HRESULT OnTestKey(TipTextService* text_service, ITfContext* context,
   const LParamKeyInfo key_info(lparam);
   VirtualKey vk = GetVK(wparam, keyboard_status);
 
+  // marinaMoji: OS key-repeat of Ctrl+Shift must be claimed here so TSF does
+  // not type the letter, but must not go to the session. Ctrl+Shift+F is a
+  // keymap toggle (shin/kyū); each repeat would flip conversion.
+  if (is_key_down && key_info.IsPreviousStateDwon() &&
+      keyboard_status.IsPressed(VK_CONTROL) &&
+      keyboard_status.IsPressed(VK_SHIFT)) {
+    *eaten = TRUE;
+    return S_OK;
+  }
+
   // marinaMoji: physical Ctrl(+Shift)+number-row shortcuts must be reported
   // as consumed here regardless of |open|, since KeyEventHandler::ImeProcessKey
   // below marks these keys as not-eaten whenever the IME is closed (e.g. while
@@ -458,6 +468,18 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
   const KeyboardStatus keyboard_status(key_state);
   VirtualKey vk = GetVK(wparam, keyboard_status);
 
+  // Same as OnTestKey: a held Ctrl+Shift+F would otherwise SendKey the
+  // toggle once per OS repeat (the log showed vk=Y/scan=0x15 → 'f' on
+  // Dvorak, to_server=1 many times). Claim and stop; number-row chords
+  // already no-op repeats in the dispatcher, but this covers the keymap.
+  if (is_key_down && key_info.IsPreviousStateDwon() &&
+      keyboard_status.IsPressed(VK_CONTROL) &&
+      keyboard_status.IsPressed(VK_SHIFT)) {
+    mozc::MarinaDebugLog("OnKey: swallow Ctrl+Shift OS key-repeat");
+    *eaten = TRUE;
+    return S_OK;
+  }
+
   // Ctrl+Shift+3 (and the other number-row chords) leave Shift/Ctrl key-ups.
   // If Ctrl is released first, Mozc treats the leftover Left Shift release as
   // a Japanese↔Direct tap — the toolbar then flips kana/Direct as well as
@@ -625,6 +647,10 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
     }
 
     *private_context->mutable_last_down_key() = next_state.last_down_key;
+    if (is_key_down && keyboard_status.IsPressed(VK_CONTROL) &&
+        keyboard_status.IsPressed(VK_SHIFT) && result.should_be_eaten) {
+      private_context->set_ignore_modifier_keyup_taps(true);
+    }
 
     const TipInputModeManager::Action action =
         text_service->GetThreadContext()->GetInputModeManager()->OnKey(

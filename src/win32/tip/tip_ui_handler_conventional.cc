@@ -525,6 +525,8 @@ void UpdateCommand(TipTextService* text_service, ITfContext* context,
       if (command->output().has_status()) {
         info->mutable_status()->set_left_shift_direct_lock(
             command->output().status().left_shift_direct_lock());
+        info->mutable_status()->set_use_traditional_kanji(
+            command->output().status().use_traditional_kanji());
       }
     }
   }

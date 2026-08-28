@@ -105,6 +105,13 @@ class TipEditSession {
   static bool SelectCandidateAsync(TipTextService* text_service,
                                    ITfContext* context, int candidate_id);
 
+  // marinaMoji: begins an async edit session on the focused context to open the
+  // odoriji palette. Used by the langbar/IME menu item, which runs outside any
+  // edit session: sending the command straight to the server there leaves the
+  // palette out of the context's last Output, so nothing draws it until the
+  // next keystroke happens to refresh the UI.
+  static bool ShowOdorijiPaletteAsync(TipTextService* text_service);
+
   // Begins an async edit session to change input mode specified by
   // |native_mode|.
   static bool SwitchInputModeAsync(TipTextService* text_service,

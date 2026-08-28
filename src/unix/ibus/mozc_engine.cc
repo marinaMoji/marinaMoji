@@ -97,6 +97,13 @@ const absl::Duration kSyncDataInterval = absl::Minutes(5);
 // rather than a genuine focus change. See odoriji_property_show_time_.
 const absl::Duration kOdorijiPropertyFocusOutGrace = absl::Milliseconds(500);
 
+// How long after the IME-menu "Odoriji" property is activated a FocusIn or
+// set_cursor_location is still taken as "focus came back from the menu", and
+// so as the cue to re-show the palette on the text surface. Longer than the
+// grace above: the menu is dismissed by the click, but the app may take a
+// moment to get the input focus (and the caret rect) back.
+const absl::Duration kOdorijiPropertyReshowWindow = absl::Seconds(3);
+
 const char* kUILocaleEnvNames[] = {
     "LC_ALL",
     "LC_MESSAGES",
@@ -299,6 +306,7 @@ void MozcEngine::CursorUp(IbusEngineWrapper* engine) {
 
 void MozcEngine::Disable(IbusEngineWrapper* engine) {
   LogLifecycle("disable", engine);
+  odoriji_show_pending_ = false;
   if (MozcToolbarAvailable()) {
     MozcToolbarHide();
   }
@@ -379,6 +387,10 @@ void MozcEngine::FocusIn(IbusEngineWrapper* engine) {
   if (MozcToolbarAvailable() && toolbar_visible_) {
     MozcToolbarShow(this);
   }
+  // Focus is back on a text surface after the panel menu closed: this is the
+  // first moment the palette can be drawn where the caret is instead of at the
+  // menu's (or a zero) rect.
+  MaybeReshowOdorijiPalette(engine);
 }
 
 void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
@@ -915,6 +927,13 @@ void MozcEngine::PropertyActivate(IbusEngineWrapper* engine,
     commands::Output output;
     if (client_->SendCommand(command, &output)) {
       odoriji_property_show_time_ = Clock::GetAbslTime();
+      // The palette is drawn now for the environments where activating a panel
+      // property does not move the keyboard focus at all, but in the common
+      // case the focus (and the caret rect) belongs to the menu, so this first
+      // draw lands in the top-left corner and is torn down when the menu goes
+      // away. Ask for it again on the FocusIn / set_cursor_location that
+      // follows.
+      odoriji_show_pending_ = true;
       UpdateAll(engine, output);
     }
     return;
@@ -952,7 +971,13 @@ void MozcEngine::SetCursorLocation(IbusEngineWrapper* engine, int x, int y,
   // candidate window is positioned below the cursor. engine_->cursor_area
   // is not guaranteed to be updated by IBus before this callback.
   engine->SetCursorArea(x, y, w, h);
-  GetCandidateWindowHandler(engine)->UpdateCursorRect(engine);
+  // A palette opened from the panel menu may still be waiting for a real caret
+  // rect -- some apps report one without a fresh FocusIn. Re-showing goes
+  // through UpdateAll, which repositions the candidate window itself, so only
+  // fall back to UpdateCursorRect when there is nothing pending.
+  if (!MaybeReshowOdorijiPalette(engine)) {
+    GetCandidateWindowHandler(engine)->UpdateCursorRect(engine);
+  }
 }
 
 void MozcEngine::SetContentType(IbusEngineWrapper* engine, uint purpose,
@@ -1192,6 +1217,27 @@ void MozcEngine::RevertSession(IbusEngineWrapper* engine) {
     return;
   }
   UpdateAll(engine, output);
+}
+
+bool MozcEngine::MaybeReshowOdorijiPalette(IbusEngineWrapper* engine) {
+  if (!odoriji_show_pending_) {
+    return false;
+  }
+  if (Clock::GetAbslTime() - odoriji_property_show_time_ >
+      kOdorijiPropertyReshowWindow) {
+    odoriji_show_pending_ = false;
+    return false;
+  }
+  odoriji_show_pending_ = false;
+  commands::SessionCommand command;
+  command.set_type(commands::SessionCommand::SHOW_ODORIJI_PALETTE);
+  commands::Output output;
+  if (!client_->SendCommand(command, &output)) {
+    return false;
+  }
+  MaybeLogIbusDebug("engine.odoriji", "reshow_from_menu");
+  UpdateAll(engine, output);
+  return true;
 }
 
 bool MozcEngine::ExecuteCallback(IbusEngineWrapper* engine,

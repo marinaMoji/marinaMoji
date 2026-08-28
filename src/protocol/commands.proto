@@ -1470,6 +1470,11 @@ message Status {
   // Left Shift direct toggle is locked (Ctrl+Left Shift chord). Toolbar may show
   // a lock badge on hiragana, katakana, or direct-input mode icons.
   optional bool left_shift_direct_lock = 27 [default = false];
+
+  // Traditional (kyūjitai) kanji conversion is on. Always set by OutputMode so
+  // the toolbar icon can follow Ctrl+Shift+3/F even when output.config() is
+  // absent (it is only filled on the toggle command itself).
+  optional bool use_traditional_kanji = 28 [default = false];
 }
 
 // This message contains which characters are to be deleted by client.

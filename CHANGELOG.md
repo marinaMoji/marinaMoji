@@ -10,6 +10,66 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Odoriji palette from the IME menu appeared in the corner, or not at all (2026-08-28)
+
+Clicking "Odoriji (iteration marks)" in the IME menu flashed the palette in
+the top-left corner of the screen on Linux and then dropped it; on Windows
+nothing appeared until you went back to the editor and typed. The palette is
+a candidate window: it has to be shown against the focused text surface, and
+while the menu is up the focus is the menu's.
+
+Windows: the langbar handler (`OnMenuSelect`, `kOdoriji`) sent
+SHOW_ODORIJI_PALETTE straight to the server and posted a UI-update message.
+The server turned the palette on, but the focused context's `last_output()`
+was never replaced, and that is what the renderer draws from -- so the
+palette waited for the next keystroke to refresh the UI. It now goes through
+`TipEditSession::ShowOdorijiPaletteAsync()`, an async edit session on the
+focused context, which updates the context as soon as the application grants
+it, i.e. as soon as the menu is out of the way. Same path the Ctrl+Shift+2
+shortcut already takes.
+
+Linux: the palette was drawn from `PropertyActivate` while the ibus panel
+menu still held the focus, so it went to a stale or zero cursor rect (the
+top-left corner) and was torn down when the menu closed. The 500 ms
+FocusOut grace only covered a FocusOut that arrived promptly. The show is
+now remembered as pending and re-issued on the first FocusIn or
+set_cursor_location within three seconds -- whichever the environment
+delivers -- so the palette lands where the caret is.
+
+macOS is left alone: `-odorijiPaletteMenuClicked:` goes through
+`processOutput` with `[self client]`, and the caret rect is queried from the
+app on the next event-loop turn, so the IMK menu never gets in the way.
+Worth a look when next testing there, since it was not verified.
+
+Needs a new build to verify on both platforms: open the palette from the IME
+menu with the caret in a text field; it should appear at the caret and stay.
+
+### Toolbar: shin/kyū icon lagged the actual conversion mode (2026-08-27)
+
+Ctrl+Shift+3 / Ctrl+Shift+F (and the toolbar button) did flip
+`use_traditional_kanji` in the session — the next conversion used kyū or
+shin as requested — but the floating 新/舊 icon often stayed put.
+
+The icon was updated only when `output.config()` was present. That field
+is filled on the toggle command itself. Every later Output (including
+`OutputKey` from the next TSF test-key, and ordinary typing) has no
+config. On Windows the TIP coalesces renderer UPDATEs onto the latest
+payload, so the config-bearing update was frequently overwritten before
+the toolbar drew. Sticky local state never saw the new value.
+
+`Status` now carries `use_traditional_kanji` from `OutputMode`, the same
+way it already carries composition mode and the Left Shift lock. The
+Windows, Linux and macOS toolbars read that flag on every update.
+
+Separately, holding Ctrl+Shift+F on Windows was sending the toggle once
+per OS key-repeat (DebugView: Dvorak `vk=89` / scan `0x15` → `'f'`,
+`to_server=1` many times), so the *final* mode depended on how long the
+key was down. Repeats of Ctrl+Shift are now claimed and not sent to the
+session. Ctrl+Shift+3 already had that in the number-row dispatcher.
+
+Needs a new MSI to verify: one tap of Ctrl+Shift+3 or Ctrl+Shift+F should
+move the icon with the mode; a held chord should toggle once.
+
 ### Windows: empty console window at every sign-in (2026-08-27)
 
 A blank terminal titled with the install path opened on every logon. The

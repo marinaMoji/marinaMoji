@@ -1832,7 +1832,12 @@ void EnsureToolbarCreated() {
 
 void ApplyOutputToToolbar(const commands::Output& output) {
   if (!g_trad_btn || !g_symbols_btn) return;
-  if (output.has_config()) {
+  if (output.has_status() && output.status().has_use_traditional_kanji()) {
+    bool use_trad = output.status().use_traditional_kanji();
+    const char* kyu = g_toolbar_dark_theme ? "toolbar_kyu_dark.svg" : "toolbar_kyu_light.svg";
+    const char* shin = g_toolbar_dark_theme ? "toolbar_shin_dark.svg" : "toolbar_shin_light.svg";
+    SetButtonIcon(GTK_BUTTON(g_trad_btn), use_trad ? kyu : shin);
+  } else if (output.has_config()) {
     bool use_trad = output.config().use_traditional_kanji();
     const char* kyu = g_toolbar_dark_theme ? "toolbar_kyu_dark.svg" : "toolbar_kyu_light.svg";
     const char* shin = g_toolbar_dark_theme ? "toolbar_shin_dark.svg" : "toolbar_shin_light.svg";

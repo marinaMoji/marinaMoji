@@ -950,20 +950,10 @@ class TipTextServiceImpl
         PostUIUpdateMessage();
         return S_OK;
       }
-      case TipLangBarCallback::kOdoriji: {
-        auto* private_context = GetFocusedPrivateContext();
-        if (private_context == nullptr) {
-          return E_FAIL;
-        }
-        commands::SessionCommand command;
-        command.set_type(commands::SessionCommand::SHOW_ODORIJI_PALETTE);
-        commands::Output output;
-        if (!private_context->GetClient()->SendCommand(command, &output)) {
-          return E_FAIL;
-        }
-        PostUIUpdateMessage();
-        return S_OK;
-      }
+      case TipLangBarCallback::kOdoriji:
+        // marinaMoji: must run as an edit session on the focused context, not
+        // as a bare SendCommand -- see TipEditSession::ShowOdorijiPaletteAsync.
+        return TipEditSession::ShowOdorijiPaletteAsync(this) ? S_OK : E_FAIL;
       case TipLangBarCallback::kToolbarVisibility: {
         const bool visible = !mozc::win32::LoadToolbarVisiblePreference();
         if (!mozc::win32::SaveToolbarVisiblePreference(visible)) {

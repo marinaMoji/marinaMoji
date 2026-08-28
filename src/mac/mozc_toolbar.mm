@@ -1459,9 +1459,13 @@ void MozcToolbarUpdate(const commands::Output &output,
   }
 
   bool has_trad =
-      output.has_config() && output.config().has_use_traditional_kanji();
+      (output.has_status() && output.status().has_use_traditional_kanji()) ||
+      (output.has_config() && output.config().has_use_traditional_kanji());
   bool use_trad =
-      has_trad ? output.config().use_traditional_kanji() : false;
+      output.has_status() && output.status().has_use_traditional_kanji()
+          ? output.status().use_traditional_kanji()
+          : (output.has_config() ? output.config().use_traditional_kanji()
+                                 : false);
   bool locked = output.has_status() && output.status().left_shift_direct_lock();
 
   RunOnMainThread(^{

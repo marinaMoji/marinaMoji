@@ -422,6 +422,11 @@ void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
         " symbols_palette=", symbols_palette_visible,
         " shortcuts=", shortcuts_window_visible,
         " has_output=", command.has_output(),
+        " has_config=",
+        command.has_output() && command.output().has_config(),
+        " status_trad=",
+        command.has_output() && command.output().has_status() &&
+            command.output().status().use_traditional_kanji(),
         " (was symbols=", symbols_palette_visible_,
         " shortcuts=", shortcuts_window_visible_, ")\n");
     ::OutputDebugStringA(line.c_str());
@@ -467,13 +472,18 @@ void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
   const bool lock = output.has_status()
                         ? output.status().left_shift_direct_lock()
                         : left_shift_direct_lock_;
-  // marinaMoji: |output.config()| is only populated on the specific Output
-  // that toggles it (ToggleTraditionalKanji et al.); ordinary per-keystroke
-  // updates carry no config at all. Treat |use_traditional_kanji_| as sticky
-  // local state so the icon doesn't revert on the next unrelated UPDATE.
-  const bool use_trad = output.has_config()
-                            ? output.config().use_traditional_kanji()
-                            : use_traditional_kanji_;
+  // marinaMoji: shin/kyū used to be read only from |output.config()|, which
+  // ToggleTraditionalKanji fills and ordinary keystrokes do not. The TIP
+  // coalesces renderer UPDATEs, so a following OutputKey without config
+  // often won the race and the icon never moved even though conversion
+  // mode had flipped. Status now carries the flag on every OutputMode
+  // (same pattern as |left_shift_direct_lock|). Fall back to config, then
+  // sticky, for older payloads.
+  const bool use_trad =
+      output.has_status() && output.status().has_use_traditional_kanji()
+          ? output.status().use_traditional_kanji()
+          : (output.has_config() ? output.config().use_traditional_kanji()
+                                 : use_traditional_kanji_);
   // marinaMoji: |is_dark_theme_| is not re-polled here -- it is a registry
   // read, and this function runs on every RendererCommand, i.e. every
   // keystroke while the toolbar is visible. OnCreate() sets the initial

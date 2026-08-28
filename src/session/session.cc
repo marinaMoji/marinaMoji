@@ -3846,6 +3846,8 @@ void Session::OutputMode(commands::Command* command) const {
   status->set_mode(mode);
   status->set_comeback_mode(comeback_mode);
   status->set_left_shift_direct_lock(left_shift_mode_lock_);
+  status->set_use_traditional_kanji(
+      config::ConfigHandler::GetSharedConfig()->use_traditional_kanji());
 }
 
 void Session::OutputComposition(commands::Command* command) const {

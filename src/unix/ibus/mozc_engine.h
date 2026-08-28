@@ -137,6 +137,12 @@ class MozcEngine : public EngineInterface {
   bool UpdateDeletionRange(IbusEngineWrapper* engine,
                            const commands::Output& output);
 
+  // marinaMoji: re-issues SHOW_ODORIJI_PALETTE if the palette was opened from
+  // the panel menu and focus has just come back to a text surface. No-op (and
+  // clears the pending flag) outside the retry window. Returns true if the
+  // palette was re-shown.
+  bool MaybeReshowOdorijiPalette(IbusEngineWrapper* engine);
+
   // Updates the callback message based on the content of |output|.
   bool ExecuteCallback(IbusEngineWrapper* engine,
                        const commands::Output& output);
@@ -222,6 +228,15 @@ class MozcEngine : public EngineInterface {
   // disappears until you press Space" bug. Suppresses that one Hide/Revert
   // if it lands within the debounce window below.
   absl::Time odoriji_property_show_time_;
+
+  // marinaMoji: set when the palette was opened from the ibus panel menu, and
+  // cleared by the first FocusIn / set_cursor_location that follows. While the
+  // menu is up the keyboard focus (and, on some compositors, the reported
+  // cursor rect) belongs to the menu, not to the text field, so the palette is
+  // drawn at a stale or zero rect -- the top-left corner -- and is torn down
+  // when the menu closes. The palette is re-shown once focus is back on a text
+  // surface. See MaybeReshowOdorijiPalette().
+  bool odoriji_show_pending_ = false;
 
   friend class MozcEngineTestPeer;
 };

@@ -985,6 +985,33 @@ TEST_F(SessionTest, LeftShiftAloneTogglesJapaneseAndDirect) {
   EXPECT_TRUE(command.output().status().activated());
 }
 
+TEST_F(SessionTest, OutputModeCarriesTraditionalKanjiFlag) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  const config::Config original = config::ConfigHandler::GetCopiedConfig();
+  config::Config cfg = original;
+  cfg.set_use_traditional_kanji(false);
+  config::ConfigHandler::SetConfig(cfg);
+  session.SetConfig(cfg);
+
+  commands::Command command;
+  EXPECT_TRUE(SendCommand(commands::SessionCommand::TOGGLE_TRADITIONAL_KANJI,
+                          &session, &command));
+  EXPECT_TRUE(command.output().status().use_traditional_kanji());
+  EXPECT_TRUE(command.output().config().use_traditional_kanji());
+
+  // A following ordinary keystroke used to carry no Config, which dropped the
+  // toolbar icon even though conversion stayed on kyūjitai.
+  EXPECT_TRUE(SendKey("a", &session, &command));
+  EXPECT_TRUE(command.output().status().has_use_traditional_kanji());
+  EXPECT_TRUE(command.output().status().use_traditional_kanji());
+
+  config::ConfigHandler::SetConfig(original);
+}
+
 TEST_F(SessionTest, LeftShiftTogglesManyoshuAndDirect) {
   MockEngine engine;
   CreateEngineConverterMock(&engine);

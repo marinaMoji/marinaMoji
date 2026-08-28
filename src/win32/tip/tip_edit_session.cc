@@ -993,6 +993,40 @@ bool TipEditSession::SwitchInputModeAsync(TipTextService* text_service,
   return OnSwitchInputModeAsync(text_service, context.get(), true, native_mode);
 }
 
+// static
+bool TipEditSession::ShowOdorijiPaletteAsync(TipTextService* text_service) {
+  // marinaMoji: the palette is a candidate window anchored to the composition,
+  // so it can only be shown against the focused document's context. The
+  // langbar menu item used to SendCommand directly and then post a UI update;
+  // the server turned the palette on, but the context's last Output was never
+  // replaced, so the renderer had nothing to draw until the next key event
+  // refreshed it -- "the palette only appears once you start typing again".
+  // Going through an async edit session updates the context the moment the
+  // application grants it, i.e. as soon as the menu is out of the way.
+  ITfThreadMgr* thread_mgr = text_service->GetThreadManager();
+  if (thread_mgr == nullptr) {
+    return false;
+  }
+  wil::com_ptr_nothrow<ITfDocumentMgr> document;
+  if (FAILED(thread_mgr->GetFocus(&document))) {
+    return false;
+  }
+  if (document == nullptr) {
+    // No focused text surface to anchor the palette to.
+    return false;
+  }
+  wil::com_ptr_nothrow<ITfContext> context;
+  if (FAILED(document->GetBase(&context))) {
+    return false;
+  }
+  if (context == nullptr) {
+    return false;
+  }
+  SessionCommand command;
+  command.set_type(SessionCommand::SHOW_ODORIJI_PALETTE);
+  return OnSessionCommandAsync(text_service, context.get(), command);
+}
+
 bool TipEditSession::GetTextSync(TipTextService* text_service, ITfRange* range,
                                  std::wstring* text, bool* is_composing) {
   wil::com_ptr_nothrow<ITfContext> context;
