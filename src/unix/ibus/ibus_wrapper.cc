@@ -344,6 +344,15 @@ void IbusEngineWrapper::ForwardBackspaceForEchoBack(uint keyval,
   // returns, fix it without inventing a key event.
   ForwardKeyEvent(keyval, keycode, 0);
   ForwardKeyEvent(keyval, keycode, IBUS_RELEASE_MASK);
+  if (ShouldForwardEchoBackShiftLRelease()) {
+    // Legacy workaround for spurious focus_out/focus_in after forwarded
+    // Backspace. Off by default: it injects a third synthetic event per
+    // echo-back Backspace. Set MARINAMOJI_IBUS_ECHO_BACK_SHIFT_L=1 to restore.
+    constexpr uint kShiftLeftKeyCode = 42;
+    ForwardKeyEvent(IBUS_Shift_L, kShiftLeftKeyCode, IBUS_RELEASE_MASK);
+    MaybeLogIbusDebug("engine.forward", "echo_back_shift_l_release keycode=%u",
+                      kShiftLeftKeyCode);
+  }
 }
 
 uint IbusEngineWrapper::GetCapabilities() {

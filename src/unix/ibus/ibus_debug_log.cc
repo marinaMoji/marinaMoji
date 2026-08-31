@@ -29,6 +29,7 @@
 
 #include "unix/ibus/ibus_debug_log.h"
 
+#include <cctype>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -39,12 +40,14 @@
 
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "base/version.h"
 
 namespace mozc {
 namespace ibus {
 namespace {
 
 constexpr char kDebugLogEnv[] = "MARINAMOJI_IBUS_DEBUG_LOG";
+constexpr char kEchoBackShiftLEnv[] = "MARINAMOJI_IBUS_ECHO_BACK_SHIFT_L";
 
 const char* DebugLogPath() {
   const char* path = ::getenv(kDebugLogEnv);
@@ -64,9 +67,76 @@ std::string NowForLog() {
                           absl::LocalTimeZone());
 }
 
+bool EqualsIgnoreCase(const char* value, const char* literal) {
+  while (*value != '\0' && *literal != '\0') {
+    if (std::tolower(static_cast<unsigned char>(*value)) !=
+        std::tolower(static_cast<unsigned char>(*literal))) {
+      return false;
+    }
+    ++value;
+    ++literal;
+  }
+  return *value == '\0' && *literal == '\0';
+}
+
+bool EnvVarIsTruthy(const char* name) {
+  const char* value = ::getenv(name);
+  if (value == nullptr || value[0] == '\0') {
+    return false;
+  }
+  if (value[0] == '0' && value[1] == '\0') {
+    return false;
+  }
+  if (EqualsIgnoreCase(value, "false") || EqualsIgnoreCase(value, "no") ||
+      EqualsIgnoreCase(value, "off")) {
+    return false;
+  }
+  return true;
+}
+
+const char* EnvOrDash(const char* name) {
+  const char* value = ::getenv(name);
+  return (value != nullptr && value[0] != '\0') ? value : "-";
+}
+
+void AppendLogLineUnlocked(const char* path, const char* tag,
+                           const char* message) {
+  FILE* file = std::fopen(path, "a");
+  if (file == nullptr) {
+    return;
+  }
+  std::fprintf(file, "%s\tpid=%ld\t%s\t%s\n", NowForLog().c_str(),
+               static_cast<long>(::getpid()), tag != nullptr ? tag : "-",
+               message);
+  std::fclose(file);
+}
+
+void MaybeWriteSessionBannerUnlocked(const char* path) {
+  static bool banner_written = false;
+  if (banner_written) {
+    return;
+  }
+  banner_written = true;
+
+  char message[1024];
+  std::snprintf(
+      message, sizeof(message),
+      "session_start version=%s echo_back_shift_l=%d "
+      "XDG_SESSION_TYPE=%s WAYLAND_DISPLAY=%s DISPLAY=%s GDK_BACKEND=%s",
+      Version::GetMozcVersion().c_str(),
+      ShouldForwardEchoBackShiftLRelease() ? 1 : 0, EnvOrDash("XDG_SESSION_TYPE"),
+      EnvOrDash("WAYLAND_DISPLAY"), EnvOrDash("DISPLAY"),
+      EnvOrDash("GDK_BACKEND"));
+  AppendLogLineUnlocked(path, "engine.lifecycle", message);
+}
+
 }  // namespace
 
 bool IsIbusDebugLogEnabled() { return DebugLogPath() != nullptr; }
+
+bool ShouldForwardEchoBackShiftLRelease() {
+  return EnvVarIsTruthy(kEchoBackShiftLEnv);
+}
 
 void MaybeLogIbusDebug(const char* tag, const char* format, ...) {
   const char* path = DebugLogPath();
@@ -81,14 +151,8 @@ void MaybeLogIbusDebug(const char* tag, const char* format, ...) {
   va_end(args);
 
   std::lock_guard<std::mutex> lock(LogMutex());
-  FILE* file = std::fopen(path, "a");
-  if (file == nullptr) {
-    return;
-  }
-  std::fprintf(file, "%s\tpid=%ld\t%s\t%s\n", NowForLog().c_str(),
-               static_cast<long>(::getpid()), tag != nullptr ? tag : "-",
-               message);
-  std::fclose(file);
+  MaybeWriteSessionBannerUnlocked(path);
+  AppendLogLineUnlocked(path, tag, message);
 }
 
 }  // namespace ibus

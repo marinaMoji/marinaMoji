@@ -207,6 +207,12 @@ If it does not reproduce, that is expected and not a failure — see
 
 ### 4.4 Put the `Shift_L` removal behind an env var before handing her a build
 
+**Done (2026-08-31):** `MARINAMOJI_IBUS_ECHO_BACK_SHIFT_L` in
+`src/unix/ibus/ibus_debug_log.cc` / `ibus_wrapper.cc`. Default off (2 synthetic
+events). Set to `1` to restore the legacy Shift_L release (3 events). Session
+banner logs the flag plus display-server env vars. See
+[`docs/LINUX_IBUS_DEBUG.md`](LINUX_IBUS_DEBUG.md).
+
 Recommended regardless of the outcome above. Precedent:
 `MARINAMOJI_IBUS_DEBUG_LOG` in `src/unix/ibus/ibus_debug_log.cc`.
 

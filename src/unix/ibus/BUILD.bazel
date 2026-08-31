@@ -125,6 +125,7 @@ mozc_cc_library(
     srcs = mozc_select(linux = ["ibus_debug_log.cc"]),
     hdrs = mozc_select(linux = ["ibus_debug_log.h"]),
     deps = [
+        "//base:version",
         "@com_google_absl//absl/time",
     ],
 )

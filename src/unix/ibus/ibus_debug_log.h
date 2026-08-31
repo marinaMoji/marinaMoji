@@ -36,6 +36,11 @@ namespace ibus {
 // Returns true when MARINAMOJI_IBUS_DEBUG_LOG is set to a writable file path.
 bool IsIbusDebugLogEnabled();
 
+// When MARINAMOJI_IBUS_ECHO_BACK_SHIFT_L is set to a truthy value (1, true, yes),
+// echo-back Backspace forwards the legacy bare Shift_L release (3 synthetic
+// events per Backspace instead of 2). Default is off.
+bool ShouldForwardEchoBackShiftLRelease();
+
 // Appends one tab-separated line to MARINAMOJI_IBUS_DEBUG_LOG:
 // timestamp, process id, tag, and a printf-formatted message.
 //

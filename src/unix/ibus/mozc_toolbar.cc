@@ -137,6 +137,12 @@ static bool IsX11() {
   return n && n[0] == ':';
 }
 
+// Drop shadow uses CSS margin for fade-out room. That margin inflates the toplevel
+// with a transparent halo; useful on native Wayland, wasteful on X11/XWayland.
+static int EffectiveToolbarShadowMargin() {
+  return IsX11() ? 0 : kToolbarShadowMargin;
+}
+
 // Config path: ~/.config/ibus/marinamoji/toolbar.conf
 static gchar* GetToolbarConfigPath() {
   gchar* config_dir =
@@ -794,9 +800,13 @@ static void EnsureToolbarCSS(bool dark) {
       "  color: " + std::string(fg) + ";"
       "  border-radius: 10px;"
       "  border: 1px solid " + std::string(border) + ";"
-      "  padding: 6px 10px;"
-      "  margin: " + std::to_string(kToolbarShadowMargin) + "px;"
-      "  box-shadow: 0 3px 8px " + std::string(shadow) + ";"
+      "  padding: 6px 10px;";
+  const int shadow_margin = EffectiveToolbarShadowMargin();
+  if (shadow_margin > 0) {
+    css += "  margin: " + std::to_string(shadow_margin) + "px;"
+           "  box-shadow: 0 3px 8px " + std::string(shadow) + ";";
+  }
+  css +=
       "}"
       "#marinamoji-mode-indicator,"
       "#marinamoji-trad-btn, #marinamoji-trad-btn:hover, #marinamoji-trad-btn:active,"
@@ -1667,9 +1677,10 @@ void EnsureToolbarCreated() {
   gtk_window_set_decorated(GTK_WINDOW(g_toolbar_window), FALSE);
   gtk_window_set_resizable(GTK_WINDOW(g_toolbar_window), FALSE);
   ApplyToolbarWindowHints(g_toolbar_window);
+  const int shadow_margin = EffectiveToolbarShadowMargin();
   gtk_window_set_default_size(GTK_WINDOW(g_toolbar_window),
-                              380 + 2 * kToolbarShadowMargin,
-                              kToolbarHeight + 2 * kToolbarShadowMargin);
+                              380 + 2 * shadow_margin,
+                              kToolbarHeight + 2 * shadow_margin);
   gtk_container_set_border_width(GTK_CONTAINER(g_toolbar_window), 0);
   gtk_widget_set_app_paintable(g_toolbar_window, TRUE);
   gtk_widget_set_name(g_toolbar_window, "marinamoji-toolbar-window");
@@ -1705,7 +1716,7 @@ void EnsureToolbarCreated() {
   }
 
   gtk_widget_set_size_request(g_toolbar_window, -1,
-                              kToolbarHeight + 2 * kToolbarShadowMargin);
+                              kToolbarHeight + 2 * shadow_margin);
 
   g_toolbar_frame = gtk_event_box_new();
   gtk_event_box_set_visible_window(GTK_EVENT_BOX(g_toolbar_frame), TRUE);

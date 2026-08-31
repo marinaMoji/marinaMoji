@@ -379,6 +379,13 @@ void MozcEngine::Enable(IbusEngineWrapper* engine) {
 void MozcEngine::FocusIn(IbusEngineWrapper* engine) {
   LogLifecycle("focus_in", engine);
   LogClientCapabilities(engine);
+  if (IsIbusDebugLogEnabled()) {
+    const IbusEngineWrapper::Rectangle cursor = engine->GetCursorArea();
+    MaybeLogIbusDebug("engine.lifecycle",
+                      "cursor_at_focus_in x=%d y=%d w=%d h=%d surround_stale=%d",
+                      cursor.x, cursor.y, cursor.width, cursor.height,
+                      surround_stale_after_echo_back_ ? 1 : 0);
+  }
   current_engine_ = engine->GetEngine();
   property_handler_->Register(engine);
   if (MozcToolbarAvailable()) {
@@ -864,6 +871,10 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
   UpdateAll(engine, output);
 
   if (output.consumed()) {
+    if (surround_stale_after_echo_back_) {
+      MaybeLogIbusDebug("engine.lifecycle",
+                        "surround_stale_after_echo_back cleared reason=consumed_key");
+    }
     surround_stale_after_echo_back_ = false;
   }
 
@@ -909,6 +920,8 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
     if (key.has_special_key() &&
         key.special_key() == commands::KeyEvent::ENTER) {
       surround_stale_after_echo_back_ = true;
+      MaybeLogIbusDebug("engine.lifecycle",
+                        "surround_stale_after_echo_back set");
     }
   }
   MaybeLogIbusDebug("engine.key", "return_output_consumed consumed=%d",
@@ -979,7 +992,14 @@ void MozcEngine::SetCapabilities(IbusEngineWrapper* engine, uint capabilities) {
 
 void MozcEngine::SetCursorLocation(IbusEngineWrapper* engine, int x, int y,
                                    int w, int h) {
+  const bool had_stale = surround_stale_after_echo_back_;
   surround_stale_after_echo_back_ = false;
+  if (IsIbusDebugLogEnabled() && had_stale) {
+    MaybeLogIbusDebug("engine.lifecycle",
+                      "set_cursor_location x=%d y=%d w=%d h=%d "
+                      "surround_stale_cleared=1",
+                      x, y, w, h);
+  }
   // Use the (x,y,w,h) from the IBus set_cursor_location signal so the
   // candidate window is positioned below the cursor. engine_->cursor_area
   // is not guaranteed to be updated by IBus before this callback.

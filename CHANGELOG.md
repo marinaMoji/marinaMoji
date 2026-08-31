@@ -10,6 +10,31 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### ibus: log cursor rect and surround-stale flag in debug sessions (2026-08-31)
+
+When `MARINAMOJI_IBUS_DEBUG_LOG` is enabled:
+
+- **`cursor_at_focus_in`** on each `focus_in`: caret rect plus
+  `surround_stale` flag (surrounding text may lag after a declined Return).
+- **`surround_stale_after_echo_back set/cleared`** when that flag is armed or
+  cleared (by `set_cursor_location` or a consumed key).
+- **`set_cursor_location … surround_stale_cleared=1`** when a client caret
+  update clears the stale flag (logged only on that transition, not every
+  caret move, to limit log volume).
+
+### ibus: env var for legacy echo-back Shift_L; session banner in debug log (2026-08-31)
+
+- **`MARINAMOJI_IBUS_ECHO_BACK_SHIFT_L`**: when set to a truthy value (`1`,
+  `true`, `yes`, …), echo-back Backspace again forwards the bare `Shift_L`
+  release (3 synthetic events per Backspace instead of 2). Default is **off**.
+  Lets the collaborator A/B-test the one behaviour change in the same
+  environment without swapping builds.
+- **Debug session banner**: the first line written when
+  `MARINAMOJI_IBUS_DEBUG_LOG` is enabled records build version, echo-back
+  Shift_L flag, and display-server hints (`XDG_SESSION_TYPE`, `WAYLAND_DISPLAY`,
+  `DISPLAY`, `GDK_BACKEND`).
+- User guide: [`docs/LINUX_IBUS_DEBUG.md`](docs/LINUX_IBUS_DEBUG.md).
+
 ### ibus: stop inventing a Shift release on echo-back Backspace; log every synthetic event (2026-08-31)
 
 Follow-up to the entry below. The collaborator's 2026-08-31 session (pid 81280,
