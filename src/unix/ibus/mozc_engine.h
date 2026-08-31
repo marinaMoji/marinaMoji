@@ -168,6 +168,11 @@ class MozcEngine : public EngineInterface {
   // cleared, so a log without them cannot explain a stuck-key report.
   void LogLifecycle(const char* event, IbusEngineWrapper* engine);
 
+  // Records the focused client's IBus capabilities. Surrounding-text support
+  // decides whether an echo-back Backspace can avoid forwarding synthetic key
+  // events, so it has to be visible per application in the log.
+  void LogClientCapabilities(IbusEngineWrapper* engine);
+
   void ReleaseTrackedModifiers(IbusEngineWrapper* engine);
 
   CandidateWindowHandlerInterface* GetCandidateWindowHandler(

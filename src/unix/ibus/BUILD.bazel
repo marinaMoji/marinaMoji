@@ -121,10 +121,20 @@ mozc_cc_library(
 )
 
 mozc_cc_library(
+    name = "ibus_debug_log",
+    srcs = mozc_select(linux = ["ibus_debug_log.cc"]),
+    hdrs = mozc_select(linux = ["ibus_debug_log.h"]),
+    deps = [
+        "@com_google_absl//absl/time",
+    ],
+)
+
+mozc_cc_library(
     name = "ibus_wrapper",
     srcs = mozc_select(linux = ["ibus_wrapper.cc"]),
     hdrs = mozc_select(linux = ["ibus_wrapper.h"]),
     deps = [
+        ":ibus_debug_log",
         "@com_google_absl//absl/strings",
     ] + mozc_select(
         linux = [
@@ -228,7 +238,6 @@ mozc_cc_library(
         linux = [
             "engine_registrar.cc",
             "ibus_candidate_window_handler.cc",
-            "ibus_debug_log.cc",
             "key_event_handler.cc",
             "key_translator.cc",
             "marina_number_row_dispatcher.cc",
@@ -245,7 +254,6 @@ mozc_cc_library(
             "engine_interface.h",
             "engine_registrar.h",
             "ibus_candidate_window_handler.h",
-            "ibus_debug_log.h",
             "ibus_physical_slot.h",
             "key_event_handler.h",
             "key_translator.h",
@@ -327,6 +335,7 @@ mozc_cc_library(
     deps = [
         ":candidate_window_handler",
         ":ibus_config",
+        ":ibus_debug_log",
         ":ibus_header",
         ":ibus_physical_slot",
         ":ibus_property_handler",

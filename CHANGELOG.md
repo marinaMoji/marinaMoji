@@ -10,6 +10,100 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### ibus: stop inventing a Shift release on echo-back Backspace; log every synthetic event (2026-08-31)
+
+Follow-up to the entry below. The collaborator's 2026-08-31 session (pid 81280,
+70 minutes, 40122 lines) is the first log taken with the lifecycle logging from
+"Linux return bug stab" in place, and it captures the failure end to end for the
+first time. She reported Return doing nothing at 16:37, 16:38, 16:39, 16:40,
+16:42, 17:02, 17:05 and 17:30 JST. The 16:42 case, verbatim:
+
+```
+16:42:37.743  RET press -> server_output consumed=0 pre=0 res=0  -> return false   [nothing]
+16:42:40.218  RET press -> server_output consumed=0 pre=0 res=0  -> return false   [nothing]
+16:42:41.4    reset x3 / set_content_type purpose=0 hints=0
+16:42:41.5    focus_out -> focus_in -> focus_out -> focus_in
+16:42:41.665  set_content_type purpose=0 hints=64                                  [she clicked]
+16:42:42.756  RET press -> server_output consumed=0 pre=0 res=0  -> return false   [worked]
+```
+
+Three Return presses, byte-identical engine behaviour, and only the third one
+reached the application. That settles where the bug is not: the engine declined
+all three correctly, so IBus was obliged to deliver all three. Across the whole
+session all 395 Return presses were handled correctly (330 committed a
+composition, 55 declined, 10 forwarded while inactive), all 330 commits had a
+genuinely live preedit -- zero phantom commits -- and the keystroke transcripts
+read as ordinary romaji input. **The failure is in delivery of a key the engine
+declined, not in any branch of `ProcessKeyEventInternal`.**
+
+What the eight reported minutes have in common is not Return and not focus
+churn. Per-minute averages, reported minutes against the other 41:
+
+| | reported | other | |
+|---|---|---|---|
+| echo-back Backspaces | 16.88 | 2.76 | 6.1x |
+| Backspace releases | 16.00 | 3.41 | 4.7x |
+| Return presses | 8.88 | 7.93 | flat |
+| focus_out | 2.75 | 4.93 | *lower* |
+| reset | 3.50 | 7.00 | *lower* |
+
+Returns in those minutes also sit 3x closer to an echo-back Backspace (median
+14.0s against 44.6s). So: `ForwardBackspaceForEchoBack`.
+
+That function was forwarding **three** synthetic events per Backspace -- press,
+release, and a bare `Shift_L` release -- while the engine swallowed both real
+ones (the press via `TryHandleEchoBackBackspace` returning true, the release via
+`return_backspace_release down_consumed=1`). At ~17 Backspaces a minute that is
+~50 fabricated events a minute entering the client. The GTK IBus IM module keeps
+a queue of the events it has already handed to the engine so it can recognise
+its own forwarded events instead of reprocessing them; a surplus there is a
+plausible way for a later genuinely-declined key to match a stale entry and be
+dropped, and re-establishing the input context clears it -- which is what the
+click at 16:42:41 did. The forwarded events do not re-enter the engine: 0 of 248
+echo-backs produced an engine-visible `Shift_L` release.
+
+The `Shift_L` release is gone. It was a workaround for a different symptom
+("spurious focus_out/focus_in after forwarded Backspace"), and it was the only
+one of the three with no real key behind it. Press and release still go, since
+Wayland/GTK clients drive auto-repeat off the pair.
+
+Also added, so the next session can settle this rather than suggest it:
+
+- `IbusEngineWrapper::ForwardKeyEvent` is now the single choke point for
+  synthetic events and logs each one (`engine.forward forward_key ...`), as does
+  `DeleteSurroundingText`. `ForwardBackspaceForEchoBack` routes through it.
+- `TryHandleEchoBackBackspace` names which of its three exits it took
+  (`engine.echoback delete_surrounding` / `forward_no_preceding_text` /
+  `forward_surrounding_text_failed` / `forward_no_surrounding_cap`). Only the
+  first injects nothing. `return_echo_back_backspace_consumed` could not
+  distinguish them, so there was no way to tell how much of the 248 was
+  avoidable. Note the surrounding-text path was already preferred where
+  available -- the change here is purely that the branch is now visible.
+- `FocusIn` logs the client's capability mask (`engine.lifecycle capabilities`),
+  broken out for surrounding-text, since that bit decides which echo-back exit a
+  given application takes.
+- `ibus_debug_log` is now its own `mozc_cc_library` rather than being compiled
+  straight into `ibus_mozc_lib`, so `ibus_wrapper` can log too.
+
+Two things to be honest about. First, the direction of the Backspace
+correlation is not established: heavy backspacing may partly be a consequence of
+the bug (delete and retry) rather than its cause -- at 16:42 the Backspaces
+precede the dead Returns, at 16:37 they follow. Second, this is an experiment
+chosen on the strength of an association over eight self-reported minutes, not a
+proven fix. If the spurious focus bounce the `Shift_L` release was papering over
+comes back, the answer is to address it without fabricating a key event.
+
+On the report that this got worse with the new version: neither half of the
+previous change can account for it. The age guard never fired at all
+(`skip_stale_release` appears 0 times), and replaying the session shows the
+keycode fix behaving as designed -- keyval-keying would have produced 77
+synthetic releases (14 stale) where keycode-keying produced 63 (1 stale),
+matching the 60 logged. `9334d27a5`'s ibus changes are inert here too
+(`odoriji_show_pending_` was never set; no `engine.odoriji` lines). Exposure
+also changed sharply: 2026-08-27 was ~7h of testing with the IME off 40% of the
+time and 203 Return presses, against 70 minutes of real Japanese writing and
+395 Return presses here.
+
 ### Odoriji palette from the IME menu appeared in the corner, or not at all (2026-08-28)
 
 Clicking "Odoriji (iteration marks)" in the IME menu flashed the palette in

@@ -378,6 +378,7 @@ void MozcEngine::Enable(IbusEngineWrapper* engine) {
 
 void MozcEngine::FocusIn(IbusEngineWrapper* engine) {
   LogLifecycle("focus_in", engine);
+  LogClientCapabilities(engine);
   current_engine_ = engine->GetEngine();
   property_handler_->Register(engine);
   if (MozcToolbarAvailable()) {
@@ -591,17 +592,29 @@ bool TryHandleEchoBackBackspace(IbusEngineWrapper* engine,
   if (HasNonemptyPreedit(output) || had_preedit_before) {
     engine->HidePreeditText();
   }
+  // Three ways out of here, and only the first injects nothing into the client.
+  // "return_echo_back_backspace_consumed" alone cannot tell them apart, so name
+  // the branch: how much of the synthetic-event traffic is avoidable depends
+  // entirely on which one a given application takes.
   if (engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT)) {
     SurroundingTextInfo info;
     if (GetSurroundingText(engine, &info)) {
       if (!info.preceding_text.empty()) {
+        MaybeLogIbusDebug("engine.echoback", "delete_surrounding");
         engine->DeleteSurroundingText(-1, 1);
         return true;
       }
+      // Cursor at the start of the buffer: there is nothing to delete, so the
+      // application has to see the key itself.
+      MaybeLogIbusDebug("engine.echoback", "forward_no_preceding_text");
       engine->ForwardBackspaceForEchoBack(keyval, keycode);
       return true;
     }
+    MaybeLogIbusDebug("engine.echoback", "forward_surrounding_text_failed");
+    engine->ForwardBackspaceForEchoBack(keyval, keycode);
+    return true;
   }
+  MaybeLogIbusDebug("engine.echoback", "forward_no_surrounding_cap");
   engine->ForwardBackspaceForEchoBack(keyval, keycode);
   return true;
 }
@@ -1195,6 +1208,23 @@ void MozcEngine::LogLifecycle(const char* event, IbusEngineWrapper* engine) {
       property_handler_ == nullptr
           ? -1
           : property_handler_->GetOriginalCompositionMode());
+}
+
+void MozcEngine::LogClientCapabilities(IbusEngineWrapper* engine) {
+  if (!IsIbusDebugLogEnabled() || engine == nullptr) {
+    return;
+  }
+  // Surrounding-text support is what decides whether an echo-back Backspace can
+  // be done without injecting key events, so record it per focused client: the
+  // same engine behaves differently in two applications, and the log otherwise
+  // gives no way to tell which one is on screen.
+  // The full mask is logged raw so the remaining bits can be decoded after the
+  // fact; only surrounding-text is broken out, being the one that changes what
+  // the echo-back path does.
+  const uint caps = engine->GetCapabilities();
+  MaybeLogIbusDebug("engine.lifecycle",
+                    "capabilities caps=0x%x surrounding_text=%d", caps,
+                    (caps & IBUS_CAP_SURROUNDING_TEXT) != 0);
 }
 
 void MozcEngine::ReleaseTrackedModifiers(IbusEngineWrapper* engine) {

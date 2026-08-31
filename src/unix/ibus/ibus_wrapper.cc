@@ -34,6 +34,7 @@
 #include <type_traits>
 
 #include "absl/strings/string_view.h"
+#include "unix/ibus/ibus_debug_log.h"
 
 static_assert(std::is_same<gint, int>::value, "gint must be int.");
 static_assert(std::is_same<guint, uint>::value, "guint must be uint.");
@@ -307,30 +308,42 @@ void IbusEngineWrapper::DeleteSurroundingText(int offset, uint size) {
   // Nowadays 'ibus_engine_delete_surrounding_text' becomes functional on
   // many of the major applications.  Confirmed that it works on
   // Firefox 10.0, LibreOffice 3.3.4 and GEdit 3.2.3.
+  MaybeLogIbusDebug("engine.forward", "delete_surrounding offset=%d size=%u",
+                    offset, size);
   ibus_engine_delete_surrounding_text(engine_, offset, size);
 }
 
 void IbusEngineWrapper::ForwardKeyEvent(uint keyval, uint keycode,
                                         uint modifiers) {
+  // Single choke point for every synthetic key event the engine injects into
+  // the client. Each one is an event the client did not originate, so they are
+  // the first thing to count when the client and the engine disagree about
+  // what has already been handled.
+  MaybeLogIbusDebug("engine.forward",
+                    "forward_key keyval=%u keycode=%u modifiers=0x%x release=%d",
+                    keyval, keycode, modifiers,
+                    (modifiers & IBUS_RELEASE_MASK) != 0);
   ibus_engine_forward_key_event(engine_, keyval, keycode, modifiers);
 }
 
 void IbusEngineWrapper::ForwardBackspaceForEchoBack(uint keyval,
                                                     uint keycode) {
-  // Some applications delete a preedit glyph when we forward Backspace; hide
-  // first when the caller still shows preedit (stale edge case).
-  ibus_engine_forward_key_event(engine_, keyval, keycode, 0);
-  // Pair the press with a release: Wayland/GTK clients drive auto-repeat from
-  // press/release pairs, so a forwarded press without a matching release
+  // Press plus release, and nothing else. Wayland/GTK clients drive auto-repeat
+  // from press/release pairs, so a forwarded press without a matching release
   // leaves Backspace repeating ("stuck") in the application.
-  ibus_engine_forward_key_event(engine_, keyval, keycode, IBUS_RELEASE_MASK);
-  // Work around spurious focus_out/focus_in after forwarded Backspace. Must
-  // be a release, not a press: a forwarded Shift_L press with no matching
-  // release leaves the client with a phantom held Shift, while a spurious
-  // Shift release is harmless.
-  constexpr uint kShiftLeftKeyCode = 42;
-  ibus_engine_forward_key_event(engine_, IBUS_Shift_L, kShiftLeftKeyCode,
-                                IBUS_RELEASE_MASK);
+  //
+  // A bare Shift_L release used to be forwarded here too, as a workaround for
+  // spurious focus_out/focus_in after a forwarded Backspace. It is gone: it was
+  // a fabricated modifier event with no real key behind it, and it made this
+  // one keystroke inject three synthetic events while the engine swallowed both
+  // real ones. In the 2026-08-31 session the minutes where Return silently did
+  // nothing carried 16.9 echo-back Backspaces per minute against 2.8 elsewhere
+  // (a 6x enrichment, with the Return rate itself flat and focus churn actually
+  // lower), which puts the injected-event surplus first in line as the cause of
+  // the client dropping a key the engine declined. If the spurious focus bounce
+  // returns, fix it without inventing a key event.
+  ForwardKeyEvent(keyval, keycode, 0);
+  ForwardKeyEvent(keyval, keycode, IBUS_RELEASE_MASK);
 }
 
 uint IbusEngineWrapper::GetCapabilities() {
