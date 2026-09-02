@@ -14,42 +14,14 @@ fi
 echo "Registering marinaMoji with Text Input Services..."
 "${LSREGISTER}" -f "${APP}"
 
-swift - "${APP}" <<'SWIFT'
-import Carbon
-import Foundation
+# The installed IME binary performs the registration itself, so this works on
+# machines without the Swift toolchain (i.e. every machine that is not a dev
+# box). It exits non-zero if macOS still does not list the input sources.
+"${APP}/Contents/MacOS/marinaMoji" --register_input_source > /dev/null
 
-let appPath = CommandLine.arguments[1]
-
-func tisString(_ src: TISInputSource, _ key: CFString) -> String? {
-    guard let raw = TISGetInputSourceProperty(src, key) else { return nil }
-    return Unmanaged<CFString>.fromOpaque(raw).takeUnretainedValue() as String
-}
-
-appPath.withCString { cstr in
-    if let url = CFURLCreateFromFileSystemRepresentation(nil, cstr, strlen(cstr), false) {
-        let status = TISRegisterInputSource(url)
-        fputs("TISRegisterInputSource status: \(status)\n", stderr)
-        if status != 0 { exit(1) }
-    }
-}
-
-guard let list = TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource] else {
-    fputs("ERROR: TISCreateInputSourceList failed\n", stderr)
-    exit(1)
-}
-
-var count = 0
-for src in list {
-    guard let id = tisString(src, kTISPropertyInputSourceID) else { continue }
-    guard id.hasPrefix("org.mozc.inputmethod.Japanese") else { continue }
-    count += 1
-}
-if count == 0 {
-    fputs("ERROR: TISRegisterInputSource succeeded but no org.mozc sources listed\n", stderr)
-    exit(1)
-}
-print(count)
-SWIFT
+# Restart the agents that cache the input-source list; launchd restarts them.
+killall TextInputMenuAgent 2>/dev/null || true
+killall imklaunchagent 2>/dev/null || true
 
 echo "Registered org.mozc.inputmethod.Japanese modes with macOS."
 echo

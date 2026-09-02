@@ -14,47 +14,8 @@ if [[ ! -d "$APP" ]]; then
 fi
 
 echo "Registering and enabling marinaMoji via Text Input Services..."
-swift - "$APP" <<'SWIFT'
-import Carbon
-import Foundation
-
-let appPath = CommandLine.arguments[1]
-
-func tisString(_ src: TISInputSource, _ key: CFString) -> String? {
-    guard let raw = TISGetInputSourceProperty(src, key) else { return nil }
-    return Unmanaged<CFString>.fromOpaque(raw).takeUnretainedValue() as String
-}
-
-appPath.withCString { cstr in
-    if let url = CFURLCreateFromFileSystemRepresentation(nil, cstr, strlen(cstr), false) {
-        let status = TISRegisterInputSource(url)
-        fputs("TISRegisterInputSource status: \(status)\n", stderr)
-    }
-}
-
-guard let list = TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource] else {
-    fputs("ERROR: TISCreateInputSourceList failed\n", stderr)
-    exit(1)
-}
-
-var enabledAny = false
-for src in list {
-    guard let id = tisString(src, kTISPropertyInputSourceID) else { continue }
-    guard id.hasPrefix("org.mozc.inputmethod.Japanese") else { continue }
-    let enableStatus = TISEnableInputSource(src)
-    fputs("TISEnableInputSource \(id): \(enableStatus)\n", stderr)
-    enabledAny = true
-    if id.hasSuffix(".base") || id == "org.mozc.inputmethod.Japanese" {
-        let selectStatus = TISSelectInputSource(src)
-        fputs("TISSelectInputSource \(id): \(selectStatus)\n", stderr)
-    }
-}
-
-if !enabledAny {
-    fputs("ERROR: no org.mozc.inputmethod.Japanese sources found after register\n", stderr)
-    exit(1)
-}
-SWIFT
+# Handled by the installed IME binary so that no Swift toolchain is required.
+"$APP/Contents/MacOS/marinaMoji" --select_input_source > /dev/null
 
 echo "Refreshing LaunchServices and LaunchAgents..."
 "$LSREGISTER" -f "$APP"

@@ -27,6 +27,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#import <Carbon/Carbon.h>
 #import <Cocoa/Cocoa.h>
 #import <Foundation/Foundation.h>
 #import <InputMethodKit/InputMethodKit.h>
@@ -35,6 +36,8 @@
 #import "mac/renderer_receiver.h"
 #import "mac/sync_overlay.h"
 
+#include <cstdio>
+#include <cstring>
 #include <memory>
 
 #include "absl/flags/flag.h"
@@ -45,7 +48,86 @@
 #include "client/client.h"
 #include "config/stats_config_util.h"
 
+namespace {
+
+// Text Input Services registration is per-user and per-login-session, so it
+// cannot be done from the .pkg postinstall script, which runs as root. The
+// installer instead re-executes this binary in the console user's session with
+// --register_input_source (or --select_input_source). Keeping the logic here
+// avoids shipping a second signed executable and avoids the Swift toolchain
+// that mac/register_marinamoji.sh used to need, which is absent on the
+// machines this matters for.
+
+NSString *InputSourceID(TISInputSourceRef source) {
+  return (__bridge NSString *)(TISGetInputSourceProperty(source, kTISPropertyInputSourceID));
+}
+
+// Registers the running bundle and reports how many of its input sources macOS
+// now lists. |select| additionally enables every mode and selects the base one.
+// Returns 0 when at least one input source is visible to Text Input Services.
+int RegisterInputSource(bool select) {
+  NSBundle *bundle = [NSBundle mainBundle];
+  NSString *bundleID = [bundle bundleIdentifier];
+  NSURL *bundleURL = [bundle bundleURL];
+  if (bundleID == nil || bundleURL == nil) {
+    fprintf(stderr, "ERROR: cannot resolve the running bundle\n");
+    return 1;
+  }
+
+  // paramErr is expected when the bundle is already known to the system, so the
+  // status is reported but never treated as fatal: the listing below decides.
+  const OSStatus status = TISRegisterInputSource((__bridge CFURLRef)bundleURL);
+  fprintf(stderr, "TISRegisterInputSource(%s): %d\n", [[bundleURL path] UTF8String],
+          static_cast<int>(status));
+
+  CFArrayRef sourceList = TISCreateInputSourceList(nullptr, true);
+  if (sourceList == nullptr) {
+    fprintf(stderr, "ERROR: TISCreateInputSourceList failed\n");
+    return 1;
+  }
+
+  int count = 0;
+  for (CFIndex i = 0; i < CFArrayGetCount(sourceList); ++i) {
+    TISInputSourceRef source = (TISInputSourceRef)(CFArrayGetValueAtIndex(sourceList, i));
+    NSString *sourceID = InputSourceID(source);
+    if (![sourceID hasPrefix:bundleID]) {
+      continue;
+    }
+    ++count;
+    if (!select) {
+      continue;
+    }
+    TISEnableInputSource(source);
+    if ([sourceID isEqualToString:[bundleID stringByAppendingString:@".base"]] ||
+        [sourceID isEqualToString:bundleID]) {
+      TISSelectInputSource(source);
+    }
+  }
+  CFRelease(sourceList);
+
+  if (count == 0) {
+    fprintf(stderr, "ERROR: no %s input sources listed after registration\n",
+            [bundleID UTF8String]);
+    return 1;
+  }
+  printf("%d\n", count);
+  return 0;
+}
+
+}  // namespace
+
 int main(int argc, char *argv[]) {
+  // Handled before anything else: these modes only touch Text Input Services
+  // and exit, so they must not start the IMK server or the converter.
+  for (int i = 1; i < argc; ++i) {
+    if (std::strcmp(argv[i], "--register_input_source") == 0) {
+      return RegisterInputSource(false);
+    }
+    if (std::strcmp(argv[i], "--select_input_source") == 0) {
+      return RegisterInputSource(true);
+    }
+  }
+
   if (!mozc::RunLevel::IsValidClientRunLevel()) {
     return -1;
   }
