@@ -1,0 +1,126 @@
+name: Publish apt repository
+
+# Rebuilds the signed apt repository on the gh-pages branch (GitHub Pages)
+# from every .deb attached to a GitHub Release, and signs the indexes with
+# the CI GPG subkey. See packaging/linux/README.md and SECURITY.md.
+#
+# release.yaml calls this on every v* tag. It is also dispatchable on its
+# own, which is the way to repair the published repository without cutting
+# a new tag — the rebuild reads the .deb assets from the Releases API and
+# republishes the whole tree, so it converges no matter which tag was
+# missed. Attach the .deb assets to the release first.
+#
+# The APT_GPG_* secrets are repository-level, so this does not declare the
+# "release" environment: that environment holds only the Apple signing
+# secrets, and its tag-v* deployment policy would block dispatching from a
+# branch without granting this job anything.
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  publish_apt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: false
+          persist-credentials: false
+
+      - name: Install apt tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev apt-utils gnupg
+
+      - name: Collect .deb packages from all releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p debs
+          mapfile -t tags < <(gh release list --repo "$GITHUB_REPOSITORY" --limit 200 \
+            --json tagName -q '.[].tagName')
+          if [[ ${#tags[@]} -eq 0 ]]; then
+            echo "error: no GitHub releases found" >&2
+            exit 1
+          fi
+          for tag in "${tags[@]}"; do
+            echo "Downloading .deb from $tag"
+            gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+              --pattern '*.deb' --dir debs --clobber || true
+          done
+          shopt -s nullglob
+          deb_files=(debs/*.deb)
+          if [[ ${#deb_files[@]} -eq 0 ]]; then
+            echo "error: no .deb assets on any release" >&2
+            exit 1
+          fi
+          ls -la debs/*.deb
+
+      - name: Import CI signing subkey
+        env:
+          APT_GPG_PRIVATE_KEY: ${{ secrets.APT_GPG_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${APT_GPG_PRIVATE_KEY:-}" ]]; then
+            echo "::error::Secret APT_GPG_PRIVATE_KEY is not set (CI apt signing subkey). See packaging/linux/README.md."
+            exit 1
+          fi
+          # Support both literal armored text and base64-wrapped secrets.
+          if [[ "$APT_GPG_PRIVATE_KEY" == *"BEGIN PGP"* ]]; then
+            printf '%s\n' "$APT_GPG_PRIVATE_KEY" | gpg --batch --import
+          else
+            printf '%s' "$APT_GPG_PRIVATE_KEY" | base64 -d | gpg --batch --import
+          fi
+          gpg --batch --list-secret-keys --with-colons | grep '^fpr:'
+
+      - name: Build signed apt repository
+        env:
+          APT_GPG_PASSPHRASE: ${{ secrets.APT_GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          bash packaging/linux/build_apt_repo.sh \
+            --deb-dir debs \
+            --output-dir apt-repo \
+            --public-key marinaMoji-release-public-key.asc \
+            --suite unstable \
+            --gpg-key-id A1DFB08FD78B8A8F941EAD5FE4A4FB8B462A09F5
+          find apt-repo -type f | sort
+
+      - name: Deploy to GitHub Pages (gh-pages)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./apt-repo
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: 'apt: update repository for ${{ github.ref_name }}'
+
+      # peaceiris only pushes the branch; Pages must also be enabled once in
+      # repo settings (Settings → Pages → Deploy from a branch → gh-pages).
+      # Fail loudly if that one-time step was skipped, so apt does not look
+      # "published" while https://marinamoji.github.io/marinaMoji is 404.
+      - name: Verify GitHub Pages is serving the apt root
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
+            echo "::error::GitHub Pages is not enabled. Enable it once: Settings → Pages → Source: Deploy from a branch → gh-pages / (root). See packaging/linux/README.md."
+            exit 1
+          fi
+          source_branch="$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .source.branch)"
+          if [[ "$source_branch" != "gh-pages" ]]; then
+            echo "::error::GitHub Pages source branch is '$source_branch', expected 'gh-pages'."
+            exit 1
+          fi
+          echo "GitHub Pages is enabled from branch ${source_branch}"
