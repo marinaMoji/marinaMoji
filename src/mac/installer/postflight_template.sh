@@ -76,9 +76,19 @@ if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
   # source list can lag right after the bundle is written.
   REGISTERED=0
   if [ -x "${IMK}" ]; then
+    # Recorded because a package built for the other architecture fails here in
+    # a way that is otherwise indistinguishable from a registration failure:
+    # without Rosetta 2 the binary cannot execute at all.
+    log "host arch: `/usr/bin/uname -m`, binary arch: `/usr/bin/lipo -archs "${IMK}" 2>&1`"
     attempt=1
     while [ "${attempt}" -le 3 ]; do
-      if as_console_user "${IMK}" --register_input_source > /dev/null 2>&1; then
+      REG_OUT=`as_console_user "${IMK}" --register_input_source 2>&1`
+      REG_STATUS=$?
+      log "attempt ${attempt}: exit=${REG_STATUS}"
+      echo "${REG_OUT}" | while read -r line; do
+        [ -n "${line}" ] && log "attempt ${attempt}: ${line}"
+      done
+      if [ "${REG_STATUS}" -eq 0 ]; then
         REGISTERED=1
         break
       fi
