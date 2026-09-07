@@ -104,7 +104,13 @@ if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
   fi
 
   if [ "${REGISTERED}" = "1" ]; then
-    log "input sources registered for ${CONSOLE_USER}"
+    # Deliberately not phrased as success. The registration call can return
+    # noErr with every mode listed while System Settings still shows none of
+    # them -- reproduced when an earlier install ran in the same login session.
+    # Only a logout is known to clear that, so the log must not assert that the
+    # user will see the input source.
+    log "registration call succeeded for ${CONSOLE_USER} (session visibility NOT verified)"
+    log "if marinaMoji is missing from System Settings, log out and back in"
     # Nudge the input menu and System Settings so the new source shows up in an
     # already-running session.
     as_console_user /usr/bin/killall TextInputMenuAgent > /dev/null 2>&1

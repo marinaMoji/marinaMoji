@@ -62,6 +62,33 @@ mkdir -p "${OUT}"
 
 say() { printf '\n=== %s ===\n' "$1"; }
 
+# A clean macOS install has no developer tools, so lipo and strings are absent.
+# Their absence must not be reported as a measurement: `strings | grep -c`
+# silently yields 0, which reads as "this build lacks the registration flag"
+# when it actually means "the check could not run". /usr/bin/grep is always
+# present and reads binaries fine with -a.
+has_reg_flag() {
+  [[ -f "${IMK}" ]] || { echo "?(no binary)"; return; }
+  # grep -c prints 0 and exits 1 when there is no match, so a `|| echo 0`
+  # fallback would emit the count twice. Capture instead.
+  local n
+  n="$(grep -ac "register_input_source" "${IMK}" 2>/dev/null)"
+  echo "${n:-0}"
+}
+
+binary_arch() {
+  [[ -f "${IMK}" ]] || { echo "?(no binary)"; return; }
+  # /usr/bin/lipo exists even with no developer tools: it is a stub that prints
+  # an xcode-select notice, so `command -v` is not a usable test.
+  local out
+  out="$(lipo -archs "${IMK}" 2>/dev/null)"
+  if [[ -z "${out}" || "${out}" == *"xcode-select"* ]]; then
+    echo "?(lipo unavailable - no developer tools installed)"
+  else
+    echo "${out}"
+  fi
+}
+
 # --- state capture -----------------------------------------------------------
 
 capture_machine() {
@@ -83,9 +110,9 @@ capture_bundle() {
   echo "CFBundleVer:  $(defaults read "${APP}/Contents/Info.plist" CFBundleVersion 2>/dev/null || echo '?')"
   echo "Bundle mtime: $(stat -f%Sm "${APP}")"
   echo "Binary mtime: $(stat -f%Sm "${IMK}" 2>/dev/null || echo '?')"
-  echo "Binary arch:  $(lipo -archs "${IMK}" 2>&1)"
+  echo "Binary arch:  $(binary_arch)"
   echo "Binary sha:   $(shasum -a 256 "${IMK}" 2>/dev/null | awk '{print $1}')"
-  echo "Has reg flag: $(strings -a "${IMK}" 2>/dev/null | grep -c register_input_source)"
+  echo "Has reg flag: $(has_reg_flag)"
   echo "Signed by:    $(codesign -dvvv "${APP}" 2>&1 | grep '^Authority' | head -1 | sed 's/^Authority=//')"
 }
 
@@ -144,9 +171,20 @@ if [[ -n "${PKG}" ]]; then
   sudo installer -pkg "${PKG}" -target / >> "${OUT}/01-install.txt" 2>&1
   echo "installer exit: $?" >> "${OUT}/01-install.txt"
 else
+  echo
+  echo "Which package are you about to install? Drag it into this window for the"
+  echo "path, so the trial records exactly which build was used."
+  read -r -p "Package path (Enter to skip): " MANUAL_PKG
+  MANUAL_PKG="${MANUAL_PKG%\"}"; MANUAL_PKG="${MANUAL_PKG#\"}"
   {
     echo "Method: manual / GUI install (ActivatePane DOES run)"
-    echo "Package: chosen by the operator"
+    if [[ -n "${MANUAL_PKG}" && -f "${MANUAL_PKG}" ]]; then
+      echo "Package: ${MANUAL_PKG}"
+      echo "sha256: $(shasum -a 256 "${MANUAL_PKG}" | awk '{print $1}')"
+      echo "size: $(stat -f%z "${MANUAL_PKG}") bytes"
+    else
+      echo "Package: NOT RECORDED (operator skipped)"
+    fi
   } > "${OUT}/01-install.txt"
   echo
   echo "Install the package by hand now (double-click it, complete the installer)."
@@ -190,7 +228,12 @@ read -r -p "Run the active repair steps now? They mutate state. [y/n] " DOREPAIR
 if [[ "${DOREPAIR}" =~ ^[Yy] ]]; then
   {
     say "marinaMoji --register_input_source"
-    if [[ -x "${IMK}" ]]; then
+    # A build without the flag cannot be repaired this way, and reporting the
+    # failure as a result would wrongly implicate the registration logic.
+    if [[ "$(has_reg_flag)" == "0" ]]; then
+      echo "SKIPPED: this build has no --register_input_source flag."
+      echo "Repair is not applicable; the installed build predates it."
+    elif [[ -x "${IMK}" ]]; then
       "${IMK}" --register_input_source 2>&1
       echo "exit: $?"
     else
@@ -216,7 +259,9 @@ fi
 
 BUNDLE_BEFORE="$(grep 'Binary sha:' "${OUT}/00-before.txt" | awk '{print $3}')"
 BUNDLE_AFTER="$(grep 'Binary sha:' "${OUT}/02-after-passive.txt" | awk '{print $3}')"
-POSTINSTALL="$(grep 'marinaMoji postinstall' "${OUT}/02-after-passive.txt" | sed 's/.*postinstall: //' | tr '\n' ';')"
+# Deduplicated: the same log line appears in both the full-delta and the
+# postinstall-only sections of 02-after-passive.txt.
+POSTINSTALL="$(grep 'marinaMoji postinstall' "${OUT}/02-after-passive.txt" | sed 's/.*postinstall: //' | sort -u | tr '\n' ';')"
 
 {
   echo "# marinaMoji install trial: ${LABEL}"

@@ -62,9 +62,58 @@ NSString *InputSourceID(TISInputSourceRef source) {
   return (__bridge NSString *)(TISGetInputSourceProperty(source, kTISPropertyInputSourceID));
 }
 
-// Registers the running bundle and reports how many of its input sources macOS
-// now lists. |select| additionally enables every mode and selects the base one.
-// Returns 0 when at least one input source is visible to Text Input Services.
+// Returns 1 for true, 0 for false, -1 when the property is absent.
+int TISBool(TISInputSourceRef source, CFStringRef key) {
+  const void *value = TISGetInputSourceProperty(source, key);
+  if (value == nullptr) {
+    return -1;
+  }
+  return CFBooleanGetValue((CFBooleanRef)value) ? 1 : 0;
+}
+
+// Prints one line per input source belonging to |bundleID| and returns how many
+// there were.
+//
+// The properties matter because the count alone proves nothing.
+// TISCreateInputSourceList(nullptr, true) reports what is installed on disk, not
+// what the current login session will offer: when an earlier install happened in
+// the same session, macOS keeps listing these sources here while System Settings
+// shows none of them. Callers must not read a non-zero count as "the user can
+// see it" -- see mac/vm_trial_marinamoji.sh for the reproduction.
+int ReportInputSources(NSString *bundleID) {
+  CFArrayRef sourceList = TISCreateInputSourceList(nullptr, true);
+  if (sourceList == nullptr) {
+    fprintf(stderr, "ERROR: TISCreateInputSourceList failed\n");
+    return -1;
+  }
+
+  int count = 0;
+  for (CFIndex i = 0; i < CFArrayGetCount(sourceList); ++i) {
+    TISInputSourceRef source = (TISInputSourceRef)(CFArrayGetValueAtIndex(sourceList, i));
+    NSString *sourceID = InputSourceID(source);
+    if (![sourceID hasPrefix:bundleID]) {
+      continue;
+    }
+    ++count;
+    fprintf(stderr, "  %s enabled=%d selected=%d enable_capable=%d select_capable=%d\n",
+            [sourceID UTF8String], TISBool(source, kTISPropertyInputSourceIsEnabled),
+            TISBool(source, kTISPropertyInputSourceIsSelected),
+            TISBool(source, kTISPropertyInputSourceIsEnableCapable),
+            TISBool(source, kTISPropertyInputSourceIsSelectCapable));
+  }
+  CFRelease(sourceList);
+  return count;
+}
+
+// Registers the running bundle with Text Input Services. |select| additionally
+// enables every mode and selects the base one.
+//
+// Exit status reports only whether the registration call itself succeeded and
+// left the sources listed. It deliberately does NOT claim the sources are
+// visible in the current login session, because no API checked here can tell:
+// in the failure this was written for, TISRegisterInputSource returns noErr and
+// all modes stay listed while System Settings offers none of them. Only a
+// logout is known to resolve that, so callers must phrase success accordingly.
 int RegisterInputSource(bool select) {
   NSBundle *bundle = [NSBundle mainBundle];
   NSString *bundleID = [bundle bundleIdentifier];
@@ -80,34 +129,50 @@ int RegisterInputSource(bool select) {
   fprintf(stderr, "TISRegisterInputSource(%s): %d\n", [[bundleURL path] UTF8String],
           static_cast<int>(status));
 
-  CFArrayRef sourceList = TISCreateInputSourceList(nullptr, true);
-  if (sourceList == nullptr) {
-    fprintf(stderr, "ERROR: TISCreateInputSourceList failed\n");
-    return 1;
-  }
-
-  int count = 0;
-  for (CFIndex i = 0; i < CFArrayGetCount(sourceList); ++i) {
-    TISInputSourceRef source = (TISInputSourceRef)(CFArrayGetValueAtIndex(sourceList, i));
-    NSString *sourceID = InputSourceID(source);
-    if (![sourceID hasPrefix:bundleID]) {
-      continue;
-    }
-    ++count;
-    if (!select) {
-      continue;
-    }
-    TISEnableInputSource(source);
-    if ([sourceID isEqualToString:[bundleID stringByAppendingString:@".base"]] ||
-        [sourceID isEqualToString:bundleID]) {
-      TISSelectInputSource(source);
+  if (select) {
+    CFArrayRef sourceList = TISCreateInputSourceList(nullptr, true);
+    if (sourceList != nullptr) {
+      for (CFIndex i = 0; i < CFArrayGetCount(sourceList); ++i) {
+        TISInputSourceRef source = (TISInputSourceRef)(CFArrayGetValueAtIndex(sourceList, i));
+        NSString *sourceID = InputSourceID(source);
+        if (![sourceID hasPrefix:bundleID]) {
+          continue;
+        }
+        TISEnableInputSource(source);
+        if ([sourceID isEqualToString:[bundleID stringByAppendingString:@".base"]] ||
+            [sourceID isEqualToString:bundleID]) {
+          TISSelectInputSource(source);
+        }
+      }
+      CFRelease(sourceList);
     }
   }
-  CFRelease(sourceList);
 
-  if (count == 0) {
+  const int count = ReportInputSources(bundleID);
+  if (count <= 0) {
     fprintf(stderr, "ERROR: no %s input sources listed after registration\n",
             [bundleID UTF8String]);
+    return 1;
+  }
+  fprintf(stderr,
+          "%d input sources listed. This does NOT prove they are visible in this\n"
+          "login session; if they are missing from System Settings, log out.\n",
+          count);
+  printf("%d\n", count);
+  return 0;
+}
+
+// Reports the input source state without registering anything, so that a broken
+// and a working session can be compared property by property.
+int VerifyInputSource() {
+  NSString *bundleID = [[NSBundle mainBundle] bundleIdentifier];
+  if (bundleID == nil) {
+    fprintf(stderr, "ERROR: cannot resolve the running bundle\n");
+    return 1;
+  }
+  const int count = ReportInputSources(bundleID);
+  if (count <= 0) {
+    fprintf(stderr, "no %s input sources listed\n", [bundleID UTF8String]);
     return 1;
   }
   printf("%d\n", count);
@@ -125,6 +190,9 @@ int main(int argc, char *argv[]) {
     }
     if (std::strcmp(argv[i], "--select_input_source") == 0) {
       return RegisterInputSource(true);
+    }
+    if (std::strcmp(argv[i], "--verify_input_source") == 0) {
+      return VerifyInputSource();
     }
   }
 
