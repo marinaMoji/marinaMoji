@@ -39,6 +39,8 @@
 #include <utility>
 
 #include "absl/log/log.h"
+#include "absl/strings/str_cat.h"
+#include "base/marina_debug_log.h"
 #include "base/win32/com.h"
 #include "base/win32/hresultor.h"
 #include "protocol/commands.pb.h"
@@ -447,6 +449,15 @@ void TipLangBar::SyncModeIconVisibility() {
   if (shown_in_tray == mode_icon_shown_) {
     return;
   }
+  // TEMPORARY: see base/marina_debug_log.h. Nothing on this path was logged,
+  // so a capture taken while the indicator misbehaved said nothing about what
+  // the langbar decided. Only the transitions are logged, not the no-op above,
+  // which would otherwise fire on every keystroke.
+  mozc::MarinaDebugLog(absl::StrCat(
+      "langbar: mode icon ", mode_icon_shown_ ? "shown" : "hidden", " -> ",
+      shown_in_tray ? "shown" : "hidden",
+      ", ever_unhidden=", mode_icon_ever_unhidden_,
+      ", items=", (input_button_menu_ && input_mode_button_for_win8_) ? 1 : 0));
   if (!input_button_menu_ || !input_mode_button_for_win8_) {
     return;
   }
