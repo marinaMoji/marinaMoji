@@ -10,6 +10,42 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: make the chosen layout's AltGr level work on an OS layout without one (2026-09-08)
+
+Second half of [#33](https://github.com/marinaMoji/marinaMoji/issues/33).
+`20449371a` stopped the number-row shortcuts from eating AltGr chords; this
+makes the chords produce their characters when the OS layout has no AltGr
+level of its own.
+
+With marinaMoji set to AZERTY on a US or Dvorak Windows layout, the right Alt
+is a plain Alt: Windows injects no Ctrl, turns Alt+key into a system key, and
+a TSF text service is never offered it through its keystroke sink. So
+`HandleDirectModeLayoutKey` never ran, `kFrAltGr` was never consulted, and the
+application saw a bare Alt chord — AltGr+E opened Notepad's Edit menu instead
+of typing €. Dead keys were unaffected because they are unmodified keypresses.
+The AltGr layer therefore only ever worked on an OS layout that already had
+one, which is why it passed testing on French Windows.
+
+- `RomajiKeyboardLayoutEmulator::GetAltGrVirtualKeys()` reports the VKs on a
+  layout's AltGr level (characters and AltGr dead keys alike).
+- The TIP registers those as `TF_MOD_RALT` preserved keys — the mechanism
+  upstream already uses for Alt+`` ` `` (Kanji) — in both the plain and the
+  Shift variant, since Italian, UK and bépo populate the shifted half.
+  Registration is keyed to the selected layout and re-synced on document
+  focus, so a change in Preferences applies to running applications.
+- Nothing is registered for MARINA_KBD_OS_DEFAULT, US, Dvorak or JIS: on those
+  the right Alt stays a plain Alt, which is what the selection means.
+- `OnMarinaAltGrPreservedKey()` claims the chord only when the *right* Alt is
+  down and the key pipeline consumes it; otherwise it re-posts
+  `WM_SYSKEYDOWN` so the application still gets its accelerator, the same
+  workaround the F10 preserved key already uses.
+
+Direct mode only. Composition mode still has no AltGr layer (see the contract
+in `keyboard_layout_tables.h`) — the preserved key fires, the key is not
+consumed, and it is handed back to the application.
+
+Not built: no Windows toolchain on this machine.
+
 ### ibus: place the odoriji palette at the caret when opened from the IME menu (2026-09-08)
 
 Follow-up to the 2026-08-28 focus fix for

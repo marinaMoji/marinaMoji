@@ -29,7 +29,9 @@
 
 #include "win32/base/keyboard_layout_tables.h"
 
+#include <algorithm>
 #include <cstddef>
+#include <vector>
 
 #include "win32/base/keyboard.h"
 
@@ -556,6 +558,33 @@ wchar_t RomajiKeyboardLayoutEmulator::GetCharacterForKeyDown(
 
   const CharPair& pair = table[index];
   return effective_shift ? pair.shifted : pair.base;
+}
+
+// static
+std::vector<BYTE> RomajiKeyboardLayoutEmulator::GetAltGrVirtualKeys(
+    config::MarinaKeyboardLayout layout) {
+  std::vector<BYTE> keys;
+  if (layout == config::MARINA_KBD_OS_DEFAULT) {
+    return keys;
+  }
+  const LayoutExtras extras = ExtrasForLayout(layout);
+  const auto add = [&keys](BYTE vk) {
+    if (std::find(keys.begin(), keys.end(), vk) == keys.end()) {
+      keys.push_back(vk);
+    }
+  };
+  for (size_t i = 0; i < extras.num_altgr; ++i) {
+    // Entries whose characters are both L'\0' are the dead-key slots (e.g.
+    // French AltGr+2), resolved through the dead-key table below rather than
+    // as characters. They still belong to the AltGr level, so keep them.
+    add(extras.altgr[i].vk);
+  }
+  for (size_t i = 0; i < extras.num_dead_keys; ++i) {
+    if (extras.dead_keys[i].altgr) {
+      add(extras.dead_keys[i].vk);
+    }
+  }
+  return keys;
 }
 
 // static
