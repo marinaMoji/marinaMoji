@@ -158,6 +158,20 @@ HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
                                                  IDS_DISABLED, IDI_DISABLED_NT,
                                                  IDI_DISABLED};
 
+  // marinaMoji: settle the mode icon's visibility BEFORE AddItem(), not after.
+  // TSF advises the item's sink and queries GetInfo()/GetStatus() during
+  // AddItem(), and the taskbar appears to create its input-mode button from
+  // that first query -- after which nothing this class does takes it away
+  // (see SyncModeIconVisibility). Hiding a few lines later, as this used to,
+  // leaves a window in which the item reports itself visible, which is enough
+  // for the button to be created and then stay for good.
+  //
+  // SetHidden()'s OnUpdate() necessarily fails here, since the sink is not
+  // advised until AddItem(); that does not matter. The bit lives in status_,
+  // which is what GetStatus() reports when TSF does ask.
+  const bool mode_icon_shown_at_registration =
+      !mozc::win32::LoadToolbarVisiblePreference();
+
   if (input_button_menu_ == nullptr) {
     // Add the "Input Mode" button.
     constexpr TipLangBarMenuItem kInputMenu[] = {
@@ -210,7 +224,9 @@ HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
     if (result != S_OK) {
       return result;
     }
+    input_button_menu->SetHidden(!mode_icon_shown_at_registration);
     lang_bar_item_mgr_->AddItem(input_button_menu.get());
+    mode_icon_shown_ = mode_icon_shown_at_registration;
     input_button_menu_ = std::move(input_button_menu);
   }
 
@@ -266,7 +282,9 @@ HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
     if (FAILED(result)) {
       return result;
     }
+    input_mode_menu->SetHidden(!mode_icon_shown_at_registration);
     result = lang_bar_item_mgr_->AddItem(input_mode_menu.get());
+    mode_icon_shown_ = mode_icon_shown_at_registration;
     input_mode_button_for_win8_ = std::move(input_mode_menu);
   }
 
@@ -352,6 +370,13 @@ HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
     help_menu_ = std::move(help_menu);
   }
 
+  // TEMPORARY: see base/marina_debug_log.h.
+  mozc::MarinaDebugLog(absl::StrCat(
+      "langbar: registered mode icon ",
+      mode_icon_shown_at_registration ? "shown" : "hidden"));
+
+  // A no-op when the blocks above ran, since they already applied the
+  // preference. Kept for the case where the items already existed.
   SyncModeIconVisibility();
 
   return result;
