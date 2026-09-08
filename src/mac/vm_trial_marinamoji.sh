@@ -159,6 +159,25 @@ fi
 
 # --- phase 1: install --------------------------------------------------------
 
+# Upgrading an existing install rewrites another app's bundle, which macOS
+# blocks unless the terminal has App Management permission. Without it the
+# install fails halfway through, and the partially modified machine is no longer
+# a valid baseline -- so warn before the snapshot is spent rather than after.
+if [[ -n "${PKG}" && -d "${APP}" ]]; then
+  echo
+  echo "This is an UPGRADE over an existing install."
+  echo "macOS will block it unless this terminal has App Management permission:"
+  echo "  System Settings > Privacy & Security > App Management > enable your terminal"
+  echo "A blocked install still removes the old launch agents, which ruins the"
+  echo "baseline for a retry -- restore the snapshot again if that happens."
+  read -r -p "Permission granted, and terminal restarted since? [y/N] " APPMGMT
+  if [[ ! "${APPMGMT}" =~ ^[Yy] ]]; then
+    echo "Aborted before touching the machine; the snapshot is still clean."
+    rm -rf "${OUT}"
+    exit 1
+  fi
+fi
+
 if [[ -n "${PKG}" ]]; then
   {
     echo "Method: installer CLI (no plugin panes, ActivatePane does NOT run)"
