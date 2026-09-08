@@ -197,10 +197,9 @@ void DataLoader::StartReloadLoop(DataLoader::ReloadedCallback callback) {
     // When the high priority data is not registered, waits at most kTimeout
     // until a new high priority data is registered. Retry the loop when a new
     // high priority data is registered while waiting.
-    constexpr absl::Duration kTimeout = absl::Milliseconds(100);
     if (!high_priority_data_registered_.HasBeenNotified() &&
         high_priority_data_registered_.WaitForNotificationWithTimeout(
-            kTimeout)) {
+            high_priority_data_timeout_)) {
       continue;
     }
 

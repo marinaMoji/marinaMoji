@@ -238,6 +238,13 @@ TEST_F(DataLoaderTest, WaitHighPriorityDataTest) {
   };
 
   DataLoader loader;
+  // The loading thread gives a high priority request this long to arrive
+  // before it gives up and builds the top pending one instead. The default is
+  // 100ms, which the three registrations below plus the fourth are not
+  // guaranteed to beat on a loaded machine -- when they lose, priority 50 is
+  // built and the callback fires twice. Nothing here is meant to test that
+  // deadline, so make it one no scheduler delay will exceed.
+  loader.SetHighPriorityDataTimeoutForTesting(absl::Seconds(30));
 
   int callback_called = 0;
 
@@ -268,6 +275,9 @@ TEST_F(DataLoaderTest, WaitHighPriorityDataTimeoutTest) {
   };
 
   DataLoader loader;
+  // This test is the mirror of the one above: it *wants* the wait to expire,
+  // so there is no reason to spend the default 100ms on it.
+  loader.SetHighPriorityDataTimeoutForTesting(absl::Milliseconds(1));
 
   int callback_called = 0;
 

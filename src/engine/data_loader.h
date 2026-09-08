@@ -41,6 +41,7 @@
 #include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
+#include "absl/time/time.h"
 #include "base/thread.h"
 #include "engine/modules.h"
 #include "protocol/engine_builder.pb.h"
@@ -87,6 +88,19 @@ class DataLoader {
   // Disables specific handling for high priority data.
   void NotifyHighPriorityDataRegisteredForTesting() {
     high_priority_data_registered_.Notify();
+  }
+
+  // Overrides how long the loading thread waits for a high priority request
+  // before falling back to the top pending one. Must be called before the
+  // first StartNewDataBuildTask(), which is what starts the thread that reads
+  // this; the thread creation is then what publishes the value to it.
+  //
+  // Tests need this in both directions. One that expects a high priority
+  // request to win has to be sure it registers within the window, and the
+  // default 100ms is not something a loaded machine guarantees. One that
+  // expects the window to expire would rather not spend the default waiting.
+  void SetHighPriorityDataTimeoutForTesting(absl::Duration timeout) {
+    high_priority_data_timeout_ = timeout;
   }
 
  private:
@@ -143,6 +157,11 @@ class DataLoader {
 
   // Notify when a new high priority data is registered.
   absl::Notification high_priority_data_registered_;
+
+  // How long StartReloadLoop() waits for a high priority request before
+  // building the top pending one. See
+  // SetHighPriorityDataTimeoutForTesting().
+  absl::Duration high_priority_data_timeout_ = absl::Milliseconds(100);
 
   TaskManager load_;
 };
