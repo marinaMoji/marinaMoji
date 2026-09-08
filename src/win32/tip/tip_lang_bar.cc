@@ -378,6 +378,7 @@ HRESULT TipLangBar::UninitLangBar() {
   }
   mode_icon_shown_ = true;
   mode_icon_ever_unhidden_ = false;
+  mode_icon_hide_abandoned_ = false;
   if (tool_button_menu_) {
     item->RemoveItem(tool_button_menu_.get());
     tool_button_menu_.reset();
@@ -445,28 +446,26 @@ HRESULT TipLangBar::UpdateMenu(bool enabled, uint32_t composition_mode) {
 // on the next activation of the profile (a new application, or a restart),
 // where the registration-time hide applies again.
 void TipLangBar::SyncModeIconVisibility() {
+  if (mode_icon_hide_abandoned_ || !input_button_menu_ ||
+      !input_mode_button_for_win8_) {
+    return;
+  }
   const bool shown_in_tray = !mozc::win32::LoadToolbarVisiblePreference();
   if (shown_in_tray == mode_icon_shown_) {
     return;
   }
-  // TEMPORARY: see base/marina_debug_log.h. Nothing on this path was logged,
-  // so a capture taken while the indicator misbehaved said nothing about what
-  // the langbar decided. Only the transitions are logged, not the no-op above,
-  // which would otherwise fire on every keystroke.
+  if (!shown_in_tray && mode_icon_ever_unhidden_) {
+    // TEMPORARY: see base/marina_debug_log.h.
+    mozc::MarinaDebugLog(
+        "langbar: mode icon cannot be hidden again, leaving it shown");
+    mode_icon_hide_abandoned_ = true;
+    return;
+  }
+  // TEMPORARY: see base/marina_debug_log.h.
   mozc::MarinaDebugLog(absl::StrCat(
       "langbar: mode icon ", mode_icon_shown_ ? "shown" : "hidden", " -> ",
       shown_in_tray ? "shown" : "hidden",
-      ", ever_unhidden=", mode_icon_ever_unhidden_,
-      ", items=", (input_button_menu_ && input_mode_button_for_win8_) ? 1 : 0));
-  if (!input_button_menu_ || !input_mode_button_for_win8_) {
-    return;
-  }
-  if (!shown_in_tray && mode_icon_ever_unhidden_) {
-    // Hiding would not remove the taskbar button and would only kill it.
-    // Leave it visible and live, and stop reconsidering this until the next
-    // Init/Uninit cycle.
-    return;
-  }
+      ", ever_unhidden=", mode_icon_ever_unhidden_));
   input_button_menu_->SetHidden(!shown_in_tray);
   input_mode_button_for_win8_->SetHidden(!shown_in_tray);
   mode_icon_shown_ = shown_in_tray;
