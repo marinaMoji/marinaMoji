@@ -139,9 +139,21 @@ class MozcEngine : public EngineInterface {
 
   // marinaMoji: re-issues SHOW_ODORIJI_PALETTE if the palette was opened from
   // the panel menu and focus has just come back to a text surface. No-op (and
-  // clears the pending flag) outside the retry window. Returns true if the
-  // palette was re-shown.
+  // clears the pending flag) outside the retry window; stays pending while no
+  // usable caret rect is available. Returns true if the palette was re-shown.
   bool MaybeReshowOdorijiPalette(IbusEngineWrapper* engine);
+
+  // marinaMoji: false for the empty or zero-sized caret rects the engine holds
+  // before an app has reported one, or while a menu owns the focus. The
+  // renderer anchors the candidate window to the rect, so drawing at one of
+  // those puts the window in the top-left corner of the screen.
+  static bool IsUsableCursorArea(const IbusEngineWrapper::Rectangle& area);
+
+  // marinaMoji: substitutes the last caret rect the app reported when the
+  // engine's current one is unusable, so a palette opened from the panel menu
+  // is drawn where the caret is rather than in the corner. Returns whether the
+  // engine's cursor area is usable afterwards.
+  bool EnsureUsableCursorArea(IbusEngineWrapper* engine);
 
   // Updates the callback message based on the content of |output|.
   bool ExecuteCallback(IbusEngineWrapper* engine,
@@ -242,6 +254,12 @@ class MozcEngine : public EngineInterface {
   // when the menu closes. The palette is re-shown once focus is back on a text
   // surface. See MaybeReshowOdorijiPalette().
   bool odoriji_show_pending_ = false;
+
+  // marinaMoji: the last caret rect reported through set_cursor_location that
+  // was worth drawing at. Used to place a palette opened from the panel menu
+  // while the app-reported rect belongs to the menu (or is still empty).
+  IbusEngineWrapper::Rectangle last_usable_cursor_area_ = {0, 0, 0, 0};
+  bool has_last_usable_cursor_area_ = false;
 
   friend class MozcEngineTestPeer;
 };

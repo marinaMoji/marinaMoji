@@ -10,6 +10,34 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### ibus: place the odoriji palette at the caret when opened from the IME menu (2026-09-08)
+
+Follow-up to the 2026-08-28 focus fix for
+[#25](https://github.com/marinaMoji/marinaMoji/issues/25). The palette no
+longer disappears when the panel menu closes, but it was drawn in the
+top-left corner of the screen and stayed there until the first Space
+keystroke repositioned it.
+
+The renderer anchors the candidate window to the caret rect the app last
+reported through `set_cursor_location`. While the ibus panel menu owns the
+focus, that rect is empty (all-zero, or zero-sized), and the bottom-left of an
+empty rect is the top-left of the screen.
+
+- `MozcEngine` now remembers the last caret rect worth drawing at
+  (`last_usable_cursor_area_`) and substitutes it whenever the engine's
+  current rect is unusable — so the palette opens where the caret is, without
+  waiting for focus to come back.
+- `MaybeReshowOdorijiPalette()` stays pending instead of re-showing at an
+  unusable rect, and `set_cursor_location` no longer repositions the palette
+  while pending: a fresh caret rect still wins, but an empty one can no longer
+  bounce the palette into the corner and back.
+- The `FocusOut` suppression now also covers a focus bounce that outlasts the
+  500 ms grace period, as long as the palette is still waiting for focus to
+  return from the menu.
+- With `MARINAMOJI_IBUS_DEBUG_LOG` enabled, activating the menu item logs
+  `engine.odoriji show_from_menu usable_rect=0|1`, which says whether the
+  substitution was needed.
+
 ### ibus: log cursor rect and surround-stale flag in debug sessions (2026-08-31)
 
 When `MARINAMOJI_IBUS_DEBUG_LOG` is enabled:
