@@ -151,6 +151,14 @@ class TipLangBarButton : public TipComImplements<ITfLangBarItemButton,
   // The IMozcLangBarItem interface method
   STDMETHODIMP SetEnabled(bool enabled) override;
 
+  // Shows or hides this item by way of the TF_LBI_STATUS_HIDDEN bit that
+  // GetStatus() reports. This is the documented way for an item to ask the
+  // language bar not to display it; unlike removing the item from
+  // ITfLangBarItemMgr it keeps the item registered, so item_sink_ stays
+  // advised and later OnUpdate() notifications still reach the system.
+  // Notifies the system only when the visibility actually changes.
+  HRESULT SetHidden(bool hidden);
+
   // Initializes an ImeButtonMenu instance.
   // This function allocates resources for an ImeButtonMenu instance.
   HRESULT Init(HINSTANCE instance, int string_id,

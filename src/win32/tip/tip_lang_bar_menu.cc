@@ -530,6 +530,19 @@ HRESULT TipLangBarButton::SetEnabled(bool enabled) {
   return result;
 }
 
+HRESULT TipLangBarButton::SetHidden(bool hidden) {
+  const DWORD old_status = status_;
+  if (hidden) {
+    status_ |= TF_LBI_STATUS_HIDDEN;
+  } else {
+    status_ &= ~TF_LBI_STATUS_HIDDEN;
+  }
+  if (status_ == old_status) {
+    return S_OK;
+  }
+  return TipLangBarButton::OnUpdate(TF_LBI_STATUS);
+}
+
 bool TipLangBarButton::CanContextMenuDisplay32bppIcon() {
   // We always use a non-theme icon for a context menu icon on the LangBar
   // unless the current display mode is 32-bpp.  We cannot assume we can

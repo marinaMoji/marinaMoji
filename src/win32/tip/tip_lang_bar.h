@@ -53,7 +53,7 @@ class TipLangBar {
       : tool_button_menu_(nullptr),
         help_menu_(nullptr),
         help_menu_cookie_(TF_INVALID_COOKIE),
-        mode_icon_registered_(false) {}
+        mode_icon_shown_(true) {}
   TipLangBar(const TipLangBar&) = delete;
   TipLangBar& operator=(const TipLangBar&) = delete;
   ~TipLangBar() = default;
@@ -69,10 +69,10 @@ class TipLangBar {
   bool IsInitialized() const;
 
  private:
-  // Adds or removes the two input-mode items so that their registration
-  // matches the current toolbar visibility preference. Safe to call at any
-  // time; a no-op when the state already matches.
-  void SyncModeIconRegistration();
+  // Shows or hides the two input-mode items so that their visibility matches
+  // the current toolbar visibility preference. Safe to call at any time; a
+  // no-op when the state already matches.
+  void SyncModeIconVisibility();
 
   // Represents the language bar item manager.
   // NOTE: We must use the same instance of this class to initialize and
@@ -98,15 +98,12 @@ class TipLangBar {
   DWORD help_menu_cookie_;
 
   // Whether input_button_menu_ and input_mode_button_for_win8_ are currently
-  // registered with lang_bar_item_mgr_. GUID_LBI_INPUTMODE in particular is
-  // treated as the system-recognized taskbar mode indicator on Windows 8+,
-  // so toggling TF_LBI_STYLE_SHOWNINTRAY alone does not hide it there; it
-  // must actually be removed from the item manager. This must stay in sync
-  // with lang_bar_item_mgr_ across every Init/Uninit cycle: TSF calls
-  // Deactivate() and ActivateEx() repeatedly on the same text service (for
-  // instance whenever the user switches keyboard layouts and back), so a
-  // stale value here would let the items be re-added and never removed.
-  bool mode_icon_registered_;
+  // shown, i.e. whether their TF_LBI_STATUS_HIDDEN bit is clear. Both items
+  // stay registered with lang_bar_item_mgr_ for the whole Init/Uninit cycle;
+  // only the status bit moves. true matches the state of a freshly
+  // constructed TipLangBarButton (status_ == 0), which is what InitLangBar()
+  // creates and what UninitLangBar() drops back to.
+  bool mode_icon_shown_;
 };
 
 }  // namespace tsf

@@ -208,8 +208,7 @@ HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
     if (result != S_OK) {
       return result;
     }
-    // Registration is deferred to SyncModeIconRegistration() below so that
-    // the items are only added when the toolbar is hidden.
+    lang_bar_item_mgr_->AddItem(input_button_menu.get());
     input_button_menu_ = std::move(input_button_menu);
   }
 
@@ -265,6 +264,7 @@ HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
     if (FAILED(result)) {
       return result;
     }
+    result = lang_bar_item_mgr_->AddItem(input_mode_menu.get());
     input_mode_button_for_win8_ = std::move(input_mode_menu);
   }
 
@@ -350,7 +350,7 @@ HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
     help_menu_ = std::move(help_menu);
   }
 
-  SyncModeIconRegistration();
+  SyncModeIconVisibility();
 
   return result;
 }
@@ -374,7 +374,7 @@ HRESULT TipLangBar::UninitLangBar() {
     item->RemoveItem(input_button_menu_.get());
     input_button_menu_.reset();
   }
-  mode_icon_registered_ = false;
+  mode_icon_shown_ = true;
   if (tool_button_menu_) {
     item->RemoveItem(tool_button_menu_.get());
     tool_button_menu_.reset();
@@ -406,35 +406,36 @@ HRESULT TipLangBar::UpdateMenu(bool enabled, uint32_t composition_mode) {
   tool_button_menu_->SetEnabled(enabled);
   input_mode_button_for_win8_->SetEnabled(enabled);
 
-  SyncModeIconRegistration();
+  SyncModeIconVisibility();
   return S_OK;
 }
 
 // The custom toolbar already surfaces the input mode, so the langbar mode
-// icon would just duplicate it in the taskbar. GUID_LBI_INPUTMODE is the
-// system-recognized taskbar mode indicator on Windows 8+, and Windows shows
-// it whenever it is registered regardless of TF_LBI_STYLE_SHOWNINTRAY, so
-// hiding it requires actually removing it from the item manager while the
-// toolbar is visible, re-adding it once the toolbar is hidden again. The tool
-// icon (and its right-click menu) stays registered either way.
-// See GitHub issue #22.
-void TipLangBar::SyncModeIconRegistration() {
+// icon would just duplicate it in the taskbar. Hide the mode icon there while
+// the toolbar is visible; the tool icon (and its right-click menu) stays shown
+// regardless. See GitHub issue #22.
+//
+// Visibility is expressed with the TF_LBI_STATUS_HIDDEN bit reported by
+// GetStatus(), which is the documented way for an item to ask not to be
+// displayed. Two earlier attempts got this wrong and must not be revived:
+// toggling the TF_LBI_STYLE_SHOWNINTRAY *style* bit did not hide the Windows
+// 10/11 taskbar mode indicator at all, and removing the items from
+// lang_bar_item_mgr_ left a dead icon behind -- Windows keeps the taskbar
+// button it has already created, while RemoveItem() makes TSF unadvise
+// item_sink_, after which every SelectMenuItem()/SetEnabled() notification is
+// silently dropped by TipLangBarButton::OnUpdate() and right-clicking the icon
+// opens nothing. See GitHub issue #30.
+void TipLangBar::SyncModeIconVisibility() {
   const bool shown_in_tray = !mozc::win32::LoadToolbarVisiblePreference();
-  if (shown_in_tray == mode_icon_registered_) {
+  if (shown_in_tray == mode_icon_shown_) {
     return;
   }
-  if (!lang_bar_item_mgr_ || !input_button_menu_ ||
-      !input_mode_button_for_win8_) {
+  if (!input_button_menu_ || !input_mode_button_for_win8_) {
     return;
   }
-  if (shown_in_tray) {
-    lang_bar_item_mgr_->AddItem(input_button_menu_.get());
-    lang_bar_item_mgr_->AddItem(input_mode_button_for_win8_.get());
-  } else {
-    lang_bar_item_mgr_->RemoveItem(input_button_menu_.get());
-    lang_bar_item_mgr_->RemoveItem(input_mode_button_for_win8_.get());
-  }
-  mode_icon_registered_ = shown_in_tray;
+  input_button_menu_->SetHidden(!shown_in_tray);
+  input_mode_button_for_win8_->SetHidden(!shown_in_tray);
+  mode_icon_shown_ = shown_in_tray;
 }
 
 bool TipLangBar::IsInitialized() const {
