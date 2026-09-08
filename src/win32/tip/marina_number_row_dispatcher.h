@@ -49,9 +49,17 @@ namespace tsf {
 // bit (LParamKeyInfo::IsPreviousStateDwon). A held-down chord is claimed but
 // fires only once; a genuine second press always fires, however fast it
 // follows the first.
+//
+// |alt| must be the current Alt state. Windows reports AltGr as Ctrl+RightAlt,
+// so a Ctrl-only test that ignores Alt claims the whole AltGr layer of the
+// number row -- on French AZERTY that is @ ~ # { [, on German QWERTZ the same
+// keys carry the euro sign and the brace/bracket set. None of those may ever
+// reach the application if a marina action happens to be bound to that slot.
+// A genuine Ctrl+Alt+digit is an application shortcut, never a marina binding,
+// so excluding Alt is correct in both directions. See GitHub issue #33.
 bool DispatchMarinaNumberRowShortcut(
-    BYTE scan_code, bool ctrl, bool shift, bool is_autorepeat, bool is_open,
-    commands::CompositionMode original_composition_mode,
+    BYTE scan_code, bool ctrl, bool alt, bool shift, bool is_autorepeat,
+    bool is_open, commands::CompositionMode original_composition_mode,
     const config::Config& config, client::ClientInterface* client,
     commands::Output* output);
 
@@ -59,7 +67,7 @@ bool DispatchMarinaNumberRowShortcut(
 // a number-row chord at all. Fetching the config costs an IPC round trip to
 // the server, so callers use this first rather than paying that on every
 // keystroke the user types.
-bool CouldBeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl);
+bool CouldBeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl, bool alt);
 
 // Non-mutating check for OnTestKeyDown: returns true iff
 // DispatchMarinaNumberRowShortcut would consume this scan_code/Ctrl/Shift
@@ -68,7 +76,8 @@ bool CouldBeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl);
 // OnKeyDown if OnTestKeyDown reported it as consumed, and this must be
 // checked independent of whether the IME is currently open, since these
 // shortcuts (e.g. via EnsureImeOn) are meant to work from a closed IME too.
-bool WouldConsumeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl, bool shift,
+bool WouldConsumeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl, bool alt,
+                                         bool shift,
                                          const config::Config& config);
 
 }  // namespace tsf

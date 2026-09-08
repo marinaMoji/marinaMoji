@@ -73,9 +73,10 @@ bool EnsureImeOn(bool is_open, CompositionMode original_composition_mode,
 
 }  // namespace
 
-bool WouldConsumeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl, bool shift,
+bool WouldConsumeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl, bool alt,
+                                         bool shift,
                                          const config::Config& config) {
-  if (!ctrl) {
+  if (!ctrl || alt) {
     return false;
   }
   const std::optional<MarinaPhysicalSlot> slot =
@@ -90,15 +91,18 @@ bool WouldConsumeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl, bool shift,
       .has_value();
 }
 
-bool CouldBeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl) {
-  return ctrl && ScanCodeToPhysicalSlot(scan_code).has_value();
+bool CouldBeMarinaNumberRowShortcut(BYTE scan_code, bool ctrl, bool alt) {
+  return ctrl && !alt && ScanCodeToPhysicalSlot(scan_code).has_value();
 }
 
 bool DispatchMarinaNumberRowShortcut(
-    BYTE scan_code, bool ctrl, bool shift, bool is_autorepeat, bool is_open,
-    CompositionMode original_composition_mode, const config::Config& config,
-    client::ClientInterface* client, Output* output) {
-  if (!ctrl) {
+    BYTE scan_code, bool ctrl, bool alt, bool shift, bool is_autorepeat,
+    bool is_open, CompositionMode original_composition_mode,
+    const config::Config& config, client::ClientInterface* client,
+    Output* output) {
+  // Ctrl+Alt is how Windows reports AltGr; those chords belong to the layout's
+  // AltGr layer, not to the marina number-row bindings. See issue #33.
+  if (!ctrl || alt) {
     return false;
   }
 

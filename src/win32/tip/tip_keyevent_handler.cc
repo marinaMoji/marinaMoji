@@ -219,11 +219,13 @@ HRESULT OnTestKey(TipTextService* text_service, ITfContext* context,
   // number-row chord at all.
   if (is_key_down &&
       CouldBeMarinaNumberRowShortcut(key_info.GetScanCode(),
-                                     keyboard_status.IsPressed(VK_CONTROL))) {
+                                     keyboard_status.IsPressed(VK_CONTROL),
+                                     keyboard_status.IsPressed(VK_MENU))) {
     config::Config marina_config;
     if (private_context->GetClient()->GetConfig(&marina_config) &&
         WouldConsumeMarinaNumberRowShortcut(
             key_info.GetScanCode(), keyboard_status.IsPressed(VK_CONTROL),
+            keyboard_status.IsPressed(VK_MENU),
             keyboard_status.IsPressed(VK_SHIFT), marina_config)) {
       // TEMPORARY: see base/marina_debug_log.h.
       mozc::MarinaDebugLog(absl::StrCat(
@@ -376,7 +378,8 @@ bool TryDispatchMarinaNumberRowShortcut(TipPrivateContext* private_context,
   // Same reasoning as OnTestKey: skip the config IPC unless this key could
   // possibly be a chord.
   if (!CouldBeMarinaNumberRowShortcut(key_info.GetScanCode(),
-                                      keyboard_status.IsPressed(VK_CONTROL))) {
+                                      keyboard_status.IsPressed(VK_CONTROL),
+                                      keyboard_status.IsPressed(VK_MENU))) {
     return false;
   }
   config::Config config;
@@ -402,8 +405,9 @@ bool TryDispatchMarinaNumberRowShortcut(TipPrivateContext* private_context,
   }
   return DispatchMarinaNumberRowShortcut(
       key_info.GetScanCode(), keyboard_status.IsPressed(VK_CONTROL),
-      keyboard_status.IsPressed(VK_SHIFT), key_info.IsPreviousStateDwon(), open,
-      original_mode, config, private_context->GetClient(), output);
+      keyboard_status.IsPressed(VK_MENU), keyboard_status.IsPressed(VK_SHIFT),
+      key_info.IsPreviousStateDwon(), open, original_mode, config,
+      private_context->GetClient(), output);
 }
 
 // marinaMoji: closes the Symbols Palette on Escape. The palette window is
