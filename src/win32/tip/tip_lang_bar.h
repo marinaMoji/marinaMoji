@@ -54,7 +54,9 @@ class TipLangBar {
         help_menu_(nullptr),
         help_menu_cookie_(TF_INVALID_COOKIE),
         mode_icon_shown_(true),
-        mode_icon_ever_unhidden_(false) {}
+        mode_icon_ever_unhidden_(false),
+        rebuilding_(false),
+        lang_bar_callback_(nullptr) {}
   TipLangBar(const TipLangBar&) = delete;
   TipLangBar& operator=(const TipLangBar&) = delete;
   ~TipLangBar() = default;
@@ -74,6 +76,12 @@ class TipLangBar {
   // the current toolbar visibility preference. Safe to call at any time; a
   // no-op when the state already matches.
   void SyncModeIconVisibility();
+
+  // Tears the langbar down and builds it again, so every item re-registers
+  // with its current visibility applied from the start. This is the only way
+  // found to take the Windows taskbar's input-mode button away again once it
+  // has been drawn; see the comment on SyncModeIconVisibility() in the .cc.
+  void RebuildLangBar();
 
   // Represents the language bar item manager.
   // NOTE: We must use the same instance of this class to initialize and
@@ -112,6 +120,15 @@ class TipLangBar {
   // cannot be taken away again, so we stop trying. See the comment on
   // SyncModeIconVisibility() in the .cc for why.
   bool mode_icon_ever_unhidden_;
+
+  // Guards against re-entering RebuildLangBar() from the InitLangBar() call
+  // it makes, which ends by calling SyncModeIconVisibility() again.
+  bool rebuilding_;
+
+  // The text service that owns this instance, remembered from InitLangBar()
+  // so RebuildLangBar() can call it again. Not owned: TipLangBar is a member
+  // of that text service, so it cannot outlive it.
+  TipLangBarCallback* lang_bar_callback_;
 };
 
 }  // namespace tsf
