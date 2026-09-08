@@ -136,10 +136,6 @@ TipLangBarCallback::ItemId GetItemId(DWORD composition_mode) {
 HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
   HRESULT result = S_OK;
 
-  // Remembered so RebuildLangBar() can drive a fresh Init/Uninit cycle
-  // without the caller having to hand the text service over again.
-  lang_bar_callback_ = text_service;
-
   // TODO(yukawa): Optimize this method. We do not need to obtain an instance of
   // ITfLangBarItemMgr unless there remains something to be initialized for
   // LangBar.
@@ -404,21 +400,12 @@ HRESULT TipLangBar::UninitLangBar() {
 }
 
 HRESULT TipLangBar::UpdateMenu(bool enabled, uint32_t composition_mode) {
-  // Null checks rather than bare dereferences: RebuildLangBar() can leave the
-  // items unset if the InitLangBar() half of the cycle fails, and this runs on
-  // every keystroke.
   const UINT menu_id = GetItemId(composition_mode);
-  if (input_button_menu_) {
-    input_button_menu_->SelectMenuItem(menu_id);
-    input_button_menu_->SetEnabled(enabled);
-  }
-  if (input_mode_button_for_win8_) {
-    input_mode_button_for_win8_->SelectMenuItem(menu_id);
-    input_mode_button_for_win8_->SetEnabled(enabled);
-  }
-  if (tool_button_menu_) {
-    tool_button_menu_->SetEnabled(enabled);
-  }
+  input_button_menu_->SelectMenuItem(menu_id);
+  input_mode_button_for_win8_->SelectMenuItem(menu_id);
+  input_button_menu_->SetEnabled(enabled);
+  tool_button_menu_->SetEnabled(enabled);
+  input_mode_button_for_win8_->SetEnabled(enabled);
 
   SyncModeIconVisibility();
   return S_OK;
@@ -429,31 +416,32 @@ HRESULT TipLangBar::UpdateMenu(bool enabled, uint32_t composition_mode) {
 // the toolbar is visible; the tool icon (and its right-click menu) stays shown
 // regardless. See GitHub issue #22.
 //
-// Hiding only ever works at registration time. Three mechanisms have been
-// tried against a real Windows 11 build and all three behave the same way:
-// whatever the item reports when the taskbar first considers it is honoured,
-// and nothing said afterwards is.
+// This only works ONE WAY, and the asymmetry is the platform's, not ours.
+// Three mechanisms have now been tried against a real Windows 11 build, and
+// all three behave identically: whatever the item reports at the moment the
+// taskbar first considers it is honoured, and nothing afterwards is.
 //
 //   1. Clearing the TF_LBI_STYLE_SHOWNINTRAY style bit and firing OnUpdate:
 //      never hid the indicator at all.
 //   2. RemoveItem() from lang_bar_item_mgr_: the taskbar button stayed on
-//      screen, and because TSF unadvises item_sink_ on removal it was also
-//      dead -- SelectMenuItem()/SetEnabled() went nowhere and right-click
+//      screen, and because TSF unadvises item_sink_ on removal the button was
+//      also dead -- SelectMenuItem()/SetEnabled() went nowhere and right-click
 //      opened nothing.
-//   3. The TF_LBI_STATUS_HIDDEN bit, the documented way for an item to ask not
-//      to be displayed. Honoured at registration, so the icon is correctly
-//      absent at startup and appears correctly on the first hide of the
-//      toolbar -- but setting it again once the taskbar has drawn the button
-//      leaves the same dead button as (2).
+//   3. The TF_LBI_STATUS_HIDDEN bit below, which is the documented way for an
+//      item to ask not to be displayed. It is honoured at registration time,
+//      so the icon is correctly absent at startup and appears correctly the
+//      first time the toolbar is hidden -- but setting it again once the
+//      taskbar has drawn the button does not remove it, and leaves the same
+//      dead button as (2): Windows stops routing updates and clicks to an item
+//      that reports itself hidden, while still painting it. See issue #30.
 //
-// What does work, reported from the same build, is switching to another IME
-// and back: the indicator returns to the state the preference asks for. That
-// is a TSF Deactivate/ActivateEx pair, i.e. exactly UninitLangBar() followed
-// by InitLangBar(). Notably, moving focus to another application does *not*
-// clear it, so the taskbar button belongs to the activated profile rather than
-// to the focused thread, and re-registering the items is the only lever we
-// have over it. So when the icon has to go away after the taskbar has drawn
-// it, rebuild the langbar and let the registration-time hide do the work.
+// So the taskbar's input-mode button, once created for an activated profile on
+// this thread, cannot be withdrawn. Rather than leave a dead icon on screen,
+// only hide at registration time and then leave the icon alone: a live icon
+// that duplicates the toolbar's mode display is a far better failure than an
+// inert one that lies about the mode and whose menu does nothing. It goes away
+// on the next activation of the profile (a new application, or a restart),
+// where the registration-time hide applies again.
 void TipLangBar::SyncModeIconVisibility() {
   const bool shown_in_tray = !mozc::win32::LoadToolbarVisiblePreference();
   if (shown_in_tray == mode_icon_shown_) {
@@ -463,7 +451,9 @@ void TipLangBar::SyncModeIconVisibility() {
     return;
   }
   if (!shown_in_tray && mode_icon_ever_unhidden_) {
-    RebuildLangBar();
+    // Hiding would not remove the taskbar button and would only kill it.
+    // Leave it visible and live, and stop reconsidering this until the next
+    // Init/Uninit cycle.
     return;
   }
   input_button_menu_->SetHidden(!shown_in_tray);
@@ -472,25 +462,6 @@ void TipLangBar::SyncModeIconVisibility() {
   if (shown_in_tray) {
     mode_icon_ever_unhidden_ = true;
   }
-}
-
-void TipLangBar::RebuildLangBar() {
-  if (rebuilding_ || lang_bar_callback_ == nullptr) {
-    return;
-  }
-  rebuilding_ = true;
-  // UninitLangBar() resets the item pointers and the two mode-icon flags and
-  // releases lang_bar_item_mgr_; InitLangBar() creates a fresh manager and
-  // re-adds every item, ending in another SyncModeIconVisibility() that
-  // applies the hidden state before the taskbar sees the item. The
-  // b/6106437 / b/6641460 invariant still holds: each manager instance is the
-  // one used both to add and to remove its own items.
-  UninitLangBar();
-  const HRESULT result = InitLangBar(lang_bar_callback_);
-  if (FAILED(result)) {
-    LOG(ERROR) << "InitLangBar failed while rebuilding: " << result;
-  }
-  rebuilding_ = false;
 }
 
 bool TipLangBar::IsInitialized() const {
