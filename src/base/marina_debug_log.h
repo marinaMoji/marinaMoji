@@ -38,10 +38,29 @@
 namespace mozc {
 
 #ifdef _WIN32
+// Says once, through OutputDebugString, where the file actually went or why it
+// could not be opened. Without this the file half fails silently, which is
+// exactly what happened when the first capture was attempted and %TEMP% held
+// no log: the TIP is loaded into whatever application has focus, and a
+// packaged app (Windows 11's Notepad and anything else from the Store runs in
+// an AppContainer) gets a redirected %TEMP% and cannot write outside its own
+// package folder anyway. A DebugView capture then still shows this line and
+// says which case it was.
+inline void MarinaDebugLogReportPathOnce(absl::string_view message) {
+  static bool reported = false;
+  if (reported) {
+    return;
+  }
+  reported = true;
+  const std::string text = absl::StrCat("[marinaMoji] logfile: ", message, "\n");
+  ::OutputDebugStringA(text.c_str());
+}
+
 inline void MarinaDebugLogAppendFile(absl::string_view text) {
   char temp_dir[MAX_PATH] = {};
   const DWORD n = ::GetTempPathA(MAX_PATH, temp_dir);
   if (n == 0 || n >= MAX_PATH) {
+    MarinaDebugLogReportPathOnce("GetTempPath failed");
     return;
   }
   const std::string path = absl::StrCat(temp_dir, "marinamoji-debug.log");
@@ -50,8 +69,12 @@ inline void MarinaDebugLogAppendFile(absl::string_view text) {
       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
       OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
   if (file == INVALID_HANDLE_VALUE) {
+    MarinaDebugLogReportPathOnce(
+        absl::StrCat("cannot open ", path, ", GetLastError=",
+                     static_cast<unsigned int>(::GetLastError())));
     return;
   }
+  MarinaDebugLogReportPathOnce(path);
   DWORD written = 0;
   ::WriteFile(file, text.data(), static_cast<DWORD>(text.size()), &written,
               nullptr);
