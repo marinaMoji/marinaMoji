@@ -239,6 +239,11 @@ if [[ "${DOREPAIR}" =~ ^[Yy] ]]; then
     else
       echo "(binary missing at ${IMK})"
     fi
+    say "discard system input source table"
+    sudo rm -f "/System/Library/Caches/com.apple.IntlDataCache.le" \
+               "/System/Library/Caches/com.apple.IntlDataCache.le.kbdx" &&
+      echo "removed IntlDataCache files" || echo "could not remove IntlDataCache files"
+
     say "restart input source agents"
     killall TextInputMenuAgent 2>/dev/null && echo "killed TextInputMenuAgent" || echo "TextInputMenuAgent not running"
     killall imklaunchagent 2>/dev/null && echo "killed imklaunchagent" || echo "imklaunchagent not running"

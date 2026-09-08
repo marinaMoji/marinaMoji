@@ -18,6 +18,10 @@ APP="/Library/Input Methods/marinaMoji.app"
 IMK="${APP}/Contents/MacOS/marinaMoji"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 LAUNCH_AGENTS="/Library/LaunchAgents"
+# The system input source table. macOS builds it at login, and
+# TISRegisterInputSource does not update it, so an input source installed into a
+# running session stays invisible until these caches are discarded.
+INTL_CACHES="/System/Library/Caches/com.apple.IntlDataCache.le /System/Library/Caches/com.apple.IntlDataCache.le.kbdx"
 AGENTS="org.mozc.inputmethod.Japanese.Converter org.mozc.inputmethod.Japanese.Renderer org.mozc.inputmethod.Japanese.Sync"
 
 CONSOLE_USER=`/usr/bin/stat -f%Su /dev/console`
@@ -72,6 +76,27 @@ if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
       as_console_user /bin/launchctl load -S Aqua "${plist}" > /dev/null 2>&1
   done
 
+  # Discard the system input source table before registering.
+  #
+  # Without this the input source is invisible in System Settings for the whole
+  # session on any machine where marinaMoji was not already on disk at the last
+  # login -- which includes every first-time install. macOS logs
+  #   TISFileInterrogator updateSystemInputSources false but old data invalid
+  # and keeps serving a table built without marinaMoji in it, while
+  # TISRegisterInputSource still returns noErr. Removing these two files makes
+  # macOS rebuild the table, which is what it does anyway once it decides the
+  # data is invalid. Verified in a VM: without this a first install needs a
+  # logout, with it the input source appears immediately.
+  for cache in ${INTL_CACHES}; do
+    if [ -f "${cache}" ]; then
+      /bin/rm -f "${cache}" && log "discarded input source cache `basename ${cache}`"
+    fi
+  done
+  # Both agents hold the old table in memory; launchd restarts them.
+  as_console_user /usr/bin/killall TextInputMenuAgent > /dev/null 2>&1
+  as_console_user /usr/bin/killall imklaunchagent > /dev/null 2>&1
+  /bin/sleep 3
+
   # Make the input source visible without a logout. Retried because the input
   # source list can lag right after the bundle is written.
   REGISTERED=0
@@ -109,8 +134,8 @@ if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
     # them -- reproduced when an earlier install ran in the same login session.
     # Only a logout is known to clear that, so the log must not assert that the
     # user will see the input source.
-    log "registration call succeeded for ${CONSOLE_USER} (session visibility NOT verified)"
-    log "if marinaMoji is missing from System Settings, log out and back in"
+    log "registration call succeeded for ${CONSOLE_USER} after rebuilding the input source table"
+    log "if marinaMoji is still missing from System Settings, log out and back in"
     # Nudge the input menu and System Settings so the new source shows up in an
     # already-running session.
     as_console_user /usr/bin/killall TextInputMenuAgent > /dev/null 2>&1

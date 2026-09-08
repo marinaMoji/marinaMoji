@@ -13,6 +13,16 @@ if [[ ! -d "$APP" ]]; then
   exit 1
 fi
 
+# macOS builds the input source table at login and TISRegisterInputSource does
+# not update it, so a source installed into a running session stays invisible
+# until these caches are discarded and the agents restarted.
+echo "Rebuilding the system input source table (requires sudo)..."
+sudo rm -f "/System/Library/Caches/com.apple.IntlDataCache.le" \
+           "/System/Library/Caches/com.apple.IntlDataCache.le.kbdx"
+killall TextInputMenuAgent 2>/dev/null || true
+killall imklaunchagent 2>/dev/null || true
+sleep 3
+
 echo "Registering and enabling marinaMoji via Text Input Services..."
 # Handled by the installed IME binary so that no Swift toolchain is required.
 "$APP/Contents/MacOS/marinaMoji" --select_input_source > /dev/null
