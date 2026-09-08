@@ -150,7 +150,7 @@ jobs:
         env:
           ANDROID_NDK_HOME: ""
         run: |
-          bazelisk test ... -c dbg --config x86_simd --build_tests_only --build_event_json_file=bep.jsonl
+          bazelisk test ... -c dbg --config x86_simd --test_output=errors --build_tests_only --build_event_json_file=bep.jsonl
 
       - name: Collect failing test logs
         if: failure()
@@ -198,7 +198,7 @@ jobs:
         env:
           ANDROID_NDK_HOME: ""
         run: |
-          bazelisk test ... -c dbg --build_tests_only --build_event_json_file=bep.jsonl
+          bazelisk test ... -c dbg --test_output=errors --build_tests_only --build_event_json_file=bep.jsonl
 
       - name: Collect failing test logs
         if: failure()

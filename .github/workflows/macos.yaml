@@ -122,7 +122,7 @@ jobs:
       - name: bazel test
         working-directory: ./src
         run: |
-          bazelisk test ... -c dbg --build_tests_only --build_event_json_file=bep.jsonl
+          bazelisk test ... -c dbg --test_output=errors --build_tests_only --build_event_json_file=bep.jsonl
 
       - name: Collect failing test logs
         if: failure()
