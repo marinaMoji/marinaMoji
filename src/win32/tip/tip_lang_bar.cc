@@ -375,6 +375,7 @@ HRESULT TipLangBar::UninitLangBar() {
     input_button_menu_.reset();
   }
   mode_icon_shown_ = true;
+  mode_icon_ever_unhidden_ = false;
   if (tool_button_menu_) {
     item->RemoveItem(tool_button_menu_.get());
     tool_button_menu_.reset();
@@ -415,16 +416,32 @@ HRESULT TipLangBar::UpdateMenu(bool enabled, uint32_t composition_mode) {
 // the toolbar is visible; the tool icon (and its right-click menu) stays shown
 // regardless. See GitHub issue #22.
 //
-// Visibility is expressed with the TF_LBI_STATUS_HIDDEN bit reported by
-// GetStatus(), which is the documented way for an item to ask not to be
-// displayed. Two earlier attempts got this wrong and must not be revived:
-// toggling the TF_LBI_STYLE_SHOWNINTRAY *style* bit did not hide the Windows
-// 10/11 taskbar mode indicator at all, and removing the items from
-// lang_bar_item_mgr_ left a dead icon behind -- Windows keeps the taskbar
-// button it has already created, while RemoveItem() makes TSF unadvise
-// item_sink_, after which every SelectMenuItem()/SetEnabled() notification is
-// silently dropped by TipLangBarButton::OnUpdate() and right-clicking the icon
-// opens nothing. See GitHub issue #30.
+// This only works ONE WAY, and the asymmetry is the platform's, not ours.
+// Three mechanisms have now been tried against a real Windows 11 build, and
+// all three behave identically: whatever the item reports at the moment the
+// taskbar first considers it is honoured, and nothing afterwards is.
+//
+//   1. Clearing the TF_LBI_STYLE_SHOWNINTRAY style bit and firing OnUpdate:
+//      never hid the indicator at all.
+//   2. RemoveItem() from lang_bar_item_mgr_: the taskbar button stayed on
+//      screen, and because TSF unadvises item_sink_ on removal the button was
+//      also dead -- SelectMenuItem()/SetEnabled() went nowhere and right-click
+//      opened nothing.
+//   3. The TF_LBI_STATUS_HIDDEN bit below, which is the documented way for an
+//      item to ask not to be displayed. It is honoured at registration time,
+//      so the icon is correctly absent at startup and appears correctly the
+//      first time the toolbar is hidden -- but setting it again once the
+//      taskbar has drawn the button does not remove it, and leaves the same
+//      dead button as (2): Windows stops routing updates and clicks to an item
+//      that reports itself hidden, while still painting it. See issue #30.
+//
+// So the taskbar's input-mode button, once created for an activated profile on
+// this thread, cannot be withdrawn. Rather than leave a dead icon on screen,
+// only hide at registration time and then leave the icon alone: a live icon
+// that duplicates the toolbar's mode display is a far better failure than an
+// inert one that lies about the mode and whose menu does nothing. It goes away
+// on the next activation of the profile (a new application, or a restart),
+// where the registration-time hide applies again.
 void TipLangBar::SyncModeIconVisibility() {
   const bool shown_in_tray = !mozc::win32::LoadToolbarVisiblePreference();
   if (shown_in_tray == mode_icon_shown_) {
@@ -433,9 +450,18 @@ void TipLangBar::SyncModeIconVisibility() {
   if (!input_button_menu_ || !input_mode_button_for_win8_) {
     return;
   }
+  if (!shown_in_tray && mode_icon_ever_unhidden_) {
+    // Hiding would not remove the taskbar button and would only kill it.
+    // Leave it visible and live, and stop reconsidering this until the next
+    // Init/Uninit cycle.
+    return;
+  }
   input_button_menu_->SetHidden(!shown_in_tray);
   input_mode_button_for_win8_->SetHidden(!shown_in_tray);
   mode_icon_shown_ = shown_in_tray;
+  if (shown_in_tray) {
+    mode_icon_ever_unhidden_ = true;
+  }
 }
 
 bool TipLangBar::IsInitialized() const {
