@@ -117,6 +117,19 @@ bool DispatchMarinaNumberRowShortcut(
   if (!has_ctrl) {
     return false;
   }
+  // ... and require Ctrl *alone*. Mod1 is Alt; Mod3/Mod5 are where AltGr
+  // (Level3) lands, following key_translator.cc's reading of these masks.
+  // A marina binding is never an Alt chord, so claiming one steals a genuine
+  // application shortcut (Ctrl+Alt+digit) or an AltGr character the layout
+  // put on the number row. The same check on the Windows side is what makes
+  // AltGr usable there, since Windows reports AltGr as Ctrl+RightAlt and the
+  // whole AltGr number-row layer would otherwise be swallowed; on X11 AltGr
+  // carries no Ctrl, so here it is Ctrl+Alt and Ctrl+AltGr that were at risk.
+  // See GitHub issue #33.
+  if ((ibus_modifiers &
+       (IBUS_MOD1_MASK | IBUS_MOD3_MASK | IBUS_MOD5_MASK)) != 0) {
+    return false;
+  }
   const MarinaShortcutModifier modifier =
       (ibus_modifiers & IBUS_SHIFT_MASK) != 0
           ? MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT
