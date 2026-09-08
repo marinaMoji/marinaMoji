@@ -22,7 +22,7 @@ LAUNCH_AGENTS="/Library/LaunchAgents"
 # TISRegisterInputSource does not update it, so an input source installed into a
 # running session stays invisible until these caches are discarded.
 INTL_CACHES="/System/Library/Caches/com.apple.IntlDataCache.le /System/Library/Caches/com.apple.IntlDataCache.le.kbdx"
-AGENTS="org.mozc.inputmethod.Japanese.Converter org.mozc.inputmethod.Japanese.Renderer org.mozc.inputmethod.Japanese.Sync"
+LEGACY_AGENTS="org.mozc.inputmethod.Japanese.Converter org.mozc.inputmethod.Japanese.Renderer org.mozc.inputmethod.Japanese.Sync"
 
 CONSOLE_USER=`/usr/bin/stat -f%Su /dev/console`
 CONSOLE_UID=`/usr/bin/id -u "${CONSOLE_USER}" 2>/dev/null`
@@ -67,13 +67,24 @@ if [ -x "${LSREGISTER}" ]; then
 fi
 
 if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
-  # Load the converter/renderer/sync agents now instead of waiting for the next
-  # login. ActivatePane does this too, when it runs.
-  for agent in ${AGENTS}; do
-    plist="${LAUNCH_AGENTS}/${agent}.plist"
-    [ -f "${plist}" ] || continue
-    as_console_user /bin/launchctl bootstrap "gui/${CONSOLE_UID}" "${plist}" > /dev/null 2>&1 ||
-      as_console_user /bin/launchctl load -S Aqua "${plist}" > /dev/null 2>&1
+  # The agents now live inside marinaMoji.app and are registered by the app with
+  # SMAppService, so the installer no longer loads anything. Machines upgrading
+  # from an earlier version still have the old system-wide plists, and leaving
+  # them would run a second copy of each job against the same Mach service
+  # names, so they are removed here. Each job is booted out first: deleting the
+  # plist alone leaves it loaded until the next logout.
+  CONSOLE_HOME=`/usr/bin/dscl . -read "/Users/${CONSOLE_USER}" NFSHomeDirectory 2>/dev/null | /usr/bin/sed 's/^NFSHomeDirectory: //'`
+  for agent in ${LEGACY_AGENTS}; do
+    as_console_user /bin/launchctl bootout "gui/${CONSOLE_UID}/${agent}" > /dev/null 2>&1
+    if [ -f "${LAUNCH_AGENTS}/${agent}.plist" ]; then
+      /bin/rm -f "${LAUNCH_AGENTS}/${agent}.plist" &&
+        log "removed legacy agent ${agent}.plist"
+    fi
+    # mac/install_launchagents.sh also placed per-user copies.
+    if [ -n "${CONSOLE_HOME}" ] && [ -f "${CONSOLE_HOME}/Library/LaunchAgents/${agent}.plist" ]; then
+      /bin/rm -f "${CONSOLE_HOME}/Library/LaunchAgents/${agent}.plist" &&
+        log "removed legacy per-user agent ${agent}.plist"
+    fi
   done
 
   # Discard the system input source table before registering.

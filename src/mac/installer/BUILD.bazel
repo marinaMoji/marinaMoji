@@ -40,15 +40,17 @@ exports_files(
     ],
 )
 
-pkg_zip(
-    name = "launch_agents",
+# Bundled into marinaMoji.app at Contents/Library/LaunchAgents and registered
+# with SMAppService at runtime, rather than installed into /Library/LaunchAgents.
+# Agents registered this way are attributed to the app instead of to the signing
+# identity, which is what the background activity notice names.
+filegroup(
+    name = "bundled_launch_agents",
     srcs = [
         "LaunchAgents/org.mozc.inputmethod.Japanese.Converter.plist",
         "LaunchAgents/org.mozc.inputmethod.Japanese.Renderer.plist",
         "LaunchAgents/org.mozc.inputmethod.Japanese.Sync.plist",
     ],
-    out = "launch_agents.zip",
-    strip_prefix = ".",
 )
 
 pkg_zip(

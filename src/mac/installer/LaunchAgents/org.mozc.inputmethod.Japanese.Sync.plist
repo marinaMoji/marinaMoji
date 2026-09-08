@@ -4,9 +4,11 @@
 <dict>
 	<key>Label</key>
 	<string>org.mozc.inputmethod.Japanese.Sync</string>
+	<key>BundleProgram</key>
+	<string>Contents/Resources/marinaMojiSync.app/Contents/MacOS/marinaMojiSync</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/Library/Input Methods/marinaMoji.app/Contents/Resources/marinaMojiSync.app/Contents/MacOS/marinaMojiSync</string>
+		<string>marinaMojiSync</string>
 		<string>--daemon</string>
 	</array>
 	<key>KeepAlive</key>

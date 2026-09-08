@@ -86,12 +86,14 @@ mozc_macos_application(
         default = {},
         # macos is used for Google internal build.
         macos = {
+            "//mac/installer:bundled_launch_agents": "Library",
             "//renderer:mozc_renderer_macos": "Resources",
             "//server:mozc_server_macos": "Resources",
             "//sync:marinaMojiSync_macos": "Resources",
         },
         # prod_macos also refers to oss_macos settings.
         oss_macos = {
+            "//mac/installer:bundled_launch_agents": "Library",
             "//gui/about_dialog:about_dialog_macos": "Resources",
             "//gui/config_dialog:config_dialog_macos": "Resources",
             "//gui/dictionary_tool:dictionary_tool_macos": "Resources",
@@ -160,6 +162,7 @@ mozc_objc_library(
         "Cocoa",
         "Foundation",
         "InputMethodKit",
+        "ServiceManagement",
     ],
     tags = ["manual"],
     deps = [
@@ -563,20 +566,17 @@ genrule(
         macos = [
             "//mac/installer:distribution.xml",
             "//mac/installer:InstallerSections.plist",
-            "//mac/installer:launch_agents",
             "//mac/installer:resources",
         ],
         oss_macos = [
             "//mac/installer:distribution.xml",
             "//mac/installer:InstallerSections.plist",
-            "//mac/installer:launch_agents",
             "//mac/installer:resources",
         ],
         prod_macos = [
             "@google_updater//:GoogleUpdater.pkg",
             "//mac/installer:distribution.xml",
             "//mac/installer:InstallerSections.plist",
-            "//mac/installer:launch_agents",
             "//mac/installer:resources",
         ],
     ),

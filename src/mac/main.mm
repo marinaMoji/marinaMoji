@@ -29,6 +29,7 @@
 
 #import <Carbon/Carbon.h>
 #import <Cocoa/Cocoa.h>
+#import <ServiceManagement/ServiceManagement.h>
 #import <Foundation/Foundation.h>
 #import <InputMethodKit/InputMethodKit.h>
 
@@ -57,6 +58,42 @@ namespace {
 // avoids shipping a second signed executable and avoids the Swift toolchain
 // that mac/register_marinamoji.sh used to need, which is absent on the
 // machines this matters for.
+
+// The converter and the renderer are launchd jobs, not plain child processes:
+// their plists declare MachServices, and mozc's IPC obtains the server port with
+// bootstrap_check_in(), which only succeeds for a name launchd already knows.
+// They therefore cannot simply be spawned.
+//
+// Registering them with SMAppService keeps launchd in the loop while moving the
+// plists inside the app bundle, so macOS attributes the background activity to
+// marinaMoji rather than to the signing identity of whoever built it.
+void RegisterLaunchAgents() {
+  NSArray<NSString *> *plists = @[
+    @"org.mozc.inputmethod.Japanese.Converter.plist",
+    @"org.mozc.inputmethod.Japanese.Renderer.plist",
+    @"org.mozc.inputmethod.Japanese.Sync.plist",
+  ];
+  for (NSString *plist in plists) {
+    SMAppService *service = [SMAppService agentServiceWithPlistName:plist];
+    if (service.status == SMAppServiceStatusEnabled) {
+      continue;
+    }
+    if (service.status == SMAppServiceStatusRequiresApproval) {
+      // The user has switched the item off in Login Items. Registering again
+      // will not override that, and the converter cannot start without it, so
+      // record why input will not work rather than failing silently.
+      LOG(ERROR) << "marinaMoji background item awaiting approval in System "
+                 << "Settings > General > Login Items: "
+                 << [plist UTF8String];
+      continue;
+    }
+    NSError *error = nil;
+    if (![service registerAndReturnError:&error]) {
+      LOG(ERROR) << "SMAppService registration failed for " << [plist UTF8String]
+                 << ": " << [[error localizedDescription] UTF8String];
+    }
+  }
+}
 
 NSString *InputSourceID(TISInputSourceRef source) {
   return (__bridge NSString *)(TISGetInputSourceProperty(source, kTISPropertyInputSourceID));
@@ -201,6 +238,10 @@ int main(int argc, char *argv[]) {
   }
 
   mozc::InitMozc(argv[0], &argc, &argv);
+
+  // Registered before the IMK server starts, so that the converter's Mach
+  // service is available by the time the first key event arrives.
+  RegisterLaunchAgents();
 
   // Initialize imkServer
   NSBundle *bundle = [NSBundle mainBundle];
