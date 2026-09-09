@@ -627,6 +627,16 @@ bool TryHandleEchoBackBackspace(IbusEngineWrapper* engine,
     engine->ForwardBackspaceForEchoBack(keyval, keycode);
     return true;
   }
+  // No surrounding text: the client is a terminal (VTE) or similar. Decline the
+  // key and let IBus deliver the real Backspace instead of synthesising one.
+  // Injecting a press/release pair into a client that hands forwarded events
+  // back to the engine is a loop, and gnome-terminal dies on it (issue #36).
+  // MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1 restores the old synthetic forward,
+  // for the clients that were the reason it existed.
+  if (!ShouldForwardEchoBackWithoutSurroundingText()) {
+    MaybeLogIbusDebug("engine.echoback", "decline_no_surrounding_cap");
+    return false;
+  }
   MaybeLogIbusDebug("engine.echoback", "forward_no_surrounding_cap");
   engine->ForwardBackspaceForEchoBack(keyval, keycode);
   return true;
@@ -1158,12 +1168,27 @@ bool MozcEngine::UpdateAll(IbusEngineWrapper* engine,
 
 bool MozcEngine::UpdateDeletionRange(IbusEngineWrapper* engine,
                                      const commands::Output& output) {
-  if (output.has_deletion_range() && output.deletion_range().offset() < 0 &&
-      output.deletion_range().offset() + output.deletion_range().length() >=
-          0) {
-    engine->DeleteSurroundingText(output.deletion_range().offset(),
-                                  output.deletion_range().length());
+  if (!output.has_deletion_range() || output.deletion_range().offset() >= 0 ||
+      output.deletion_range().offset() + output.deletion_range().length() < 0) {
+    return true;
   }
+  // The server is told unconditionally that we can delete preceding text (see
+  // CreateAndConfigureClient), which is what enables undo-on-Backspace after a
+  // commit. Clients without surrounding text cannot honour the request, so
+  // asking them to is at best a no-op and at worst a crash (issue #36): drop
+  // the range and leave the committed text alone.
+  if (!engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT)) {
+    MaybeLogIbusDebug("engine.deletion",
+                      "skip_no_surrounding_cap offset=%d length=%d",
+                      output.deletion_range().offset(),
+                      output.deletion_range().length());
+    return true;
+  }
+  MaybeLogIbusDebug("engine.deletion", "delete_surrounding offset=%d length=%d",
+                    output.deletion_range().offset(),
+                    output.deletion_range().length());
+  engine->DeleteSurroundingText(output.deletion_range().offset(),
+                                output.deletion_range().length());
   return true;
 }
 

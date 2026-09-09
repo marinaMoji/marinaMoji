@@ -41,6 +41,12 @@ bool IsIbusDebugLogEnabled();
 // events per Backspace instead of 2). Default is off.
 bool ShouldForwardEchoBackShiftLRelease();
 
+// When MARINAMOJI_IBUS_ECHO_BACK_FORWARD is set to a truthy value (1, true,
+// yes), echo-back Backspace synthesises a press/release pair for clients that
+// do not support surrounding text, instead of declining the key and letting
+// IBus deliver the real one. Default is off; see issue #36.
+bool ShouldForwardEchoBackWithoutSurroundingText();
+
 // Appends one tab-separated line to MARINAMOJI_IBUS_DEBUG_LOG:
 // timestamp, process id, tag, and a printf-formatted message.
 //
