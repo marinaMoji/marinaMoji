@@ -448,17 +448,13 @@ HRESULT TipLangBar::UpdateMenu(bool enabled, uint32_t composition_mode) {
 // not remove it. RemoveItem() left the same button on screen and additionally
 // dead. TF_LBI_STYLE_SHOWNINTRAY never hid it at all. See issue #30.
 //
-// ITfLangBarItemMgr::ShowItem() is the manager-driven show/hide, distinct
-// from the item reporting its own status, and is what an IME switch
-// effectively does. Call it on every transition in both directions; keep
-// SetHidden() as well, since that is what makes the registration-time hide
-// work.
-//
-// SetRenderBlank() is the backstop. If neither SetHidden() nor ShowItem() can
-// withdraw a button the taskbar has already drawn, the item is at least made
-// to paint nothing and carry no label -- an empty slot rather than a stale
-// mode indicator with a dead menu. It costs nothing when the button really is
-// hidden. See issue #30.
+// There is no manager-level per-item show/hide -- ITfLangBarItemMgr has no
+// ShowItem() -- so the only levers are the item's own TF_LBI_STATUS_HIDDEN
+// bit (SetHidden) and, once that fails to withdraw an already-drawn taskbar
+// button, SetRenderBlank(): the item stays registered and live but paints
+// nothing and carries no label, an empty slot rather than a stale mode
+// indicator. SetRenderBlank() is a no-op whenever the button really is
+// hidden, so there is no cost to applying it on every hide. See issue #30.
 void TipLangBar::SyncModeIconVisibility() {
   if (!input_button_menu_ || !input_mode_button_for_win8_) {
     return;
@@ -467,23 +463,14 @@ void TipLangBar::SyncModeIconVisibility() {
   if (shown_in_tray == mode_icon_shown_) {
     return;
   }
-  const BOOL show = shown_in_tray ? TRUE : FALSE;
   input_button_menu_->SetHidden(!shown_in_tray);
   input_mode_button_for_win8_->SetHidden(!shown_in_tray);
   input_button_menu_->SetRenderBlank(!shown_in_tray);
   input_mode_button_for_win8_->SetRenderBlank(!shown_in_tray);
-  HRESULT show_hr1 = E_FAIL;
-  HRESULT show_hr2 = E_FAIL;
-  if (lang_bar_item_mgr_) {
-    show_hr1 = lang_bar_item_mgr_->ShowItem(input_button_menu_.get(), show);
-    show_hr2 =
-        lang_bar_item_mgr_->ShowItem(input_mode_button_for_win8_.get(), show);
-  }
   // TEMPORARY: see base/marina_debug_log.h.
   mozc::MarinaDebugLog(absl::StrCat(
       "langbar: mode icon ", mode_icon_shown_ ? "shown" : "hidden", " -> ",
-      shown_in_tray ? "shown" : "hidden", ", ShowItem_hr=0x",
-      absl::Hex(show_hr1), "/0x", absl::Hex(show_hr2)));
+      shown_in_tray ? "shown" : "hidden"));
   mode_icon_shown_ = shown_in_tray;
 }
 
