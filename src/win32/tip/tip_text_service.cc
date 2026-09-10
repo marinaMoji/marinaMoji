@@ -1690,6 +1690,20 @@ class TipTextServiceImpl
     // Do not care about thread safety.
     static UINT renderer_callback_message =
         ::RegisterWindowMessage(mozc::kMessageReceiverMessageName);
+    if (message == renderer_callback_message) {
+      // TEMPORARY: see base/marina_debug_log.h. GitHub issue #30: the
+      // renderer's HIDE_TOOLBAR reaches a window proc (SendMessageTimeout
+      // reports success) but the toolbar does not hide until a later attempt.
+      // This says whether the message landed on the *current* callback window
+      // -- a mismatch means the renderer is holding a stale receiver handle.
+      MarinaDebugLog(absl::StrCat(
+          "renderer-cb: registered message on hwnd=",
+          reinterpret_cast<uintptr_t>(window_handle), " current_cb_hwnd=",
+          reinterpret_cast<uintptr_t>(self->renderer_callback_window_handle_),
+          " match=",
+          window_handle == self->renderer_callback_window_handle_ ? 1 : 0,
+          " wparam_type=", static_cast<int>(wparam)));
+    }
     if (window_handle == self->renderer_callback_window_handle_) {
       if (message == renderer_callback_message) {
         self->OnRendererCallback(wparam, lparam);
@@ -1779,6 +1793,18 @@ class TipTextServiceImpl
   void OnRendererCallback(WPARAM wparam, LPARAM lparam) {
     wil::com_ptr_nothrow<ITfContext> context = GetRendererCallbackContext();
     if (!context) {
+      // TEMPORARY: see base/marina_debug_log.h. If this fires for a
+      // HIDE_TOOLBAR (wparam 42) the click was received but dropped for want
+      // of a context -- neither the live focus nor last_focused_document_
+      // manager_ resolved. GitHub issue #30.
+      wil::com_ptr_nothrow<ITfDocumentMgr> dm;
+      const bool get_focus_ok =
+          SUCCEEDED(thread_mgr_->GetFocus(&dm)) && dm != nullptr;
+      MarinaDebugLog(absl::StrCat(
+          "renderer-cb: no context, dropping wparam_type=",
+          static_cast<int>(wparam), " (GetFocus_ok=", get_focus_ok,
+          " have_last_focused=",
+          last_focused_document_manager_ != nullptr ? 1 : 0, ")"));
       return;
     }
     TipEditSession::OnRendererCallbackAsync(this, context.get(), wparam,
