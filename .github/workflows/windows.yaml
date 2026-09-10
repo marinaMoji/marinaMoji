@@ -59,10 +59,10 @@ jobs:
         run: |
           bazelisk build package --config release_build --config x86_simd
 
-      - name: upload marinaMoji64_x64.msi
+      - name: upload marinaMoji-windows-x86_64
         uses: actions/upload-artifact@v7
         with:
-          name: marinaMoji64_x64.msi
+          name: marinaMoji-windows-x86_64
           path: src/bazel-bin/win32/installer/marinaMoji64.msi
           if-no-files-found: warn
 
@@ -112,10 +112,10 @@ jobs:
         run: |
           bazelisk build package --config release_build
 
-      - name: upload marinaMoji64_arm64.msi
+      - name: upload marinaMoji-windows-arm64
         uses: actions/upload-artifact@v7
         with:
-          name: marinaMoji64_arm64.msi
+          name: marinaMoji-windows-arm64
           path: src/bazel-bin/win32/installer/marinaMoji64.msi
           if-no-files-found: warn
 
@@ -163,7 +163,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: test-logs-${{ runner.os }}-${{ runner.arch }}
+          name: test-logs-windows-x86_64
           path: test_logs
           if-no-files-found: ignore
 
@@ -211,7 +211,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: test-logs-${{ runner.os }}-${{ runner.arch }}
+          name: test-logs-windows-arm64
           path: test_logs
           if-no-files-found: ignore
 

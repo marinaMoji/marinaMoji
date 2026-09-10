@@ -46,7 +46,7 @@ jobs:
         include:
           - arch: arm64
             macos_cpus: arm64
-          - arch: intel64
+          - arch: x86_64
             macos_cpus: x86_64
 
     steps:
@@ -164,7 +164,7 @@ jobs:
           # Copy out of bazel-bin: outputs are read-only and stapling
           # modifies the file (checksums are computed after stapling).
           DIST="$RUNNER_TEMP/dist"
-          PKG="$DIST/marinaMoji-${GITHUB_REF_NAME}-${{ matrix.arch }}.pkg"
+          PKG="$DIST/marinaMoji-${GITHUB_REF_NAME}-macos-${{ matrix.arch }}.pkg"
           mkdir -p "$DIST"
           cp src/bazel-bin/mac/marinaMoji.pkg "$PKG"
           chmod u+w "$PKG"
@@ -201,7 +201,7 @@ jobs:
       - name: upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: marinaMoji-${{ matrix.arch }}
+          name: marinaMoji-macos-${{ matrix.arch }}
           path: ${{ env.PKG_PATH }}
           if-no-files-found: error
 
@@ -214,7 +214,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - arch: x64
+          - arch: x86_64
             runner: windows-2025
             extra_configs: --config x86_simd
           - arch: arm64
@@ -277,7 +277,7 @@ jobs:
           # One asset per arch: marinaMoji64.msi carries en-US, fr-FR and
           # ja-JP as embedded language transforms.
           cp src/bazel-bin/win32/installer/marinaMoji64.msi \
-            "dist/marinaMoji-${GITHUB_REF_NAME}-${{ matrix.arch }}.msi"
+            "dist/marinaMoji-${GITHUB_REF_NAME}-windows-${{ matrix.arch }}.msi"
 
       - name: upload artifacts
         uses: actions/upload-artifact@v7
