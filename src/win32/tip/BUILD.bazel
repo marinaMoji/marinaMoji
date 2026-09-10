@@ -790,6 +790,7 @@ mozc_cc_library(
         ":tip_text_service",
         ":tip_thread_context",
         ":tip_ui_handler",
+        "//base:marina_debug_log",
         "//base:util",
         "//base/win32:com",
         "//base/win32:wide_char",
