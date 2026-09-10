@@ -1236,7 +1236,16 @@ void KeyEventHandler::MaybeSpawnTool(mozc::client::ClientInterface* client,
     // macOS and Linux kept it.
     const commands::Output launch_output = *output;
     output->clear_launch_tool_mode();
-    client->LaunchToolWithProtoBuf(launch_output);
+    const bool launched = client->LaunchToolWithProtoBuf(launch_output);
+    // TEMPORARY: see base/marina_debug_log.h. The dispatcher already logs that
+    // it resolved the chord to an action; this says whether the tool actually
+    // got spawned, which is the other half of "Ctrl+Shift+0 did nothing".
+    mozc::MarinaDebugLog(absl::StrCat(
+        "spawn: launch_tool_mode=",
+        static_cast<int>(launch_output.launch_tool_mode()), " launched=",
+        launched, " has_prefill=",
+        launch_output.has_word_register_expression(), " readings=",
+        launch_output.word_register_reading_candidates_size()));
   }
 }
 
