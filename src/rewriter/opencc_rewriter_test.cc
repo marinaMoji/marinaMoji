@@ -83,7 +83,11 @@ class OpenccRewriterTest : public testing::TestWithTempUserProfile {
     // as the converter is built once via std::call_once.
     const std::string data_dir =
         testing::GetSourceDirOrDie({"data", "marina_opencc"});
+#ifdef _WIN32
+    ::_putenv_s("OPENCC_DATA_DIR", data_dir.c_str());
+#else   // _WIN32
     ::setenv("OPENCC_DATA_DIR", data_dir.c_str(), 1);
+#endif  // _WIN32
   }
 
   OpenccRewriter rewriter_;
