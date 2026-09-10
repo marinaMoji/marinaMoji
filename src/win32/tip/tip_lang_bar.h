@@ -53,9 +53,7 @@ class TipLangBar {
       : tool_button_menu_(nullptr),
         help_menu_(nullptr),
         help_menu_cookie_(TF_INVALID_COOKIE),
-        mode_icon_shown_(true),
-        mode_icon_ever_unhidden_(false),
-        mode_icon_hide_abandoned_(false) {}
+        mode_icon_shown_(true) {}
   TipLangBar(const TipLangBar&) = delete;
   TipLangBar& operator=(const TipLangBar&) = delete;
   ~TipLangBar() = default;
@@ -106,21 +104,6 @@ class TipLangBar {
   // constructed TipLangBarButton (status_ == 0), which is what InitLangBar()
   // creates and what UninitLangBar() drops back to.
   bool mode_icon_shown_;
-
-  // Whether SyncModeIconVisibility() has ever actively unhidden the mode icon
-  // during this Init/Uninit cycle -- i.e. whether the Windows taskbar has had
-  // the chance to create its input-mode button. Once it has, that button
-  // cannot be taken away again, so we stop trying. See the comment on
-  // SyncModeIconVisibility() in the .cc for why.
-  bool mode_icon_ever_unhidden_;
-
-  // Set once the icon has been asked to hide after the taskbar has drawn it,
-  // which is the point at which there is nothing further this class can do
-  // about it. Without it mode_icon_shown_ stays out of step with the
-  // preference for the rest of the cycle, so every later call re-evaluated
-  // and re-logged the same refusal -- on every keystroke, since UpdateMenu()
-  // runs per key.
-  bool mode_icon_hide_abandoned_;
 };
 
 }  // namespace tsf

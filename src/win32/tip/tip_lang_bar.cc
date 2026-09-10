@@ -402,8 +402,6 @@ HRESULT TipLangBar::UninitLangBar() {
     input_button_menu_.reset();
   }
   mode_icon_shown_ = true;
-  mode_icon_ever_unhidden_ = false;
-  mode_icon_hide_abandoned_ = false;
   if (tool_button_menu_) {
     item->RemoveItem(tool_button_menu_.get());
     tool_button_menu_.reset();
@@ -444,59 +442,42 @@ HRESULT TipLangBar::UpdateMenu(bool enabled, uint32_t composition_mode) {
 // the toolbar is visible; the tool icon (and its right-click menu) stays shown
 // regardless. See GitHub issue #22.
 //
-// This only works ONE WAY, and the asymmetry is the platform's, not ours.
-// Three mechanisms have now been tried against a real Windows 11 build, and
-// all three behave identically: whatever the item reports at the moment the
-// taskbar first considers it is honoured, and nothing afterwards is.
+// The item's own TF_LBI_STATUS_HIDDEN bit (SetHidden) only takes effect at
+// registration time: it is right at startup and on the first hide of the
+// toolbar, but once the taskbar has drawn the button, changing the bit does
+// not remove it. RemoveItem() left the same button on screen and additionally
+// dead. TF_LBI_STYLE_SHOWNINTRAY never hid it at all. See issue #30.
 //
-//   1. Clearing the TF_LBI_STYLE_SHOWNINTRAY style bit and firing OnUpdate:
-//      never hid the indicator at all.
-//   2. RemoveItem() from lang_bar_item_mgr_: the taskbar button stayed on
-//      screen, and because TSF unadvises item_sink_ on removal the button was
-//      also dead -- SelectMenuItem()/SetEnabled() went nowhere and right-click
-//      opened nothing.
-//   3. The TF_LBI_STATUS_HIDDEN bit below, which is the documented way for an
-//      item to ask not to be displayed. It is honoured at registration time,
-//      so the icon is correctly absent at startup and appears correctly the
-//      first time the toolbar is hidden -- but setting it again once the
-//      taskbar has drawn the button does not remove it, and leaves the same
-//      dead button as (2): Windows stops routing updates and clicks to an item
-//      that reports itself hidden, while still painting it. See issue #30.
-//
-// So the taskbar's input-mode button, once created for an activated profile on
-// this thread, cannot be withdrawn. Rather than leave a dead icon on screen,
-// only hide at registration time and then leave the icon alone: a live icon
-// that duplicates the toolbar's mode display is a far better failure than an
-// inert one that lies about the mode and whose menu does nothing. It goes away
-// on the next activation of the profile (a new application, or a restart),
-// where the registration-time hide applies again.
+// ITfLangBarItemMgr::ShowItem() is the manager-driven show/hide, distinct
+// from the item reporting its own status, and is what an IME switch
+// effectively does. Call it on every transition in both directions; keep
+// SetHidden() as well, since that is what makes the registration-time hide
+// work. If ShowItem() also fails to withdraw an already-drawn button the icon
+// simply stays -- live, not dead -- until the profile is next activated.
 void TipLangBar::SyncModeIconVisibility() {
-  if (mode_icon_hide_abandoned_ || !input_button_menu_ ||
-      !input_mode_button_for_win8_) {
+  if (!input_button_menu_ || !input_mode_button_for_win8_) {
     return;
   }
   const bool shown_in_tray = !mozc::win32::LoadToolbarVisiblePreference();
   if (shown_in_tray == mode_icon_shown_) {
     return;
   }
-  if (!shown_in_tray && mode_icon_ever_unhidden_) {
-    // TEMPORARY: see base/marina_debug_log.h.
-    mozc::MarinaDebugLog(
-        "langbar: mode icon cannot be hidden again, leaving it shown");
-    mode_icon_hide_abandoned_ = true;
-    return;
+  const BOOL show = shown_in_tray ? TRUE : FALSE;
+  input_button_menu_->SetHidden(!shown_in_tray);
+  input_mode_button_for_win8_->SetHidden(!shown_in_tray);
+  HRESULT show_hr1 = E_FAIL;
+  HRESULT show_hr2 = E_FAIL;
+  if (lang_bar_item_mgr_) {
+    show_hr1 = lang_bar_item_mgr_->ShowItem(input_button_menu_.get(), show);
+    show_hr2 =
+        lang_bar_item_mgr_->ShowItem(input_mode_button_for_win8_.get(), show);
   }
   // TEMPORARY: see base/marina_debug_log.h.
   mozc::MarinaDebugLog(absl::StrCat(
       "langbar: mode icon ", mode_icon_shown_ ? "shown" : "hidden", " -> ",
-      shown_in_tray ? "shown" : "hidden",
-      ", ever_unhidden=", mode_icon_ever_unhidden_));
-  input_button_menu_->SetHidden(!shown_in_tray);
-  input_mode_button_for_win8_->SetHidden(!shown_in_tray);
+      shown_in_tray ? "shown" : "hidden", ", ShowItem_hr=0x",
+      absl::Hex(show_hr1), "/0x", absl::Hex(show_hr2)));
   mode_icon_shown_ = shown_in_tray;
-  if (shown_in_tray) {
-    mode_icon_ever_unhidden_ = true;
-  }
 }
 
 bool TipLangBar::IsInitialized() const {
