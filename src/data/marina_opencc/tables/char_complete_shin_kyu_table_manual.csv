@@ -2,7 +2,7 @@ shin,kyu,code_point_shin,code_point_kyu,shin_sources,kyu_sources,note,,,,
 𢭐,撈,[142160],[25736],,kd2,,,,,
 䦰,鬮,[18864],[39726],,jmdict,kd2,mozc,,,
 万,萬,[19975],[33836],jmdict,kd2,mozc,jmdict,kd2,mozc,
-丈,丈󠄁,[19976],U+4E08 (19976)+U+E0101 (917761),jmdict,kd2,mozc,,,,corrected
+丈,,[19976],,jmdict,kd2,mozc,,,,no distinct kyujitai codepoint; IVS-only glyph variant dropped (issue #7)
 与,與,[19982],[33287],jmdict,kd2,mozc,kd2,mozc,,
 両,兩,[20001],[20841],jmdict,kd2,mozc,kd2,,,
 並,竝,[20006],[31453],jmdict,kd2,mozc,kd2,,,
@@ -31,10 +31,10 @@ shin,kyu,code_point_shin,code_point_kyu,shin_sources,kyu_sources,note,,,,
 円,圓,[20870],[22291],jmdict,kd2,mozc,jmdict,kd2,mozc,
 冊,册,[20874],[20876],jmdict,kd2,mozc,kd2,mozc,,
 写,寫,[20889],[23531],jmdict,kd2,mozc,kd2,mozc,,
-冴,冴󠄂,[20916],U+51B4 (20916) + U+E0102 (917762),jmdict,kd2,mozc,jmdict,kd2,mozc,corrected
+冴,,[20916],,jmdict,kd2,mozc,jmdict,kd2,mozc,no distinct kyujitai codepoint; IVS-only glyph variant dropped (issue #7)
 凜,凛,[20956],[20955],jmdict,kd2,mozc,jmdict,kd2,mozc,
 処,處,[20966],[34389],jmdict,kd2,mozc,kd2,mozc,,
-刃,刃󠄁,[20995],U+5203 (20995) + U+E0101 (917761),jmdict,kd2,mozc,kd2,mozc,,corrected
+刃,,[20995],,jmdict,kd2,mozc,kd2,mozc,,no distinct kyujitai codepoint; IVS-only glyph variant dropped (issue #7)
 剣,劍,[21091],[21133],jmdict,mozc,jmdict,,,,
 剤,劑,[21092],[21137],jmdict,kd2,mozc,kd2,mozc,,
 剥,剝,[21093],[21085],jmdict,kd2,mozc,jmdict,kd2,mozc,
@@ -179,7 +179,7 @@ shin,kyu,code_point_shin,code_point_kyu,shin_sources,kyu_sources,note,,,,
 桜,櫻,[26716],[27387],jmdict,kd2,mozc,kd2,mozc,,
 桟,棧,[26719],[26855],jmdict,kd2,mozc,kd2,mozc,,
 桧,檜,[26727],[27292],jmdict,kd2,mozc,jmdict,kd2,mozc,
-棚,棚󠄁,[26842],[U+68DA (26842) U+E0101 (917761)],jmdict,kd2,mozc,,,,corrected
+棚,,[26842],,jmdict,kd2,mozc,,,,no distinct kyujitai codepoint; IVS-only glyph variant dropped (issue #7)
 検,檢,[26908],[27298],jmdict,kd2,mozc,kd2,mozc,,
 楼,樓,[27004],[27155],jmdict,kd2,mozc,jmdict,kd2,,
 楽,樂,[27005],[27138],jmdict,kd2,mozc,kd2,mozc,,

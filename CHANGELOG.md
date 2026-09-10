@@ -10,6 +10,53 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Phrases no longer vanish in kyūjitai mode (2026-09-10, issue #7)
+
+大丈夫 and 丈夫 were present in the candidate window in shinjitai mode and
+absent in kyūjitai mode. Three separate things had to be wrong for that, and
+all three are fixed.
+
+**The table asked for an invisible character.** Four rows of
+`data/marina_opencc/tables/char_complete_shin_kyu_table_manual.csv` — 丈, 冴,
+刃, 棚 — mapped a character to *itself plus a variation selector*
+(丈 → U+4E08 U+E0101) rather than to a different character, as the other 424
+rows do. These are Adobe-Japan1 glyph variants (印刷標準字体), not
+shinjitai/kyūjitai pairs: none of the four was simplified in the 1949 reform,
+so there is no kyūjitai codepoint to map to. All four were marked `corrected`,
+and for 丈 and 棚 no source (jmdict, kd2, mozc) attested a kyū form at all.
+The `kyu` cells are now blank — the row and its provenance stay in the CSV,
+and the generator skips rows without a `kyu` value. Regenerated with
+`src/regen_opencc.sh`: Variants dropped 419 → 415 keys, and the Phrases and
+Characters `.ocd2` files rebuilt byte-identical.
+
+**The filter deleted candidates rather than repairing them.**
+`EnvironmentalFilterRewriter` erases any candidate containing U+E0100–U+E010E
+unless the client declares `IVS_CHARACTER` in
+`Request.additional_renderable_character_groups` — and no marinaMoji client on
+any platform declares it. Since `OpenccRewriter` rewrites the original
+candidate in place rather than adding a sibling, there was nothing left to
+fall back to and the word disappeared outright. The IVS group now strips the
+selectors and keeps the base characters, which do render, instead of erasing:
+erasure only happens when stripping would leave a duplicate of a candidate the
+segment already has. That last case is upstream's `IvsVariantsRewriter`, whose
+additive 辻󠄀/榊󠄀/煉󠄁獄 candidates were being silently eaten for the same reason
+and now collapse into their base candidate deliberately. Declaring
+`IVS_CHARACTER` per platform is a separate question about font coverage and is
+deliberately not done here.
+
+**The rewriter converted each candidate twice.** `OpenccRewriter::Rewrite` ran
+the tables over `value`, which sets `content_value` as a side effect, and then
+over the resulting `content_value` again. Worse, the variants were conversions
+of the *whole* surface but were assigned as the content part, so a candidate
+with okurigana or a trailing particle ended up with `content_value` holding
+the full surface. It now converts the content part only, once, and re-attaches
+the functional part (which is kana) unchanged.
+
+`rewriter/opencc_rewriter_test.cc` is new — the rewriter had no coverage at
+all. It runs against the real shipped tables via `OPENCC_DATA_DIR`, and covers
+the disabled case, plain conversion, functional-value preservation, one-to-many
+expansion, and a regression guard that no candidate comes out carrying an IVS.
+
 ### Ctrl+Shift+0 has one owner on every platform (2026-09-10)
 
 The word-register chord had two bindings competing for it. The marina
