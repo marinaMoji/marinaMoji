@@ -10,6 +10,106 @@ changed and, where it isn't obvious, why.
 
 ## v0.0.4
 
+### Diagnostics: removed the temporary MarinaDebugLog apparatus (2026-09-11)
+
+The Windows toolbar / taskbar mode-icon investigation
+([#30](https://github.com/marinaMoji/marinaMoji/issues/30)) is closed, so the
+diagnostic logging that supported it and the earlier odoriji-palette,
+Ctrl-chord and Linux-return rounds is gone: `base/marina_debug_log.h` and its
+build target, every `MarinaDebugLog` call site and the per-module
+`[marinaMoji/...]` helpers, and `ipc/win32_ipc.cc`'s mutex / `WaitNamedPipe`
+timing hooks (reverted to the original `DLOG`/`LOG`). The `%TEMP%\marinamoji-debug.log`
+file and the DebugView stream it fed are no longer produced.
+
+Behavioural changes made during those investigations stay: the AltGr number-row
+guard, the mode-icon registration order, `GetRendererCallbackContext()`'s
+private-context fallback, and `toolbar_config.cc` creating its parent directory
+and not caching a failed write.
+
+### CI: one artifact naming scheme; release asset filenames changed (2026-09-10)
+
+Build artifacts are now `marinaMoji-<platform>-<arch>` and failing-test logs
+`test-logs-<platform>-<arch>`, with `platform` in {`linux`, `macos`, `windows`}
+and `arch` in {`x86_64`, `arm64`} everywhere. Previously each workflow had its
+own scheme and the Linux zip still carried the upstream `mozc` name.
+
+Release *asset* filenames change with it: `marinaMoji-<tag>-macos-<arch>.pkg`
+and `marinaMoji-<tag>-windows-<arch>.msi` (both gain the platform segment;
+`intel64`/`x64` become `x86_64`). Linux release assets were already
+`marinaMoji-<tag>-linux-<arch>.zip` and are unchanged. Also fixes a collision
+where both Linux test-matrix architectures uploaded to `test-logs-Linux`, so
+one clobbered the other.
+
+### Windows: "Hide toolbar" needed repeated clicks; the taskbar mode icon could go dead (2026-09-10, issue #30)
+
+Two bugs behind the original report.
+
+**The mode icon went inert.** It was suppressed by removing it from
+`ITfLangBarItemMgr`. Windows keeps a taskbar button it has already drawn, and
+`RemoveItem()` makes TSF unadvise the item's sink, so every later mode update
+was dropped and its right-click menu opened nothing. Both input-mode items now
+stay registered for the whole activation, and the suppression is applied
+*before* `AddItem()` so the item never briefly reports itself visible.
+
+**"Hide toolbar" often did nothing until the second or third click.** The
+renderer's HIDE_TOOLBAR signal reached the TIP, but `GetRendererCallbackContext()`
+returned null and the click was dropped. On Windows 11 Notepad
+`ITfThreadMgrEventSink::OnSetFocus` is never called with a non-null document
+manager, so the `last_focused_document_manager_` fallback was itself always
+null, and `GetFocus()` returns nothing outside a keystroke. The apparent
+multi-second "freeze" some testers saw was just the gap between repeated clicks
+— nothing was running. Fixed with a last-resort fallback to any context the
+TIP is actively servicing; confirmed on a real build, the first click now
+hides the toolbar every time.
+
+**Known limitation.** Once the Windows 10/11 taskbar has drawn the input-mode
+button, a text service cannot withdraw or blank it — not its status bit, its
+style flags, its icon, or its text; `ITfLangBarItemMgr` has no per-item
+show/hide. Four mechanisms were tried. So the icon is absent at startup and
+appears correctly on the first toolbar-hide, but if the toolbar is then shown
+again in the same session the icon stays until the next IME switch. It remains
+a live, correct indicator with a working menu — no longer the dead icon of the
+original report.
+
+Not built locally: no Windows toolchain on this machine.
+
+### Linux: Backspace in a terminal could crash the engine (2026-09-09, issue #36)
+
+Echo-back Backspace in a client with no surrounding-text support — VTE,
+gnome-terminal — synthesised a press/release pair. A terminal that hands
+forwarded events back to the engine turns that into a loop, and gnome-terminal
+dies on it. The engine now declines the key in that case and lets IBus deliver
+the real Backspace. `MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1` restores the old
+synthetic forward for the clients that were the reason it existed.
+
+Linux-only; not compiled locally (macOS has no ibus headers).
+
+### Windows / Linux: AltGr chords on the number row reached the application again (2026-09-08, issue #33)
+
+The marina number-row shortcuts (`Ctrl`+digit, and `Ctrl`+`` ` ``) matched on
+Ctrl alone. Windows reports AltGr as Ctrl+RightAlt, so every AltGr press on a
+bound slot was consumed and never delivered — on French AZERTY that silently
+removed `@` `~` `#` `{` `[`. All three entry points now take an explicit `alt`
+argument and refuse the chord when it is set; a genuine `Ctrl`+`Alt`+digit is
+an application shortcut, never a marina binding. The ibus dispatcher had the
+same gap (there it was `Ctrl`+`Alt` / `Ctrl`+`AltGr` at risk, not plain AltGr)
+and is fixed the same way. This is the counterpart to the preserved-key work
+in the 2026-09-08 "make the chosen layout's AltGr level work" entry.
+
+### Windows: the user symbols editor was unavailable (2026-09-08, issue #31)
+
+Preferences → Dictionary → User symbols returned "L'éditeur de symboles
+utilisateur n'est pas disponible sur cette plateforme". The button was wired up
+on every platform but `ConfigDialog::EditUserSymbols()` was guarded by
+`__APPLE__ || __linux__`. Added a `_WIN32` arm pointing at
+`SystemUtil::GetUserProfileDirectory()` + `/user_symbols.txt`, which is where
+the TIP already reads the file, so edits reach the Symbols Palette without a
+refresh signal. Read and write go through `FileUtil` instead of `std::fstream`
+while here — MSVC interprets a narrow `fstream` path in the active code page,
+not UTF-8, so the editor would have silently done nothing for anyone whose
+profile directory contains non-ASCII characters.
+
+
 ### ibus: place the odoriji palette at the caret for every trigger, not just the IME menu (2026-09-10, issue #25)
 
 Further follow-up to the 2026-08-28 and 2026-09-08
