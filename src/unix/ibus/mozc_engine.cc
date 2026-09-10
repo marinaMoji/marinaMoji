@@ -1044,6 +1044,10 @@ void MozcEngine::SetCursorLocation(IbusEngineWrapper* engine, int x, int y,
     // reshow exists to avoid.
     return;
   }
+  // This callback can still carry an empty rect (a placeholder some apps send
+  // before the real caret). Fall back to the last usable rect rather than
+  // redraw an already-open candidate window in the corner.
+  EnsureUsableCursorArea(engine);
   GetCandidateWindowHandler(engine)->UpdateCursorRect(engine);
 }
 
@@ -1150,6 +1154,17 @@ bool MozcEngine::UpdateAll(IbusEngineWrapper* engine,
       sync::RecordCompositionEnd();
     }
     had_preedit_ = has_preedit;
+  }
+
+  // Before drawing a candidate window (the odoriji / iteration-mark palette
+  // included), make sure the renderer is not handed an empty cursor rect --
+  // which it places at the top-left of the screen. An app that has not yet
+  // sent set_cursor_location leaves the engine's rect all-zero; substitute the
+  // last rect an app reported instead. Covers every trigger, not just the IME
+  // menu path handled in ProcessPropertyActivate (issue #25).
+  if (output.has_candidate_window() &&
+      output.candidate_window().candidate_size() > 0) {
+    EnsureUsableCursorArea(engine);
   }
 
   GetCandidateWindowHandler(engine)->Update(engine, output);
@@ -1337,13 +1352,21 @@ bool MozcEngine::EnsureUsableCursorArea(IbusEngineWrapper* engine) {
     return true;
   }
   if (!has_last_usable_cursor_area_) {
+    // Nothing worth drawing at has ever been reported this session (a freshly
+    // opened application that has not sent set_cursor_location yet). The caller
+    // draws where it can -- issue #25 tracks deferring that instead.
     return false;
   }
-  // The caret has not moved -- the user only clicked the panel menu -- so the
-  // last rect the app reported is where the palette belongs.
+  // The engine's rect is empty -- the app has not reported a caret yet, or the
+  // ibus panel menu owns the focus. The last rect an app reported is a better
+  // guess than the top-left corner, whatever put the candidate window on
+  // screen (typed odoriji, Ctrl+Shift+2, or the IME menu).
   engine->SetCursorArea(last_usable_cursor_area_.x, last_usable_cursor_area_.y,
                         last_usable_cursor_area_.width,
                         last_usable_cursor_area_.height);
+  // The substituted rect may come from a different application; do not let its
+  // left edge be carried into a later same-line preedit.
+  mozc_candidate_window_handler_.ClearCursorPositionCache();
   return true;
 }
 

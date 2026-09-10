@@ -70,6 +70,12 @@ class CandidateWindowHandler : public CandidateWindowHandlerInterface {
   void OnSettingsUpdated(absl::string_view key,
                          const GsettingsWrapper::Variant& value);
 
+  // marinaMoji: drops the cached preedit-origin rect. MozcEngine calls this
+  // when it substitutes a last-known-good cursor rect for an unusable one, so
+  // the substituted (possibly cross-application) left edge is not carried into
+  // a later same-line preedit by the workaround in SendUpdateCommand.
+  void ClearCursorPositionCache();
+
  protected:
   bool SendUpdateCommand(IbusEngineWrapper* engine,
                          const commands::Output& output, bool visibility);

@@ -10,6 +10,41 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### ibus: place the odoriji palette at the caret for every trigger, not just the IME menu (2026-09-10, issue #25)
+
+Further follow-up to the 2026-08-28 and 2026-09-08
+([#25](https://github.com/marinaMoji/marinaMoji/issues/25)) fixes. Those made
+the palette open at the caret when it is opened *from the IME menu*. Typing an
+odoriji (or Ctrl+Shift+2) as the first input into a freshly opened window —
+Firefox, LibreOffice — still drew the palette in the top-left corner of the
+screen; it only moved to the caret once a character had been committed.
+
+The corner placement is one cause reached two ways. Until an application sends
+its first `set_cursor_location`, the engine's cursor rect is all-zero, and the
+renderer draws an empty rect's bottom-left at the screen corner. The
+2026-09-08 change added a last-known-good rect (`last_usable_cursor_area_`) to
+substitute in that case, but wired it only into `ProcessPropertyActivate` and
+`MaybeReshowOdorijiPalette` — the IME-menu path. A directly typed odoriji goes
+through the ordinary candidate-window path (`UpdateAll` →
+`CandidateWindowHandler`), which read the raw rect with no substitution.
+
+- `MozcEngine::UpdateAll` now calls `EnsureUsableCursorArea` before handing a
+  visible candidate window to the renderer, so the substitution covers every
+  trigger. `SetCursorLocation`'s non-pending path does the same before
+  redrawing an already-open window.
+- `EnsureUsableCursorArea` clears `CandidateWindowHandler`'s cached
+  preedit-origin rect (new `ClearCursorPositionCache`) when it substitutes,
+  so a rect borrowed from another application cannot pin the left edge of a
+  later same-line preedit through the workaround in `SendUpdateCommand`.
+- The genuinely-first-input case — nothing worth drawing at has *ever* been
+  reported this session, so there is nothing to substitute — is unchanged:
+  the palette still appears in the corner until the caret moves. Deferring
+  the draw until the first `set_cursor_location` is the remaining piece and
+  is tracked on #25, pending testing on apps that report the caret on
+  focus-in.
+
+Linux-only code; not compiled locally (macOS has no ibus headers).
+
 ### Phrases no longer vanish in kyūjitai mode (2026-09-10, issue #7)
 
 大丈夫 and 丈夫 were present in the candidate window in shinjitai mode and
