@@ -1318,11 +1318,13 @@ TEST_F(SessionTest, LaunchWordRegisterDialogFromDirectInput) {
   Session session(engine);
   InitSessionToDirect(&session);
 
-  // "Ctrl 0" / "Ctrl Shift 0" are handled by the platform-native marina
-  // number-row dispatcher, not by the generic keymap table; "Ctrl Shift )"
-  // is the generically-registered LaunchWordRegisterDialog shortcut.
+  // Ctrl+Shift+0 reaches the session as this SessionCommand: the chord is
+  // owned by the platform-native marina number-row dispatcher, which resolves
+  // the physical key itself, so there is no keymap row to send a key through.
   commands::Command command;
-  EXPECT_TRUE(SendKey("Ctrl Shift )", &session, &command));
+  SetSendCommandCommand(commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG,
+                        &command);
+  EXPECT_TRUE(session.SendCommand(&command));
   EXPECT_EQ(command.output().launch_tool_mode(),
             commands::Output::WORD_REGISTER_DIALOG);
 }
@@ -1356,11 +1358,11 @@ TEST_F(SessionTest, LaunchWordRegisterDialogPrefillFromDirectAfterCommit) {
   peer.last_committed_expression_() = "google";
   peer.last_committed_reading_() = "google";
 
-  // "Ctrl 0" / "Ctrl Shift 0" are handled by the platform-native marina
-  // number-row dispatcher, not by the generic keymap table; "Ctrl Shift )"
-  // is the generically-registered LaunchWordRegisterDialog shortcut.
+  // Ctrl+Shift+0 reaches the session as this SessionCommand (see above).
   commands::Command command;
-  EXPECT_TRUE(SendKey("Ctrl Shift )", &session, &command));
+  SetSendCommandCommand(commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG,
+                        &command);
+  EXPECT_TRUE(session.SendCommand(&command));
   EXPECT_EQ(command.output().word_register_expression(), "google");
   ASSERT_EQ(command.output().word_register_reading_candidates_size(), 1);
   EXPECT_EQ(command.output().word_register_reading_candidates(0), "google");

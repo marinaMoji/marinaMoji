@@ -29,6 +29,10 @@
 
 #include "session/marina_number_row_bindings_util.h"
 
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "composer/key_parser.h"
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
@@ -90,6 +94,17 @@ TEST(MarinaNumberRowBindingsUtilTest, KeymapBindingDetection) {
                                              "Ctrl Shift 0"));
   EXPECT_TRUE(IsMarinaNumberRowKeymapBinding("LaunchWordRegisterDialog",
                                              "Ctrl 0"));
+  // How every shipped keymap TSV actually spells Ctrl+Shift+0. If this row
+  // survives, the number-row dispatcher and the keymap both fire for the same
+  // physical chord on US layouts, and the Shortcuts window lists the command
+  // twice -- once as "Ctrl Shift )" and once as "Ctrl Shift 0".
+  EXPECT_TRUE(IsMarinaNumberRowKeymapBinding("LaunchWordRegisterDialog",
+                                             "Ctrl Shift )"));
+  EXPECT_TRUE(IsMarinaNumberRowKeymapBinding("LaunchWordRegisterDialog",
+                                             "Ctrl )"));
+  // Not a number-row chord: ATOK's own binding stays in the keymap.
+  EXPECT_FALSE(IsMarinaNumberRowKeymapBinding("LaunchWordRegisterDialog",
+                                              "Ctrl F7"));
   EXPECT_TRUE(IsMarinaNumberRowKeymapBinding("IMEOn", "Ctrl Shift 5"));
   EXPECT_FALSE(IsMarinaNumberRowKeymapBinding("ToggleTraditionalKanji",
                                               "Ctrl Shift F"));
@@ -114,6 +129,26 @@ TEST(MarinaNumberRowBindingsUtilTest, FindActionForKeyEvent) {
   ASSERT_TRUE(KeyParser::ParseKey("Ctrl 0", &ctrl_only_dict_key));
   EXPECT_FALSE(
       FindMarinaActionForKeyEvent(config, ctrl_only_dict_key).has_value());
+}
+
+TEST(MarinaNumberRowBindingsUtilTest, ShortcutEntriesListDictionaryEntryOnce) {
+  // The keymap TSV row and the configured binding describe the same chord;
+  // only the binding's label should reach the Shortcuts window.
+  std::vector<std::pair<std::string, std::string>> script;
+  std::vector<std::pair<std::string, std::string>> composition = {
+      {"Enter", "Commit"},
+      {"Ctrl Shift )", "LaunchWordRegisterDialog"},
+  };
+  ApplyMarinaNumberRowShortcutEntries(config::Config(), &script, &composition);
+
+  int word_register_rows = 0;
+  for (const auto& entry : composition) {
+    if (entry.second == "LaunchWordRegisterDialog") {
+      ++word_register_rows;
+      EXPECT_EQ(entry.first, "Ctrl Shift 0");
+    }
+  }
+  EXPECT_EQ(word_register_rows, 1);
 }
 
 }  // namespace

@@ -999,13 +999,12 @@ TEST_F(KeyMapTest, LaunchToolTest) {
         config::Config::MSIME}) {
     KeyMapManager manager(GetDefaultConfig(keymap));
 
-    // "Ctrl 0" / "Ctrl Shift 0" are handled by the platform-native marina
-    // number-row dispatcher, not by the generic keymap table; see
-    // MarinaNumberRowBindingsUtilTest.FindActionForKeyEvent.
+    // Ctrl+Shift+0 -- which every shipped keymap spells "Ctrl Shift )", the
+    // US-layout shifted 0 -- is owned by the platform-native marina number-row
+    // dispatcher, not by the generic keymap table, so the row is dropped at
+    // load time. See MarinaNumberRowBindingsUtilTest.KeymapBindingDetection.
     KeyParser::ParseKey("Ctrl Shift )", &key_event);
-    EXPECT_TRUE(manager.GetCommandDirect(key_event, &direct_command));
-    EXPECT_EQ(direct_command,
-              DirectInputState::LAUNCH_WORD_REGISTER_DIALOG);
+    EXPECT_FALSE(manager.GetCommandDirect(key_event, &direct_command));
   }
 
   {  // ATOK

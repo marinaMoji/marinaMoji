@@ -10,6 +10,33 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Ctrl+Shift+0 has one owner on every platform (2026-09-10)
+
+The word-register chord had two bindings competing for it. The marina
+number-row dispatcher owns (Ctrl+Shift, physical slot 0) on macOS, Linux and
+Windows alike, resolving the physical key so the chord is the same on QWERTY,
+AZERTY and Dvorak. But every shipped keymap TSV also carries
+`Ctrl Shift )` → `LaunchWordRegisterDialog` — upstream Mozc's way of spelling
+Ctrl+Shift+0, matching only where Shift+0 actually produces ")".
+
+`IsMarinaNumberRowKeymapBinding()` exists to drop keymap rows the dispatcher
+owns, and it is what keeps the other five number-row shortcuts single-owner,
+but for `LaunchWordRegisterDialog` it only recognised the spellings
+`Ctrl 0`/`Ctrl Shift 0`, which no keymap uses. So the `)` row survived, with
+two visible effects: on a US layout the keymap fired as a second, layout-
+dependent path for the same action, and the Shortcuts window listed the
+Dictionary entry command twice — once as `Ctrl Shift )`, once as the
+configured `Ctrl Shift 0`. `Ctrl )` and `Ctrl Shift )` are now recognised too,
+so the row is dropped at keymap load time and the dispatcher owns the chord
+alone. ATOK's `Ctrl F7` is untouched — not a number-row chord.
+
+Verified per platform while tracing this: the physical-slot mapping is right
+in all three dispatchers (`win32/tip/win32_physical_slot.cc` scan code 0x0B,
+`unix/ibus/ibus_physical_slot.cc` evdev 11, and `mac/KeyCodeMap.mm`, which
+normalises `kVK_ANSI_0` to '0' before the shared lookup), and none of them
+gates the dispatch on the IME being active, so the chord also works from
+direct mode.
+
 ### Windows: pre-filled word register replaces the docket (2026-09-10)
 
 The Windows toolbar's dictionary button opened the docket review queue
