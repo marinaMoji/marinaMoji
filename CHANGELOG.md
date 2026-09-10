@@ -8,7 +8,7 @@ that touch more than one file or aren't obvious from a commit subject line.
 Format: newest entry first, grouped by date. Each entry should say what
 changed and, where it isn't obvious, why.
 
-## Unreleased
+## v0.0.4
 
 ### ibus: place the odoriji palette at the caret for every trigger, not just the IME menu (2026-09-10, issue #25)
 
