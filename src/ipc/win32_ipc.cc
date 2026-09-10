@@ -43,11 +43,9 @@
 #include "absl/base/no_destructor.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "base/const.h"
-#include "base/marina_debug_log.h"
 #include "base/system_util.h"
 #include "base/util.h"
 #include "base/vlog.h"
@@ -649,23 +647,8 @@ void IPCClient::Init(absl::string_view name,
     LOG(ERROR) << "IPC mutex is not available";
   } else {
     constexpr int kMutexTimeout = 10 * 1000;  // wait at most 10sec.
-    // TEMPORARY: see base/marina_debug_log.h. This mutex serializes every
-    // process's connection to a given named IPC channel (one per server
-    // name, e.g. the mozc session server). A slow or stuck holder blocks
-    // every other client that tries to connect meanwhile, up to the 10sec
-    // timeout below -- a plausible cause for an apparent multi-second freeze
-    // observed across unrelated marinaMoji processes. Log the wait whenever
-    // it takes long enough to notice; ordinary uncontended acquisition should
-    // be near-instant, so this should otherwise stay silent.
-    const uint64_t wait_start_tick = ::GetTickCount64();
     DWORD status;
     mutex_releaser = ipc_mutex.acquire(&status, kMutexTimeout);
-    const uint64_t waited_msec = ::GetTickCount64() - wait_start_tick;
-    constexpr uint64_t kNoticeableWaitMsec = 200;
-    if (waited_msec >= kNoticeableWaitMsec) {
-      MarinaDebugLog(absl::StrCat("ipc: mutex wait for '", name, "' took ",
-                                  waited_msec, "ms, status=", status));
-    }
     switch (status) {
       case WAIT_TIMEOUT:
         // TODO(taku): with suspend/resume, WaitForSingleObject may
@@ -747,20 +730,7 @@ void IPCClient::Init(absl::string_view name,
 #endif                                         // DEBUG
     DLOG(ERROR) << "Server is busy. waiting for " << kNamedPipeTimeout
                 << " msec";
-    // TEMPORARY: see base/marina_debug_log.h. The other candidate stall point
-    // in this function, alongside the mutex above: the pipe is reported busy
-    // (another client is mid-call), and this waits for it to free up.
-    // DLOG()/LOG() above are compiled out entirely in a release build, so
-    // this would otherwise be invisible in exactly the builds under test.
-    const uint64_t pipe_wait_start_tick = ::GetTickCount64();
-    const BOOL pipe_wait_result =
-        ::WaitNamedPipe(wserver_address.c_str(), kNamedPipeTimeout);
-    const uint64_t pipe_waited_msec =
-        ::GetTickCount64() - pipe_wait_start_tick;
-    MarinaDebugLog(absl::StrCat("ipc: WaitNamedPipe for '", name, "' took ",
-                                pipe_waited_msec,
-                                "ms, succeeded=", pipe_wait_result != FALSE));
-    if (!pipe_wait_result) {
+    if (!::WaitNamedPipe(wserver_address.c_str(), kNamedPipeTimeout)) {
       const DWORD wait_named_pipe_error = ::GetLastError();
       LOG(ERROR) << "WaitNamedPipe failed: " << wait_named_pipe_error;
       if ((trial + 1) == kMaxTrial) {

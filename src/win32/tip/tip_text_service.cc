@@ -50,8 +50,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/log/log.h"
-#include "absl/strings/str_cat.h"
-#include "absl/strings/string_view.h"
 #include "base/const.h"
 #include "base/process.h"
 #include "base/system_util.h"
@@ -1632,19 +1630,6 @@ class TipTextServiceImpl
     return S_OK;
   }
 
-  // marinaMoji TEMPORARY (2026-08-08): on-hardware diagnosis of "Symbols
-  // Palette opens but nothing is inserted". This DLL runs inside whatever
-  // application has focus, so OutputDebugString is the only log channel that
-  // needs no file permissions in a sandboxed host -- read it with Sysinternals
-  // DebugView (run as administrator, enable "Capture Global Win32") alongside
-  // the [marinaMoji/renderer] lines from renderer_server.cc. Remove both once
-  // the bug is found.
-  static void MarinaDebugLog(absl::string_view message) {
-    const std::string line =
-        absl::StrCat("[marinaMoji/tip] ", message, "\n");
-    ::OutputDebugStringA(line.c_str());
-  }
-
   // marinaMoji: WM_COPYDATA carries the sender's own claimed PID in wParam
   // (see renderer_server.cc), but Win32 does not enforce that a sender tells
   // the truth about its own identity -- this is not a cryptographic
@@ -1690,20 +1675,6 @@ class TipTextServiceImpl
     // Do not care about thread safety.
     static UINT renderer_callback_message =
         ::RegisterWindowMessage(mozc::kMessageReceiverMessageName);
-    if (message == renderer_callback_message) {
-      // TEMPORARY: see base/marina_debug_log.h. GitHub issue #30: the
-      // renderer's HIDE_TOOLBAR reaches a window proc (SendMessageTimeout
-      // reports success) but the toolbar does not hide until a later attempt.
-      // This says whether the message landed on the *current* callback window
-      // -- a mismatch means the renderer is holding a stale receiver handle.
-      MarinaDebugLog(absl::StrCat(
-          "renderer-cb: registered message on hwnd=",
-          reinterpret_cast<uintptr_t>(window_handle), " current_cb_hwnd=",
-          reinterpret_cast<uintptr_t>(self->renderer_callback_window_handle_),
-          " match=",
-          window_handle == self->renderer_callback_window_handle_ ? 1 : 0,
-          " wparam_type=", static_cast<int>(wparam)));
-    }
     if (window_handle == self->renderer_callback_window_handle_) {
       if (message == renderer_callback_message) {
         self->OnRendererCallback(wparam, lparam);
@@ -1721,35 +1692,21 @@ class TipTextServiceImpl
         // inserted straight into whatever the user is typing into.
         constexpr size_t kMaxSymbolTextBytes = 4096;
         const auto* cds = reinterpret_cast<const COPYDATASTRUCT*>(lparam);
-        // marinaMoji TEMPORARY (2026-08-08): see MarinaDebugLog above. Each
-        // gate is reported separately so DebugView shows exactly which one
-        // rejects a Symbols Palette commit.
         if (cds == nullptr) {
-          MarinaDebugLog("WM_COPYDATA: REJECTED, null COPYDATASTRUCT");
           return TRUE;
         }
         if (cds->dwData != kSymbolTextCopyDataTag) {
-          MarinaDebugLog("WM_COPYDATA: ignored, not our tag (some other "
-                         "app's WM_COPYDATA traffic)");
           return TRUE;
         }
         if (cds->lpData == nullptr || cds->cbData == 0) {
-          MarinaDebugLog("WM_COPYDATA: REJECTED, empty payload");
           return TRUE;
         }
         if (cds->cbData > kMaxSymbolTextBytes) {
-          MarinaDebugLog("WM_COPYDATA: REJECTED, payload over 4096-byte cap");
           return TRUE;
         }
         if (!IsTrustedRendererSender(static_cast<DWORD>(wparam))) {
-          MarinaDebugLog("WM_COPYDATA: REJECTED by IsTrustedRendererSender -- "
-                         "sender PID did not resolve to this install's "
-                         "marinamoji_renderer.exe. If the palette is genuinely "
-                         "ours, suspect GetProcessInitialNtPath/GetNtPath "
-                         "failing under the host app's sandbox.");
           return TRUE;
         }
-        MarinaDebugLog("WM_COPYDATA: accepted, dispatching to edit session");
         self->OnRendererSymbolTextCallback(
             std::string(static_cast<const char*>(cds->lpData), cds->cbData));
         return TRUE;
@@ -1787,8 +1744,6 @@ class TipTextServiceImpl
       }
     }
     if (!private_context_map_.empty()) {
-      // TEMPORARY: see base/marina_debug_log.h.
-      MarinaDebugLog("renderer-cb: using private-context fallback");
       return private_context_map_.begin()->first;
     }
     return nullptr;
@@ -1806,18 +1761,6 @@ class TipTextServiceImpl
   void OnRendererCallback(WPARAM wparam, LPARAM lparam) {
     wil::com_ptr_nothrow<ITfContext> context = GetRendererCallbackContext();
     if (!context) {
-      // TEMPORARY: see base/marina_debug_log.h. If this fires for a
-      // HIDE_TOOLBAR (wparam 42) the click was received but dropped for want
-      // of a context -- neither the live focus nor last_focused_document_
-      // manager_ resolved. GitHub issue #30.
-      wil::com_ptr_nothrow<ITfDocumentMgr> dm;
-      const bool get_focus_ok =
-          SUCCEEDED(thread_mgr_->GetFocus(&dm)) && dm != nullptr;
-      MarinaDebugLog(absl::StrCat(
-          "renderer-cb: no context, dropping wparam_type=",
-          static_cast<int>(wparam), " (GetFocus_ok=", get_focus_ok,
-          " have_last_focused=",
-          last_focused_document_manager_ != nullptr ? 1 : 0, ")"));
       return;
     }
     TipEditSession::OnRendererCallbackAsync(this, context.get(), wparam,

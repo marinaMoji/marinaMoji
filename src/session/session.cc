@@ -32,7 +32,6 @@
 #include "session/session.h"
 
 #include "absl/strings/str_cat.h"
-#include "base/marina_debug_log.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -3156,10 +3155,6 @@ bool Session::TogglePrivacyMode(commands::Command* command) {
 bool Session::ShowOdorijiPalette(commands::Command* command) {
   command->mutable_output()->set_consumed(true);
   OdorijiPalette::Show(&odoriji_palette_visible_, &odoriji_focused_index_);
-  // TEMPORARY: see base/marina_debug_log.h.
-  MarinaDebugLog(absl::StrCat("ShowOdorijiPalette: visible=",
-                              odoriji_palette_visible_,
-                              " focused=", odoriji_focused_index_));
   Output(command);
   return true;
 }
@@ -3764,10 +3759,6 @@ void Session::Output(commands::Command* command) {
   OutputMode(command);
   context_->mutable_converter()->PopOutput(context_->composer(),
                                            command->mutable_output());
-  // TEMPORARY: see base/marina_debug_log.h.
-  MarinaDebugLog(absl::StrCat("Session::Output: palette_visible=",
-                              odoriji_palette_visible_,
-                              " focused=", odoriji_focused_index_));
   if (odoriji_palette_visible_) {
     OdorijiPalette::OverlayOutput(command->mutable_output(),
                                   odoriji_focused_index_);
@@ -3817,10 +3808,6 @@ void Session::OutputMode(commands::Command* command) const {
 }
 
 void Session::OutputComposition(commands::Command* command) const {
-  // TEMPORARY: see base/marina_debug_log.h. This path does not overlay the
-  // odoriji palette, so reaching it while the palette is up drops it.
-  MarinaDebugLog(absl::StrCat("Session::OutputComposition: palette_visible=",
-                              odoriji_palette_visible_, " (no overlay)"));
   OutputMode(command);
   context_->converter().FillPreedit(
       context_->composer(), command->mutable_output()->mutable_preedit());
@@ -3830,10 +3817,6 @@ void Session::OutputComposition(commands::Command* command) const {
 }
 
 void Session::OutputKey(commands::Command* command) const {
-  // TEMPORARY: see base/marina_debug_log.h. Same as OutputComposition: no
-  // palette overlay, so this echo-back path drops it too.
-  MarinaDebugLog(absl::StrCat("Session::OutputKey: palette_visible=",
-                              odoriji_palette_visible_, " (no overlay)"));
   OutputMode(command);
   commands::KeyEvent* key = command->mutable_output()->mutable_key();
   *key = command->input().key();

@@ -62,7 +62,6 @@ mozc_cc_library(
         ":ipc_path_manager",
         "//base:const",
         "//base:file_util",
-        "//base:marina_debug_log",
         "//base:system_util",
         "//base:thread",
         "//base:util",

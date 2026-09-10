@@ -39,8 +39,6 @@
 #include <utility>
 
 #include "absl/log/log.h"
-#include "absl/strings/str_cat.h"
-#include "base/marina_debug_log.h"
 #include "base/win32/com.h"
 #include "base/win32/hresultor.h"
 #include "protocol/commands.pb.h"
@@ -370,11 +368,6 @@ HRESULT TipLangBar::InitLangBar(TipLangBarCallback* text_service) {
     help_menu_ = std::move(help_menu);
   }
 
-  // TEMPORARY: see base/marina_debug_log.h.
-  mozc::MarinaDebugLog(absl::StrCat(
-      "langbar: registered mode icon ",
-      mode_icon_shown_at_registration ? "shown" : "hidden"));
-
   // A no-op when the blocks above ran, since they already applied the
   // preference. Kept for the case where the items already existed.
   SyncModeIconVisibility();
@@ -467,10 +460,6 @@ void TipLangBar::SyncModeIconVisibility() {
   input_mode_button_for_win8_->SetHidden(!shown_in_tray);
   input_button_menu_->SetRenderBlank(!shown_in_tray);
   input_mode_button_for_win8_->SetRenderBlank(!shown_in_tray);
-  // TEMPORARY: see base/marina_debug_log.h.
-  mozc::MarinaDebugLog(absl::StrCat(
-      "langbar: mode icon ", mode_icon_shown_ ? "shown" : "hidden", " -> ",
-      shown_in_tray ? "shown" : "hidden"));
   mode_icon_shown_ = shown_in_tray;
 }
 

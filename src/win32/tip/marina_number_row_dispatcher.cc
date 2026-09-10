@@ -32,8 +32,6 @@
 #include <optional>
 
 #include "session/marina_number_row_bindings_util.h"
-#include "absl/strings/str_cat.h"
-#include "base/marina_debug_log.h"
 #include "win32/tip/win32_physical_slot.h"
 
 namespace mozc {
@@ -118,13 +116,6 @@ bool DispatchMarinaNumberRowShortcut(
 
   const std::optional<MarinaNumberRowAction> action =
       session::FindMarinaActionForPhysicalSlot(config, modifier, *slot);
-  // TEMPORARY: see base/marina_debug_log.h.
-  MarinaDebugLog(absl::StrCat(
-      "dispatch: scan=0x", absl::Hex(scan_code), " ctrl=", ctrl,
-      " shift=", shift, " repeat=", is_autorepeat, " open=", is_open,
-      " slot=", static_cast<int>(*slot),
-      " action=", action.has_value() ? static_cast<int>(*action) : -1,
-      " bindings_in_config=", config.marina_number_row_bindings_size()));
   if (!action.has_value()) {
     return false;
   }
@@ -134,7 +125,6 @@ bool DispatchMarinaNumberRowShortcut(
   // that could not tell OS key-repeat from a fast second press, and so
   // silently dropped presses when a shortcut was used in quick succession.
   if (is_autorepeat) {
-    MarinaDebugLog("dispatch: OS key-repeat, claimed but sending nothing");
     return true;
   }
 
@@ -183,13 +173,6 @@ bool DispatchMarinaNumberRowShortcut(
     case MarinaNumberRowAction::MARINA_NR_TRADITIONAL_KANJI: {
       command.set_type(SessionCommand::TOGGLE_TRADITIONAL_KANJI);
       const bool sent = SendSessionCommand(client, command, output);
-      // TEMPORARY: see base/marina_debug_log.h.
-      MarinaDebugLog(absl::StrCat("dispatch: TOGGLE_TRADITIONAL_KANJI sent=", sent,
-                                " client=", client != nullptr,
-                                " output_has_config=", output->has_config(),
-                                " use_traditional_kanji=",
-                                output->has_config() &&
-                                    output->config().use_traditional_kanji()));
       return sent;
     }
 

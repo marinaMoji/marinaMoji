@@ -10,10 +10,8 @@
 #include <string>
 #include <vector>
 
-#include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "base/file_util.h"
-#include "base/marina_debug_log.h"
 #include "base/system_util.h"
 
 namespace mozc::win32 {
@@ -134,15 +132,7 @@ bool SaveToolbarVisiblePreference(bool visible) {
   if (const std::string dir = FileUtil::Dirname(path); !dir.empty()) {
     (void)FileUtil::CreateDirectory(dir);
   }
-  const absl::Status status = FileUtil::SetContents(path, serialized);
-  if (!status.ok()) {
-    // TEMPORARY: see base/marina_debug_log.h. The reported symptom is that the
-    // first "Hide toolbar" does nothing and shows an error glyph, while the
-    // second works; the caller turns this failure into E_FAIL. The cause is
-    // not yet identified, so record the actual error.
-    MarinaDebugLog(
-        absl::StrCat("toolbar_config: write failed, path=", path,
-                     " status=", status.ToString()));
+  if (!FileUtil::SetContents(path, serialized).ok()) {
     // Do not publish on failure. The caller reports the error and leaves the
     // UI alone, so seeding the cache with a value that is in neither the file
     // nor the UI only makes the next toggle compute its direction from a value

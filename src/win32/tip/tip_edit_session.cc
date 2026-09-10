@@ -33,7 +33,6 @@
 #include <wil/com.h>
 #include <windows.h>
 
-#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -43,7 +42,6 @@
 
 #include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
-#include "base/marina_debug_log.h"
 #include "base/win32/com.h"
 #include "base/win32/wide_char.h"
 #include "client/client_interface.h"
@@ -80,14 +78,6 @@ using CompositionMode = ::mozc::commands::CompositionMode;
 using SpecialKey = ::mozc::commands::KeyEvent_SpecialKey;
 using CommandType = ::mozc::commands::SessionCommand::CommandType;
 
-// TEMPORARY: see base/marina_debug_log.h. Correlates a layout-change edit
-// session request with the moment TSF grants it. GitHub issue #30: a
-// "Hide toolbar" click that reaches the TIP but leaves the toolbar on screen
-// for many seconds, with the TIP process doing no I/O in the meantime -- the
-// prime suspect is TSF sitting on this async READ session. If the "granted
-// ... after Nms" line trails its "requested" line by seconds, that is it.
-std::atomic<uint32_t> g_layout_change_seq{0};
-
 // This class is an implementation class for the ITfEditSession classes, which
 // is an observer for exclusively updating the text store of a TSF thread
 // manager.
@@ -96,19 +86,13 @@ class AsyncLayoutChangeEditSessionImpl final
  public:
   AsyncLayoutChangeEditSessionImpl(
       wil::com_ptr_nothrow<TipTextService> text_service,
-      wil::com_ptr_nothrow<ITfContext> context, uint32_t request_id)
-      : text_service_(std::move(text_service)),
-        context_(std::move(context)),
-        request_id_(request_id),
-        request_tick_(::GetTickCount64()) {}
+      wil::com_ptr_nothrow<ITfContext> context)
+      : text_service_(std::move(text_service)), context_(std::move(context)) {}
 
   // The ITfEditSession interface method.
   // This function is called back by the TSF thread manager when an edit
   // request is granted.
   STDMETHODIMP DoEditSession(TfEditCookie read_cookie) override {
-    mozc::MarinaDebugLog(absl::StrCat(
-        "editsession: layout-change granted id=", request_id_, " after ",
-        ::GetTickCount64() - request_tick_, "ms"));
     // Ignore the returned code as TipUiHandler::UpdateUI will be called
     // anyway.
     text_service_->GetThreadContext()
@@ -123,8 +107,6 @@ class AsyncLayoutChangeEditSessionImpl final
  private:
   wil::com_ptr_nothrow<TipTextService> text_service_;
   wil::com_ptr_nothrow<ITfContext> context_;
-  const uint32_t request_id_;
-  const uint64_t request_tick_;
 };
 
 bool OnLayoutChangedAsyncImpl(TipTextService* text_service,
@@ -133,19 +115,13 @@ bool OnLayoutChangedAsyncImpl(TipTextService* text_service,
     return false;
   }
 
-  const uint32_t request_id = g_layout_change_seq.fetch_add(1) + 1;
-  auto edit_session = MakeComPtr<AsyncLayoutChangeEditSessionImpl>(
-      text_service, context, request_id);
+  auto edit_session =
+      MakeComPtr<AsyncLayoutChangeEditSessionImpl>(text_service, context);
 
   HRESULT edit_session_result = S_OK;
   const HRESULT hr = context->RequestEditSession(
       text_service->GetClientID(), edit_session.get(),
       TF_ES_ASYNCDONTCARE | TF_ES_READ, &edit_session_result);
-  // TEMPORARY: see base/marina_debug_log.h.
-  mozc::MarinaDebugLog(
-      absl::StrCat("editsession: layout-change requested id=", request_id,
-                   " request_hr=0x", absl::Hex(hr), " result_hr=0x",
-                   absl::Hex(edit_session_result)));
   return SUCCEEDED(hr) && SUCCEEDED(edit_session_result);
 }
 
@@ -810,14 +786,7 @@ bool TipEditSession::OnRendererCallbackAsync(TipTextService* text_service,
       // marinaMoji: "Hide toolbar" from the toolbar's own context menu. The
       // preference lives on the TIP side (win32/base/toolbar_config.cc) and
       // gates the ShowToolbar bit, so the renderer can only ask for it.
-      // TEMPORARY: see base/marina_debug_log.h. Marks the moment the renderer's
-      // HIDE_TOOLBAR reached the TIP, so the delay until the toolbar actually
-      // goes away can be split into "callback -> edit session requested" and
-      // "requested -> granted". GitHub issue #30.
-      mozc::MarinaDebugLog("editsession: HIDE_TOOLBAR callback reached the TIP");
       mozc::win32::SaveToolbarVisiblePreference(false);
-      mozc::MarinaDebugLog(
-          "editsession: HIDE_TOOLBAR pref written, requesting layout change");
       return OnLayoutChangedAsyncImpl(text_service, context);
     }
     case SessionCommand::SHOW_SYMBOLS_PALETTE:

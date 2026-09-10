@@ -302,7 +302,6 @@ mozc_cc_library(
         ":keyboard",
         ":keyboard_layout_tables",
         "//base:japanese_util",
-        "//base:marina_debug_log",
         "//base:util",
         "//base/win32:wide_char",
         "//client:client_interface",
@@ -564,9 +563,7 @@ mozc_cc_library(
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
         "//base:file_util",
-        "//base:marina_debug_log",
         "//base:system_util",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
     ],
 )
