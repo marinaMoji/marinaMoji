@@ -39,6 +39,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "converter/candidate.h"
 #include "converter/segments.h"
 #include "protocol/config.pb.h"
@@ -220,7 +221,20 @@ void CopyCandidateFields(const converter::Candidate& source,
   dest->category = source.category;
 }
 
+// Builds the full surface for a converted content part. |functional_value| is
+// the candidate's original functional part (okurigana, trailing particles),
+// which is kana and so is carried over unconverted.
+std::string BuildValue(const std::string& variant,
+                       absl::string_view functional_value,
+                       bool has_content_value) {
+  if (!has_content_value) {
+    return variant;
+  }
+  return absl::StrCat(variant, functional_value);
+}
+
 void ApplyVariantToCandidate(const converter::Candidate& source,
+                             absl::string_view functional_value,
                              const std::string& variant,
                              converter::Candidate* dest) {
   CopyCandidateFields(source, dest);
@@ -230,13 +244,14 @@ void ApplyVariantToCandidate(const converter::Candidate& source,
     return;
   }
   dest->content_value = variant;
-  dest->value = absl::StrCat(variant, source.functional_value());
+  dest->value = BuildValue(variant, functional_value, /*has_content_value=*/true);
 }
 
-bool ExpandCandidateVariants(
-    converter::Segment* seg, int candidate_index,
-    const absl::flat_hash_set<std::string>& existing_values,
-    const std::vector<std::string>& variants) {
+// Rewrites the candidate at |candidate_index| to the first variant and inserts
+// the remaining variants after it. |variants| are conversions of the
+// candidate's content part, not of its whole surface.
+bool ExpandCandidateVariants(converter::Segment* seg, int candidate_index,
+                             const std::vector<std::string>& variants) {
   if (variants.empty()) {
     return false;
   }
@@ -246,14 +261,23 @@ bool ExpandCandidateVariants(
     return false;
   }
 
-  const std::string original_value = original->value;
-  const std::string primary_variant = variants.front();
-  if (original->content_value.empty()) {
-    original->value = primary_variant;
-  } else {
-    original->content_value = primary_variant;
-    original->value = absl::StrCat(primary_variant, original->functional_value());
+  absl::flat_hash_set<std::string> existing_values;
+  for (size_t i = 0; i < seg->candidates_size(); ++i) {
+    existing_values.insert(seg->candidate(i).value);
   }
+
+  const bool has_content_value = !original->content_value.empty();
+  // Captured before content_value is overwritten below, which would otherwise
+  // change what functional_value() returns.
+  const std::string functional_value(original->functional_value());
+
+  const std::string original_value = original->value;
+  const std::string& primary_variant = variants.front();
+  if (has_content_value) {
+    original->content_value = primary_variant;
+  }
+  original->value = BuildValue(primary_variant, functional_value,
+                               has_content_value);
   bool modified = original->value != original_value;
 
   absl::flat_hash_set<std::string> inserted;
@@ -261,10 +285,12 @@ bool ExpandCandidateVariants(
 
   for (size_t i = 1; i < variants.size(); ++i) {
     const std::string& variant = variants[i];
-    if (!inserted.insert(variant).second) {
+    const std::string value =
+        BuildValue(variant, functional_value, has_content_value);
+    if (!inserted.insert(value).second) {
       continue;
     }
-    if (existing_values.contains(variant)) {
+    if (existing_values.contains(value)) {
       continue;
     }
 
@@ -273,41 +299,12 @@ bool ExpandCandidateVariants(
     if (!new_candidate) {
       continue;
     }
-    ApplyVariantToCandidate(*original, variant, new_candidate);
+    ApplyVariantToCandidate(*original, functional_value, variant,
+                            new_candidate);
     modified = true;
   }
 
   return modified;
-}
-
-bool ExpandFieldVariants(converter::Segment* seg, int candidate_index,
-                         const std::vector<std::string>& variants,
-                         bool value_field) {
-  if (variants.empty()) {
-    return false;
-  }
-
-  converter::Candidate* original = seg->mutable_candidate(candidate_index);
-  if (!original) {
-    return false;
-  }
-
-  if (!value_field) {
-    if (original->content_value.empty()) {
-      return false;
-    }
-    const std::string original_content = original->content_value;
-    original->content_value = variants.front();
-    return original->content_value != original_content;
-  }
-
-  absl::flat_hash_set<std::string> existing_values;
-  for (size_t i = 0; i < seg->candidates_size(); ++i) {
-    existing_values.insert(seg->candidate(i).value);
-  }
-
-  return ExpandCandidateVariants(seg, candidate_index, existing_values,
-                                 variants);
 }
 #endif  // MOZC_USE_OPENCC
 
@@ -341,21 +338,22 @@ bool OpenccRewriter::Rewrite(const ConversionRequest& request,
       converter::Candidate* cand = seg->mutable_candidate(j);
       if (!cand) continue;
 
-      if (!cand->value.empty()) {
-        const std::vector<std::string> variants =
-            ConvertAllVariants(converter, cand->value);
-        if (!variants.empty()) {
-          modified |= ExpandFieldVariants(seg, j, variants, /*value_field=*/true);
-        }
+      // Convert the content part only. The functional part is kana and is
+      // re-attached by ExpandCandidateVariants. Converting the whole value and
+      // then content_value in a second pass ran the tables twice over
+      // already-converted text, and left content_value holding the full
+      // surface rather than just the content part.
+      const std::string& source =
+          cand->content_value.empty() ? cand->value : cand->content_value;
+      if (source.empty()) {
+        continue;
       }
-      if (!cand->content_value.empty()) {
-        const std::vector<std::string> variants =
-            ConvertAllVariants(converter, cand->content_value);
-        if (!variants.empty()) {
-          modified |= ExpandFieldVariants(seg, j, variants,
-                                          /*value_field=*/false);
-        }
+      const std::vector<std::string> variants =
+          ConvertAllVariants(converter, source);
+      if (variants.empty()) {
+        continue;
       }
+      modified |= ExpandCandidateVariants(seg, j, variants);
     }
   }
   return modified;

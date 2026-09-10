@@ -1318,11 +1318,13 @@ TEST_F(SessionTest, LaunchWordRegisterDialogFromDirectInput) {
   Session session(engine);
   InitSessionToDirect(&session);
 
-  // "Ctrl 0" / "Ctrl Shift 0" are handled by the platform-native marina
-  // number-row dispatcher, not by the generic keymap table; "Ctrl Shift )"
-  // is the generically-registered LaunchWordRegisterDialog shortcut.
+  // Ctrl+Shift+0 reaches the session as this SessionCommand: the chord is
+  // owned by the platform-native marina number-row dispatcher, which resolves
+  // the physical key itself, so there is no keymap row to send a key through.
   commands::Command command;
-  EXPECT_TRUE(SendKey("Ctrl Shift )", &session, &command));
+  SetSendCommandCommand(commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG,
+                        &command);
+  EXPECT_TRUE(session.SendCommand(&command));
   EXPECT_EQ(command.output().launch_tool_mode(),
             commands::Output::WORD_REGISTER_DIALOG);
 }
@@ -1356,11 +1358,11 @@ TEST_F(SessionTest, LaunchWordRegisterDialogPrefillFromDirectAfterCommit) {
   peer.last_committed_expression_() = "google";
   peer.last_committed_reading_() = "google";
 
-  // "Ctrl 0" / "Ctrl Shift 0" are handled by the platform-native marina
-  // number-row dispatcher, not by the generic keymap table; "Ctrl Shift )"
-  // is the generically-registered LaunchWordRegisterDialog shortcut.
+  // Ctrl+Shift+0 reaches the session as this SessionCommand (see above).
   commands::Command command;
-  EXPECT_TRUE(SendKey("Ctrl Shift )", &session, &command));
+  SetSendCommandCommand(commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG,
+                        &command);
+  EXPECT_TRUE(session.SendCommand(&command));
   EXPECT_EQ(command.output().word_register_expression(), "google");
   ASSERT_EQ(command.output().word_register_reading_candidates_size(), 1);
   EXPECT_EQ(command.output().word_register_reading_candidates(0), "google");
@@ -1451,52 +1453,6 @@ TEST_F(SessionTest, StoreLastCommitBufferOnConversionCommit) {
   SessionTestPeer peer(session);
   EXPECT_EQ(peer.last_committed_expression_(), "あいうえお");
   EXPECT_EQ(peer.last_committed_reading_(), "あいうえお");
-}
-
-TEST_F(SessionTest, DocketCandidateRecordedForUnknownWord) {
-  MockEngine engine;
-  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
-  EXPECT_CALL(engine, IsKnownWord(absl::string_view("あいうえお")))
-      .WillOnce(Return(false));
-  EXPECT_CALL(engine,
-             RecordDocketCandidate(absl::string_view("あいうえお"),
-                                   absl::string_view("あいうえお"), _, _))
-      .Times(1);
-  Session session(engine);
-  InitSessionToConversionWithAiueo(&session, converter.get());
-
-  commands::Command command;
-  session.Commit(&command);
-  EXPECT_EQ(command.output().result().value(), "あいうえお");
-}
-
-TEST_F(SessionTest, DocketCandidateSkippedForKnownWord) {
-  MockEngine engine;
-  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
-  EXPECT_CALL(engine, IsKnownWord(absl::string_view("あいうえお")))
-      .WillOnce(Return(true));
-  EXPECT_CALL(engine, RecordDocketCandidate).Times(0);
-  Session session(engine);
-  InitSessionToConversionWithAiueo(&session, converter.get());
-
-  commands::Command command;
-  session.Commit(&command);
-  EXPECT_EQ(command.output().result().value(), "あいうえお");
-}
-
-TEST_F(SessionTest, DocketCandidateSkippedForSingleCharacterCommit) {
-  MockEngine engine;
-  CreateEngineConverterMock(&engine);
-  EXPECT_CALL(engine, IsKnownWord).Times(0);
-  EXPECT_CALL(engine, RecordDocketCandidate).Times(0);
-  Session session(engine);
-  InitSessionToPrecomposition(&session);
-
-  commands::Command command;
-  InsertCharacterChars("a", &session, &command);
-  command.Clear();
-  session.Commit(&command);
-  EXPECT_EQ(command.output().result().value(), "あ");
 }
 
 TEST_F(SessionTest, ClearLastCommitBufferOnResetContext) {

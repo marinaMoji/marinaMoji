@@ -57,12 +57,6 @@ class MockEngine : public EngineInterface {
   MOCK_METHOD(bool, ClearUnusedUserPrediction, (), (override));
   MOCK_METHOD(bool, ReloadAndWait, (), (override));
   MOCK_METHOD(std::vector<std::string>, GetPosList, (), (const, override));
-  MOCK_METHOD(bool, IsKnownWord, (absl::string_view surface),
-              (const, override));
-  MOCK_METHOD(void, RecordDocketCandidate,
-              (absl::string_view surface, absl::string_view reading,
-               int32_t lid, int32_t rid),
-              (const, override));
 };
 
 }  // namespace mozc

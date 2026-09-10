@@ -82,6 +82,7 @@
 // clang-format on
 
 #include "base/run_level.h"
+#include "base/system_util.h"
 #include "gui/base/win_util.h"
 #endif  // _WIN32
 
@@ -136,31 +137,50 @@ void Connect(const QList<T *> &objects, const char *signal,
     QObject::connect(*itr, signal, receiver, slot);
   }
 }
-#if defined(__APPLE__) || defined(__linux__)
+#if defined(__APPLE__) || defined(__linux__) || defined(_WIN32)
 std::string UserSymbolsPath() {
 #if defined(__APPLE__)
   return mozc::FileUtil::JoinPath(mozc::MacUtil::GetApplicationSupportDirectory(),
                                  "user_symbols.txt");
+#elif defined(_WIN32)
+  // Must match what the TIP reads in win32/tip/tip_ui_handler_conventional.cc
+  // (LoadUserSymbolsFromFile), which is where the Symbols Palette gets its
+  // user entries from on Windows.
+  return mozc::FileUtil::JoinPath(mozc::SystemUtil::GetUserProfileDirectory(),
+                                  "user_symbols.txt");
 #else
   return mozc::FileUtil::JoinPath(mozc::ibus::GetUserDataDirectory(),
                                   "user_symbols.txt");
 #endif
 }
 
+// FileUtil rather than std::fstream: on Windows the narrow path handed to
+// fstream is interpreted in the active code page, not UTF-8, so a profile
+// directory with non-ASCII characters (C:\Users\Zoe...) would silently fail to
+// open. FileUtil widens the path first, and is also what the TIP side uses to
+// read this same file.
 std::vector<std::string> LoadUserSymbolsFromFile() {
   std::vector<std::string> values;
-  std::ifstream ifs(UserSymbolsPath());
-  if (!ifs) {
+  const auto contents = mozc::FileUtil::GetContents(UserSymbolsPath());
+  if (!contents.ok()) {
     return values;
   }
-  std::string line;
-  while (std::getline(ifs, line)) {
+  const std::string &text = *contents;
+  size_t pos = 0;
+  while (pos < text.size()) {
+    const size_t eol = text.find('\n', pos);
+    std::string line = text.substr(
+        pos, eol == std::string::npos ? std::string::npos : eol - pos);
     if (!line.empty() && line.back() == '\r') {
       line.pop_back();
     }
     if (!line.empty()) {
-      values.push_back(line);
+      values.push_back(std::move(line));
     }
+    if (eol == std::string::npos) {
+      break;
+    }
+    pos = eol + 1;
   }
   return values;
 }
@@ -171,17 +191,18 @@ void SaveUserSymbolsToFile(const std::vector<std::string> &values) {
   if (!dir.empty()) {
     (void)mozc::FileUtil::CreateDirectory(dir);
   }
-  std::ofstream ofs(path, std::ios::out | std::ios::trunc);
-  if (!ofs) {
-    return;
-  }
+  std::string serialized;
   for (const std::string &value : values) {
     if (!value.empty()) {
-      ofs << value << '\n';
+      serialized.append(value);
+      serialized.push_back('\n');
     }
   }
+  if (!mozc::FileUtil::SetContents(path, serialized).ok()) {
+    LOG(ERROR) << "Failed to write " << path;
+  }
 }
-#endif  // __APPLE__ || __linux__
+#endif  // __APPLE__ || __linux__ || _WIN32
 }  // namespace
 
 namespace mozc {
@@ -1244,7 +1265,7 @@ void ConfigDialog::EditUserDictionary() {
 }
 
 void ConfigDialog::EditUserSymbols() {
-#if defined(__APPLE__) || defined(__linux__)
+#if defined(__APPLE__) || defined(__linux__) || defined(_WIN32)
   const std::vector<std::string> current_values = LoadUserSymbolsFromFile();
   QStringList lines;
   for (const std::string &value : current_values) {

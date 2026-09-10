@@ -29,9 +29,6 @@
 
 #include "win32/base/keyevent_handler.h"
 
-#include "absl/strings/str_cat.h"
-#include "base/marina_debug_log.h"
-
 #include <ime.h>
 #include <string.h>
 #include <windows.h>
@@ -930,33 +927,6 @@ KeyEventHandlerResult KeyEventHandler::HandleKey(
   return result;
 }
 
-
-namespace {
-// TEMPORARY: see base/marina_debug_log.h. Renders the Mozc KeyEvent a Ctrl
-// chord produced, so a layout reporting the wrong letter (the Dvorak case) is
-// visible rather than inferred.
-void MarinaLogCtrlChord(const char* phase, const mozc::commands::KeyEvent& key,
-                        const mozc::win32::KeyEventHandlerResult& result) {
-  std::string modifiers;
-  for (int i = 0; i < key.modifier_keys_size(); ++i) {
-    absl::StrAppend(&modifiers, i ? "+" : "",
-                    static_cast<int>(key.modifier_keys(i)));
-  }
-  const std::string printable =
-      (key.has_key_code() && key.key_code() >= 32 && key.key_code() < 127)
-          ? std::string(1, static_cast<char>(key.key_code()))
-          : std::string("?");
-  mozc::MarinaDebugLog(absl::StrCat(
-      phase, ": key_code=", key.has_key_code() ? key.key_code() : 0, " ('",
-      printable, "') special=",
-      key.has_special_key() ? static_cast<int>(key.special_key()) : -1,
-      " modifiers=[", modifiers, "] succeeded=", result.succeeded,
-      " eaten=", result.should_be_eaten,
-      " to_server=", result.should_be_sent_to_server,
-      " direct_layout=", result.handled_by_direct_layout));
-}
-}  // namespace
-
 KeyEventHandlerResult KeyEventHandler::ImeProcessKey(
     const VirtualKey& virtual_key, BYTE scan_code, bool is_key_down,
     const KeyboardStatus& keyboard_status, const InputBehavior& behavior,
@@ -1016,12 +986,6 @@ KeyEventHandlerResult KeyEventHandler::ImeProcessKey(
   KeyEventHandlerResult result =
       HandleKey(virtual_key, scan_code, is_key_down, keyboard_status, behavior,
                 initial_state, keyboard, &key);
-
-  // TEMPORARY: see base/marina_debug_log.h. Ctrl chords only, to keep the
-  // debug stream readable while ordinary typing continues.
-  if (is_key_down && keyboard_status.IsPressed(VK_CONTROL)) {
-    MarinaLogCtrlChord("ImeProcessKey", key, result);
-  }
 
   if (!result.succeeded) {
     return result;
@@ -1123,12 +1087,6 @@ KeyEventHandlerResult KeyEventHandler::ImeToAsciiEx(
       HandleKey(virtual_key, scan_code, is_key_down, keyboard_status, behavior,
                 initial_state, keyboard, &key);
 
-  // TEMPORARY: see base/marina_debug_log.h. Ctrl chords only, to keep the
-  // debug stream readable while ordinary typing continues.
-  if (is_key_down && keyboard_status.IsPressed(VK_CONTROL)) {
-    MarinaLogCtrlChord("ImeToAsciiEx", key, result);
-  }
-
   if (!result.succeeded) {
     return result;
   }
@@ -1227,29 +1185,16 @@ void KeyEventHandler::MaybeSpawnTool(mozc::client::ClientInterface* client,
   // by client with specified mode.
   // TODO(team):  move it to better place.
   if (output->has_launch_tool_mode()) {
-    std::string mode;
-    switch (output->launch_tool_mode()) {
-      case commands::Output::CONFIG_DIALOG:
-        mode = "config_dialog";
-        break;
-      case commands::Output::WORD_REGISTER_DIALOG:
-        mode = "word_register_dialog";
-        break;
-      case commands::Output::DICTIONARY_TOOL:
-        mode = "dictionary_tool";
-        break;
-      case commands::Output::DOCKET_DIALOG:
-        mode = "docket_dialog";
-        break;
-      case commands::Output::NO_TOOL:
-      default:
-        // Do nothing.
-        break;
-    }
+    // marinaMoji: launch through LaunchToolWithProtoBuf rather than
+    // LaunchTool(mode, ""), so the word-register prefill fields the session
+    // put on this Output (Output::word_register_expression and
+    // ::word_register_reading_candidates) reach the dialog. The mode ->
+    // binary-name mapping lives in Client::TranslateProtoBufToMozcToolArg;
+    // duplicating it here is what used to drop the prefill on Windows while
+    // macOS and Linux kept it.
+    const commands::Output launch_output = *output;
     output->clear_launch_tool_mode();
-    if (!mode.empty()) {
-      client->LaunchTool(mode, "");
-    }
+    client->LaunchToolWithProtoBuf(launch_output);
   }
 }
 

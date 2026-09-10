@@ -44,13 +44,12 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/base/casts.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/log/log.h"
-#include "absl/strings/str_cat.h"
-#include "absl/strings/string_view.h"
 #include "base/const.h"
 #include "base/process.h"
 #include "base/system_util.h"
@@ -63,6 +62,8 @@
 #include "base/win32/win_util.h"
 #include "config/config_handler.h"
 #include "protocol/commands.pb.h"
+#include "win32/base/config_snapshot.h"
+#include "win32/base/keyboard_layout_tables.h"
 #include "win32/base/toolbar_config.h"
 #include "win32/base/win32_window_util.h"
 #include "win32/tip/tip_display_attributes.h"
@@ -187,6 +188,33 @@ constexpr GUID kTipFunctionProvider = {
     {0xbb, 0xe4, 0x32, 0xfe, 0x8, 0xc1, 0x48, 0xf4}};
 
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD
+
+// marinaMoji: base GUID for the per-virtual-key preserved keys that carry the
+// selected keyboard layout's AltGr level. One preserved key is registered per
+// VK, each identified by this GUID with the VK added to Data1 -- the low byte
+// of Data1 is zero here, so the derived GUIDs stay distinct from each other
+// and from the base. See MakeMarinaAltGrGuid() and issue #33.
+// {6F3A21B4-5C00-4E7D-9A61-2D4B8E7C1F00}
+constexpr GUID kTipPreservedKey_MarinaAltGrBase = {
+    0x6f3a21b4,
+    0x5c00,
+    0x4e7d,
+    {0x9a, 0x61, 0x2d, 0x4b, 0x8e, 0x7c, 0x1f, 0x00}};
+
+GUID MakeMarinaAltGrGuid(BYTE virtual_key) {
+  GUID guid = kTipPreservedKey_MarinaAltGrBase;
+  guid.Data1 += virtual_key;
+  return guid;
+}
+
+// The AltGr level of a layout has a shifted half too (Italian's AltGr+Shift+è
+// is '{', bepo's AltGr+Shift+A is 'AE'), and a preserved key matches one exact
+// modifier set, so each VK is registered twice. Both variants share the VK's
+// GUID -- as the two Kanji entries in kPreservedKeyItems[] share theirs --
+// because the handler only needs the VK: Shift is read from the live keyboard
+// state further down the normal key pipeline.
+constexpr UINT kMarinaAltGrModifiers[] = {TF_MOD_RALT,
+                                          TF_MOD_RALT | TF_MOD_SHIFT};
 
 HRESULT SpawnTool(const std::string& command) {
   if (!Process::SpawnMozcProcess(kMozcTool, "--mode=" + command)) {
@@ -320,6 +348,9 @@ constexpr wchar_t kTipKeyTilde[] = L"OnOff";
 constexpr wchar_t kTipKeyKanji[] = L"Kanji";
 constexpr wchar_t kTipKeyF10[] = L"Function 10";
 constexpr wchar_t kTipKeyRoman[] = L"Roman";
+// marinaMoji: shown for every AltGr-level preserved key (see
+// SyncMarinaAltGrPreservedKeys); one description covers the whole level.
+constexpr wchar_t kTipKeyMarinaAltGr[] = L"AltGr";
 constexpr wchar_t kTipKeyNoRoman[] = L"NoRoman";
 
 struct PreserveKeyItem {
@@ -732,6 +763,11 @@ class TipTextServiceImpl
     if (focused != nullptr) {
       last_focused_document_manager_ = focused;
     }
+    // marinaMoji: pick up a keyboard-layout change made in Preferences while
+    // this application was running. ConfigSnapshot::Get is mtime-checked and
+    // returns early when nothing changed, and the registration itself is
+    // skipped unless the selected layout actually differs.
+    SyncMarinaAltGrPreservedKeys();
     OnDocumentMgrChanged(focused);
     return S_OK;
   }
@@ -843,6 +879,13 @@ class TipTextServiceImpl
       eaten = &dummy_eaten;
     }
     *eaten = FALSE;
+    // marinaMoji: the AltGr level of the selected keyboard layout, claimed as
+    // preserved keys because Windows never routes a plain Alt chord to a text
+    // service's keystroke sink. See OnMarinaAltGrPreservedKey().
+    const auto marina_it = marina_altgr_key_map_.find(guid);
+    if (marina_it != marina_altgr_key_map_.end()) {
+      return OnMarinaAltGrPreservedKey(context, marina_it->second, eaten);
+    }
     const auto it = preserved_key_map_.find(guid);
     if (it == preserved_key_map_.end()) {
       return result;
@@ -1294,7 +1337,106 @@ class TipTextServiceImpl
         preserved_key_map_[item.guid] = item.mapped_vkey;
       }
     }
+    // marinaMoji: the selected layout's AltGr level, registered separately
+    // because the set depends on config and can change while we are running.
+    SyncMarinaAltGrPreservedKeys();
     return result;
+  }
+
+  // marinaMoji: hands one AltGr-level key back to the normal key pipeline, so
+  // it reaches KeyEventHandler's direct-mode layout emulation exactly as it
+  // would on an OS layout that has an AltGr level of its own.
+  //
+  // Declining is as important as claiming. The chord only belongs to marinaMoji
+  // when the *right* Alt is down: a left-Alt chord is the application's menu
+  // accelerator and must survive untouched. TF_MOD_RALT should already keep
+  // those out of here, but the check is cheap and the cost of being wrong is a
+  // silently broken Alt+F. When we decline, the key is re-posted as
+  // WM_SYSKEYDOWN for the same reason F10 is below: for a system key, leaving
+  // |eaten| FALSE is not enough to get it back to the application.
+  HRESULT OnMarinaAltGrPreservedKey(ITfContext* context, UINT vk,
+                                    BOOL* eaten) {
+    *eaten = FALSE;
+    const UINT scan_code = ::MapVirtualKey(vk, MAPVK_VK_TO_VSC);
+    // Bit 29 (the context code) is what Windows sets while Alt is down.
+    const LPARAM lparam = (static_cast<LPARAM>(1) << 29) |
+                          (static_cast<LPARAM>(scan_code) << 16) | 1;
+    const bool right_alt_down = (::GetKeyState(VK_RMENU) & 0x8000) != 0;
+    const bool left_alt_down = (::GetKeyState(VK_LMENU) & 0x8000) != 0;
+    if (right_alt_down && !left_alt_down) {
+      const HRESULT result =
+          TipKeyeventHandler::OnKeyDown(this, context, vk, lparam, eaten);
+      if (FAILED(result)) {
+        return result;
+      }
+      if (*eaten != FALSE) {
+        return result;
+      }
+      // Not consumed: the IME is open (the layout emulation is direct-mode
+      // only), or this VK carries nothing on the current layout's AltGr level.
+      // Fall through and give the application its Alt chord back.
+    }
+    const HWND focused_window = ::GetFocus();
+    if (focused_window != nullptr) {
+      ::PostMessage(focused_window, WM_SYSKEYDOWN, vk, lparam);
+    }
+    return S_OK;
+  }
+
+  // marinaMoji: drops the AltGr-level preserved keys registered so far.
+  void UnregisterMarinaAltGrPreservedKeys(ITfKeystrokeMgr* keystroke) {
+    for (const BYTE vk : marina_altgr_vks_) {
+      const GUID guid = MakeMarinaAltGrGuid(vk);
+      for (const UINT modifiers : kMarinaAltGrModifiers) {
+        TF_PRESERVEDKEY key = {vk, modifiers};
+        keystroke->UnpreserveKey(guid, &key);
+      }
+    }
+    marina_altgr_key_map_.clear();
+    marina_altgr_vks_.clear();
+    marina_altgr_layout_ = config::MARINA_KBD_OS_DEFAULT;
+  }
+
+  // marinaMoji: (re)registers one TF_MOD_RALT preserved key per virtual key on
+  // the selected layout's AltGr level, and unregisters the previous set. No-op
+  // when the selection has not changed since the last call, and registers
+  // nothing at all for MARINA_KBD_OS_DEFAULT or for a layout with no AltGr
+  // level (US, Dvorak, JIS) -- there the right Alt stays a plain Alt, which is
+  // exactly what those layouts mean by it. See issue #33.
+  HRESULT SyncMarinaAltGrPreservedKeys() {
+    if (thread_mgr_ == nullptr) {
+      return E_FAIL;
+    }
+    ConfigSnapshot::Info snapshot;
+    if (!ConfigSnapshot::Get(&snapshot)) {
+      return S_FALSE;
+    }
+    if (snapshot.marina_keyboard_layout == marina_altgr_layout_) {
+      return S_OK;
+    }
+    ASSIGN_OR_RETURN_HRESULT(auto keystroke,
+                             ComQueryHR<ITfKeystrokeMgr>(thread_mgr_));
+    UnregisterMarinaAltGrPreservedKeys(keystroke.get());
+    marina_altgr_layout_ = snapshot.marina_keyboard_layout;
+
+    for (const BYTE vk : RomajiKeyboardLayoutEmulator::GetAltGrVirtualKeys(
+             marina_altgr_layout_)) {
+      const GUID guid = MakeMarinaAltGrGuid(vk);
+      bool registered = false;
+      for (const UINT modifiers : kMarinaAltGrModifiers) {
+        TF_PRESERVEDKEY key = {vk, modifiers};
+        if (SUCCEEDED(keystroke->PreserveKey(
+                client_id_, guid, &key, &kTipKeyMarinaAltGr[0],
+                std::size(kTipKeyMarinaAltGr) - 1))) {
+          registered = true;
+        }
+      }
+      if (registered) {
+        marina_altgr_key_map_[guid] = vk;
+        marina_altgr_vks_.push_back(vk);
+      }
+    }
+    return S_OK;
   }
 
   HRESULT UninitPreservedKey() {
@@ -1310,6 +1452,10 @@ class TipTextServiceImpl
       result = keystroke->UnpreserveKey(item.guid, &item.key);
     }
     preserved_key_map_.clear();
+
+    // marinaMoji: and the layout's AltGr level (see
+    // SyncMarinaAltGrPreservedKeys).
+    UnregisterMarinaAltGrPreservedKeys(keystroke.get());
 
     return result;
   }
@@ -1484,19 +1630,6 @@ class TipTextServiceImpl
     return S_OK;
   }
 
-  // marinaMoji TEMPORARY (2026-08-08): on-hardware diagnosis of "Symbols
-  // Palette opens but nothing is inserted". This DLL runs inside whatever
-  // application has focus, so OutputDebugString is the only log channel that
-  // needs no file permissions in a sandboxed host -- read it with Sysinternals
-  // DebugView (run as administrator, enable "Capture Global Win32") alongside
-  // the [marinaMoji/renderer] lines from renderer_server.cc. Remove both once
-  // the bug is found.
-  static void MarinaDebugLog(absl::string_view message) {
-    const std::string line =
-        absl::StrCat("[marinaMoji/tip] ", message, "\n");
-    ::OutputDebugStringA(line.c_str());
-  }
-
   // marinaMoji: WM_COPYDATA carries the sender's own claimed PID in wParam
   // (see renderer_server.cc), but Win32 does not enforce that a sender tells
   // the truth about its own identity -- this is not a cryptographic
@@ -1559,35 +1692,21 @@ class TipTextServiceImpl
         // inserted straight into whatever the user is typing into.
         constexpr size_t kMaxSymbolTextBytes = 4096;
         const auto* cds = reinterpret_cast<const COPYDATASTRUCT*>(lparam);
-        // marinaMoji TEMPORARY (2026-08-08): see MarinaDebugLog above. Each
-        // gate is reported separately so DebugView shows exactly which one
-        // rejects a Symbols Palette commit.
         if (cds == nullptr) {
-          MarinaDebugLog("WM_COPYDATA: REJECTED, null COPYDATASTRUCT");
           return TRUE;
         }
         if (cds->dwData != kSymbolTextCopyDataTag) {
-          MarinaDebugLog("WM_COPYDATA: ignored, not our tag (some other "
-                         "app's WM_COPYDATA traffic)");
           return TRUE;
         }
         if (cds->lpData == nullptr || cds->cbData == 0) {
-          MarinaDebugLog("WM_COPYDATA: REJECTED, empty payload");
           return TRUE;
         }
         if (cds->cbData > kMaxSymbolTextBytes) {
-          MarinaDebugLog("WM_COPYDATA: REJECTED, payload over 4096-byte cap");
           return TRUE;
         }
         if (!IsTrustedRendererSender(static_cast<DWORD>(wparam))) {
-          MarinaDebugLog("WM_COPYDATA: REJECTED by IsTrustedRendererSender -- "
-                         "sender PID did not resolve to this install's "
-                         "marinamoji_renderer.exe. If the palette is genuinely "
-                         "ours, suspect GetProcessInitialNtPath/GetNtPath "
-                         "failing under the host app's sandbox.");
           return TRUE;
         }
-        MarinaDebugLog("WM_COPYDATA: accepted, dispatching to edit session");
         self->OnRendererSymbolTextCallback(
             std::string(static_cast<const char*>(cds->lpData), cds->cbData));
         return TRUE;
@@ -1598,25 +1717,36 @@ class TipTextServiceImpl
 
   // Resolves the context a renderer callback (toolbar / symbols palette
   // click) should be delivered to. Prefers the live focused document
-  // manager, but falls back to the last known one: clicking the toolbar's
-  // mode popup menu transiently steals the thread focus, so by the time the
-  // selection message arrives GetFocus() can already be null even though the
-  // application context is still perfectly able to accept an async edit
-  // session.
+  // manager, then the last known one: clicking the toolbar's mode popup menu
+  // transiently steals the thread focus, so by the time the selection message
+  // arrives GetFocus() can already be null even though the application
+  // context is still perfectly able to accept an async edit session.
+  //
+  // Last resort is any context the TIP is actively servicing. Windows 11's
+  // Notepad was observed never firing ITfThreadMgrEventSink::OnSetFocus with
+  // a non-null document manager, so both the live focus and
+  // last_focused_document_manager_ come up empty and every "Hide toolbar"
+  // click was silently dropped until an unrelated focus event happened to
+  // refresh things (GitHub issue #30). A context only gets a private-context
+  // entry once a key has been routed to it, so this is exactly "what the user
+  // is typing into"; for the global toolbar/palette commands any live context
+  // is an equally good place to run the edit session.
   wil::com_ptr_nothrow<ITfContext> GetRendererCallbackContext() {
     wil::com_ptr_nothrow<ITfDocumentMgr> document_manager;
     if (FAILED(thread_mgr_->GetFocus(&document_manager)) ||
         !document_manager) {
       document_manager = last_focused_document_manager_;
     }
-    if (!document_manager) {
-      return nullptr;
+    if (document_manager) {
+      wil::com_ptr_nothrow<ITfContext> context;
+      if (SUCCEEDED(document_manager->GetBase(&context)) && context) {
+        return context;
+      }
     }
-    wil::com_ptr_nothrow<ITfContext> context;
-    if (FAILED(document_manager->GetBase(&context))) {
-      return nullptr;
+    if (!private_context_map_.empty()) {
+      return private_context_map_.begin()->first;
     }
-    return context;
+    return nullptr;
   }
 
   void OnRendererSymbolTextCallback(const std::string& text) {
@@ -1678,6 +1808,15 @@ class TipTextServiceImpl
                           ComPtrHash<ITfContext>>;
   PrivateContextMap private_context_map_;
   PreservedKeyMap preserved_key_map_;
+
+  // marinaMoji: the AltGr-level preserved keys of the currently selected
+  // keyboard layout, and the layout they were registered for. Kept apart from
+  // |preserved_key_map_| so OnPreservedKey can tell the two apart, and because
+  // this set is re-registered whenever the layout selection changes.
+  PreservedKeyMap marina_altgr_key_map_;
+  std::vector<BYTE> marina_altgr_vks_;
+  config::MarinaKeyboardLayout marina_altgr_layout_ =
+      config::MARINA_KBD_OS_DEFAULT;
   std::unique_ptr<TipThreadContext> thread_context_;
   HWND task_window_handle_;
   HWND renderer_callback_window_handle_;

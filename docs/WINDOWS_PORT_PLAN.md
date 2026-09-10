@@ -283,7 +283,9 @@ TSVs. Only two genuine Windows-specific gaps existed, both closed 2026-07-13.
       `ToggleManyoshuHiragana` (lines 23,121,252), macron vowel rows (`Ctrl
       Alt`/`Ctrl RightAlt`/`Ctrl AltGr` + letter, lines 24-53 etc.),
       `Ctrl Shift F` → `ToggleTraditionalKanji` (lines 57,58,154,286,287),
-      `Ctrl Shift )` → `LaunchWordRegisterDialog` (lines 65,163,215,301,303) —
+      `Ctrl Shift )` → `LaunchWordRegisterDialog` (lines 65,163,215,301,303;
+      since 2026-09-10 dropped at load time in favour of the number-row
+      dispatcher, see Ctrl+Shift+0 below) —
       aligned with `kotoeri.tsv` back in 2026-06, no Windows-specific work
       was ever needed here.
 - [x] **Right Shift / Left Shift alone, Ctrl+Left Shift** (2026-07-13,
@@ -333,9 +335,13 @@ TSVs. Only two genuine Windows-specific gaps existed, both closed 2026-07-13.
       no Windows-specific code once Phase 1g confirms TIP key handling works.
 - [x] Kaeriten `;r` `;1` … — confirmed pure composer-table data
       ([data/preedit/kaeriten.tsv](../src/data/preedit/kaeriten.tsv)), no code.
-- [x] Quick dictionary injection Ctrl+Shift+0 — confirmed this is the
-      keymap-TSV `Ctrl Shift )` row (a plain keystroke on US layout), not the
-      number-row dispatcher; already present in `ms-ime.tsv`.
+- [x] Quick dictionary injection Ctrl+Shift+0 — **this note was wrong, now
+      corrected (2026-09-10)**: the chord is owned by the marina number-row
+      dispatcher (Ctrl+Shift, physical slot 0), exactly like the other five
+      number-row shortcuts, on all three platforms. The keymap-TSV
+      `Ctrl Shift )` row was a second owner that only ever matched where
+      Shift+0 produces ")", and is now dropped at keymap load time by
+      `IsMarinaNumberRowKeymapBinding`.
 - [ ] Katakana conversion mode + `shift_R` quick switch — **not yet verified**;
       needs Phase 1g hardware access to test interaction with the Right-Shift
       fix above (right-shift-alone toggles hiragana↔Manyōshū, not katakana —

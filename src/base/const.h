@@ -200,8 +200,11 @@ inline constexpr char kWordRegisterEnvironmentReadingName[] =
     "default_reading_entry_of_word_register";
 inline constexpr char kWordRegisterEnvironmentReadingCandidatesName[] =
     "default_reading_candidates_of_word_register";
-// macOS: UTF-8 prefill written before launching WordRegisterDialog.app because
-// environment variables corrupt non-ASCII text across NSWorkspace launches.
+// macOS and Windows: UTF-8 prefill written to the user profile directory
+// before mozc_tool is launched, and read (then unlinked) by the dialog.
+// macOS cannot use the environment because non-ASCII text does not survive an
+// NSWorkspace launch; Windows does not because the client runs inside the TSF
+// text service, i.e. inside whatever application has focus.
 inline constexpr char kWordRegisterBootstrapFileName[] =
     "word_register_bootstrap.pb";
 }  // namespace mozc

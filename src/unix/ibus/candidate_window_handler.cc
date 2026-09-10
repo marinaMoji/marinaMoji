@@ -178,6 +178,10 @@ void CandidateWindowHandler::Show(IbusEngineWrapper* engine) {
   SendUpdateCommand(engine, *last_update_output_, true);
 }
 
+void CandidateWindowHandler::ClearCursorPositionCache() {
+  preedit_begin_.Clear();
+}
+
 void CandidateWindowHandler::OnIBusCustomFontDescriptionChanged(
     const std::string& custom_font_description) {
   custom_font_description_.assign(custom_font_description);

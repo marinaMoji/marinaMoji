@@ -8,7 +8,324 @@ that touch more than one file or aren't obvious from a commit subject line.
 Format: newest entry first, grouped by date. Each entry should say what
 changed and, where it isn't obvious, why.
 
-## Unreleased
+## v0.0.4
+
+### Diagnostics: removed the temporary MarinaDebugLog apparatus (2026-09-11)
+
+The Windows toolbar / taskbar mode-icon investigation
+([#30](https://github.com/marinaMoji/marinaMoji/issues/30)) is closed, so the
+diagnostic logging that supported it and the earlier odoriji-palette,
+Ctrl-chord and Linux-return rounds is gone: `base/marina_debug_log.h` and its
+build target, every `MarinaDebugLog` call site and the per-module
+`[marinaMoji/...]` helpers, and `ipc/win32_ipc.cc`'s mutex / `WaitNamedPipe`
+timing hooks (reverted to the original `DLOG`/`LOG`). The `%TEMP%\marinamoji-debug.log`
+file and the DebugView stream it fed are no longer produced.
+
+Behavioural changes made during those investigations stay: the AltGr number-row
+guard, the mode-icon registration order, `GetRendererCallbackContext()`'s
+private-context fallback, and `toolbar_config.cc` creating its parent directory
+and not caching a failed write.
+
+### CI: one artifact naming scheme; release asset filenames changed (2026-09-10)
+
+Build artifacts are now `marinaMoji-<platform>-<arch>` and failing-test logs
+`test-logs-<platform>-<arch>`, with `platform` in {`linux`, `macos`, `windows`}
+and `arch` in {`x86_64`, `arm64`} everywhere. Previously each workflow had its
+own scheme and the Linux zip still carried the upstream `mozc` name.
+
+Release *asset* filenames change with it: `marinaMoji-<tag>-macos-<arch>.pkg`
+and `marinaMoji-<tag>-windows-<arch>.msi` (both gain the platform segment;
+`intel64`/`x64` become `x86_64`). Linux release assets were already
+`marinaMoji-<tag>-linux-<arch>.zip` and are unchanged. Also fixes a collision
+where both Linux test-matrix architectures uploaded to `test-logs-Linux`, so
+one clobbered the other.
+
+### Windows: "Hide toolbar" needed repeated clicks; the taskbar mode icon could go dead (2026-09-10, issue #30)
+
+Two bugs behind the original report.
+
+**The mode icon went inert.** It was suppressed by removing it from
+`ITfLangBarItemMgr`. Windows keeps a taskbar button it has already drawn, and
+`RemoveItem()` makes TSF unadvise the item's sink, so every later mode update
+was dropped and its right-click menu opened nothing. Both input-mode items now
+stay registered for the whole activation, and the suppression is applied
+*before* `AddItem()` so the item never briefly reports itself visible.
+
+**"Hide toolbar" often did nothing until the second or third click.** The
+renderer's HIDE_TOOLBAR signal reached the TIP, but `GetRendererCallbackContext()`
+returned null and the click was dropped. On Windows 11 Notepad
+`ITfThreadMgrEventSink::OnSetFocus` is never called with a non-null document
+manager, so the `last_focused_document_manager_` fallback was itself always
+null, and `GetFocus()` returns nothing outside a keystroke. The apparent
+multi-second "freeze" some testers saw was just the gap between repeated clicks
+— nothing was running. Fixed with a last-resort fallback to any context the
+TIP is actively servicing; confirmed on a real build, the first click now
+hides the toolbar every time.
+
+**Known limitation.** Once the Windows 10/11 taskbar has drawn the input-mode
+button, a text service cannot withdraw or blank it — not its status bit, its
+style flags, its icon, or its text; `ITfLangBarItemMgr` has no per-item
+show/hide. Four mechanisms were tried. So the icon is absent at startup and
+appears correctly on the first toolbar-hide, but if the toolbar is then shown
+again in the same session the icon stays until the next IME switch. It remains
+a live, correct indicator with a working menu — no longer the dead icon of the
+original report.
+
+Not built locally: no Windows toolchain on this machine.
+
+### Linux: Backspace in a terminal could crash the engine (2026-09-09, issue #36)
+
+Echo-back Backspace in a client with no surrounding-text support — VTE,
+gnome-terminal — synthesised a press/release pair. A terminal that hands
+forwarded events back to the engine turns that into a loop, and gnome-terminal
+dies on it. The engine now declines the key in that case and lets IBus deliver
+the real Backspace. `MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1` restores the old
+synthetic forward for the clients that were the reason it existed.
+
+Linux-only; not compiled locally (macOS has no ibus headers).
+
+### Windows / Linux: AltGr chords on the number row reached the application again (2026-09-08, issue #33)
+
+The marina number-row shortcuts (`Ctrl`+digit, and `Ctrl`+`` ` ``) matched on
+Ctrl alone. Windows reports AltGr as Ctrl+RightAlt, so every AltGr press on a
+bound slot was consumed and never delivered — on French AZERTY that silently
+removed `@` `~` `#` `{` `[`. All three entry points now take an explicit `alt`
+argument and refuse the chord when it is set; a genuine `Ctrl`+`Alt`+digit is
+an application shortcut, never a marina binding. The ibus dispatcher had the
+same gap (there it was `Ctrl`+`Alt` / `Ctrl`+`AltGr` at risk, not plain AltGr)
+and is fixed the same way. This is the counterpart to the preserved-key work
+in the 2026-09-08 "make the chosen layout's AltGr level work" entry.
+
+### Windows: the user symbols editor was unavailable (2026-09-08, issue #31)
+
+Preferences → Dictionary → User symbols returned "L'éditeur de symboles
+utilisateur n'est pas disponible sur cette plateforme". The button was wired up
+on every platform but `ConfigDialog::EditUserSymbols()` was guarded by
+`__APPLE__ || __linux__`. Added a `_WIN32` arm pointing at
+`SystemUtil::GetUserProfileDirectory()` + `/user_symbols.txt`, which is where
+the TIP already reads the file, so edits reach the Symbols Palette without a
+refresh signal. Read and write go through `FileUtil` instead of `std::fstream`
+while here — MSVC interprets a narrow `fstream` path in the active code page,
+not UTF-8, so the editor would have silently done nothing for anyone whose
+profile directory contains non-ASCII characters.
+
+
+### ibus: place the odoriji palette at the caret for every trigger, not just the IME menu (2026-09-10, issue #25)
+
+Further follow-up to the 2026-08-28 and 2026-09-08
+([#25](https://github.com/marinaMoji/marinaMoji/issues/25)) fixes. Those made
+the palette open at the caret when it is opened *from the IME menu*. Typing an
+odoriji (or Ctrl+Shift+2) as the first input into a freshly opened window —
+Firefox, LibreOffice — still drew the palette in the top-left corner of the
+screen; it only moved to the caret once a character had been committed.
+
+The corner placement is one cause reached two ways. Until an application sends
+its first `set_cursor_location`, the engine's cursor rect is all-zero, and the
+renderer draws an empty rect's bottom-left at the screen corner. The
+2026-09-08 change added a last-known-good rect (`last_usable_cursor_area_`) to
+substitute in that case, but wired it only into `ProcessPropertyActivate` and
+`MaybeReshowOdorijiPalette` — the IME-menu path. A directly typed odoriji goes
+through the ordinary candidate-window path (`UpdateAll` →
+`CandidateWindowHandler`), which read the raw rect with no substitution.
+
+- `MozcEngine::UpdateAll` now calls `EnsureUsableCursorArea` before handing a
+  visible candidate window to the renderer, so the substitution covers every
+  trigger. `SetCursorLocation`'s non-pending path does the same before
+  redrawing an already-open window.
+- `EnsureUsableCursorArea` clears `CandidateWindowHandler`'s cached
+  preedit-origin rect (new `ClearCursorPositionCache`) when it substitutes,
+  so a rect borrowed from another application cannot pin the left edge of a
+  later same-line preedit through the workaround in `SendUpdateCommand`.
+- The genuinely-first-input case — nothing worth drawing at has *ever* been
+  reported this session, so there is nothing to substitute — is unchanged:
+  the palette still appears in the corner until the caret moves. Deferring
+  the draw until the first `set_cursor_location` is the remaining piece and
+  is tracked on #25, pending testing on apps that report the caret on
+  focus-in.
+
+Linux-only code; not compiled locally (macOS has no ibus headers).
+
+### Phrases no longer vanish in kyūjitai mode (2026-09-10, issue #7)
+
+大丈夫 and 丈夫 were present in the candidate window in shinjitai mode and
+absent in kyūjitai mode. Three separate things had to be wrong for that, and
+all three are fixed.
+
+**The table asked for an invisible character.** Four rows of
+`data/marina_opencc/tables/char_complete_shin_kyu_table_manual.csv` — 丈, 冴,
+刃, 棚 — mapped a character to *itself plus a variation selector*
+(丈 → U+4E08 U+E0101) rather than to a different character, as the other 424
+rows do. These are Adobe-Japan1 glyph variants (印刷標準字体), not
+shinjitai/kyūjitai pairs: none of the four was simplified in the 1949 reform,
+so there is no kyūjitai codepoint to map to. All four were marked `corrected`,
+and for 丈 and 棚 no source (jmdict, kd2, mozc) attested a kyū form at all.
+The `kyu` cells are now blank — the row and its provenance stay in the CSV,
+and the generator skips rows without a `kyu` value. Regenerated with
+`src/regen_opencc.sh`: Variants dropped 419 → 415 keys, and the Phrases and
+Characters `.ocd2` files rebuilt byte-identical.
+
+**The filter deleted candidates rather than repairing them.**
+`EnvironmentalFilterRewriter` erases any candidate containing U+E0100–U+E010E
+unless the client declares `IVS_CHARACTER` in
+`Request.additional_renderable_character_groups` — and no marinaMoji client on
+any platform declares it. Since `OpenccRewriter` rewrites the original
+candidate in place rather than adding a sibling, there was nothing left to
+fall back to and the word disappeared outright. The IVS group now strips the
+selectors and keeps the base characters, which do render, instead of erasing:
+erasure only happens when stripping would leave a duplicate of a candidate the
+segment already has. That last case is upstream's `IvsVariantsRewriter`, whose
+additive 辻󠄀/榊󠄀/煉󠄁獄 candidates were being silently eaten for the same reason
+and now collapse into their base candidate deliberately. Declaring
+`IVS_CHARACTER` per platform is a separate question about font coverage and is
+deliberately not done here.
+
+**The rewriter converted each candidate twice.** `OpenccRewriter::Rewrite` ran
+the tables over `value`, which sets `content_value` as a side effect, and then
+over the resulting `content_value` again. Worse, the variants were conversions
+of the *whole* surface but were assigned as the content part, so a candidate
+with okurigana or a trailing particle ended up with `content_value` holding
+the full surface. It now converts the content part only, once, and re-attaches
+the functional part (which is kana) unchanged.
+
+`rewriter/opencc_rewriter_test.cc` is new — the rewriter had no coverage at
+all. It runs against the real shipped tables via `OPENCC_DATA_DIR`, and covers
+the disabled case, plain conversion, functional-value preservation, one-to-many
+expansion, and a regression guard that no candidate comes out carrying an IVS.
+
+### Ctrl+Shift+0 has one owner on every platform (2026-09-10)
+
+The word-register chord had two bindings competing for it. The marina
+number-row dispatcher owns (Ctrl+Shift, physical slot 0) on macOS, Linux and
+Windows alike, resolving the physical key so the chord is the same on QWERTY,
+AZERTY and Dvorak. But every shipped keymap TSV also carries
+`Ctrl Shift )` → `LaunchWordRegisterDialog` — upstream Mozc's way of spelling
+Ctrl+Shift+0, matching only where Shift+0 actually produces ")".
+
+`IsMarinaNumberRowKeymapBinding()` exists to drop keymap rows the dispatcher
+owns, and it is what keeps the other five number-row shortcuts single-owner,
+but for `LaunchWordRegisterDialog` it only recognised the spellings
+`Ctrl 0`/`Ctrl Shift 0`, which no keymap uses. So the `)` row survived, with
+two visible effects: on a US layout the keymap fired as a second, layout-
+dependent path for the same action, and the Shortcuts window listed the
+Dictionary entry command twice — once as `Ctrl Shift )`, once as the
+configured `Ctrl Shift 0`. `Ctrl )` and `Ctrl Shift )` are now recognised too,
+so the row is dropped at keymap load time and the dispatcher owns the chord
+alone. ATOK's `Ctrl F7` is untouched — not a number-row chord.
+
+Verified per platform while tracing this: the physical-slot mapping is right
+in all three dispatchers (`win32/tip/win32_physical_slot.cc` scan code 0x0B,
+`unix/ibus/ibus_physical_slot.cc` evdev 11, and `mac/KeyCodeMap.mm`, which
+normalises `kVK_ANSI_0` to '0' before the shared lookup), and none of them
+gates the dispatch on the IME being active, so the chord also works from
+direct mode.
+
+### Windows: pre-filled word register replaces the docket (2026-09-10)
+
+The Windows toolbar's dictionary button opened the docket review queue
+instead of the pre-filled "Add Word" dialog macOS and Linux have. The docket
+is removed and Windows now runs the same fast-add path as the other two
+platforms: the button, `Ctrl+Shift+0`, and the configurable number-row
+shortcut all open `word_register_dialog` with the surface and reading of what
+was just typed or committed already filled in.
+
+Three things had to change for the prefill to actually arrive on Windows;
+the session-side prefill itself (`Session::LaunchWordRegisterDialog`, which
+fills `Output::word_register_expression` and
+`::word_register_reading_candidates`) was already cross-platform.
+
+- `win32/base/keyevent_handler.cc`: `MaybeSpawnTool()` re-derived the tool
+  name from `launch_tool_mode` and called `LaunchTool(mode, "")`, which drops
+  every other field of the Output. It now calls `LaunchToolWithProtoBuf()`,
+  the same entry point macOS and Linux use, so the prefill rides along.
+- `client/client.cc`: the prefill reaches `mozc_tool` through the
+  `word_register_bootstrap.pb` file in the user profile directory — the one
+  macOS already used — rather than through the environment the tool inherits.
+  On Windows the client runs inside the TSF text service, i.e. inside
+  whatever application has focus, so the environment route would mean a
+  process-wide mutation of Word's or Chrome's environment block holding a copy
+  of what the user just typed, inherited by every child they spawn afterwards.
+  The file is read, then unlinked, by `SetDefaultEntryFromBootstrapFile`, now
+  compiled on Windows as well as macOS; the environment variables stay as a
+  fallback for a hand-launched `mozc_tool`. Linux is unchanged and still uses
+  the environment, where the client lives in the ibus daemon rather than in
+  the focused application.
+- `win32/tip/tip_keyevent_handler.cc`: the marina number-row branch bypasses
+  `KeyEventHandler::ImeToAsciiEx`, which is where the ordinary key path
+  spawns tools, so `MARINA_NR_WORD_REGISTER` returned a `launch_tool_mode`
+  nobody acted on and the shortcut did nothing. It now spawns the tool
+  itself, mirroring ibus, where every Output reaches `UpdateAll()`.
+
+Removed with the docket: `dictionary/docket_store.*`, `gui/docket/`,
+`EngineInterface::IsKnownWord()`/`RecordDocketCandidate()` and their `Engine`
+implementations, the capture hook in `Session::CommitInternal` (and the
+`Session::engine_` reference that existed only to serve it),
+`Session::LaunchDocketDialog()`, the toolbar badge dot, and `docs/DOCKET.md`.
+`SessionCommand::LAUNCH_DOCKET_DIALOG` (43) and `Output::DOCKET_DIALOG` (4)
+are marked `reserved` rather than reused.
+
+### Windows: make the chosen layout's AltGr level work on an OS layout without one (2026-09-08)
+
+Second half of [#33](https://github.com/marinaMoji/marinaMoji/issues/33).
+`20449371a` stopped the number-row shortcuts from eating AltGr chords; this
+makes the chords produce their characters when the OS layout has no AltGr
+level of its own.
+
+With marinaMoji set to AZERTY on a US or Dvorak Windows layout, the right Alt
+is a plain Alt: Windows injects no Ctrl, turns Alt+key into a system key, and
+a TSF text service is never offered it through its keystroke sink. So
+`HandleDirectModeLayoutKey` never ran, `kFrAltGr` was never consulted, and the
+application saw a bare Alt chord — AltGr+E opened Notepad's Edit menu instead
+of typing €. Dead keys were unaffected because they are unmodified keypresses.
+The AltGr layer therefore only ever worked on an OS layout that already had
+one, which is why it passed testing on French Windows.
+
+- `RomajiKeyboardLayoutEmulator::GetAltGrVirtualKeys()` reports the VKs on a
+  layout's AltGr level (characters and AltGr dead keys alike).
+- The TIP registers those as `TF_MOD_RALT` preserved keys — the mechanism
+  upstream already uses for Alt+`` ` `` (Kanji) — in both the plain and the
+  Shift variant, since Italian, UK and bépo populate the shifted half.
+  Registration is keyed to the selected layout and re-synced on document
+  focus, so a change in Preferences applies to running applications.
+- Nothing is registered for MARINA_KBD_OS_DEFAULT, US, Dvorak or JIS: on those
+  the right Alt stays a plain Alt, which is what the selection means.
+- `OnMarinaAltGrPreservedKey()` claims the chord only when the *right* Alt is
+  down and the key pipeline consumes it; otherwise it re-posts
+  `WM_SYSKEYDOWN` so the application still gets its accelerator, the same
+  workaround the F10 preserved key already uses.
+
+Direct mode only. Composition mode still has no AltGr layer (see the contract
+in `keyboard_layout_tables.h`) — the preserved key fires, the key is not
+consumed, and it is handed back to the application.
+
+Not built: no Windows toolchain on this machine.
+
+### ibus: place the odoriji palette at the caret when opened from the IME menu (2026-09-08)
+
+Follow-up to the 2026-08-28 focus fix for
+[#25](https://github.com/marinaMoji/marinaMoji/issues/25). The palette no
+longer disappears when the panel menu closes, but it was drawn in the
+top-left corner of the screen and stayed there until the first Space
+keystroke repositioned it.
+
+The renderer anchors the candidate window to the caret rect the app last
+reported through `set_cursor_location`. While the ibus panel menu owns the
+focus, that rect is empty (all-zero, or zero-sized), and the bottom-left of an
+empty rect is the top-left of the screen.
+
+- `MozcEngine` now remembers the last caret rect worth drawing at
+  (`last_usable_cursor_area_`) and substitutes it whenever the engine's
+  current rect is unusable — so the palette opens where the caret is, without
+  waiting for focus to come back.
+- `MaybeReshowOdorijiPalette()` stays pending instead of re-showing at an
+  unusable rect, and `set_cursor_location` no longer repositions the palette
+  while pending: a fresh caret rect still wins, but an empty one can no longer
+  bounce the palette into the corner and back.
+- The `FocusOut` suppression now also covers a focus bounce that outlasts the
+  500 ms grace period, as long as the palette is still waiting for focus to
+  return from the menu.
+- With `MARINAMOJI_IBUS_DEBUG_LOG` enabled, activating the menu item logs
+  `engine.odoriji show_from_menu usable_rect=0|1`, which says whether the
+  substitution was needed.
 
 ### ibus: log cursor rect and surround-stale flag in debug sessions (2026-08-31)
 

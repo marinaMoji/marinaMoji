@@ -51,6 +51,7 @@
 #include <cstdlib>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/base/casts.h"
 #include "absl/base/macros.h"
@@ -172,6 +173,21 @@ HICON CreateIconFromPng(const std::wstring& path) {
   icon_info.hbmColor = color_bitmap.get();
   icon_info.hbmMask = mask_bitmap.get();
   return ::CreateIconIndirect(&icon_info);
+}
+
+// marinaMoji: a fully transparent small icon, owned by the caller (DestroyIcon).
+// Handed out by GetIcon() while render_blank_ is set so a taskbar button that
+// the shell will not let us withdraw at least paints nothing. See issue #30.
+HICON CreateBlankIcon() {
+  const int w = ::GetSystemMetrics(SM_CXSMICON);
+  const int h = ::GetSystemMetrics(SM_CYSMICON);
+  // AND mask all 1s == "leave the background untouched" (transparent); the XOR
+  // (color) mask is then irrelevant, all 0s.
+  const size_t and_bytes = static_cast<size_t>(((w + 15) / 16) * 2) * h;
+  std::vector<BYTE> and_mask(and_bytes, 0xFF);
+  std::vector<BYTE> xor_mask(and_bytes, 0x00);
+  return ::CreateIcon(TipDllModule::module_handle(), w, h, 1, 1, and_mask.data(),
+                      xor_mask.data());
 }
 
 // Loads an icon which is appropriate for the current theme.
@@ -318,7 +334,8 @@ STDMETHODIMP TipLangBarButton::Show(BOOL show) {
 // this button menu.
 STDMETHODIMP TipLangBarButton::GetTooltipString(BSTR* tooltip) {
   // Created a COM string from the description and copy it.
-  *tooltip = ::SysAllocString(&item_info_.szDescription[0]);
+  *tooltip =
+      ::SysAllocString(render_blank_ ? L"" : &item_info_.szDescription[0]);
   return (*tooltip ? S_OK : E_OUTOFMEMORY);
 }
 
@@ -418,7 +435,7 @@ STDMETHODIMP TipLangBarButton::OnClick(TfLBIClick click, POINT point,
 // This function is called by Windows to retrieve the text label of this
 // button menu.
 STDMETHODIMP TipLangBarButton::GetText(BSTR* text) {
-  *text = ::SysAllocString(&item_info_.szDescription[0]);
+  *text = ::SysAllocString(render_blank_ ? L"" : &item_info_.szDescription[0]);
   return (*text ? S_OK : E_OUTOFMEMORY);
 }
 
@@ -528,6 +545,27 @@ HRESULT TipLangBarButton::SetEnabled(bool enabled) {
   result = TipLangBarButton::OnUpdate(TF_LBI_STATUS);
 
   return result;
+}
+
+HRESULT TipLangBarButton::SetHidden(bool hidden) {
+  const DWORD old_status = status_;
+  if (hidden) {
+    status_ |= TF_LBI_STATUS_HIDDEN;
+  } else {
+    status_ &= ~TF_LBI_STATUS_HIDDEN;
+  }
+  if (status_ == old_status) {
+    return S_OK;
+  }
+  return TipLangBarButton::OnUpdate(TF_LBI_STATUS);
+}
+
+HRESULT TipLangBarButton::SetRenderBlank(bool blank) {
+  if (render_blank_ == blank) {
+    return S_OK;
+  }
+  render_blank_ = blank;
+  return TipLangBarButton::OnUpdate(TF_LBI_ICON | TF_LBI_TEXT);
 }
 
 bool TipLangBarButton::CanContextMenuDisplay32bppIcon() {
@@ -781,6 +819,11 @@ STDMETHODIMP TipLangBarToggleButton::OnMenuSelect(UINT menu_id) {
 STDMETHODIMP TipLangBarToggleButton::GetIcon(HICON* icon) {
   if (icon == nullptr) {
     return E_INVALIDARG;
+  }
+
+  if (render_blank()) {
+    *icon = CreateBlankIcon();
+    return (*icon ? S_OK : E_FAIL);
   }
 
   // MSIME 2012 shows special icon when the LangBar item is disabled. Here we

@@ -29,7 +29,10 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          # buildifier's module graph pulls golang.org/x/sys, which requires
+          # Go >= 1.26. setup-go pins GOTOOLCHAIN=local, so the Go version here
+          # has to satisfy the tool's dependencies on its own.
+          go-version: '1.26'
 
       - name: Run
         working-directory: ./src

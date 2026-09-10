@@ -170,6 +170,66 @@ std::vector<AdditionalRenderableCharacterGroup> GetNonrenderableGroups(
   return result;
 }
 
+// The variation selectors covered by the IVS_CHARACTER group.
+constexpr char32_t kIvsFirstCodepoint = 0xE0100;
+constexpr char32_t kIvsLastCodepoint = 0xE010E;
+
+// Returns |value| with the IVS variation selectors removed. Because this only
+// drops codepoints, it preserves the invariant that content_value is a prefix
+// of value when applied to both.
+std::string RemoveIvsCodepoints(absl::string_view value) {
+  std::u32string codepoints = Util::Utf8ToUtf32(value);
+  codepoints.erase(std::remove_if(codepoints.begin(), codepoints.end(),
+                                  [](const char32_t c) {
+                                    return kIvsFirstCodepoint <= c &&
+                                           c <= kIvsLastCodepoint;
+                                  }),
+                   codepoints.end());
+  return Util::Utf32ToUtf8(codepoints);
+}
+
+// Returns true if a candidate other than |index| already has |value|.
+bool SegmentHasValue(const Segment& segment, size_t index,
+                     absl::string_view value) {
+  for (size_t i = 0; i < segment.candidates_size(); ++i) {
+    if (i != index && segment.candidate(i).value == value) {
+      return true;
+    }
+  }
+  return false;
+}
+
+enum class IvsFilterResult { kUnchanged, kStripped, kErased };
+
+// Handles a candidate carrying variation selectors that the environment cannot
+// render.
+//
+// Erasing such a candidate outright makes the word disappear from the candidate
+// window whenever an earlier rewriter rewrote the candidate in place instead of
+// adding a sibling: the shin/kyu rewriter used to map 丈 to 丈+U+E0101, and
+// 大丈夫 vanished from the candidate list entirely (issue #7). So strip the
+// selectors and keep the base characters, which do render. Only erase when
+// stripping would leave a duplicate of a candidate that the segment already
+// has, which is the case for the purely additive variants produced by
+// IvsVariantsRewriter.
+IvsFilterResult FilterIvsFromCandidate(Segment* segment, size_t index) {
+  converter::Candidate* candidate = segment->mutable_candidate(index);
+  DCHECK(candidate);
+  std::string stripped_value = RemoveIvsCodepoints(candidate->value);
+  if (stripped_value == candidate->value) {
+    return IvsFilterResult::kUnchanged;
+  }
+  if (SegmentHasValue(*segment, index, stripped_value)) {
+    segment->erase_candidate(index);
+    return IvsFilterResult::kErased;
+  }
+  candidate->value = std::move(stripped_value);
+  candidate->content_value = RemoveIvsCodepoints(candidate->content_value);
+  // The description may name the variant that is no longer there.
+  candidate->description.clear();
+  return IvsFilterResult::kStripped;
+}
+
 // If the candidate should not by modified by this rewriter, returns true.
 bool ShouldKeepCandidate(const converter::Candidate& candidate) {
   return candidate.attributes & (converter::Attribute::NO_MODIFICATION |
@@ -391,6 +451,8 @@ bool EnvironmentalFilterRewriter::Rewrite(const ConversionRequest& request,
   const std::vector<AdditionalRenderableCharacterGroup> nonrenderable_groups =
       GetNonrenderableGroups(
           request.request().additional_renderable_character_groups());
+  const bool ivs_nonrenderable =
+      absl::c_contains(nonrenderable_groups, commands::Request::IVS_CHARACTER);
 
   bool modified = false;
   for (Segment& segment : segments->conversion_segments()) {
@@ -418,6 +480,20 @@ bool EnvironmentalFilterRewriter::Rewrite(const ConversionRequest& request,
 
       // Character Normalization
       modified |= NormalizeCandidate(candidate, flag_);
+
+      // IVS variation selectors are stripped rather than erased, so that a
+      // candidate an earlier rewriter modified in place does not disappear.
+      // Handled here rather than in the group switch below so that the
+      // codepoints checked afterwards reflect the stripped value.
+      if (ivs_nonrenderable) {
+        const IvsFilterResult result = FilterIvsFromCandidate(&segment, reversed_j);
+        if (result != IvsFilterResult::kUnchanged) {
+          modified = true;
+        }
+        if (result == IvsFilterResult::kErased) {
+          continue;
+        }
+      }
 
       const std::u32string codepoints = Util::Utf8ToUtf32(candidate->value);
 
@@ -492,8 +568,9 @@ bool EnvironmentalFilterRewriter::Rewrite(const ConversionRequest& request,
                 FindCodepointsInClosedRange(codepoints, 0x13000, 0x1342E);
             break;
           case commands::Request::IVS_CHARACTER:
-            found_nonrenderable =
-                FindCodepointsInClosedRange(codepoints, 0xE0100, 0xE010E);
+            // Handled before this loop by FilterIvsFromCandidate, which strips
+            // the selectors instead of erasing the candidate. Kept as an
+            // explicit no-op case so the switch stays exhaustive.
             break;
         }
         if (found_nonrenderable) {

@@ -127,12 +127,21 @@ bool SaveToolbarVisiblePreference(bool visible) {
   for (const std::string& line : lines) {
     absl::StrAppend(&serialized, line, "\n");
   }
-  const bool saved = FileUtil::SetContents(path, serialized).ok();
+  // The profile directory is normally already there, but SetContents() does
+  // not create it and simply fails if it is missing.
+  if (const std::string dir = FileUtil::Dirname(path); !dir.empty()) {
+    (void)FileUtil::CreateDirectory(dir);
+  }
+  if (!FileUtil::SetContents(path, serialized).ok()) {
+    // Do not publish on failure. The caller reports the error and leaves the
+    // UI alone, so seeding the cache with a value that is in neither the file
+    // nor the UI only makes the next toggle compute its direction from a value
+    // nothing else agrees with.
+    return false;
+  }
 
-  // Publish the new value even when the write failed: the user asked for it,
-  // and a stale cache would ignore the request for a further second.
   PublishToCache(visible);
-  return saved;
+  return true;
 }
 
 }  // namespace mozc::win32

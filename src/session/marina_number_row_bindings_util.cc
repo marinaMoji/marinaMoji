@@ -246,7 +246,15 @@ const char* MarinaActionToKeymapCommandName(MarinaNumberRowAction action) {
 bool IsMarinaNumberRowKeymapBinding(const std::string& command_name,
                                     const std::string& key_event_name) {
   if (command_name == "LaunchWordRegisterDialog") {
-    return key_event_name == "Ctrl 0" || key_event_name == "Ctrl Shift 0";
+    // The shipped keymaps bind this to "Ctrl Shift )" -- the character the 0
+    // key produces with Shift on a US layout -- which is upstream Mozc's way
+    // of spelling Ctrl+Shift+0. That is the very chord the number-row
+    // dispatcher owns as (Ctrl+Shift, slot 0), so leaving the keymap row in
+    // place gave the same action two owners: the dispatcher on every layout,
+    // and the keymap wherever Shift+0 happens to produce ")". Drop it and let
+    // the dispatcher own the chord alone, as it already does for slots 1-5.
+    return key_event_name == "Ctrl 0" || key_event_name == "Ctrl Shift 0" ||
+           key_event_name == "Ctrl )" || key_event_name == "Ctrl Shift )";
   }
   if (command_name == "IMEOn") {
     return IsCtrlShiftNumberRowKeyName(key_event_name) &&

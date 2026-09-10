@@ -33,6 +33,7 @@
 #include <windows.h>
 
 #include <string>
+#include <vector>
 
 #include "protocol/config.pb.h"
 
@@ -92,6 +93,21 @@ class RomajiKeyboardLayoutEmulator {
     // persist this and pass it back as |pending_dead_key| on the next call.
     wchar_t next_pending_dead_key = L'\0';
   };
+
+  // Returns every virtual key that carries something on |layout|'s AltGr
+  // level -- a character, or a dead key such as French AZERTY's AltGr+2
+  // (tilde). Empty for MARINA_KBD_OS_DEFAULT and for the layouts with no
+  // AltGr layer at all (US, Dvorak, JIS).
+  //
+  // Callers need this because the AltGr level is only reachable through
+  // ResolveDirectModeKey when the OS's own layout produces an AltGr chord
+  // (Ctrl+RightAlt) in the first place. On an OS layout without one -- US,
+  // Dvorak -- the right Alt is a plain Alt, Windows turns Alt+key into a
+  // system key, and a TSF text service never sees it through its keystroke
+  // sink. The TIP registers these VKs as TF_MOD_RALT preserved keys so the
+  // chord reaches ResolveDirectModeKey anyway. See GitHub issue #33.
+  static std::vector<BYTE> GetAltGrVirtualKeys(
+      config::MarinaKeyboardLayout layout);
 
   // Resolves one key-down in direct input mode against the fixed |layout|,
   // including the AltGr layer and dead-key composition:

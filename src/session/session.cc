@@ -32,7 +32,6 @@
 #include "session/session.h"
 
 #include "absl/strings/str_cat.h"
-#include "base/marina_debug_log.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -377,7 +376,6 @@ ImeContext::State GetEffectiveStateForTestSendKey(const commands::KeyEvent& key,
 
 Session::Session(const EngineInterface& engine)
     : context_(CreateContext(engine)),
-      engine_(engine),
       left_shift_mode_lock_(LoadLeftShiftDirectLock()) {}
 
 std::unique_ptr<ImeContext> Session::CreateContext(
@@ -587,9 +585,6 @@ bool Session::SendCommand(commands::Command* command) {
       break;
     case commands::SessionCommand::LAUNCH_DICTIONARY_TOOL:
       result = LaunchDictionaryTool(command);
-      break;
-    case commands::SessionCommand::LAUNCH_DOCKET_DIALOG:
-      result = LaunchDocketDialog(command);
       break;
     case commands::SessionCommand::INSERT_MACRON_VOWEL: {
       const absl::string_view text = command->input().command().text();
@@ -2346,22 +2341,6 @@ bool Session::CommitInternal(commands::Command* command,
   if (command->output().has_result() && !command->output().result().value().empty()) {
     last_committed_expression_ = command->output().result().value();
     last_committed_reading_ = reading_before_commit;
-
-    // Stash dictionary-unknown compounds in the docket for later review
-    // (see dictionary/docket_store.h). lid/rid ride along on the result
-    // tokens already, copied from the committed candidate.
-    const commands::Result& result = command->output().result();
-    if (Util::CharsLen(result.value()) >= 2 &&
-        !engine_.IsKnownWord(result.value())) {
-      int32_t lid = -1;
-      int32_t rid = -1;
-      if (result.tokens_size() > 0) {
-        lid = result.tokens(0).lid();
-        rid = result.tokens(result.tokens_size() - 1).rid();
-      }
-      engine_.RecordDocketCandidate(result.value(), reading_before_commit,
-                                    lid, rid);
-    }
   }
   return true;
 }
@@ -2916,20 +2895,6 @@ bool Session::LaunchDictionaryTool(commands::Command* command) {
   return true;
 }
 
-bool Session::LaunchDocketDialog(commands::Command* command) {
-  command->mutable_output()->set_launch_tool_mode(
-      commands::Output::DOCKET_DIALOG);
-  ClearUndoContext();
-  context_->mutable_converter()->Reset();
-  context_->mutable_composer()->Reset();
-  if (context_->state() != ImeContext::DIRECT) {
-    SetSessionState(ImeContext::PRECOMPOSITION, context_.get());
-  }
-  command->mutable_output()->set_consumed(true);
-  OutputMode(command);
-  return true;
-}
-
 namespace {
 void AddWordRegisterReadingCandidateIfNew(
     commands::Output* output, const std::string& reading) {
@@ -3190,10 +3155,6 @@ bool Session::TogglePrivacyMode(commands::Command* command) {
 bool Session::ShowOdorijiPalette(commands::Command* command) {
   command->mutable_output()->set_consumed(true);
   OdorijiPalette::Show(&odoriji_palette_visible_, &odoriji_focused_index_);
-  // TEMPORARY: see base/marina_debug_log.h.
-  MarinaDebugLog(absl::StrCat("ShowOdorijiPalette: visible=",
-                              odoriji_palette_visible_,
-                              " focused=", odoriji_focused_index_));
   Output(command);
   return true;
 }
@@ -3798,10 +3759,6 @@ void Session::Output(commands::Command* command) {
   OutputMode(command);
   context_->mutable_converter()->PopOutput(context_->composer(),
                                            command->mutable_output());
-  // TEMPORARY: see base/marina_debug_log.h.
-  MarinaDebugLog(absl::StrCat("Session::Output: palette_visible=",
-                              odoriji_palette_visible_,
-                              " focused=", odoriji_focused_index_));
   if (odoriji_palette_visible_) {
     OdorijiPalette::OverlayOutput(command->mutable_output(),
                                   odoriji_focused_index_);
@@ -3851,10 +3808,6 @@ void Session::OutputMode(commands::Command* command) const {
 }
 
 void Session::OutputComposition(commands::Command* command) const {
-  // TEMPORARY: see base/marina_debug_log.h. This path does not overlay the
-  // odoriji palette, so reaching it while the palette is up drops it.
-  MarinaDebugLog(absl::StrCat("Session::OutputComposition: palette_visible=",
-                              odoriji_palette_visible_, " (no overlay)"));
   OutputMode(command);
   context_->converter().FillPreedit(
       context_->composer(), command->mutable_output()->mutable_preedit());
@@ -3864,10 +3817,6 @@ void Session::OutputComposition(commands::Command* command) const {
 }
 
 void Session::OutputKey(commands::Command* command) const {
-  // TEMPORARY: see base/marina_debug_log.h. Same as OutputComposition: no
-  // palette overlay, so this echo-back path drops it too.
-  MarinaDebugLog(absl::StrCat("Session::OutputKey: palette_visible=",
-                              odoriji_palette_visible_, " (no overlay)"));
   OutputMode(command);
   commands::KeyEvent* key = command->mutable_output()->mutable_key();
   *key = command->input().key();

@@ -1773,6 +1773,24 @@ mozc_cc_library(
 )
 
 mozc_cc_test(
+    name = "opencc_rewriter_test",
+    srcs = ["opencc_rewriter_test.cc"],
+    data = ["//data/marina_opencc:opencc_data"],
+    deps = [
+        ":opencc_rewriter",
+        ":rewriter_interface",
+        "//base:util",
+        "//converter:segments",
+        "//protocol:config_cc_proto",
+        "//request:conversion_request",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+        "@com_google_absl//absl/algorithm:container",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_test(
     name = "ivs_variants_rewriter_test",
     srcs = ["ivs_variants_rewriter_test.cc"],
     deps = [

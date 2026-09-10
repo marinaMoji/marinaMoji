@@ -913,9 +913,6 @@ bool Client::TranslateProtoBufToMozcToolArg(const commands::Output &output,
     case commands::Output::WORD_REGISTER_DIALOG:
       mode->assign("word_register_dialog");
       break;
-    case commands::Output::DOCKET_DIALOG:
-      mode->assign("docket_dialog");
-      break;
     case commands::Output::NO_TOOL:
     default:
       // do nothing
@@ -928,7 +925,18 @@ bool Client::TranslateProtoBufToMozcToolArg(const commands::Output &output,
 
 namespace {
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(_WIN32)
+// Hands the prefill to mozc_tool through a small file in the user profile
+// directory rather than the environment.
+//
+// macOS needs this because environment variables do not survive an
+// NSWorkspace launch intact for non-ASCII text. Windows needs it for a
+// different reason: this code runs inside the TSF text service, which is
+// loaded into whatever application has focus, so the environment being
+// written is that of Word, Chrome or Explorer -- a process-wide mutation of a
+// foreign process holding a copy of what the user just typed, inherited by
+// every child it spawns afterwards. The file is read once and unlinked by the
+// dialog (WordRegisterDialog::SetDefaultEntryFromBootstrapFile).
 bool WriteWordRegisterBootstrapFile(const commands::Output &output) {
   commands::Output bootstrap;
   if (output.has_word_register_expression()) {
@@ -948,34 +956,30 @@ bool WriteWordRegisterBootstrapFile(const commands::Output &output) {
   }
   return FileUtil::SetContents(path, bootstrap.SerializeAsString()).ok();
 }
-#endif  // __APPLE__
+#endif  // __APPLE__ || _WIN32
 
-#ifndef __APPLE__
-void ApplyWordRegisterLaunchEnvToProcess(const commands::Output &output) {
-  if (output.has_word_register_expression()) {
-#ifdef _WIN32
-    SetEnvironmentVariableA(kWordRegisterEnvironmentName,
-                            output.word_register_expression().c_str());
-#else
-    ::setenv(kWordRegisterEnvironmentName,
-             output.word_register_expression().c_str(), 1);
-#endif
-  } else {
-#ifdef _WIN32
-    SetEnvironmentVariableA(kWordRegisterEnvironmentName, nullptr);
-#else
-    ::unsetenv(kWordRegisterEnvironmentName);
-#endif
+#if !defined(__APPLE__) && !defined(_WIN32)
+// Publishes the prefill into the environment mozc_tool inherits when it is
+// spawned below. |value| == nullptr clears the variable, so a launch with no
+// prefill can never resurrect the previous one. macOS and Windows use
+// WriteWordRegisterBootstrapFile above instead.
+void SetWordRegisterLaunchEnv(const char *name, const char *value) {
+  if (value == nullptr) {
+    ::unsetenv(name);
+    return;
   }
+  ::setenv(name, value, 1);
+}
+
+void ApplyWordRegisterLaunchEnvToProcess(const commands::Output &output) {
+  SetWordRegisterLaunchEnv(
+      kWordRegisterEnvironmentName,
+      output.has_word_register_expression()
+          ? output.word_register_expression().c_str()
+          : nullptr);
   if (output.word_register_reading_candidates_size() > 0) {
-#ifdef _WIN32
-    SetEnvironmentVariableA(
-        kWordRegisterEnvironmentReadingName,
-        output.word_register_reading_candidates(0).c_str());
-#else
-    ::setenv(kWordRegisterEnvironmentReadingName,
-             output.word_register_reading_candidates(0).c_str(), 1);
-#endif
+    SetWordRegisterLaunchEnv(kWordRegisterEnvironmentReadingName,
+                             output.word_register_reading_candidates(0).c_str());
     std::string candidates;
     for (int i = 0; i < output.word_register_reading_candidates_size(); ++i) {
       if (i > 0) {
@@ -983,25 +987,15 @@ void ApplyWordRegisterLaunchEnvToProcess(const commands::Output &output) {
       }
       candidates += output.word_register_reading_candidates(i);
     }
-#ifdef _WIN32
-    SetEnvironmentVariableA(kWordRegisterEnvironmentReadingCandidatesName,
-                            candidates.c_str());
-#else
-    ::setenv(kWordRegisterEnvironmentReadingCandidatesName, candidates.c_str(),
-             1);
-#endif
+    SetWordRegisterLaunchEnv(kWordRegisterEnvironmentReadingCandidatesName,
+                             candidates.c_str());
   } else {
-#ifdef _WIN32
-    SetEnvironmentVariableA(kWordRegisterEnvironmentReadingName, nullptr);
-    SetEnvironmentVariableA(kWordRegisterEnvironmentReadingCandidatesName,
-                            nullptr);
-#else
-    ::unsetenv(kWordRegisterEnvironmentReadingName);
-    ::unsetenv(kWordRegisterEnvironmentReadingCandidatesName);
-#endif
+    SetWordRegisterLaunchEnv(kWordRegisterEnvironmentReadingName, nullptr);
+    SetWordRegisterLaunchEnv(kWordRegisterEnvironmentReadingCandidatesName,
+                             nullptr);
   }
 }
-#endif  // !__APPLE__
+#endif  // !__APPLE__ && !_WIN32
 
 }  // namespace
 
@@ -1012,7 +1006,7 @@ bool Client::LaunchToolWithProtoBuf(const commands::Output &output) {
   }
 
   if (mode == "word_register_dialog") {
-#ifdef __APPLE__
+#if defined(__APPLE__)
     if (!IsValidRunLevel()) {
       return false;
     }
@@ -1020,9 +1014,13 @@ bool Client::LaunchToolWithProtoBuf(const commands::Output &output) {
       LOG(WARNING) << "Failed to write word register bootstrap file";
     }
     return MacProcess::LaunchMozcTool(mode);
+#elif defined(_WIN32)
+    if (!WriteWordRegisterBootstrapFile(output)) {
+      LOG(WARNING) << "Failed to write word register bootstrap file";
+    }
 #else
     ApplyWordRegisterLaunchEnvToProcess(output);
-#endif
+#endif  // __APPLE__, _WIN32, or else
   }
 
   return LaunchTool(mode, "");

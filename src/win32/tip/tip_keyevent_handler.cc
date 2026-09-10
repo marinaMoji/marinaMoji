@@ -50,8 +50,6 @@
 #include "win32/base/keyevent_handler.h"
 #include "win32/base/surrogate_pair_observer.h"
 #include "win32/base/sync_lock_util.h"
-#include "absl/strings/str_cat.h"
-#include "base/marina_debug_log.h"
 #include "win32/tip/marina_number_row_dispatcher.h"
 #include "win32/tip/tip_edit_session.h"
 #include "win32/tip/tip_input_mode_manager.h"
@@ -219,16 +217,14 @@ HRESULT OnTestKey(TipTextService* text_service, ITfContext* context,
   // number-row chord at all.
   if (is_key_down &&
       CouldBeMarinaNumberRowShortcut(key_info.GetScanCode(),
-                                     keyboard_status.IsPressed(VK_CONTROL))) {
+                                     keyboard_status.IsPressed(VK_CONTROL),
+                                     keyboard_status.IsPressed(VK_MENU))) {
     config::Config marina_config;
     if (private_context->GetClient()->GetConfig(&marina_config) &&
         WouldConsumeMarinaNumberRowShortcut(
             key_info.GetScanCode(), keyboard_status.IsPressed(VK_CONTROL),
+            keyboard_status.IsPressed(VK_MENU),
             keyboard_status.IsPressed(VK_SHIFT), marina_config)) {
-      // TEMPORARY: see base/marina_debug_log.h.
-      mozc::MarinaDebugLog(absl::StrCat(
-          "OnTestKey: ate number-row chord, scan=0x",
-          absl::Hex(key_info.GetScanCode())));
       // Record this key as last_down_key so a following Shift/Ctrl release
       // is not treated as a lone modifier tap (Left Shift → Direct, which
       // wipes the odoriji candidate window).
@@ -376,7 +372,8 @@ bool TryDispatchMarinaNumberRowShortcut(TipPrivateContext* private_context,
   // Same reasoning as OnTestKey: skip the config IPC unless this key could
   // possibly be a chord.
   if (!CouldBeMarinaNumberRowShortcut(key_info.GetScanCode(),
-                                      keyboard_status.IsPressed(VK_CONTROL))) {
+                                      keyboard_status.IsPressed(VK_CONTROL),
+                                      keyboard_status.IsPressed(VK_MENU))) {
     return false;
   }
   config::Config config;
@@ -392,18 +389,23 @@ bool TryDispatchMarinaNumberRowShortcut(TipPrivateContext* private_context,
   CompositionMode original_mode = CompositionMode::HIRAGANA;
   const bool mode_ok =
       ConversionModeUtil::ToMozcMode(visible_mode, &original_mode);
-  // TEMPORARY: see base/marina_debug_log.h.
-  mozc::MarinaDebugLog(absl::StrCat(
-      "TryDispatch: scan=0x", absl::Hex(key_info.GetScanCode()),
-      " visible_mode=", visible_mode, " open=", open,
-      " ToMozcMode=", mode_ok, " mode=", static_cast<int>(original_mode)));
   if (!mode_ok) {
     return false;
   }
-  return DispatchMarinaNumberRowShortcut(
+  const bool dispatched = DispatchMarinaNumberRowShortcut(
       key_info.GetScanCode(), keyboard_status.IsPressed(VK_CONTROL),
-      keyboard_status.IsPressed(VK_SHIFT), key_info.IsPreviousStateDwon(), open,
-      original_mode, config, private_context->GetClient(), output);
+      keyboard_status.IsPressed(VK_MENU), keyboard_status.IsPressed(VK_SHIFT),
+      key_info.IsPreviousStateDwon(), open, original_mode, config,
+      private_context->GetClient(), output);
+  if (dispatched) {
+    // marinaMoji: this branch bypasses KeyEventHandler::ImeToAsciiEx, which is
+    // where the ordinary key path spawns tools, so MARINA_NR_WORD_REGISTER
+    // would otherwise come back with Output::launch_tool_mode set and nobody
+    // acting on it. Mirrors unix/ibus/mozc_engine.cc, where every Output
+    // reaches UpdateAll() -> LaunchTool().
+    KeyEventHandler::MaybeSpawnTool(private_context->GetClient(), output);
+  }
+  return dispatched;
 }
 
 // marinaMoji: closes the Symbols Palette on Escape. The palette window is
@@ -475,7 +477,6 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
   if (is_key_down && key_info.IsPreviousStateDwon() &&
       keyboard_status.IsPressed(VK_CONTROL) &&
       keyboard_status.IsPressed(VK_SHIFT)) {
-    mozc::MarinaDebugLog("OnKey: swallow Ctrl+Shift OS key-repeat");
     *eaten = TRUE;
     return S_OK;
   }
@@ -490,9 +491,6 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
       if (vk_code == VK_SHIFT) {
         private_context->set_ignore_modifier_keyup_taps(false);
       }
-      mozc::MarinaDebugLog(absl::StrCat(
-          "OnKey: swallow modifier-up after number-row, vk=",
-          static_cast<int>(vk_code)));
       *eaten = FALSE;
       return S_OK;
     }
@@ -680,21 +678,6 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
     ignore_this_keyevent = !result.should_be_eaten;
   }
 
-  // TEMPORARY: see base/marina_debug_log.h. The odoriji palette is drawn as
-  // the candidate window, so an Output arriving here with no candidate window
-  // is what makes it vanish. Logging every key phase shows whether a modifier
-  // key-up is round-tripping to the server and coming back empty.
-  mozc::MarinaDebugLog(absl::StrCat(
-      "OnKey: down=", is_key_down, " vk=", static_cast<int>(vk.virtual_key()),
-      " scan=0x", absl::Hex(key_info.GetScanCode()),
-      " has_candidate_window=", temporal_output.has_candidate_window(),
-      " candidates=",
-      temporal_output.has_candidate_window()
-          ? temporal_output.candidate_window().candidate_size()
-          : -1,
-      " has_preedit=", temporal_output.has_preedit(),
-      " eaten=", !ignore_this_keyevent));
-
   // Modifier key-up can produce an empty Output (no candidates, no preedit).
   // Applying that after SHOW_ODORIJI_PALETTE hides the 8-item list. Keep the
   // last candidate UI until a key-down (or a key-up that still carries
@@ -704,7 +687,6 @@ HRESULT OnKey(TipTextService* text_service, ITfContext* context,
                         !temporal_output.has_result();
   if (!is_key_down && empty_ui &&
       private_context->last_output().has_candidate_window()) {
-    mozc::MarinaDebugLog("OnKey: skip empty key-up that would hide candidates");
     *eaten = !ignore_this_keyevent ? TRUE : FALSE;
     return S_OK;
   }

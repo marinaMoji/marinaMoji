@@ -332,6 +332,59 @@ TEST_F(EnvironmentalFilterRewriterTest, EmojiFilterE160Test) {
   }
 }
 
+TEST_F(EnvironmentalFilterRewriterTest, IvsFilterTest) {
+  // A candidate that only exists in its IVS form keeps its base characters
+  // instead of being erased outright (issue #7).
+  {
+    Segments segments;
+    const ConversionRequest request;
+
+    segments.Clear();
+    const std::vector<std::string> values = {"大丈\U000E0101夫"};
+    AddSegment("だいじょうぶ", values, &segments);
+
+    EXPECT_TRUE(rewriter_.Rewrite(request, &segments));
+    ASSERT_EQ(segments.conversion_segment(0).candidates_size(), 1);
+    EXPECT_EQ(segments.conversion_segment(0).candidate(0).value, "大丈夫");
+    EXPECT_EQ(segments.conversion_segment(0).candidate(0).content_value,
+              "大丈夫");
+  }
+
+  // An additive IVS variant is erased, because stripping it would leave a
+  // duplicate of the base candidate the segment already has.
+  {
+    Segments segments;
+    const ConversionRequest request;
+
+    segments.Clear();
+    const std::vector<std::string> values = {"辻", "辻\U000E0100"};
+    AddSegment("つじ", values, &segments);
+
+    EXPECT_TRUE(rewriter_.Rewrite(request, &segments));
+    ASSERT_EQ(segments.conversion_segment(0).candidates_size(), 1);
+    EXPECT_EQ(segments.conversion_segment(0).candidate(0).value, "辻");
+  }
+
+  // IVS sequences are left alone when the client declares them renderable.
+  {
+    commands::Request request;
+    request.add_additional_renderable_character_groups(
+        commands::Request::IVS_CHARACTER);
+    Segments segments;
+    const ConversionRequest conversion_request =
+        ConversionRequestBuilder().SetRequest(request).Build();
+
+    segments.Clear();
+    const std::vector<std::string> values = {"辻", "辻\U000E0100"};
+    AddSegment("つじ", values, &segments);
+
+    EXPECT_FALSE(rewriter_.Rewrite(conversion_request, &segments));
+    ASSERT_EQ(segments.conversion_segment(0).candidates_size(), 2);
+    EXPECT_EQ(segments.conversion_segment(0).candidate(1).value,
+              "辻\U000E0100");
+  }
+}
+
 TEST_F(EnvironmentalFilterRewriterTest, RemoveTest) {
   Segments segments;
   const ConversionRequest request;

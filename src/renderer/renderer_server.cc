@@ -81,20 +81,6 @@ std::string ConstructServiceName(bool for_testing) {
   return name;
 }
 
-#ifdef _WIN32
-// marinaMoji TEMPORARY (2026-08-08): on-hardware diagnosis of "Symbols
-// Palette opens but nothing is inserted". The renderer and the TIP live in
-// different processes (and the TIP lives inside whatever app has focus), so
-// OutputDebugString is the one channel that can be read from both at once --
-// run Sysinternals DebugView as administrator with "Capture Global Win32"
-// enabled and reproduce. Remove this and its TIP-side counterpart in
-// win32/tip/tip_text_service.cc once the bug is found.
-void MarinaDebugLog(absl::string_view message) {
-  const std::string line = absl::StrCat("[marinaMoji/renderer] ", message, "\n");
-  ::OutputDebugStringA(line.c_str());
-}
-#endif  // _WIN32
-
 }  // namespace
 
 class RendererServerSendCommand : public client::SendCommandInterface {
@@ -117,7 +103,6 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       case commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
       case commands::SessionCommand::LAUNCH_CONFIG_DIALOG:
       case commands::SessionCommand::LAUNCH_DICTIONARY_TOOL:
-      case commands::SessionCommand::LAUNCH_DOCKET_DIALOG:
       case commands::SessionCommand::INSERT_SYMBOL_TEXT:
       case commands::SessionCommand::SHOW_SYMBOLS_PALETTE:
       case commands::SessionCommand::HIDE_SYMBOLS_PALETTE:
@@ -125,7 +110,7 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       case commands::SessionCommand::HIDE_SHORTCUTS_WINDOW:
       case commands::SessionCommand::HIDE_TOOLBAR:
         // marinaMoji: floating toolbar button and context-menu clicks (mode
-        // switch, shin-kyu toggle, docket, dictionary tool, settings, hide),
+        // switch, shin-kyu toggle, add word, dictionary tool, settings, hide),
         // Symbols Palette and Shortcuts window open/close signals, and
         // Symbols Palette commits, in addition to the original candidate
         // click commands.
@@ -169,20 +154,10 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       cds.cbData = static_cast<DWORD>(text.size());
       cds.lpData = const_cast<char*>(text.data());
       DWORD_PTR result = 0;
-      ::SetLastError(0);
-      const LRESULT sent = ::SendMessageTimeout(
+      ::SendMessageTimeout(
           target, WM_COPYDATA, static_cast<WPARAM>(::GetCurrentProcessId()),
           reinterpret_cast<LPARAM>(&cds), SMTO_ABORTIFHUNG, kSendTimeoutMsec,
           &result);
-      MarinaDebugLog(absl::StrCat(
-          "INSERT_SYMBOL_TEXT: target_hwnd=", reinterpret_cast<uintptr_t>(target),
-          " our_pid=", ::GetCurrentProcessId(), " bytes=", text.size(),
-          " SendMessageTimeout_ret=", static_cast<long long>(sent),
-          " reply=", static_cast<unsigned long long>(result),
-          " last_error=", ::GetLastError(),
-          sent == 0 ? "  <-- SEND FAILED (0 = timeout/hung, or target gone)"
-                    : "  <-- sent OK; if nothing was inserted the TIP side "
-                      "rejected it, see [marinaMoji/tip] lines"));
       return true;
     }
 
@@ -203,22 +178,8 @@ class RendererServerSendCommand : public client::SendCommandInterface {
         command.type() == commands::SessionCommand::HIDE_SHORTCUTS_WINDOW ||
         command.type() == commands::SessionCommand::HIDE_TOOLBAR) {
       DWORD_PTR result = 0;
-      ::SetLastError(0);
-      const LRESULT sent =
-          ::SendMessageTimeout(target, mozc_msg, type, id, SMTO_ABORTIFHUNG,
-                               kSendTimeoutMsec, &result);
-      // marinaMoji TEMPORARY (2026-08-08): this send was silent, unlike
-      // INSERT_SYMBOL_TEXT above -- so a timed-out or dropped palette signal
-      // looked exactly like one the TIP received and ignored. |ret=0| means
-      // the signal never arrived and no [marinaMoji/tip-ui] line will follow
-      // it; anything else means the TIP has it and the fault is downstream.
-      MarinaDebugLog(absl::StrCat(
-          "signal type=", static_cast<int>(command.type()),
-          " target_hwnd=", reinterpret_cast<uintptr_t>(target),
-          " SendMessageTimeout_ret=", static_cast<long long>(sent),
-          " last_error=", ::GetLastError(),
-          sent == 0 ? "  <-- SEND FAILED (0 = timeout/hung, or target gone)"
-                    : ""));
+      ::SendMessageTimeout(target, mozc_msg, type, id, SMTO_ABORTIFHUNG,
+                           kSendTimeoutMsec, &result);
     } else {
       ::PostMessage(target, mozc_msg, type, id);
     }

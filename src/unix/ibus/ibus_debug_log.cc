@@ -48,6 +48,7 @@ namespace {
 
 constexpr char kDebugLogEnv[] = "MARINAMOJI_IBUS_DEBUG_LOG";
 constexpr char kEchoBackShiftLEnv[] = "MARINAMOJI_IBUS_ECHO_BACK_SHIFT_L";
+constexpr char kEchoBackForwardEnv[] = "MARINAMOJI_IBUS_ECHO_BACK_FORWARD";
 
 const char* DebugLogPath() {
   const char* path = ::getenv(kDebugLogEnv);
@@ -121,10 +122,12 @@ void MaybeWriteSessionBannerUnlocked(const char* path) {
   char message[1024];
   std::snprintf(
       message, sizeof(message),
-      "session_start version=%s echo_back_shift_l=%d "
+      "session_start version=%s echo_back_shift_l=%d echo_back_forward=%d "
       "XDG_SESSION_TYPE=%s WAYLAND_DISPLAY=%s DISPLAY=%s GDK_BACKEND=%s",
       Version::GetMozcVersion().c_str(),
-      ShouldForwardEchoBackShiftLRelease() ? 1 : 0, EnvOrDash("XDG_SESSION_TYPE"),
+      ShouldForwardEchoBackShiftLRelease() ? 1 : 0,
+      ShouldForwardEchoBackWithoutSurroundingText() ? 1 : 0,
+      EnvOrDash("XDG_SESSION_TYPE"),
       EnvOrDash("WAYLAND_DISPLAY"), EnvOrDash("DISPLAY"),
       EnvOrDash("GDK_BACKEND"));
   AppendLogLineUnlocked(path, "engine.lifecycle", message);
@@ -136,6 +139,10 @@ bool IsIbusDebugLogEnabled() { return DebugLogPath() != nullptr; }
 
 bool ShouldForwardEchoBackShiftLRelease() {
   return EnvVarIsTruthy(kEchoBackShiftLEnv);
+}
+
+bool ShouldForwardEchoBackWithoutSurroundingText() {
+  return EnvVarIsTruthy(kEchoBackForwardEnv);
 }
 
 void MaybeLogIbusDebug(const char* tag, const char* format, ...) {

@@ -425,10 +425,16 @@ void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
   // shown. The palette isn't a preedit, so RevertSession's PRECOMPOSITION
   // path leaves it alone server-side -- but Hide() below would still tear it
   // down client-side, orphaning it until the next real keystroke resyncs.
-  // Skip both calls once for a FocusOut landing in that narrow window.
+  // Skip both calls for a FocusOut landing in that narrow window, and for as
+  // long as the palette is still waiting for focus (and a caret rect) to come
+  // back from the menu -- on a slow compositor the bounce can outlast the
+  // grace period below.
+  const absl::Duration since_odoriji_property =
+      Clock::GetAbslTime() - odoriji_property_show_time_;
   const bool suppress_for_odoriji_menu =
-      Clock::GetAbslTime() - odoriji_property_show_time_ <
-      kOdorijiPropertyFocusOutGrace;
+      since_odoriji_property < kOdorijiPropertyFocusOutGrace ||
+      (odoriji_show_pending_ &&
+       since_odoriji_property < kOdorijiPropertyReshowWindow);
   if (!suppress_for_odoriji_menu) {
     GetCandidateWindowHandler(engine)->Hide(engine);
   }
@@ -620,6 +626,16 @@ bool TryHandleEchoBackBackspace(IbusEngineWrapper* engine,
     MaybeLogIbusDebug("engine.echoback", "forward_surrounding_text_failed");
     engine->ForwardBackspaceForEchoBack(keyval, keycode);
     return true;
+  }
+  // No surrounding text: the client is a terminal (VTE) or similar. Decline the
+  // key and let IBus deliver the real Backspace instead of synthesising one.
+  // Injecting a press/release pair into a client that hands forwarded events
+  // back to the engine is a loop, and gnome-terminal dies on it (issue #36).
+  // MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1 restores the old synthetic forward,
+  // for the clients that were the reason it existed.
+  if (!ShouldForwardEchoBackWithoutSurroundingText()) {
+    MaybeLogIbusDebug("engine.echoback", "decline_no_surrounding_cap");
+    return false;
   }
   MaybeLogIbusDebug("engine.echoback", "forward_no_surrounding_cap");
   engine->ForwardBackspaceForEchoBack(keyval, keycode);
@@ -955,11 +971,16 @@ void MozcEngine::PropertyActivate(IbusEngineWrapper* engine,
       odoriji_property_show_time_ = Clock::GetAbslTime();
       // The palette is drawn now for the environments where activating a panel
       // property does not move the keyboard focus at all, but in the common
-      // case the focus (and the caret rect) belongs to the menu, so this first
-      // draw lands in the top-left corner and is torn down when the menu goes
-      // away. Ask for it again on the FocusIn / set_cursor_location that
-      // follows.
+      // case the focus (and the caret rect) belongs to the menu. Whatever the
+      // app last reported for the caret is a better guess than the rect we
+      // hold while the menu owns the focus -- which is empty, and would put
+      // the palette in the top-left corner. Ask for the palette again on the
+      // FocusIn / set_cursor_location that follows, so a fresh rect still
+      // wins.
+      const bool usable = EnsureUsableCursorArea(engine);
       odoriji_show_pending_ = true;
+      MaybeLogIbusDebug("engine.odoriji", "show_from_menu usable_rect=%d",
+                        usable ? 1 : 0);
       UpdateAll(engine, output);
     }
     return;
@@ -1004,13 +1025,30 @@ void MozcEngine::SetCursorLocation(IbusEngineWrapper* engine, int x, int y,
   // candidate window is positioned below the cursor. engine_->cursor_area
   // is not guaranteed to be updated by IBus before this callback.
   engine->SetCursorArea(x, y, w, h);
+  const IbusEngineWrapper::Rectangle area = {x, y, w, h};
+  if (IsUsableCursorArea(area)) {
+    last_usable_cursor_area_ = area;
+    has_last_usable_cursor_area_ = true;
+  }
   // A palette opened from the panel menu may still be waiting for a real caret
   // rect -- some apps report one without a fresh FocusIn. Re-showing goes
   // through UpdateAll, which repositions the candidate window itself, so only
   // fall back to UpdateCursorRect when there is nothing pending.
-  if (!MaybeReshowOdorijiPalette(engine)) {
-    GetCandidateWindowHandler(engine)->UpdateCursorRect(engine);
+  if (MaybeReshowOdorijiPalette(engine)) {
+    return;
   }
+  if (odoriji_show_pending_) {
+    // Still waiting for a caret rect worth drawing at: this callback carried
+    // an empty one (the menu's, or a placeholder). Redrawing now would only
+    // move the palette to the top-left corner and back again -- the flash the
+    // reshow exists to avoid.
+    return;
+  }
+  // This callback can still carry an empty rect (a placeholder some apps send
+  // before the real caret). Fall back to the last usable rect rather than
+  // redraw an already-open candidate window in the corner.
+  EnsureUsableCursorArea(engine);
+  GetCandidateWindowHandler(engine)->UpdateCursorRect(engine);
 }
 
 void MozcEngine::SetContentType(IbusEngineWrapper* engine, uint purpose,
@@ -1118,6 +1156,17 @@ bool MozcEngine::UpdateAll(IbusEngineWrapper* engine,
     had_preedit_ = has_preedit;
   }
 
+  // Before drawing a candidate window (the odoriji / iteration-mark palette
+  // included), make sure the renderer is not handed an empty cursor rect --
+  // which it places at the top-left of the screen. An app that has not yet
+  // sent set_cursor_location leaves the engine's rect all-zero; substitute the
+  // last rect an app reported instead. Covers every trigger, not just the IME
+  // menu path handled in ProcessPropertyActivate (issue #25).
+  if (output.has_candidate_window() &&
+      output.candidate_window().candidate_size() > 0) {
+    EnsureUsableCursorArea(engine);
+  }
+
   GetCandidateWindowHandler(engine)->Update(engine, output);
   UpdateCandidateIDMapping(output);
 
@@ -1134,12 +1183,27 @@ bool MozcEngine::UpdateAll(IbusEngineWrapper* engine,
 
 bool MozcEngine::UpdateDeletionRange(IbusEngineWrapper* engine,
                                      const commands::Output& output) {
-  if (output.has_deletion_range() && output.deletion_range().offset() < 0 &&
-      output.deletion_range().offset() + output.deletion_range().length() >=
-          0) {
-    engine->DeleteSurroundingText(output.deletion_range().offset(),
-                                  output.deletion_range().length());
+  if (!output.has_deletion_range() || output.deletion_range().offset() >= 0 ||
+      output.deletion_range().offset() + output.deletion_range().length() < 0) {
+    return true;
   }
+  // The server is told unconditionally that we can delete preceding text (see
+  // CreateAndConfigureClient), which is what enables undo-on-Backspace after a
+  // commit. Clients without surrounding text cannot honour the request, so
+  // asking them to is at best a no-op and at worst a crash (issue #36): drop
+  // the range and leave the committed text alone.
+  if (!engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT)) {
+    MaybeLogIbusDebug("engine.deletion",
+                      "skip_no_surrounding_cap offset=%d length=%d",
+                      output.deletion_range().offset(),
+                      output.deletion_range().length());
+    return true;
+  }
+  MaybeLogIbusDebug("engine.deletion", "delete_surrounding offset=%d length=%d",
+                    output.deletion_range().offset(),
+                    output.deletion_range().length());
+  engine->DeleteSurroundingText(output.deletion_range().offset(),
+                                output.deletion_range().length());
   return true;
 }
 
@@ -1269,6 +1333,43 @@ void MozcEngine::RevertSession(IbusEngineWrapper* engine) {
   UpdateAll(engine, output);
 }
 
+// static
+bool MozcEngine::IsUsableCursorArea(
+    const IbusEngineWrapper::Rectangle& area) {
+  // An all-zero rect is what the engine holds before any app has reported a
+  // caret, and what some toolkits report while a menu owns the focus. A
+  // zero-sized one is just as useless: the renderer places the window under
+  // the rect's bottom-left, so both land in the top-left corner of the
+  // screen.
+  if (area.width <= 0 || area.height <= 0) {
+    return false;
+  }
+  return area.x != 0 || area.y != 0;
+}
+
+bool MozcEngine::EnsureUsableCursorArea(IbusEngineWrapper* engine) {
+  if (IsUsableCursorArea(engine->GetCursorArea())) {
+    return true;
+  }
+  if (!has_last_usable_cursor_area_) {
+    // Nothing worth drawing at has ever been reported this session (a freshly
+    // opened application that has not sent set_cursor_location yet). The caller
+    // draws where it can -- issue #25 tracks deferring that instead.
+    return false;
+  }
+  // The engine's rect is empty -- the app has not reported a caret yet, or the
+  // ibus panel menu owns the focus. The last rect an app reported is a better
+  // guess than the top-left corner, whatever put the candidate window on
+  // screen (typed odoriji, Ctrl+Shift+2, or the IME menu).
+  engine->SetCursorArea(last_usable_cursor_area_.x, last_usable_cursor_area_.y,
+                        last_usable_cursor_area_.width,
+                        last_usable_cursor_area_.height);
+  // The substituted rect may come from a different application; do not let its
+  // left edge be carried into a later same-line preedit.
+  mozc_candidate_window_handler_.ClearCursorPositionCache();
+  return true;
+}
+
 bool MozcEngine::MaybeReshowOdorijiPalette(IbusEngineWrapper* engine) {
   if (!odoriji_show_pending_) {
     return false;
@@ -1276,6 +1377,12 @@ bool MozcEngine::MaybeReshowOdorijiPalette(IbusEngineWrapper* engine) {
   if (Clock::GetAbslTime() - odoriji_property_show_time_ >
       kOdorijiPropertyReshowWindow) {
     odoriji_show_pending_ = false;
+    return false;
+  }
+  if (!EnsureUsableCursorArea(engine)) {
+    // Focus is back but no usable caret rect has arrived yet. Stay pending:
+    // re-showing here would draw the palette in the top-left corner, and the
+    // set_cursor_location that follows is the event we actually want.
     return false;
   }
   odoriji_show_pending_ = false;
