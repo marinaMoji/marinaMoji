@@ -403,11 +403,20 @@ bool TryDispatchMarinaNumberRowShortcut(TipPrivateContext* private_context,
   if (!mode_ok) {
     return false;
   }
-  return DispatchMarinaNumberRowShortcut(
+  const bool dispatched = DispatchMarinaNumberRowShortcut(
       key_info.GetScanCode(), keyboard_status.IsPressed(VK_CONTROL),
       keyboard_status.IsPressed(VK_MENU), keyboard_status.IsPressed(VK_SHIFT),
       key_info.IsPreviousStateDwon(), open, original_mode, config,
       private_context->GetClient(), output);
+  if (dispatched) {
+    // marinaMoji: this branch bypasses KeyEventHandler::ImeToAsciiEx, which is
+    // where the ordinary key path spawns tools, so MARINA_NR_WORD_REGISTER
+    // would otherwise come back with Output::launch_tool_mode set and nobody
+    // acting on it. Mirrors unix/ibus/mozc_engine.cc, where every Output
+    // reaches UpdateAll() -> LaunchTool().
+    KeyEventHandler::MaybeSpawnTool(private_context->GetClient(), output);
+  }
+  return dispatched;
 }
 
 // marinaMoji: closes the Symbols Palette on Escape. The palette window is

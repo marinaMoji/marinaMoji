@@ -1227,29 +1227,16 @@ void KeyEventHandler::MaybeSpawnTool(mozc::client::ClientInterface* client,
   // by client with specified mode.
   // TODO(team):  move it to better place.
   if (output->has_launch_tool_mode()) {
-    std::string mode;
-    switch (output->launch_tool_mode()) {
-      case commands::Output::CONFIG_DIALOG:
-        mode = "config_dialog";
-        break;
-      case commands::Output::WORD_REGISTER_DIALOG:
-        mode = "word_register_dialog";
-        break;
-      case commands::Output::DICTIONARY_TOOL:
-        mode = "dictionary_tool";
-        break;
-      case commands::Output::DOCKET_DIALOG:
-        mode = "docket_dialog";
-        break;
-      case commands::Output::NO_TOOL:
-      default:
-        // Do nothing.
-        break;
-    }
+    // marinaMoji: launch through LaunchToolWithProtoBuf rather than
+    // LaunchTool(mode, ""), so the word-register prefill fields the session
+    // put on this Output (Output::word_register_expression and
+    // ::word_register_reading_candidates) reach the dialog. The mode ->
+    // binary-name mapping lives in Client::TranslateProtoBufToMozcToolArg;
+    // duplicating it here is what used to drop the prefill on Windows while
+    // macOS and Linux kept it.
+    const commands::Output launch_output = *output;
     output->clear_launch_tool_mode();
-    if (!mode.empty()) {
-      client->LaunchTool(mode, "");
-    }
+    client->LaunchToolWithProtoBuf(launch_output);
   }
 }
 

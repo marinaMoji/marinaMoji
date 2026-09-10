@@ -246,9 +246,6 @@ class Session {
   // Let client launch dictionary tool
   bool LaunchDictionaryTool(mozc::commands::Command* command);
 
-  // Let client launch the docket review dialog
-  bool LaunchDocketDialog(mozc::commands::Command* command);
-
   // Let client launch word register dialog
   bool LaunchWordRegisterDialog(mozc::commands::Command* command);
 
@@ -328,12 +325,6 @@ class Session {
   // captured from the live preedit so callers need not reverse-convert later.
   std::string last_committed_expression_;
   std::string last_committed_reading_;
-
-  // Borrowed from the caller (SessionHandler owns the Engine for the
-  // process lifetime and only ever constructs short-lived Sessions
-  // against it, so this reference always outlives the Session). Used to
-  // gate docket capture on commit (see CommitInternal).
-  const EngineInterface& engine_;
 
   // When true, next key that is a/e/i/o/u (or shifted) will insert macron vowel
   // (ā ē ī ō ū). Set by AltGr+umlaut (SetMacronDeadKey), cleared after use or

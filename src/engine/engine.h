@@ -41,7 +41,6 @@
 #include "converter/converter.h"
 #include "converter/converter_interface.h"
 #include "data_manager/data_manager.h"
-#include "dictionary/docket_store.h"
 #include "dictionary/user_dictionary.h"
 #include "engine/data_loader.h"
 #include "engine/engine_converter.h"
@@ -116,11 +115,6 @@ class Engine : public EngineInterface {
     return {};
   }
 
-  bool IsKnownWord(absl::string_view surface) const override;
-  void RecordDocketCandidate(absl::string_view surface,
-                             absl::string_view reading, int32_t lid,
-                             int32_t rid) const override;
-
   // For testing only.
   engine::Modules& GetModulesForTesting() const {
     DCHECK(converter_);
@@ -156,7 +150,6 @@ class Engine : public EngineInterface {
   std::unique_ptr<user_dictionary::AsyncUserDictionaryImporter>
       async_user_dictionary_importer_;
   bool always_wait_for_testing_ = false;
-  mutable dictionary::DocketStore docket_store_;
 };
 
 }  // namespace mozc

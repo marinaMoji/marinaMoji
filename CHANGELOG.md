@@ -10,6 +10,50 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: pre-filled word register replaces the docket (2026-09-10)
+
+The Windows toolbar's dictionary button opened the docket review queue
+instead of the pre-filled "Add Word" dialog macOS and Linux have. The docket
+is removed and Windows now runs the same fast-add path as the other two
+platforms: the button, `Ctrl+Shift+0`, and the configurable number-row
+shortcut all open `word_register_dialog` with the surface and reading of what
+was just typed or committed already filled in.
+
+Three things had to change for the prefill to actually arrive on Windows;
+the session-side prefill itself (`Session::LaunchWordRegisterDialog`, which
+fills `Output::word_register_expression` and
+`::word_register_reading_candidates`) was already cross-platform.
+
+- `win32/base/keyevent_handler.cc`: `MaybeSpawnTool()` re-derived the tool
+  name from `launch_tool_mode` and called `LaunchTool(mode, "")`, which drops
+  every other field of the Output. It now calls `LaunchToolWithProtoBuf()`,
+  the same entry point macOS and Linux use, so the prefill rides along.
+- `client/client.cc`: the prefill reaches `mozc_tool` through the
+  `word_register_bootstrap.pb` file in the user profile directory — the one
+  macOS already used — rather than through the environment the tool inherits.
+  On Windows the client runs inside the TSF text service, i.e. inside
+  whatever application has focus, so the environment route would mean a
+  process-wide mutation of Word's or Chrome's environment block holding a copy
+  of what the user just typed, inherited by every child they spawn afterwards.
+  The file is read, then unlinked, by `SetDefaultEntryFromBootstrapFile`, now
+  compiled on Windows as well as macOS; the environment variables stay as a
+  fallback for a hand-launched `mozc_tool`. Linux is unchanged and still uses
+  the environment, where the client lives in the ibus daemon rather than in
+  the focused application.
+- `win32/tip/tip_keyevent_handler.cc`: the marina number-row branch bypasses
+  `KeyEventHandler::ImeToAsciiEx`, which is where the ordinary key path
+  spawns tools, so `MARINA_NR_WORD_REGISTER` returned a `launch_tool_mode`
+  nobody acted on and the shortcut did nothing. It now spawns the tool
+  itself, mirroring ibus, where every Output reaches `UpdateAll()`.
+
+Removed with the docket: `dictionary/docket_store.*`, `gui/docket/`,
+`EngineInterface::IsKnownWord()`/`RecordDocketCandidate()` and their `Engine`
+implementations, the capture hook in `Session::CommitInternal` (and the
+`Session::engine_` reference that existed only to serve it),
+`Session::LaunchDocketDialog()`, the toolbar badge dot, and `docs/DOCKET.md`.
+`SessionCommand::LAUNCH_DOCKET_DIALOG` (43) and `Output::DOCKET_DIALOG` (4)
+are marked `reserved` rather than reused.
+
 ### Windows: make the chosen layout's AltGr level work on an OS layout without one (2026-09-08)
 
 Second half of [#33](https://github.com/marinaMoji/marinaMoji/issues/33).

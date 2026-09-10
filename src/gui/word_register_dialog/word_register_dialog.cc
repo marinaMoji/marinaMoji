@@ -130,12 +130,15 @@ WordRegisterDialog::WordRegisterDialog()
   }
   WordlineEdit->setMaxLength(kMaxEditLength);
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
+  // The environment variables are still consulted as a fallback: a mozc_tool
+  // launched by hand, or by an older client that has not been restarted since
+  // the update, can still carry a prefill that way.
   if (!SetDefaultEntryFromBootstrapFile() &&
       !SetDefaultEntryFromEnvironmentVariable()) {
 #else
   if (!SetDefaultEntryFromEnvironmentVariable()) {
-#endif
+#endif  // __APPLE__ || _WIN32
 #ifdef _WIN32
     // On Windows, try to use clipboard as a fallback.
     SetDefaultEntryFromClipboard();
@@ -508,7 +511,7 @@ bool WordRegisterDialog::SetDefaultEntryFromEnvironmentVariable() {
   return true;
 }
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
 bool WordRegisterDialog::SetDefaultEntryFromBootstrapFile() {
   const std::string path = FileUtil::JoinPath(
       SystemUtil::GetUserProfileDirectory(), kWordRegisterBootstrapFileName);
@@ -551,7 +554,7 @@ bool WordRegisterDialog::SetDefaultEntryFromBootstrapFile() {
 
   return true;
 }
-#endif  // __APPLE__
+#endif  // __APPLE__ || _WIN32
 
 QString WordRegisterDialog::TrimValue(const QString& str) const {
   return str.trimmed()

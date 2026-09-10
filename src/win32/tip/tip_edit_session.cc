@@ -317,8 +317,9 @@ class AsyncSessionCommandEditSessionImpl final
     }
     // marinaMoji: mirrors the KeyEvent path (KeyEventHandler::MaybeSpawnTool
     // is otherwise only invoked after SendKey), so SessionCommands that set
-    // Output::launch_tool_mode (e.g. LAUNCH_WORD_REGISTER_DIALOG or the
-    // toolbar's LAUNCH_CONFIG_DIALOG) actually spawn the tool too.
+    // Output::launch_tool_mode (e.g. LAUNCH_WORD_REGISTER_DIALOG, which also
+    // carries the dialog's prefill, or the toolbar's LAUNCH_CONFIG_DIALOG)
+    // actually spawn the tool too.
     KeyEventHandler::MaybeSpawnTool(private_context->GetClient(), &output);
     return TipEditSessionImpl::UpdateContext(
         text_service_.get(), context_.get(), write_cookie, output);
@@ -783,10 +784,9 @@ bool TipEditSession::OnRendererCallbackAsync(TipTextService* text_service,
     case SessionCommand::TOGGLE_TRADITIONAL_KANJI:
     case SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
     case SessionCommand::LAUNCH_CONFIG_DIALOG:
-    case SessionCommand::LAUNCH_DICTIONARY_TOOL:
-    case SessionCommand::LAUNCH_DOCKET_DIALOG: {
-      // marinaMoji: floating toolbar direct-mode / shin-kyu toggle / docket /
-      // dictionary tool / settings clicks. None of these need extra fields.
+    case SessionCommand::LAUNCH_DICTIONARY_TOOL: {
+      // marinaMoji: floating toolbar direct-mode / shin-kyu toggle / add word
+      // / dictionary tool / settings clicks. None of these need extra fields.
       SessionCommand command;
       command.set_type(type);
       return OnSessionCommandAsync(text_service, context, command);

@@ -377,7 +377,6 @@ ImeContext::State GetEffectiveStateForTestSendKey(const commands::KeyEvent& key,
 
 Session::Session(const EngineInterface& engine)
     : context_(CreateContext(engine)),
-      engine_(engine),
       left_shift_mode_lock_(LoadLeftShiftDirectLock()) {}
 
 std::unique_ptr<ImeContext> Session::CreateContext(
@@ -587,9 +586,6 @@ bool Session::SendCommand(commands::Command* command) {
       break;
     case commands::SessionCommand::LAUNCH_DICTIONARY_TOOL:
       result = LaunchDictionaryTool(command);
-      break;
-    case commands::SessionCommand::LAUNCH_DOCKET_DIALOG:
-      result = LaunchDocketDialog(command);
       break;
     case commands::SessionCommand::INSERT_MACRON_VOWEL: {
       const absl::string_view text = command->input().command().text();
@@ -2346,22 +2342,6 @@ bool Session::CommitInternal(commands::Command* command,
   if (command->output().has_result() && !command->output().result().value().empty()) {
     last_committed_expression_ = command->output().result().value();
     last_committed_reading_ = reading_before_commit;
-
-    // Stash dictionary-unknown compounds in the docket for later review
-    // (see dictionary/docket_store.h). lid/rid ride along on the result
-    // tokens already, copied from the committed candidate.
-    const commands::Result& result = command->output().result();
-    if (Util::CharsLen(result.value()) >= 2 &&
-        !engine_.IsKnownWord(result.value())) {
-      int32_t lid = -1;
-      int32_t rid = -1;
-      if (result.tokens_size() > 0) {
-        lid = result.tokens(0).lid();
-        rid = result.tokens(result.tokens_size() - 1).rid();
-      }
-      engine_.RecordDocketCandidate(result.value(), reading_before_commit,
-                                    lid, rid);
-    }
   }
   return true;
 }
@@ -2905,20 +2885,6 @@ bool Session::LaunchConfigDialog(commands::Command* command) {
 bool Session::LaunchDictionaryTool(commands::Command* command) {
   command->mutable_output()->set_launch_tool_mode(
       commands::Output::DICTIONARY_TOOL);
-  ClearUndoContext();
-  context_->mutable_converter()->Reset();
-  context_->mutable_composer()->Reset();
-  if (context_->state() != ImeContext::DIRECT) {
-    SetSessionState(ImeContext::PRECOMPOSITION, context_.get());
-  }
-  command->mutable_output()->set_consumed(true);
-  OutputMode(command);
-  return true;
-}
-
-bool Session::LaunchDocketDialog(commands::Command* command) {
-  command->mutable_output()->set_launch_tool_mode(
-      commands::Output::DOCKET_DIALOG);
   ClearUndoContext();
   context_->mutable_converter()->Reset();
   context_->mutable_composer()->Reset();

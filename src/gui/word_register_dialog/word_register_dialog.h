@@ -94,10 +94,12 @@ class WordRegisterDialog : public QDialog, private Ui::WordRegisterDialog {
   // Return false if source environment variable is not found.
   bool SetDefaultEntryFromEnvironmentVariable();
 
-#if defined(__APPLE__)
-  // Load prefill from ~/.mozc/word_register_bootstrap.pb (macOS only).
+#if defined(__APPLE__) || defined(_WIN32)
+  // Load prefill from word_register_bootstrap.pb in the user profile
+  // directory, written by Client::LaunchToolWithProtoBuf. Used on macOS and
+  // Windows; Linux passes the prefill through the environment instead.
   bool SetDefaultEntryFromBootstrapFile();
-#endif  // __APPLE__
+#endif  // __APPLE__ || _WIN32
 
   // Return reading of value with reverse conversion feature.
   QString GetReading(const QString& str);

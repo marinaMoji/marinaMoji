@@ -1453,52 +1453,6 @@ TEST_F(SessionTest, StoreLastCommitBufferOnConversionCommit) {
   EXPECT_EQ(peer.last_committed_reading_(), "あいうえお");
 }
 
-TEST_F(SessionTest, DocketCandidateRecordedForUnknownWord) {
-  MockEngine engine;
-  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
-  EXPECT_CALL(engine, IsKnownWord(absl::string_view("あいうえお")))
-      .WillOnce(Return(false));
-  EXPECT_CALL(engine,
-             RecordDocketCandidate(absl::string_view("あいうえお"),
-                                   absl::string_view("あいうえお"), _, _))
-      .Times(1);
-  Session session(engine);
-  InitSessionToConversionWithAiueo(&session, converter.get());
-
-  commands::Command command;
-  session.Commit(&command);
-  EXPECT_EQ(command.output().result().value(), "あいうえお");
-}
-
-TEST_F(SessionTest, DocketCandidateSkippedForKnownWord) {
-  MockEngine engine;
-  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
-  EXPECT_CALL(engine, IsKnownWord(absl::string_view("あいうえお")))
-      .WillOnce(Return(true));
-  EXPECT_CALL(engine, RecordDocketCandidate).Times(0);
-  Session session(engine);
-  InitSessionToConversionWithAiueo(&session, converter.get());
-
-  commands::Command command;
-  session.Commit(&command);
-  EXPECT_EQ(command.output().result().value(), "あいうえお");
-}
-
-TEST_F(SessionTest, DocketCandidateSkippedForSingleCharacterCommit) {
-  MockEngine engine;
-  CreateEngineConverterMock(&engine);
-  EXPECT_CALL(engine, IsKnownWord).Times(0);
-  EXPECT_CALL(engine, RecordDocketCandidate).Times(0);
-  Session session(engine);
-  InitSessionToPrecomposition(&session);
-
-  commands::Command command;
-  InsertCharacterChars("a", &session, &command);
-  command.Clear();
-  session.Commit(&command);
-  EXPECT_EQ(command.output().result().value(), "あ");
-}
-
 TEST_F(SessionTest, ClearLastCommitBufferOnResetContext) {
   MockEngine engine;
   CreateEngineConverterMock(&engine);

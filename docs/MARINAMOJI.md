@@ -32,7 +32,6 @@ For setup and behavior details, see:
 - [build_marinamoji_on_macos.md](build_marinamoji_on_macos.md) — Xcode/Qt toolchain reference
 - `docs/HOW_SYNC_WORKS.md` (user guide)
 - `docs/SYNC_PLAN.md` (implementation reference)
-- [DOCKET.md](DOCKET.md) — reviewing unregistered vocabulary (docket queue)
 
 ## Configuration
 
