@@ -452,8 +452,13 @@ HRESULT TipLangBar::UpdateMenu(bool enabled, uint32_t composition_mode) {
 // from the item reporting its own status, and is what an IME switch
 // effectively does. Call it on every transition in both directions; keep
 // SetHidden() as well, since that is what makes the registration-time hide
-// work. If ShowItem() also fails to withdraw an already-drawn button the icon
-// simply stays -- live, not dead -- until the profile is next activated.
+// work.
+//
+// SetRenderBlank() is the backstop. If neither SetHidden() nor ShowItem() can
+// withdraw a button the taskbar has already drawn, the item is at least made
+// to paint nothing and carry no label -- an empty slot rather than a stale
+// mode indicator with a dead menu. It costs nothing when the button really is
+// hidden. See issue #30.
 void TipLangBar::SyncModeIconVisibility() {
   if (!input_button_menu_ || !input_mode_button_for_win8_) {
     return;
@@ -465,6 +470,8 @@ void TipLangBar::SyncModeIconVisibility() {
   const BOOL show = shown_in_tray ? TRUE : FALSE;
   input_button_menu_->SetHidden(!shown_in_tray);
   input_mode_button_for_win8_->SetHidden(!shown_in_tray);
+  input_button_menu_->SetRenderBlank(!shown_in_tray);
+  input_mode_button_for_win8_->SetRenderBlank(!shown_in_tray);
   HRESULT show_hr1 = E_FAIL;
   HRESULT show_hr2 = E_FAIL;
   if (lang_bar_item_mgr_) {

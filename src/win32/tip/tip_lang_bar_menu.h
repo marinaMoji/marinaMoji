@@ -159,6 +159,14 @@ class TipLangBarButton : public TipComImplements<ITfLangBarItemButton,
   // Notifies the system only when the visibility actually changes.
   HRESULT SetHidden(bool hidden);
 
+  // marinaMoji: makes GetIcon()/GetText()/GetTooltipString() report an empty
+  // icon and label while the item stays registered and live. This is the
+  // fallback for the Windows 10/11 taskbar mode indicator: once the taskbar
+  // has drawn that button, neither SetHidden() nor ITfLangBarItemMgr::
+  // ShowItem() can take it away (issue #30), so if it cannot be removed it is
+  // at least rendered blank. Notifies the system only on an actual change.
+  HRESULT SetRenderBlank(bool blank);
+
   // Initializes an ImeButtonMenu instance.
   // This function allocates resources for an ImeButtonMenu instance.
   HRESULT Init(HINSTANCE instance, int string_id,
@@ -199,6 +207,10 @@ class TipLangBarButton : public TipComImplements<ITfLangBarItemButton,
   // Refreshes the dynamic menu items that mirror current session/config state.
   void RefreshMenuState(HINSTANCE instance);
 
+  // True while SetRenderBlank(true) is in effect; derived GetIcon() overrides
+  // consult this.
+  bool render_blank() const { return render_blank_; }
+
   wil::com_ptr_nothrow<ITfLangBarItemSink> item_sink_;
   // Save the TipLangBarCallback object that owns this button to prevent the
   // object from being deleted.
@@ -220,6 +232,11 @@ class TipLangBarButton : public TipComImplements<ITfLangBarItemButton,
   // Represents if context menu is enabled or not. This flag is not used when
   // IsMenuButton() returns true.
   bool context_menu_enabled_;
+
+  // marinaMoji: when set, GetIcon()/GetText()/GetTooltipString() report empty
+  // values so a taskbar button that cannot be withdrawn renders blank. See
+  // SetRenderBlank().
+  bool render_blank_ = false;
 };
 
 // Represents the common operations for a button-menu item with an icon in the
