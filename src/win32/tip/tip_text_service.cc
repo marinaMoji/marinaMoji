@@ -1760,25 +1760,38 @@ class TipTextServiceImpl
 
   // Resolves the context a renderer callback (toolbar / symbols palette
   // click) should be delivered to. Prefers the live focused document
-  // manager, but falls back to the last known one: clicking the toolbar's
-  // mode popup menu transiently steals the thread focus, so by the time the
-  // selection message arrives GetFocus() can already be null even though the
-  // application context is still perfectly able to accept an async edit
-  // session.
+  // manager, then the last known one: clicking the toolbar's mode popup menu
+  // transiently steals the thread focus, so by the time the selection message
+  // arrives GetFocus() can already be null even though the application
+  // context is still perfectly able to accept an async edit session.
+  //
+  // Last resort is any context the TIP is actively servicing. Windows 11's
+  // Notepad was observed never firing ITfThreadMgrEventSink::OnSetFocus with
+  // a non-null document manager, so both the live focus and
+  // last_focused_document_manager_ come up empty and every "Hide toolbar"
+  // click was silently dropped until an unrelated focus event happened to
+  // refresh things (GitHub issue #30). A context only gets a private-context
+  // entry once a key has been routed to it, so this is exactly "what the user
+  // is typing into"; for the global toolbar/palette commands any live context
+  // is an equally good place to run the edit session.
   wil::com_ptr_nothrow<ITfContext> GetRendererCallbackContext() {
     wil::com_ptr_nothrow<ITfDocumentMgr> document_manager;
     if (FAILED(thread_mgr_->GetFocus(&document_manager)) ||
         !document_manager) {
       document_manager = last_focused_document_manager_;
     }
-    if (!document_manager) {
-      return nullptr;
+    if (document_manager) {
+      wil::com_ptr_nothrow<ITfContext> context;
+      if (SUCCEEDED(document_manager->GetBase(&context)) && context) {
+        return context;
+      }
     }
-    wil::com_ptr_nothrow<ITfContext> context;
-    if (FAILED(document_manager->GetBase(&context))) {
-      return nullptr;
+    if (!private_context_map_.empty()) {
+      // TEMPORARY: see base/marina_debug_log.h.
+      MarinaDebugLog("renderer-cb: using private-context fallback");
+      return private_context_map_.begin()->first;
     }
-    return context;
+    return nullptr;
   }
 
   void OnRendererSymbolTextCallback(const std::string& text) {
