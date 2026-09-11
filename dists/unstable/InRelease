@@ -1,0 +1,58 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Architectures: amd64 arm64
+Codename: unstable
+Components: main
+Date: Fri, 11 Sep 2026 00:51:19 +0000
+Description: marinaMoji Debian/Ubuntu packages
+Label: marinaMoji
+Origin: marinaMoji
+Suite: unstable
+MD5Sum:
+ 07ce3ccf7bf70b3b120dda0eee5c6873              201 Release
+ d41d8cd98f00b204e9800998ecf8427e                0 main/Contents-amd64
+ 4a4dd3598707603b3f76a2378a4504aa               20 main/Contents-amd64.gz
+ d41d8cd98f00b204e9800998ecf8427e                0 main/Contents-arm64
+ 4a4dd3598707603b3f76a2378a4504aa               20 main/Contents-arm64.gz
+ 78fb13f0257d7ac768da62ccb1e9ba7f             6656 main/binary-amd64/Packages
+ 9970bd164026b453eb08c565ff079e74             1190 main/binary-amd64/Packages.gz
+ 7973b5260fd9180fb622d18746ebce0a             6656 main/binary-arm64/Packages
+ c2fb30154b40282750e74f8d6685f055             1192 main/binary-arm64/Packages.gz
+SHA1:
+ 2ea05813b57f49f14664d055116d4d6d6217a8cd              201 Release
+ da39a3ee5e6b4b0d3255bfef95601890afd80709                0 main/Contents-amd64
+ a0fddd5458378c1bf3c10dd2f5c060d1347741ed               20 main/Contents-amd64.gz
+ da39a3ee5e6b4b0d3255bfef95601890afd80709                0 main/Contents-arm64
+ a0fddd5458378c1bf3c10dd2f5c060d1347741ed               20 main/Contents-arm64.gz
+ 1407e388a8aec89bdab514fbe55198bc6c0070d7             6656 main/binary-amd64/Packages
+ 55eb49a6e6d594f4cf807010d207e1fc59d02d2e             1190 main/binary-amd64/Packages.gz
+ b9c3791806759b9b87d69b4d5631ec97deba48bd             6656 main/binary-arm64/Packages
+ c5ff31c21cc6792882136fbdcc1416f8c34f84bf             1192 main/binary-arm64/Packages.gz
+SHA256:
+ 93347a15f2b7ec461f9b92a9d12a6c70a9552ac539c610bed850c97a6cdb7002              201 Release
+ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855                0 main/Contents-amd64
+ f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec               20 main/Contents-amd64.gz
+ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855                0 main/Contents-arm64
+ f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec               20 main/Contents-arm64.gz
+ 39a4d69f718db8cb0c1200de3b7a25b9e1ddb8a0baa370f5757d03d06e014b6d             6656 main/binary-amd64/Packages
+ ddc29d5843b40a4422f46f754fe883fbb6de307e0e4de218f0f21164d2a75dec             1190 main/binary-amd64/Packages.gz
+ f77e0bc4363a04445091f1807b7de2c1886daea409fcf976c86eab5d66f79f35             6656 main/binary-arm64/Packages
+ dd836fcd5ffde2a5655f9d85017dde07f0790a278727deb00c8c7dfdb50d0130             1192 main/binary-arm64/Packages.gz
+SHA512:
+ 5e170b1ce5ea3aaeec4ac486a6cbfae7163a89311b184e195acf712820d700e12b88de38d8089e199886344200e9f49d06f5947e85d5f71ecc7785fe14888a0a              201 Release
+ cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e                0 main/Contents-amd64
+ 1b46b9b08d5b338be9d732a1724795b2eab63daffde377218727c90857b79fe6a47bceed495117fcde60f7339812ef75ef4c69f82dd79fb69b6cbf8006b521f2               20 main/Contents-amd64.gz
+ cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e                0 main/Contents-arm64
+ 1b46b9b08d5b338be9d732a1724795b2eab63daffde377218727c90857b79fe6a47bceed495117fcde60f7339812ef75ef4c69f82dd79fb69b6cbf8006b521f2               20 main/Contents-arm64.gz
+ 5fcc6ccbbd749a47b4b4d0470ccc5c17b31f6fbab736b4f46b021758f1354319e52c6bf4c49013fa4513e4fc6818e4cb0e569117198b6e7e2e57e27cb8081f97             6656 main/binary-amd64/Packages
+ 46290ab7b0b838f158665d6ff283e133401c9cedd03c48006eaa3f2bd9b0450475da099586624f30e161ca7b70a98d04e8758e17ca8385ddebe9e7fa94810f0f             1190 main/binary-amd64/Packages.gz
+ 5eda74e1e89dc54569935bbf1847e47cbb56428c57f886fa7e145c2c951c5702608aeb208d50151a44b79cf4c8d8286a9330446dc4c162d16620e587592cd5d8             6656 main/binary-arm64/Packages
+ 2558dbb3e7e20d39b7e1befb9032630d94b6ca3953c99d22edfc1859b83079c39c4f07f9a62245153d126b8cbd85b996d0841f0da15a0e7df40323c5f6274948             1192 main/binary-arm64/Packages.gz
+-----BEGIN PGP SIGNATURE-----
+
+iHUEARYKAB0WIQSh37CP14uKj5QerV/kpPuLRioJ9QUCaqNQhwAKCRDkpPuLRioJ
+9fOyAP9CAnOs0Ne2KgzCtphIU3Ie7ieEHACSJgeA22d8AdABkAD/Uf/0R4LyomtK
+Q4hp0EGqI24dAaVslo4bPnEODPfr2gw=
+=yKzr
+-----END PGP SIGNATURE-----
