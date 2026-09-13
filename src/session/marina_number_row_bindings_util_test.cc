@@ -67,6 +67,69 @@ TEST(MarinaNumberRowBindingsUtilTest, EffectiveBindingsUsesDefaults) {
   EXPECT_EQ(bindings.size(), 6u);
 }
 
+// A profile saved through the Settings dialog while the shipped default for
+// the dictionary action was still Ctrl+0 (2026-06-11 .. 2026-07-24), with
+// other rows customised so that all six bindings are stored.
+config::Config ConfigWithStaleCtrl0DictionaryBinding() {
+  config::Config config;
+  for (MarinaNumberRowBinding binding : GetDefaultMarinaNumberRowBindings()) {
+    if (binding.action() == MarinaNumberRowAction::MARINA_NR_ODORIJI_PALETTE) {
+      binding.set_slot(MarinaPhysicalSlot::MARINA_SLOT_6);
+    } else if (binding.action() ==
+               MarinaNumberRowAction::MARINA_NR_WORD_REGISTER) {
+      binding.set_modifier(MarinaShortcutModifier::MARINA_MOD_CTRL);
+    }
+    *config.add_marina_number_row_bindings() = binding;
+  }
+  return config;
+}
+
+TEST(MarinaNumberRowBindingsUtilTest, StaleCtrl0DictionaryBindingMigrates) {
+  const config::Config config = ConfigWithStaleCtrl0DictionaryBinding();
+
+  KeyEvent ctrl_shift_0;
+  ASSERT_TRUE(KeyParser::ParseKey("Ctrl Shift 0", &ctrl_shift_0));
+  const auto action = FindMarinaActionForKeyEvent(config, ctrl_shift_0);
+  ASSERT_TRUE(action.has_value());
+  EXPECT_EQ(*action, MarinaNumberRowAction::MARINA_NR_WORD_REGISTER);
+
+  // The old chord is not kept as an alias.
+  KeyEvent ctrl_0;
+  ASSERT_TRUE(KeyParser::ParseKey("Ctrl 0", &ctrl_0));
+  EXPECT_FALSE(FindMarinaActionForKeyEvent(config, ctrl_0).has_value());
+
+  // The customisation on another row survives.
+  KeyEvent ctrl_shift_6;
+  ASSERT_TRUE(KeyParser::ParseKey("Ctrl Shift 6", &ctrl_shift_6));
+  const auto palette = FindMarinaActionForKeyEvent(config, ctrl_shift_6);
+  ASSERT_TRUE(palette.has_value());
+  EXPECT_EQ(*palette, MarinaNumberRowAction::MARINA_NR_ODORIJI_PALETTE);
+}
+
+TEST(MarinaNumberRowBindingsUtilTest,
+     StaleCtrl0DictionaryBindingKeptWhenCtrlShift0IsTaken) {
+  // If the user has deliberately put another action on Ctrl+Shift+0, the
+  // dictionary binding stays on Ctrl+0 rather than colliding with it.
+  config::Config config = ConfigWithStaleCtrl0DictionaryBinding();
+  for (auto& binding : *config.mutable_marina_number_row_bindings()) {
+    if (binding.action() == MarinaNumberRowAction::MARINA_NR_ODORIJI_DEFAULT) {
+      binding.set_slot(MarinaPhysicalSlot::MARINA_SLOT_0);
+    }
+  }
+
+  KeyEvent ctrl_0;
+  ASSERT_TRUE(KeyParser::ParseKey("Ctrl 0", &ctrl_0));
+  const auto action = FindMarinaActionForKeyEvent(config, ctrl_0);
+  ASSERT_TRUE(action.has_value());
+  EXPECT_EQ(*action, MarinaNumberRowAction::MARINA_NR_WORD_REGISTER);
+
+  KeyEvent ctrl_shift_0;
+  ASSERT_TRUE(KeyParser::ParseKey("Ctrl Shift 0", &ctrl_shift_0));
+  const auto other = FindMarinaActionForKeyEvent(config, ctrl_shift_0);
+  ASSERT_TRUE(other.has_value());
+  EXPECT_EQ(*other, MarinaNumberRowAction::MARINA_NR_ODORIJI_DEFAULT);
+}
+
 TEST(MarinaNumberRowBindingsUtilTest, ValidateRejectsDuplicateSlot) {
   auto bindings = GetDefaultMarinaNumberRowBindings();
   bindings[1].set_slot(MarinaPhysicalSlot::MARINA_SLOT_1);

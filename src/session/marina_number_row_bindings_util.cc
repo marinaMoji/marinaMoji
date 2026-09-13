@@ -117,6 +117,30 @@ std::vector<MarinaNumberRowBinding> GetEffectiveMarinaNumberRowBindings(
   for (const auto& binding : config.marina_number_row_bindings()) {
     bindings.push_back(binding);
   }
+
+  // Between 2026-06-11 and 2026-07-24 the shipped default for the dictionary
+  // action was Ctrl+0; it is Ctrl+Shift+0 now, like the other five. A profile
+  // that went through the Settings dialog in that window has all six bindings
+  // stored, and a stored list wins over the defaults, so such a profile keeps
+  // the old chord indefinitely and Ctrl+Shift+0 silently does nothing on it.
+  // Treat the old default as what it is -- a default -- and move it to the
+  // current one, unless the user has put something else on Ctrl+Shift+0.
+  const bool ctrl_shift_0_taken = std::any_of(
+      bindings.begin(), bindings.end(), [](const MarinaNumberRowBinding& b) {
+        return BindingMatchesPhysicalSlot(
+            b, MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
+            MarinaPhysicalSlot::MARINA_SLOT_0);
+      });
+  if (!ctrl_shift_0_taken) {
+    for (MarinaNumberRowBinding& binding : bindings) {
+      if (binding.action() == MarinaNumberRowAction::MARINA_NR_WORD_REGISTER &&
+          BindingMatchesPhysicalSlot(binding,
+                                     MarinaShortcutModifier::MARINA_MOD_CTRL,
+                                     MarinaPhysicalSlot::MARINA_SLOT_0)) {
+        binding.set_modifier(MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT);
+      }
+    }
+  }
   return bindings;
 }
 

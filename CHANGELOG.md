@@ -212,6 +212,21 @@ configured `Ctrl Shift 0`. `Ctrl )` and `Ctrl Shift )` are now recognised too,
 so the row is dropped at keymap load time and the dispatcher owns the chord
 alone. ATOK's `Ctrl F7` is untouched — not a number-row chord.
 
+**Stale Ctrl+0 profiles (2026-09-13).** Even with the keymap row gone, the
+chord did nothing on profiles that had gone through the Settings dialog
+between 2026-06-11 and 2026-07-24, when the shipped default for the
+dictionary action was still Ctrl+0. The dialog stores all six bindings once
+any row is customised, and a stored list wins over the defaults, so those
+profiles kept the June chord indefinitely — invisibly, since the row reads
+"Ctrl / 0" in Settings and nothing says that was ever a default.
+`GetEffectiveMarinaNumberRowBindings()` now treats a stored dictionary
+binding of exactly (Ctrl, slot 0) as the old default and reads it as
+Ctrl+Shift+0, unless the user has put another action on Ctrl+Shift+0. Since
+every platform's dispatcher, the Settings dialog and the Shortcuts window all
+go through that function, the fix applies everywhere at once, and the next
+save from Settings persists the migrated value. The old chord is not kept as
+an alias.
+
 Verified per platform while tracing this: the physical-slot mapping is right
 in all three dispatchers (`win32/tip/win32_physical_slot.cc` scan code 0x0B,
 `unix/ibus/ibus_physical_slot.cc` evdev 11, and `mac/KeyCodeMap.mm`, which
