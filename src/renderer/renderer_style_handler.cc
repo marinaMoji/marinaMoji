@@ -81,15 +81,22 @@ void SetRgbaColor(RendererStyle::RGBAColor* color, double r, double g, double b,
 }  // namespace
 
 void RendererStyleHandler::GetRendererStyle(RendererStyle* style) {
-  const absl::string_view style_text =
 #ifdef __APPLE__
-      IsDarkRendererStylePreferred() ? kStyleDark : kStyleTextProto;
+  const bool use_dark_style = IsDarkRendererStylePreferred();
+  const absl::string_view style_text =
+      use_dark_style ? kStyleDark : kStyleTextProto;
 #else
-      kStyleTextProto;
+  constexpr bool use_dark_style = false;
+  const absl::string_view style_text = kStyleTextProto;
 #endif
   CHECK(mozc::protobuf::TextFormat::ParseFromString(style_text, style));
 
-  if (!style->candidate_style().has_background_color()) {
+  // The dark theme relies on the window's own dark background showing
+  // through unselected candidate rows; only the light theme wants an
+  // explicit opaque white fill here. Forcing white unconditionally painted
+  // over the dark theme's near-white foreground text, making candidates
+  // nearly unreadable (see GitHub issue #37).
+  if (!use_dark_style && !style->candidate_style().has_background_color()) {
     SetRgbaColor(style->mutable_candidate_style()->mutable_background_color(),
                  255, 255, 255);
   }

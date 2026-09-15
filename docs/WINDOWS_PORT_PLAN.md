@@ -285,7 +285,8 @@ TSVs. Only two genuine Windows-specific gaps existed, both closed 2026-07-13.
       `Ctrl Shift F` → `ToggleTraditionalKanji` (lines 57,58,154,286,287),
       `Ctrl Shift )` → `LaunchWordRegisterDialog` (lines 65,163,215,301,303;
       since 2026-09-10 dropped at load time in favour of the number-row
-      dispatcher, see Ctrl+Shift+0 below) —
+      dispatcher; Windows dictionary default is Ctrl+Shift+9 as of
+      2026-09-15, see Quick dictionary injection below) —
       aligned with `kotoeri.tsv` back in 2026-06, no Windows-specific work
       was ever needed here.
 - [x] **Right Shift / Left Shift alone, Ctrl+Left Shift** (2026-07-13,
@@ -335,13 +336,18 @@ TSVs. Only two genuine Windows-specific gaps existed, both closed 2026-07-13.
       no Windows-specific code once Phase 1g confirms TIP key handling works.
 - [x] Kaeriten `;r` `;1` … — confirmed pure composer-table data
       ([data/preedit/kaeriten.tsv](../src/data/preedit/kaeriten.tsv)), no code.
-- [x] Quick dictionary injection Ctrl+Shift+0 — **this note was wrong, now
-      corrected (2026-09-10)**: the chord is owned by the marina number-row
-      dispatcher (Ctrl+Shift, physical slot 0), exactly like the other five
-      number-row shortcuts, on all three platforms. The keymap-TSV
-      `Ctrl Shift )` row was a second owner that only ever matched where
-      Shift+0 produces ")", and is now dropped at keymap load time by
-      `IsMarinaNumberRowKeymapBinding`.
+- [x] Quick dictionary injection — **Windows default is Ctrl+Shift+9
+      (2026-09-15)**: Windows often swallows `Ctrl+Shift+0` for
+      input-language switching even when that hotkey looks unassigned, so
+      the marina number-row dispatcher defaults dictionary fast-add to
+      physical slot 9 on Windows only. Linux and macOS keep Ctrl+Shift+0
+      (physical slot 0). Stored Windows profiles that still have the old
+      Ctrl+0 / Ctrl+Shift+0 dictionary binding are migrated to Ctrl+Shift+9
+      unless slot 9 is already taken. Settings does not offer Ctrl+Shift+0
+      as an assignable chord on Windows. The keymap-TSV `Ctrl Shift )` row
+      remains dropped at load time by `IsMarinaNumberRowKeymapBinding`.
+      Earlier note (2026-09-10): the chord is owned by the number-row
+      dispatcher on all three platforms, not by the keymap.
 - [ ] Katakana conversion mode + `shift_R` quick switch — **not yet verified**;
       needs Phase 1g hardware access to test interaction with the Right-Shift
       fix above (right-shift-alone toggles hiragana↔Manyōshū, not katakana —

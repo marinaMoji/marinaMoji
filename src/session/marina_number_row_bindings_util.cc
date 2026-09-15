@@ -85,6 +85,15 @@ bool IsMarinaNumberRowCommandName(const std::string& command_name) {
 }  // namespace
 
 std::vector<MarinaNumberRowBinding> GetDefaultMarinaNumberRowBindings() {
+  // Windows reserves Ctrl+Shift+0 for input-language switching and often
+  // swallows the chord even when that hotkey looks unassigned, so dictionary
+  // fast-add defaults to physical slot 9 there. Linux and macOS keep slot 0.
+  const MarinaPhysicalSlot dictionary_slot =
+#ifdef _WIN32
+      MarinaPhysicalSlot::MARINA_SLOT_9;
+#else   // !_WIN32
+      MarinaPhysicalSlot::MARINA_SLOT_0;
+#endif  // _WIN32
   return {
       MakeBinding(MarinaNumberRowAction::MARINA_NR_ODORIJI_DEFAULT,
                   MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
@@ -103,7 +112,7 @@ std::vector<MarinaNumberRowBinding> GetDefaultMarinaNumberRowBindings() {
                   MarinaPhysicalSlot::MARINA_SLOT_5),
       MakeBinding(MarinaNumberRowAction::MARINA_NR_WORD_REGISTER,
                   MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
-                  MarinaPhysicalSlot::MARINA_SLOT_0),
+                  dictionary_slot),
   };
 }
 
@@ -118,6 +127,34 @@ std::vector<MarinaNumberRowBinding> GetEffectiveMarinaNumberRowBindings(
     bindings.push_back(binding);
   }
 
+#ifdef _WIN32
+  // Dictionary used to default to Ctrl+0, then Ctrl+Shift+0. Both are dead or
+  // awkward on Windows (OS swallows Ctrl+Shift+0). Move either stored chord to
+  // Ctrl+Shift+9 unless the user already put something else on that slot.
+  const bool ctrl_shift_9_taken = std::any_of(
+      bindings.begin(), bindings.end(), [](const MarinaNumberRowBinding& b) {
+        return BindingMatchesPhysicalSlot(
+            b, MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
+            MarinaPhysicalSlot::MARINA_SLOT_9);
+      });
+  if (!ctrl_shift_9_taken) {
+    for (MarinaNumberRowBinding& binding : bindings) {
+      if (binding.action() != MarinaNumberRowAction::MARINA_NR_WORD_REGISTER) {
+        continue;
+      }
+      const bool stale_ctrl_0 = BindingMatchesPhysicalSlot(
+          binding, MarinaShortcutModifier::MARINA_MOD_CTRL,
+          MarinaPhysicalSlot::MARINA_SLOT_0);
+      const bool stale_ctrl_shift_0 = BindingMatchesPhysicalSlot(
+          binding, MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
+          MarinaPhysicalSlot::MARINA_SLOT_0);
+      if (stale_ctrl_0 || stale_ctrl_shift_0) {
+        binding.set_modifier(MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT);
+        binding.set_slot(MarinaPhysicalSlot::MARINA_SLOT_9);
+      }
+    }
+  }
+#else   // !_WIN32
   // Between 2026-06-11 and 2026-07-24 the shipped default for the dictionary
   // action was Ctrl+0; it is Ctrl+Shift+0 now, like the other five. A profile
   // that went through the Settings dialog in that window has all six bindings
@@ -141,7 +178,22 @@ std::vector<MarinaNumberRowBinding> GetEffectiveMarinaNumberRowBindings(
       }
     }
   }
+#endif  // _WIN32
   return bindings;
+}
+
+bool IsMarinaNumberRowChordBlocked(MarinaShortcutModifier modifier,
+                                   MarinaPhysicalSlot slot) {
+#ifdef _WIN32
+  // Windows often swallows Ctrl+Shift+0 for input-language switching; do not
+  // let Settings assign it to any marina action.
+  return modifier == MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT &&
+         slot == MarinaPhysicalSlot::MARINA_SLOT_0;
+#else   // !_WIN32
+  (void)modifier;
+  (void)slot;
+  return false;
+#endif  // _WIN32
 }
 
 bool ValidateMarinaNumberRowBindings(
@@ -167,6 +219,14 @@ bool ValidateMarinaNumberRowBindings(
     const MarinaShortcutModifier modifier =
         binding.has_modifier() ? binding.modifier()
                                : MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT;
+    if (IsMarinaNumberRowChordBlocked(modifier, binding.slot())) {
+      if (error_message != nullptr) {
+        *error_message =
+            "Ctrl+Shift+0 is not available on Windows (the OS often swallows "
+            "that chord). Choose another key.";
+      }
+      return false;
+    }
     const auto slot_key = std::make_pair(modifier, binding.slot());
     if (!slots.insert(slot_key).second) {
       if (error_message != nullptr) {
@@ -273,12 +333,14 @@ bool IsMarinaNumberRowKeymapBinding(const std::string& command_name,
     // The shipped keymaps bind this to "Ctrl Shift )" -- the character the 0
     // key produces with Shift on a US layout -- which is upstream Mozc's way
     // of spelling Ctrl+Shift+0. That is the very chord the number-row
-    // dispatcher owns as (Ctrl+Shift, slot 0), so leaving the keymap row in
-    // place gave the same action two owners: the dispatcher on every layout,
-    // and the keymap wherever Shift+0 happens to produce ")". Drop it and let
-    // the dispatcher own the chord alone, as it already does for slots 1-5.
+    // dispatcher owns as (Ctrl+Shift, slot 0) on Linux/macOS, so leaving the
+    // keymap row in place gave the same action two owners. Drop the 0/")"
+    // spellings everywhere. On Windows the dispatcher owns slot 9 instead;
+    // also drop the 9/"(" spellings so a future keymap row cannot compete.
     return key_event_name == "Ctrl 0" || key_event_name == "Ctrl Shift 0" ||
-           key_event_name == "Ctrl )" || key_event_name == "Ctrl Shift )";
+           key_event_name == "Ctrl )" || key_event_name == "Ctrl Shift )" ||
+           key_event_name == "Ctrl 9" || key_event_name == "Ctrl Shift 9" ||
+           key_event_name == "Ctrl (" || key_event_name == "Ctrl Shift (";
   }
   if (command_name == "IMEOn") {
     return IsCtrlShiftNumberRowKeyName(key_event_name) &&

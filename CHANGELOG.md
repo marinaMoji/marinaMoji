@@ -10,6 +10,22 @@ changed and, where it isn't obvious, why.
 
 ## v0.0.4
 
+### Windows: dictionary fast-add defaults to Ctrl+Shift+9 (2026-09-15)
+
+Windows often swallows `Ctrl+Shift+0` for input-language switching — even
+when Settings shows Left Alt+Shift or “(None)” — so the key never reaches
+marinaMoji (or any other app). `Ctrl+Shift+1`…`9` are fine; only `0` is
+black-holed. On Windows only, the bundled number-row default for Dictionary
+entry is now physical slot 9 (`Ctrl+Shift+9`). Linux and macOS keep
+`Ctrl+Shift+0`.
+
+`GetEffectiveMarinaNumberRowBindings()` migrates stored Windows profiles
+that still have Dictionary on Ctrl+0 or Ctrl+Shift+0 over to Ctrl+Shift+9,
+unless the user already put another action on that slot. Settings hides
+Ctrl+Shift+0 from the Key dropdown whenever Modifier is Ctrl+Shift, and
+validation rejects that chord on Apply. A short note in Shortcuts explains
+the Windows default; README and the Windows port plan document the split.
+
 ### Diagnostics: removed the temporary MarinaDebugLog apparatus (2026-09-11)
 
 The Windows toolbar / taskbar mode-icon investigation

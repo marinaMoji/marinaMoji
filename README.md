@@ -25,7 +25,7 @@ marinaMoji provides the following features for scholarly Japanese text input:
 5. **Kaeriten input:** directly type ㆑㆒㆓, etc., via `;r`, `;1`, `;2`, etc., to produce superscript unicode kaeriten. These can be retained or systematically replaced with the desired code in XML, LaTeX, etc. Our [plugin](https://github.com/marinaMoji/plugin) for LibreOffice and OnlyOffice handles page-setting for your word processor (testing).  
 6. **Floating toolbar** - Visual mode indicator showing current input mode, shin/kyu,  with quick access to historical marks
 7. **Macron vowels** - Input of macron vowels (ā, ē, ī, ō, ū) for scholarly transliteration in ASCII mode
-8. **Quick dictionary injection:** type `ctrl+shift+0` in compose mode (or click the toolbar's Add Word button) to open the user-dictionary entry pre-filled with the phrase you just typed and its pronunciation.
+8. **Quick dictionary injection:** type `ctrl+shift+0` in compose mode (or `ctrl+shift+9` on Windows; or click the toolbar's Add Word button) to open the user-dictionary entry pre-filled with the phrase you just typed and its pronunciation.
 9. **Encrypted cross-device sync:** sync your user dictionary and learning history via one encrypted file in a folder you choose (Nextcloud, Syncthing, iCloud Drive, etc.). Opt-in; see [How sync works](docs/HOW_SYNC_WORKS.md).
 
 ## Support

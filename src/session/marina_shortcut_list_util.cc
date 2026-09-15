@@ -157,11 +157,19 @@ void FillDefaultCompositionShortcuts(std::vector<ShortcutEntry>* composition) {
   if (!composition->empty()) {
     return;
   }
+  // Dictionary fast-add: Ctrl+Shift+9 on Windows (OS swallows Ctrl+Shift+0),
+  // Ctrl+Shift+0 elsewhere. ApplyMarinaNumberRowShortcutEntries replaces this
+  // with the configured binding when present.
+#ifdef _WIN32
+  constexpr const char* kDictionaryChord = "Ctrl Shift 9";
+#else   // !_WIN32
+  constexpr const char* kDictionaryChord = "Ctrl Shift 0";
+#endif  // _WIN32
   const std::pair<const char*, const char*> kDefault[] = {
       {"Enter", "Commit"},
       {"Ctrl Enter", "Commit"},
       {"Ctrl m", "Commit"},
-      {"Ctrl Shift 0", "LaunchWordRegisterDialog"},
+      {kDictionaryChord, "LaunchWordRegisterDialog"},
       {"Ctrl k", "SegmentWidthShrink"},
       {"Shift Left", "SegmentWidthShrink"},
       {"Ctrl l", "SegmentWidthExpand"},

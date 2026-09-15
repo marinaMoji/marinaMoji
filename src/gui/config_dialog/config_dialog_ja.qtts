@@ -618,6 +618,11 @@
         <translation>数字キー列の割り当てはここに保存され、Linux で有効になります。macOS は今後の更新まで既定の割り当てを使います。</translation>
     </message>
     <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="205" />
+        <source>Dictionary entry defaults to Ctrl+Shift+9 on Windows. Ctrl+Shift+0 is not available here: Windows often swallows it for input-language switching, even when that hotkey looks unassigned.</source>
+        <translation>Windows では辞書登録の既定ショートカットは Ctrl+Shift+9 です。Ctrl+Shift+0 はここでは選べません。Windows は入力言語の切替のためにそのコードを握りつぶすことが多く、ホットキーが未割り当てに見えても届かないことがあります。</translation>
+    </message>
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="203" />
         <source>Action</source>
         <translation>操作</translation>

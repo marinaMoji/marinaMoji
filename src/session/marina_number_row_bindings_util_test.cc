@@ -48,6 +48,16 @@ using ::mozc::config::MarinaNumberRowBinding;
 using ::mozc::config::MarinaPhysicalSlot;
 using ::mozc::config::MarinaShortcutModifier;
 
+#ifdef _WIN32
+constexpr MarinaPhysicalSlot kDefaultDictionarySlot =
+    MarinaPhysicalSlot::MARINA_SLOT_9;
+constexpr const char* kDefaultDictionaryChord = "Ctrl Shift 9";
+#else   // !_WIN32
+constexpr MarinaPhysicalSlot kDefaultDictionarySlot =
+    MarinaPhysicalSlot::MARINA_SLOT_0;
+constexpr const char* kDefaultDictionaryChord = "Ctrl Shift 0";
+#endif  // _WIN32
+
 TEST(MarinaNumberRowBindingsUtilTest, DefaultBindings) {
   const auto defaults = GetDefaultMarinaNumberRowBindings();
   ASSERT_EQ(defaults.size(), 6u);
@@ -58,7 +68,7 @@ TEST(MarinaNumberRowBindingsUtilTest, DefaultBindings) {
             MarinaNumberRowAction::MARINA_NR_WORD_REGISTER);
   EXPECT_EQ(defaults[5].modifier(),
             MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT);
-  EXPECT_EQ(defaults[5].slot(), MarinaPhysicalSlot::MARINA_SLOT_0);
+  EXPECT_EQ(defaults[5].slot(), kDefaultDictionarySlot);
 }
 
 TEST(MarinaNumberRowBindingsUtilTest, EffectiveBindingsUsesDefaults) {
@@ -78,6 +88,7 @@ config::Config ConfigWithStaleCtrl0DictionaryBinding() {
     } else if (binding.action() ==
                MarinaNumberRowAction::MARINA_NR_WORD_REGISTER) {
       binding.set_modifier(MarinaShortcutModifier::MARINA_MOD_CTRL);
+      binding.set_slot(MarinaPhysicalSlot::MARINA_SLOT_0);
     }
     *config.add_marina_number_row_bindings() = binding;
   }
@@ -87,9 +98,9 @@ config::Config ConfigWithStaleCtrl0DictionaryBinding() {
 TEST(MarinaNumberRowBindingsUtilTest, StaleCtrl0DictionaryBindingMigrates) {
   const config::Config config = ConfigWithStaleCtrl0DictionaryBinding();
 
-  KeyEvent ctrl_shift_0;
-  ASSERT_TRUE(KeyParser::ParseKey("Ctrl Shift 0", &ctrl_shift_0));
-  const auto action = FindMarinaActionForKeyEvent(config, ctrl_shift_0);
+  KeyEvent migrated;
+  ASSERT_TRUE(KeyParser::ParseKey(kDefaultDictionaryChord, &migrated));
+  const auto action = FindMarinaActionForKeyEvent(config, migrated);
   ASSERT_TRUE(action.has_value());
   EXPECT_EQ(*action, MarinaNumberRowAction::MARINA_NR_WORD_REGISTER);
 
@@ -107,13 +118,14 @@ TEST(MarinaNumberRowBindingsUtilTest, StaleCtrl0DictionaryBindingMigrates) {
 }
 
 TEST(MarinaNumberRowBindingsUtilTest,
-     StaleCtrl0DictionaryBindingKeptWhenCtrlShift0IsTaken) {
-  // If the user has deliberately put another action on Ctrl+Shift+0, the
-  // dictionary binding stays on Ctrl+0 rather than colliding with it.
+     StaleCtrl0DictionaryBindingKeptWhenTargetIsTaken) {
+  // If the user has deliberately put another action on the current default
+  // dictionary chord, the dictionary binding stays on Ctrl+0 rather than
+  // colliding with it.
   config::Config config = ConfigWithStaleCtrl0DictionaryBinding();
   for (auto& binding : *config.mutable_marina_number_row_bindings()) {
     if (binding.action() == MarinaNumberRowAction::MARINA_NR_ODORIJI_DEFAULT) {
-      binding.set_slot(MarinaPhysicalSlot::MARINA_SLOT_0);
+      binding.set_slot(kDefaultDictionarySlot);
     }
   }
 
@@ -123,12 +135,37 @@ TEST(MarinaNumberRowBindingsUtilTest,
   ASSERT_TRUE(action.has_value());
   EXPECT_EQ(*action, MarinaNumberRowAction::MARINA_NR_WORD_REGISTER);
 
-  KeyEvent ctrl_shift_0;
-  ASSERT_TRUE(KeyParser::ParseKey("Ctrl Shift 0", &ctrl_shift_0));
-  const auto other = FindMarinaActionForKeyEvent(config, ctrl_shift_0);
+  KeyEvent taken;
+  ASSERT_TRUE(KeyParser::ParseKey(kDefaultDictionaryChord, &taken));
+  const auto other = FindMarinaActionForKeyEvent(config, taken);
   ASSERT_TRUE(other.has_value());
   EXPECT_EQ(*other, MarinaNumberRowAction::MARINA_NR_ODORIJI_DEFAULT);
 }
+
+#ifdef _WIN32
+TEST(MarinaNumberRowBindingsUtilTest,
+     WindowsStaleCtrlShift0DictionaryBindingMigratesTo9) {
+  // Profiles that stored the old Windows default Ctrl+Shift+0 should move to
+  // Ctrl+Shift+9, since the OS swallows the former chord.
+  config::Config config;
+  for (MarinaNumberRowBinding binding : GetDefaultMarinaNumberRowBindings()) {
+    if (binding.action() == MarinaNumberRowAction::MARINA_NR_WORD_REGISTER) {
+      binding.set_slot(MarinaPhysicalSlot::MARINA_SLOT_0);
+    }
+    *config.add_marina_number_row_bindings() = binding;
+  }
+
+  KeyEvent ctrl_shift_9;
+  ASSERT_TRUE(KeyParser::ParseKey("Ctrl Shift 9", &ctrl_shift_9));
+  const auto action = FindMarinaActionForKeyEvent(config, ctrl_shift_9);
+  ASSERT_TRUE(action.has_value());
+  EXPECT_EQ(*action, MarinaNumberRowAction::MARINA_NR_WORD_REGISTER);
+
+  KeyEvent ctrl_shift_0;
+  ASSERT_TRUE(KeyParser::ParseKey("Ctrl Shift 0", &ctrl_shift_0));
+  EXPECT_FALSE(FindMarinaActionForKeyEvent(config, ctrl_shift_0).has_value());
+}
+#endif  // _WIN32
 
 TEST(MarinaNumberRowBindingsUtilTest, ValidateRejectsDuplicateSlot) {
   auto bindings = GetDefaultMarinaNumberRowBindings();
@@ -136,6 +173,37 @@ TEST(MarinaNumberRowBindingsUtilTest, ValidateRejectsDuplicateSlot) {
   std::string error;
   EXPECT_FALSE(ValidateMarinaNumberRowBindings(bindings, &error));
   EXPECT_FALSE(error.empty());
+}
+
+TEST(MarinaNumberRowBindingsUtilTest, CtrlShift0BlockedOnlyOnWindows) {
+#ifdef _WIN32
+  EXPECT_TRUE(IsMarinaNumberRowChordBlocked(
+      MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
+      MarinaPhysicalSlot::MARINA_SLOT_0));
+  EXPECT_FALSE(IsMarinaNumberRowChordBlocked(
+      MarinaShortcutModifier::MARINA_MOD_CTRL,
+      MarinaPhysicalSlot::MARINA_SLOT_0));
+  EXPECT_FALSE(IsMarinaNumberRowChordBlocked(
+      MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
+      MarinaPhysicalSlot::MARINA_SLOT_9));
+
+  auto bindings = GetDefaultMarinaNumberRowBindings();
+  for (auto& binding : bindings) {
+    if (binding.action() == MarinaNumberRowAction::MARINA_NR_WORD_REGISTER) {
+      binding.set_modifier(MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT);
+      binding.set_slot(MarinaPhysicalSlot::MARINA_SLOT_0);
+    }
+  }
+  std::string error;
+  EXPECT_FALSE(ValidateMarinaNumberRowBindings(bindings, &error));
+  EXPECT_NE(error.find("Ctrl+Shift+0"), std::string::npos);
+#else   // !_WIN32
+  EXPECT_FALSE(IsMarinaNumberRowChordBlocked(
+      MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
+      MarinaPhysicalSlot::MARINA_SLOT_0));
+  EXPECT_TRUE(ValidateMarinaNumberRowBindings(
+      GetDefaultMarinaNumberRowBindings(), nullptr));
+#endif  // _WIN32
 }
 
 TEST(MarinaNumberRowBindingsUtilTest, FormatLabel) {
@@ -165,6 +233,11 @@ TEST(MarinaNumberRowBindingsUtilTest, KeymapBindingDetection) {
                                              "Ctrl Shift )"));
   EXPECT_TRUE(IsMarinaNumberRowKeymapBinding("LaunchWordRegisterDialog",
                                              "Ctrl )"));
+  // Windows dictionary default is slot 9; drop matching keymap spellings too.
+  EXPECT_TRUE(IsMarinaNumberRowKeymapBinding("LaunchWordRegisterDialog",
+                                             "Ctrl Shift 9"));
+  EXPECT_TRUE(IsMarinaNumberRowKeymapBinding("LaunchWordRegisterDialog",
+                                             "Ctrl Shift ("));
   // Not a number-row chord: ATOK's own binding stays in the keymap.
   EXPECT_FALSE(IsMarinaNumberRowKeymapBinding("LaunchWordRegisterDialog",
                                               "Ctrl F7"));
@@ -183,7 +256,7 @@ TEST(MarinaNumberRowBindingsUtilTest, FindActionForKeyEvent) {
   EXPECT_EQ(*action, MarinaNumberRowAction::MARINA_NR_TRADITIONAL_KANJI);
 
   KeyEvent dict_key;
-  ASSERT_TRUE(KeyParser::ParseKey("Ctrl Shift 0", &dict_key));
+  ASSERT_TRUE(KeyParser::ParseKey(kDefaultDictionaryChord, &dict_key));
   const auto dict_action = FindMarinaActionForKeyEvent(config, dict_key);
   ASSERT_TRUE(dict_action.has_value());
   EXPECT_EQ(*dict_action, MarinaNumberRowAction::MARINA_NR_WORD_REGISTER);
@@ -208,7 +281,7 @@ TEST(MarinaNumberRowBindingsUtilTest, ShortcutEntriesListDictionaryEntryOnce) {
   for (const auto& entry : composition) {
     if (entry.second == "LaunchWordRegisterDialog") {
       ++word_register_rows;
-      EXPECT_EQ(entry.first, "Ctrl Shift 0");
+      EXPECT_EQ(entry.first, kDefaultDictionaryChord);
     }
   }
   EXPECT_EQ(word_register_rows, 1);

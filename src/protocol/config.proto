@@ -365,7 +365,8 @@ message Config {
   optional bytes custom_kaeriten_table = 71;
 
   // Custom marina number-row shortcut bindings. When empty, bundled defaults
-  // apply (Ctrl+Shift+1..5 for marina actions, Ctrl+Shift+0 for dictionary).
+  // apply (Ctrl+Shift+1..5 for marina actions; dictionary is Ctrl+Shift+0 on
+  // Linux/macOS and Ctrl+Shift+9 on Windows).
   repeated MarinaNumberRowBinding marina_number_row_bindings = 72;
 
   // Fixed romaji keyboard layout used to resolve physical keys to characters,

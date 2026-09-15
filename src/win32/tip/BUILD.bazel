@@ -382,7 +382,7 @@ mozc_cc_library(
 )
 
 # Physical (scan-code) number-row slot mapping, mirroring
-# unix/ibus/ibus_physical_slot.cc so Ctrl(+Shift)+1-5/0/` shortcuts work
+# unix/ibus/ibus_physical_slot.cc so Ctrl(+Shift)+1-5/0/9/` shortcuts work
 # regardless of keyboard layout (Dvorak, AZERTY, etc.).
 mozc_cc_library(
     name = "win32_physical_slot",

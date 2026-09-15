@@ -53,11 +53,16 @@ bool IsDarkAppearanceName(NSAppearance *appearance) {
 
 bool IsDarkRendererStylePreferred() {
   if (@available(macOS 10.14, *)) {
-    if (NSApp != nil && IsDarkAppearanceName(NSApp.effectiveAppearance)) {
-      return true;
+    // NSApp's effective appearance is the live, authoritative signal once
+    // available; trust it exclusively rather than OR-ing it with the
+    // fallbacks below, which can otherwise get stuck reporting Dark after a
+    // switch back to Light.
+    if (NSApp != nil) {
+      return IsDarkAppearanceName(NSApp.effectiveAppearance);
     }
-    if (IsDarkAppearanceName([NSAppearance currentDrawingAppearance])) {
-      return true;
+    NSAppearance *drawingAppearance = [NSAppearance currentDrawingAppearance];
+    if (drawingAppearance != nil) {
+      return IsDarkAppearanceName(drawingAppearance);
     }
   }
   NSString *style =

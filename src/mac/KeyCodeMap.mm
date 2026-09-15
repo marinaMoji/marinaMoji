@@ -411,7 +411,8 @@ void PostShiftKeyUp(CGKeyCode keyCode) {
   }
 
   // marinaMoji: Ctrl-only physical number-row keys (custom bindings may use
-  // Ctrl without Shift; dictionary defaults to Ctrl+Shift+0).
+  // Ctrl without Shift; dictionary defaults to Ctrl+Shift+0 on macOS/Linux,
+  // Ctrl+Shift+9 on Windows).
   const bool ctrl_only =
       (nsModifiers & NSEventModifierFlagControl) &&
       !(nsModifiers & NSEventModifierFlagShift) &&

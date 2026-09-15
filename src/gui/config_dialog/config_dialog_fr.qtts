@@ -617,6 +617,11 @@
         <translation>Les associations de la rangée des chiffres sont enregistrées ici et s’appliquent sous Linux. macOS utilise encore les associations par défaut jusqu’à une prochaine mise à jour.</translation>
     </message>
     <message>
+        <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="205" />
+        <source>Dictionary entry defaults to Ctrl+Shift+9 on Windows. Ctrl+Shift+0 is not available here: Windows often swallows it for input-language switching, even when that hotkey looks unassigned.</source>
+        <translation>Sous Windows, l’entrée dictionnaire utilise Ctrl+Shift+9 par défaut. Ctrl+Shift+0 n’est pas proposé ici : Windows avale souvent ce raccourci pour le changement de langue de saisie, même lorsqu’il paraît non assigné.</translation>
+    </message>
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog_shortcuts_tab.cc" line="203" />
         <source>Action</source>
         <translation>Action</translation>

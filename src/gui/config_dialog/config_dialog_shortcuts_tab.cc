@@ -111,6 +111,42 @@ QString ActionLabel(MarinaNumberRowAction action) {
   }
 }
 
+constexpr MarinaPhysicalSlot kAssignableSlots[] = {
+    MarinaPhysicalSlot::MARINA_SLOT_1, MarinaPhysicalSlot::MARINA_SLOT_2,
+    MarinaPhysicalSlot::MARINA_SLOT_3, MarinaPhysicalSlot::MARINA_SLOT_4,
+    MarinaPhysicalSlot::MARINA_SLOT_5, MarinaPhysicalSlot::MARINA_SLOT_6,
+    MarinaPhysicalSlot::MARINA_SLOT_7, MarinaPhysicalSlot::MARINA_SLOT_8,
+    MarinaPhysicalSlot::MARINA_SLOT_9, MarinaPhysicalSlot::MARINA_SLOT_0,
+    MarinaPhysicalSlot::MARINA_SLOT_GRAVE,
+};
+
+// Rebuild the Key dropdown for the current Modifier, omitting OS-blocked
+// chords (Ctrl+Shift+0 on Windows). Keeps the previous selection when still
+// available; otherwise falls back to the first listed key.
+void PopulateSlotCombo(QComboBox* slot_combo,
+                       MarinaShortcutModifier modifier,
+                       MarinaPhysicalSlot preferred_slot) {
+  if (slot_combo == nullptr) {
+    return;
+  }
+  const bool signals_blocked = slot_combo->blockSignals(true);
+  slot_combo->clear();
+  for (const MarinaPhysicalSlot slot : kAssignableSlots) {
+    if (session::IsMarinaNumberRowChordBlocked(modifier, slot)) {
+      continue;
+    }
+    slot_combo->addItem(SlotComboLabel(slot), slot);
+  }
+  int index = slot_combo->findData(preferred_slot);
+  if (index < 0) {
+    index = 0;
+  }
+  if (slot_combo->count() > 0) {
+    slot_combo->setCurrentIndex(index);
+  }
+  slot_combo->blockSignals(signals_blocked);
+}
+
 }  // namespace
 
 ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
@@ -199,6 +235,20 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
   mac_number_row_note_ = nullptr;
 #endif
 
+#ifdef _WIN32
+  win_number_row_note_ = new QLabel(
+      QObject::tr(
+          "Dictionary entry defaults to Ctrl+Shift+9 on Windows. Ctrl+Shift+0 "
+          "is not available here: Windows often swallows it for "
+          "input-language switching, even when that hotkey looks unassigned."),
+      tab_);
+  win_number_row_note_->setWordWrap(true);
+  win_number_row_note_->setContentsMargins(0, 2, 0, 6);
+  layout->addWidget(win_number_row_note_);
+#else   // !_WIN32
+  win_number_row_note_ = nullptr;
+#endif  // _WIN32
+
   number_row_table_ = new QTableWidget(6, 3, tab_);
   number_row_table_->setHorizontalHeaderLabels(
       {QObject::tr("Action"), QObject::tr("Modifier"), QObject::tr("Key")});
@@ -217,18 +267,24 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
     number_row_table_->setCellWidget(row, kColumnModifier, modifier_combo);
 
     auto* slot_combo = new QComboBox(number_row_table_);
-    static const MarinaPhysicalSlot kSlots[] = {
-        MarinaPhysicalSlot::MARINA_SLOT_1, MarinaPhysicalSlot::MARINA_SLOT_2,
-        MarinaPhysicalSlot::MARINA_SLOT_3, MarinaPhysicalSlot::MARINA_SLOT_4,
-        MarinaPhysicalSlot::MARINA_SLOT_5, MarinaPhysicalSlot::MARINA_SLOT_6,
-        MarinaPhysicalSlot::MARINA_SLOT_7, MarinaPhysicalSlot::MARINA_SLOT_8,
-        MarinaPhysicalSlot::MARINA_SLOT_9, MarinaPhysicalSlot::MARINA_SLOT_0,
-        MarinaPhysicalSlot::MARINA_SLOT_GRAVE,
-    };
-    for (const MarinaPhysicalSlot slot : kSlots) {
-      slot_combo->addItem(SlotComboLabel(slot), slot);
-    }
+    PopulateSlotCombo(slot_combo,
+                      MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
+                      MarinaPhysicalSlot::MARINA_SLOT_1);
     number_row_table_->setCellWidget(row, kColumnSlot, slot_combo);
+
+    QObject::connect(
+        modifier_combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+        slot_combo, [modifier_combo, slot_combo](int) {
+          const MarinaShortcutModifier modifier =
+              static_cast<MarinaShortcutModifier>(
+                  modifier_combo->currentData().toInt());
+          const MarinaPhysicalSlot preferred =
+              slot_combo->count() > 0
+                  ? static_cast<MarinaPhysicalSlot>(
+                        slot_combo->currentData().toInt())
+                  : MarinaPhysicalSlot::MARINA_SLOT_1;
+          PopulateSlotCombo(slot_combo, modifier, preferred);
+        });
   }
   number_row_table_->resizeColumnsToContents();
   const int row_h = QFontMetrics(number_row_table_->font()).height() + 14;
@@ -294,12 +350,9 @@ void ConfigDialogShortcutsTab::LoadFromConfig(const config::Config& config) {
       modifier_combo->setCurrentIndex(mod_index);
     }
 
-    if (binding.has_slot()) {
-      const int slot_index = slot_combo->findData(binding.slot());
-      if (slot_index >= 0) {
-        slot_combo->setCurrentIndex(slot_index);
-      }
-    }
+    const MarinaPhysicalSlot preferred_slot =
+        binding.has_slot() ? binding.slot() : MarinaPhysicalSlot::MARINA_SLOT_1;
+    PopulateSlotCombo(slot_combo, modifier, preferred_slot);
   }
 }
 
