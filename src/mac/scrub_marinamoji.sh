@@ -82,7 +82,10 @@ unload_and_remove_launchagents() {
     /Library/LaunchAgents/org.mozc.inputmethod.Japanese.Renderer.plist \
     /Library/LaunchAgents/org.mozc.inputmethod.Japanese.Sync.plist; do
     if [[ -f "${plist}" ]]; then
-      sudo launchctl bootout "system/${plist}" 2>/dev/null || true
+      # Domain and plist path must be separate args. A single
+      # "system/${plist}" string is parsed as bootout of the whole system
+      # domain and reboots the Mac before scrub can finish.
+      sudo launchctl bootout system "${plist}" 2>/dev/null || true
       sudo rm -f "${plist}"
       echo "  removed system LaunchAgent $(basename "${plist}")"
     fi

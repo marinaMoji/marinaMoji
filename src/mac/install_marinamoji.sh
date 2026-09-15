@@ -1,6 +1,8 @@
 #!/bin/bash
 # Install marinaMoji.app from the latest Bazel build and verify the converter
 # binary actually changed (catches stale installs when archive-root was missing).
+# Converter/renderer/sync register via SMAppService when the IME starts; this
+# script only clears leftover external LaunchAgent copies from older installs.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -47,6 +49,8 @@ sudo chown -R root:wheel "$APP_DST"
 sudo chmod -R go-w "$APP_DST"
 sudo touch "$APP_DST" "$APP_DST/Contents/Info.plist"
 "$LSREGISTER" -f "$APP_DST"
+# Converter/renderer/sync register via SMAppService inside the app (main.mm).
+# Drop any leftover external LaunchAgent copies from older installs.
 bash "$ROOT/mac/install_launchagents.sh"
 bash "$ROOT/mac/register_marinamoji.sh"
 sudo bash "$ROOT/mac/fix_qt_bundled_paths.sh" "$APP_DST" "-"

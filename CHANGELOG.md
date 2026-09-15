@@ -8,7 +8,23 @@ that touch more than one file or aren't obvious from a commit subject line.
 Format: newest entry first, grouped by date. Each entry should say what
 changed and, where it isn't obvious, why.
 
-## v0.0.4
+## v0.0.5
+
+### macOS: scrub no longer reboots the Mac (2026-09-15)
+
+`scrub_marinamoji.sh` called `launchctl bootout "system/${plist}"` as one
+argument. launchd treated that as a bootout of the whole **system** domain,
+so entering the sudo password immediately restarted the machine before the
+app was removed. Domain and plist path are now separate arguments.
+
+### macOS: stop bootstrapping obsolete external LaunchAgents (2026-09-15)
+
+Dev install still called `install_launchagents.sh`, which copied
+`BundleProgram`-only plists into `~/Library/LaunchAgents` and ran
+`launchctl bootstrap`. That path is obsolete: agents live inside
+`marinaMoji.app` and register via SMAppService (`main.mm`). Bootstrap failed
+with `Input/output error` and aborted install after `ditto`. The helper now
+only removes leftover external agent plists; docs match the SMAppService flow.
 
 ### Windows: dictionary fast-add defaults to Ctrl+Shift+9 (2026-09-15)
 
@@ -25,6 +41,8 @@ unless the user already put another action on that slot. Settings hides
 Ctrl+Shift+0 from the Key dropdown whenever Modifier is Ctrl+Shift, and
 validation rejects that chord on Apply. A short note in Shortcuts explains
 the Windows default; README and the Windows port plan document the split.
+
+## v0.0.4
 
 ### Diagnostics: removed the temporary MarinaDebugLog apparatus (2026-09-11)
 

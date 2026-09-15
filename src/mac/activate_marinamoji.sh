@@ -27,7 +27,7 @@ echo "Registering and enabling marinaMoji via Text Input Services..."
 # Handled by the installed IME binary so that no Swift toolchain is required.
 "$APP/Contents/MacOS/marinaMoji" --select_input_source > /dev/null
 
-echo "Refreshing LaunchServices and LaunchAgents..."
+echo "Refreshing LaunchServices (and clearing legacy external LaunchAgents)..."
 "$LSREGISTER" -f "$APP"
 bash "$ROOT/mac/install_launchagents.sh"
 

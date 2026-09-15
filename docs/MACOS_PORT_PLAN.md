@@ -27,13 +27,13 @@ bazelisk build --config=oss_macos //mac:mozc_macos
 bash mac/install_marinamoji.sh
 ```
 
-`install_marinamoji.sh` copies `bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app`, installs LaunchAgents, registers the IME, runs the Qt path/sign fix (`fix_qt_bundled_paths.sh`), verifies the converter binary changed, and restarts IMK/converter processes.
+`install_marinamoji.sh` copies `bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app`, registers the IME, runs the Qt path/sign fix (`fix_qt_bundled_paths.sh`), verifies the converter binary changed, and restarts IMK/converter processes. Converter / renderer / sync are registered by the app via **SMAppService** (plists inside `marinaMoji.app/Contents/Library/LaunchAgents/`); the install script only clears leftover *external* LaunchAgent copies from older installs.
 
 Manual equivalent (not recommended — easy to skip Qt fix or registration):
 
 ```bash
 sudo ditto bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app "/Library/Input Methods/marinaMoji.app"
-bash mac/install_launchagents.sh
+bash mac/install_launchagents.sh   # removes legacy external agents only
 bash mac/register_marinamoji.sh
 sudo bash mac/fix_qt_bundled_paths.sh "/Library/Input Methods/marinaMoji.app" "-"
 killall imklaunchagent TextInputMenuAgent marinaMoji marinaMojiConverter marinaMojiRenderer 2>/dev/null || true
@@ -110,7 +110,7 @@ Copy somewhere visible (optional):
 cp bazel-bin/mac/marinaMoji.pkg ~/Desktop/
 ```
 
-The `.pkg` installs `marinaMoji.app`, LaunchAgents for `marinaMojiConverter`, `marinaMojiRenderer`, and `marinaMojiSync`, plus helper symlinks under `/Applications/marinaMoji/`.
+The `.pkg` installs `marinaMoji.app` (with embedded LaunchAgent plists registered via SMAppService when the IME starts), plus helper symlinks under `/Applications/marinaMoji/`. It also removes any leftover *external* LaunchAgent plists from older installs.
 
 **Dev install without the pkg:** from `src/`, after `//mac:mozc_macos` succeeds:
 
@@ -118,7 +118,7 @@ The `.pkg` installs `marinaMoji.app`, LaunchAgents for `marinaMojiConverter`, `m
 bash mac/install_marinamoji.sh
 ```
 
-That copies `bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app`, runs `install_launchagents.sh`, `register_marinamoji.sh`, and `fix_qt_bundled_paths.sh` (required for Preferences / Dictionary Tool on a clean Mac).
+That copies `bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app`, clears legacy external LaunchAgents, runs `register_marinamoji.sh`, and `fix_qt_bundled_paths.sh` (required for Preferences / Dictionary Tool on a clean Mac).
 
 ### Second Mac / VM: Preferences / Qt GUI tools
 
@@ -205,19 +205,19 @@ cd ~/Code/marinaMoji/src   # adjust clone path; must be the directory that conta
 sudo rm -rf "/Library/Input Methods/marinaMoji.app"
 sudo ditto "bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app" \
   "/Library/Input Methods/marinaMoji.app"
-./mac/install_launchagents.sh
+bash mac/install_marinamoji.sh   # preferred: register + Qt fix + legacy agent cleanup
 ```
 
-**Important:** copying only the `.app` does **not** start the converter or renderer. You must run `install_launchagents.sh` (above) or install `marinaMoji.pkg`. Without LaunchAgents, Japanese conversion fails.
+**Important:** converter / renderer / sync are **not** loaded from `~/Library/LaunchAgents` anymore. Their plists live inside `marinaMoji.app` and are registered with **SMAppService** when marinaMoji starts. If Japanese conversion fails after install, select marinaMoji in Input Sources and check **System Settings → General → Login Items** for marinaMoji background items (allow if prompted). `bash mac/activate_marinamoji.sh` can force re-registration.
 
-**After rebranding (`marinaMozc` → `marinaMoji`):** rebuild and reinstall together. An old binary still looks for `/Library/Input Methods/marinaMozc.app/...` (toolbar icons and tools vanish) while LaunchAgents may still point at `marinaMozcConverter` (converter never starts). Check:
+**After rebranding (`marinaMozc` → `marinaMoji`):** rebuild and reinstall together. An old binary still looks for `/Library/Input Methods/marinaMozc.app/...` (toolbar icons and tools vanish). Check:
 
 ```bash
 strings "/Library/Input Methods/marinaMoji.app/Contents/MacOS/marinaMoji" | grep "Input Methods"
-plutil -p ~/Library/LaunchAgents/org.mozc.inputmethod.Japanese.Converter.plist | grep Program
+ls "/Library/Input Methods/marinaMoji.app/Contents/Library/LaunchAgents/"
 ```
 
-Both should show `marinaMoji`, not `marinaMozc`. If not, rebuild `//mac:mozc_macos`, `ditto` again, then `./mac/install_launchagents.sh`.
+Paths should show `marinaMoji`, not `marinaMozc`. If not, rebuild `//mac:mozc_macos` and reinstall with `bash mac/install_marinamoji.sh`.
 
 **Quick workaround (old binary still looking for `marinaMozc.app`):** symlink the install name the binary expects:
 
@@ -238,32 +238,26 @@ unzip -o mozc_macos.zip
 sudo rm -rf "/Library/Input Methods/marinaMoji.app"
 sudo ditto marinaMoji.app "/Library/Input Methods/marinaMoji.app"
 cd ../..   # back to src/
-bash ./mac/install_launchagents.sh
+bash mac/register_marinamoji.sh
+sudo bash mac/fix_qt_bundled_paths.sh "/Library/Input Methods/marinaMoji.app" "-"
+bash mac/install_launchagents.sh   # legacy external agent cleanup only
 ```
 
 ### Restart background services
 
-Use LaunchAgents whose `Program` paths point at  
-`marinaMoji.app/Contents/Resources/marinaMojiConverter.app` and `marinaMojiRenderer.app`.
-
-From `src/` after install:
+Converter / renderer / sync are SMAppService agents inside the app. After reinstall, toggle **marinaMoji** off and on in **System Settings → Keyboard → Input Sources**, or run:
 
 ```bash
-./mac/install_launchagents.sh
+bash mac/activate_marinamoji.sh
 ```
 
-If you see `permission denied`, either run `chmod +x mac/install_launchagents.sh` once, or use `bash mac/install_launchagents.sh` (do **not** use `sudo`).
-
-Or install `marinaMoji.pkg` (places plists under `/Library/LaunchAgents/`), then log out/in or bootstrap manually:
+If you still have leftover plists from older installs under `~/Library/LaunchAgents` or `/Library/LaunchAgents`, clear them with:
 
 ```bash
-launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/org.mozc.inputmethod.Japanese.Converter.plist 2>/dev/null
-launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/org.mozc.inputmethod.Japanese.Renderer.plist 2>/dev/null
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/org.mozc.inputmethod.Japanese.Converter.plist
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/org.mozc.inputmethod.Japanese.Renderer.plist
+bash mac/install_launchagents.sh
 ```
 
-Then toggle **marinaMoji** off and on in **System Settings → Keyboard → Input Sources**, or log out and back in.
+Do **not** `launchctl bootstrap` those BundleProgram-only plists from outside the app — that path is obsolete and fails with `Bootstrap failed: 5: Input/output error`.
 
 ### macOS 26+ `InputMethodConnectionName` (IMK “Refusing connection name”)
 

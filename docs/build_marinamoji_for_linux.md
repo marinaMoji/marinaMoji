@@ -233,6 +233,7 @@ If it still does not appear, confirm that `ibus-daemon` is running and that no e
   - **Ctrl+Shift+3 / #** – Toggle traditional (kyūjitai) / modern (shinjitai) kanji
   - **Ctrl+Shift+4 / $** – Toggle Hiragana <-> Manyoshu
   - **Ctrl+Shift+5 / %** – Toggle Hiragana <-> Direct
+  - **Ctrl+Shift+0** – Quick dictionary / add-word dialog (Windows default is **Ctrl+Shift+9**; the OS often swallows Ctrl+Shift+0)
   - **Ctrl+Shift+F / f** – Traditional-kanji toggle alias on some layouts  
   If these do nothing, your desktop or IBus may be capturing them; use the **IBus menu** (click the icon in the panel) or the **toolbar** instead.
 

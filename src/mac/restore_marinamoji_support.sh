@@ -44,7 +44,5 @@ fi
 cp -a "${BACKUP}" "${SUPPORT}"
 echo "Restored support from: ${BACKUP}"
 
-bash "$(cd "$(dirname "$0")/.." && pwd)/mac/install_launchagents.sh"
-
 echo "Done. Run: bash $(dirname "$0")/activate_marinamoji.sh"
 echo "Then test in TextEdit (not Cursor first)."
