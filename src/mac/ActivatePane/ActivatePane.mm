@@ -250,12 +250,12 @@ static BOOL StoreDefaultConfigWithSendingUsageStats() {
     [_mainMessage setStringValue:mainMessage];
   }
 
-  // Upgrade Message. Blank if it's not upgrade.
-  if (_isUpgrade) {
-    NSString *upgradeMessage = [self localizedStringForKey:@"upgradeMessage"];
-    if (upgradeMessage) {
-      [_upgradeMessage setStringValue:upgradeMessage];
-    }
+  // Session note: TIS registration can succeed while System Settings still
+  // hides the IME until logout. Show the same hint on fresh install and upgrade
+  // (postinstall may already have enabled the IME via --select_input_source).
+  NSString *note = [self localizedStringForKey:@"registrationNote"];
+  if (note) {
+    [_upgradeMessage setStringValue:note];
   } else {
     [_upgradeMessage setStringValue:@""];
   }

@@ -67,8 +67,11 @@ filegroup(
 pkg_zip(
     name = "resources",
     srcs = [
+        "Resources/en.lproj/Conclusion.html",
         "Resources/en.lproj/Localizable.strings",
+        "Resources/fr.lproj/Conclusion.html",
         "Resources/fr.lproj/Localizable.strings",
+        "Resources/ja.lproj/Conclusion.html",
         "Resources/ja.lproj/Localizable.strings",
     ],
     out = "resources.zip",

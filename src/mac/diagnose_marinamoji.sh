@@ -8,8 +8,65 @@ set -uo pipefail
 
 APP="/Library/Input Methods/marinaMoji.app"
 IMK="${APP}/Contents/MacOS/marinaMoji"
+PKG_ID="org.mozc.pkg.JapaneseInput"
+DESKTOP="${HOME}/Desktop"
 
 section() { printf '\n=== %s ===\n' "$1"; }
+
+check_packagekit_relocation() {
+  section "PackageKit relocation traps"
+  local receipt=0 relocated=0
+  if pkgutil --pkgs 2>/dev/null | grep -qx "${PKG_ID}"; then
+    receipt=1
+    echo "Receipt:    ${PKG_ID} present"
+    pkgutil --pkg-info "${PKG_ID}" 2>/dev/null | sed 's/^/  /'
+  else
+    echo "Receipt:    (none)"
+  fi
+
+  echo "Expected:   ${APP}"
+  if [[ -d "${APP}" ]]; then
+    echo "            present"
+  else
+    echo "            MISSING"
+  fi
+
+  echo "Other copies (PackageKit may follow these on upgrade if relocatable):"
+  local found=0 path
+  while IFS= read -r path; do
+    [[ -z "${path}" ]] && continue
+    [[ "${path}" == "${APP}" ]] && continue
+    echo "  ${path}"
+    found=1
+    relocated=1
+  done < <(mdfind 'kMDItemCFBundleIdentifier == "org.mozc.inputmethod.Japanese"' 2>/dev/null || true)
+
+  # Spotlight can lag; also check common Desktop leftover names.
+  local leftover
+  for leftover in \
+    "${DESKTOP}/marinaMoji.app" \
+    "${DESKTOP}"/marinaMoji.app.removed.* \
+    "${DESKTOP}"/marinaMoji.app.disabled \
+    "${DESKTOP}"/marinaMoji.app.disabled.*; do
+    [[ -e "${leftover}" ]] || continue
+    echo "  ${leftover}"
+    found=1
+    relocated=1
+  done
+  if [[ "${found}" -eq 0 ]]; then
+    echo "  (none)"
+  fi
+
+  if [[ ! -d "${APP}" && ( "${receipt}" -eq 1 || "${relocated}" -eq 1 ) ]]; then
+    echo
+    echo "LIKELY CAUSE: the IME is not under /Library/Input Methods/, but a"
+    echo "package receipt and/or a Desktop leftover remains. Older packages"
+    echo "followed that leftover on reinstall (PackageKit relocation)."
+    echo "Fix: delete Desktop marinaMoji.app* leftovers, then:"
+    echo "  sudo pkgutil --forget ${PKG_ID}"
+    echo "and reinstall. Prefer scrub_marinamoji.sh (deletes; does not move)."
+  fi
+}
 
 section "Machine"
 echo "macOS:      $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
@@ -17,6 +74,8 @@ echo "Host arch:  $(uname -m)"
 echo "Booted:     $(uptime | sed 's/.*up //; s/,.*users.*//')"
 echo "User:       $(id -un) (uid $(id -u))"
 echo "Console:    $(stat -f%Su /dev/console)"
+
+check_packagekit_relocation
 
 section "Installed bundle"
 if [[ ! -d "${APP}" ]]; then
@@ -66,3 +125,5 @@ section "If registration above said OK but System Settings still hides it"
 echo "Enable and select it directly, skipping the + dialog entirely:"
 echo "  \"${IMK}\" --select_input_source"
 echo "Then quit System Settings completely (Cmd-Q) and reopen it."
+echo "If it is still missing, log out and log back in once (TIS can succeed"
+echo "while the current session still hides the input source)."

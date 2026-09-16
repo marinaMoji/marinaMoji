@@ -193,7 +193,8 @@ int RegisterInputSource(bool select) {
   }
   fprintf(stderr,
           "%d input sources listed. This does NOT prove they are visible in this\n"
-          "login session; if they are missing from System Settings, log out.\n",
+          "login session; if they are missing from System Settings -> Keyboard ->\n"
+          "Input Sources, log out and log back in once, then add marinaMoji.\n",
           count);
   printf("%d\n", count);
   return 0;

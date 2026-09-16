@@ -9,5 +9,6 @@
 "mainMessage" = "Do you want to enable ${CF_BUNDLE_NAME_EN}?";
 "activateLabel" = "Yes";
 "doNotActivateLabel" = "No, I will enable it later.";
-"upgradeMessage" = "${CF_BUNDLE_NAME_EN} has been updated.  Some features will not be available until you log out and log back in.";
+"registrationNote" = "${CF_BUNDLE_NAME_EN} has been registered with macOS. If it does not appear under System Settings → Keyboard → Input Sources, log out and log back in once, then add it.";
+"upgradeMessage" = "${CF_BUNDLE_NAME_EN} has been updated. If it does not appear under System Settings → Keyboard → Input Sources, or some features are missing, log out and log back in once.";
 "usageStatsMessage" = "Help make ${CF_BUNDLE_NAME_EN} better by automatically sending usage statistics and crash reports to Google.";

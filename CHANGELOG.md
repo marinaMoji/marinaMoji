@@ -10,6 +10,29 @@ changed and, where it isn't obvious, why.
 
 ## v0.0.6
 
+### macOS: harden package install against relocation and stale sessions (2026-09-16)
+
+PackageKit could follow a moved `marinaMoji.app` (for example an old scrub that
+parked the bundle on the Desktop) and leave `/Library/Input Methods/` empty.
+New packages mark the IME app `BundleIsRelocatable=false`, stamp the real
+product version from `marina_product_version.txt` into `pkgbuild` /
+`distribution.xml` (one place to bump; release tags already write that file),
+and postinstall now enables/selects the input source (with a second pass after
+restarting the input-source agents) instead of only registering it. Messaging
+about a possible logout remains for poisoned sessions. `diagnose_marinamoji.sh`
+checks for relocation leftovers, and `docs/RESTORE_MACHINE.md` no longer
+teaches moving the app to the Desktop.
+
+### macOS: tell installers when a logout may still be needed (2026-09-16)
+
+`TISRegisterInputSource` can return success and list every marinaMoji mode
+while System Settings still hides the IME until logout — especially after
+earlier install attempts in the same login session. No public API can detect
+that UI failure, so the installer now says so explicitly: postinstall logs
+"registration API succeeded" plus a logout hint, ActivatePane shows the same
+note on fresh install and upgrade, and the package Conclusion page repeats it
+in English, French, and Japanese.
+
 ### macOS: opt-in silent background auto-updater (2026-09-16)
 
 The existing in-app update check only ever downloaded the installer and

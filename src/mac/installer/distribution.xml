@@ -39,6 +39,10 @@
     <domains enable_localSystem="true"/>
     <options rootVolumeOnly="true"/>
     <options customize="never" require-scripts="false" hostArchitectures="x86_64,arm64"/>
+    <!-- Shown after Install. Explains that TIS registration can succeed while
+         System Settings still hides the IME until logout (no public API can
+         detect that UI failure). Localized via Resources/*.lproj/. -->
+    <conclusion file="Conclusion.html" mime-type="text/html"/>
     <choices-outline>
         <line choice="default">
             <line choice="org.mozc.pkg.JapaneseInput"/>
@@ -49,4 +53,6 @@
         <pkg-ref id="org.mozc.pkg.JapaneseInput"/>
     </choice>
     <pkg-ref id="org.mozc.pkg.JapaneseInput" version="0" onConclusion="none">marinaMoji.pkg</pkg-ref>
+    <!-- version="0" is a placeholder: mac/build_package.py rewrites it from
+         marina_product_version.txt at package build time. -->
 </installer-gui-script>

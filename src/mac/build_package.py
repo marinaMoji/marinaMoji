@@ -37,8 +37,10 @@ import argparse
 import os
 import plistlib
 import pwd
+import re
 import shutil
 import tempfile
+from typing import Optional
 
 from build_tools import util
 
@@ -61,7 +63,43 @@ def ParseArguments():
       default='Mozc',
       help='OSS product name used for the inner .pkg filename.',
   )
+  parser.add_argument(
+      '--version_file',
+      help=(
+          'Path to marina_product_version.txt (or any file whose first '
+          'non-comment line is the product version). Used for pkgbuild '
+          '--version and distribution.xml. Omit only for legacy builds.'
+      ),
+  )
   return parser.parse_args()
+
+
+def ReadProductVersion(version_file: Optional[str]) -> str:
+  """Return the product version string, or '0' when no file is given."""
+  if not version_file:
+    return '0'
+  with open(version_file, encoding='utf-8') as f:
+    for line in f:
+      line = line.strip()
+      if not line or line.startswith('#'):
+        continue
+      return line
+  raise SystemExit(f'error: {version_file} has no version line')
+
+
+def ApplyDistributionVersion(path: str, version: str) -> None:
+  """Replace pkg-ref version attributes in distribution.xml."""
+  with open(path, encoding='utf-8') as f:
+    text = f.read()
+  updated = re.sub(
+      r'(<pkg-ref\b[^>]*\bversion=")[^"]*(")',
+      rf'\g<1>{version}\g<2>',
+      text,
+  )
+  if updated == text and 'version="' not in text:
+    raise SystemExit(f'error: no pkg-ref version= attribute in {path}')
+  with open(path, 'w', encoding='utf-8') as f:
+    f.write(updated)
 
 
 def main():
@@ -74,12 +112,15 @@ def main():
     identifier = 'com.google.pkg.GoogleJapaneseInput'
     pkg_name = 'GoogleJapaneseInput.pkg'
 
+  version = ReadProductVersion(args.version_file)
   output_path = os.path.abspath(args.output)
 
   with tempfile.TemporaryDirectory() as tmp_dir:
     # Use the unzip command to extract symbolic links properly.
     util.RunOrDie(['unzip', '-q', args.input, '-d', tmp_dir])
     os.chdir(os.path.join(tmp_dir, 'installer'))
+
+    ApplyDistributionVersion('distribution.xml', version)
 
     # Generate a component property list from the root directory, then clear
     # BundleOverwriteAction to prevent atomic bundle replacement during
@@ -88,6 +129,10 @@ def main():
     # macOS IME registration. With an empty action, the installer simply
     # overwrites files in place, preserving the existing registration.
     # https://github.com/google/mozc/issues/1439
+    #
+    # Also mark app bundles non-relocatable. If a previous scrub/move left the
+    # IME on the Desktop, PackageKit would otherwise "helpfully" follow that
+    # path and leave /Library/Input Methods/ empty.
     component_plist = 'component.plist'
     util.RunOrDie(
         ['/usr/bin/pkgbuild', '--analyze', '--root', 'root', component_plist]
@@ -96,6 +141,9 @@ def main():
       components = plistlib.load(f)
     for component in components:
       component['BundleOverwriteAction'] = ''
+      bundle_path = component.get('RootRelativeBundlePath', '') or ''
+      if bundle_path.endswith('.app'):
+        component['BundleIsRelocatable'] = False
     with open(component_plist, 'wb') as f:
       plistlib.dump(components, f)
 
@@ -107,6 +155,8 @@ def main():
         component_plist,
         '--identifier',
         identifier,
+        '--version',
+        version,
         '--scripts',
         'scripts/',
         pkg_name,  # pkg_name is configured in distribution.xml.

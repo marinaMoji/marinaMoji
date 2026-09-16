@@ -4,11 +4,20 @@ In each user account:
 System Settings → Keyboard → Input Sources
 Remove every marinaMoji row
 Switch to ABC or U.S.
-Optional but cleanest: temporarily remove the app so macOS stops auto-discovering it:
+Optional but cleanest: remove the app so macOS stops auto-discovering it.
+**Delete it — do not move it to the Desktop.** Moving leaves a PackageKit
+“relocation” trail so the next `.pkg` install can land on the Desktop instead
+of `/Library/Input Methods/`.
 
+```bash
 # only if marinaMoji.app is still installed
-sudo mv "/Library/Input Methods/marinaMoji.app" ~/Desktop/marinaMoji.app.disabled
-Then log out and back in (or restart).
+sudo rm -rf "/Library/Input Methods/marinaMoji.app"
+# if a package receipt remains and you plan to reinstall later:
+sudo pkgutil --forget org.mozc.pkg.JapaneseInput
+```
+
+Or run `bash ./mac/scrub_marinamoji.sh` (deletes the app and forgets the
+receipt). Then log out and back in (or restart).
 
 You can reinstall marinaMoji later when you want to debug it again.
 

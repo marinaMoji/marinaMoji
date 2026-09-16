@@ -9,5 +9,6 @@
 "mainMessage" = "インストール後、${CF_BUNDLE_NAME_JA}を有効にしますか？";
 "activateLabel" = "有効にする";
 "doNotActivateLabel" = "自分で有効化の設定をする";
-"upgradeMessage" = "${CF_BUNDLE_NAME_JA}が新しいバージョンに更新されました。一部の機能については、再ログイン後に有効になります。";
+"registrationNote" = "${CF_BUNDLE_NAME_JA}は macOS に登録されました。システム設定 → キーボード → 入力ソースに表示されない場合は、一度ログアウトして再ログインしてから追加してください。";
+"upgradeMessage" = "${CF_BUNDLE_NAME_JA}が新しいバージョンに更新されました。システム設定 → キーボード → 入力ソースに表示されない場合や、一部の機能が使えない場合は、一度ログアウトして再ログインしてください。";
 "usageStatsMessage" = "使用状況データと障害レポートを Google に自動送信して ${CF_BUNDLE_NAME_JA}の機能向上に役立てる。";

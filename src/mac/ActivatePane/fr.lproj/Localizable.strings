@@ -6,5 +6,6 @@
 "mainMessage" = "Voulez-vous activer ${CF_BUNDLE_NAME_FR} ?";
 "activateLabel" = "Oui";
 "doNotActivateLabel" = "Non, je l'activerai plus tard.";
-"upgradeMessage" = "${CF_BUNDLE_NAME_FR} a été mis à jour. Certaines fonctionnalités ne seront disponibles qu'après une déconnexion et une reconnexion.";
+"registrationNote" = "${CF_BUNDLE_NAME_FR} a été enregistré auprès de macOS. S'il n'apparaît pas dans Réglages Système → Clavier → Sources d'entrée, déconnectez-vous puis reconnectez-vous une fois, puis ajoutez-le.";
+"upgradeMessage" = "${CF_BUNDLE_NAME_FR} a été mis à jour. S'il n'apparaît pas dans Réglages Système → Clavier → Sources d'entrée, ou si certaines fonctionnalités manquent, déconnectez-vous puis reconnectez-vous une fois.";
 "usageStatsMessage" = "Aidez à améliorer ${CF_BUNDLE_NAME_FR} en envoyant automatiquement des statistiques d'utilisation et des rapports de plantage à Google.";

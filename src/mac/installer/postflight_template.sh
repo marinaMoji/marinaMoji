@@ -11,8 +11,9 @@
 #
 # This script therefore performs the registration itself, in the console user's
 # session, and verifies that macOS lists the input sources afterwards. It never
-# fails the installation: a failure here is reported to /var/log/install.log and
-# the user can still add the input source manually after a logout.
+# fails the installation: a failure here is reported to /var/log/install.log
+# (and the Conclusion / ActivatePane pages warn that a logout may still be
+# needed), and the user can still add the input source manually after a logout.
 
 APP="/Library/Input Methods/marinaMoji.app"
 IMK="${APP}/Contents/MacOS/marinaMoji"
@@ -100,7 +101,13 @@ if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
   # logout, with it the input source appears immediately.
   for cache in ${INTL_CACHES}; do
     if [ -f "${cache}" ]; then
-      /bin/rm -f "${cache}" && log "discarded input source cache `basename ${cache}`"
+      if /bin/rm -f "${cache}"; then
+        log "discarded input source cache `basename ${cache}`"
+      else
+        log "WARNING: could not discard input source cache `basename ${cache}`"
+      fi
+    else
+      log "input source cache `basename ${cache}` not present (OK)"
     fi
   done
   # Both agents hold the old table in memory; launchd restarts them.
@@ -108,8 +115,10 @@ if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
   as_console_user /usr/bin/killall imklaunchagent > /dev/null 2>&1
   /bin/sleep 3
 
-  # Make the input source visible without a logout. Retried because the input
-  # source list can lag right after the bundle is written.
+  # Register, enable, and select. --select_input_source also registers, and is
+  # what ActivatePane does when the user chooses "Yes". Doing it here means
+  # silent installs (auto-updater / installer CLI) still activate the IME, and
+  # GUI installs show ActivatePane as already enabled.
   REGISTERED=0
   if [ -x "${IMK}" ]; then
     # Recorded because a package built for the other architecture fails here in
@@ -118,7 +127,7 @@ if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
     log "host arch: `/usr/bin/uname -m`, binary arch: `/usr/bin/lipo -archs "${IMK}" 2>&1`"
     attempt=1
     while [ "${attempt}" -le 3 ]; do
-      REG_OUT=`as_console_user "${IMK}" --register_input_source 2>&1`
+      REG_OUT=`as_console_user "${IMK}" --select_input_source 2>&1`
       REG_STATUS=$?
       log "attempt ${attempt}: exit=${REG_STATUS}"
       echo "${REG_OUT}" | while read -r line; do
@@ -140,20 +149,25 @@ if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
   fi
 
   if [ "${REGISTERED}" = "1" ]; then
-    # Deliberately not phrased as success. The registration call can return
+    # Deliberately not phrased as "visible". The registration call can return
     # noErr with every mode listed while System Settings still shows none of
     # them -- reproduced when an earlier install ran in the same login session.
-    # Only a logout is known to clear that, so the log must not assert that the
-    # user will see the input source.
-    log "registration call succeeded for ${CONSOLE_USER} after rebuilding the input source table"
-    log "if marinaMoji is still missing from System Settings, log out and back in"
-    # Nudge the input menu and System Settings so the new source shows up in an
-    # already-running session.
+    # No public API can detect that UI failure; only a logout is known to clear
+    # it, so the message must tell the user what to do if the list is empty.
+    log "registration API succeeded for ${CONSOLE_USER} (macOS accepted the input source)"
+    log "if marinaMoji is missing from System Settings -> Keyboard -> Input Sources,"
+    log "log out and log back in once, then add it under Input Sources."
+    # Second pass after agents restart: a poisoned in-memory table sometimes
+    # needs register+select again once TextInputMenuAgent is back.
+    as_console_user /usr/bin/killall TextInputMenuAgent > /dev/null 2>&1
+    as_console_user /usr/bin/killall imklaunchagent > /dev/null 2>&1
+    /bin/sleep 2
+    as_console_user "${IMK}" --select_input_source > /dev/null 2>&1
     as_console_user /usr/bin/killall TextInputMenuAgent > /dev/null 2>&1
     as_console_user /usr/bin/killall imklaunchagent > /dev/null 2>&1
   else
     log "WARNING: could not register input sources for ${CONSOLE_USER};"
-    log "         log out and back in, then add marinaMoji under"
+    log "         log out and log back in once, then add marinaMoji under"
     log "         System Settings -> Keyboard -> Input Sources."
   fi
 fi
