@@ -106,8 +106,11 @@ AboutDialog::AboutDialog(QWidget *parent)
   version_label->setText(QLatin1String(version_info.c_str()));
   GuiUtil::ReplaceWidgetLabels(this);
 
-  const bool is_dark = QGuiApplication::styleHints()->colorScheme() ==
-                       Qt::ColorScheme::Dark;
+  // QStyleHints::colorScheme()/Qt::ColorScheme need Qt 6.5+; Ubuntu 24.04's
+  // distro Qt6 (6.4.2) doesn't have it, so this reads the effective palette
+  // instead -- portable back to Qt 5, and reflects reality regardless of how
+  // (or whether) a given Qt version surfaces the OS appearance directly.
+  const bool is_dark = palette().color(QPalette::Window).lightness() < 128;
   QPalette palette;
 #ifdef MARINAMOJI
   palette.setColor(QPalette::Window, is_dark ? QColor(45, 45, 45)
