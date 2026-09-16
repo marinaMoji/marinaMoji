@@ -12,10 +12,17 @@ namespace mozc {
 namespace {
 
 constexpr char kStampFileName[] = "marina_auto_update_check_unix_sec";
+constexpr char kSilentOfferStampFileName[] =
+    "marina_auto_update_silent_offer_shown";
 
 std::string StampPath() {
   return FileUtil::JoinPath(SystemUtil::GetUserProfileDirectory(),
                             kStampFileName);
+}
+
+std::string SilentOfferStampPath() {
+  return FileUtil::JoinPath(SystemUtil::GetUserProfileDirectory(),
+                            kSilentOfferStampFileName);
 }
 
 }  // namespace
@@ -36,6 +43,14 @@ bool ShouldRunMarinaAutoUpdateCheck() {
 void MarkMarinaAutoUpdateCheckRan() {
   const std::string body = std::to_string(absl::ToUnixSeconds(absl::Now()));
   FileUtil::SetContents(StampPath(), body).IgnoreError();
+}
+
+bool HasOfferedSilentAutoUpdate() {
+  return FileUtil::FileExists(SilentOfferStampPath()).ok();
+}
+
+void MarkOfferedSilentAutoUpdate() {
+  FileUtil::SetContents(SilentOfferStampPath(), "1").IgnoreError();
 }
 
 }  // namespace mozc

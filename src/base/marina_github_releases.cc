@@ -224,8 +224,12 @@ std::optional<MarinaGitHubRelease> SelectNewerMarinaRelease(
   return *best;
 }
 
-std::optional<std::string> FindMarinaPkgDownloadUrl(
-    const MarinaGitHubRelease& release, absl::string_view arch_token) {
+namespace {
+
+// Shared by FindMarinaPkgDownloadUrl and FindMarinaPkgSha256Digest so both
+// agree on exactly which asset they mean.
+const MarinaGitHubAsset* FindMarinaPkgAsset(const MarinaGitHubRelease& release,
+                                            absl::string_view arch_token) {
   const MarinaGitHubAsset* universal = nullptr;
   const MarinaGitHubAsset* any_pkg = nullptr;
   for (const MarinaGitHubAsset& asset : release.assets) {
@@ -237,7 +241,7 @@ std::optional<std::string> FindMarinaPkgDownloadUrl(
     if (!arch_token.empty() &&
         (absl::StrContains(asset.name, arch_token) ||
          absl::StrContains(asset.browser_download_url, arch_token))) {
-      return asset.browser_download_url;
+      return &asset;
     }
     if (absl::StrContains(asset.name, "universal") ||
         absl::StrContains(asset.browser_download_url, "universal")) {
@@ -247,13 +251,33 @@ std::optional<std::string> FindMarinaPkgDownloadUrl(
     }
   }
   if (universal != nullptr) {
-    return universal->browser_download_url;
+    return universal;
   }
   // Only fall back to an unmatched .pkg when the caller did not request an arch.
   if (arch_token.empty() && any_pkg != nullptr) {
-    return any_pkg->browser_download_url;
+    return any_pkg;
+  }
+  return nullptr;
+}
+
+}  // namespace
+
+std::optional<std::string> FindMarinaPkgDownloadUrl(
+    const MarinaGitHubRelease& release, absl::string_view arch_token) {
+  if (const MarinaGitHubAsset* asset = FindMarinaPkgAsset(release, arch_token);
+      asset != nullptr) {
+    return asset->browser_download_url;
   }
   return std::nullopt;
+}
+
+std::string FindMarinaPkgSha256Digest(const MarinaGitHubRelease& release,
+                                      absl::string_view arch_token) {
+  if (const MarinaGitHubAsset* asset = FindMarinaPkgAsset(release, arch_token);
+      asset != nullptr) {
+    return asset->digest_sha256;
+  }
+  return "";
 }
 
 std::string MarinaHostMacPkgArchToken() {

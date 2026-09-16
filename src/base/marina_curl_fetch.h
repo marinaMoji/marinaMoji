@@ -19,6 +19,10 @@ absl::Status MarinaCurlDownload(absl::string_view url,
 // Opens a local file with the OS default handler (Installer.app for .pkg).
 bool MarinaOpenLocalPath(absl::string_view path);
 
+// Lowercase hex SHA-256 of a local file, or empty on any failure (including
+// on platforms where this isn't implemented).
+std::string MarinaSha256OfFile(absl::string_view path);
+
 }  // namespace mozc
 
 #endif  // MOZC_BASE_MARINA_CURL_FETCH_H_

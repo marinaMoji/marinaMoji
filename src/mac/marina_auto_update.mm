@@ -1,12 +1,14 @@
 #import "mac/marina_auto_update.h"
 
 #import <Cocoa/Cocoa.h>
+#import <ServiceManagement/ServiceManagement.h>
 
 #include <cctype>
 #include <optional>
 #include <string>
 #include <utility>
 
+#include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
 #include "base/file_util.h"
 #include "base/marina_curl_fetch.h"
@@ -26,6 +28,7 @@ struct UpdateOffer {
   std::string tag_name;
   std::string html_url;
   std::string pkg_url;
+  std::string pkg_sha256;  // empty if GitHub published no digest.
 };
 
 std::optional<UpdateOffer> ProbeForUpdate(bool include_unstable) {
@@ -42,10 +45,11 @@ std::optional<UpdateOffer> ProbeForUpdate(bool include_unstable) {
   UpdateOffer offer;
   offer.tag_name = newer->tag_name;
   offer.html_url = newer->html_url;
-  if (const auto pkg =
-          FindMarinaPkgDownloadUrl(*newer, MarinaHostMacPkgArchToken());
+  const std::string arch_token = MarinaHostMacPkgArchToken();
+  if (const auto pkg = FindMarinaPkgDownloadUrl(*newer, arch_token);
       pkg.has_value()) {
     offer.pkg_url = *pkg;
+    offer.pkg_sha256 = FindMarinaPkgSha256Digest(*newer, arch_token);
   }
   return offer;
 }
@@ -64,7 +68,67 @@ bool DownloadAndOpen(const UpdateOffer& offer) {
   if (!MarinaCurlDownload(offer.pkg_url, dest).ok()) {
     return false;
   }
+  if (!offer.pkg_sha256.empty() &&
+      MarinaSha256OfFile(dest) != offer.pkg_sha256) {
+    LOG(ERROR) << "Downloaded update package digest mismatch for "
+               << offer.tag_name;
+    FileUtil::UnlinkOrLogError(dest);
+    return false;
+  }
   return MarinaOpenLocalPath(dest);
+}
+
+// Registers the headless update-helper LaunchDaemon with SMAppService, which
+// prompts the user for one-time approval in System Settings > General >
+// Login Items & Extensions. Only ever called in direct response to the user
+// clicking "Enable Automatic Updates" below -- never on their behalf.
+bool EnableSilentAutoUpdateHelper() {
+  SMAppService* service = [SMAppService
+      daemonServiceWithPlistName:@"org.mozc.inputmethod.Japanese.UpdateHelper.plist"];
+  if (service.status == SMAppServiceStatusEnabled) {
+    return true;
+  }
+  NSError* error = nil;
+  if (![service registerAndReturnError:&error]) {
+    LOG(ERROR) << "Silent auto-update helper registration failed: "
+               << [[error localizedDescription] UTF8String];
+    return false;
+  }
+  return true;
+}
+
+// Offered at most once, ever, right after the user accepts an update -- a
+// moment they have just demonstrated they want marinaMoji to stay current.
+// A "yes" here is the only consent EnableSilentAutoUpdateHelper ever acts on;
+// declining (or never being asked again) leaves updates exactly as
+// interactive as they are today.
+void MaybeOfferSilentAutoUpdate() {
+  if (HasOfferedSilentAutoUpdate()) {
+    return;
+  }
+  MarkOfferedSilentAutoUpdate();
+
+  NSAlert* alert = [[NSAlert alloc] init];
+  alert.messageText = @"Install future updates automatically?";
+  alert.informativeText =
+      @"marinaMoji can check for and install future updates in the "
+      "background from now on, with no further prompts.\n\n"
+      "This asks for a one-time approval in System Settings.";
+  [alert addButtonWithTitle:@"Enable Automatic Updates"];
+  [alert addButtonWithTitle:@"Not Now"];
+  const NSModalResponse response = [alert runModal];
+  if (response != NSAlertFirstButtonReturn) {
+    return;
+  }
+  if (!EnableSilentAutoUpdateHelper()) {
+    NSAlert* err = [[NSAlert alloc] init];
+    err.messageText = @"Couldn't enable automatic updates";
+    err.informativeText =
+        @"Something went wrong registering the background updater. You can "
+        "try again later from System Settings > General > Login Items & "
+        "Extensions.";
+    [err runModal];
+  }
 }
 
 void PresentUpdateOfferOnMainThread(UpdateOffer offer) {
@@ -89,7 +153,9 @@ void PresentUpdateOfferOnMainThread(UpdateOffer offer) {
           @"Could not download or open the installer. Try again from "
           "Preferences → Misc → Check for updates…";
       [err runModal];
+      return;
     }
+    MaybeOfferSilentAutoUpdate();
     return;
   }
 

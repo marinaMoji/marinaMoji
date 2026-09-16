@@ -100,4 +100,30 @@ bool MarinaOpenLocalPath(absl::string_view path) {
 #endif
 }
 
+std::string MarinaSha256OfFile(absl::string_view path) {
+#if defined(__APPLE__)
+  const std::string command =
+      absl::StrCat("/usr/bin/shasum -a 256 ", ShellEscapeSingleQuotes(path));
+  FILE* pipe = ::popen(command.c_str(), "r");
+  if (pipe == nullptr) {
+    return "";
+  }
+  char buf[256] = {0};
+  const bool got_line = ::fgets(buf, sizeof(buf), pipe) != nullptr;
+  ::pclose(pipe);
+  if (!got_line) {
+    return "";
+  }
+  const std::string line(buf);
+  const size_t space = line.find(' ');
+  if (space == std::string::npos) {
+    return "";
+  }
+  return line.substr(0, space);
+#else
+  (void)path;
+  return "";
+#endif
+}
+
 }  // namespace mozc

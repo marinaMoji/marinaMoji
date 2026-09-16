@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>org.mozc.inputmethod.Japanese.UpdateHelper</string>
+	<key>BundleProgram</key>
+	<string>Contents/Resources/marinaMojiUpdateHelper.app/Contents/MacOS/marinaMojiUpdateHelper</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>marinaMojiUpdateHelper</string>
+	</array>
+	<!-- Registration is opt-in only, triggered once from the update-available
+	     alert (mac/marina_auto_update.mm) after the user explicitly agrees to
+	     silent background updates. Runs daily, plus once at load in case the
+	     machine was asleep or off through a scheduled run. -->
+	<key>StartInterval</key>
+	<integer>86400</integer>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<false/>
+</dict>
+</plist>

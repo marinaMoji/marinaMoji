@@ -8,6 +8,33 @@ that touch more than one file or aren't obvious from a commit subject line.
 Format: newest entry first, grouped by date. Each entry should say what
 changed and, where it isn't obvious, why.
 
+## v0.0.6
+
+### macOS: opt-in silent background auto-updater (2026-09-16)
+
+The existing in-app update check only ever downloaded the installer and
+opened it — completing the install still required clicking through macOS's
+own Installer.app wizard as a separate, easy-to-miss step. A user who
+accepted the offer but didn't finish that second step looked, from the
+app's perspective, identical to one who was fully up to date, with no
+retry short of digging into Preferences.
+
+marinaMoji now offers, once, right after a user accepts an update for the
+first time: "Install future updates automatically?" Accepting registers a
+new headless LaunchDaemon (`marina_update_helper_main.cc`) with
+`SMAppService`, the same mechanism already used for the Converter/Renderer/
+Sync agents — this is what prompts the one-time System Settings approval.
+Once approved, the daemon checks GitHub daily as root and installs updates
+directly via `installer -pkg -target /`, with no further prompts. The offer
+is tracked by a new stamp file (`marina_update_throttle.h`) so it is asked
+at most once ever, regardless of the answer; declining leaves updates
+exactly as interactive as before.
+
+Both the interactive and silent download paths now also verify the SHA-256
+digest GitHub published for the release asset before running the installer
+(`FindMarinaPkgSha256Digest`), matching the check the Windows MSI path
+already had.
+
 ## v0.0.5
 
 ### macOS: scrub no longer reboots the Mac (2026-09-15)

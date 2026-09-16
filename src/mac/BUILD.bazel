@@ -30,6 +30,7 @@
 load(
     "//:build_defs.bzl",
     "MOZC_TAGS",
+    "mozc_cc_library",
     "mozc_macos_application",
     "mozc_macos_bundle",
     "mozc_objc_library",
@@ -94,6 +95,8 @@ mozc_macos_application(
         # prod_macos also refers to oss_macos settings.
         oss_macos = {
             "//mac/installer:bundled_launch_agents": "Library",
+            "//mac/installer:bundled_launch_daemons": "Library",
+            "//mac:marina_update_helper_macos": "Resources",
             "//gui/about_dialog:about_dialog_macos": "Resources",
             "//gui/config_dialog:config_dialog_macos": "Resources",
             "//gui/dictionary_tool:dictionary_tool_macos": "Resources",
@@ -222,6 +225,7 @@ mozc_objc_library(
     hdrs = ["marina_auto_update.h"],
     sdk_frameworks = [
         "Cocoa",
+        "ServiceManagement",
     ],
     tags = ["manual"],
     deps = [
@@ -234,6 +238,38 @@ mozc_objc_library(
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
     ],
+)
+
+mozc_cc_library(
+    name = "marina_update_helper_main_lib",
+    srcs = ["marina_update_helper_main.cc"],
+    tags = ["manual"],
+    deps = [
+        "//base:file_util",
+        "//base:init_mozc",
+        "//base:marina_curl_fetch",
+        "//base:marina_semver",
+        "//base:system_util",
+        "//base:version",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+# Headless daemon for the opt-in silent auto-updater. Only ever registered
+# with SMAppService (as a LaunchDaemon, so it can run as root) once the user
+# explicitly agrees to it from the update-available alert -- see
+# EnableSilentAutoUpdateHelper in marina_auto_update.mm. Never launched any
+# other way, and never shows UI: see marina_update_helper_main.cc.
+mozc_macos_application(
+    name = "marina_update_helper_macos",
+    app_icons = ["//data/images/mac:product_icon.icns"],
+    bundle_id = MACOS_BUNDLE_ID_PREFIX + ".UpdateHelper",
+    bundle_name = BRANDING + "UpdateHelper",
+    infoplists = ["UpdateHelper-Info.plist"],
+    visibility = ["//mac:__pkg__"],
+    deps = [":marina_update_helper_main_lib"],
 )
 
 mozc_objc_library(

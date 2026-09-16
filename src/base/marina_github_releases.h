@@ -44,6 +44,15 @@ std::optional<MarinaGitHubRelease> SelectNewerMarinaRelease(
 std::optional<std::string> FindMarinaPkgDownloadUrl(
     const MarinaGitHubRelease& release, absl::string_view arch_token);
 
+// The SHA-256 digest (lowercase hex, no "sha256:" prefix) GitHub published
+// for the same asset FindMarinaPkgDownloadUrl(release, arch_token) would
+// return, or empty if GitHub didn't provide one. An unattended installer
+// (nothing in the loop to notice a mismatched download) should treat an
+// empty result as "no integrity check available" rather than as an error --
+// GitHub only started publishing asset digests in 2024.
+std::string FindMarinaPkgSha256Digest(const MarinaGitHubRelease& release,
+                                      absl::string_view arch_token);
+
 // "arm64" / "intel64" on macOS hosts; empty elsewhere.
 std::string MarinaHostMacPkgArchToken();
 

@@ -53,6 +53,17 @@ filegroup(
     ],
 )
 
+# Bundled into marinaMoji.app at Contents/Library/LaunchDaemons. Unlike
+# bundled_launch_agents above, nothing registers this at every launch: it is
+# only registered with SMAppService once the user opts in to silent
+# background updates (mac/marina_auto_update.mm), since it runs as root.
+filegroup(
+    name = "bundled_launch_daemons",
+    srcs = [
+        "LaunchDaemons/org.mozc.inputmethod.Japanese.UpdateHelper.plist",
+    ],
+)
+
 pkg_zip(
     name = "resources",
     srcs = [
