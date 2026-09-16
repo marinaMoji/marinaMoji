@@ -10,6 +10,46 @@ changed and, where it isn't obvious, why.
 
 ## v0.0.6
 
+### macOS: fix Linux CI build (Qt 6.5+ API on Ubuntu's older Qt6) (2026-09-16)
+
+`about_dialog.cc`'s dark-mode detection used `QStyleHints::colorScheme()` /
+`Qt::ColorScheme`, both Qt 6.5+ only. macOS's Homebrew Qt (6.11) has it, but
+Ubuntu 24.04's distro Qt6 package is 6.4.2, so CI for Linux failed outright.
+Reads the effective `QPalette` window color's lightness instead — portable
+back to Qt 5, and correct regardless of whether a given Qt version surfaces
+the OS appearance directly.
+
+### macOS: install updates synchronously instead of hoping a GUI wizard finishes (2026-09-16)
+
+The interactive update flow only ever downloaded the `.pkg` and called `open`
+on it, handing off to a separate Installer.app wizard with no way to know
+whether the user actually finished it. It now runs `installer -pkg ...
+-target /` itself under one synchronous `do shell script ... with
+administrator privileges` prompt, and reports a real outcome — success,
+download failure, install failure, or the password prompt being cancelled —
+instead of silently assuming success once the wizard launched.
+
+This also fixed the silent-auto-update consent failing to register
+(`smd`/BTM: "record not found"): that registration asks the OS to vouch for
+a LaunchDaemon living inside marinaMoji.app's own bundle, and it was being
+requested after `installer` had already overwritten that same bundle in
+place, from the now-stale process that used to be it. The consent is now
+offered before the install runs, keeping the on-disk bundle and the
+requesting process consistent.
+
+### macOS/Qt: About dialog dark mode, logo, and branding fixes (2026-09-16)
+
+The About dialog forced a hardcoded white/black palette regardless of system
+appearance, and its logo never actually rendered: it read a bundled `.svg`
+via `QImageReader`, but no Qt dialog in this app bundles the
+`imageformats/libqsvg` plugin (or `QtSvg.framework`) decoding one requires,
+so the read silently failed every time. Switched to a pre-rasterized
+light/dark PNG pair instead — no extra plugin or framework needed, since
+QtGui decodes PNG natively — and let the window palette follow the system
+default instead of overriding it. Also: the "website" link now points to
+https://marinamoji.crcao.fr (GitHub links unchanged), and the uninstaller's
+completion dialog said "Mozc files have been erased" instead of "marinaMoji".
+
 ### macOS: harden package install against relocation and stale sessions (2026-09-16)
 
 PackageKit could follow a moved `marinaMoji.app` (for example an old scrub that
@@ -57,6 +97,19 @@ Both the interactive and silent download paths now also verify the SHA-256
 digest GitHub published for the release asset before running the installer
 (`FindMarinaPkgSha256Digest`), matching the check the Windows MSI path
 already had.
+
+### macOS: scrub deletes instead of relocating, and forgets the package receipt (2026-09-16)
+
+`scrub_marinamoji.sh` used to move `marinaMoji.app` to the Desktop rather
+than delete it, and left the `org.mozc.pkg.JapaneseInput` package receipt in
+place. Both confused later `.pkg` installs: PackageKit treats an on-disk
+match for a still-registered receipt as a "relocation" and reinstalls there
+instead of into `/Library/Input Methods/`, so a Desktop backup silently
+became the real install target and `/Library/Input Methods/` stayed empty.
+The app bundle (and any leftover copies — old Desktop backups, mdfind hits)
+is now deleted rather than moved, and the receipt is forgotten via
+`pkgutil --forget` so a fresh `.pkg` install has nothing stale to relocate
+against.
 
 ## v0.0.5
 
