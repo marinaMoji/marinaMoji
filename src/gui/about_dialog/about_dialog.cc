@@ -67,7 +67,7 @@ QString ReplaceString(const QString &str) {
   Replace(replaced, "[ProductName]", GuiUtil::ProductName());
 
 #ifdef MARINAMOJI
-  Replace(replaced, "[ProductUrl]", "https://github.com/marinaMoji/marinaMoji");
+  Replace(replaced, "[ProductUrl]", "https://marinamoji.crcao.fr");
   Replace(replaced, "[ForumUrl]", "https://github.com/marinaMoji/marinaMoji/issues");
   Replace(replaced, "[ForumName]", QObject::tr("issues"));
 #elif defined(GOOGLE_JAPANESE_INPUT_BUILD)
@@ -98,21 +98,23 @@ AboutDialog::AboutDialog(QWidget *parent)
   setupUi(this);
   setWindowFlags(Qt::WindowSystemMenuHint | Qt::WindowCloseButtonHint);
   setWindowModality(Qt::NonModal);
-  const QColor white(255, 255, 255);
-  QPalette window_palette;
-  window_palette.setColor(QPalette::Window, white);
-  window_palette.setColor(QPalette::WindowText, QColor(0, 0, 0));
-  setPalette(window_palette);
-  setAutoFillBackground(true);
+  // No hardcoded window palette here: this used to force white background /
+  // black text unconditionally, which left the dialog stuck in light mode
+  // regardless of the system appearance. Leaving the palette alone lets Qt's
+  // own (dark-mode-aware, since Qt 6.5) default palette apply instead.
   std::string version_info = "(" + Version::GetProductVersion() + ")";
   version_label->setText(QLatin1String(version_info.c_str()));
   GuiUtil::ReplaceWidgetLabels(this);
 
+  const bool is_dark = QGuiApplication::styleHints()->colorScheme() ==
+                       Qt::ColorScheme::Dark;
   QPalette palette;
 #ifdef MARINAMOJI
-  palette.setColor(QPalette::Window, white);
+  palette.setColor(QPalette::Window, is_dark ? QColor(45, 45, 45)
+                                             : QColor(255, 255, 255));
 #else
-  palette.setColor(QPalette::Window, QColor(236, 233, 216));
+  palette.setColor(QPalette::Window, is_dark ? QColor(45, 45, 45)
+                                             : QColor(236, 233, 216));
 #endif  // MARINAMOJI
   color_frame->setPalette(palette);
   color_frame->setAutoFillBackground(true);
@@ -131,13 +133,18 @@ AboutDialog::AboutDialog(QWidget *parent)
   // Let the label use the full width so the text can sit on one line (with margin).
   label_6->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
   gridLayout_3->setColumnStretch(0, 1);
-  // Load toolbar logo SVG and render at ~2x line height (keep aspect ratio).
-  QImageReader reader(QLatin1String(":/marinamoji_logo.svg"));
-  QImage svgImage = reader.read();
-  if (!svgImage.isNull()) {
+  // Load the toolbar logo and render at ~2x line height (keep aspect ratio).
+  // Pre-rasterized PNG rather than the source SVG: decoding SVG at runtime
+  // needs Qt's imageformats/libqsvg plugin (plus QtSvg.framework), neither
+  // of which any Qt dialog in this app bundles -- QImageReader silently
+  // fails to decode the SVG and the logo just doesn't appear. A PNG needs
+  // no extra plugin, since QtGui decodes it natively.
+  QImage logoImage(is_dark ? QLatin1String(":/marinamoji_logo_dark.png")
+                           : QLatin1String(":/marinamoji_logo_light.png"));
+  if (!logoImage.isNull()) {
     const int line_height = version_label->fontMetrics().height();
     const int logo_height = std::max(line_height * 2, 24);
-    product_image_ = std::make_unique<QImage>(svgImage.scaledToHeight(
+    product_image_ = std::make_unique<QImage>(logoImage.scaledToHeight(
         logo_height, Qt::SmoothTransformation));
     // Reserve row 0 height so version_label sits below the logo, not under it.
     gridLayout->setRowMinimumHeight(0, logo_height + 8);
