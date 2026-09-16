@@ -54,7 +54,50 @@ std::optional<UpdateOffer> ProbeForUpdate(bool include_unstable) {
   return offer;
 }
 
-bool DownloadAndOpen(const UpdateOffer& offer) {
+enum class InstallOutcome {
+  kSuccess,
+  kDownloadFailed,
+  kInstallFailed,
+  // The user dismissed the administrator-password prompt. Not a failure
+  // worth alarming anyone about -- they can retry from Preferences whenever.
+  kUserCancelled,
+};
+
+// Runs the downloaded .pkg via /usr/sbin/installer under one administrator-
+// password prompt, synchronously. |dest| must already be known-safe to embed
+// in a shell command: only the fixed profile directory plus a
+// isalnum/./-/_-sanitized tag, see DownloadAndInstall below.
+bool RunInstallerWithAdminPrivileges(const std::string& dest,
+                                     bool* user_cancelled) {
+  *user_cancelled = false;
+  NSString* pkg_path = [NSString stringWithUTF8String:dest.c_str()];
+  NSString* shell_command = [NSString
+      stringWithFormat:@"/usr/sbin/installer -pkg '%@' -target /", pkg_path];
+  NSString* script_source =
+      [NSString stringWithFormat:@"do shell script \"%@\" with "
+                                  "administrator privileges",
+                                 shell_command];
+  NSAppleScript* script = [[NSAppleScript alloc] initWithSource:script_source];
+  NSDictionary* error_info = nil;
+  [script executeAndReturnError:&error_info];
+  if (error_info == nil) {
+    return true;
+  }
+  NSNumber* error_number = error_info[NSAppleScriptErrorNumber];
+  // -128 is userCanceledErr.
+  if (error_number != nil && [error_number intValue] == -128) {
+    *user_cancelled = true;
+    return false;
+  }
+  LOG(ERROR) << "Installer run failed: " << [[error_info description] UTF8String];
+  return false;
+}
+
+// Downloads the update and runs it to completion under one administrator
+// prompt -- unlike opening Installer.app and hoping the user finishes its
+// separate GUI wizard, this either genuinely installs the update or reports
+// why it didn't; there is no way for it to silently go nowhere.
+InstallOutcome DownloadAndInstall(const UpdateOffer& offer) {
   std::string safe_tag = offer.tag_name;
   for (char& c : safe_tag) {
     if (!(std::isalnum(static_cast<unsigned char>(c)) || c == '.' || c == '-' ||
@@ -66,16 +109,21 @@ bool DownloadAndOpen(const UpdateOffer& offer) {
       SystemUtil::GetUserProfileDirectory(),
       absl::StrCat("marinaMoji-update-", safe_tag, ".pkg"));
   if (!MarinaCurlDownload(offer.pkg_url, dest).ok()) {
-    return false;
+    return InstallOutcome::kDownloadFailed;
   }
+  const FileUnlinker cleanup(dest);
   if (!offer.pkg_sha256.empty() &&
       MarinaSha256OfFile(dest) != offer.pkg_sha256) {
     LOG(ERROR) << "Downloaded update package digest mismatch for "
                << offer.tag_name;
-    FileUtil::UnlinkOrLogError(dest);
-    return false;
+    return InstallOutcome::kDownloadFailed;
   }
-  return MarinaOpenLocalPath(dest);
+  bool user_cancelled = false;
+  if (!RunInstallerWithAdminPrivileges(dest, &user_cancelled)) {
+    return user_cancelled ? InstallOutcome::kUserCancelled
+                          : InstallOutcome::kInstallFailed;
+  }
+  return InstallOutcome::kSuccess;
 }
 
 // Registers the headless update-helper LaunchDaemon with SMAppService, which
@@ -136,7 +184,8 @@ void PresentUpdateOfferOnMainThread(UpdateOffer offer) {
   alert.messageText = @"marinaMoji update available";
   alert.informativeText = [NSString
       stringWithFormat:@"A newer release is available: %s\n\n"
-                        "Download the notarized installer and open it now?",
+                        "Download and install it now? You'll be asked for "
+                        "your password once.",
                        offer.tag_name.c_str()];
   if (!offer.pkg_url.empty()) {
     [alert addButtonWithTitle:@"Download & Install…"];
@@ -146,16 +195,42 @@ void PresentUpdateOfferOnMainThread(UpdateOffer offer) {
 
   const NSModalResponse response = [alert runModal];
   if (!offer.pkg_url.empty() && response == NSAlertFirstButtonReturn) {
-    if (!DownloadAndOpen(offer)) {
-      NSAlert* err = [[NSAlert alloc] init];
-      err.messageText = @"Update download failed";
-      err.informativeText =
-          @"Could not download or open the installer. Try again from "
-          "Preferences → Misc → Check for updates…";
-      [err runModal];
-      return;
-    }
+    // Offer the silent-update consent BEFORE installing, not after: it
+    // registers a LaunchDaemon plist that lives inside this same app
+    // bundle, and registration asks smd/BTM to vouch for the on-disk bundle
+    // matching this running process. installer -target / overwrites that
+    // bundle in place; asking afterward means the process making the
+    // request and the files it is being validated against have already
+    // diverged, and smd/BTM reliably fails the registration as a result
+    // (BTMErrorDomain -95 "record not found"). Asking first keeps them
+    // consistent.
     MaybeOfferSilentAutoUpdate();
+    switch (DownloadAndInstall(offer)) {
+      case InstallOutcome::kSuccess:
+        break;
+      case InstallOutcome::kUserCancelled:
+        // They backed out of the password prompt; nothing went wrong, so
+        // stay quiet. Preferences → Misc → Check for updates… retries later.
+        break;
+      case InstallOutcome::kDownloadFailed: {
+        NSAlert* err = [[NSAlert alloc] init];
+        err.messageText = @"Update download failed";
+        err.informativeText =
+            @"Could not download the installer. Try again from "
+            "Preferences → Misc → Check for updates…";
+        [err runModal];
+        break;
+      }
+      case InstallOutcome::kInstallFailed: {
+        NSAlert* err = [[NSAlert alloc] init];
+        err.messageText = @"Update install failed";
+        err.informativeText =
+            @"The installer did not complete successfully. Try again from "
+            "Preferences → Misc → Check for updates…";
+        [err runModal];
+        break;
+      }
+    }
     return;
   }
 
