@@ -1,6 +1,11 @@
 #!/bin/bash
 # Remove marinaMoji from the system: app bundle, LaunchAgents, TIS registration,
-# and org.mozc entries in HIToolbox / inputsources plists.
+# package receipt, leftover Desktop copies, and org.mozc entries in HIToolbox /
+# inputsources plists.
+#
+# The IME app is deleted (never moved to Desktop). Moving it left PackageKit
+# "relocating" later .pkg installs to the backup path, so /Library/Input Methods
+# stayed empty.
 #
 # Use standalone before re-install, or via reset_hitoolbox_for_marinamoji.sh --full.
 set -euo pipefail
@@ -39,7 +44,9 @@ app_present() {
 echo "=== Scrub marinaMoji from system (${STAMP}) ==="
 echo
 echo "This will DELETE:"
-echo "  • /Library/Input Methods/marinaMoji.app"
+echo "  • /Library/Input Methods/marinaMoji.app (not moved — deleted)"
+echo "  • leftover marinaMoji.app copies (Desktop backups, mdfind hits)"
+echo "  • package receipt org.mozc.pkg.JapaneseInput (so .pkg reinstall works)"
 echo "  • org.mozc LaunchAgents (system + user)"
 echo "  • org.mozc rows in HIToolbox / inputsources plists"
 echo "  • TIS registration for org.mozc.inputmethod.Japanese (disable + delete app + scrub plists)"
@@ -123,34 +130,55 @@ SWIFT
   echo "  disabled ${found} org.mozc source(s) (macOS has no TISUnregister API — app removal + plist scrub does the rest)"
 }
 
+forget_package_receipt() {
+  # Leaving the receipt after deleting the app makes PackageKit treat any leftover
+  # copy (e.g. an old Desktop backup) as a "relocation" and reinstall there instead
+  # of into /Library/Input Methods/.
+  if pkgutil --pkgs 2>/dev/null | grep -qx 'org.mozc.pkg.JapaneseInput'; then
+    echo "  forgetting package receipt org.mozc.pkg.JapaneseInput (sudo)"
+    sudo pkgutil --forget org.mozc.pkg.JapaneseInput
+  fi
+}
+
 remove_app_bundle() {
-  local path backup
+  local path
   for path in \
     "${APP_DST}" \
     "/Applications/marinaMoji" \
     "/Applications/marinaMoji.app" \
     "/Applications/UninstallmarinaMoji.app"; do
     if [[ -e "${path}" ]]; then
-      if [[ "${path}" == "${APP_DST}" ]]; then
-        backup="${DESKTOP}/marinaMoji.app.removed.${STAMP}"
-        echo "  moving ${path} → ${backup} (sudo)"
-        sudo mv "${path}" "${backup}"
-        "${LSREGISTER}" -u "${backup}" 2>/dev/null || true
-      else
-        echo "  removing ${path} (sudo)"
-        sudo rm -rf "${path}"
-      fi
+      echo "  removing ${path} (sudo)"
+      "${LSREGISTER}" -u "${path}" 2>/dev/null || true
+      sudo rm -rf "${path}"
     fi
   done
-  # Leftover partial-reset copies on Desktop must not sit in Input Methods paths only;
-  # also unregister any mdfind hits outside expected install dir.
+
+  # Old scrub moved the IME to Desktop instead of deleting it. Those backups make
+  # PackageKit relocate future .pkg installs away from /Library/Input Methods/.
+  # Delete them (and any other on-disk copies) so reinstall works.
   while IFS= read -r extra; do
     [[ -z "${extra}" ]] && continue
     [[ "${extra}" == "${APP_DST}" ]] && continue
-    [[ "${extra}" == "${DESKTOP}/"* ]] && continue
-    echo "  extra bundle found: ${extra}"
+    echo "  removing leftover bundle ${extra} (sudo)"
     "${LSREGISTER}" -u "${extra}" 2>/dev/null || true
+    sudo rm -rf "${extra}"
   done < <(mdfind 'kMDItemCFBundleIdentifier == "org.mozc.inputmethod.Japanese"' 2>/dev/null || true)
+
+  # Catch Desktop leftovers even if Spotlight has not indexed them yet.
+  local leftover
+  for leftover in \
+    "${DESKTOP}"/marinaMoji.app \
+    "${DESKTOP}"/marinaMoji.app.removed.* \
+    "${DESKTOP}"/marinaMoji.app.disabled \
+    "${DESKTOP}"/marinaMoji.app.disabled.*; do
+    [[ -e "${leftover}" ]] || continue
+    echo "  removing Desktop leftover ${leftover} (sudo)"
+    "${LSREGISTER}" -u "${leftover}" 2>/dev/null || true
+    sudo rm -rf "${leftover}"
+  done
+
+  forget_package_receipt
 }
 
 scrub_mozc_from_plists() {
@@ -262,8 +290,17 @@ verify_clean() {
   local hits
   hits="$(mdfind 'kMDItemCFBundleIdentifier == "org.mozc.inputmethod.Japanese"' 2>/dev/null | wc -l | tr -d ' ')"
   if [[ "${hits}" != "0" ]]; then
-    echo "  WARN: mdfind still finds ${hits} bundle(s) (may be Desktop backups — OK if not in Input Methods):"
+    echo "  FAIL: mdfind still finds ${hits} leftover bundle(s) — delete them or PackageKit may relocate the next install:"
     mdfind 'kMDItemCFBundleIdentifier == "org.mozc.inputmethod.Japanese"' 2>/dev/null || true
+    errors=$((errors + 1))
+  else
+    echo "  OK: no leftover marinaMoji bundles on disk"
+  fi
+  if pkgutil --pkgs 2>/dev/null | grep -qx 'org.mozc.pkg.JapaneseInput'; then
+    echo "  FAIL: package receipt org.mozc.pkg.JapaneseInput still present"
+    errors=$((errors + 1))
+  else
+    echo "  OK: no org.mozc.pkg.JapaneseInput receipt"
   fi
   return "${errors}"
 }
@@ -287,4 +324,5 @@ fi
 
 echo
 echo "marinaMoji scrubbed. Input Methods folder should not contain marinaMoji.app."
+echo "Reinstall the .pkg when ready — PackageKit should write to /Library/Input Methods/."
 echo "After a full reset: log out/in, then bash ./mac/post_reset_marinamoji.sh"
