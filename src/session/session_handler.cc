@@ -123,6 +123,21 @@ bool IsApplicationAlive(const session::Session* session) {
 #endif  // MOZC_DISABLE_SESSION_WATCHDOG
   return true;
 }
+
+// The shin/kyu tables map some characters to IVS sequences (a base character
+// plus a variation selector), which EnvironmentalFilterRewriter strips unless
+// the request declares IVS_CHARACTER as renderable. No client sets this, so
+// declare it for every client here.
+std::shared_ptr<const commands::Request> WithIvsRenderable(
+    commands::Request request) {
+  const auto& groups = request.additional_renderable_character_groups();
+  if (std::find(groups.begin(), groups.end(),
+                commands::Request::IVS_CHARACTER) == groups.end()) {
+    request.add_additional_renderable_character_groups(
+        commands::Request::IVS_CHARACTER);
+  }
+  return std::make_shared<const commands::Request>(std::move(request));
+}
 }  // namespace
 
 SessionHandler::SessionHandler(std::unique_ptr<EngineInterface> engine)
@@ -133,7 +148,7 @@ SessionHandler::SessionHandler(std::unique_ptr<EngineInterface> engine)
   last_cleanup_time_ = absl::InfinitePast();
   last_create_session_time_ = absl::InfinitePast();
   table_manager_ = std::make_unique<composer::TableManager>();
-  request_ = std::make_shared<commands::Request>();
+  request_ = WithIvsRenderable(commands::Request());
   config_ = config::ConfigHandler::GetSharedConfig();
   key_map_manager_ = std::make_shared<keymap::KeyMapManager>(*config_);
 
@@ -190,7 +205,7 @@ void SessionHandler::UpdateSessions(
   }
 
   if (request) {
-    request_ = std::move(request);
+    request_ = WithIvsRenderable(*request);
   }
 
   if (is_key_manager_updated) {

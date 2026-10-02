@@ -148,23 +148,26 @@ TEST_F(OpenccRewriterTest, ExpandsOneToManyVariants) {
   }
 }
 
-// 丈, 冴, 刃 and 棚 have no distinct kyujitai codepoint. They used to map to an
-// invisible IVS sequence, which EnvironmentalFilterRewriter then erased,
-// making 大丈夫 disappear from the candidate window entirely (issue #7).
-TEST_F(OpenccRewriterTest, NoIvsSequencesInOutput) {
+// 刃 maps to 刃 plus a variation selector (an IVS sequence). It used to be
+// erased by EnvironmentalFilterRewriter, making words disappear from the
+// candidate window (issue #7). The filter now strips unrenderable selectors,
+// or keeps them when the client declares IVS_CHARACTER, so the rewriter must
+// always leave a candidate whose base characters are intact.
+TEST_F(OpenccRewriterTest, IvsOutputKeepsBaseCharacters) {
   for (const absl::string_view value : {"大丈夫", "丈夫", "冴", "刃", "棚"}) {
     Segments segments;
     AddSegment("か", "か", value, value, &segments);
 
     rewriter_.Rewrite(MakeRequest(true), &segments);
     const Segment& seg = segments.conversion_segment(0);
+    EXPECT_GT(seg.candidates_size(), 0) << value;
     for (size_t i = 0; i < seg.candidates_size(); ++i) {
-      const std::u32string codepoints =
-          Util::Utf8ToUtf32(seg.candidate(i).value);
-      for (const char32_t c : codepoints) {
-        EXPECT_FALSE(0xE0100 <= c && c <= 0xE01EF)
-            << "IVS codepoint in candidate for " << value;
-      }
+      std::u32string codepoints = Util::Utf8ToUtf32(seg.candidate(i).value);
+      std::erase_if(codepoints, [](const char32_t c) {
+        return 0xE0100 <= c && c <= 0xE01EF;
+      });
+      EXPECT_EQ(Util::Utf32ToUtf8(codepoints), value)
+          << "base characters changed for " << value;
     }
   }
 }
