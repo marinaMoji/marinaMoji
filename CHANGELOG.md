@@ -8,6 +8,42 @@ that touch more than one file or aren't obvious from a commit subject line.
 Format: newest entry first, grouped by date. Each entry should say what
 changed and, where it isn't obvious, why.
 
+## Unreleased
+
+### Kyūjitai mode: IVS glyph variants (two-dot 辶 etc.) are now shown (2026-10-02)
+
+The shin/kyū tables carry glyph variants that have no codepoint of their own,
+written as a base character plus an Adobe-Japan1 variation selector
+(送 → U+9001 U+E0101): 刃 and the shinnyō (辶) set — 追 送 逐 導 巡 込 迅 迎 近 返
+述 途 通 逝 速 造 逮 週 進 遂 遇 遊 運 遍 過 道 達 違 遠 遣 適 遭 遮 遵 遷 選 遺 避 還
+and a few more. `EnvironmentalFilterRewriter` strips such selectors unless the
+client declares `IVS_CHARACTER` in `Request.additional_renderable_character_groups`,
+and no client does, so users only ever saw the plain character.
+
+`SessionHandler` now adds `IVS_CHARACTER` to the default request and to every
+request a client sets, so it applies on all platforms without per-client
+code. This reverses the "deliberately not done here" note in the issue #7
+entry below. Checked on Linux (ibus): 送る通道 commits with U+E0101 and the
+font draws the two-dot form. macOS and Windows have not been checked yet; a
+font without IVS glyphs falls back to the plain character, but an
+application that cannot handle the selector may show a box or a stray mark.
+
+`OpenccRewriterTest.NoIvsSequencesInOutput` (a guard that no candidate ever
+carries an IVS) asserted the opposite of this, and is replaced by
+`IvsOutputKeepsBaseCharacters`: a candidate may carry the selector, but its
+base characters must be unchanged and it must never come out empty.
+`EnvironmentalFilterRewriter`'s own tests still cover the stripping path for a
+client that does not declare `IVS_CHARACTER`.
+
+Also: the committed `marinaShin2KyuVariants.ocd2` had gone stale — table
+commits changed `marinaShin2KyuVariants.txt` without recompiling and
+committing the `.ocd2`, so the dictionary shipped missing entries (415 instead
+of 422, then 463 after the shinnyō additions). Recompiled with
+`src/regen_opencc.sh`. After editing a CSV, commit the `.txt` *and* `.ocd2`
+files it regenerates. Note `import_opencc_tables.sh` overwrites the local
+CSVs from `character_conversion`; edit the CSVs there, or use
+`regen_opencc.sh` for a local-only edit.
+
 ## v0.0.6
 
 ### macOS: fix Linux CI build (Qt 6.5+ API on Ubuntu's older Qt6) (2026-09-16)
