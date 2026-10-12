@@ -69,15 +69,7 @@ using mozc::renderer::mac::MacViewUtil;
 - (id)initWithFrame:(NSRect)frame {
   self = [super initWithFrame:frame];
   if (self) {
-    RendererStyle *style = new (std::nothrow) RendererStyle;
-    if (style) {
-      RendererStyleHandler::GetRendererStyle(style);
-    }
-    style_ = style;
-  }
-
-  if (!style_) {
-    self = nil;
+    style_ = RendererStyleHandler::GetRendererStyle();
   }
   return self;
 }
@@ -91,15 +83,15 @@ using mozc::renderer::mac::MacViewUtil;
 }
 
 - (CGFloat)cornerRadius {
-  if (style_ && style_->has_corner_radius()) {
-    return static_cast<CGFloat>(style_->corner_radius());
+  if (style_.has_corner_radius()) {
+    return static_cast<CGFloat>(style_.corner_radius());
   }
   return 10.0;
 }
 
 - (NSColor *)panelBackgroundColor {
-  if (style_ && style_->has_window_background_color()) {
-    return MacViewUtil::ToNSColor(style_->window_background_color());
+  if (style_.has_window_background_color()) {
+    return MacViewUtil::ToNSColor(style_.window_background_color());
   }
   return [NSColor whiteColor];
 }
@@ -112,13 +104,10 @@ using mozc::renderer::mac::MacViewUtil;
 }
 
 - (void)reloadStyle {
-  if (style_ == nullptr) {
-    return;
-  }
 #ifdef __APPLE__
   mozc::config::ConfigHandler::Reload();
 #endif  // __APPLE__
-  RendererStyleHandler::GetRendererStyle(style_);
+  style_ = RendererStyleHandler::GetRendererStyle();
   [self applyViewChrome];
 }
 
@@ -130,7 +119,7 @@ using mozc::renderer::mac::MacViewUtil;
 
 #pragma mark drawing
 - (CGFloat)drawRow:(int)row ypos:(CGFloat)ypos draw_flag:(bool)draw_flag {
-  const RendererStyle::InfolistStyle &infostyle = style_->infolist_style();
+  const RendererStyle::InfolistStyle &infostyle = style_.infolist_style();
   const InformationList &usages = candidate_window_.usages();
   const RendererStyle::TextStyle &title_style = infostyle.title_style();
   const RendererStyle::TextStyle &desc_style = infostyle.description_style();
@@ -206,7 +195,7 @@ using mozc::renderer::mac::MacViewUtil;
     return NSMakeSize(0, 0);
   }
 
-  const RendererStyle::InfolistStyle &infostyle = style_->infolist_style();
+  const RendererStyle::InfolistStyle &infostyle = style_.infolist_style();
   const InformationList &usages = candidate_window_.usages();
 
   int ypos = infostyle.window_border();

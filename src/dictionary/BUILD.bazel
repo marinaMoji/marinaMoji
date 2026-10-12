@@ -163,37 +163,37 @@ mozc_cc_library(
         ":dictionary_interface",
         ":dictionary_token",
         ":pos_matcher",
-        ":user_dictionary_importer",
         ":user_dictionary_storage",
         ":user_dictionary_util",
         ":user_pos",
+        "//base:bits",
+        "//base:file_stream",
         "//base:file_util",
         "//base:hash",
         "//base:thread",
         "//base:vlog",
+        "//base/container:serialized_string_array",
+        "//base/protobuf:coded_stream",
+        "//base/protobuf:wire_format_lite",
+        "//base/protobuf:zero_copy_stream_impl",
         "//base/strings:assign",
         "//base/strings:japanese",
         "//base/strings:unicode",
-        "//protocol:config_cc_proto",
         "//protocol:user_dictionary_storage_cc_proto",
         "//request:conversion_request",
-        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/hash",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/synchronization",
     ],
 )
 
 mozc_cc_test(
     name = "user_dictionary_test",
-    # The size is "large" because AsyncImportTest takes long time.
-    # https://github.com/google/mozc/issues/1418
-    size = "large",
+    size = "small",
     srcs = [
         "user_dictionary_test.cc",
     ],
@@ -205,12 +205,9 @@ mozc_cc_test(
         ":pos_matcher",
         ":user_dictionary",
         ":user_dictionary_storage",
-        ":user_dictionary_util",
         ":user_pos",
         "//base:file_util",
         "//base:random",
-        "//base:system_util",
-        "//base:thread",
         "//base/container:tuple",
         "//base/file:temp_dir",
         "//data_manager/testing:mock_data_manager",
@@ -220,6 +217,7 @@ mozc_cc_test(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/time",
     ],
 )
 
@@ -556,7 +554,6 @@ mozc_cc_test(
         "//data_manager/testing:mock_data_manager",
         "//testing:gunit_main",
         "@com_google_absl//absl/algorithm:container",
-        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -612,6 +609,69 @@ mozc_cc_library(
     deps = [
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/types:span",
+    ],
+)
+
+mozc_cc_library(
+    name = "pos_id_map",
+    srcs = ["pos_id_map.cc"],
+    hdrs = ["pos_id_map.h"],
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_test(
+    name = "pos_id_map_test",
+    size = "small",
+    srcs = ["pos_id_map_test.cc"],
+    data = [
+        "//data_manager/testing:mozc_dataset_for_testing@pos_id_map",
+    ],
+    deps = [
+        ":pos_id_map",
+        "//testing:gunit",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_library(
+    name = "pos_pattern_matcher",
+    srcs = ["pos_pattern_matcher.cc"],
+    hdrs = ["pos_pattern_matcher.h"],
+    visibility = ["//:__subpackages__"],
+    deps = [
+        ":pos_id_map",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+mozc_cc_test(
+    name = "pos_pattern_matcher_test",
+    size = "small",
+    srcs = ["pos_pattern_matcher_test.cc"],
+    deps = [
+        ":pos_id_map",
+        ":pos_pattern_matcher",
+        "//data_manager/testing:mock_data_manager",
+        "//testing:gunit",
+        "//testing:gunit_main",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+mozc_py_binary(
+    name = "gen_pos_id_map",
+    srcs = ["gen_pos_id_map.py"],
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@abseil-py//absl:app",
+        "@abseil-py//absl/flags",
     ],
 )
 

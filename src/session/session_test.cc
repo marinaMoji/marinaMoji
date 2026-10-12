@@ -39,6 +39,7 @@
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
@@ -10876,6 +10877,312 @@ TEST_F(SessionTest, LeftShiftDoubleTapLocksWithWindowsClientKeyShape) {
   clock->Advance(absl::Milliseconds(120));
   tap(&session, &command);
   EXPECT_TRUE(peer.left_shift_mode_lock_());
+}
+
+namespace {
+Segments CreateMultiSegmentTestData() {
+  Segments segments;
+
+  Segment* seg0 = segments.add_segment();
+  seg0->set_key("わたしの");
+  converter::Candidate* cand0_0 = seg0->add_candidate();
+  cand0_0->value = "私の";
+  cand0_0->key = "わたしの";
+  cand0_0->content_key = "わたしの";
+  cand0_0->converted_segment_count = 1;
+  converter::Candidate* cand0_1 = seg0->add_candidate();
+  cand0_1->value = "私の名前は";
+  cand0_1->key = "わたしのなまえは";
+  cand0_1->content_key = "わたしのなまえは";
+  cand0_1->converted_segment_count = 2;
+
+  Segment* seg1 = segments.add_segment();
+  seg1->set_key("なまえは");
+  converter::Candidate* cand1_0 = seg1->add_candidate();
+  cand1_0->value = "名前は";
+  cand1_0->key = "なまえは";
+  cand1_0->content_key = "なまえは";
+  cand1_0->converted_segment_count = 1;
+
+  Segment* seg2 = segments.add_segment();
+  seg2->set_key("なかのです");
+  converter::Candidate* cand2_0 = seg2->add_candidate();
+  cand2_0->value = "中野です";
+  cand2_0->key = "なかのです";
+  cand2_0->content_key = "なかのです";
+  cand2_0->converted_segment_count = 1;
+
+  return segments;
+}
+}  // namespace
+
+TEST_F(SessionTest, MultiSegmentSelectionFocusRightAndLeft) {
+  MockEngine engine;
+  auto converter = CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  commands::Command command;
+  InsertCharacterChars("watasinonamaehanakanodesu", &session, &command);
+
+  Segments segments = CreateMultiSegmentTestData();
+  EXPECT_CALL(*converter, StartConversion(_, _))
+      .WillOnce(DoAll(SetArgPointee<1>(segments), Return(true)));
+  EXPECT_CALL(*converter, FocusSegmentValue(_, _, _))
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(*converter, CommitSegmentValue(_, _, _))
+      .WillRepeatedly([](Segments* segs, size_t seg_idx, int cand_idx) {
+        if (seg_idx < segs->conversion_segments_size()) {
+          segs->mutable_conversion_segment(seg_idx)->move_candidate(cand_idx,
+                                                                    0);
+        }
+        return true;
+      });
+  EXPECT_CALL(*converter, FinishConversion(_, _)).Times(::testing::AtLeast(1));
+
+  command.Clear();
+  session.Convert(&command);
+  ASSERT_TRUE(command.output().has_preedit());
+
+  // Select "私の名前は" (candidate 1 on segment 0).
+  command.Clear();
+  session.ConvertNext(&command);
+  ASSERT_TRUE(command.output().has_preedit());
+  ASSERT_GT(command.output().preedit().segment_size(), 0);
+  ASSERT_EQ(command.output().preedit().segment(0).value(), "私の名前は");
+
+  // Preedit: [私の名前は] 中野です
+  const size_t segment_count = command.output().preedit().segment_size();
+  EXPECT_GE(segment_count, 2);
+
+  // Focus right -> moves to next segment ("中野です").
+  command.Clear();
+  session.SegmentFocusRight(&command);
+  EXPECT_EQ(command.output().preedit().segment_size(), segment_count);
+  EXPECT_EQ(command.output().preedit().segment(0).value(), "私の名前は");
+
+  // Focus left -> moves back to "私の名前は".
+  command.Clear();
+  session.SegmentFocusLeft(&command);
+  // Preedit should remain: [私の名前は] 中野です ("中野です" must NOT
+  // disappear)
+  EXPECT_EQ(command.output().preedit().segment_size(), segment_count);
+  EXPECT_EQ(command.output().preedit().segment(0).value(), "私の名前は");
+  for (size_t i = 1; i < segment_count; ++i) {
+    EXPECT_FALSE(command.output().preedit().segment(i).value().empty());
+  }
+
+  // Change candidate on segment 0 back to a single-segment candidate.
+  // "名前は" must NOT disappear from preedit.
+  command.Clear();
+  session.ConvertNext(&command);
+  ASSERT_TRUE(command.output().has_preedit());
+  EXPECT_GT(command.output().preedit().segment_size(), segment_count);
+  EXPECT_NE(command.output().preedit().segment(0).value(), "私の名前は");
+
+  std::string full_preedit;
+  for (int i = 0; i < command.output().preedit().segment_size(); ++i) {
+    full_preedit += command.output().preedit().segment(i).value();
+  }
+  EXPECT_TRUE(absl::StrContains(full_preedit, "名前は") ||
+              absl::StrContains(full_preedit, "なまえは"));
+  EXPECT_TRUE(absl::StrContains(full_preedit, "中野") ||
+              absl::StrContains(full_preedit, "中ノ") ||
+              absl::StrContains(full_preedit, "なか"));
+
+  // Cycle back to "私の名前は" and commit.
+  command.Clear();
+  session.ConvertNext(&command);
+  ASSERT_TRUE(command.output().has_preedit());
+  ASSERT_EQ(command.output().preedit().segment(0).value(), "私の名前は");
+
+  // Commit the conversion.
+  command.Clear();
+  session.Commit(&command);
+  ASSERT_TRUE(command.output().has_result());
+  EXPECT_TRUE(
+      absl::StartsWith(command.output().result().value(), "私の名前は"));
+}
+
+TEST_F(SessionTest, MultiSegmentSelectionCommitDirect) {
+  MockEngine engine;
+  auto converter = CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  commands::Command command;
+  InsertCharacterChars("watasinonamaehanakanodesu", &session, &command);
+
+  Segments segments = CreateMultiSegmentTestData();
+  EXPECT_CALL(*converter, StartConversion(_, _))
+      .WillOnce(DoAll(SetArgPointee<1>(segments), Return(true)));
+  EXPECT_CALL(*converter, FocusSegmentValue(_, _, _))
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(*converter, CommitSegmentValue(_, _, _))
+      .WillRepeatedly([](Segments* segs, size_t seg_idx, int cand_idx) {
+        if (seg_idx < segs->conversion_segments_size()) {
+          segs->mutable_conversion_segment(seg_idx)->move_candidate(cand_idx,
+                                                                    0);
+        }
+        return true;
+      });
+  EXPECT_CALL(*converter, FinishConversion(_, _)).Times(::testing::AtLeast(1));
+
+  command.Clear();
+  session.Convert(&command);
+  ASSERT_TRUE(command.output().has_preedit());
+
+  // Select "私の名前は"
+  command.Clear();
+  session.ConvertNext(&command);
+  ASSERT_TRUE(command.output().has_preedit());
+  ASSERT_EQ(command.output().preedit().segment(0).value(), "私の名前は");
+
+  // Commit directly without moving focus.
+  command.Clear();
+  session.Commit(&command);
+  ASSERT_TRUE(command.output().has_result());
+  EXPECT_TRUE(
+      absl::StartsWith(command.output().result().value(), "私の名前は"));
+}
+
+TEST_F(SessionTest, MultiSegmentSelectionCancel) {
+  MockEngine engine;
+  auto converter = CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  commands::Command command;
+  InsertCharacterChars("watasinonamaehanakanodesu", &session, &command);
+
+  Segments segments = CreateMultiSegmentTestData();
+  EXPECT_CALL(*converter, StartConversion(_, _))
+      .WillOnce(DoAll(SetArgPointee<1>(segments), Return(true)));
+  EXPECT_CALL(*converter, FocusSegmentValue(_, _, _))
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(*converter, CommitSegmentValue(_, _, _))
+      .WillRepeatedly([](Segments* segs, size_t seg_idx, int cand_idx) {
+        if (seg_idx < segs->conversion_segments_size()) {
+          segs->mutable_conversion_segment(seg_idx)->move_candidate(cand_idx,
+                                                                    0);
+        }
+        return true;
+      });
+  EXPECT_CALL(*converter, CancelConversion(_)).Times(::testing::AtLeast(1));
+
+  command.Clear();
+  session.Convert(&command);
+  ASSERT_TRUE(command.output().has_preedit());
+
+  // Select "私の名前は"
+  command.Clear();
+  session.ConvertNext(&command);
+  ASSERT_TRUE(command.output().has_preedit());
+  ASSERT_EQ(command.output().preedit().segment(0).value(), "私の名前は");
+
+  // Focus right
+  command.Clear();
+  session.SegmentFocusRight(&command);
+
+  // Cancel conversion -> returns to composition/preedit.
+  command.Clear();
+  session.ConvertCancel(&command);
+  ASSERT_TRUE(command.output().has_preedit());
+  EXPECT_EQ(command.output().preedit().segment_size(), 1);
+  EXPECT_EQ(command.output().preedit().segment(0).value(),
+            "わたしのなまえはなかのです");
+}
+
+TEST_F(SessionTest, MultiSegmentSubmitCandidate) {
+  MockEngine engine;
+  auto converter = CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  commands::Command command;
+  InsertCharacterChars("kokodehakimonowonugu", &session, &command);
+
+  Segments segments;
+  {
+    Segment* seg0 = segments.add_segment();
+    seg0->set_key("ここでは");
+    converter::Candidate* cand0_0 = seg0->add_candidate();
+    cand0_0->value = "ここでは";
+    cand0_0->key = "ここでは";
+    cand0_0->content_key = "ここでは";
+    cand0_0->converted_segment_count = 1;
+    converter::Candidate* cand0_1 = seg0->add_candidate();
+    cand0_1->value = "ここで履物を";
+    cand0_1->key = "ここではきものを";
+    cand0_1->content_key = "ここではきものを";
+    cand0_1->converted_segment_count = 2;
+
+    Segment* seg1 = segments.add_segment();
+    seg1->set_key("きものを");
+    converter::Candidate* cand1_0 = seg1->add_candidate();
+    cand1_0->value = "着物を";
+    cand1_0->key = "きものを";
+    cand1_0->content_key = "きものを";
+    cand1_0->converted_segment_count = 1;
+
+    Segment* seg2 = segments.add_segment();
+    seg2->set_key("ぬぐ");
+    converter::Candidate* cand2_0 = seg2->add_candidate();
+    cand2_0->value = "脱ぐ";
+    cand2_0->key = "ぬぐ";
+    cand2_0->content_key = "ぬぐ";
+    cand2_0->converted_segment_count = 1;
+  }
+
+  EXPECT_CALL(*converter, StartConversion(_, _))
+      .WillOnce(DoAll(SetArgPointee<1>(segments), Return(true)));
+  EXPECT_CALL(*converter, FocusSegmentValue(_, _, _))
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(*converter, CommitSegments(_, _))
+      .WillOnce([](Segments* segs, const auto& candidate_ids) {
+        EXPECT_EQ(candidate_ids.size(), 1);
+        EXPECT_EQ(candidate_ids[0], 1);
+        Segment* seg0 = segs->mutable_conversion_segment(0);
+        seg0->move_candidate(1, 0);
+        seg0->set_segment_type(Segment::SUBMITTED);
+        seg0->set_key("ここではきものを");
+        seg0->mutable_candidate(0)->converted_segment_count = 1;
+        segs->erase_segments(segs->history_segments_size(), 1);
+        return true;
+      });
+  EXPECT_CALL(*converter, CommitSegmentValue(_, _, _))
+      .WillRepeatedly([](Segments* segs, size_t seg_idx, int cand_idx) {
+        if (seg_idx < segs->conversion_segments_size()) {
+          segs->mutable_conversion_segment(seg_idx)->move_candidate(cand_idx,
+                                                                    0);
+        }
+        return true;
+      });
+  EXPECT_CALL(*converter, FinishConversion(_, _)).Times(::testing::AtLeast(1));
+
+  command.Clear();
+  session.Convert(&command);
+  ASSERT_TRUE(command.output().has_preedit());
+
+  // Submit multi-segment candidate "ここで履物を" (id 1) via mobile tap.
+  command.Clear();
+  SetSendCommandCommand(commands::SessionCommand::SUBMIT_CANDIDATE, &command);
+  command.mutable_input()->mutable_command()->set_id(1);
+  session.SendCommand(&command);
+
+  // "ここで履物を" is committed, and only "脱ぐ" remains in preedit (NOT
+  // "着物を脱ぐ").
+  ASSERT_TRUE(command.output().has_result());
+  EXPECT_EQ(command.output().result().value(), "ここで履物を");
+  ASSERT_TRUE(command.output().has_preedit());
+  EXPECT_EQ(command.output().preedit().segment_size(), 1);
+  EXPECT_EQ(command.output().preedit().segment(0).value(), "脱ぐ");
+
+  // Commit the remaining segment.
+  command.Clear();
+  session.Commit(&command);
+  ASSERT_TRUE(command.output().has_result());
+  EXPECT_EQ(command.output().result().value(), "脱ぐ");
 }
 
 }  // namespace session

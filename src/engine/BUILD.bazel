@@ -120,6 +120,7 @@ mozc_cc_library(
     testonly = 1,
     hdrs = ["supplemental_model_mock.h"],
     visibility = [
+        "//converter:__pkg__",
         "//prediction:__pkg__",
         "//rewriter:__pkg__",
     ],
@@ -154,6 +155,7 @@ mozc_cc_library(
         "//dictionary:dictionary_interface",
         "//dictionary:dictionary_pack_manifest",
         "//dictionary:pos_group",
+        "//dictionary:pos_id_map",
         "//dictionary:pos_matcher",
         "//dictionary:single_kanji_dictionary",
         "//dictionary:suffix_dictionary",
@@ -184,6 +186,7 @@ mozc_cc_test(
         "//data_manager/testing:mock_data_manager",
         "//dictionary:dictionary_interface",
         "//dictionary:dictionary_mock",
+        "//dictionary:pos_id_map",
         "//dictionary:pos_matcher",
         "//testing:gunit_main",
     ] + mozc_select_enable_supplemental_model([
@@ -214,7 +217,7 @@ mozc_cc_library(
         "//converter:immutable_converter",
         "//converter:immutable_converter_interface",
         "//data_manager",
-        "//dictionary:user_dictionary",
+        "//dictionary:dictionary_interface",
         "//prediction:predictor",
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",
@@ -335,6 +338,7 @@ mozc_cc_library(
     visibility = [
         "//converter:__pkg__",
         "//evaluation:__subpackages__",
+        "//prediction:__pkg__",
     ],
     deps = [
         ":engine",

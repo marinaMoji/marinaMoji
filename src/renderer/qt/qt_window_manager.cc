@@ -34,6 +34,7 @@
 #include <cmath>
 #include <cstddef>
 #include <string>
+#include <utility>
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
@@ -43,6 +44,7 @@
 #include "client/client_interface.h"
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
+#include "protocol/renderer_style.pb.h"
 #include "renderer/renderer_style_handler.h"
 #include "renderer/window_util.h"
 
@@ -57,6 +59,15 @@ constexpr int kColumn0Width = 20;
 constexpr int kColumn3Width = 6;
 // TODO: b/519413639 - This hardcoded value is different from textproto (300).
 constexpr int kInfolistWidth = 520;
+
+// Item data roles of the cells in the candidate rows.
+enum CandidateItemRole {
+  // True when an infolist entry is available for the candidate of the row.
+  // Set only on the cells in the infolist indicator column.
+  kHasInformationRole = Qt::UserRole,
+  // True when the row is focused.
+  kIsFocusedRole,
+};
 
 QString QStr(absl::string_view str) {
   return QString::fromUtf8(str.data(), str.size());
@@ -143,9 +154,68 @@ Rect ContentRect(const QWidget* content) {
 
 }  // namespace
 
-QtWindowManager::QtWindowManager() {
-  RendererStyleHandler::GetRendererStyle(&style_);
+void CandidateTableDelegate::paint(QPainter* painter,
+                                   const QStyleOptionViewItem& option,
+                                   const QModelIndex& index) const {
+  // The footer is the last row of the candidate window.
+  if (index.row() == index.model()->rowCount() - 1) {
+    QRect rect = option.rect;
+
+    // When the window is wider than the sum of the columns (the extra width
+    // reserved for the vertical scroll bar), extend the last cell so that the
+    // footer decorations cover the entire window width, as in the Windows
+    // renderer.
+    if (index.column() == index.model()->columnCount() - 1) {
+      const auto* view = qobject_cast<const QAbstractItemView*>(option.widget);
+      if (view != nullptr) {
+        rect.setRight(view->viewport()->width() - 1);
+      }
+    }
+
+    // Separator lines between the main content area and the footer.
+    for (int i = 0; i < separator_colors_.size(); ++i) {
+      painter->fillRect(QRect(rect.left(), rect.top() + i, rect.width(), 1),
+                        separator_colors_[i]);
+    }
+    rect.adjust(0, separator_colors_.size(), 0, 0);
+
+    // The gradient is anchored to the remaining cell rectangle, which spans
+    // the full height of the footer row.
+    QLinearGradient gradient(rect.topLeft(), rect.bottomLeft());
+    gradient.setColorAt(0, top_);
+    gradient.setColorAt(1, bottom_);
+    painter->fillRect(rect, gradient);
+  }
+  QStyledItemDelegate::paint(painter, option, index);
+
+  // The focused row is surrounded by a 1-pixel frame, as in the Windows
+  // renderer. Each cell draws its own part of the frame.
+  if (index.data(kIsFocusedRole).toBool()) {
+    const QRect& rect = option.rect;
+    painter->fillRect(rect.left(), rect.top(), rect.width(), 1,
+                      focused_border_color_);
+    painter->fillRect(rect.left(), rect.bottom(), rect.width(), 1,
+                      focused_border_color_);
+    if (index.column() == 0) {
+      painter->fillRect(rect.left(), rect.top(), 1, rect.height(),
+                        focused_border_color_);
+    }
+    if (index.column() == index.model()->columnCount() - 1) {
+      painter->fillRect(rect.right(), rect.top(), 1, rect.height(),
+                        focused_border_color_);
+    }
+  }
+
+  // The infolist marker is a vertical bar with margins of 2 pixels on the
+  // top, bottom and right sides of the cell, as in the Windows renderer.
+  if (index.data(kHasInformationRole).toBool()) {
+    painter->fillRect(option.rect.adjusted(0, 2, -2, -2),
+                      infolist_marker_color_);
+  }
 }
+
+QtWindowManager::QtWindowManager()
+    : style_(RendererStyleHandler::GetRendererStyle(color_theme_)) {}
 
 void QtWindowManager::OnClicked(int row, int column) {
   DLOG(INFO) << "OnClicked: (" << row << ", " << column << ")";
@@ -185,8 +255,17 @@ void QtWindowManager::Initialize() {
   candidates_ = new QTableWidget();
   initialize_table(candidates_);
   candidates_frame_ = CreateShadowFrame(candidates_);
+  candidate_delegate_ = new CandidateTableDelegate(candidates_);
+  candidates_->setItemDelegate(candidate_delegate_);
   QObject::connect(candidates_, &QTableWidget::cellClicked,
                    [&](int row, int col) { OnClicked(row, col); });
+
+  // Visual vertical scroll bar overlaid on the right edge of the candidate
+  // window; see UpdateVScrollBar().
+  vscroll_bar_ = new QWidget(candidates_);
+  vscroll_bar_->setAttribute(Qt::WA_TransparentForMouseEvents);
+  vscroll_bar_->hide();
+  vscroll_indicator_ = new QWidget(vscroll_bar_);
 
   infolist_ = new QTableWidget();
   initialize_table(infolist_);
@@ -203,17 +282,116 @@ void QtWindowManager::ApplyStyleToWidgets() {
       QColorFromColor(style_.candidate_style().background_color());
   const QColor foreground =
       QColorFromColor(style_.candidate_style().foreground_color());
+  const QColor border = QColorFromColor(style_.border_color());
+
+  // By default the QTableWidget frame and viewport are drawn by the widget
+  // style from the application palette, which does not necessarily match the
+  // renderer style. Override them with a style sheet. Note that these colors
+  // are deliberately not applied via QWidget::setPalette: palette changes are
+  // not reliably honored on widgets that have a style sheet, which would leave
+  // stale colors behind when the theme changes at runtime.
+  const QString sheet = QString(
+                            "QTableWidget { border: %1px solid %2;"
+                            " background-color: %3; color: %4; }")
+                            .arg(style_.window_border())
+                            .arg(border.name())
+                            .arg(background.name())
+                            .arg(foreground.name());
 
   for (QTableWidget* table : {candidates_, infolist_}) {
     if (table == nullptr) {
       continue;
     }
-    QPalette palette = table->palette();
-    palette.setColor(QPalette::Base, background);
-    palette.setColor(QPalette::Window, background);
-    palette.setColor(QPalette::Text, foreground);
-    palette.setColor(QPalette::WindowText, foreground);
-    table->setPalette(palette);
+    table->setStyleSheet(sheet);
+  }
+
+  if (candidate_delegate_ != nullptr) {
+    candidate_delegate_->SetGradientColors(
+        QColorFromColor(style_.footer_top_color()),
+        QColorFromColor(style_.footer_bottom_color()));
+    QList<QColor> separator_colors;
+    for (const RendererStyle::RGBAColor& color :
+         style_.footer_border_colors()) {
+      separator_colors.append(QColorFromColor(color));
+    }
+    candidate_delegate_->SetSeparatorColors(std::move(separator_colors));
+    candidate_delegate_->SetInfolistMarkerColor(
+        QColorFromColor(style_.scrollbar_indicator_color()));
+    candidate_delegate_->SetFocusedBorderColor(
+        QColorFromColor(style_.focused_border_color()));
+  }
+
+  if (vscroll_bar_ != nullptr) {
+    vscroll_bar_->setStyleSheet(
+        QString("background-color: %1;")
+            .arg(QColorFromColor(style_.scrollbar_background_color()).name()));
+    vscroll_indicator_->setStyleSheet(
+        QString("background-color: %1;")
+            .arg(QColorFromColor(style_.scrollbar_indicator_color()).name()));
+  }
+}
+
+void QtWindowManager::UpdateVScrollBar(
+    const commands::CandidateWindow& candidate_window) {
+  if (vscroll_bar_ == nullptr) {
+    return;
+  }
+  // The scroll bar is shown only when the candidate list consists of more
+  // than one page.
+  if (candidate_window.candidate_size() <= 0 ||
+      candidate_window.candidate_size() >= candidate_window.size()) {
+    vscroll_bar_->hide();
+    return;
+  }
+
+  // The scroll bar covers the right edge of the candidate rows area: inside
+  // the window border and above the footer row.
+  const int border = style_.window_border();
+  const int scrollbar_width = style_.scrollbar_width();
+  const int footer_height = candidates_->rowHeight(candidates_->rowCount() - 1);
+  const int height = candidates_->height() - border * 2 - footer_height;
+  vscroll_bar_->setGeometry(candidates_->width() - border - scrollbar_width,
+                            border, scrollbar_width, height);
+
+  // The indicator represents the range of the currently displayed page in
+  // the whole candidate list, c.f. TableLayout::GetVScrollIndicatorRect().
+  const int begin_index = candidate_window.candidate(0).index();
+  const int end_index =
+      candidate_window.candidate(candidate_window.candidate_size() - 1).index();
+  const float unit = static_cast<float>(height) / candidate_window.size();
+  const float top = unit * begin_index;
+  const float bottom = unit * (end_index + 1);
+  // add 0.5f to round up
+  int rounded_top = static_cast<int>(top + 0.5f);
+  const int rounded_height = std::max(static_cast<int>(bottom - top + 0.5f), 1);
+  if (rounded_top + rounded_height > height) {
+    rounded_top = height - rounded_height;
+  }
+  vscroll_indicator_->setGeometry(0, rounded_top, scrollbar_width,
+                                  rounded_height);
+  vscroll_bar_->show();
+  vscroll_bar_->raise();
+}
+
+void QtWindowManager::SetColorTheme(RendererStyleHandler::ColorTheme theme) {
+  if (theme == color_theme_) {
+    return;
+  }
+  color_theme_ = theme;
+  style_ = RendererStyleHandler::GetRendererStyle(color_theme_);
+  ApplyStyleToWidgets();
+
+  // The table cells still hold the brushes of the previous theme, and they
+  // survive HideAllWindows(). Reset prev_command_ so that the next
+  // UpdateLayout() call takes the full FillCandidateWindow() path instead of
+  // the incremental-highlight path of UpdateCandidateWindow(), even when the
+  // same candidates are rendered again.
+  const commands::RendererCommand last_command = prev_command_;
+  prev_command_.Clear();
+
+  // Repaint the currently visible candidate window with the new colors.
+  if (candidates_ != nullptr && candidates_->isVisible()) {
+    UpdateLayout(last_command);
   }
 }
 
@@ -366,15 +544,23 @@ void FillCandidateHighlight(const commands::CandidateWindow& candidate_window,
     return;
   }
 
-  const bool has_info = candidate_window.candidate(row).has_information_id();
-  const QBrush indicator = QBrushFromColor(style.focused_border_color());
+  // The marker itself is painted by CandidateTableDelegate.
+  table->item(row, 3)->setData(
+      kHasInformationRole,
+      candidate_window.candidate(row).has_information_id());
 
-  if (row == GetFocusedRow(candidate_window)) {
+  // The frame of the focused row is also painted by CandidateTableDelegate.
+  const bool is_focused = (row == GetFocusedRow(candidate_window));
+  for (int column = 0; column < table->columnCount(); ++column) {
+    table->item(row, column)->setData(kIsFocusedRole, is_focused);
+  }
+
+  if (is_focused) {
     const QBrush highlight = QBrushFromColor(style.focused_background_color());
     table->item(row, 0)->setBackground(highlight);
     table->item(row, 1)->setBackground(highlight);
     table->item(row, 2)->setBackground(highlight);
-    table->item(row, 3)->setBackground(has_info ? indicator : highlight);
+    table->item(row, 3)->setBackground(highlight);
     return;
   }
 
@@ -389,7 +575,7 @@ void FillCandidateHighlight(const commands::CandidateWindow& candidate_window,
   }
   table->item(row, 1)->setBackground(background);
   table->item(row, 2)->setBackground(background);
-  table->item(row, 3)->setBackground(has_info ? indicator : background);
+  table->item(row, 3)->setBackground(background);
 }
 
 void FillCandidateWindow(const commands::CandidateWindow& candidate_window,
@@ -411,8 +597,6 @@ void FillCandidateWindow(const commands::CandidateWindow& candidate_window,
       QBrushFromColor(style.candidate_style().foreground_color());
   const QBrush description_brush =
       QBrushFromColor(style.description_style().foreground_color());
-  const QBrush footer_bg_brush = QBrushFromColor(style.footer_bottom_color());
-
   // Fill the candidates
   std::string shortcut, value, description;
   for (size_t i = 0; i < cands_size; ++i) {
@@ -448,25 +632,79 @@ void FillCandidateWindow(const commands::CandidateWindow& candidate_window,
     total_height += height;
   }
 
-  // Footer
+  // Footer. The background is painted by CandidateTableDelegate.
   for (int i = 0; i < table->columnCount(); ++i) {
     auto footer_item = new QTableWidgetItem();
-    footer_item->setBackground(footer_bg_brush);
     table->setItem(cands_size, i, footer_item);
   }
+  // Index guide (e.g. "1/10"), right-aligned in the description column.
+  const std::string index_guide = GetIndexGuideString(candidate_window);
   QTableWidgetItem* footer2 = table->item(cands_size, 2);
-  footer2->setText(QStr(GetIndexGuideString(candidate_window)));
-  footer2->setTextAlignment(Qt::AlignRight);
+  footer2->setText(QStr(index_guide));
+  footer2->setForeground(
+      QBrushFromColor(style.footer_style().foreground_color()));
+  footer2->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
   max_width2 = std::max(max_width2, GetItemWidth(*footer2));
-  const int footer_height = GetItemHeight(*footer2);
+
+  // Footer label (e.g. "Tabキーで選択" in the suggestion mode). The sub label
+  // (e.g. the version number on the dev channel) is shown only when the label
+  // is absent, following the Windows renderer.
+  table->clearSpans();
+  const commands::Footer& footer = candidate_window.footer();
+  const RendererStyle::TextStyle* label_style = nullptr;
+  absl::string_view label_text;
+  if (footer.has_label()) {
+    label_text = footer.label();
+    label_style = &style.footer_style();
+  } else if (footer.has_sub_label()) {
+    label_text = footer.sub_label();
+    label_style = &style.footer_sub_label_style();
+  }
+  if (label_style != nullptr) {
+    QTableWidgetItem* label_item;
+    if (index_guide.empty()) {
+      table->setSpan(cands_size, 0, 1, table->columnCount());
+      label_item = table->item(cands_size, 0);
+    } else {
+      label_item = table->item(cands_size, 1);
+    }
+    label_item->setText(QStr(label_text));
+    label_item->setForeground(QBrushFromColor(label_style->foreground_color()));
+    label_item->setTextAlignment(Qt::AlignCenter);
+
+    // Make sure the window is wide enough to show the whole label.
+    const int label_width = GetItemWidth(*label_item);
+    if (index_guide.empty()) {
+      const int deficit = label_width - (kColumn0Width + max_width1 +
+                                         max_width2 + kColumn3Width);
+      max_width1 += std::max(deficit, 0);
+    } else {
+      max_width1 = std::max(max_width1, label_width);
+    }
+  }
+  // The separator lines drawn by CandidateTableDelegate consume the top
+  // pixels of the footer cell; enlarge the row so that the visible footer
+  // content area keeps its height.
+  const int footer_height =
+      GetItemHeight(*footer2) + style.footer_border_colors_size();
   table->setRowHeight(cands_size, footer_height);
   total_height += footer_height;
 
   // Resize
   table->setColumnWidth(1, max_width1);
   table->setColumnWidth(2, max_width2);
-  const int width = kColumn0Width + max_width1 + max_width2 + kColumn3Width;
-  ResizeContent(table, width, total_height);
+  int width = kColumn0Width + max_width1 + max_width2 + kColumn3Width;
+  // Reserve the width of the vertical scroll bar when the candidate list
+  // consists of more than one page; see QtWindowManager::UpdateVScrollBar().
+  if (static_cast<int>(cands_size) < candidate_window.size()) {
+    width += style.scrollbar_width();
+  }
+  // QWidget::resize() takes the outer size including the frame drawn by the
+  // style sheet (see QtWindowManager::ApplyStyleToWidgets), so add the window
+  // border on each side to keep the viewport large enough for all the rows
+  // and columns. Otherwise the last row and column are clipped by the frame.
+  const int border = style.window_border() * 2;
+  ResizeContent(table, width + border, total_height + border);
 }
 
 class VirtualRect {
@@ -564,6 +802,8 @@ Rect QtWindowManager::UpdateCandidateWindow(
   // Footer index
   candidates_->item(candidates_->rowCount() - 1, 2)
       ->setText(QStr(GetIndexGuideString(candidate_window)));
+
+  UpdateVScrollBar(candidate_window);
 
   candidates_frame_->show();
   prev_command_ = command;

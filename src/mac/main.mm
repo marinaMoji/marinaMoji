@@ -47,7 +47,6 @@
 #include "base/init_mozc.h"
 #include "base/run_level.h"
 #include "client/client.h"
-#include "config/stats_config_util.h"
 
 namespace {
 

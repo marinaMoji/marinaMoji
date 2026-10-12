@@ -31,6 +31,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstring>
 #include <iterator>
 #include <memory>
 #include <string>
@@ -45,6 +46,7 @@
 #include "config/character_form_manager.h"
 #include "converter/attribute.h"
 #include "converter/candidate.h"
+#include "converter/inner_segment.h"
 #include "converter/segments.h"
 #include "converter/segments_matchers.h"
 #include "data_manager/testing/mock_data_manager.h"
@@ -1181,9 +1183,12 @@ void LearnNumberStyle(const ConversionRequest& request,
   rewriter.Finish(request, segments);
 }
 
-TEST_F(NumberRewriterTest, NumberStyleLearningNotEnabled) {
+TEST_F(NumberRewriterTest, NumberStyleLearningNotEnabledInIncognito) {
   std::unique_ptr<NumberRewriter> rewriter(CreateNumberRewriter());
-  const ConversionRequest convreq;
+  commands::Request request;
+  request.set_is_incognito_mode(true);
+  const ConversionRequest convreq =
+      ConversionRequestBuilder().SetRequest(request).Build();
   LearnNumberStyle(convreq, pos_matcher_, *rewriter);
 
   {
@@ -1192,7 +1197,7 @@ TEST_F(NumberRewriterTest, NumberStyleLearningNotEnabled) {
     rewriter->Rewrite(convreq, &new_segments);
     ASSERT_EQ(new_segments.conversion_segments_size(), 1);
     ASSERT_GT(new_segments.conversion_segment(0).candidates_size(), 3);
-    // Learned style should not be applied.
+    // Learned style should not be applied in incognito mode.
     ASSERT_NE(new_segments.conversion_segment(0).candidate(3).value, "2,000");
   }
 }
@@ -1203,6 +1208,7 @@ class NumberStyleLearningTest : public NumberRewriterTest,
 INSTANTIATE_TEST_SUITE_P(
     NumberStyleLearningTestForRequest, NumberStyleLearningTest,
     ::testing::Values(
+        commands::Request(),
         []() {
           commands::Request request;
           request_test_util::FillMobileRequest(&request);
@@ -1340,4 +1346,471 @@ TEST_F(NumberRewriterTest, RewriteMultipleTimes) {
   EXPECT_EQ(seg->candidate(9).value, "014");
   EXPECT_EQ(seg->candidate(10).value, "0b1100");
 }
+
+TEST_F(NumberRewriterTest, NumberStyleLearningExplicitHalfWidth) {
+  std::unique_ptr<NumberRewriter> rewriter(CreateNumberRewriter());
+  config::CharacterFormManager::GetCharacterFormManager()->ClearHistory();
+
+  config::Config config;
+  auto* rule = config.add_character_form_rules();
+  rule->set_group("0");
+  rule->set_conversion_character_form(config::Config::HALF_WIDTH);
+  const ConversionRequest request =
+      ConversionRequestBuilder().SetConfig(config).Build();
+
+  // Commit full-width separated candidate: "１，２３４"
+  Segments segments;
+  Segment* seg = segments.push_back_segment();
+  seg->set_key("1234");
+  converter::Candidate* candidate = seg->add_candidate();
+  candidate->value = "１，２３４";
+  candidate->content_value = "１，２３４";
+  candidate->content_key = "1234";
+  candidate->lid = pos_matcher_.GetNumberId();
+  candidate->rid = pos_matcher_.GetNumberId();
+  candidate->style =
+      NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_FULLWIDTH;
+  seg->set_segment_type(Segment::FIXED_VALUE);
+  rewriter->Finish(request, segments);
+
+  // Next time 1234 is converted, half-width separated "1,234" is reranked to
+  // top due to explicit HALF_WIDTH rule.
+  Segments new_segments =
+      PrepareNumberSegments("1234", "1234", 0, pos_matcher_);
+  EXPECT_TRUE(rewriter->Rewrite(request, &new_segments));
+  EXPECT_EQ(new_segments.conversion_segment(0).candidate(0).value, "1,234");
+
+  // Commit full-width Arabic+Kanji candidate: "１万"
+  seg->set_key("10000");
+  candidate->value = "１万";
+  candidate->content_value = "１万";
+  candidate->content_key = "10000";
+  candidate->style =
+      NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_FULLWIDTH;
+  rewriter->Finish(request, segments);
+
+  // Next time 10000 is converted, half-width Arabic+Kanji "1万" is reranked to
+  // top due to explicit HALF_WIDTH rule. Short number 123 falls back to "123".
+  Segments kanji_segments =
+      PrepareNumberSegments("10000", "10000", 0, pos_matcher_);
+  EXPECT_TRUE(rewriter->Rewrite(request, &kanji_segments));
+  EXPECT_EQ(kanji_segments.conversion_segment(0).candidate(0).value, "1万");
+
+  Segments short_segments =
+      PrepareNumberSegments("123", "123", 0, pos_matcher_);
+  EXPECT_TRUE(rewriter->Rewrite(request, &short_segments));
+  EXPECT_EQ(short_segments.conversion_segment(0).candidate(0).value, "123");
+}
+
+TEST_F(NumberRewriterTest, NumberStyleLearningExplicitFullWidth) {
+  std::unique_ptr<NumberRewriter> rewriter(CreateNumberRewriter());
+  config::CharacterFormManager::GetCharacterFormManager()->ClearHistory();
+
+  config::Config config;
+  auto* rule = config.add_character_form_rules();
+  rule->set_group("0");
+  rule->set_conversion_character_form(config::Config::FULL_WIDTH);
+  const ConversionRequest request =
+      ConversionRequestBuilder().SetConfig(config).Build();
+
+  // Commit half-width separated candidate: "1,234"
+  Segments segments;
+  Segment* seg = segments.push_back_segment();
+  seg->set_key("1234");
+  converter::Candidate* candidate = seg->add_candidate();
+  candidate->value = "1,234";
+  candidate->content_value = "1,234";
+  candidate->content_key = "1234";
+  candidate->lid = pos_matcher_.GetNumberId();
+  candidate->rid = pos_matcher_.GetNumberId();
+  candidate->style =
+      NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_HALFWIDTH;
+  seg->set_segment_type(Segment::FIXED_VALUE);
+  rewriter->Finish(request, segments);
+
+  // Next time 1234 is converted, full-width separated "１，２３４" is reranked
+  // to top due to explicit FULL_WIDTH rule.
+  Segments new_segments =
+      PrepareNumberSegments("1234", "1234", 0, pos_matcher_);
+  EXPECT_TRUE(rewriter->Rewrite(request, &new_segments));
+  EXPECT_EQ(new_segments.conversion_segment(0).candidate(0).value,
+            "１，２３４");
+
+  // Commit half-width Arabic+Kanji candidate: "1万"
+  seg->set_key("10000");
+  candidate->value = "1万";
+  candidate->content_value = "1万";
+  candidate->content_key = "10000";
+  candidate->style =
+      NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_HALFWIDTH;
+  rewriter->Finish(request, segments);
+
+  // Next time 10000 is converted, full-width Arabic+Kanji "１万" is reranked to
+  // top due to explicit FULL_WIDTH rule. Short number 123 falls back to
+  // "１２３".
+  Segments kanji_segments =
+      PrepareNumberSegments("10000", "10000", 0, pos_matcher_);
+  EXPECT_TRUE(rewriter->Rewrite(request, &kanji_segments));
+  EXPECT_EQ(kanji_segments.conversion_segment(0).candidate(0).value, "１万");
+
+  Segments short_segments =
+      PrepareNumberSegments("123", "123", 0, pos_matcher_);
+  EXPECT_TRUE(rewriter->Rewrite(request, &short_segments));
+  EXPECT_EQ(short_segments.conversion_segment(0).candidate(0).value, "１２３");
+}
+
+TEST_F(NumberRewriterTest, RewriteTopCandidateForSuggestion) {
+  std::unique_ptr<NumberRewriter> rewriter(CreateNumberRewriter());
+  commands::Request proto_request;
+  proto_request.mutable_decoder_experiment_params()
+      ->set_suppress_realtime_conversion_with_converter(true);
+  const ConversionRequest request =
+      ConversionRequestBuilder()
+          .SetRequest(proto_request)
+          .SetRequestType(ConversionRequest::SUGGESTION)
+          .Build();
+
+  Segments segments;
+  Segment* seg = segments.push_back_segment();
+  seg->set_key("かいしからにしゅうかん");
+
+  converter::Candidate* cand = seg->add_candidate();
+  cand->key = "かいしからにしゅうかん";
+  cand->value = "開始から2週間";
+  cand->content_key = "かいしからにしゅうかん";
+  cand->content_value = "開始から2週間";
+  cand->lid = pos_matcher_.GetGeneralNounId();
+  cand->rid = pos_matcher_.GetGeneralNounId();
+  cand->attributes |= converter::Attribute::REALTIME_CONVERSION;
+  converter::InnerSegmentBoundaryBuilder builder;
+  builder.Add(strlen("かいしから"), strlen("開始から"), strlen("かいし"),
+              strlen("開始"));
+  builder.Add(strlen("にしゅうかん"), strlen("2週間"), strlen("にしゅうかん"),
+              strlen("2週間"));
+  cand->inner_segment_boundary = builder.Build(cand->key, cand->value);
+
+  EXPECT_TRUE(rewriter->Rewrite(request, &segments));
+  ASSERT_GE(seg->candidates_size(), 2);
+  EXPECT_EQ(seg->candidate(0).value, "開始から二週間");
+  EXPECT_EQ(seg->candidate(1).value, "開始から2週間");
+
+  // Rewriting multiple times should be idempotent.
+  EXPECT_FALSE(rewriter->Rewrite(request, &segments));
+  EXPECT_EQ(seg->candidate(0).value, "開始から二週間");
+}
+
+TEST_F(NumberRewriterTest, NumberSuffixNoDuplicateWhenArabicAlreadyExists) {
+  std::unique_ptr<NumberRewriter> rewriter(CreateNumberRewriter());
+  commands::Request req;
+  req.mutable_decoder_experiment_params()
+      ->set_suppress_realtime_conversion_with_converter(true);
+  const ConversionRequest request =
+      ConversionRequestBuilder()
+          .SetRequest(req)
+          .SetRequestType(ConversionRequest::SUGGESTION)
+          .Build();
+
+  Segments segments;
+  Segment* seg = segments.push_back_segment();
+  seg->set_key("100えんのにほんしゅ");
+
+  converter::Candidate* cand = seg->add_candidate();
+  cand->key = "100えんのにほんしゅ";
+  cand->value = "100円の日本酒";
+  cand->content_key = "100えん";
+  cand->content_value = "100円";
+  cand->lid = pos_matcher_.GetGeneralNounId();
+  cand->rid = pos_matcher_.GetGeneralNounId();
+  cand->attributes |= converter::Attribute::REALTIME_CONVERSION;
+  converter::InnerSegmentBoundaryBuilder builder;
+  builder.Add(strlen("100えんの"), strlen("100円の"), strlen("100えん"),
+              strlen("100円"));
+  builder.Add(strlen("にほんしゅ"), strlen("日本酒"), strlen("にほんしゅ"),
+              strlen("日本酒"));
+  cand->inner_segment_boundary = builder.Build(cand->key, cand->value);
+
+  // RewriteTopCandidateForSuggestion does not rewrite when key starts with
+  // ASCII digits ("100"), and RewriteOneSegment should not duplicate
+  // "100円の日本酒".
+  EXPECT_FALSE(rewriter->Rewrite(request, &segments));
+  EXPECT_EQ(seg->candidates_size(), 1);
+  EXPECT_EQ(seg->candidate(0).value, "100円の日本酒");
+}
+
+TEST_F(NumberRewriterTest, UpdateCandidateClearsStaleInnerSegmentBoundary) {
+  std::unique_ptr<NumberRewriter> rewriter(CreateNumberRewriter());
+  commands::Request req;
+  req.mutable_decoder_experiment_params()
+      ->set_suppress_realtime_conversion_with_converter(true);
+  const ConversionRequest request =
+      ConversionRequestBuilder()
+          .SetRequest(req)
+          .SetRequestType(ConversionRequest::SUGGESTION)
+          .Build();
+
+  Segments segments;
+  Segment* seg = segments.push_back_segment();
+  seg->set_key("にから");
+
+  converter::Candidate* cand = seg->add_candidate();
+  cand->key = "にから";
+  cand->value = "2から";
+  cand->content_key = "に";
+  cand->content_value = "2";
+  cand->lid = pos_matcher_.GetNumberId();
+  cand->rid = pos_matcher_.GetGeneralNounId();
+  cand->attributes |= converter::Attribute::REALTIME_CONVERSION;
+  converter::InnerSegmentBoundaryBuilder builder;
+  builder.Add(strlen("にから"), strlen("2から"), strlen("に"), strlen("2"));
+  cand->inner_segment_boundary = builder.Build(cand->key, cand->value);
+
+  EXPECT_TRUE(rewriter->Rewrite(request, &segments));
+  ASSERT_GE(seg->candidates_size(), 3);
+  EXPECT_EQ(seg->candidate(0).value, "二から");
+  EXPECT_TRUE(seg->candidate(0).inner_segment_boundary.empty());
+  EXPECT_EQ(seg->candidate(1).value, "弐から");
+  EXPECT_EQ(seg->candidate(2).value, "2から");
+}
+
+TEST_F(NumberRewriterTest, RememberNumberStyleForCompoundAndKanjiNumbers) {
+  std::unique_ptr<NumberRewriter> rewriter(CreateNumberRewriter());
+  auto* manager = config::CharacterFormManager::GetCharacterFormManager();
+  manager->ClearHistory();
+
+  Segments segments;
+  Segment* seg = segments.push_back_segment();
+  seg->set_key("123から");
+  seg->set_segment_type(Segment::FIXED_VALUE);
+
+  converter::Candidate* cand = seg->add_candidate();
+  cand->key = "123から";
+  cand->content_key = "123";
+  cand->value = "123から";
+  cand->content_value = "123";
+  cand->lid = pos_matcher_.GetNumberId();
+  cand->rid = pos_matcher_.GetNumberId();
+  cand->style = NumberUtil::NumberString::DEFAULT_STYLE;
+
+  rewriter->Finish(default_request_, segments);
+  {
+    const auto stored = manager->GetLastNumberStyle();
+    ASSERT_TRUE(stored.has_value());
+    EXPECT_EQ(stored->form, config::Config::HALF_WIDTH);
+    EXPECT_EQ(stored->style, NumberUtil::NumberString::DEFAULT_STYLE);
+  }
+
+  // Number + counter where content_value includes the counter ("2日") has
+  // mixed character form and non-number script type; it should not overwrite
+  // LastNumberStyle with FULL_WIDTH.
+  cand->key = "2か";
+  cand->content_key = "2か";
+  cand->value = "2日";
+  cand->content_value = "2日";
+  rewriter->Finish(default_request_, segments);
+  {
+    const auto stored = manager->GetLastNumberStyle();
+    ASSERT_TRUE(stored.has_value());
+    EXPECT_EQ(stored->form, config::Config::HALF_WIDTH);
+    EXPECT_EQ(stored->style, NumberUtil::NumberString::DEFAULT_STYLE);
+  }
+
+  // Unstyled Kanji number ("二") with DEFAULT_STYLE should not overwrite
+  // LastNumberStyle with {FULL_WIDTH, DEFAULT_STYLE}.
+  cand->key = "に";
+  cand->content_key = "に";
+  cand->value = "二";
+  cand->content_value = "二";
+  rewriter->Finish(default_request_, segments);
+  {
+    const auto stored = manager->GetLastNumberStyle();
+    ASSERT_TRUE(stored.has_value());
+    EXPECT_EQ(stored->form, config::Config::HALF_WIDTH);
+    EXPECT_EQ(stored->style, NumberUtil::NumberString::DEFAULT_STYLE);
+  }
+
+  // Phonetic Kanji number ("に" -> "二") with NUMBER_KANJI style (set by
+  // SetNumberInfoToExistingCandidates during Rewrite) should not overwrite
+  // LastNumberStyle either.
+  cand->key = "に";
+  cand->content_key = "に";
+  cand->value = "二";
+  cand->content_value = "二";
+  cand->style = NumberUtil::NumberString::NUMBER_KANJI;
+  rewriter->Finish(default_request_, segments);
+  {
+    const auto stored = manager->GetLastNumberStyle();
+    ASSERT_TRUE(stored.has_value());
+    EXPECT_EQ(stored->form, config::Config::HALF_WIDTH);
+    EXPECT_EQ(stored->style, NumberUtil::NumberString::DEFAULT_STYLE);
+  }
+
+  // Digit key converted to NUMBER_ARABIC_AND_KANJI_HALFWIDTH ("10000" -> "1万")
+  // has mixed character form (UNKNOWN_FORM), but should still be recorded with
+  // HALF_WIDTH form.
+  cand->key = "10000";
+  cand->content_key = "10000";
+  cand->value = "1万";
+  cand->content_value = "1万";
+  cand->style = NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_HALFWIDTH;
+  rewriter->Finish(default_request_, segments);
+  {
+    const auto stored = manager->GetLastNumberStyle();
+    ASSERT_TRUE(stored.has_value());
+    EXPECT_EQ(stored->form, config::Config::HALF_WIDTH);
+    EXPECT_EQ(stored->style,
+              NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_HALFWIDTH);
+  }
+
+  // When LastNumberStyle is {FULL_WIDTH, DEFAULT_STYLE}, rewriting a number
+  // candidate with a functional suffix ("123から") should rerank "１２３から"
+  // to the top based on content_value.
+  manager->SetLastNumberStyle(
+      {config::Config::FULL_WIDTH, NumberUtil::NumberString::DEFAULT_STYLE});
+  Segments suffix_segments;
+  Segment* suffix_seg = suffix_segments.push_back_segment();
+  suffix_seg->set_key("123から");
+  converter::Candidate* suffix_cand = suffix_seg->add_candidate();
+  suffix_cand->key = "123から";
+  suffix_cand->content_key = "123";
+  suffix_cand->value = "123から";
+  suffix_cand->content_value = "123";
+  suffix_cand->lid = pos_matcher_.GetNumberId();
+  suffix_cand->rid = pos_matcher_.GetNumberId();
+  EXPECT_TRUE(rewriter->Rewrite(default_request_, &suffix_segments));
+  EXPECT_EQ(suffix_seg->candidate(0).value, "１２３から");
+}
+
+TEST_F(NumberRewriterTest, RerankShortNumbersAfterSeparatedOrArabicKanjiStyle) {
+  std::unique_ptr<NumberRewriter> rewriter(CreateNumberRewriter());
+  auto* manager = config::CharacterFormManager::GetCharacterFormManager();
+  manager->ClearHistory();
+
+  // Commit "１，２３４" (NUMBER_SEPARATED_ARABIC_FULLWIDTH).
+  {
+    Segments segments;
+    Segment* seg = segments.push_back_segment();
+    seg->set_key("1234");
+    seg->set_segment_type(Segment::FIXED_VALUE);
+    converter::Candidate* cand = seg->add_candidate();
+    cand->key = "1234";
+    cand->content_key = "1234";
+    cand->value = "１，２３４";
+    cand->content_value = "１，２３４";
+    cand->lid = pos_matcher_.GetNumberId();
+    cand->rid = pos_matcher_.GetNumberId();
+    cand->style = NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_FULLWIDTH;
+    rewriter->Finish(default_request_, segments);
+  }
+
+  // Next 3-digit number ("123") has no comma-separated candidate; it should
+  // fall back to full-width DEFAULT_STYLE ("１２３").
+  {
+    Segments segments = PrepareNumberSegments("123", "123", 0, pos_matcher_);
+    EXPECT_TRUE(rewriter->Rewrite(default_request_, &segments));
+    EXPECT_EQ(segments.conversion_segment(0).candidate(0).value, "１２３");
+  }
+
+  // Commit "1,234" (NUMBER_SEPARATED_ARABIC_HALFWIDTH).
+  {
+    Segments segments;
+    Segment* seg = segments.push_back_segment();
+    seg->set_key("1234");
+    seg->set_segment_type(Segment::FIXED_VALUE);
+    converter::Candidate* cand = seg->add_candidate();
+    cand->key = "1234";
+    cand->content_key = "1234";
+    cand->value = "1,234";
+    cand->content_value = "1,234";
+    cand->lid = pos_matcher_.GetNumberId();
+    cand->rid = pos_matcher_.GetNumberId();
+    cand->style = NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_HALFWIDTH;
+    rewriter->Finish(default_request_, segments);
+  }
+
+  // Next 3-digit number ("123") should fall back to half-width DEFAULT_STYLE
+  // ("123").
+  {
+    Segments segments = PrepareNumberSegments("123", "123", 0, pos_matcher_);
+    EXPECT_TRUE(rewriter->Rewrite(default_request_, &segments));
+    EXPECT_EQ(segments.conversion_segment(0).candidate(0).value, "123");
+  }
+
+  // Commit "１万" (NUMBER_ARABIC_AND_KANJI_FULLWIDTH).
+  {
+    Segments segments;
+    Segment* seg = segments.push_back_segment();
+    seg->set_key("10000");
+    seg->set_segment_type(Segment::FIXED_VALUE);
+    converter::Candidate* cand = seg->add_candidate();
+    cand->key = "10000";
+    cand->content_key = "10000";
+    cand->value = "１万";
+    cand->content_value = "１万";
+    cand->lid = pos_matcher_.GetNumberId();
+    cand->rid = pos_matcher_.GetNumberId();
+    cand->style = NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_FULLWIDTH;
+    rewriter->Finish(default_request_, segments);
+  }
+
+  // Next 3-digit number ("123") should fall back to full-width DEFAULT_STYLE
+  // ("１２３").
+  {
+    Segments segments = PrepareNumberSegments("123", "123", 0, pos_matcher_);
+    EXPECT_TRUE(rewriter->Rewrite(default_request_, &segments));
+    EXPECT_EQ(segments.conversion_segment(0).candidate(0).value, "１２３");
+  }
+
+  // Commit "1万" (NUMBER_ARABIC_AND_KANJI_HALFWIDTH).
+  {
+    Segments segments;
+    Segment* seg = segments.push_back_segment();
+    seg->set_key("10000");
+    seg->set_segment_type(Segment::FIXED_VALUE);
+    converter::Candidate* cand = seg->add_candidate();
+    cand->key = "10000";
+    cand->content_key = "10000";
+    cand->value = "1万";
+    cand->content_value = "1万";
+    cand->lid = pos_matcher_.GetNumberId();
+    cand->rid = pos_matcher_.GetNumberId();
+    cand->style = NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_HALFWIDTH;
+    rewriter->Finish(default_request_, segments);
+  }
+
+  // Next 3-digit number ("123") should fall back to half-width DEFAULT_STYLE
+  // ("123").
+  {
+    Segments segments = PrepareNumberSegments("123", "123", 0, pos_matcher_);
+    EXPECT_TRUE(rewriter->Rewrite(default_request_, &segments));
+    EXPECT_EQ(segments.conversion_segment(0).candidate(0).value, "123");
+  }
+
+  // Commit "①" (NUMBER_CIRCLED).
+  {
+    Segments segments;
+    Segment* seg = segments.push_back_segment();
+    seg->set_key("1");
+    seg->set_segment_type(Segment::FIXED_VALUE);
+    converter::Candidate* cand = seg->add_candidate();
+    cand->key = "1";
+    cand->content_key = "1";
+    cand->value = "①";
+    cand->content_value = "①";
+    cand->lid = pos_matcher_.GetNumberId();
+    cand->rid = pos_matcher_.GetNumberId();
+    cand->style = NumberUtil::NumberString::NUMBER_CIRCLED;
+    rewriter->Finish(default_request_, segments);
+  }
+
+  // Next 3-digit number ("100") has no circled candidate; RerankCandidates
+  // should not attach NO_VARIANTS_EXPANSION to the top candidate so
+  // VariantsRewriter can normalize its character form.
+  {
+    Segments segments = PrepareNumberSegments("100", "100", 0, pos_matcher_);
+    EXPECT_TRUE(rewriter->Rewrite(default_request_, &segments));
+    EXPECT_FALSE(segments.conversion_segment(0).candidate(0).attributes &
+                 converter::Attribute::NO_VARIANTS_EXPANSION);
+  }
+}
+
 }  // namespace mozc

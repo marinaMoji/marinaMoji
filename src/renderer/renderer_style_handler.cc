@@ -51,13 +51,14 @@ namespace renderer {
 namespace {
 // absl::string_view kStyleTextProto is defined in renderer_style.inc.
 #include "renderer/renderer_style.inc"
-
-#ifdef __APPLE__
-// absl::string_view kStyleDark is defined in renderer_style_dark.inc.
+// absl::string_view kStyleDarkTextProto is defined in renderer_style_dark.inc.
 #include "renderer/renderer_style_dark.inc"
-#endif  // __APPLE__
 
 #ifdef __APPLE__
+// absl::string_view kStyleDarkMacTextProto is defined in
+// renderer_style_dark_mac.inc.
+#include "renderer/renderer_style_dark_mac.inc"
+
 constexpr uint32_t kDefaultCandidateWindowFontSize = 14;
 constexpr uint32_t kMinCandidateWindowFontSize = 14;
 constexpr uint32_t kMaxCandidateWindowFontSize = 36;
@@ -70,6 +71,17 @@ uint32_t GetCandidateWindowFontSizeFromConfig() {
 }
 #endif  // __APPLE__
 
+absl::string_view GetStyleTextProto(RendererStyleHandler::ColorTheme theme) {
+  if (theme == RendererStyleHandler::ColorTheme::kLight) {
+    return kStyleTextProto;
+  }
+#ifdef __APPLE__
+  return kStyleDarkMacTextProto;
+#else   // __APPLE__
+  return kStyleDarkTextProto;
+#endif  // __APPLE__
+}
+
 void SetRgbaColor(RendererStyle::RGBAColor* color, double r, double g, double b,
                   double a = 1.0) {
   color->set_r(r);
@@ -80,28 +92,28 @@ void SetRgbaColor(RendererStyle::RGBAColor* color, double r, double g, double b,
 
 }  // namespace
 
-void RendererStyleHandler::GetRendererStyle(RendererStyle* style) {
-#ifdef __APPLE__
-  const bool use_dark_style = IsDarkRendererStylePreferred();
-  const absl::string_view style_text =
-      use_dark_style ? kStyleDark : kStyleTextProto;
-#else
-  constexpr bool use_dark_style = false;
-  const absl::string_view style_text = kStyleTextProto;
-#endif
-  CHECK(mozc::protobuf::TextFormat::ParseFromString(style_text, style));
+RendererStyle RendererStyleHandler::GetRendererStyle() {
+  return GetRendererStyle(IsDarkRendererStylePreferred() ? ColorTheme::kDark
+                                                         : ColorTheme::kLight);
+}
 
-  // The dark theme relies on the window's own dark background showing
+RendererStyle RendererStyleHandler::GetRendererStyle(ColorTheme theme) {
+  RendererStyle style;
+  CHECK(mozc::protobuf::TextFormat::ParseFromString(GetStyleTextProto(theme),
+                                                    &style));
+
+  // The macOS dark theme relies on the window's own dark background showing
   // through unselected candidate rows; only the light theme wants an
   // explicit opaque white fill here. Forcing white unconditionally painted
   // over the dark theme's near-white foreground text, making candidates
   // nearly unreadable (see GitHub issue #37).
-  if (!use_dark_style && !style->candidate_style().has_background_color()) {
-    SetRgbaColor(style->mutable_candidate_style()->mutable_background_color(),
+  if (theme == ColorTheme::kLight &&
+      !style.candidate_style().has_background_color()) {
+    SetRgbaColor(style.mutable_candidate_style()->mutable_background_color(),
                  255, 255, 255);
   }
 
-  protobuf_util::SanitizeMessageStrings(*style, [](absl::string_view src) {
+  protobuf_util::SanitizeMessageStrings(style, [](absl::string_view src) {
     // Limit the length of the string to 100 bytes and remove ill-formed
     // UTF-8 sequences and ASCII control characters.
     return TextNormalizer::SanitizeText(src, 100);
@@ -111,8 +123,9 @@ void RendererStyleHandler::GetRendererStyle(RendererStyle* style) {
   const uint32_t font_size = GetCandidateWindowFontSizeFromConfig();
   const double scale_factor =
       static_cast<double>(font_size) / kDefaultCandidateWindowFontSize;
-  ScaleRendererStyle(style, scale_factor);
+  ScaleRendererStyle(&style, scale_factor);
 #endif  // __APPLE__
+  return style;
 }
 
 }  // namespace renderer

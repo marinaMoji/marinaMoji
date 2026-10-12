@@ -37,8 +37,7 @@ namespace mozc {
 namespace renderer {
 
 TEST(RendererStyleScaleTest, ScaleRendererStyleDoublesFontSize) {
-  RendererStyle style;
-  RendererStyleHandler::GetRendererStyle(&style);
+  RendererStyle style = RendererStyleHandler::GetRendererStyle();
   const double base_candidate_size = style.candidate_style().font_size();
   const double base_description_size = style.description_style().font_size();
   ASSERT_GT(base_candidate_size, 0);
@@ -50,8 +49,7 @@ TEST(RendererStyleScaleTest, ScaleRendererStyleDoublesFontSize) {
 }
 
 TEST(RendererStyleScaleTest, ScaleFactorOneIsNoOp) {
-  RendererStyle style;
-  RendererStyleHandler::GetRendererStyle(&style);
+  RendererStyle style = RendererStyleHandler::GetRendererStyle();
   const double base_candidate_size = style.candidate_style().font_size();
 
   ScaleRendererStyle(&style, 1.0);
@@ -59,8 +57,7 @@ TEST(RendererStyleScaleTest, ScaleFactorOneIsNoOp) {
 }
 
 TEST(RendererStyleScaleTest, ScalesCornerRadius) {
-  RendererStyle style;
-  RendererStyleHandler::GetRendererStyle(&style);
+  RendererStyle style = RendererStyleHandler::GetRendererStyle();
   const double base_radius = style.corner_radius();
   ASSERT_GT(base_radius, 0);
 
@@ -69,8 +66,7 @@ TEST(RendererStyleScaleTest, ScalesCornerRadius) {
 }
 
 TEST(RendererStyleScaleTest, ScalesWindowBorder) {
-  RendererStyle style;
-  RendererStyleHandler::GetRendererStyle(&style);
+  RendererStyle style = RendererStyleHandler::GetRendererStyle();
   const int base_border = style.window_border();
   ASSERT_GT(base_border, 0);
 

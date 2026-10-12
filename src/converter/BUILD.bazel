@@ -74,6 +74,46 @@ mozc_cc_library(
     ],
 )
 
+mozc_cc_library(
+    name = "converter_util",
+    srcs = ["converter_util.cc"],
+    hdrs = ["converter_util.h"],
+    visibility = [
+        "//converter:__pkg__",
+        "//engine:__pkg__",
+        "//prediction:__pkg__",
+        "//rewriter:__pkg__",
+        "//session:__pkg__",
+    ],
+    deps = [
+        ":attribute",
+        ":inner_segment",
+        ":segments",
+        "//base/strings:assign",
+        "//prediction:result",
+        "//request:conversion_request",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_test(
+    name = "converter_util_test",
+    size = "small",
+    srcs = ["converter_util_test.cc"],
+    deps = [
+        ":attribute",
+        ":converter_util",
+        ":inner_segment",
+        ":segments",
+        "//prediction:result",
+        "//request:conversion_request",
+        "//testing:gunit_main",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 mozc_cc_test(
     name = "segments_test",
     size = "small",
@@ -208,7 +248,6 @@ mozc_cc_library(
         ":node_allocator",
         "//dictionary:dictionary_interface",
         "//dictionary:dictionary_token",
-        "//protocol:commands_cc_proto",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
@@ -242,8 +281,20 @@ mozc_cc_library(
     deps = [
         ":connector",
         "//dictionary:pos_matcher",
-        "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/log:check",
+    ],
+)
+
+mozc_cc_test(
+    name = "caching_connector_test",
+    srcs = ["caching_connector_test.cc"],
+    deps = [
+        ":caching_connector",
+        ":connector",
+        "//data_manager/testing:mock_data_manager",
+        "//dictionary:pos_matcher",
+        "//engine:modules",
+        "//testing:gunit_main",
     ],
 )
 
@@ -265,6 +316,24 @@ mozc_cc_test(
         "//testing:gunit_main",
         "//testing:mozctest",
         "@com_google_absl//absl/random",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+mozc_cc_test(
+    name = "connector_benchmark_test",
+    size = "small",
+    srcs = ["connector_benchmark_test.cc"],
+    data = ["//data_manager/testing:mozc_dataset_for_testing@connection"],
+    tags = ["manual"],
+    deps = [
+        ":connector",
+        "//base:bits",
+        "//base:mmap",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
     ],
@@ -539,6 +608,7 @@ mozc_cc_library(
     deps = [
         ":attribute",
         ":converter_interface",
+        ":converter_util",
         ":history_reconstructor",
         ":immutable_converter_interface",
         ":inner_segment",
@@ -555,6 +625,7 @@ mozc_cc_library(
         "//prediction:result",
         "//protocol:commands_cc_proto",
         "//request:conversion_request",
+        "//request:request_util",
         "//rewriter:rewriter_interface",
         "//transliteration",
         "@com_google_absl//absl/base:core_headers",
@@ -575,6 +646,7 @@ mozc_cc_test(
         ":attribute",
         ":converter",
         ":converter_interface",
+        ":converter_util",
         ":immutable_converter",
         ":immutable_converter_interface",
         ":inner_segment",
@@ -596,6 +668,7 @@ mozc_cc_test(
         "//engine",
         "//engine:mock_data_engine_factory",
         "//engine:modules",
+        "//engine:supplemental_model_mock",
         "//prediction:predictor",
         "//prediction:predictor_interface",
         "//prediction:result",
@@ -873,10 +946,10 @@ mozc_py_binary(
 py_test(
     name = "gen_boundary_data_test",
     srcs = ["gen_boundary_data_test.py"],
-    tags = ["manual"],
+    tags = ["nowin"],
     deps = [
         ":gen_boundary_data_lib",
-        "//third_party/py/absl/testing:absltest",
+        "@abseil-py//absl/testing:absltest",
     ],
 )
 

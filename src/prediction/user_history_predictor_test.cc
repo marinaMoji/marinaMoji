@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <deque>
 #include <functional>
 #include <iterator>
@@ -43,6 +44,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/random/random.h"
@@ -65,7 +67,9 @@
 #include "composer/composer.h"
 #include "composer/query.h"
 #include "composer/table.h"
+#include "config/character_form_manager.h"
 #include "config/config_handler.h"
+#include "converter/attribute.h"
 #include "converter/inner_segment.h"
 #include "data_manager/testing/mock_data_manager.h"
 #include "dictionary/dictionary_interface.h"
@@ -326,7 +330,13 @@ class UserHistoryPredictorTest : public testing::TestWithTempUserProfile {
     data_and_predictor_ = CreateDataAndPredictor();
   }
 
-  void TearDown() override { request_.Clear(); }
+  void TearDown() override {
+    request_.Clear();
+    auto* char_form_manager =
+        config::CharacterFormManager::GetCharacterFormManager();
+    char_form_manager->SetDefaultRule();
+    char_form_manager->ClearHistory();
+  }
 
   ConversionRequest CreateConversionRequestWithOptions(
       const composer::Composer& composer, ConversionRequest::Options options,
@@ -5146,6 +5156,329 @@ TEST_F(UserHistoryPredictorTest, RemoveRedundantCandidates) {
   run_test({"東京", "東京は", "大阪駅", "大阪"}, {"東京", "大阪駅", "大阪"});
 }
 
+TEST_F(UserHistoryPredictorTest, NumberCounterSuffixPrecedingHistory) {
+  UserHistoryPredictor* predictor = GetUserHistoryPredictorWithClearedHistory();
+  SegmentsProxy segments_proxy;
+
+  // 1. Commit "3" -> "3", then commit "かい" -> "階" (preceded by number).
+  {
+    const ConversionRequest convreq_num =
+        SetUpInputForPrediction("3", &composer_, &segments_proxy);
+    segments_proxy.AddCandidate(0, "3");
+    predictor->Finish(convreq_num, segments_proxy.MakeLearningResults(),
+                      kRevertId);
+
+    const ConversionRequest convreq_kai =
+        SetUpInputForPrediction("かい", &composer_, &segments_proxy);
+    segments_proxy.AddCandidate(0, "階");
+    segments_proxy.PrependHistory("3", "3");
+    predictor->Finish(convreq_kai, segments_proxy.MakeLearningResults(),
+                      kRevertId + 1);
+
+    UserHistoryPredictorTestPeer predictor_peer(*predictor);
+    auto entry = predictor_peer.storage_().Lookup("かい", "階");
+    ASSERT_TRUE(entry);
+    EXPECT_TRUE(entry->entry_flags() &
+                UserHistoryPredictor::ENTRY_FLAG_LEFT_NUMBER);
+  }
+
+  // Sleep 1 second to ensure different last_access_time.
+  absl::SleepFor(absl::Seconds(1));
+
+  // 2. Commit "かい" -> "会" (non-counter homophone) without preceding number,
+  // so "会" is more recent in LRU and does NOT have ENTRY_FLAG_LEFT_NUMBER.
+  {
+    const ConversionRequest convreq =
+        SetUpInputForPrediction("かい", &composer_, &segments_proxy);
+    segments_proxy.AddCandidate(0, "会");
+    predictor->Finish(convreq, segments_proxy.MakeLearningResults(),
+                      kRevertId + 2);
+
+    UserHistoryPredictorTestPeer predictor_peer(*predictor);
+    auto entry = predictor_peer.storage_().Lookup("かい", "会");
+    ASSERT_TRUE(entry);
+    EXPECT_FALSE(entry->entry_flags() &
+                 UserHistoryPredictor::ENTRY_FLAG_LEFT_NUMBER);
+  }
+
+  // 3. Commit "5" -> "5" (pure number).
+  {
+    constexpr absl::string_view kKey = "5";
+    constexpr absl::string_view kValue = "5";
+    const ConversionRequest convreq =
+        SetUpInputForPrediction(kKey, &composer_, &segments_proxy);
+    segments_proxy.AddCandidate(0, kValue);
+    predictor->Finish(convreq, segments_proxy.MakeLearningResults(),
+                      kRevertId + 3);
+  }
+
+  // 4. Query "かい" with history "5" -> "5".
+  // "階" should be boosted with BIGRAM attribute and ranked above "会",
+  // even though "会" was used more recently.
+  {
+    const ConversionRequest convreq = SetUpInputForPredictionWithHistory(
+        "かい", "5", "5", &composer_, &segments_proxy);
+    const std::vector<Result> results = predictor->Predict(convreq);
+    ASSERT_FALSE(results.empty());
+    EXPECT_EQ(results[0].value, "階");
+    EXPECT_TRUE(results[0].attributes & converter::Attribute::BIGRAM);
+
+    // "会" should not have BIGRAM attribute.
+    auto it_kai = absl::c_find_if(
+        results, [](const Result& r) { return r.value == "会"; });
+    if (it_kai != results.end()) {
+      EXPECT_FALSE(it_kai->attributes & converter::Attribute::BIGRAM);
+    }
+  }
+
+  // 5. Zero-query suggestion after "5".
+  // "階" should be suggested as zero query because it is a counter suffix,
+  // whereas "会" should not be suggested.
+  {
+    request_.set_zero_query_suggestion(true);
+    request_.set_mixed_conversion(true);
+    const ConversionRequest convreq = SetUpInputForSuggestionWithHistory(
+        "", "5", "5", &composer_, &segments_proxy);
+    const std::vector<Result> results = predictor->Predict(convreq);
+    auto it_floor = absl::c_find_if(
+        results, [](const Result& r) { return r.value == "階"; });
+    ASSERT_NE(it_floor, results.end());
+    EXPECT_EQ(it_floor->value, "階");
+    EXPECT_TRUE(it_floor->attributes & converter::Attribute::BIGRAM);
+
+    auto it_meet = absl::c_find_if(
+        results, [](const Result& r) { return r.value == "会"; });
+    EXPECT_EQ(it_meet, results.end());
+  }
+
+  // 6. When preceding history is NOT a number (e.g. "東京"),
+  // "会" should be ranked #1 (due to recency) and "階" should NOT have BIGRAM
+  // attribute.
+  {
+    const ConversionRequest convreq_tokyo =
+        SetUpInputForPrediction("とうきょう", &composer_, &segments_proxy);
+    segments_proxy.AddCandidate(0, "東京");
+    predictor->Finish(convreq_tokyo, segments_proxy.MakeLearningResults(),
+                      kRevertId + 4);
+
+    const ConversionRequest convreq = SetUpInputForPredictionWithHistory(
+        "かい", "とうきょう", "東京", &composer_, &segments_proxy);
+    const std::vector<Result> results = predictor->Predict(convreq);
+    ASSERT_FALSE(results.empty());
+    EXPECT_EQ(results[0].value, "会");
+
+    auto it_floor = absl::c_find_if(
+        results, [](const Result& r) { return r.value == "階"; });
+    if (it_floor != results.end()) {
+      EXPECT_FALSE(it_floor->attributes & converter::Attribute::BIGRAM);
+    }
+  }
+
+  // 7. When there is NO preceding history at all (isolated query),
+  // it also falls back to simple LRU: "会" (#1) > "階" (#2).
+  {
+    const ConversionRequest convreq =
+        SetUpInputForPrediction("かい", &composer_, &segments_proxy);
+    const std::vector<Result> results = predictor->Predict(convreq);
+    ASSERT_GE(results.size(), 2);
+    EXPECT_EQ(results[0].value, "会");
+    EXPECT_EQ(results[1].value, "階");
+    EXPECT_FALSE(results[0].attributes & converter::Attribute::BIGRAM);
+    EXPECT_FALSE(results[1].attributes & converter::Attribute::BIGRAM);
+  }
+}
+
+TEST_F(UserHistoryPredictorTest, BracketPairLearning) {
+  UserHistoryPredictor* predictor = GetUserHistoryPredictorWithClearedHistory();
+  SegmentsProxy segments_proxy;
+
+  // 1. Commit open bracket "「" -> "『".
+  {
+    constexpr absl::string_view kKey = "「";
+    constexpr absl::string_view kValue = "『";
+    const ConversionRequest convreq =
+        SetUpInputForPrediction(kKey, &composer_, &segments_proxy);
+    segments_proxy.AddCandidate(0, kValue);
+    predictor->Finish(convreq, segments_proxy.MakeLearningResults(), kRevertId);
+  }
+
+  // 2. Predict for close bracket "」" -> "』" should be suggested.
+  {
+    const ConversionRequest convreq =
+        SetUpInputForPrediction("」", &composer_, &segments_proxy);
+    const std::vector<Result> results = predictor->Predict(convreq);
+    ASSERT_FALSE(results.empty());
+    EXPECT_EQ(results.front().key, "」");
+    EXPECT_EQ(results.front().value, "』");
+  }
+
+  // 3. Revert open bracket -> close bracket should also be removed.
+  {
+    predictor->Revert(kRevertId);
+    const ConversionRequest convreq =
+        SetUpInputForPrediction("」", &composer_, &segments_proxy);
+    const std::vector<Result> results = predictor->Predict(convreq);
+    auto it = absl::c_find_if(results, [](const Result& r) {
+      return r.key == "」" && r.value == "』";
+    });
+    EXPECT_EQ(it, results.end());
+  }
+}
+
+TEST_F(UserHistoryPredictorTest, MultiSegmentWeakCandidateWithinFirstSegment) {
+  request_.mutable_decoder_experiment_params()
+      ->set_disable_legacy_rewriter_mode(1);
+  UserHistoryPredictor* predictor = GetUserHistoryPredictorWithClearedHistory();
+  SegmentsProxy segments_proxy;
+  {
+    constexpr absl::string_view kKey = "きょうはいった";
+    constexpr absl::string_view kValue = "今日は言った";
+    const ConversionRequest convreq =
+        SetUpInputForPrediction(kKey, &composer_, &segments_proxy);
+    segments_proxy.AddCandidate(0, kValue);
+    // "きょうは, 今日は"
+    segments_proxy.PushBackInnerSegmentBoundary(0, 0, 12, 9, 9, 6);
+    // "いった, 言った"
+    segments_proxy.PushBackInnerSegmentBoundary(0, 0, 9, 9, 6, 6);
+    predictor->Finish(convreq, segments_proxy.MakeLearningResults(), kRevertId);
+  }
+
+  // 1. In desktop mode (mixed_conversion = false), WEAK is NOT set.
+  {
+    request_.set_mixed_conversion(false);
+    segments_proxy.MakeSegments("きょうは");
+    ConversionRequest::Options options = {
+        .request_type = ConversionRequest::SUGGESTION,
+        .max_user_history_prediction_candidates_size = 10,
+    };
+    const ConversionRequest convreq = CreateConversionRequestWithOptions(
+        composer_, std::move(options), segments_proxy);
+    const std::vector<Result> results = predictor->Predict(convreq);
+    auto it = std::find_if(results.begin(), results.end(), [](const Result& r) {
+      return r.value == "今日は言った";
+    });
+    ASSERT_NE(it, results.end());
+    EXPECT_FALSE(it->attributes &
+                 converter::Attribute::WEAK_USER_HISTORY_PREDICTION);
+  }
+
+  // 2. In mobile mode (mixed_conversion = true), query "きょうは" (within 1st
+  // segment): "今日は言った" must have WEAK attribute.
+  {
+    request_.set_mixed_conversion(true);
+    segments_proxy.MakeSegments("きょうは");
+    ConversionRequest::Options options = {
+        .request_type = ConversionRequest::SUGGESTION,
+        .max_user_history_prediction_candidates_size = 10,
+    };
+    const ConversionRequest convreq = CreateConversionRequestWithOptions(
+        composer_, std::move(options), segments_proxy);
+    const std::vector<Result> results = predictor->Predict(convreq);
+    auto it = std::find_if(results.begin(), results.end(), [](const Result& r) {
+      return r.value == "今日は言った";
+    });
+    if (it != results.end()) {
+      EXPECT_TRUE(it->attributes &
+                  converter::Attribute::WEAK_USER_HISTORY_PREDICTION);
+    }
+  }
+
+  // 2. Query "きょうはい" (across 1st segment into last segment):
+  // "今日は言った" must NOT have WEAK attribute.
+  {
+    segments_proxy.MakeSegments("きょうはい");
+    ConversionRequest::Options options = {
+        .request_type = ConversionRequest::SUGGESTION,
+        .max_user_history_prediction_candidates_size = 10,
+    };
+    const ConversionRequest convreq = CreateConversionRequestWithOptions(
+        composer_, std::move(options), segments_proxy);
+    const std::vector<Result> results = predictor->Predict(convreq);
+    auto it = std::find_if(results.begin(), results.end(), [](const Result& r) {
+      return r.value == "今日は言った";
+    });
+    ASSERT_NE(it, results.end());
+    EXPECT_FALSE(it->attributes &
+                 converter::Attribute::WEAK_USER_HISTORY_PREDICTION);
+  }
+
+  // 3. Test 3-segment entry: "今日は駅に行った" ("きょうは|えきに|いった")
+  {
+    constexpr absl::string_view kKey3 = "きょうはえきにいった";
+    constexpr absl::string_view kValue3 = "今日は駅に行った";
+    const ConversionRequest convreq3 =
+        SetUpInputForPrediction(kKey3, &composer_, &segments_proxy);
+    segments_proxy.AddCandidate(0, kValue3);
+    // "きょうは, 今日は"
+    segments_proxy.PushBackInnerSegmentBoundary(0, 0, 12, 9, 9, 6);
+    // "えきに, 駅に"
+    segments_proxy.PushBackInnerSegmentBoundary(0, 0, 9, 6, 6, 3);
+    // "いった, 行った"
+    segments_proxy.PushBackInnerSegmentBoundary(0, 0, 9, 9, 6, 6);
+    predictor->Finish(convreq3, segments_proxy.MakeLearningResults(),
+                      kRevertId);
+
+    // Query "きょうはえきに" (ends at 2nd segment): WEAK.
+    segments_proxy.MakeSegments("きょうはえきに");
+    ConversionRequest::Options options = {
+        .request_type = ConversionRequest::SUGGESTION,
+        .max_user_history_prediction_candidates_size = 10,
+    };
+    const ConversionRequest convreq_seg2 = CreateConversionRequestWithOptions(
+        composer_, std::move(options), segments_proxy);
+    const std::vector<Result> results_seg2 = predictor->Predict(convreq_seg2);
+    auto it2 = std::find_if(
+        results_seg2.begin(), results_seg2.end(),
+        [](const Result& r) { return r.value == "今日は駅に行った"; });
+    if (it2 != results_seg2.end()) {
+      EXPECT_TRUE(it2->attributes &
+                  converter::Attribute::WEAK_USER_HISTORY_PREDICTION);
+    }
+
+    // Query "きょうはえきにい" (reaches 3rd segment): NOT WEAK.
+    segments_proxy.MakeSegments("きょうはえきにい");
+    ConversionRequest::Options options_seg3 = {
+        .request_type = ConversionRequest::SUGGESTION,
+        .max_user_history_prediction_candidates_size = 10,
+    };
+    const ConversionRequest convreq_seg3 = CreateConversionRequestWithOptions(
+        composer_, std::move(options_seg3), segments_proxy);
+    const std::vector<Result> results_seg3 = predictor->Predict(convreq_seg3);
+    auto it3 = std::find_if(
+        results_seg3.begin(), results_seg3.end(),
+        [](const Result& r) { return r.value == "今日は駅に行った"; });
+    ASSERT_NE(it3, results_seg3.end());
+    EXPECT_FALSE(it3->attributes &
+                 converter::Attribute::WEAK_USER_HISTORY_PREDICTION);
+  }
+
+  // 4. Zero-query prediction (request.key().empty()): Multi-segment bigram
+  // history must NOT have WEAK attribute.
+  {
+    UserHistoryPredictor::Entry* kinou =
+        InsertEntry(predictor, "きのう", "昨日");
+    UserHistoryPredictor::Entry* kyouwa_itta =
+        AppendEntry(predictor, "きょうはいった", "今日は言った", kinou);
+    kyouwa_itta->set_suggestion_freq(2);
+    kyouwa_itta->add_inner_segment_boundary(
+        converter::EncodeLengths(12, 9, 9, 6).value());
+    kyouwa_itta->add_inner_segment_boundary(
+        converter::EncodeLengths(9, 9, 6, 6).value());
+
+    request_.set_zero_query_suggestion(true);
+    const ConversionRequest convreq_zero = SetUpInputForSuggestionWithHistory(
+        "", "きのう", "昨日", &composer_, &segments_proxy);
+    segments_proxy.PushBackInnerSegmentBoundary(0, 0, 9, 6, 9, 6);
+    const std::vector<Result> results_zero = predictor->Predict(convreq_zero);
+    auto it_zero =
+        std::find_if(results_zero.begin(), results_zero.end(),
+                     [](const Result& r) { return r.value == "今日は言った"; });
+    ASSERT_NE(it_zero, results_zero.end());
+    EXPECT_FALSE(it_zero->attributes &
+                 converter::Attribute::WEAK_USER_HISTORY_PREDICTION);
+  }
+}
+
 TEST_F(UserHistoryPredictorTest, ContentValueZeroQuery) {
   UserHistoryPredictor* predictor = GetUserHistoryPredictorWithClearedHistory();
 
@@ -6052,7 +6385,8 @@ TEST_F(UserHistoryPredictorTest, PartialMatchTest) {
   }
 }
 
-TEST_F(UserHistoryPredictorTest, CompoundNounPartialMatchTest) {
+TEST_F(UserHistoryPredictorTest,
+       CompoundNounAndSentenceWithParticlesPartialMatchTest) {
   ASSERT_OK_AND_ASSIGN(
       std::unique_ptr<engine::Modules> modules,
       engine::ModulesPresetBuilder()
@@ -6095,52 +6429,345 @@ TEST_F(UserHistoryPredictorTest, CompoundNounPartialMatchTest) {
 
   SegmentsProxy segments_proxy;
 
-  // Learn compound noun ("たなかしょうてん" -> "田中商店")
-  const ConversionRequest convreq =
-      SetUpInputForConversion("たなかしょうてん", &composer_, &segments_proxy);
-  segments_proxy.Clear();
-  segments_proxy.AddSegment("たなか");
-  segments_proxy.AddCandidate(0, "田中");
-  segments_proxy.MutableCandidate(0, 0)->rid =
-      modules->GetPosMatcher().GetGeneralNounId();
+  // 1. Compound noun ("たなかしょうてん" -> "田中商店"):
+  // Learned once with allow_partial_match = true -> Partial match is suggested.
+  {
+    const ConversionRequest convreq = SetUpInputForConversion(
+        "たなかしょうてん", &composer_, &segments_proxy);
+    segments_proxy.Clear();
+    segments_proxy.AddSegment("たなか");
+    segments_proxy.AddCandidate(0, "田中");
+    segments_proxy.MutableCandidate(0, 0)->rid =
+        modules->GetPosMatcher().GetGeneralNounId();
 
-  segments_proxy.AddSegment("しょうてん");
-  segments_proxy.AddCandidate(1, "商店");
-  segments_proxy.MutableCandidate(1, 0)->rid =
-      modules->GetPosMatcher().GetGeneralNounId();
+    segments_proxy.AddSegment("しょうてん");
+    segments_proxy.AddCandidate(1, "商店");
+    segments_proxy.MutableCandidate(1, 0)->rid =
+        modules->GetPosMatcher().GetGeneralNounId();
 
-  predictor->Finish(convreq, segments_proxy.MakeLearningResults(), kRevertId);
-  predictor->Finish(convreq, segments_proxy.MakeLearningResults(), kRevertId);
+    // Learn compound noun once ("たなかしょうてん" -> "田中商店")
+    predictor->Finish(convreq, segments_proxy.MakeLearningResults(), kRevertId);
 
-  // Predict with suffix "は" -> "たなかしょうてんは"
-  segments_proxy.Clear();
-  const ConversionRequest predict_suffix_req = SetUpInputForPrediction(
-      "たなかしょうてんは", &composer_, &segments_proxy);
-  std::vector<Result> results = predictor->Predict(predict_suffix_req);
+    // Predict with suffix "は" -> "たなかしょうてんは"
+    segments_proxy.Clear();
+    const ConversionRequest predict_suffix_req = SetUpInputForPrediction(
+        "たなかしょうてんは", &composer_, &segments_proxy);
+    std::vector<Result> results = predictor->Predict(predict_suffix_req);
 
-  bool found = false;
-  for (const auto& res : results) {
-    if (res.key == "たなかしょうてんは" && res.value == "田中商店は") {
-      found = true;
-      break;
+    bool found = false;
+    for (const auto& res : results) {
+      if (res.key == "たなかしょうてんは" && res.value == "田中商店は") {
+        found = true;
+        break;
+      }
     }
-  }
-  EXPECT_TRUE(found);
+    EXPECT_TRUE(found);
 
-  // Convert with suffix "は" -> "たなかしょうてんは"
-  segments_proxy.Clear();
-  const ConversionRequest convert_suffix_req = SetUpInputForConversion(
-      "たなかしょうてんは", &composer_, &segments_proxy);
-  std::vector<Result> convert_results = predictor->Convert(convert_suffix_req);
+    // Convert with suffix "は" -> "たなかしょうてんは"
+    segments_proxy.Clear();
+    const ConversionRequest convert_suffix_req = SetUpInputForConversion(
+        "たなかしょうてんは", &composer_, &segments_proxy);
+    std::vector<Result> convert_results =
+        predictor->Convert(convert_suffix_req);
 
-  bool convert_found = false;
-  for (const auto& res : convert_results) {
-    if (res.key == "たなかしょうてんは" && res.value == "田中商店は") {
-      convert_found = true;
-      break;
+    bool convert_found = false;
+    for (const auto& res : convert_results) {
+      if (res.key == "たなかしょうてんは" && res.value == "田中商店は") {
+        convert_found = true;
+        break;
+      }
     }
+    EXPECT_TRUE(convert_found);
   }
-  EXPECT_TRUE(convert_found);
+
+  // 2. Sentence with particles ("きのうはおつかれ" -> "昨日はお疲れ"):
+  // Learned once, but allow_partial_match = false because of the particle
+  // -> Low frequency multi-segment sentence is NOT suggested.
+  {
+    const ConversionRequest convreq = SetUpInputForConversion(
+        "きのうはおつかれ", &composer_, &segments_proxy);
+    segments_proxy.Clear();
+    segments_proxy.AddSegment("きのうは");
+    segments_proxy.AddCandidate(0, "昨日は");
+    segments_proxy.MutableCandidate(0, 0)->inner_segment_boundary = {
+        converter::EncodeLengths(
+            std::string("きのうは").size(), std::string("昨日は").size(),
+            std::string("きのう").size(), std::string("昨日").size())
+            .value()};
+    segments_proxy.MutableCandidate(0, 0)->rid =
+        modules->GetPosMatcher().GetFunctionalId();
+
+    segments_proxy.AddSegment("おつかれ");
+    segments_proxy.AddCandidate(1, "お疲れ");
+    segments_proxy.MutableCandidate(1, 0)->rid =
+        modules->GetPosMatcher().GetGeneralNounId();
+
+    // Learned once
+    predictor->Finish(convreq, segments_proxy.MakeLearningResults(), kRevertId);
+
+    // Predict with suffix "さま" -> "きのうはおつかれさま"
+    segments_proxy.Clear();
+    const ConversionRequest predict_suffix_req = SetUpInputForPrediction(
+        "きのうはおつかれさま", &composer_, &segments_proxy);
+    std::vector<Result> results = predictor->Predict(predict_suffix_req);
+
+    bool found = false;
+    for (const auto& res : results) {
+      if (res.key == "きのうはおつかれさま") {
+        found = true;
+        break;
+      }
+    }
+    // Low frequency multi-segment sentence with particles must NOT be
+    // suggested.
+    EXPECT_FALSE(found);
+  }
+}
+
+TEST_F(UserHistoryPredictorTest, EmptyInnerSegmentBoundaryAttributeTest) {
+  ASSERT_OK_AND_ASSIGN(
+      std::unique_ptr<engine::Modules> modules,
+      engine::ModulesPresetBuilder()
+          .PresetDictionary(std::make_unique<MockDictionary>())
+          .Build(std::make_unique<testing::MockDataManager>()));
+  auto realtime_decoder = std::make_unique<MockRealtimeDecoder>();
+  auto predictor =
+      std::make_unique<UserHistoryPredictor>(*modules, *realtime_decoder);
+  predictor->Wait();
+
+  // Entry 1: "今日" ("きょう" -> "今日") saved via Finish with a single-segment
+  // placeholder inner segment boundary.
+  constexpr absl::string_view kKey1 = "きょう";
+  constexpr absl::string_view kValue1 = "今日";
+  SegmentsProxy segments_proxy;
+  const ConversionRequest convreq1 =
+      SetUpInputForPrediction(kKey1, &composer_, &segments_proxy);
+  segments_proxy.AddCandidate(0, kValue1);
+  segments_proxy.PushBackInnerSegmentBoundary(0, 0, 9, 6, 6, 3);
+  predictor->Finish(convreq1, segments_proxy.MakeLearningResults(), kRevertId);
+
+  // Entry 2: "明日" ("あした" -> "明日") saved via InsertEntry without inner
+  // segment boundary.
+  constexpr absl::string_view kKey2 = "あした";
+  constexpr absl::string_view kValue2 = "明日";
+  InsertEntry(predictor.get(), kKey2, kValue2);
+
+  // Save to disk and reload to verify serialization and deserialization
+  // for entries both with and without inner_segment_boundaries.
+  auto& storage = UserHistoryPredictorTestPeer(*predictor).storage_();
+  storage.Save();
+  storage.Load();
+
+  auto entry_with_boundary =
+      storage.Lookup(UserHistoryStorage::Fingerprint(kKey1, kValue1));
+  ASSERT_TRUE(entry_with_boundary);
+  EXPECT_GT(entry_with_boundary->inner_segment_boundary_size(), 0);
+
+  auto entry_without_boundary =
+      storage.Lookup(UserHistoryStorage::Fingerprint(kKey2, kValue2));
+  ASSERT_TRUE(entry_without_boundary);
+  EXPECT_EQ(entry_without_boundary->inner_segment_boundary_size(), 0);
+
+  // Verify prediction result for Entry 1 ("今日" with inner_segment_boundary).
+  {
+    segments_proxy.Clear();
+    const ConversionRequest convreq =
+        SetUpInputForPrediction(kKey1, &composer_, &segments_proxy);
+    const std::vector<Result> results = predictor->Predict(convreq);
+    ASSERT_FALSE(results.empty());
+
+    bool found = false;
+    for (const auto& res : results) {
+      if (res.key == kKey1 && res.value == kValue1) {
+        EXPECT_FALSE(
+            res.attributes &
+            converter::Attribute::USER_HISTORY_EMPTY_INNER_SEGMENT_BOUNDARY);
+        EXPECT_TRUE(res.inner_segment_boundary.empty());
+        found = true;
+        break;
+      }
+    }
+    EXPECT_TRUE(found);
+
+    // Verify conversion result for Entry 1 (inner_segment_boundary is
+    // populated).
+    const ConversionRequest conv_req =
+        SetUpInputForConversion(kKey1, &composer_, &segments_proxy);
+    const std::vector<Result> convert_results = predictor->Convert(conv_req);
+    ASSERT_FALSE(convert_results.empty());
+
+    bool convert_found = false;
+    for (const auto& res : convert_results) {
+      if (res.key == kKey1 && res.value == kValue1) {
+        EXPECT_FALSE(
+            res.attributes &
+            converter::Attribute::USER_HISTORY_EMPTY_INNER_SEGMENT_BOUNDARY);
+        EXPECT_FALSE(res.inner_segment_boundary.empty());
+        convert_found = true;
+        break;
+      }
+    }
+    EXPECT_TRUE(convert_found);
+  }
+
+  // Verify prediction result for Entry 2 ("明日" without
+  // inner_segment_boundary).
+  {
+    segments_proxy.Clear();
+    const ConversionRequest convreq =
+        SetUpInputForPrediction(kKey2, &composer_, &segments_proxy);
+    const std::vector<Result> results = predictor->Predict(convreq);
+    ASSERT_FALSE(results.empty());
+
+    bool found = false;
+    for (const auto& res : results) {
+      if (res.key == kKey2 && res.value == kValue2) {
+        EXPECT_TRUE(
+            res.attributes &
+            converter::Attribute::USER_HISTORY_EMPTY_INNER_SEGMENT_BOUNDARY);
+        EXPECT_TRUE(res.inner_segment_boundary.empty());
+        found = true;
+        break;
+      }
+    }
+    EXPECT_TRUE(found);
+  }
+}
+
+TEST_F(UserHistoryPredictorTest, CharacterFormNormalization) {
+  UserHistoryPredictor* predictor = GetUserHistoryPredictorWithClearedHistory();
+  auto* char_form_manager =
+      config::CharacterFormManager::GetCharacterFormManager();
+  char_form_manager->ClearHistory();
+
+  // 1. Commit full-width number candidate "０１２３" for key "すうじ".
+  {
+    SegmentsProxy segments_proxy;
+    const ConversionRequest convreq =
+        SetUpInputForConversion("すうじ", &composer_, &segments_proxy);
+    segments_proxy.AddCandidate(0, "０１２３");
+    segments_proxy.PushBackInnerSegmentBoundary(
+        0, 0, strlen("すう"), strlen("０１"), strlen("すう"), strlen("０１"));
+    segments_proxy.PushBackInnerSegmentBoundary(
+        0, 0, strlen("じ"), strlen("２３"), strlen("じ"), strlen("２３"));
+    predictor->Finish(convreq, segments_proxy.MakeLearningResults(), kRevertId);
+  }
+
+  // 2. When CharacterFormManager preferences are set to HALF_WIDTH,
+  // UserHistoryPredictor must dynamically normalize the suggestion/conversion
+  // to "0123" and update inner_segment_boundary when populated.
+  {
+    char_form_manager->SetCharacterForm("0", config::Config::HALF_WIDTH);
+    SegmentsProxy segments_proxy;
+    const ConversionRequest convreq =
+        SetUpInputForPrediction("すう", &composer_, &segments_proxy);
+    const std::vector<Result> results = predictor->Predict(convreq);
+    ASSERT_FALSE(results.empty());
+    EXPECT_EQ(results[0].value, "0123");
+
+    const ConversionRequest conv_req =
+        SetUpInputForConversion("すうじ", &composer_, &segments_proxy);
+    const std::vector<Result> convert_results = predictor->Convert(conv_req);
+    ASSERT_FALSE(convert_results.empty());
+    EXPECT_EQ(convert_results[0].value, "0123");
+    EXPECT_EQ(convert_results[0].inner_segment_boundary,
+              converter::BuildInnerSegmentBoundary(
+                  {{strlen("すう"), strlen("01"), strlen("すう"), strlen("01")},
+                   {strlen("じ"), strlen("23"), strlen("じ"), strlen("23")}},
+                  "すうじ", "0123"));
+  }
+
+  // 3. When CharacterFormManager preferences are set to FULL_WIDTH,
+  // UserHistoryPredictor must dynamically normalize the suggestion/conversion
+  // to "０１２３" and update inner_segment_boundary when populated.
+  {
+    char_form_manager->SetCharacterForm("0", config::Config::FULL_WIDTH);
+    SegmentsProxy segments_proxy;
+    const ConversionRequest convreq =
+        SetUpInputForPrediction("すう", &composer_, &segments_proxy);
+    const std::vector<Result> results = predictor->Predict(convreq);
+    ASSERT_FALSE(results.empty());
+    EXPECT_EQ(results[0].value, "０１２３");
+
+    const ConversionRequest conv_req =
+        SetUpInputForConversion("すうじ", &composer_, &segments_proxy);
+    const std::vector<Result> convert_results = predictor->Convert(conv_req);
+    ASSERT_FALSE(convert_results.empty());
+    EXPECT_EQ(convert_results[0].value, "０１２３");
+    EXPECT_EQ(
+        convert_results[0].inner_segment_boundary,
+        converter::BuildInnerSegmentBoundary(
+            {{strlen("すう"), strlen("０１"), strlen("すう"), strlen("０１")},
+             {strlen("じ"), strlen("２３"), strlen("じ"), strlen("２３")}},
+            "すうじ", "０１２３"));
+  }
+
+  // 4. UserHistoryPredictor::Finish() does not modify CharacterFormManager
+  // preferences (character form learning is handled solely by
+  // VariantsRewriter::Finish()), preventing unselected n-best candidates in
+  // `results` from overwriting the user's selected character form.
+  {
+    char_form_manager->SetCharacterForm("0", config::Config::FULL_WIDTH);
+    SegmentsProxy segments_proxy;
+    const ConversionRequest convreq =
+        SetUpInputForConversion("べつのきー", &composer_, &segments_proxy);
+    // Simulate a 1-segment commit where index 0 is full-width "９９９" and
+    // index 1 (unselected n-best) is half-width "999".
+    segments_proxy.AddCandidate(0, "９９９");
+    segments_proxy.AddCandidate(0, "999");
+    predictor->Finish(convreq, segments_proxy.MakeLearningResults(), kRevertId);
+
+    EXPECT_EQ(char_form_manager->GetConversionCharacterForm("0"),
+              config::Config::FULL_WIDTH);
+  }
+
+  // 5. User dictionary and NO_VARIANTS_EXPANSION results (including subsequent
+  // predictions from user history) should not overwrite CharacterFormManager
+  // preferences.
+  {
+    char_form_manager->SetCharacterForm("A", config::Config::FULL_WIDTH);
+    char_form_manager->SetCharacterForm("0", config::Config::FULL_WIDTH);
+
+    SegmentsProxy segments_proxy;
+    const ConversionRequest convreq =
+        SetUpInputForConversion("ぐーぐる", &composer_, &segments_proxy);
+    segments_proxy.AddCandidate(0, "Google");
+    segments_proxy.MutableCandidate(0, 0)->attributes =
+        converter::Attribute::REALTIME_CONVERSION |
+        converter::Attribute::USER_DICTIONARY;
+    predictor->Finish(convreq, segments_proxy.MakeLearningResults(), kRevertId);
+    EXPECT_EQ(char_form_manager->GetConversionCharacterForm("A"),
+              config::Config::FULL_WIDTH);
+
+    // Committing "Google" when predicted from user history (which carries
+    // USER_HISTORY_PREDICTION | NO_VARIANTS_EXPANSION without USER_DICTIONARY)
+    // must also preserve the FULL_WIDTH preference.
+    segments_proxy.Clear();
+    const ConversionRequest pred_req =
+        SetUpInputForPrediction("ぐー", &composer_, &segments_proxy);
+    const std::vector<Result> history_results = predictor->Predict(pred_req);
+    ASSERT_FALSE(history_results.empty());
+    EXPECT_EQ(history_results[0].value, "Google");
+    predictor->Finish(pred_req, absl::MakeSpan(history_results).subspan(0, 1),
+                      kRevertId);
+    EXPECT_EQ(char_form_manager->GetConversionCharacterForm("A"),
+              config::Config::FULL_WIDTH);
+
+    segments_proxy.Clear();
+    const ConversionRequest date_req =
+        SetUpInputForConversion("きょう", &composer_, &segments_proxy);
+    segments_proxy.AddCandidate(0, "2026/10/04");
+    segments_proxy.MutableCandidate(0, 0)->attributes =
+        converter::Attribute::NO_VARIANTS_EXPANSION;
+    predictor->Finish(date_req, segments_proxy.MakeLearningResults(),
+                      kRevertId);
+    EXPECT_EQ(char_form_manager->GetConversionCharacterForm("0"),
+              config::Config::FULL_WIDTH);
+  }
+
+  // Restore CharacterFormManager default state.
+  char_form_manager->SetDefaultRule();
+  char_form_manager->ClearHistory();
 }
 
 }  // namespace mozc::prediction

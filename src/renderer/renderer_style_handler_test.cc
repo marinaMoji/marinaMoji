@@ -41,11 +41,26 @@ namespace mozc {
 namespace renderer {
 
 TEST(RendererStyleHandlerTest, GetRendererStyle) {
-  RendererStyle style;
-  RendererStyleHandler::GetRendererStyle(&style);
+  const RendererStyle style = RendererStyleHandler::GetRendererStyle();
   EXPECT_TRUE(style.has_window_border());
   EXPECT_TRUE(style.has_infolist_style());
   EXPECT_TRUE(style.infolist_style().has_focused_border_color());
+}
+
+TEST(RendererStyleHandlerTest, CandidateBackgroundPerTheme) {
+  using ColorTheme = RendererStyleHandler::ColorTheme;
+  const RendererStyle light =
+      RendererStyleHandler::GetRendererStyle(ColorTheme::kLight);
+  ASSERT_TRUE(light.candidate_style().has_background_color());
+  EXPECT_DOUBLE_EQ(light.candidate_style().background_color().r(), 255.0);
+
+  // The dark theme must never get the light theme's opaque white fill, which
+  // would hide its near-white text (GitHub issue #37).
+  const RendererStyle dark =
+      RendererStyleHandler::GetRendererStyle(ColorTheme::kDark);
+  EXPECT_TRUE(dark.has_window_border());
+  EXPECT_TRUE(!dark.candidate_style().has_background_color() ||
+              dark.candidate_style().background_color().r() < 128);
 }
 
 #ifdef __APPLE__
@@ -56,8 +71,7 @@ TEST(RendererStyleHandlerTest, CandidateWindowFontSizeFromConfig) {
   config.set_candidate_window_font_size(28);
   config::ConfigHandler::SetConfig(config);
 
-  RendererStyle style;
-  RendererStyleHandler::GetRendererStyle(&style);
+  const RendererStyle style = RendererStyleHandler::GetRendererStyle();
   EXPECT_DOUBLE_EQ(style.candidate_style().font_size(), 28.0);
 }
 #endif  // __APPLE__

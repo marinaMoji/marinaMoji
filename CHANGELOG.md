@@ -10,6 +10,41 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Merged upstream Mozc through BUILD_OSS 6345 (2026-10-12)
+
+Brings in 142 upstream commits (2026-07-15 → 2026-10-09). User-visible
+effects:
+
+- User-dictionary entries registered as 記号, 顔文字 or 独立語 now start at cost
+  2000 instead of 500, so they no longer outrank common system candidates.
+- Learned character forms (full/half width) and number styles move from
+  `cform.db` into the user history file (`UserHistoryStorage`). The sync
+  history export does not carry them yet.
+- The config dialog's "Clear personalization data" now clears prediction
+  history too; the separate buttons on the Suggest tab are gone upstream.
+- Linux (Qt renderer): dark theme following the desktop color scheme,
+  vertical scroll indicator, footer label, and color fixes.
+
+How the conflicts were resolved:
+
+- Dark theme: upstream added its own `renderer_style_dark.textproto` for the
+  Qt renderer. Ours moves to `renderer_style_dark_mac.textproto` and is still
+  the dark theme on macOS; other platforms use upstream's. The handler now
+  returns `RendererStyle` by value and takes a `ColorTheme`. The no-argument
+  overload still follows the macOS appearance, and the dark theme never gets
+  the light theme's white fill (issue #37).
+- The Qt shadow frames are kept, with upstream's footer delegate and
+  scroll bar inside them.
+- macOS installer, `main.mm` and `build_package.py`: kept ours. Upstream's
+  `--register_input_source` duplicates ours, and its `RequireLogout`
+  contradicts the in-session registration.
+- ibus: kept our modifier mask. Upstream also ignores Mod3/Mod5, which is
+  where AltGr lands, and we map those to Right Alt.
+- User dictionary cost penalty and compound-noun partial match: these
+  were cherry-picks, now superseded by upstream's later versions.
+- CI: kept our jobs and artifact names, and pinned actions to upstream's
+  commit hashes.
+
 ### Kyūjitai mode: IVS glyph variants (two-dot 辶 etc.) are now shown (2026-10-02)
 
 The shin/kyū tables carry glyph variants that have no codepoint of their own,

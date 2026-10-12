@@ -92,57 +92,6 @@ mozc_cc_test(
 )
 
 mozc_cc_library(
-    name = "stats_config_util",
-    srcs = ["stats_config_util.cc"],
-    hdrs = ["stats_config_util.h"],
-    visibility = [
-        "//:__subpackages__",
-    ],
-    deps = mozc_select(
-        android = [
-            ":config_handler",
-            "//protocol:config_cc_proto",
-        ],
-        apple = [
-            "//base/mac:mac_util",
-            "//base:system_util",
-            "@com_google_absl//absl/strings",
-            "@com_google_absl//absl/synchronization",
-            "//base:file_util",
-        ],
-    ),
-)
-
-mozc_cc_test(
-    name = "stats_config_util_test",
-    size = "small",
-    srcs = ["stats_config_util_test.cc"],
-    deps = [
-        ":stats_config_util",
-        "//testing:gunit_main",
-    ] + mozc_select(
-        android = [
-            ":config_handler",
-            "//base/file:temp_dir",
-            "//testing:mozctest",
-            "//protocol:config_cc_proto",
-        ],
-        macos = [
-            "//base:file_util",
-            "//base:system_util",
-            "//testing:mozctest",
-            "@com_google_absl//absl/strings",
-        ],
-        windows = [
-            "//base:bits",
-            "//base/win32:win_api_test_helper",
-            "@com_google_absl//absl/base",
-            "@com_google_absl//absl/container:flat_hash_map",
-        ],
-    ),
-)
-
-mozc_cc_library(
     name = "character_form_manager",
     srcs = ["character_form_manager.cc"],
     hdrs = ["character_form_manager.h"],
@@ -154,21 +103,21 @@ mozc_cc_library(
     ],
     deps = [
         ":config_handler",
-        "//base:bits",
-        "//base:config_file_stream",
         "//base:number_util",
         "//base:util",
         "//base:vlog",
         "//base/strings:assign",
         "//base/strings:japanese",
         "//base/strings:unicode",
+        "//prediction:user_history_predictor_cc_proto",
         "//protocol:config_cc_proto",
-        "//storage:lru_storage",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/types:span",
     ],
 )
@@ -180,6 +129,7 @@ mozc_cc_test(
     deps = [
         ":character_form_manager",
         "//base:number_util",
+        "//prediction:user_history_predictor_cc_proto",
         "//protocol:config_cc_proto",
         "//testing:gunit_main",
         "//testing:mozctest",
