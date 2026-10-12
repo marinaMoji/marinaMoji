@@ -179,7 +179,7 @@ shin,kyu,code_point_shin,code_point_kyu,shin_sources,kyu_sources,note,,,,
 桜,櫻,[26716],[27387],jmdict,kd2,mozc,kd2,mozc,,
 桟,棧,[26719],[26855],jmdict,kd2,mozc,kd2,mozc,,
 桧,檜,[26727],[27292],jmdict,kd2,mozc,jmdict,kd2,mozc,
-棚,,[26842],,jmdict,kd2,mozc,,,,no distinct kyujitai codepoint; IVS-only glyph variant dropped (issue #7)
+棚,棚󠄁,[26842],,jmdict,kd2,mozc,,,,no distinct kyujitai codepoint; IVS-only glyph variant dropped (issue #7)
 検,檢,[26908],[27298],jmdict,kd2,mozc,kd2,mozc,,
 楼,樓,[27004],[27155],jmdict,kd2,mozc,jmdict,kd2,,
 楽,樂,[27005],[27138],jmdict,kd2,mozc,kd2,mozc,,
@@ -473,3 +473,4 @@ shin,kyu,code_point_shin,code_point_kyu,shin_sources,kyu_sources,note,,,,
 遣,遣󠄁,,,,,,,,,
 遠,遠󠄁,,,,,,,,,
 教,敎,[25945],[25934],,,,,,,
+兼󠄀,兼󠄁,,,,,,,,,
