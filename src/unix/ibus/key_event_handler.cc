@@ -206,7 +206,8 @@ bool KeyEventHandler::GetKeyEvent(uint keyval, uint keycode, uint modifiers,
   // This is needed for handling shortcuts such as Super (Mod4) + Space,
   // IBus's default for switching input methods.
   // https://github.com/google/mozc/issues/853
-  constexpr uint kExtraModMask = IBUS_MOD4_MASK;
+  constexpr uint kExtraModMask = IBUS_MOD4_MASK | IBUS_SUPER_MASK |
+                                 IBUS_HYPER_MASK | IBUS_META_MASK;
   uint effective_modifiers = modifiers;
   if (IsEditingKeyval(keyval) || IsEditingKeycode(keycode)) {
     effective_modifiers &= ~kExtraModMask;
