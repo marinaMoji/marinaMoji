@@ -91,6 +91,38 @@ mozc_cc_test(
     ],
 )
 
+# marinaMoji: one-time import of the pre-2026-10 user://cform.db.
+mozc_cc_library(
+    name = "legacy_character_form_db",
+    srcs = ["legacy_character_form_db.cc"],
+    hdrs = ["legacy_character_form_db.h"],
+    deps = [
+        "//base:config_file_stream",
+        "//base:file_util",
+        "//prediction:user_history_predictor_cc_proto",
+        "//protocol:config_cc_proto",
+        "//storage:lru_storage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_test(
+    name = "legacy_character_form_db_test",
+    srcs = ["legacy_character_form_db_test.cc"],
+    deps = [
+        ":character_form_manager",
+        ":legacy_character_form_db",
+        "//base:file_util",
+        "//base:number_util",
+        "//prediction:user_history_predictor_cc_proto",
+        "//protocol:config_cc_proto",
+        "//storage:lru_storage",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+    ],
+)
+
 mozc_cc_library(
     name = "character_form_manager",
     srcs = ["character_form_manager.cc"],
@@ -100,9 +132,11 @@ mozc_cc_library(
         "//prediction:__pkg__",
         "//rewriter:__pkg__",
         "//session:__pkg__",
+        "//sync:__pkg__",
     ],
     deps = [
         ":config_handler",
+        ":legacy_character_form_db",
         "//base:number_util",
         "//base:util",
         "//base:vlog",

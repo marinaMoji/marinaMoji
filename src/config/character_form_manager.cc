@@ -54,6 +54,7 @@
 #include "base/util.h"
 #include "base/vlog.h"
 #include "config/config_handler.h"
+#include "config/legacy_character_form_db.h"
 #include "prediction/user_history_predictor.pb.h"
 #include "protocol/config.pb.h"
 
@@ -149,6 +150,34 @@ class CharacterFormStorage {
       history->clear_character_form_history();
     }
     dirty_ = false;
+  }
+
+  // marinaMoji: used by sync and the cform.db migration.
+  CharacterFormHistory Snapshot() const {
+    absl::MutexLock lock(mutex_);
+    return proto_;
+  }
+
+  // marinaMoji: Overwrites the entries present in `history` and keeps the
+  // rest. Marks the storage dirty if anything changed.
+  void Merge(const CharacterFormHistory& history) {
+    absl::MutexLock lock(mutex_);
+    auto* map = proto_.mutable_character_form_map();
+    for (const auto& [ucs2, form] : history.character_form_map()) {
+      auto [it, inserted] = map->try_emplace(ucs2, form);
+      if (inserted || it->second != form) {
+        it->second = form;
+        dirty_ = true;
+      }
+    }
+    if (history.has_last_number_form() && history.has_last_number_style() &&
+        !(proto_.has_last_number_form() && proto_.has_last_number_style() &&
+          proto_.last_number_form() == history.last_number_form() &&
+          proto_.last_number_style() == history.last_number_style())) {
+      proto_.set_last_number_form(history.last_number_form());
+      proto_.set_last_number_style(history.last_number_style());
+      dirty_ = true;
+    }
   }
 
  private:
@@ -807,6 +836,18 @@ void CharacterFormManager::ClearHistory() {
 void CharacterFormManager::LoadStorage(
     const user_history_predictor::UserHistory& history) {
   data_->GetStorage()->Load(history);
+
+  // marinaMoji: fold in the pre-2026-10 user://cform.db once (upstream does
+  // not migrate it). The file is deleted on read; the merged forms are marked
+  // dirty and written by the next UserHistoryStorage::Save().
+  if (const std::optional<LegacyCharacterFormHistory> legacy =
+          TakeLegacyCharacterFormDb(GetLegacyCharacterFormDbPath());
+      legacy.has_value()) {
+    CharacterFormHistory merged = history.character_form_history();
+    if (MergeMissingCharacterForms(*legacy, &merged)) {
+      data_->GetStorage()->Merge(merged);
+    }
+  }
 }
 
 void CharacterFormManager::SaveStorage(
@@ -816,6 +857,15 @@ void CharacterFormManager::SaveStorage(
 
 bool CharacterFormManager::IsStorageDirty() const {
   return data_->GetStorage()->IsDirty();
+}
+
+CharacterFormManager::CharacterFormHistory
+CharacterFormManager::GetStorageSnapshot() const {
+  return data_->GetStorage()->Snapshot();
+}
+
+void CharacterFormManager::MergeStorage(const CharacterFormHistory& history) {
+  data_->GetStorage()->Merge(history);
 }
 
 void CharacterFormManager::Clear() {

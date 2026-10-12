@@ -89,6 +89,7 @@ absl::Status MergeHistoryTsv(absl::string_view remote_tsv,
     uint32_t suggestion_freq = 0;
     uint32_t shown_freq = 0;
     uint64_t last_access_time = 0;
+    uint32_t entry_flags = 0;
   };
 
   absl::flat_hash_map<std::string, HistEntry> entries;
@@ -124,6 +125,12 @@ absl::Status MergeHistoryTsv(absl::string_view remote_tsv,
           e.last_access_time = v;
         }
       }
+      if (fields.size() > 5) {
+        uint32_t v = 0;
+        if (absl::SimpleAtoi(fields[5], &v)) {
+          e.entry_flags = v;
+        }
+      }
       const std::string id = HistoryEntryKey(line);
       auto it = entries.find(id);
       if (it == entries.end()) {
@@ -133,6 +140,7 @@ absl::Status MergeHistoryTsv(absl::string_view remote_tsv,
         it->second.shown_freq += e.shown_freq;
         it->second.last_access_time =
             std::max(it->second.last_access_time, e.last_access_time);
+        it->second.entry_flags |= e.entry_flags;
       }
     }
   };
@@ -144,7 +152,8 @@ absl::Status MergeHistoryTsv(absl::string_view remote_tsv,
   std::string out = "# marinaMoji sync history\n";
   for (const auto& [id, e] : entries) {
     out += absl::StrCat(e.key, "\t", e.value, "\t", e.suggestion_freq, "\t",
-                       e.shown_freq, "\t", e.last_access_time, "\n");
+                       e.shown_freq, "\t", e.last_access_time, "\t",
+                       e.entry_flags, "\n");
   }
   *merged_tsv = std::move(out);
   return absl::OkStatus();

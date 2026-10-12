@@ -10,6 +10,47 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Sync: learned character forms and entry flags; migrate cform.db (2026-10-12)
+
+The upstream merge below moved `CharacterFormManager`'s learned forms (the
+last half/full-width choice per character, and the last number style) into
+`UserHistory.character_form_history`, and added `Entry.entry_flags`. Sync
+carried neither.
+
+- The bundle has a new file, `character_forms.tsv`, synced together with
+  history. The proto stores no timestamps, so each device stamps a value with
+  the time a sync first saw it. It keeps those stamps in
+  `character_forms.local.tsv` in the profile directory. The merge rule is
+  last writer wins per character (and for the number style); on a tie the
+  local value is kept. The plain "keep local on conflict" rule would never
+  converge between two devices. Clearing history is not propagated, the same
+  as for history entries.
+- `history.tsv` gets a sixth column, `entry_flags`, which is ORed on merge
+  (the predictor only ever ORs flags in). Files from older versions still
+  import, with flags 0, and older versions ignore the extra column and
+  bundle file. An older device that writes the bundle drops them, and newer
+  devices re-add them on their next sync.
+- History import now updates an existing entry instead of replacing it.
+  Before, every sync wiped the entry's bigram links (`next_entry_fps`),
+  segment boundaries and `removed` flag. Removed entries are no longer
+  exported, because other devices were learning them as live entries.
+- Upstream does not migrate `user://cform.db`; it just stops reading it, so
+  every existing user would lose their learned forms once.
+  `CharacterFormManager::LoadStorage()` now reads the old file once
+  (`config/legacy_character_form_db.cc`), adds any forms the history file
+  lacks, and deletes it. LruStorage keeps only seeded fingerprints of its
+  keys, so the reader probes all 64K UCS2 keys. This runs once and is fast.
+- The sync daemon is one long-lived process, so `CharacterFormManager` is a
+  singleton there too, and loading or saving `UserHistoryStorage` now loads
+  and saves it. Two fixes follow. Export and import now wait for the
+  `AsyncLoad()` that the storage constructor starts: it could finish after
+  the import and wipe the imported entries, and now the forms too. And when
+  there is no history file, the singleton is cleared so that an earlier
+  cycle's forms are neither exported nor saved back.
+
+New tests: `sync_character_form_test`, `sync_history_test`, new cases in
+`sync_merge_test`, and `config:legacy_character_form_db_test`.
+
 ### Merged upstream Mozc through BUILD_OSS 6345 (2026-10-12)
 
 Brings in 142 upstream commits (2026-07-15 → 2026-10-09). User-visible
@@ -18,8 +59,8 @@ effects:
 - User-dictionary entries registered as 記号, 顔文字 or 独立語 now start at cost
   2000 instead of 500, so they no longer outrank common system candidates.
 - Learned character forms (full/half width) and number styles move from
-  `cform.db` into the user history file (`UserHistoryStorage`). The sync
-  history export does not carry them yet.
+  `cform.db` into the user history file (`UserHistoryStorage`). Sync and a
+  one-time migration of the old file are covered in the entry above.
 - The config dialog's "Clear personalization data" now clears prediction
   history too; the separate buttons on the Suggest tab are gone upstream.
 - Linux (Qt renderer): dark theme following the desktop color scheme,

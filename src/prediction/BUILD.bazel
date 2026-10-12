@@ -52,6 +52,7 @@ cc_proto_library(
     name = "user_history_predictor_cc_proto",
     visibility = [
         "//config:__pkg__",
+        "//sync:__pkg__",
     ],
     deps = [":user_history_predictor_proto"],
 )

@@ -162,22 +162,54 @@ mozc_cc_library(
 )
 
 mozc_cc_library(
+    name = "sync_character_form",
+    srcs = ["sync_character_form.cc"],
+    hdrs = ["sync_character_form.h"],
+    deps = [
+        "//base:file_util",
+        "//base:system_util",
+        "//prediction:user_history_predictor_cc_proto",
+        "//protocol:config_cc_proto",
+        "@com_google_absl//absl/container:btree",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+    ],
+)
+
+mozc_cc_library(
+    name = "sync_history",
+    srcs = ["sync_history.cc"],
+    hdrs = ["sync_history.h"],
+    deps = [
+        ":sync_character_form",
+        "//config:character_form_manager",
+        "//prediction:user_history_storage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_library(
     name = "sync_service",
     srcs = ["sync_service.cc"],
     hdrs = ["sync_service.h"],
     visibility = ["//sync:__pkg__"],
     deps = [
         ":sync_bundle",
+        ":sync_character_form",
         ":sync_config",
         ":sync_crypto",
         ":sync_dictionary_tombstones",
+        ":sync_history",
         ":sync_merge",
         "//base:file_util",
         "//config:config_handler",
         "//dictionary:user_dictionary_importer",
         "//dictionary:user_dictionary_storage",
         "//dictionary:user_pos",
-        "//prediction:user_history_storage",
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -335,6 +367,41 @@ mozc_cc_test(
     srcs = ["sync_merge_test.cc"],
     deps = [
         ":sync_merge",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+mozc_cc_test(
+    name = "sync_character_form_test",
+    srcs = ["sync_character_form_test.cc"],
+    deps = [
+        ":sync_character_form",
+        "//prediction:user_history_predictor_cc_proto",
+        "//protocol:config_cc_proto",
+        "//testing:mozctest",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+mozc_cc_test(
+    name = "sync_history_test",
+    srcs = ["sync_history_test.cc"],
+    tags = [
+        "nowin",
+    ],  # UserHistoryStorage depends on //base:encryptor, as in
+    # //prediction:user_history_storage_test.
+    deps = [
+        ":sync_character_form",
+        ":sync_history",
+        ":sync_merge",
+        "//base:number_util",
+        "//config:character_form_manager",
+        "//prediction:user_history_storage",
+        "//protocol:config_cc_proto",
+        "//testing:mozctest",
+        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],

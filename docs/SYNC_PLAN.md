@@ -67,7 +67,8 @@ Plaintext bundle (zip) includes:
 - `manifest.txt`
 - `dictionary.tsv`
 - `dictionary_tombstones.tsv` (delete log; compacted after merge)
-- `history.tsv`
+- `history.tsv` (`key, value, suggestion_freq, shown_freq, last_access_time, entry_flags`; files without the sixth column still import)
+- `character_forms.tsv` (learned half/full-width forms and last number style; see `src/sync/sync_character_form.h`)
 
 Encrypted container:
 
@@ -98,6 +99,13 @@ This is intentionally separate from Mozc machine-bound encryption, so synced fil
   - key: `Fingerprint(key, value)`
   - sum `suggestion_freq` and `shown_freq`
   - keep max `last_access_time`
+  - OR `entry_flags`
+  - import keeps the fields sync does not carry (bigram links, segment boundaries, `removed`); removed entries are not exported
+- **Character forms** (`character_forms.tsv`, synced with history)
+  - key: normalized UCS2 character; the number style is one more value
+  - last writer wins per value, by the time a sync first saw it on its device; tie keeps local
+  - local stamp sidecar: `character_forms.local.tsv` in the profile directory (last merged state)
+  - clearing history is not propagated, same as history entries
 
 If incognito mode is enabled, history export is skipped.
 

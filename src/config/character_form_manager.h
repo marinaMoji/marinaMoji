@@ -123,6 +123,16 @@ class CharacterFormManager {
   // ClearHistory() call.
   bool IsStorageDirty() const;
 
+  // marinaMoji: accessors for the sync daemon (sync/sync_history.cc).
+  using CharacterFormHistory =
+      user_history_predictor::UserHistory::CharacterFormHistory;
+  // Returns a copy of the in-memory history. Does not touch the dirty flag.
+  CharacterFormHistory GetStorageSnapshot() const;
+  // Overwrites the character forms (and the number style, if set) present in
+  // `history`, keeping all other entries, and marks the storage dirty if
+  // anything changed so the next UserHistoryStorage::Save() writes it.
+  void MergeStorage(const CharacterFormHistory& history);
+
   // Clears internal rules.
   void Clear();
 
