@@ -39,3 +39,34 @@ jobs:
         run: |
           go install github.com/bazelbuild/buildtools/buildifier@v0.0.0-20260824163617-674b29349bf1
           $(go env GOPATH)/bin/buildifier --mode=diff -r .
+
+  opencc-tables:
+    # Fails if the committed marinaShin2Kyu*.ocd2 / .txt / .json no longer match
+    # what src/regen_opencc.sh produces from the CSV tables.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: false
+          persist-credentials: false
+
+      - name: Install OpenCC
+        run: sudo apt-get update && sudo apt-get install -y opencc
+
+      - name: Regenerate tables
+        working-directory: ./src
+        run: bash regen_opencc.sh
+
+      - name: Check committed tables are up to date
+        run: |
+          if ! git diff --exit-code -- src/data/marina_opencc; then
+            echo "::error::OpenCC tables are stale. Run 'bash regen_opencc.sh' from src/ and commit the result."
+            exit 1
+          fi
+          if [ -n "$(git ls-files --others --exclude-standard src/data/marina_opencc)" ]; then
+            echo "::error::regen_opencc.sh produced untracked files in src/data/marina_opencc."
+            exit 1
+          fi
