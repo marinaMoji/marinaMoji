@@ -29,6 +29,9 @@
 
 #include "rewriter/opencc_rewriter.h"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <fstream>
 #include <mutex>
@@ -36,11 +39,13 @@
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "converter/candidate.h"
+#include "converter/inner_segment.h"
 #include "converter/segments.h"
 #include "protocol/config.pb.h"
 #include "request/conversion_request.h"
@@ -205,8 +210,178 @@ std::vector<std::string> ConvertAllVariants(const opencc::ConverterPtr& converte
   return results;
 }
 
-void CopyCandidateFields(const converter::Candidate& source,
-                         converter::Candidate* dest) {
+// One OpenCC conversion of a whole candidate.
+struct CandidateVariant {
+  std::string value;
+  std::string content_value;
+  converter::InnerSegmentBoundary inner_segment_boundary;
+};
+
+// The candidate's value split into runs. Every inner segment boundary, every
+// inner content/functional boundary and the end of content_value falls between
+// two runs, so each of them can be located again in a converted value by
+// summing the converted run lengths.
+struct CandidateLayout {
+  struct InnerSegment {
+    uint32_t key_len;
+    uint32_t content_key_len;
+    // Run indices one past the content part and one past the whole segment.
+    size_t content_end_run;
+    size_t end_run;
+  };
+
+  std::vector<absl::string_view> runs;
+  // Whether runs[i] belongs to a content part, which is converted. Functional
+  // parts are kana (okurigana, particles) and are carried over unconverted.
+  std::vector<bool> is_content;
+  std::vector<InnerSegment> inner_segments;
+  // Run index one past the end of the candidate's content_value.
+  size_t content_value_end_run = 0;
+};
+
+// Splits |cand|'s value along its inner segments. A candidate without an inner
+// segment boundary is laid out as a single segment whose content part is
+// content_value, as converter::InnerSegments does.
+CandidateLayout BuildCandidateLayout(const converter::Candidate& cand) {
+  struct Range {
+    size_t key_len;
+    size_t content_key_len;
+    size_t content_end;
+    size_t end;
+  };
+  std::vector<Range> ranges;
+  std::vector<size_t> cuts;
+  size_t offset = 0;
+  for (const auto& iter : cand.inner_segments()) {
+    const size_t content_end = offset + iter.GetContentValue().size();
+    offset += iter.GetValue().size();
+    ranges.push_back({iter.GetKey().size(), iter.GetContentKey().size(),
+                      content_end, offset});
+    cuts.push_back(content_end);
+    cuts.push_back(offset);
+  }
+  // content_value need not end on an inner segment boundary: for "走った" the
+  // inner segment's content part is the whole word, but content_value is "走っ".
+  size_t content_value_end = cand.value.size();
+  if (!cand.content_value.empty() &&
+      cand.content_value.size() < cand.value.size() &&
+      (static_cast<uint8_t>(cand.value[cand.content_value.size()]) & 0xc0) !=
+          0x80) {
+    content_value_end = cand.content_value.size();
+  }
+  cuts.push_back(content_value_end);
+  absl::c_sort(cuts);
+  cuts.erase(std::unique(cuts.begin(), cuts.end()), cuts.end());
+  std::erase(cuts, 0);
+
+  // Number of runs that end at or before |pos|, which is always one of |cuts|.
+  const auto run_index = [&cuts](size_t pos) -> size_t {
+    return absl::c_lower_bound(cuts, pos) - cuts.begin() + 1;
+  };
+
+  CandidateLayout layout;
+  size_t run_start = 0;
+  size_t range_index = 0;
+  for (const size_t cut : cuts) {
+    while (range_index < ranges.size() && ranges[range_index].end <= run_start) {
+      ++range_index;
+    }
+    layout.runs.push_back(
+        absl::string_view(cand.value).substr(run_start, cut - run_start));
+    layout.is_content.push_back(range_index < ranges.size() &&
+                                cut <= ranges[range_index].content_end);
+    run_start = cut;
+  }
+  for (const Range& range : ranges) {
+    layout.inner_segments.push_back(
+        {static_cast<uint32_t>(range.key_len),
+         static_cast<uint32_t>(range.content_key_len),
+         run_index(range.content_end), run_index(range.end)});
+  }
+  layout.content_value_end_run = run_index(content_value_end);
+  return layout;
+}
+
+// Converts each content run of |cand| separately and combines the results, so
+// the inner segment boundary can be rebuilt from the converted run lengths.
+// Shinjitai-to-kyujitai mappings and IVS selectors change the UTF-8 length, so
+// copying the source boundary would leave it inconsistent with the value.
+std::vector<CandidateVariant> ConvertCandidate(
+    const opencc::ConverterPtr& converter, const converter::Candidate& cand) {
+  const CandidateLayout layout = BuildCandidateLayout(cand);
+
+  std::vector<std::vector<std::string>> run_variants;
+  run_variants.reserve(layout.runs.size());
+  for (size_t i = 0; i < layout.runs.size(); ++i) {
+    const std::string run(layout.runs[i]);
+    std::vector<std::string> variants;
+    if (layout.is_content[i]) {
+      variants = ConvertAllVariants(converter, run);
+    }
+    if (variants.empty()) {
+      variants.push_back(run);
+    }
+    run_variants.push_back(std::move(variants));
+  }
+
+  // Each combination picks one variant per run. The first one picks the
+  // primary variant of every run.
+  std::vector<std::vector<absl::string_view>> combinations = {{}};
+  for (const std::vector<std::string>& variants : run_variants) {
+    std::vector<std::vector<absl::string_view>> next;
+    for (const std::vector<absl::string_view>& prefix : combinations) {
+      for (const std::string& variant : variants) {
+        if (next.size() >= kMaxOpenccVariants) {
+          break;
+        }
+        next.push_back(prefix);
+        next.back().push_back(variant);
+      }
+    }
+    combinations = std::move(next);
+  }
+
+  std::vector<CandidateVariant> results;
+  absl::flat_hash_set<std::string> seen_values;
+  for (const std::vector<absl::string_view>& combination : combinations) {
+    CandidateVariant result;
+    // offsets[i] is where run i starts in the converted value.
+    std::vector<size_t> offsets = {0};
+    for (const absl::string_view run : combination) {
+      absl::StrAppend(&result.value, run);
+      offsets.push_back(result.value.size());
+    }
+    if (!seen_values.insert(result.value).second) {
+      continue;
+    }
+    if (!cand.content_value.empty()) {
+      result.content_value =
+          result.value.substr(0, offsets[layout.content_value_end_run]);
+    }
+    if (!cand.inner_segment_boundary.empty()) {
+      // Keys are readings and are not converted, so the key lengths carry
+      // over. Build() returns an empty boundary rather than an inconsistent
+      // one, e.g. when a converted segment exceeds the encodable length.
+      converter::InnerSegmentBoundaryBuilder builder;
+      size_t start_run = 0;
+      for (const CandidateLayout::InnerSegment& segment :
+           layout.inner_segments) {
+        const size_t start = offsets[start_run];
+        builder.Add(segment.key_len, offsets[segment.end_run] - start,
+                    segment.content_key_len,
+                    offsets[segment.content_end_run] - start);
+        start_run = segment.end_run;
+      }
+      result.inner_segment_boundary = builder.Build(cand.key, result.value);
+    }
+    results.push_back(std::move(result));
+  }
+  return results;
+}
+
+void ApplyVariantToCandidate(const converter::Candidate& source,
+                             const CandidateVariant& variant,
+                             converter::Candidate* dest) {
   dest->key = source.key;
   dest->content_key = source.content_key;
   dest->cost = source.cost;
@@ -216,42 +391,18 @@ void CopyCandidateFields(const converter::Candidate& source,
   dest->rid = source.rid;
   dest->attributes = source.attributes;
   dest->consumed_key_size = source.consumed_key_size;
-  dest->inner_segment_boundary = source.inner_segment_boundary;
+  dest->converted_segment_count = source.converted_segment_count;
   dest->command = source.command;
   dest->category = source.category;
-}
-
-// Builds the full surface for a converted content part. |functional_value| is
-// the candidate's original functional part (okurigana, trailing particles),
-// which is kana and so is carried over unconverted.
-std::string BuildValue(const std::string& variant,
-                       absl::string_view functional_value,
-                       bool has_content_value) {
-  if (!has_content_value) {
-    return variant;
-  }
-  return absl::StrCat(variant, functional_value);
-}
-
-void ApplyVariantToCandidate(const converter::Candidate& source,
-                             absl::string_view functional_value,
-                             const std::string& variant,
-                             converter::Candidate* dest) {
-  CopyCandidateFields(source, dest);
-  if (source.content_value.empty()) {
-    dest->content_value.clear();
-    dest->value = variant;
-    return;
-  }
-  dest->content_value = variant;
-  dest->value = BuildValue(variant, functional_value, /*has_content_value=*/true);
+  dest->value = variant.value;
+  dest->content_value = variant.content_value;
+  dest->inner_segment_boundary = variant.inner_segment_boundary;
 }
 
 // Rewrites the candidate at |candidate_index| to the first variant and inserts
-// the remaining variants after it. |variants| are conversions of the
-// candidate's content part, not of its whole surface.
+// the remaining variants after it.
 bool ExpandCandidateVariants(converter::Segment* seg, int candidate_index,
-                             const std::vector<std::string>& variants) {
+                             const std::vector<CandidateVariant>& variants) {
   if (variants.empty()) {
     return false;
   }
@@ -266,31 +417,15 @@ bool ExpandCandidateVariants(converter::Segment* seg, int candidate_index,
     existing_values.insert(seg->candidate(i).value);
   }
 
-  const bool has_content_value = !original->content_value.empty();
-  // Captured before content_value is overwritten below, which would otherwise
-  // change what functional_value() returns.
-  const std::string functional_value(original->functional_value());
-
-  const std::string original_value = original->value;
-  const std::string& primary_variant = variants.front();
-  if (has_content_value) {
-    original->content_value = primary_variant;
-  }
-  original->value = BuildValue(primary_variant, functional_value,
-                               has_content_value);
-  bool modified = original->value != original_value;
-
-  absl::flat_hash_set<std::string> inserted;
-  inserted.insert(original->value);
+  const CandidateVariant& primary_variant = variants.front();
+  bool modified = original->value != primary_variant.value;
+  original->value = primary_variant.value;
+  original->content_value = primary_variant.content_value;
+  original->inner_segment_boundary = primary_variant.inner_segment_boundary;
 
   for (size_t i = 1; i < variants.size(); ++i) {
-    const std::string& variant = variants[i];
-    const std::string value =
-        BuildValue(variant, functional_value, has_content_value);
-    if (!inserted.insert(value).second) {
-      continue;
-    }
-    if (existing_values.contains(value)) {
+    const CandidateVariant& variant = variants[i];
+    if (existing_values.contains(variant.value)) {
       continue;
     }
 
@@ -299,8 +434,7 @@ bool ExpandCandidateVariants(converter::Segment* seg, int candidate_index,
     if (!new_candidate) {
       continue;
     }
-    ApplyVariantToCandidate(*original, functional_value, variant,
-                            new_candidate);
+    ApplyVariantToCandidate(*original, variant, new_candidate);
     modified = true;
   }
 
@@ -338,21 +472,16 @@ bool OpenccRewriter::Rewrite(const ConversionRequest& request,
       converter::Candidate* cand = seg->mutable_candidate(j);
       if (!cand) continue;
 
-      // Convert the content part only. The functional part is kana and is
-      // re-attached by ExpandCandidateVariants. Converting the whole value and
-      // then content_value in a second pass ran the tables twice over
+      // Convert the content parts only. The functional parts are kana and are
+      // carried over unconverted. Converting the whole value and then
+      // content_value in a second pass ran the tables twice over
       // already-converted text, and left content_value holding the full
       // surface rather than just the content part.
-      const std::string& source =
-          cand->content_value.empty() ? cand->value : cand->content_value;
-      if (source.empty()) {
+      if (cand->value.empty()) {
         continue;
       }
-      const std::vector<std::string> variants =
-          ConvertAllVariants(converter, source);
-      if (variants.empty()) {
-        continue;
-      }
+      const std::vector<CandidateVariant> variants =
+          ConvertCandidate(converter, *cand);
       modified |= ExpandCandidateVariants(seg, j, variants);
     }
   }
