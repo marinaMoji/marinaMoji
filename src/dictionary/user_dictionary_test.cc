@@ -56,7 +56,6 @@
 #include "dictionary/dictionary_test_util.h"
 #include "dictionary/dictionary_token.h"
 #include "dictionary/pos_matcher.h"
-#include "dictionary/user_dictionary_storage.h"
 #include "dictionary/user_pos.h"
 #include "protocol/user_dictionary_storage.pb.h"
 #include "testing/gmock.h"
@@ -258,10 +257,9 @@ class UserDictionaryTest : public testing::TestWithTempUserProfile {
   }
 
   static void LoadFromString(absl::string_view contents,
-                             UserDictionaryStorage* storage) {
-    storage->GetProto().Clear();
-    UserDictionaryStorage::UserDictionary* dic =
-        storage->GetProto().add_dictionaries();
+                             user_dictionary::UserDictionaryStorage* storage) {
+    storage->Clear();
+    user_dictionary::UserDictionary* dic = storage->add_dictionaries();
     CHECK(dic);
 
     for (absl::string_view line : absl::StrSplit(contents, '\n')) {
@@ -271,7 +269,7 @@ class UserDictionaryTest : public testing::TestWithTempUserProfile {
       std::vector<absl::string_view> fields =
           absl::StrSplit(line, '\t', absl::AllowEmpty());
       EXPECT_GE(fields.size(), 3) << line;
-      UserDictionaryStorage::UserDictionaryEntry* entry = dic->add_entries();
+      user_dictionary::UserDictionary::Entry* entry = dic->add_entries();
       CHECK(entry);
       entry->set_key(fields[0]);
       entry->set_value(fields[1]);
@@ -304,9 +302,9 @@ TEST_F(UserDictionaryTest, TestLookupPredictiveCallback) {
   dic->WaitForReloader();
 
   {
-    UserDictionaryStorage storage("");
+    user_dictionary::UserDictionaryStorage storage;
     UserDictionaryTest::LoadFromString(kUserDictionary0, &storage);
-    dic->Load(storage.GetProto());
+    dic->Load(storage);
   }
 
   MockCallback mock_callback;
@@ -337,9 +335,9 @@ TEST_F(UserDictionaryTest, TestLookupExactCallback) {
   dic->WaitForReloader();
 
   {
-    UserDictionaryStorage storage("");
+    user_dictionary::UserDictionaryStorage storage;
     UserDictionaryTest::LoadFromString(kUserDictionary0, &storage);
-    dic->Load(storage.GetProto());
+    dic->Load(storage);
   }
 
   MockCallback mock_callback;
@@ -362,9 +360,9 @@ TEST_F(UserDictionaryTest, TestLookupPrefixCallback) {
   dic->WaitForReloader();
 
   {
-    UserDictionaryStorage storage("");
+    user_dictionary::UserDictionaryStorage storage;
     UserDictionaryTest::LoadFromString(kUserDictionary0, &storage);
-    dic->Load(storage.GetProto());
+    dic->Load(storage);
   }
 
   MockCallback mock_callback;
@@ -395,9 +393,9 @@ TEST_F(UserDictionaryTest, TestLookupPredictive) {
   dic->WaitForReloader();
 
   {
-    UserDictionaryStorage storage("");
+    user_dictionary::UserDictionaryStorage storage;
     UserDictionaryTest::LoadFromString(kUserDictionary0, &storage);
-    dic->Load(storage.GetProto());
+    dic->Load(storage);
   }
 
   // A normal lookup operation.
@@ -431,9 +429,9 @@ TEST_F(UserDictionaryTest, TestLookupPredictive) {
 
   // Make a change to the dictionary file and load it again.
   {
-    UserDictionaryStorage storage("");
+    user_dictionary::UserDictionaryStorage storage;
     LoadFromString(kUserDictionary1, &storage);
-    dic->Load(storage.GetProto());
+    dic->Load(storage);
   }
 
   // A normal lookup again.
@@ -456,9 +454,9 @@ TEST_F(UserDictionaryTest, TestLookupPrefix) {
   dic->WaitForReloader();
 
   {
-    UserDictionaryStorage storage("");
+    user_dictionary::UserDictionaryStorage storage;
     LoadFromString(kUserDictionary0, &storage);
-    dic->Load(storage.GetProto());
+    dic->Load(storage);
   }
 
   // A normal lookup operation.
@@ -490,9 +488,9 @@ TEST_F(UserDictionaryTest, TestLookupPrefix) {
 
   // Make a change to the dictionary file and load it again.
   {
-    UserDictionaryStorage storage("");
+    user_dictionary::UserDictionaryStorage storage;
     LoadFromString(kUserDictionary1, &storage);
-    dic->Load(storage.GetProto());
+    dic->Load(storage);
   }
 
   // A normal lookup.
@@ -514,9 +512,9 @@ TEST_F(UserDictionaryTest, TestLookupExact) {
   dic->WaitForReloader();
 
   {
-    UserDictionaryStorage storage("");
+    user_dictionary::UserDictionaryStorage storage;
     LoadFromString(kUserDictionary0, &storage);
-    dic->Load(storage.GetProto());
+    dic->Load(storage);
   }
 
   // A normal lookup operation.
@@ -545,17 +543,12 @@ TEST_F(UserDictionaryTest, TestLookupExactWithSuggestionOnlyWords) {
   user_dic->WaitForReloader();
 
   // Create dictionary
-  TempDirectory temp_dir = testing::MakeTempDirectoryOrDie();
-  const std::string filename =
-      FileUtil::JoinPath(temp_dir.path(), "suggestion_only_test.db");
-  UserDictionaryStorage storage(filename);
+  user_dictionary::UserDictionaryStorage storage;
   {
-    EXPECT_OK(storage.CreateDictionary("test"));
-    UserDictionaryStorage::UserDictionary* dic =
-        storage.GetProto().mutable_dictionaries(0);
+    user_dictionary::UserDictionary* dic = storage.add_dictionaries();
 
     // "名詞"
-    UserDictionaryStorage::UserDictionaryEntry* entry = dic->add_entries();
+    user_dictionary::UserDictionary::Entry* entry = dic->add_entries();
     entry->set_key("key");
     entry->set_value("noun");
     entry->set_pos(user_dictionary::UserDictionary::NOUN);
@@ -566,7 +559,7 @@ TEST_F(UserDictionaryTest, TestLookupExactWithSuggestionOnlyWords) {
     entry->set_value("suggest_only");
     entry->set_pos(user_dictionary::UserDictionary::SUGGESTION_ONLY);
 
-    user_dic->Load(storage.GetProto());
+    user_dic->Load(storage);
   }
 
   // "suggestion_only" should not be looked up.
@@ -583,19 +576,14 @@ TEST_F(UserDictionaryTest, TestLookupWithNoPos) {
   user_dic->WaitForReloader();
 
   // Create dictionary
-  TempDirectory temp_dir = testing::MakeTempDirectoryOrDie();
-  const std::string filename =
-      FileUtil::JoinPath(temp_dir.path(), "shortcut_test.db");
-  UserDictionaryStorage storage(filename);
+  user_dictionary::UserDictionaryStorage storage;
   {
     // Creates the shortcut dictionary (from Gboard Android).
-    EXPECT_OK(storage.CreateDictionary(
-        "__auto_imported_android_shortcuts_dictionary"));
-    UserDictionaryStorage::UserDictionary* dic =
-        storage.GetProto().mutable_dictionaries(0);
+    user_dictionary::UserDictionary* dic = storage.add_dictionaries();
+    dic->set_name("__auto_imported_android_shortcuts_dictionary");
 
     // "名詞"
-    UserDictionaryStorage::UserDictionaryEntry* entry = dic->add_entries();
+    user_dictionary::UserDictionary::Entry* entry = dic->add_entries();
     entry->set_key("key");
     entry->set_value("noun");
     entry->set_pos(user_dictionary::UserDictionary::NOUN);
@@ -612,7 +600,7 @@ TEST_F(UserDictionaryTest, TestLookupWithNoPos) {
     entry->set_value("no_pos");
     entry->set_pos(user_dictionary::UserDictionary::NO_POS);
 
-    user_dic->Load(storage.GetProto());
+    user_dic->Load(storage);
   }
 
   // NO_POS words are looked up.
@@ -644,18 +632,13 @@ TEST_F(UserDictionaryTest, TestKeyNormalization) {
   user_dic->WaitForReloader();
 
   // Create dictionary
-  TempDirectory temp_dir = testing::MakeTempDirectoryOrDie();
-  const std::string filename =
-      FileUtil::JoinPath(temp_dir.path(), "normalization_test.db");
-  UserDictionaryStorage storage(filename);
+  user_dictionary::UserDictionaryStorage storage;
   {
-    EXPECT_OK(storage.CreateDictionary("normalization_test"));
-    UserDictionaryStorage::UserDictionary* dic =
-        storage.GetProto().mutable_dictionaries(0);
+    user_dictionary::UserDictionary* dic = storage.add_dictionaries();
 
     // "名詞"(NOUN)
     // Full width will be normalized to half width.
-    UserDictionaryStorage::UserDictionaryEntry* entry = dic->add_entries();
+    user_dictionary::UserDictionary::Entry* entry = dic->add_entries();
     entry->set_key("１％");
     entry->set_value("１％");
     entry->set_pos(user_dictionary::UserDictionary::NOUN);
@@ -691,7 +674,7 @@ TEST_F(UserDictionaryTest, TestKeyNormalization) {
     entry->set_value("魚");
     entry->set_pos(user_dictionary::UserDictionary::NO_POS);
 
-    user_dic->Load(storage.GetProto());
+    user_dic->Load(storage);
   }
 
   EXPECT_EQ(LookupExact("1%", *user_dic).size(), 1);
@@ -722,24 +705,17 @@ TEST_F(UserDictionaryTest, AsyncLoadTest) {
   // Create dictionary
   std::vector<std::string> keys;
   {
-    UserDictionaryStorage storage(filename);
-
-    EXPECT_FALSE(storage.Load().ok());
-    EXPECT_TRUE(storage.Lock());
-
-    EXPECT_OK(storage.CreateDictionary("test"));
-    UserDictionaryStorage::UserDictionary* dic =
-        storage.GetProto().mutable_dictionaries(0);
+    user_dictionary::UserDictionaryStorage storage;
+    user_dictionary::UserDictionary* dic = storage.add_dictionaries();
     for (size_t j = 0; j < 10000; ++j) {
-      UserDictionaryStorage::UserDictionaryEntry* entry = dic->add_entries();
+      user_dictionary::UserDictionary::Entry* entry = dic->add_entries();
       entry->set_key(random.Utf8StringRandomLen(10, 'a', 'z'));
       entry->set_value(random.Utf8StringRandomLen(10, 'a', 'z'));
       entry->set_pos(user_dictionary::UserDictionary::NOUN);
       entry->set_comment(random.Utf8StringRandomLen(10, 'a', 'z'));
       keys.push_back(entry->key());
     }
-    EXPECT_OK(storage.Save());
-    EXPECT_TRUE(storage.UnLock());
+    EXPECT_OK(FileUtil::SetContents(filename, storage.SerializeAsString()));
   }
 
   {
@@ -766,6 +742,13 @@ TEST_F(UserDictionaryTest, AsyncLoadTest) {
   }
 }
 
+// On Windows, `FileUtil::AtomicRename` uses `MoveFileExW(...,
+// MOVEFILE_REPLACE_EXISTING)`, which fails with `ERROR_ACCESS_DENIED` if the
+// background reloader thread simultaneously holds an open `InputFileStream`
+// handle to the destination file. On POSIX platforms, `rename(2)` atomically
+// updates the directory entry to a new inode without conflicting with open read
+// descriptors. If `AtomicRename` fails on Windows, retry after sleeping 100
+// milliseconds to wait for the reloader thread to finish.
 TEST_F(UserDictionaryTest, ConsecutiveReloadTest) {
   TempDirectory temp_dir = testing::MakeTempDirectoryOrDie();
   const std::string filename =
@@ -775,25 +758,28 @@ TEST_F(UserDictionaryTest, ConsecutiveReloadTest) {
   dic->WaitForReloader();
 
   constexpr int kNumUpdates = 10;
+  user_dictionary::UserDictionaryStorage storage;
   for (int i = 0; i < kNumUpdates; ++i) {
-    UserDictionaryStorage storage(filename);
-    if (i > 0) {
-      EXPECT_OK(storage.Load());
-    }
-    EXPECT_TRUE(storage.Lock());
-    EXPECT_OK(storage.CreateDictionary(absl::StrCat("dic_", i)));
-    UserDictionaryStorage::UserDictionary* user_dic =
-        storage.GetProto().mutable_dictionaries(i);
+    user_dictionary::UserDictionary* user_dic = storage.add_dictionaries();
+    user_dic->set_name(absl::StrCat("dic_", i));
     for (int j = 0; j < 500; ++j) {
-      UserDictionaryStorage::UserDictionaryEntry* entry =
-          user_dic->add_entries();
+      user_dictionary::UserDictionary::Entry* entry = user_dic->add_entries();
       entry->set_key(absl::StrFormat("key_%d_%d", i, j));
       entry->set_value(absl::StrFormat("value_%d_%d", i, j));
       entry->set_pos(user_dictionary::UserDictionary::NOUN);
     }
 
-    EXPECT_OK(storage.Save());
-    EXPECT_TRUE(storage.UnLock());
+    const std::string tmp_filename = absl::StrCat(filename, ".tmp");
+    EXPECT_OK(FileUtil::SetContents(tmp_filename, storage.SerializeAsString()));
+    absl::Status rename_status;
+    for (int retry = 0; retry < 10; ++retry) {
+      rename_status = FileUtil::AtomicRename(tmp_filename, filename);
+      if (rename_status.ok()) {
+        break;
+      }
+      absl::SleepFor(absl::Milliseconds(100));
+    }
+    EXPECT_OK(rename_status);
 
     // Trigger Reload() immediately without waiting for the previous reload to
     // finish.
@@ -811,33 +797,27 @@ TEST_F(UserDictionaryTest, TestSuppressionDictionary) {
   std::unique_ptr<UserDictionary> user_dic(CreateDictionaryWithMockPos());
   user_dic->WaitForReloader();
 
-  TempDirectory temp_dir = testing::MakeTempDirectoryOrDie();
-  const std::string filename =
-      FileUtil::JoinPath(temp_dir.path(), "suppression_test.db");
-
-  UserDictionaryStorage storage(filename);
+  user_dictionary::UserDictionaryStorage storage;
 
   // Create dictionary
   {
-    EXPECT_OK(storage.CreateDictionary("test"));
-    UserDictionaryStorage::UserDictionary* dic =
-        storage.GetProto().mutable_dictionaries(0);
+    user_dictionary::UserDictionary* dic = storage.add_dictionaries();
     for (size_t j = 0; j < 10000; ++j) {
-      UserDictionaryStorage::UserDictionaryEntry* entry = dic->add_entries();
+      user_dictionary::UserDictionary::Entry* entry = dic->add_entries();
       entry->set_key(absl::StrCat("no_suppress_key", j));
       entry->set_value(absl::StrCat("no_suppress_value", j));
       entry->set_pos(user_dictionary::UserDictionary::NOUN);
     }
 
     for (size_t j = 0; j < 10; ++j) {
-      UserDictionaryStorage::UserDictionaryEntry* entry = dic->add_entries();
+      user_dictionary::UserDictionary::Entry* entry = dic->add_entries();
       entry->set_key(absl::StrCat("suppress_key", j));
       entry->set_value(absl::StrCat("suppress_value", j));
       // entry->set_pos("抑制単語");
       entry->set_pos(user_dictionary::UserDictionary::SUPPRESSION_WORD);
     }
 
-    user_dic->Load(storage.GetProto());
+    user_dic->Load(storage);
 
     for (size_t j = 0; j < 10; ++j) {
       EXPECT_TRUE(user_dic->IsSuppressedEntry(
@@ -847,18 +827,16 @@ TEST_F(UserDictionaryTest, TestSuppressionDictionary) {
 
   // Remove suppression entry
   {
-    storage.GetProto().Clear();
-    EXPECT_OK(storage.CreateDictionary("test"));
-    UserDictionaryStorage::UserDictionary* dic =
-        storage.GetProto().mutable_dictionaries(0);
+    storage.Clear();
+    user_dictionary::UserDictionary* dic = storage.add_dictionaries();
     for (size_t j = 0; j < 10000; ++j) {
-      UserDictionaryStorage::UserDictionaryEntry* entry = dic->add_entries();
+      user_dictionary::UserDictionary::Entry* entry = dic->add_entries();
       entry->set_key(absl::StrCat("no_suppress_key", j));
       entry->set_value(absl::StrCat("no_suppress_value", j));
       entry->set_pos(user_dictionary::UserDictionary::NOUN);
     }
 
-    user_dic->Load(storage.GetProto());
+    user_dic->Load(storage);
 
     for (size_t j = 0; j < 10; ++j) {
       EXPECT_FALSE(user_dic->IsSuppressedEntry(
@@ -871,20 +849,14 @@ TEST_F(UserDictionaryTest, TestSuggestionOnlyWord) {
   std::unique_ptr<UserDictionary> user_dic(CreateDictionary());
   user_dic->WaitForReloader();
 
-  TempDirectory temp_dir = testing::MakeTempDirectoryOrDie();
-  const std::string filename =
-      FileUtil::JoinPath(temp_dir.path(), "suggestion_only_test.db");
-
-  UserDictionaryStorage storage(filename);
+  user_dictionary::UserDictionaryStorage storage;
 
   // Create dictionary
   {
-    EXPECT_OK(storage.CreateDictionary("test"));
-    UserDictionaryStorage::UserDictionary* dic =
-        storage.GetProto().mutable_dictionaries(0);
+    user_dictionary::UserDictionary* dic = storage.add_dictionaries();
 
     for (size_t j = 0; j < 10; ++j) {
-      UserDictionaryStorage::UserDictionaryEntry* entry = dic->add_entries();
+      user_dictionary::UserDictionary::Entry* entry = dic->add_entries();
       entry->set_key(absl::StrCat("key", j));
       entry->set_value("default");
       // "名詞"
@@ -892,14 +864,14 @@ TEST_F(UserDictionaryTest, TestSuggestionOnlyWord) {
     }
 
     for (size_t j = 0; j < 10; ++j) {
-      UserDictionaryStorage::UserDictionaryEntry* entry = dic->add_entries();
+      user_dictionary::UserDictionary::Entry* entry = dic->add_entries();
       entry->set_key(absl::StrCat("key", j));
       entry->set_value("suggest_only");
       // "サジェストのみ"
       entry->set_pos(user_dictionary::UserDictionary::SUGGESTION_ONLY);
     }
 
-    user_dic->Load(storage.GetProto());
+    user_dic->Load(storage);
   }
 
   {
@@ -924,9 +896,9 @@ TEST_F(UserDictionaryTest, LookupComment) {
   dic->WaitForReloader();
 
   {
-    UserDictionaryStorage storage("");
+    user_dictionary::UserDictionaryStorage storage;
     UserDictionaryTest::LoadFromString(kUserDictionary0, &storage);
-    dic->Load(storage.GetProto());
+    dic->Load(storage);
   }
 
   // Entry is in user dictionary but has no comment.
