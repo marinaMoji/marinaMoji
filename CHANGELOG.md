@@ -10,6 +10,31 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+## v0.0.7
+
+### macOS: pkg postinstall must not ad-hoc re-sign (2026-10-13)
+
+Installing a notarized `.pkg` on macOS 26+ still left Converter/Renderer
+dying with `SIGKILL` / Launch Constraint Violation (launchd exit 78) and the
+floating toolbar never appearing. Root cause: `postflight_template.sh`
+(postinstall) ran `fix_qt_bundled_paths.sh … "-"` which **ad-hoc re-signed**
+the freshly installed bundle and invalidated Apple notarization. Gatekeeper
+then reported `Unnotarized Developer ID` even though the `.pkg` itself was
+notarized.
+
+**Fix:** remove that re-sign from postinstall (release payload is already
+path-fixed and notarized in CI). `fix_qt_bundled_paths.sh` now refuses
+ad-hoc `-` when `spctl` says the app is notarized. `install_marinamoji.sh`
+replaces the destination with `rm -rf` + `ditto` (merge broke seals) and
+prefers `MARINAMOJI_CODESIGN_IDENTITY` / Developer ID over `-`, with a
+warning that local unnotarized builds still cannot satisfy SMAppService
+Launch Constraints — use a GitHub Releases `.pkg` for a working IME.
+`diagnose_marinamoji.sh` now prints Gatekeeper / notarization status.
+
+Also: Bazel macOS 26 Xcode discovery (`xcode-locator` / LaunchServices)
+pinned via `tools/local_xcode` + `mac/fix_bazel_xcode_config.sh` fallback
+and `.bazelrc` `--xcode_version_config`.
+
 ### Sync: learned character forms and entry flags; migrate cform.db (2026-10-12)
 
 The upstream merge below moved `CharacterFormManager`'s learned forms (the
@@ -1588,28 +1613,6 @@ and point `MACOS_CODESIGN_IDENTITY_TESTING` at it before rebuilding.
 Also noted: the `.pkg` installer being unsigned only blocks the initial
 double-click (right-click → Open, or `xattr -d com.apple.quarantine`
 works around it) and is unrelated to the launch-constraint crash above.
-
-### macOS: pkg postinstall must not ad-hoc re-sign (2026-10-13)
-
-Installing a notarized `.pkg` on macOS 26+ still left Converter/Renderer
-dying with `SIGKILL` / Launch Constraint Violation (launchd exit 78) and the
-floating toolbar never appearing. Root cause: `postflight_template.sh`
-(postinstall) ran `fix_qt_bundled_paths.sh … "-"` which **ad-hoc re-signed**
-the freshly installed bundle and invalidated Apple notarization. Gatekeeper
-then reported `Unnotarized Developer ID` even though the `.pkg` itself was
-notarized.
-
-**Fix:** remove that re-sign from postinstall (release payload is already
-path-fixed and notarized in CI). `fix_qt_bundled_paths.sh` now refuses
-ad-hoc `-` when `spctl` says the app is notarized. `install_marinamoji.sh`
-replaces the destination with `rm -rf` + `ditto` (merge broke seals) and
-prefers `MARINAMOJI_CODESIGN_IDENTITY` / Developer ID over `-`, with a
-warning that local unnotarized builds still cannot satisfy SMAppService
-Launch Constraints — use a GitHub Releases `.pkg` for a working IME.
-
-Also: Bazel macOS 26 Xcode discovery (`xcode-locator` / LaunchServices)
-pinned via `tools/local_xcode` + `mac/fix_bazel_xcode_config.sh` fallback
-and `.bazelrc` `--xcode_version_config`.
 
 ### macOS: IME process crash while typing (empty preedit / `;r`) (2026-08-26)
 
