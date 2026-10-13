@@ -25,21 +25,35 @@ LOCATOR_LINE="$(env DEVELOPER_DIR="${DEVELOPER_DIR}" \
 if [[ -z "${LOCATOR_LINE}" ]]; then
   # Build a fresh locator from bazel's source if missing.
   LOCATOR_SRC="${OUTPUT_BASE}/external/bazel_tools/tools/osx/xcode_locator.m"
-  if [[ ! -f "${LOCATOR_SRC}" ]]; then
-    echo "ERROR: cannot find xcode_locator.m; run 'bazelisk build --config oss_macos //mac:mozc_macos' once first." >&2
+  if [[ -f "${LOCATOR_SRC}" ]]; then
+    env DEVELOPER_DIR="${DEVELOPER_DIR}" xcrun --sdk macosx clang -mmacosx-version-min=10.13 \
+      -fobjc-arc -framework CoreServices -framework Foundation \
+      -o "${XCODE_REPO}/xcode-locator-bin" "${LOCATOR_SRC}"
+    LOCATOR_LINE="$("${XCODE_REPO}/xcode-locator-bin" -v 2>/dev/null || true)"
+  fi
+fi
+
+# On macOS 26+, xcode-locator often fails with kLSApplicationNotFoundErr even
+# outside the sandbox. Fall back to xcodebuild + DEVELOPER_DIR.
+if [[ -z "${LOCATOR_LINE}" ]]; then
+  XB_VER="$(env DEVELOPER_DIR="${DEVELOPER_DIR}" xcodebuild -version 2>/dev/null \
+    | awk '/^Xcode / { print $2; exit }')"
+  XB_BUILD="$(env DEVELOPER_DIR="${DEVELOPER_DIR}" xcodebuild -version 2>/dev/null \
+    | awk '/^Build version / { print $3; exit }')"
+  if [[ -z "${XB_VER}" ]]; then
+    echo "ERROR: xcode-locator failed and xcodebuild -version returned no version." >&2
     exit 1
   fi
-  env DEVELOPER_DIR="${DEVELOPER_DIR}" xcrun --sdk macosx clang -mmacosx-version-min=10.13 \
-    -fobjc-arc -framework CoreServices -framework Foundation \
-    -o "${XCODE_REPO}/xcode-locator-bin" "${LOCATOR_SRC}"
-  LOCATOR_LINE="$("${XCODE_REPO}/xcode-locator-bin" -v 2>/dev/null)"
+  LOCATOR_LINE="${XB_VER}.0.${XB_BUILD:-unknown}:${XB_VER}:${DEVELOPER_DIR}"
+  echo "NOTE: xcode-locator unavailable; using xcodebuild fallback:"
+  echo "  ${LOCATOR_LINE}"
 fi
 
 IFS=: read -r VERSION _ALIASES DEVDIR <<< "${LOCATOR_LINE}"
 TARGET_NAME="version${VERSION//./_}"
 # Use the developer-dir path as |version| so Bazel skips xcode-locator at action time
 # (LaunchServices fails in Bazel's darwin sandbox on macOS 26+).
-VERSION_FIELD="${DEVDIR}"
+VERSION_FIELD="${DEVDIR:-${DEVELOPER_DIR}}"
 
 SDK_OUT="$(env DEVELOPER_DIR="${DEVELOPER_DIR}" xcrun xcodebuild -version -sdk 2>/dev/null)"
 ios_sdk="$(echo "${SDK_OUT}" | sed -n 's/.*iphoneos\([0-9.]*\).*/\1/p' | head -1)"

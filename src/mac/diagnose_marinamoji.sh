@@ -96,6 +96,16 @@ REG_FLAG="$(grep -ac "register_input_source" "${IMK}" 2>/dev/null)"
 echo "Reg flag:   ${REG_FLAG:-0}"
 echo "Quarantine: $(xattr -p com.apple.quarantine "${IMK}" 2>/dev/null || echo none)"
 echo "Signature:  $(codesign -dv "${APP}" 2>&1 | grep -i '^Authority' | head -1 || echo '?')"
+SPCTL_OUT="$(spctl -a -vv "${APP}" 2>&1 || true)"
+echo "Gatekeeper: ${SPCTL_OUT}"
+if echo "${SPCTL_OUT}" | grep -q 'source=Notarized Developer ID'; then
+  echo "Notarized:  yes"
+elif echo "${SPCTL_OUT}" | grep -qi 'Unnotarized'; then
+  echo "Notarized:  NO — Converter/Renderer will die on macOS 26+ (Launch Constraint / exit 78)."
+  echo "            Reinstall a notarized .pkg from GitHub Releases; do not ad-hoc re-sign."
+else
+  echo "Notarized:  unknown / not Developer ID"
+fi
 
 section "Can the binary actually run on this Mac?"
 # A package built for the wrong architecture fails here, not at install time:

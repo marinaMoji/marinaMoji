@@ -7,10 +7,24 @@
 #
 # When codesign_identity is given (use "-" for ad-hoc), re-signs Qt bundles after
 # install_name_tool so macOS will launch them on a clean machine.
+#
+# Never pass "-" against a notarized release install: ad-hoc re-sign invalidates
+# notarization and SMAppService helpers die with Launch Constraint Violation.
+# Release .pkg postinstall must not call this script for that reason.
 set -euo pipefail
 
 APP="${1:-/Library/Input Methods/marinaMoji.app}"
 SIGN_IDENTITY="${2:-}"
+
+if [[ "${SIGN_IDENTITY}" == "-" ]]; then
+  # spctl prints to stderr; "accepted" + Notarized means leave the seal alone.
+  if spctl -a -vv "$APP" 2>&1 | grep -q 'source=Notarized Developer ID'; then
+    echo "ERROR: refusing ad-hoc re-sign of a notarized marinaMoji.app." >&2
+    echo "       That strips notarization and breaks Converter/Renderer on macOS 26+." >&2
+    echo "       Reinstall from a notarized .pkg, or pass a Developer ID identity." >&2
+    exit 1
+  fi
+fi
 
 QT_FRAMEWORKS=(QtCore QtGui QtPrintSupport QtWidgets)
 

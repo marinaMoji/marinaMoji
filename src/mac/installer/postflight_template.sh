@@ -53,10 +53,12 @@ if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
   /usr/bin/sudo -u "${CONSOLE_USER}" /usr/bin/killall marinaMoji > /dev/null 2>&1
 fi
 
-FIX="${APP}/Contents/Resources/fix_qt_bundled_paths.sh"
-if [ -x "${FIX}" ]; then
-  /bin/bash "${FIX}" "${APP}" "-"
-fi
+# Do NOT run fix_qt_bundled_paths.sh here with codesign identity "-".
+# Release packages are already path-fixed, Developer ID–signed, and notarized
+# in the build pipeline. Re-signing with ad-hoc "-" invalidates notarization;
+# on macOS 26+ that makes SMAppService Converter/Renderer agents die with
+# Launch Constraint Violation (exit 78) and the toolbar never appears.
+# See CHANGELOG / docs/MACOS_PORT_PLAN.md (postinstall notarization).
 
 # Refresh the LaunchServices record for the freshly installed bundle. Without
 # this the system may keep serving metadata cached from a previous version.

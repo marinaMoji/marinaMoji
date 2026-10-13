@@ -117,9 +117,13 @@ build:macos_env --macos_minimum_os=13.0 --host_macos_minimum_os=13.0
 # Let Bazel discover the Xcode/SDK installed on the runner or developer machine.
 build:macos_env --repo_env=DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 build:macos_env --action_env=DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-# macOS 26+: xcode-locator fails inside Bazel's darwin sandbox without fix_bazel_xcode_config.sh
+# macOS 26+: xcode-locator fails (LaunchServices / darwin sandbox). Pin a checked-in
+# xcode_config that uses the absolute Developer dir (see tools/local_xcode/BUILD).
+# Regenerate after Xcode upgrades: bash mac/fix_bazel_xcode_config.sh --write-local
+build:macos_env --xcode_version_config=//tools/local_xcode:host_xcodes
 build:macos_env --spawn_strategy=local
 test:macos_env   --test_tag_filters=-nomac
+test:macos_env   --xcode_version_config=//tools/local_xcode:host_xcodes
 
 ## Windows specific options
 common:windows_env --enable_runfiles

@@ -44,6 +44,9 @@ if [[ -n "$OLD_IMK_HASH" ]]; then
   echo "Installed IMK hash: $OLD_IMK_HASH"
 fi
 
+# Replace atomically: ditto into an existing tree merges leftovers and can
+# break the code-signature seal ("sealed resource is missing or invalid").
+sudo rm -rf "$APP_DST"
 sudo ditto "$APP_SRC" "$APP_DST"
 sudo chown -R root:wheel "$APP_DST"
 sudo chmod -R go-w "$APP_DST"
@@ -53,7 +56,29 @@ sudo touch "$APP_DST" "$APP_DST/Contents/Info.plist"
 # Drop any leftover external LaunchAgent copies from older installs.
 bash "$ROOT/mac/install_launchagents.sh"
 bash "$ROOT/mac/register_marinamoji.sh"
-sudo bash "$ROOT/mac/fix_qt_bundled_paths.sh" "$APP_DST" "-"
+
+# Prefer an explicit identity, then Developer ID Application from the keychain.
+# Ad-hoc "-" is last resort only: on macOS 26+ SMAppService helpers need a
+# notarized Developer ID build (use a GitHub Releases .pkg for day-to-day).
+SIGN_IDENTITY="${MARINAMOJI_CODESIGN_IDENTITY:-}"
+if [[ -z "${SIGN_IDENTITY}" ]]; then
+  SIGN_IDENTITY="$(
+    security find-identity -v -p codesigning 2>/dev/null |
+      sed -n 's/.*"\(Developer ID Application:[^"]*\)".*/\1/p' | head -1
+  )"
+fi
+if [[ -n "${SIGN_IDENTITY}" ]]; then
+  echo "Re-signing Qt tools with: ${SIGN_IDENTITY}"
+  sudo bash "$ROOT/mac/fix_qt_bundled_paths.sh" "$APP_DST" "${SIGN_IDENTITY}"
+  echo "NOTE: SMAppService Converter/Renderer still require Apple notarization."
+  echo "      Unnotarized Developer ID installs fail with Launch Constraint Violation."
+  echo "      For a working local IME, install a notarized .pkg from GitHub Releases,"
+  echo "      or notarize this build before selecting marinaMoji."
+else
+  echo "WARNING: no Developer ID identity found; signing Qt tools ad-hoc (-)."
+  echo "         Converter/Renderer will likely fail on macOS 26+ (exit 78)."
+  sudo bash "$ROOT/mac/fix_qt_bundled_paths.sh" "$APP_DST" "-"
+fi
 
 INSTALLED_CONVERTER_HASH="$(shasum -a 256 "$APP_DST/$CONVERTER_REL" | awk '{print $1}')"
 INSTALLED_IMK_HASH="$(shasum -a 256 "$APP_DST/$IMK_REL" | awk '{print $1}')"

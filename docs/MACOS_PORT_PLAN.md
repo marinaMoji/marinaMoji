@@ -32,10 +32,13 @@ bash mac/install_marinamoji.sh
 Manual equivalent (not recommended — easy to skip Qt fix or registration):
 
 ```bash
+sudo rm -rf "/Library/Input Methods/marinaMoji.app"
 sudo ditto bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app "/Library/Input Methods/marinaMoji.app"
 bash mac/install_launchagents.sh   # removes legacy external agents only
 bash mac/register_marinamoji.sh
-sudo bash mac/fix_qt_bundled_paths.sh "/Library/Input Methods/marinaMoji.app" "-"
+# Prefer Developer ID; ad-hoc "-" breaks notarization / SMAppService on macOS 26+.
+sudo bash mac/fix_qt_bundled_paths.sh "/Library/Input Methods/marinaMoji.app" \
+  "Developer ID Application: Your Name (TEAMID)"
 killall imklaunchagent TextInputMenuAgent marinaMoji marinaMojiConverter marinaMojiRenderer 2>/dev/null || true
 ```
 
@@ -122,7 +125,7 @@ That copies `bazel-bin/mac/mozc_macos_archive-root/marinaMoji.app`, clears legac
 
 ### Second Mac / VM: Preferences / Qt GUI tools
 
-OSS builds are **not notarized** and use **ad-hoc signing** (`codesign -s -`). That is normal for local development. Installing from a **shared folder or USB** usually avoids Gatekeeper quarantine; you typically do **not** need the Apple Developer Program for your own dev Mac and VM.
+OSS / local Bazel builds are usually **not notarized**. Ad-hoc signing (`codesign -s -`) is fine for iterating on the IMK binary itself. On **macOS 26+**, though, **SMAppService** Converter/Renderer need a **notarized Developer ID** install or they die with Launch Constraint Violation (exit 78) and the toolbar never appears — use a GitHub Releases `.pkg` for a working day-to-day IME. Installing from a **shared folder or USB** usually avoids Gatekeeper quarantine for the main app open, but does **not** replace notarization for those helpers.
 
 **Three different checks (don’t confuse them):**
 
@@ -130,7 +133,7 @@ OSS builds are **not notarized** and use **ad-hoc signing** (`codesign -s -`). T
 |-------|----------------|
 | **Gatekeeper / quarantine** | First open of software **downloaded from the internet** |
 | **Runtime signature (AMFI/dyld)** | Loading a **tampered** library (common Preferences crash on VM) |
-| **Developer ID + notarization** | Smooth installs for **strangers** downloading your pkg |
+| **Developer ID + notarization** | SMAppService helpers on macOS 26+; smooth installs for strangers |
 
 #### Build the pkg (recommended for VM)
 
@@ -171,14 +174,17 @@ codesign --force --sign - "$CD/Contents/Resources/plugins/platforms/libqcocoa.dy
 codesign --force --sign - "$CD"
 ```
 
-**Fix after install from older builds:**
+**Fix after install from older builds (Qt tools only, not a notarized release):**
 
 ```bash
+# Prefer Developer ID. Ad-hoc "-" invalidates notarization — never use it on a
+# notarized install (Converter/Renderer then die with Launch Constraint Violation).
 sudo bash "/Library/Input Methods/marinaMoji.app/Contents/Resources/fix_qt_bundled_paths.sh" \
-  "/Library/Input Methods/marinaMoji.app" "-"
+  "/Library/Input Methods/marinaMoji.app" \
+  "Developer ID Application: Your Name (TEAMID)"
 ```
 
-Dev install (`install_marinamoji.sh`) and pkg postinstall run the same script automatically on new builds.
+Dev install (`install_marinamoji.sh`) runs the same script with `MARINAMOJI_CODESIGN_IDENTITY` or an auto-detected Developer ID. **Pkg postinstall must not re-sign** — the payload is already notarized; older packages that called `fix_qt … "-"` on install are broken on macOS 26+ until you replace the app with a clean notarized copy (extract from the `.pkg` Payload, `sudo rm -rf` then `ditto`, never merge into a dirty tree).
 
 **Also check:**
 
@@ -239,7 +245,9 @@ sudo rm -rf "/Library/Input Methods/marinaMoji.app"
 sudo ditto marinaMoji.app "/Library/Input Methods/marinaMoji.app"
 cd ../..   # back to src/
 bash mac/register_marinamoji.sh
-sudo bash mac/fix_qt_bundled_paths.sh "/Library/Input Methods/marinaMoji.app" "-"
+# Prefer Developer ID; never use "-" on a notarized install.
+sudo bash mac/fix_qt_bundled_paths.sh "/Library/Input Methods/marinaMoji.app" \
+  "Developer ID Application: Your Name (TEAMID)"
 bash mac/install_launchagents.sh   # legacy external agent cleanup only
 ```
 
