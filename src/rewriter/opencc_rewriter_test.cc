@@ -34,13 +34,16 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "base/util.h"
 #include "converter/candidate.h"
+#include "converter/inner_segment.h"
 #include "converter/segments.h"
 #include "protocol/config.pb.h"
 #include "request/conversion_request.h"
 #include "rewriter/rewriter_interface.h"
+#include "testing/gmock.h"
 #include "testing/gunit.h"
 #include "testing/mozctest.h"
 
@@ -49,9 +52,11 @@ namespace {
 
 // Adds a single-candidate segment. |content_value| is the part the shin/kyu
 // tables apply to; the rest of |value| is the functional (kana) part.
-void AddSegment(absl::string_view key, absl::string_view content_key,
-                absl::string_view value, absl::string_view content_value,
-                Segments* segments) {
+converter::Candidate* AddSegment(absl::string_view key,
+                                 absl::string_view content_key,
+                                 absl::string_view value,
+                                 absl::string_view content_value,
+                                 Segments* segments) {
   Segment* seg = segments->add_segment();
   seg->set_key(key);
   converter::Candidate* candidate = seg->add_candidate();
@@ -59,7 +64,46 @@ void AddSegment(absl::string_view key, absl::string_view content_key,
   candidate->content_key = std::string(content_key);
   candidate->value = std::string(value);
   candidate->content_value = std::string(content_value);
+  return candidate;
 }
+
+// Inner segments of |candidate| as "value" or "content|functional" strings.
+std::vector<std::string> InnerValues(const converter::Candidate& candidate) {
+  std::vector<std::string> values;
+  for (const auto& iter : candidate.inner_segments()) {
+    values.push_back(iter.GetFunctionalValue().empty()
+                         ? std::string(iter.GetValue())
+                         : absl::StrCat(iter.GetContentValue(), "|",
+                                        iter.GetFunctionalValue()));
+  }
+  return values;
+}
+
+// Checks that |candidate|'s inner_segment_boundary is one InnerSegments
+// accepts: an inconsistent boundary is silently replaced by a single segment,
+// so the segment count would not match the boundary size.
+void ExpectConsistentInnerSegments(const converter::Candidate& candidate) {
+  SCOPED_TRACE(candidate.value);
+  EXPECT_TRUE(absl::string_view(candidate.value)
+                  .starts_with(candidate.content_value));
+  ASSERT_FALSE(candidate.inner_segment_boundary.empty());
+  std::string key;
+  std::string value;
+  size_t size = 0;
+  for (const auto& iter : converter::InnerSegments(
+           candidate.key, candidate.value, candidate.inner_segment_boundary)) {
+    EXPECT_TRUE(iter.GetValue().starts_with(iter.GetContentValue()));
+    absl::StrAppend(&key, iter.GetKey());
+    absl::StrAppend(&value, iter.GetValue());
+    ++size;
+  }
+  EXPECT_EQ(size, candidate.inner_segment_boundary.size());
+  EXPECT_EQ(key, candidate.key);
+  EXPECT_EQ(value, candidate.value);
+}
+
+// U+E0101 VARIATION SELECTOR-18, appended by the Variants table.
+constexpr absl::string_view kVs18 = "\xF3\xA0\x84\x81";
 
 std::vector<std::string> Values(const Segment& segment) {
   std::vector<std::string> values;
@@ -170,6 +214,126 @@ TEST_F(OpenccRewriterTest, IvsOutputKeepsBaseCharacters) {
           << "base characters changed for " << value;
     }
   }
+}
+
+// 刃 and 棚 gain an IVS selector (3 -> 7 bytes), so a copied boundary would no
+// longer add up to the value.
+TEST_F(OpenccRewriterTest, RebuildsInnerSegmentBoundaryWhenValueGrows) {
+  Segments segments;
+  converter::Candidate* candidate =
+      AddSegment("やいばをたな", "やいば", "刃を棚", "刃", &segments);
+  candidate->inner_segment_boundary = converter::BuildInnerSegmentBoundary(
+      {{12, 6, 9, 3}, {6, 3, 6, 3}}, candidate->key, candidate->value);
+  ASSERT_EQ(candidate->inner_segment_boundary.size(), 2);
+
+  EXPECT_TRUE(rewriter_.Rewrite(MakeRequest(true), &segments));
+  const Segment& seg = segments.conversion_segment(0);
+  ASSERT_EQ(seg.candidates_size(), 1);
+  const converter::Candidate& result = seg.candidate(0);
+  const std::string blade = absl::StrCat("刃", kVs18);
+  const std::string shelf = absl::StrCat("棚", kVs18);
+  EXPECT_EQ(result.value, absl::StrCat(blade, "を", shelf));
+  EXPECT_EQ(result.content_value, blade);
+  EXPECT_EQ(result.key, "やいばをたな");
+  ExpectConsistentInnerSegments(result);
+  EXPECT_THAT(InnerValues(result), ::testing::ElementsAre(
+                                       absl::StrCat(blade, "|を"), shelf));
+}
+
+// The phrase 海里 -> 浬 shrinks the first segment (6 -> 3 bytes) while 刃 grows
+// the second one.
+TEST_F(OpenccRewriterTest, RebuildsInnerSegmentBoundaryWhenValueShrinks) {
+  Segments segments;
+  converter::Candidate* candidate =
+      AddSegment("かいりのやいば", "かいり", "海里の刃", "海里", &segments);
+  candidate->inner_segment_boundary = converter::BuildInnerSegmentBoundary(
+      {{12, 9, 9, 6}, {9, 3, 9, 3}}, candidate->key, candidate->value);
+  ASSERT_EQ(candidate->inner_segment_boundary.size(), 2);
+
+  EXPECT_TRUE(rewriter_.Rewrite(MakeRequest(true), &segments));
+  const Segment& seg = segments.conversion_segment(0);
+  ASSERT_EQ(seg.candidates_size(), 1);
+  const converter::Candidate& result = seg.candidate(0);
+  const std::string blade = absl::StrCat("刃", kVs18);
+  EXPECT_EQ(result.value, absl::StrCat("浬の", blade));
+  EXPECT_EQ(result.content_value, "浬");
+  ExpectConsistentInnerSegments(result);
+  EXPECT_THAT(InnerValues(result), ::testing::ElementsAre("浬|の", blade));
+}
+
+// content_value need not end on an inner segment boundary: here the inner
+// segment's content part is the whole "刃だ", but content_value is "刃".
+TEST_F(OpenccRewriterTest, KeepsContentValueInsideInnerSegment) {
+  Segments segments;
+  converter::Candidate* candidate =
+      AddSegment("やいばだ", "やいば", "刃だ", "刃", &segments);
+  candidate->inner_segment_boundary = converter::BuildInnerSegmentBoundary(
+      {{12, 6, 12, 6}}, candidate->key, candidate->value);
+
+  EXPECT_TRUE(rewriter_.Rewrite(MakeRequest(true), &segments));
+  const converter::Candidate& result =
+      segments.conversion_segment(0).candidate(0);
+  const std::string blade = absl::StrCat("刃", kVs18);
+  EXPECT_EQ(result.value, absl::StrCat(blade, "だ"));
+  EXPECT_EQ(result.content_value, blade);
+  EXPECT_EQ(result.functional_value(), "だ");
+  ExpectConsistentInnerSegments(result);
+  EXPECT_THAT(InnerValues(result),
+              ::testing::ElementsAre(absl::StrCat(blade, "だ")));
+}
+
+// Every variant inserted for a one-to-many mapping gets its own boundary.
+TEST_F(OpenccRewriterTest, RebuildsInnerSegmentBoundaryForEachVariant) {
+  Segments segments;
+  converter::Candidate* candidate =
+      AddSegment("よをやいば", "よ", "予を刃", "予", &segments);
+  candidate->inner_segment_boundary = converter::BuildInnerSegmentBoundary(
+      {{6, 6, 3, 3}, {9, 3, 9, 3}}, candidate->key, candidate->value);
+
+  EXPECT_TRUE(rewriter_.Rewrite(MakeRequest(true), &segments));
+  const Segment& seg = segments.conversion_segment(0);
+  EXPECT_GT(seg.candidates_size(), 1);
+  EXPECT_TRUE(absl::c_linear_search(Values(seg),
+                                    absl::StrCat("豫を刃", kVs18)));
+  for (size_t i = 0; i < seg.candidates_size(); ++i) {
+    ExpectConsistentInnerSegments(seg.candidate(i));
+    EXPECT_EQ(seg.candidate(i).inner_segment_boundary.size(), 2);
+  }
+}
+
+// A converted segment that no longer fits the boundary encoding (255 bytes per
+// segment) gets no boundary rather than an inconsistent one.
+TEST_F(OpenccRewriterTest, ClearsInnerSegmentBoundaryThatCannotBeEncoded) {
+  std::string key;
+  std::string value;
+  for (int i = 0; i < 50; ++i) {
+    absl::StrAppend(&key, "は");
+    absl::StrAppend(&value, "刃");
+  }
+  Segments segments;
+  converter::Candidate* candidate =
+      AddSegment(key, key, value, value, &segments);
+  candidate->inner_segment_boundary = converter::BuildInnerSegmentBoundary(
+      {{150, 150, 150, 150}}, key, value);
+  ASSERT_FALSE(candidate->inner_segment_boundary.empty());
+
+  EXPECT_TRUE(rewriter_.Rewrite(MakeRequest(true), &segments));
+  const converter::Candidate& result =
+      segments.conversion_segment(0).candidate(0);
+  EXPECT_EQ(result.value.size(), 50 * 7);
+  EXPECT_TRUE(result.inner_segment_boundary.empty());
+}
+
+// Without an inner segment boundary, none is made up.
+TEST_F(OpenccRewriterTest, LeavesEmptyInnerSegmentBoundaryEmpty) {
+  Segments segments;
+  AddSegment("やいばを", "やいば", "刃を", "刃", &segments);
+
+  EXPECT_TRUE(rewriter_.Rewrite(MakeRequest(true), &segments));
+  const converter::Candidate& result =
+      segments.conversion_segment(0).candidate(0);
+  EXPECT_EQ(result.value, absl::StrCat("刃", kVs18, "を"));
+  EXPECT_TRUE(result.inner_segment_boundary.empty());
 }
 
 }  // namespace

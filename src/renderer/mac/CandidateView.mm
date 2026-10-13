@@ -105,7 +105,7 @@ using mozc::renderer::mac::MacViewUtil;
   self = [super initWithFrame:frame];
   if (self) {
     logoImage_ = nil;
-    RendererStyleHandler::GetRendererStyle(&style_);
+    style_ = RendererStyleHandler::GetRendererStyle();
     [self reloadStyle];
     focusedRow_ = -1;
     // default line width is specified as 1.0 *pt*, but we want to draw
@@ -182,7 +182,7 @@ using mozc::renderer::mac::MacViewUtil;
 #ifdef __APPLE__
   mozc::config::ConfigHandler::Reload();
 #endif  // __APPLE__
-  RendererStyleHandler::GetRendererStyle(&style_);
+  style_ = RendererStyleHandler::GetRendererStyle();
 
   const NSAttributedString *minimumWidthString = MacViewUtil::ToNSAttributedString(
       style_.column_minimum_width_string(), style_.shortcut_style());

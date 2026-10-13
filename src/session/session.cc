@@ -554,7 +554,7 @@ bool Session::SendCommand(commands::Command* command) {
       // Resets converter's state (e.g. previous segments).
       // NWP will be generated from surrounding text given by the client.
       context_->mutable_converter()->Reset();
-      result = context_->mutable_converter()->SuggestWithPreferences(
+      result = context_->mutable_converter()->Suggest(
           context_->composer(), command->input().context(),
           conversion_preferences);
       if (result) {
@@ -2532,7 +2532,7 @@ bool Session::Suggest(const commands::Input& input) {
   // |request_suggestion| is not supposed to always ensure suppressing
   // suggestion since this field is used for performance improvement
   // by skipping interim suggestions.  However, the implementation of
-  // EngineConverter::SuggestWithPreferences does not perform suggest
+  // EngineConverter::Suggest does not perform suggest
   // whenever this flag is on.  So the caller should consider whether
   // this flag should be set or not.  Because the original logic was
   // implemented in Session::InserCharacter, we check the input.type()
@@ -2545,7 +2545,7 @@ bool Session::Suggest(const commands::Input& input) {
     ConversionPreferences conversion_preferences =
         context_->converter().conversion_preferences();
     conversion_preferences.request_suggestion = input.request_suggestion();
-    return context_->mutable_converter()->SuggestWithPreferences(
+    return context_->mutable_converter()->Suggest(
         context_->composer(), input.context(), conversion_preferences);
   }
 
@@ -3347,7 +3347,8 @@ bool Session::Convert(commands::Command* command) {
     }
   }
 
-  if (!context_->mutable_converter()->Convert(context_->composer())) {
+  if (!context_->mutable_converter()->Convert(context_->composer(),
+                                              context_->client_context())) {
     LOG(ERROR) << "Conversion failed for some reasons.";
     OutputComposition(command);
     return true;
@@ -3368,8 +3369,8 @@ bool Session::ConvertWithoutHistory(commands::Command* command) {
   ConversionPreferences preferences =
       context_->converter().conversion_preferences();
   preferences.use_history = false;
-  if (!context_->mutable_converter()->ConvertWithPreferences(
-          context_->composer(), preferences)) {
+  if (!context_->mutable_converter()->Convert(
+          context_->composer(), context_->client_context(), preferences)) {
     LOG(ERROR) << "Conversion failed for some reasons.";
     OutputComposition(command);
     return true;
@@ -3692,7 +3693,8 @@ bool Session::PredictAndConvert(commands::Command* command) {
   }
 
   command->mutable_output()->set_consumed(true);
-  if (context_->mutable_converter()->Predict(context_->composer())) {
+  if (context_->mutable_converter()->Predict(context_->composer(),
+                                             context_->client_context())) {
     SetSessionState(ImeContext::CONVERSION, context_.get());
     Output(command);
   } else {

@@ -1,8 +1,10 @@
 name: CI for Linux
 # https://github.com/marinaMoji/marinaMoji/blob/main/docs/build_marinamoji_for_linux.md
 
-# Run on push.
-on: push
+# Run on push and pull request.
+on:
+  - push
+  - pull_request
 
 permissions:
   contents: read
@@ -23,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           submodules: false
           persist-credentials: false
@@ -64,7 +66,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           submodules: false
           persist-credentials: false
@@ -88,7 +90,8 @@ jobs:
           cp bazel-bin/unix/mozc.zip bazel-bin/unix/marinaMoji-linux-${{ matrix.arch }}.zip
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: marinaMoji-linux-${{ matrix.arch }}
           path: src/bazel-bin/unix/marinaMoji-linux-${{ matrix.arch }}.zip
@@ -108,7 +111,7 @@ jobs:
             --output-dir dist
 
       - name: Upload .deb
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: marinaMoji-linux-${{ matrix.arch }}-deb
           path: dist/*.deb
@@ -129,7 +132,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           submodules: false
           persist-credentials: false
@@ -148,14 +151,14 @@ jobs:
           bazelisk test ... -c dbg --test_output=errors --build_tests_only --build_event_json_file=bep.jsonl
 
       - name: Collect failing test logs
-        if: failure()
+        if: failure() && github.event_name == 'push'
         working-directory: ./src
         run: |
           python3 build_tools/collect_test_logs.py --bep bep.jsonl --out "${GITHUB_WORKSPACE}/test_logs"
 
       - name: Upload failing test logs
-        if: failure()
-        uses: actions/upload-artifact@v7
+        if: failure() && github.event_name == 'push'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: test-logs-linux-${{ matrix.arch }}
           path: test_logs

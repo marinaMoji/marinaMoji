@@ -62,7 +62,7 @@
 #include "base/process.h"
 #include "client/client.h"
 #include "config/config_handler.h"
-#include "config/stats_config_util.h"
+#include "gui/base/stats_config_util.h"
 #include "gui/base/util.h"
 #include "gui/config_dialog/keymap_editor.h"
 #include "gui/config_dialog/kaeriten_table_editor.h"
@@ -130,9 +130,9 @@ void AdjustTabBarForDescenders(QTabWidget *tab_widget) {
 }
 
 template <typename T>
-void Connect(const QList<T *> &objects, const char *signal,
-             const QObject *receiver, const char *slot) {
-  for (typename QList<T *>::const_iterator itr = objects.begin();
+void Connect(const QList<T*>& objects, const char* signal,
+             const QObject* receiver, const char* slot) {
+  for (typename QList<T*>::const_iterator itr = objects.begin();
        itr != objects.end(); ++itr) {
     QObject::connect(*itr, signal, receiver, slot);
   }
@@ -207,8 +207,6 @@ void SaveUserSymbolsToFile(const std::vector<std::string> &values) {
 
 namespace mozc {
 namespace gui {
-
-using ::mozc::config::StatsConfigUtil;
 
 // Qt Style sheet for the config dialog.
 // https://doc.qt.io/qt-6/stylesheet-reference.html
@@ -434,14 +432,10 @@ ConfigDialog::ConfigDialog()
   configDialogButtonBox->button(QDialogButtonBox::Apply)->setText(tr("Apply"));
 
   // signal/slot
-  QObject::connect(configDialogButtonBox, SIGNAL(clicked(QAbstractButton *)),
-                   this, SLOT(clicked(QAbstractButton *)));
+  QObject::connect(configDialogButtonBox, SIGNAL(clicked(QAbstractButton*)),
+                   this, SLOT(clicked(QAbstractButton*)));
   QObject::connect(clearUserHistoryButton, SIGNAL(clicked()), this,
                    SLOT(ClearUserHistory()));
-  QObject::connect(clearUserPredictionButton, SIGNAL(clicked()), this,
-                   SLOT(ClearUserPrediction()));
-  QObject::connect(clearUnusedUserPredictionButton, SIGNAL(clicked()), this,
-                   SLOT(ClearUnusedUserPrediction()));
   QObject::connect(editUserDictionaryButton, SIGNAL(clicked()), this,
                    SLOT(EditUserDictionary()));
   QObject::connect(editUserSymbolsButton, SIGNAL(clicked()), this,
@@ -468,13 +462,13 @@ ConfigDialog::ConfigDialog()
                    SIGNAL(clicked()), this, SLOT(LaunchAdministrationDialog()));
 
   // Event handlers to enable 'Apply' button.
-  Connect(findChildren<QPushButton *>(), SIGNAL(clicked()), this,
+  Connect(findChildren<QPushButton*>(), SIGNAL(clicked()), this,
           SLOT(EnableApplyButton()));
-  Connect(findChildren<QCheckBox *>(), SIGNAL(clicked()), this,
+  Connect(findChildren<QCheckBox*>(), SIGNAL(clicked()), this,
           SLOT(EnableApplyButton()));
-  Connect(findChildren<QComboBox *>(), SIGNAL(activated(int)), this,
+  Connect(findChildren<QComboBox*>(), SIGNAL(activated(int)), this,
           SLOT(EnableApplyButton()));
-  Connect(findChildren<QSpinBox *>(), SIGNAL(editingFinished()), this,
+  Connect(findChildren<QSpinBox*>(), SIGNAL(editingFinished()), this,
           SLOT(EnableApplyButton()));
   // 'Apply' button is disabled on launching.
   configDialogButtonBox->button(QDialogButtonBox::Apply)->setEnabled(false);
@@ -497,7 +491,7 @@ ConfigDialog::ConfigDialog()
   // if the current application is not elevated by UAC,
   // add a shield icon
   if (!mozc::RunLevel::IsElevatedByUAC()) {
-    const QIcon &vista_shield_icon =
+    const QIcon& vista_shield_icon =
         QApplication::style()->standardIcon(QStyle::SP_VistaShield);
     launchAdministrationDialogButton->setIcon(vista_shield_icon);
     launchAdministrationDialogButtonForUsageStats->setIcon(vista_shield_icon);
@@ -655,7 +649,7 @@ ConfigDialog::ConfigDialog()
 #endif  // GOOGLE_JAPANESE_INPUT_BUILD && CHANNEL_DEV
 }
 
-bool ConfigDialog::SetConfig(const config::Config &config) {
+bool ConfigDialog::SetConfig(const config::Config& config) {
   if (!client_->CheckVersionOrRestartServer()) {
     LOG(ERROR) << "CheckVersionOrRestartServer failed";
     return false;
@@ -669,7 +663,7 @@ bool ConfigDialog::SetConfig(const config::Config &config) {
   return true;
 }
 
-bool ConfigDialog::GetConfig(config::Config *config) {
+bool ConfigDialog::GetConfig(config::Config* config) {
   if (!client_->CheckVersionOrRestartServer()) {
     LOG(ERROR) << "CheckVersionOrRestartServer failed";
     return false;
@@ -867,8 +861,8 @@ static constexpr int kMinCandidateWindowFontSize = 14;
 static constexpr int kMaxCandidateWindowFontSize = 36;
 #endif  // __APPLE__
 
-void SetComboboxForPreeditMethod(const config::Config &config,
-                                 QComboBox *combobox) {
+void SetComboboxForPreeditMethod(const config::Config& config,
+                                 QComboBox* combobox) {
   int index = static_cast<int>(config.preedit_method());
 #ifdef _WIN32
   if (config.use_keyboard_to_change_preedit_method()) {
@@ -878,8 +872,8 @@ void SetComboboxForPreeditMethod(const config::Config &config,
   combobox->setCurrentIndex(index);
 }
 
-void GetComboboxForPreeditMethod(const QComboBox *combobox,
-                                 config::Config *config) {
+void GetComboboxForPreeditMethod(const QComboBox* combobox,
+                                 config::Config* config) {
   int index = combobox->currentIndex();
   if (index >= kPreeditMethodSize) {
     // |use_keyboard_to_change_preedit_method| should be true and
@@ -913,7 +907,7 @@ void GetComboboxForKeyboardLayout(const QComboBox *combobox,
 // TODO(taku)
 // Actually ConvertFromProto and ConvertToProto are almost the same.
 // The difference only SET_ and GET_. We would like to unify the twos.
-void ConfigDialog::ConvertFromProto(const config::Config &config) {
+void ConfigDialog::ConvertFromProto(const config::Config& config) {
   base_config_ = config;
   // tab1
   SetComboboxForPreeditMethod(config, inputModeComboBox);
@@ -1047,7 +1041,7 @@ void ConfigDialog::ConvertFromProto(const config::Config &config) {
 #endif  // __APPLE__
 }
 
-void ConfigDialog::ConvertToProto(config::Config *config) const {
+void ConfigDialog::ConvertToProto(config::Config* config) const {
   *config = base_config_;
 
   // tab1
@@ -1183,7 +1177,7 @@ void ConfigDialog::ConvertToProto(config::Config *config) const {
 #undef GET_COMBOBOX
 #undef GET_CHECKBOX
 
-void ConfigDialog::clicked(QAbstractButton *button) {
+void ConfigDialog::clicked(QAbstractButton* button) {
   switch (configDialogButtonBox->buttonRole(button)) {
     case QDialogButtonBox::AcceptRole:
       if (Update()) {
@@ -1206,27 +1200,6 @@ void ConfigDialog::clicked(QAbstractButton *button) {
 void ConfigDialog::ClearUserHistory() {
   if (QMessageBox::Ok !=
       QMessageBox::question(
-          this, windowTitle(),
-          tr("Do you want to clear personalization data? "
-             "Input history is not reset with this operation. "
-             "Please open \"suggestion\" tab to remove input history data."),
-          QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Cancel)) {
-    return;
-  }
-
-  client_->CheckVersionOrRestartServer();
-
-  if (!client_->ClearUserHistory()) {
-    QMessageBox::critical(this, windowTitle(),
-                          tr("%1 Converter is not running. "
-                             "Settings were not saved.")
-                              .arg(GuiUtil::ProductName()));
-  }
-}
-
-void ConfigDialog::ClearUserPrediction() {
-  if (QMessageBox::Ok !=
-      QMessageBox::question(
           this, windowTitle(), tr("Do you want to clear all history data?"),
           QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Cancel)) {
     return;
@@ -1234,29 +1207,11 @@ void ConfigDialog::ClearUserPrediction() {
 
   client_->CheckVersionOrRestartServer();
 
-  if (!client_->ClearUserPrediction()) {
-    QMessageBox::critical(
-        this, windowTitle(),
-        tr("%1 Converter is not running. Settings were not saved.")
-            .arg(GuiUtil::ProductName()));
-  }
-}
-
-void ConfigDialog::ClearUnusedUserPrediction() {
-  if (QMessageBox::Ok !=
-      QMessageBox::question(
-          this, windowTitle(), tr("Do you want to clear unused history data?"),
-          QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Cancel)) {
-    return;
-  }
-
-  client_->CheckVersionOrRestartServer();
-
-  if (!client_->ClearUnusedUserPrediction()) {
-    QMessageBox::critical(
-        this, windowTitle(),
-        tr("%1 Converter is not running. Operation was not executed.")
-            .arg(GuiUtil::ProductName()));
+  if (!client_->ClearUserHistory() || !client_->ClearUserPrediction()) {
+    QMessageBox::critical(this, windowTitle(),
+                          tr("%1 Converter is not running. "
+                             "Settings were not saved.")
+                              .arg(GuiUtil::ProductName()));
   }
 }
 
@@ -1306,7 +1261,7 @@ void ConfigDialog::EditKeymap() {
       keymapname_sessionkeymap_map_.find(keymap_name);
   if (itr != keymapname_sessionkeymap_map_.end()) {
     // Load from predefined mapping file.
-    const char *keymap_file =
+    const char* keymap_file =
         keymap::KeyMapManager::GetKeyMapFileName(itr->second);
     std::unique_ptr<std::istream> ifs(
         ConfigFileStream::LegacyOpen(keymap_file));
@@ -1525,7 +1480,7 @@ void ConfigDialog::OnUpdateCheckFailed(const QString &message) {
 }
 
 // Catch MouseButtonRelease event to toggle the CheckBoxes
-bool ConfigDialog::eventFilter(QObject *obj, QEvent *event) {
+bool ConfigDialog::eventFilter(QObject* obj, QEvent* event) {
   if (event->type() == QEvent::MouseButtonRelease) {
     if (obj == usageStatsMessage) {
 #if defined(GOOGLE_JAPANESE_INPUT_BUILD) && !defined(CHANNEL_DEV)

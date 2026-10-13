@@ -71,10 +71,8 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   // by the moc tool and |QObject::connect| against these methods results in
   // failure. See b/5935351 about how we found this issue.
  protected slots:
-  virtual void clicked(QAbstractButton *button);
+  virtual void clicked(QAbstractButton* button);
   virtual void ClearUserHistory();
-  virtual void ClearUserPrediction();
-  virtual void ClearUnusedUserPrediction();
   virtual void EditUserDictionary();
   virtual void EditUserSymbols();
   virtual void EditKeymap();
@@ -87,25 +85,25 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   virtual void LaunchAdministrationDialog();
   virtual void EnableApplyButton();
   virtual void CheckForUpdates();
-  virtual void OnUpdateAvailable(const QString &tag_name, const QString &html_url,
-                                 const QString &pkg_url);
+  virtual void OnUpdateAvailable(const QString& tag_name, const QString& html_url,
+                                 const QString& pkg_url);
   virtual void OnUpdateUpToDate();
-  virtual void OnUpdateCheckFailed(const QString &message);
+  virtual void OnUpdateCheckFailed(const QString& message);
 
  protected:
-  bool eventFilter(QObject *obj, QEvent *event) override;
-  void showEvent(QShowEvent *event) override;
+  bool eventFilter(QObject* obj, QEvent* event) override;
+  void showEvent(QShowEvent* event) override;
 
  private:
   void MaybeAutoCheckForUpdates();
-  bool GetConfig(config::Config *config);
-  bool SetConfig(const config::Config &config);
+  bool GetConfig(config::Config* config);
+  bool SetConfig(const config::Config& config);
   // Set/GetSendStatsChechBox read/write registry or file directly
   // instead of config protobuf.
   void SetSendStatsCheckBox();
   void GetSendStatsCheckBox() const;
-  void ConvertToProto(config::Config *config) const;
-  void ConvertFromProto(const config::Config &config);
+  void ConvertToProto(config::Config* config) const;
+  void ConvertFromProto(const config::Config& config);
   bool Update();
   void Reload();
   // Linux/IBus only: load/save candidate window choice from ibus_config.textproto.

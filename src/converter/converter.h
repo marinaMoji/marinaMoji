@@ -181,13 +181,6 @@ class Converter final : public ConverterInterface {
     return *modules_;
   }
 
-  // Utility method to make committed results for Predictor::Finish().
-  static std::vector<prediction::Result> MakeLearningResults(
-      const Segments& segments);
-
-  // Utility method to make history result passed to ConversionRequest.
-  static prediction::Result MakeHistoryResult(const Segments& segments);
-
  private:
   friend class ConverterTestPeer;
 
@@ -221,11 +214,6 @@ class Converter final : public ConverterInterface {
   void TrimCandidates(const ConversionRequest& request,
                       Segments* segments) const;
 
-  // Returns the substring of |str|. This substring consists of similar script
-  // type and you can use it as preceding text for conversion.
-  bool GetLastConnectivePart(absl::string_view preceding_text, std::string* key,
-                             std::string* value, uint16_t* id) const;
-
   // Gets the reading of `text`.
   // If `multi_segment` is true, `text` can consist of multiple segments.
   // Otherwise, only allows `text` to be one dictionary entry.
@@ -237,8 +225,43 @@ class Converter final : public ConverterInterface {
   bool PredictForRequestWithSegments(const ConversionRequest& request,
                                      Segments* segments) const;
 
-  // Post processing after conversion.
-  // Rewriter, SuppressionDictionary, etc.
+  // Resizes conversion segments to match inner segment boundaries of result
+  // and re-runs conversion if needed. Returns false if resizing/conversion
+  // fails.
+  bool ResizeSegmentsByResult(const ConversionRequest& request,
+                              const prediction::Result& result,
+                              Segments* segments) const;
+
+  // Applies each inner segment of `result` to the corresponding conversion
+  // segment at `target_pos`.
+  void ApplyResultToSegments(const prediction::Result& result,
+                             size_t target_pos, uint32_t additional_attributes,
+                             Segments* segments) const;
+
+  // Generates prediction results from UserHistoryPredictor and
+  // SupplementalModel (PostCorrection) for conversion.
+  std::vector<prediction::Result> PredictForConversion(
+      const ConversionRequest& request, const Segments& segments,
+      const prediction::Result& default_result) const;
+
+  // Populates prediction results into conversion segments.
+  void PopulatePredictionResultsToSegments(
+      const ConversionRequest& request,
+      const prediction::Result& default_result,
+      absl::Span<const prediction::Result> results, Segments* segments) const;
+
+  // Applies prediction-layer outputs (e.g., user history prediction and
+  // supplemental model post-correction) to conversion segments to minimize the
+  // behavioral discrepancy between prediction and conversion pipelines and
+  // allow conversion to benefit from improvements introduced in prediction.
+  //
+  // NOTE: This method is a short-term workaround. Because conversion currently
+  // requires tricky conversions and segment resizing between `Segments` and
+  // `prediction::Result`, the long-term goal is to eliminate dependency on
+  // `Segments` entirely in favor of a unified `Result`-based pipeline.
+  void MaybeApplyPredictionToConversion(const ConversionRequest& request,
+                                        Segments* segments) const;
+
   void ApplyPostProcessing(const ConversionRequest& request,
                            Segments* segments) const;
 

@@ -30,9 +30,11 @@
 #include "rewriter/variants_rewriter.h"
 
 #include <cstddef>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
@@ -50,7 +52,9 @@
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
 #include "request/conversion_request.h"
+#include "request/options.h"
 #include "rewriter/rewriter_interface.h"
+#include "testing/gmock.h"
 #include "testing/gunit.h"
 #include "testing/mozctest.h"
 
@@ -289,6 +293,40 @@ TEST_F(VariantsRewriterTest, SetDescriptionForCandidate) {
               candidate.description);
   }
   {
+    // Ensure SetDescriptionForCandidate rebuilds description even when the
+    // candidate already carries NO_EXTRA_DESCRIPTION (e.g. when called from
+    // UserSegmentHistoryRewriter after candidate copying; b/3493644).
+    converter::Candidate candidate;
+    candidate.value = "ＦｕｌｌＡＳＣＩＩ";
+    candidate.content_value = candidate.value;
+    candidate.content_key = "fullascii";
+    candidate.attributes = converter::Attribute::NO_EXTRA_DESCRIPTION;
+    candidate.description = "";
+    VariantsRewriter::SetDescriptionForCandidate(pos_matcher_, &candidate);
+    EXPECT_EQ(absl::StrCat(VariantsRewriter::kFullWidth, " ",
+                           VariantsRewriter::kAlphabet),
+              candidate.description);
+    EXPECT_TRUE(candidate.attributes &
+                converter::Attribute::NO_EXTRA_DESCRIPTION);
+  }
+  {
+    // Ensure SetDescriptionForCandidate rebuilds description even when the
+    // candidate already carries NO_EXTRA_DESCRIPTION (e.g. when called from
+    // UserSegmentHistoryRewriter after candidate copying; b/3493644).
+    converter::Candidate candidate;
+    candidate.value = "ＦｕｌｌＡＳＣＩＩ";
+    candidate.content_value = candidate.value;
+    candidate.content_key = "fullascii";
+    candidate.attributes = converter::Attribute::NO_EXTRA_DESCRIPTION;
+    candidate.description = "";
+    VariantsRewriter::SetDescriptionForCandidate(pos_matcher_, &candidate);
+    EXPECT_EQ(absl::StrCat(VariantsRewriter::kFullWidth, " ",
+                           VariantsRewriter::kAlphabet),
+              candidate.description);
+    EXPECT_TRUE(candidate.attributes &
+                converter::Attribute::NO_EXTRA_DESCRIPTION);
+  }
+  {
     converter::Candidate candidate;
     candidate.value = "コギトエルゴスム";
     candidate.content_value = candidate.value;
@@ -461,6 +499,39 @@ TEST_F(VariantsRewriterTest, SetDescriptionForCandidate) {
     VariantsRewriter::SetDescriptionForCandidate(pos_matcher_, &candidate);
     std::string expected = "[全] マイナス";
     EXPECT_EQ(candidate.description, expected);
+  }
+  // Mixed-script words with numbers or alphabets
+  {
+    converter::Candidate candidate;
+    candidate.value = "4時";
+    candidate.content_value = candidate.value;
+    candidate.content_key = "よじ";
+    VariantsRewriter::SetDescriptionForCandidate(pos_matcher_, &candidate);
+    EXPECT_EQ(candidate.description, "");
+  }
+  {
+    converter::Candidate candidate;
+    candidate.value = "４時";
+    candidate.content_value = candidate.value;
+    candidate.content_key = "よじ";
+    VariantsRewriter::SetDescriptionForCandidate(pos_matcher_, &candidate);
+    EXPECT_EQ(candidate.description, VariantsRewriter::kFullWidth);
+  }
+  {
+    converter::Candidate candidate;
+    candidate.value = "Tシャツ";
+    candidate.content_value = candidate.value;
+    candidate.content_key = "てぃーしゃつ";
+    VariantsRewriter::SetDescriptionForCandidate(pos_matcher_, &candidate);
+    EXPECT_EQ(candidate.description, "");
+  }
+  {
+    converter::Candidate candidate;
+    candidate.value = "Ｔシャツ";
+    candidate.content_value = candidate.value;
+    candidate.content_key = "てぃーしゃつ";
+    VariantsRewriter::SetDescriptionForCandidate(pos_matcher_, &candidate);
+    EXPECT_EQ(candidate.description, VariantsRewriter::kFullWidth);
   }
 }
 
@@ -1058,6 +1129,527 @@ TEST_F(VariantsRewriterTest, Finish) {
   cand->description = std::string(VariantsRewriter::kFullWidth);
   rewriter->Finish(request, segments);
   EXPECT_EQ(manager->GetConversionCharacterForm("0"), Config::FULL_WIDTH);
+
+  // Half-width number expression without description (mixed-form: half-width
+  // digit + full-width kanji).
+  cand->value = "3時";
+  cand->content_value = cand->value;
+  cand->style = NumberUtil::NumberString::DEFAULT_STYLE;
+  cand->description.clear();
+  rewriter->Finish(request, segments);
+  EXPECT_EQ(manager->GetConversionCharacterForm("0"), Config::HALF_WIDTH);
+
+  // Separated Arabic and Arabic+Kanji numbers with NO_VARIANTS_EXPANSION (e.g.,
+  // reranked by NumberRewriter).
+  cand->value = "１，２３４";
+  cand->content_value = cand->value;
+  cand->style = NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_FULLWIDTH;
+  cand->attributes = converter::Attribute::NO_VARIANTS_EXPANSION;
+  rewriter->Finish(request, segments);
+  EXPECT_EQ(manager->GetConversionCharacterForm("0"), Config::FULL_WIDTH);
+
+  cand->value = "1,234";
+  cand->content_value = cand->value;
+  cand->style = NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_HALFWIDTH;
+  cand->attributes = converter::Attribute::NO_VARIANTS_EXPANSION;
+  rewriter->Finish(request, segments);
+  EXPECT_EQ(manager->GetConversionCharacterForm("0"), Config::HALF_WIDTH);
+
+  cand->value = "１万";
+  cand->content_value = cand->value;
+  cand->style = NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_FULLWIDTH;
+  cand->attributes = converter::Attribute::NO_VARIANTS_EXPANSION;
+  rewriter->Finish(request, segments);
+  EXPECT_EQ(manager->GetConversionCharacterForm("0"), Config::FULL_WIDTH);
+
+  cand->value = "1万";
+  cand->content_value = cand->value;
+  cand->style = NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_HALFWIDTH;
+  cand->attributes = converter::Attribute::NO_VARIANTS_EXPANSION;
+  rewriter->Finish(request, segments);
+  EXPECT_EQ(manager->GetConversionCharacterForm("0"), Config::HALF_WIDTH);
+
+  // Realtime conversion candidate expanded by RewriteTopCandidateForSuggestion
+  // (NO_VARIANTS_EXPANSION cleared).
+  manager->SetCharacterForm("0", Config::FULL_WIDTH);
+  cand->value = "2日";
+  cand->content_value = cand->value;
+  cand->style = NumberUtil::NumberString::DEFAULT_STYLE;
+  cand->attributes = converter::Attribute::REALTIME_CONVERSION |
+                     converter::Attribute::NO_EXTRA_DESCRIPTION;
+  rewriter->Finish(request, segments);
+  EXPECT_EQ(manager->GetConversionCharacterForm("0"), Config::HALF_WIDTH);
+
+  // Unexpanded realtime conversion candidate (still has NO_VARIANTS_EXPANSION,
+  // e.g. 2nd realtime candidate or fallback after NumberRewriter Kanji
+  // insertion) should not update character form.
+  manager->SetCharacterForm("0", Config::FULL_WIDTH);
+  cand->value = "石の上にも3年";
+  cand->content_value = cand->value;
+  cand->style = NumberUtil::NumberString::DEFAULT_STYLE;
+  cand->attributes = converter::Attribute::REALTIME_CONVERSION |
+                     converter::Attribute::NO_VARIANTS_EXPANSION;
+  rewriter->Finish(request, segments);
+  EXPECT_EQ(manager->GetConversionCharacterForm("0"), Config::FULL_WIDTH);
+
+  // User dictionary candidate should not update character form.
+  manager->SetCharacterForm("A", Config::FULL_WIDTH);
+  cand->value = "Google";
+  cand->content_value = cand->value;
+  cand->style = NumberUtil::NumberString::DEFAULT_STYLE;
+  cand->attributes = converter::Attribute::REALTIME_CONVERSION |
+                     converter::Attribute::USER_DICTIONARY;
+  rewriter->Finish(request, segments);
+  EXPECT_EQ(manager->GetConversionCharacterForm("A"), Config::FULL_WIDTH);
+
+  // Incognito mode must not update character form (b/566072209).
+  manager->SetCharacterForm("0", Config::FULL_WIDTH);
+  cand->value = "123";
+  cand->content_value = cand->value;
+  cand->style = NumberUtil::NumberString::DEFAULT_STYLE;
+  cand->attributes = 0;
+  {
+    ConversionOptions incognito_options;
+    incognito_options.incognito_mode = true;
+    const ConversionRequest incognito_req =
+        ConversionRequestBuilder().SetOptions(incognito_options).Build();
+    rewriter->Finish(incognito_req, segments);
+    EXPECT_EQ(manager->GetConversionCharacterForm("0"), Config::FULL_WIDTH);
+  }
+
+  // Desktop suggestion commit (mixed_conversion = false, request_type =
+  // SUGGESTION) must update character form for committed FIXED_VALUE segments.
+  {
+    commands::Request desktop_req;
+    desktop_req.set_mixed_conversion(false);
+    const ConversionRequest suggestion_commit_req =
+        ConversionRequestBuilder()
+            .SetRequest(desktop_req)
+            .SetRequestType(ConversionRequest::SUGGESTION)
+            .Build();
+    rewriter->Finish(suggestion_commit_req, segments);
+    EXPECT_EQ(manager->GetConversionCharacterForm("0"), Config::HALF_WIDTH);
+  }
+
+  // Trailing ASCII whitespace in candidate.value should be stripped before
+  // learning.
+  manager->SetCharacterForm("A", Config::FULL_WIDTH);
+  cand->value = "abc ";
+  cand->content_value = cand->value;
+  cand->attributes = 0;
+  rewriter->Finish(request, segments);
+  EXPECT_EQ(manager->GetConversionCharacterForm("A"), Config::HALF_WIDTH);
+
+  // Guard test: ensure Finish() continues to learn character form only from
+  // the committed candidate at index 0, even when unselected n-best candidates
+  // (index > 0) of the opposite character form are present in the segment.
+  manager->SetCharacterForm("0", Config::FULL_WIDTH);
+  cand->value = "１２３";
+  cand->content_value = cand->value;
+  cand->attributes = 0;
+  converter::Candidate* unselected_cand = segment->add_candidate();
+  unselected_cand->value = "123";
+  unselected_cand->content_value = unselected_cand->value;
+  unselected_cand->attributes = 0;
+  rewriter->Finish(request, segments);
+  EXPECT_EQ(manager->GetConversionCharacterForm("0"), Config::FULL_WIDTH);
+}
+
+TEST_F(VariantsRewriterTest, RewriteMixedScriptWordTest) {
+  std::unique_ptr<VariantsRewriter> rewriter(CreateVariantsRewriter());
+  CharacterFormManager* manager =
+      CharacterFormManager::GetCharacterFormManager();
+  const ConversionRequest request;
+
+  // Test case 1: Alphabet preference is HALF_WIDTH (default).
+  {
+    manager->SetDefaultRule();
+    manager->SetCharacterForm("A", Config::HALF_WIDTH);
+    manager->SetCharacterForm("ア", Config::FULL_WIDTH);
+
+    // 1a: Input segment has "Tシャツ" (already preferred form).
+    {
+      Segments segments;
+      Segment* seg = segments.push_back_segment();
+      converter::Candidate* cand = seg->add_candidate();
+      cand->key = "てぃーしゃつ";
+      cand->value = "Tシャツ";
+      cand->content_key = cand->key;
+      cand->content_value = cand->value;
+
+      EXPECT_TRUE(rewriter->Rewrite(request, &segments));
+      ASSERT_EQ(seg->candidates_size(), 2);
+      // Primary: "Tシャツ", has [半] description in expanded pair.
+      EXPECT_EQ(seg->candidate(0).value, "Tシャツ");
+      EXPECT_EQ(seg->candidate(0).description, VariantsRewriter::kHalfWidth);
+      // Secondary: "Ｔシャツ", has [全] description.
+      EXPECT_EQ(seg->candidate(1).value, "Ｔシャツ");
+      EXPECT_EQ(seg->candidate(1).description, VariantsRewriter::kFullWidth);
+    }
+
+    // 1b: Input segment has "Ｔシャツ" (opposite form).
+    {
+      Segments segments;
+      Segment* seg = segments.push_back_segment();
+      converter::Candidate* cand = seg->add_candidate();
+      cand->key = "てぃーしゃつ";
+      cand->value = "Ｔシャツ";
+      cand->content_key = cand->key;
+      cand->content_value = cand->value;
+
+      EXPECT_TRUE(rewriter->Rewrite(request, &segments));
+      ASSERT_EQ(seg->candidates_size(), 2);
+      // Primary (rewritten to preferred form): "Tシャツ", has [半].
+      EXPECT_EQ(seg->candidate(0).value, "Tシャツ");
+      EXPECT_EQ(seg->candidate(0).description, VariantsRewriter::kHalfWidth);
+      // Secondary: "Ｔシャツ", has [全].
+      EXPECT_EQ(seg->candidate(1).value, "Ｔシャツ");
+      EXPECT_EQ(seg->candidate(1).description, VariantsRewriter::kFullWidth);
+    }
+  }
+
+  // Test case 2: Alphabet preference is FULL_WIDTH.
+  {
+    manager->SetDefaultRule();
+    manager->SetCharacterForm("A", Config::FULL_WIDTH);
+    manager->SetCharacterForm("ア", Config::FULL_WIDTH);
+
+    Segments segments;
+    Segment* seg = segments.push_back_segment();
+    converter::Candidate* cand = seg->add_candidate();
+    cand->key = "てぃーしゃつ";
+    cand->value = "Tシャツ";
+    cand->content_key = cand->key;
+    cand->content_value = cand->value;
+
+    EXPECT_TRUE(rewriter->Rewrite(request, &segments));
+    ASSERT_EQ(seg->candidates_size(), 2);
+    // Primary: "Ｔシャツ", has [全] description.
+    EXPECT_EQ(seg->candidate(0).value, "Ｔシャツ");
+    EXPECT_EQ(seg->candidate(0).description, VariantsRewriter::kFullWidth);
+    // Secondary: "Tシャツ", has [半] description in expanded pair.
+    EXPECT_EQ(seg->candidate(1).value, "Tシャツ");
+    EXPECT_EQ(seg->candidate(1).description, VariantsRewriter::kHalfWidth);
+  }
+}
+
+TEST_F(VariantsRewriterTest, RewriteTopCandidateForMixedConversionTest) {
+  std::unique_ptr<VariantsRewriter> rewriter(CreateVariantsRewriter());
+  CharacterFormManager* manager =
+      CharacterFormManager::GetCharacterFormManager();
+
+  commands::Request client_request;
+  client_request.set_mixed_conversion(true);
+  client_request.mutable_decoder_experiment_params()
+      ->set_suppress_realtime_conversion_with_converter(true);
+  const ConversionRequest request =
+      ConversionRequestBuilder().SetRequest(client_request).Build();
+
+  Segments segments;
+  Segment* seg = segments.push_back_segment();
+
+  // Case 1: Top candidate has REALTIME_CONVERSION and NO_VARIANTS_EXPANSION.
+  // With CharacterFormManager set to FULL_WIDTH, primary candidate "１２３" is
+  // inserted at index 0 and secondary candidate "123" is preserved at index 1.
+  {
+    manager->SetCharacterForm("0", Config::FULL_WIDTH);
+
+    converter::Candidate* top = seg->add_candidate();
+    top->value = "123";
+    top->content_value = "123";
+    top->attributes |= (converter::Attribute::REALTIME_CONVERSION |
+                        converter::Attribute::NO_VARIANTS_EXPANSION);
+
+    converter::Candidate* second = seg->add_candidate();
+    second->value = "456";
+    second->content_value = "456";
+    second->attributes |= converter::Attribute::NO_VARIANTS_EXPANSION;
+
+    EXPECT_TRUE(rewriter->Rewrite(request, &segments));
+    EXPECT_EQ(seg->candidates_size(), 3);
+    EXPECT_EQ(seg->candidate(0).value, "１２３");
+    EXPECT_EQ(seg->candidate(0).content_value, "１２３");
+    EXPECT_EQ(seg->candidate(0).description, "");
+    EXPECT_TRUE(seg->candidate(0).attributes &
+                converter::Attribute::REALTIME_CONVERSION);
+    EXPECT_TRUE(seg->candidate(0).attributes &
+                converter::Attribute::NO_EXTRA_DESCRIPTION);
+    EXPECT_FALSE(seg->candidate(0).attributes &
+                 converter::Attribute::NO_VARIANTS_EXPANSION);
+    EXPECT_EQ(seg->candidate(1).value, "123");
+    EXPECT_EQ(seg->candidate(1).content_value, "123");
+    EXPECT_FALSE(seg->candidate(1).attributes &
+                 converter::Attribute::NO_VARIANTS_EXPANSION);
+    EXPECT_EQ(seg->candidate(2).value, "456");
+    EXPECT_TRUE(seg->candidate(2).attributes &
+                converter::Attribute::NO_VARIANTS_EXPANSION);
+
+    seg->clear_candidates();
+  }
+
+  // Case 2: Already matches primary form -> no rewrite.
+  {
+    manager->SetCharacterForm("0", Config::HALF_WIDTH);
+
+    converter::Candidate* top = seg->add_candidate();
+    top->value = "123";
+    top->content_value = "123";
+    top->attributes |= (converter::Attribute::REALTIME_CONVERSION |
+                        converter::Attribute::NO_VARIANTS_EXPANSION);
+
+    EXPECT_FALSE(rewriter->Rewrite(request, &segments));
+    EXPECT_EQ(seg->candidates_size(), 1);
+    EXPECT_EQ(seg->candidate(0).value, "123");
+
+    seg->clear_candidates();
+  }
+
+  // Case 3: Flag is OFF -> no rewrite even if form differs.
+  {
+    manager->SetCharacterForm("0", Config::FULL_WIDTH);
+
+    commands::Request request_flag_off;
+    request_flag_off.set_mixed_conversion(true);
+    request_flag_off.mutable_decoder_experiment_params()
+        ->set_suppress_realtime_conversion_with_converter(false);
+    const ConversionRequest req_off =
+        ConversionRequestBuilder().SetRequest(request_flag_off).Build();
+
+    converter::Candidate* top = seg->add_candidate();
+    top->value = "123";
+    top->content_value = "123";
+    top->attributes |= (converter::Attribute::REALTIME_CONVERSION |
+                        converter::Attribute::NO_VARIANTS_EXPANSION);
+
+    EXPECT_FALSE(rewriter->Rewrite(req_off, &segments));
+    EXPECT_EQ(seg->candidates_size(), 1);
+    EXPECT_EQ(seg->candidate(0).value, "123");
+
+    seg->clear_candidates();
+  }
+
+  // Case 4: Compound with inner segment boundary (e.g. "あと2つ").
+  {
+    manager->SetCharacterForm("0", Config::FULL_WIDTH);
+
+    converter::Candidate* top = seg->add_candidate();
+    top->key = "あとふたつ";
+    top->value = "あと2つ";
+    top->content_key = top->key;
+    top->content_value = top->value;
+    top->attributes |= (converter::Attribute::REALTIME_CONVERSION |
+                        converter::Attribute::NO_VARIANTS_EXPANSION);
+    // Inner segments: "あと" (6B), "2" (1B), "つ" (3B)
+    converter::InnerSegmentBoundaryBuilder builder;
+    builder.Add(6, 6, 6, 6);
+    builder.Add(6, 1, 6, 1);
+    builder.Add(3, 3, 3, 3);
+    top->inner_segment_boundary = builder.Build(top->key, top->value);
+
+    EXPECT_TRUE(rewriter->Rewrite(request, &segments));
+    EXPECT_EQ(seg->candidates_size(), 2);
+    EXPECT_EQ(seg->candidate(0).value, "あと２つ");
+    EXPECT_EQ(seg->candidate(1).value, "あと2つ");
+    std::vector<std::string> inner_values;
+    for (const auto& inner : seg->candidate(0).inner_segments()) {
+      inner_values.emplace_back(inner.GetValue());
+    }
+    EXPECT_THAT(inner_values, ::testing::ElementsAre("あと", "２", "つ"));
+
+    seg->clear_candidates();
+  }
+
+  // Case 5: Desktop suggestion (mixed_conversion = false).
+  {
+    manager->SetCharacterForm("0", Config::FULL_WIDTH);
+
+    commands::Request desktop_request;
+    desktop_request.set_mixed_conversion(false);
+    desktop_request.mutable_decoder_experiment_params()
+        ->set_suppress_realtime_conversion_with_converter(true);
+    const ConversionRequest req =
+        ConversionRequestBuilder()
+            .SetRequest(desktop_request)
+            .SetRequestType(ConversionRequest::SUGGESTION)
+            .Build();
+
+    converter::Candidate* top = seg->add_candidate();
+    top->value = "123";
+    top->content_value = "123";
+    top->attributes |= (converter::Attribute::REALTIME_CONVERSION |
+                        converter::Attribute::NO_VARIANTS_EXPANSION);
+
+    EXPECT_TRUE(rewriter->Rewrite(req, &segments));
+    EXPECT_EQ(seg->candidates_size(), 2);
+    EXPECT_EQ(seg->candidate(0).value, "１２３");
+    EXPECT_EQ(seg->candidate(1).value, "123");
+
+    seg->clear_candidates();
+  }
+
+  // Case 6: Empty segment (candidates_size() == 0) -> returns false.
+  {
+    EXPECT_FALSE(rewriter->Rewrite(request, &segments));
+  }
+
+  // Case 7: Candidate without REALTIME_CONVERSION attribute -> not rewritten.
+  {
+    manager->SetCharacterForm("0", Config::FULL_WIDTH);
+
+    converter::Candidate* top = seg->add_candidate();
+    top->value = "123";
+    top->content_value = "123";
+    top->attributes |= converter::Attribute::NO_VARIANTS_EXPANSION;
+
+    EXPECT_FALSE(rewriter->Rewrite(request, &segments));
+    EXPECT_EQ(seg->candidate(0).value, "123");
+
+    seg->clear_candidates();
+  }
+
+  // Case 8: Candidate with no character form alternatives (e.g. hiragana) ->
+  // GenerateAlternatives returns false.
+  {
+    converter::Candidate* top = seg->add_candidate();
+    top->key = "あいう";
+    top->value = "あいう";
+    top->content_key = "あいう";
+    top->content_value = "あいう";
+    top->attributes |= (converter::Attribute::REALTIME_CONVERSION |
+                        converter::Attribute::NO_VARIANTS_EXPANSION);
+
+    EXPECT_FALSE(rewriter->Rewrite(request, &segments));
+    EXPECT_EQ(seg->candidate(0).value, "あいう");
+
+    seg->clear_candidates();
+  }
+
+  // Case 9: PARTIAL_SUGGESTION and PARTIAL_PREDICTION are excluded from
+  // RewriteTopCandidateForSuggestion.
+  {
+    manager->SetCharacterForm("0", Config::FULL_WIDTH);
+
+    for (const ConversionRequest::RequestType req_type :
+         {ConversionRequest::PARTIAL_SUGGESTION,
+          ConversionRequest::PARTIAL_PREDICTION}) {
+      const ConversionRequest partial_req = ConversionRequestBuilder()
+                                                .SetRequest(client_request)
+                                                .SetRequestType(req_type)
+                                                .Build();
+
+      converter::Candidate* top = seg->add_candidate();
+      top->value = "123";
+      top->content_value = "123";
+      top->attributes |= (converter::Attribute::REALTIME_CONVERSION |
+                          converter::Attribute::NO_VARIANTS_EXPANSION);
+
+      EXPECT_FALSE(rewriter->Rewrite(partial_req, &segments));
+      EXPECT_EQ(seg->candidate(0).value, "123");
+
+      seg->clear_candidates();
+    }
+  }
+
+  // Case 10: Candidate at index 0 already rewritten by NumberRewriter (marked
+  // with NO_EXTRA_DESCRIPTION).
+  // - If index 0 has no character form variants ("石の上にも三年"), no third
+  //   candidate ("石の上にも３年") is inserted, keeping 2 candidates.
+  // - If index 0 has alphabet variants ("wikipediaを三年使う"), index 0 is
+  //   updated in-place to "ｗｉｋｉｐｅｄｉａを三年使う", keeping 2 candidates.
+  {
+    manager->SetCharacterForm("0", Config::FULL_WIDTH);
+    manager->SetCharacterForm("A", Config::FULL_WIDTH);
+
+    converter::Candidate* kanji_cand = seg->add_candidate();
+    kanji_cand->key = "いしのうえにもさんねん";
+    kanji_cand->value = "石の上にも三年";
+    kanji_cand->content_key = kanji_cand->key;
+    kanji_cand->content_value = kanji_cand->value;
+    kanji_cand->attributes |= (converter::Attribute::REALTIME_CONVERSION |
+                               converter::Attribute::NO_VARIANTS_EXPANSION |
+                               converter::Attribute::NO_EXTRA_DESCRIPTION);
+
+    converter::Candidate* arabic_cand = seg->add_candidate();
+    arabic_cand->key = "いしのうえにもさんねん";
+    arabic_cand->value = "石の上にも3年";
+    arabic_cand->content_key = arabic_cand->key;
+    arabic_cand->content_value = arabic_cand->value;
+    arabic_cand->attributes |= (converter::Attribute::REALTIME_CONVERSION |
+                                converter::Attribute::NO_VARIANTS_EXPANSION);
+
+    EXPECT_FALSE(rewriter->Rewrite(request, &segments));
+    ASSERT_EQ(seg->candidates_size(), 2);
+    EXPECT_EQ(seg->candidate(0).value, "石の上にも三年");
+    EXPECT_EQ(seg->candidate(1).value, "石の上にも3年");
+
+    seg->clear_candidates();
+
+    // Mixed alphabet + Kanji number ("wikipediaを三年使う" at [0],
+    // "wikipediaを3年使う" at [1]):
+    converter::Candidate* mixed_top = seg->add_candidate();
+    mixed_top->key = "wikipediaを3ねんつかう";
+    mixed_top->value = "wikipediaを三年使う";
+    mixed_top->content_key = mixed_top->key;
+    mixed_top->content_value = mixed_top->value;
+    mixed_top->attributes |= (converter::Attribute::REALTIME_CONVERSION |
+                              converter::Attribute::NO_VARIANTS_EXPANSION |
+                              converter::Attribute::NO_EXTRA_DESCRIPTION);
+    converter::InnerSegmentBoundaryBuilder builder;
+    builder.Add(strlen("wikipediaを"), strlen("wikipediaを"),
+                strlen("wikipedia"), strlen("wikipedia"));
+    builder.Add(strlen("3ねん"), strlen("三年"), strlen("3ねん"),
+                strlen("三年"));
+    builder.Add(strlen("つかう"), strlen("使う"), strlen("つかう"),
+                strlen("使う"));
+    mixed_top->inner_segment_boundary =
+        builder.Build(mixed_top->key, mixed_top->value);
+
+    converter::Candidate* mixed_fallback = seg->add_candidate();
+    mixed_fallback->key = "wikipediaを3ねんつかう";
+    mixed_fallback->value = "wikipediaを3年使う";
+    mixed_fallback->content_key = mixed_fallback->key;
+    mixed_fallback->content_value = mixed_fallback->value;
+    mixed_fallback->attributes |= (converter::Attribute::REALTIME_CONVERSION |
+                                   converter::Attribute::NO_VARIANTS_EXPANSION);
+
+    EXPECT_TRUE(rewriter->Rewrite(request, &segments));
+    ASSERT_EQ(seg->candidates_size(), 2);
+    EXPECT_EQ(seg->candidate(0).value, "ｗｉｋｉｐｅｄｉａを三年使う");
+    // NO_VARIANTS_EXPANSION is cleared on the in-place updated candidate so
+    // that VariantsRewriter::Finish() can learn its character form.
+    EXPECT_FALSE(seg->candidate(0).attributes &
+                 converter::Attribute::NO_VARIANTS_EXPANSION);
+    EXPECT_EQ(seg->candidate(1).value, "wikipediaを3年使う");
+    EXPECT_TRUE(seg->candidate(1).attributes &
+                converter::Attribute::NO_VARIANTS_EXPANSION);
+
+    seg->clear_candidates();
+  }
+
+  // Case 11: Candidate whose inner_segment_boundary has a stale byte length
+  // (e.g. "2日" (4 bytes) normalized to "２日" (6 bytes) without updating
+  // inner_segment_boundary). VariantsRewriter must ignore the inconsistent
+  // boundary rather than slicing "日" in the middle of its UTF-8 sequence.
+  {
+    manager->SetCharacterForm("0", Config::FULL_WIDTH);
+
+    converter::Candidate* top = seg->add_candidate();
+    top->key = "ふつか";
+    top->value = "２日";
+    top->content_key = "ふつか";
+    top->content_value = "２日";
+    top->attributes |= (converter::Attribute::REALTIME_CONVERSION |
+                        converter::Attribute::NO_VARIANTS_EXPANSION);
+    top->inner_segment_boundary =
+        converter::BuildInnerSegmentBoundary({{9, 4, 9, 4}}, "ふつか", "2日");
+
+    EXPECT_FALSE(rewriter->Rewrite(request, &segments));
+    ASSERT_EQ(seg->candidates_size(), 1);
+    EXPECT_EQ(seg->candidate(0).value, "２日");
+    EXPECT_EQ(seg->candidate(0).content_value, "２日");
+
+    seg->clear_candidates();
+  }
 }
 
 }  // namespace

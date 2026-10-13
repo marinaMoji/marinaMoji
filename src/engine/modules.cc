@@ -49,6 +49,7 @@
 #include "dictionary/dictionary_interface.h"
 #include "dictionary/dictionary_pack_manifest.h"
 #include "dictionary/pos_group.h"
+#include "dictionary/pos_id_map.h"
 #include "dictionary/pos_matcher.h"
 #include "dictionary/single_kanji_dictionary.h"
 #include "dictionary/suffix_dictionary.h"
@@ -63,6 +64,7 @@
 
 using ::mozc::dictionary::DictionaryImpl;
 using ::mozc::dictionary::PosGroup;
+using ::mozc::dictionary::PosIdMap;
 using ::mozc::dictionary::SuffixDictionary;
 using ::mozc::dictionary::SystemDictionary;
 using ::mozc::dictionary::UserDictionary;
@@ -93,6 +95,11 @@ absl::Status Modules::Init(std::unique_ptr<const DataManager> data_manager) {
     pos_matcher_ = std::make_unique<dictionary::PosMatcher>(
         data_manager_->GetPosMatcherData());
     RETURN_IF_NULL(pos_matcher_);
+  }
+
+  if (!pos_id_map_) {
+    pos_id_map_ = std::make_unique<PosIdMap>(data_manager_->GetPosIdMapData());
+    RETURN_IF_NULL(pos_id_map_);
   }
 
   if (!user_dictionary_) {
@@ -217,6 +224,7 @@ absl::Status Modules::Init(std::unique_ptr<const DataManager> data_manager) {
 
   // All modules must not be non-null.
   RETURN_IF_NULL(pos_matcher_);
+  RETURN_IF_NULL(pos_id_map_);
   RETURN_IF_NULL(segmenter_);
   RETURN_IF_NULL(user_dictionary_);
   RETURN_IF_NULL(suffix_dictionary_);
@@ -236,6 +244,13 @@ ModulesPresetBuilder& ModulesPresetBuilder::PresetPosMatcher(
     std::unique_ptr<const dictionary::PosMatcher> pos_matcher) {
   DCHECK(modules_) << "Module is already initialized";
   modules_->pos_matcher_ = std::move(pos_matcher);
+  return *this;
+}
+
+ModulesPresetBuilder& ModulesPresetBuilder::PresetPosIdMap(
+    std::unique_ptr<const PosIdMap> pos_id_map) {
+  DCHECK(modules_) << "Module is already initialized";
+  modules_->pos_id_map_ = std::move(pos_id_map);
   return *this;
 }
 

@@ -40,7 +40,6 @@ package mozc.commands;
 import "protocol/candidate_window.proto";
 import "protocol/config.proto";
 import "protocol/engine_builder.proto";
-import "protocol/user_dictionary_storage.proto";
 
 option java_outer_classname = "ProtoCommands";
 option java_package = "org.mozc.android.inputmethod.japanese.protobuf";
@@ -630,7 +629,7 @@ message Capability {
       [default = NO_TEXT_DELETION_CAPABILITY];
 }
 
-// Next ID: 155
+// Next ID: 157
 // Bundles together some Android experiment flags so that they can be easily
 // retrieved throughout the native code.  These flags are generally specific to
 // the decoder, and are made available when the decoder is initialized.
@@ -700,20 +699,6 @@ message DecoderExperimentParams {
   optional int32 handwriting_conversion_candidate_cost_offset = 102
       [default = 1151];
 
-  enum BigramNwpFilteringMode {
-    // Control implementation is used. For example,
-    // - Kanji + Katakana will not be filtered.
-    // - If cost(prefix) > cost(original_entry), the candidate will be filtered.
-    // - The reading of the target candidate should be in the dictionary.
-    // - ,etc
-    DEFAULT = 0;
-    // In addition to the default filtering, filter entry if the character
-    // script type does not change from the prefix.
-    FILTER_SAME_CTYPE = 1;
-    // Filter all bigram candidates.
-    FILTER_ALL = 2;
-  }
-
   // Threshold for suffix NWP transition cost.
   // If the transition cost is greater than this value, the candidate will be
   // filtered.
@@ -747,8 +732,10 @@ message DecoderExperimentParams {
   // predictor.
   optional int32 disable_legacy_rewriter_mode = 147 [default = 0];
 
-  // Use NextTopStates instead of NextStates in Predictor.
-  optional bool ngram_use_next_top_states = 149 [default = false];
+  // Mode to disable legacy rewriters in all conversion modes (even when
+  // mixed_conversion is false).
+  optional int32 disable_legacy_rewriter_in_all_conversion_mode = 155
+      [default = 0];
 
   // Transition cost bonus for particle omission (e.g. "さかなくう" ->
   // "魚食う"). This is used for experiments to improve core LM conversion.
@@ -765,6 +752,9 @@ message DecoderExperimentParams {
   // Enables partial match learning for segment-edited compound nouns.
   optional bool user_history_enable_compound_noun_partial_match = 153
       [default = false];
+
+  // If true, enables multi-segment candidate generation.
+  optional bool enable_multi_segment_candidate = 156 [default = false];
 }
 
 // Clients' request to the server.
@@ -870,6 +860,8 @@ message Request {
   // Use special Romanji table.
   optional SpecialRomanjiTable special_romanji_table = 4
       [default = DEFAULT_TABLE];  //  TWELVE_KEYS_TO_HIRAGANA for android.
+
+  reserved 5;
 
   enum SpaceOnAlphanumeric {
     // The first input is treated as a space, double input is treated
@@ -1256,8 +1248,8 @@ message Input {
 
     GET_SERVER_VERSION = 19;
 
-    // Import user dictionary from client.
-    IMPORT_USER_DICTIONARY = 31;
+    reserved 31;
+    reserved "IMPORT_USER_DICTIONARY";
 
     // Add a specific entry to the user history storage.
     ADD_USER_HISTORY = 32;
@@ -1336,9 +1328,7 @@ message Input {
   repeated TouchEvent touch_events = 12;
 
   reserved 13;  // deprecated user_dictionary_command
-
-  optional mozc.user_dictionary.UserDictionaryImportData
-      user_dictionary_import_data = 17;
+  reserved 17;  // deprecated user_dictionary_import_data
 
   optional UserSyncConfig user_sync_config = 33;
   optional UserSyncRequest user_sync_request = 34;

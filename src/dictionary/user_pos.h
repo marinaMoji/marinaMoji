@@ -32,12 +32,8 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <iterator>
-#include <memory>
 #include <optional>
 #include <string>
-#include <type_traits>
-#include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
@@ -87,25 +83,11 @@ class UserPos {
   struct Token {
     std::string key;
     std::string value;
-    uint16_t id = 0;  // internal POS id used for lid/rid.
-    uint8_t attributes = 0;
+    uint16_t id = 0;           // internal POS id used for lid/rid.
     uint8_t raw_pos_type = 0;  // POS information. UserDictionary::PosType.
     // The actual cost of user dictionary entries are populated
-    // in the dictionary lookup time via PopulateTokenFromUserPosToken.
-    std::string comment;  // This field comes from user dictionary.
+    // in the dictionary lookup time.
 
-    // Attribute is used to dynamically assign cost, and is independent from the
-    // POS.
-    // TODO(taku): Better to remove it as we only have one field.
-    enum Attribute {
-      NON_JA_LOCALE = 1  // Locale is not Japanese.
-    };
-
-    inline void add_attribute(Attribute attr) { attributes |= attr; }
-    inline bool has_attribute(Attribute attr) const {
-      return attributes & attr;
-    }
-    inline void remove_attribute(Attribute attr) { attributes &= ~attr; }
     inline user_dictionary::UserDictionary::PosType pos_type() const {
       return static_cast<::mozc::user_dictionary::UserDictionary::PosType>(
           raw_pos_type);
@@ -124,36 +106,13 @@ class UserPos {
   UserPos& operator=(const UserPos&) = default;
   virtual ~UserPos() = default;
 
-  // Virutal for testing/mocking.
+  // Virtual for testing/mocking.
   virtual std::vector<std::string> GetPosList() const { return pos_list_; }
-  virtual int GetPosListDefaultIndex() const { return pos_list_default_index_; }
-  virtual std::optional<uint16_t> GetPosIds(absl::string_view pos) const;
-  virtual bool IsValidPos(absl::string_view pos) const {
-    return GetPosIds(pos).has_value();
-  }
   virtual std::vector<UserPos::Token> GetTokens(
       absl::string_view key, absl::string_view value,
-      user_dictionary::UserDictionary::PosType pos_type,
-      absl::string_view locale) const;
+      user_dictionary::UserDictionary::PosType pos_type) const;
 
-  std::vector<UserPos::Token> GetTokens(absl::string_view key,
-                                        absl::string_view value,
-                                        absl::string_view pos,
-                                        absl::string_view locale) const {
-    return GetTokens(key, value, ToPosType(pos), locale);
-  }
-
-  std::vector<Token> GetTokens(
-      absl::string_view key, absl::string_view value,
-      user_dictionary::UserDictionary::PosType pos_type) const {
-    return GetTokens(key, value, pos_type, "");
-  }
-
-  std::vector<UserPos::Token> GetTokens(absl::string_view key,
-                                        absl::string_view value,
-                                        absl::string_view pos) const {
-    return GetTokens(key, value, ToPosType(pos), "");
-  }
+  std::optional<uint16_t> GetPosIds(absl::string_view pos) const;
 
   // Returns the string representation of PosType, or empty string if the given
   // pos is invalid.
@@ -161,12 +120,13 @@ class UserPos {
   static absl::string_view GetStringPosType(
       user_dictionary::UserDictionary::PosType pos_type);
 
-  // Returns the cost of PosType. If cost is explicitly defined in user_pos.def
-  // (> 0), returns cost + cost_penalty. If cost is 0 in user_pos.def (e.g.
-  // verbs/adjectives), default cost (5000) is returned without applying
-  // cost_penalty.
-  // The default cost of 5000 is already penalized, so we don't want to add
-  // an extra penalty.
+  // Returns the cost of PosType.
+  // - ABBREVIATION always returns its base cost (200) without cost_penalty.
+  // - If cost is 0 in user_pos.def (e.g. verbs/adjectives), default cost (5000)
+  //   is returned without applying cost_penalty.
+  // - For other POS types (cost > 0), gradually phases out the per-POS discount
+  //   (2500 - cost) as cost_penalty approaches 2500, and scales as
+  //   2500 + cost_penalty for larger penalties.
   static uint16_t GetCostFromPosType(
       user_dictionary::UserDictionary::PosType pos_type, int cost_penalty = 0);
 
@@ -206,7 +166,6 @@ class UserPos {
   std::vector<std::vector<int>> token_array_index_;
   SerializedStringArray string_array_;
   std::vector<std::string> pos_list_;
-  int pos_list_default_index_ = 0;
 };
 
 }  // namespace dictionary

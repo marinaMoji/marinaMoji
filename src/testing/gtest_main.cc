@@ -34,6 +34,7 @@
 
 #include "absl/flags/flag.h"
 #include "base/init_mozc.h"
+#include "testing/benchmark.h"
 #include "testing/gunit.h"
 
 int main(int argc, char** argv) {
@@ -48,6 +49,7 @@ int main(int argc, char** argv) {
 #endif  // GTEST_HAS_ABSL
   mozc::InitMozc(usage, &argc, &argv);
   testing::InitGoogleTest(&argc, argv);
+  benchmark::Initialize(&argc, argv);
 
 #ifdef _WIN32
   _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE | _CRTDBG_MODE_DEBUG);
@@ -58,6 +60,11 @@ int main(int argc, char** argv) {
   // See b/2805521 for details.
   GTEST_FLAG_SET(catch_exceptions, true);
 
-  return RUN_ALL_TESTS();
+  const int result = RUN_ALL_TESTS();
+  if (result != 0) {
+    return result;
+  }
+  benchmark::RunSpecifiedBenchmarks();
+  return 0;
 }
 

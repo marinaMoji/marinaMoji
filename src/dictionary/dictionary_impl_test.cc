@@ -103,7 +103,9 @@ class DictionaryImplTest : public ::testing::Test {
 
     ResultType OnToken(absl::string_view /* key */,
                        absl::string_view /* actual_key */,
-                       const Token& token) override {
+                       Token token) override {
+      // Read-only inspection; std::move is not used because token is only
+      // checked and not stored.
       if (token.key == key_ && token.value == value_) {
         found_ = true;
         return TRAVERSE_DONE;
@@ -126,7 +128,9 @@ class DictionaryImplTest : public ::testing::Test {
 
     ResultType OnToken(absl::string_view /* key */,
                        absl::string_view /* actual_key */,
-                       const Token& token) override {
+                       Token token) override {
+      // Read-only inspection; std::move is not used because token is only
+      // checked and not stored.
       if (token.key == key_ && token.value == value_ &&
           (token.attributes & Token::SPELLING_CORRECTION)) {
         found_ = true;
@@ -151,7 +155,9 @@ class DictionaryImplTest : public ::testing::Test {
 
     ResultType OnToken(absl::string_view /* key */,
                        absl::string_view /* actual_key */,
-                       const Token& token) override {
+                       Token token) override {
+      // Read-only inspection; std::move is not used because token is only
+      // checked and not stored.
       if (token.key == key_ && token.value == value_ &&
           pos_matcher_.IsZipcode(token.lid)) {
         found_ = true;
@@ -175,7 +181,9 @@ class DictionaryImplTest : public ::testing::Test {
 
     ResultType OnToken(absl::string_view /* key */,
                        absl::string_view /* actual_key */,
-                       const Token& token) override {
+                       Token token) override {
+      // Read-only inspection; std::move is not used because token is only
+      // checked and not stored.
       if (token.key == key_ && token.value == value_ &&
           Util::IsEnglishTransliteration(token.value)) {
         found_ = true;

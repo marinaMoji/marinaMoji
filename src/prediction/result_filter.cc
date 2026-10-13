@@ -39,12 +39,12 @@
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "base/strings/japanese.h"
 #include "base/util.h"
 #include "converter/attribute.h"
 #include "converter/connector.h"
-#include "dictionary/pos_matcher.h"
 #include "prediction/result.h"
 #include "prediction/suggestion_filter.h"
 #include "protocol/commands.pb.h"
@@ -56,6 +56,8 @@ namespace mozc::prediction::filter {
 using ::mozc::converter::Attribute;
 
 namespace {
+
+constexpr absl::string_view kNwpPrefix = "<NWP>";
 
 // Returns true if the |target| may be redundant result.
 bool MaybeRedundant(const Result& reference_result,
@@ -89,14 +91,11 @@ bool MaybeRedundant(const Result& reference_result,
 }  // namespace
 
 ResultFilter::ResultFilter(const ConversionRequest& request,
-                           dictionary::PosMatcher pos_matcher,
                            const Connector& connector,
                            const SuggestionFilter& suggestion_filter)
     : request_key_(request.key()),
-      history_key_(request.converter_history_key(1)),
       history_value_(request.converter_history_value(1)),
       request_key_len_(Util::CharsLen(request_key_)),
-      pos_matcher_(pos_matcher),
       connector_(connector),
       suggestion_filter_(suggestion_filter),
       is_mixed_conversion_(request.request().mixed_conversion()),
@@ -131,7 +130,13 @@ bool ResultFilter::ShouldRemove(const Result& result, int added_num) {
       return true;
     }
     if ((strategies & kFilterByHistoryAndValue) &&
-        suggestion_filter_.IsBadSuggestion(history_value_ + result.value)) {
+        suggestion_filter_.IsBadSuggestion(
+            absl::StrCat(history_value_, result.value))) {
+      return true;
+    }
+    if ((strategies & kFilterByNwp) &&
+        suggestion_filter_.IsBadSuggestion(
+            absl::StrCat(kNwpPrefix, result.value))) {
       return true;
     }
   }
@@ -226,10 +231,10 @@ bool ResultFilter::ShouldRemove(const Result& result, int added_num) {
 uint32_t ResultFilter::SelectSuggestionFilterStrategies(
     const Result& result, absl::string_view request_key,
     absl::string_view history_value, bool include_exact_key) {
-  // For next word prediction, we always apply the filter by value and
-  // history+value.
+  // For next word prediction, we always apply the filter by value,
+  // history+value, and <NWP>-prefixed entries.
   if (request_key.empty() || result.key.empty())
-    return kFilterByValue | kFilterByHistoryAndValue;
+    return kFilterByValue | kFilterByHistoryAndValue | kFilterByNwp;
 
   if (include_exact_key) {
     // If `include_exact_key_` is true, we don't apply the filter to the results

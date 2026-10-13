@@ -1,8 +1,10 @@
 #include "sync/sync_service.h"
 
 #include <fstream>
+#include <optional>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
@@ -20,11 +22,12 @@
 #include "dictionary/user_dictionary_importer.h"
 #include "dictionary/user_dictionary_storage.h"
 #include "dictionary/user_pos.h"
-#include "prediction/user_history_storage.h"
 #include "sync/sync_bundle.h"
+#include "sync/sync_character_form.h"
 #include "sync/sync_config.h"
 #include "sync/sync_crypto.h"
 #include "sync/sync_dictionary_tombstones.h"
+#include "sync/sync_history.h"
 #include "sync/sync_merge.h"
 
 namespace mozc {
@@ -55,22 +58,6 @@ std::string ExportDictionaryTsv() {
       out += '\n';
     }
   }
-  return out;
-}
-
-std::string ExportHistoryTsv() {
-  prediction::UserHistoryStorage storage;
-  if (!storage.Load()) {
-    return "# marinaMoji sync history\n";
-  }
-  std::string out = "# marinaMoji sync history\n";
-  storage.ForEach([&](uint64_t /*fp*/,
-                      const prediction::UserHistoryStorage::Entry& entry) {
-    out += absl::StrCat(entry.key(), "\t", entry.value(), "\t",
-                        entry.suggestion_freq(), "\t", entry.shown_freq(),
-                        "\t", entry.last_access_time(), "\n");
-    return true;
-  });
   return out;
 }
 
@@ -153,47 +140,6 @@ absl::Status ImportDictionaryTsv(absl::string_view tsv) {
   const absl::Status save_status = storage.Save();
   storage.UnLock();
   return save_status;
-}
-
-absl::Status ImportHistoryTsv(absl::string_view tsv) {
-  prediction::UserHistoryStorage storage;
-  storage.Load();
-  for (absl::string_view line : absl::StrSplit(tsv, '\n')) {
-    line = absl::StripAsciiWhitespace(line);
-    if (line.empty() || absl::StartsWith(line, "#")) {
-      continue;
-    }
-    const std::vector<std::string> fields = absl::StrSplit(line, '\t');
-    if (fields.size() < 2) {
-      continue;
-    }
-    prediction::UserHistoryStorage::Entry entry;
-    entry.set_key(fields[0]);
-    entry.set_value(fields[1]);
-    if (fields.size() > 2) {
-      uint32_t v = 0;
-      if (absl::SimpleAtoi(fields[2], &v)) {
-        entry.set_suggestion_freq(v);
-      }
-    }
-    if (fields.size() > 3) {
-      uint32_t v = 0;
-      if (absl::SimpleAtoi(fields[3], &v)) {
-        entry.set_shown_freq(v);
-      }
-    }
-    if (fields.size() > 4) {
-      uint64_t v = 0;
-      if (absl::SimpleAtoi(fields[4], &v)) {
-        entry.set_last_access_time(v);
-      }
-    }
-    storage.Insert(std::move(entry));
-  }
-  if (!storage.Save()) {
-    return absl::InternalError("Failed to save user history");
-  }
-  return absl::OkStatus();
 }
 
 std::string BuildManifest(const commands::UserSyncConfig& config) {
@@ -280,7 +226,10 @@ absl::StatusOr<commands::UserSyncReport> PerformSync(
 
   if (config.sync_history() &&
       !config::ConfigHandler::GetSharedConfig()->incognito_mode()) {
-    local_files[std::string(kHistoryFile)] = ExportHistoryTsv();
+    HistoryExport history = ExportHistory(absl::ToUnixSeconds(absl::Now()));
+    local_files[std::string(kHistoryFile)] = std::move(history.history_tsv);
+    local_files[std::string(kCharacterFormFile)] =
+        std::move(history.character_form_tsv);
   }
 
   SyncBundleFiles merged = local_files;
@@ -366,6 +315,19 @@ absl::StatusOr<commands::UserSyncReport> PerformSync(
         }
         merged[kHistoryFile] = std::move(merged_hist);
         report.set_history_merged(hist_stats.merged);
+
+        // A file without character_forms.tsv (written by an older version)
+        // merges as an empty remote state.
+        const CharacterFormSyncState local_forms =
+            local_files.contains(kCharacterFormFile)
+                ? ParseCharacterFormTsv(local_files[kCharacterFormFile])
+                : CharacterFormSyncState{};
+        const CharacterFormSyncState remote_forms =
+            remote_files->contains(kCharacterFormFile)
+                ? ParseCharacterFormTsv((*remote_files)[kCharacterFormFile])
+                : CharacterFormSyncState{};
+        merged[kCharacterFormFile] = SerializeCharacterFormTsv(
+            MergeCharacterForms(remote_forms, local_forms, nullptr));
       }
 
       merged[kManifestFile] = BuildManifest(config);
@@ -412,7 +374,12 @@ absl::StatusOr<commands::UserSyncReport> PerformSync(
       }
     }
     if (config.sync_history() && merged.contains(kHistoryFile)) {
-      const absl::Status import_status = ImportHistoryTsv(merged[kHistoryFile]);
+      std::optional<absl::string_view> character_form_tsv;
+      if (merged.contains(kCharacterFormFile)) {
+        character_form_tsv = merged[kCharacterFormFile];
+      }
+      const absl::Status import_status =
+          ImportHistory(merged[kHistoryFile], character_form_tsv);
       if (!import_status.ok()) {
         report.set_success(false);
         report.set_error_message(import_status.ToString());

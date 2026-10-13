@@ -37,6 +37,7 @@
 #include "absl/base/no_destructor.h"
 #include "absl/strings/string_view.h"
 #include "base/number_util.h"
+#include "prediction/user_history_predictor.pb.h"
 #include "protocol/config.pb.h"
 
 namespace mozc {
@@ -112,6 +113,25 @@ class CharacterFormManager {
 
   // Clears history data. This method does not clear config data.
   void ClearHistory();
+
+  // Loads/saves character form and number style history from/to UserHistory.
+  void LoadStorage(const user_history_predictor::UserHistory& history);
+  void SaveStorage(user_history_predictor::UserHistory* history);
+
+  // Returns true if the in-memory character form or number style history has
+  // been modified since the last LoadStorage(), SaveStorage(), or
+  // ClearHistory() call.
+  bool IsStorageDirty() const;
+
+  // marinaMoji: accessors for the sync daemon (sync/sync_history.cc).
+  using CharacterFormHistory =
+      user_history_predictor::UserHistory::CharacterFormHistory;
+  // Returns a copy of the in-memory history. Does not touch the dirty flag.
+  CharacterFormHistory GetStorageSnapshot() const;
+  // Overwrites the character forms (and the number style, if set) present in
+  // `history`, keeping all other entries, and marks the storage dirty if
+  // anything changed so the next UserHistoryStorage::Save() writes it.
+  void MergeStorage(const CharacterFormHistory& history);
 
   // Clears internal rules.
   void Clear();

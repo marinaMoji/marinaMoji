@@ -31,14 +31,61 @@
 #define MOZC_RENDERER_QT_QT_WINDOW_MANAGER_H_
 
 #include <QtWidgets>
+#include <utility>
 
 #include "base/coordinates.h"
 #include "client/client_interface.h"
 #include "protocol/renderer_command.pb.h"
 #include "protocol/renderer_style.pb.h"
+#include "renderer/renderer_style_handler.h"
 
 namespace mozc {
 namespace renderer {
+
+// Item delegate of the candidate table, which draws the decorations that cannot
+// be expressed by the background brush of the items.
+//
+// The gradient needs to be drawn by the delegate rather than set as the items'
+// background brush, because gradient QBrush coordinate mapping is not reliable
+// in the QTableWidget cell-background path.
+// This delegate also draws the infolist marker of the candidate rows and the
+// frame of the focused row.
+class CandidateTableDelegate : public QStyledItemDelegate {
+ public:
+  explicit CandidateTableDelegate(QObject* parent = nullptr)
+      : QStyledItemDelegate(parent) {}
+
+  void SetGradientColors(const QColor& top, const QColor& bottom) {
+    top_ = top;
+    bottom_ = bottom;
+  }
+
+  // One 1-pixel separator line is drawn per color, from top to bottom.
+  void SetSeparatorColors(QList<QColor> colors) {
+    separator_colors_ = std::move(colors);
+  }
+
+  // The color of the frame that surrounds the focused candidate row.
+  void SetFocusedBorderColor(const QColor& color) {
+    focused_border_color_ = color;
+  }
+
+  // The color of the marker that indicates that an infolist entry is available
+  // for the candidate.
+  void SetInfolistMarkerColor(const QColor& color) {
+    infolist_marker_color_ = color;
+  }
+
+  void paint(QPainter* painter, const QStyleOptionViewItem& option,
+             const QModelIndex& index) const override;
+
+ private:
+  QColor top_;
+  QColor bottom_;
+  QList<QColor> separator_colors_;
+  QColor focused_border_color_;
+  QColor infolist_marker_color_;
+};
 
 class QtWindowManager {
  public:
@@ -48,6 +95,11 @@ class QtWindowManager {
   ~QtWindowManager() = default;
 
   void Initialize();
+
+  // Switches the candidate/infolist windows to the given color theme and
+  // repaints the currently visible window, if any. No-op if the theme is
+  // unchanged.
+  void SetColorTheme(RendererStyleHandler::ColorTheme theme);
 
   void HideAllWindows();
   void ShowAllWindows();
@@ -83,10 +135,16 @@ class QtWindowManager {
 
   void OnClicked(int row, int column);
 
-  // Applies the foreground / background colors of the current style_ to the
-  // candidate and infolist widgets' palettes, so that areas not covered by
-  // individual cells (e.g. the viewport) also follow the theme.
+  // Applies the colors of the current style_ to the candidate and infolist
+  // widgets via a style sheet, so that areas not covered by individual cells
+  // (e.g. the window border and the viewport) also follow the style.
   void ApplyStyleToWidgets();
+
+  // Updates the visual vertical scroll bar overlay on the right edge of the
+  // candidate window. The scroll bar is shown only when the candidate list
+  // consists of more than one page, as in the Windows renderer, and merely
+  // indicates the position of the current page; it is not interactive.
+  void UpdateVScrollBar(const commands::CandidateWindow& candidate_window);
 
  private:
   QTableWidget *candidates_ = nullptr;
@@ -97,6 +155,15 @@ class QtWindowManager {
   QWidget *candidates_frame_ = nullptr;
   QWidget *infolist_frame_ = nullptr;
 
+  // Does not have the ownership. `candidate_delegate_`, `vscroll_bar_` and
+  // `vscroll_indicator_` are child QObjects of `candidates_`, which is
+  // responsible for destroying them.
+  CandidateTableDelegate* candidate_delegate_ = nullptr;
+  QWidget* vscroll_bar_ = nullptr;
+  QWidget* vscroll_indicator_ = nullptr;
+
+  RendererStyleHandler::ColorTheme color_theme_ =
+      RendererStyleHandler::ColorTheme::kLight;
   RendererStyle style_;
   commands::RendererCommand prev_command_;
   client::SendCommandInterface *send_command_interface_ = nullptr;

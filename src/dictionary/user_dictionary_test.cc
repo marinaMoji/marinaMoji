@@ -46,12 +46,12 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "base/container/tuple.h"
 #include "base/file/temp_dir.h"
 #include "base/file_util.h"
 #include "base/random.h"
-#include "base/system_util.h"
-#include "base/thread.h"
 #include "data_manager/testing/mock_data_manager.h"
 #include "dictionary/dictionary_interface.h"
 #include "dictionary/dictionary_mock.h"
@@ -59,7 +59,6 @@
 #include "dictionary/dictionary_token.h"
 #include "dictionary/pos_matcher.h"
 #include "dictionary/user_dictionary_storage.h"
-#include "dictionary/user_dictionary_util.h"
 #include "dictionary/user_pos.h"
 #include "protocol/user_dictionary_storage.pb.h"
 #include "testing/gmock.h"
@@ -79,7 +78,6 @@ using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::Field;
 using ::testing::IsEmpty;
-using ::testing::Not;
 using ::testing::Return;
 using ::testing::UnorderedElementsAreArray;
 
@@ -149,8 +147,7 @@ class UserPosMock : public UserPos {
   //  verb (-ing form) | 220 | 220
   std::vector<UserPos::Token> GetTokens(
       absl::string_view key, absl::string_view value,
-      user_dictionary::UserDictionary::PosType pos_type,
-      absl::string_view locale) const override {
+      user_dictionary::UserDictionary::PosType pos_type) const override {
     std::vector<UserPos::Token> tokens;
     if (key.empty() || value.empty()) {
       return tokens;
@@ -170,11 +167,6 @@ class UserPosMock : public UserPos {
   }
 
   std::vector<std::string> GetPosList() const override { return {"名詞"}; }
-  int GetPosListDefaultIndex() const override { return 0; }
-
-  std::optional<uint16_t> GetPosIds(absl::string_view pos) const override {
-    return std::nullopt;
-  }
 
   static constexpr user_dictionary::UserDictionary::PosType kNoun =
       user_dictionary::UserDictionary::NOUN;
@@ -229,11 +221,11 @@ class UserDictionaryTest : public testing::TestWithTempUserProfile {
    public:
     ResultType OnToken(absl::string_view,  // key
                        absl::string_view,  // actual_key
-                       const Token& token) override {
+                       Token token) override {
       // Collect only user dictionary entries.
       if (token.attributes & Token::USER_DICTIONARY) {
-        entries_.push_back(Entry({.key = token.key,
-                                  .value = token.value,
+        entries_.push_back(Entry({.key = std::move(token.key),
+                                  .value = std::move(token.value),
                                   .lid = static_cast<uint16_t>(token.lid),
                                   .rid = static_cast<uint16_t>(token.rid)}));
       }
@@ -760,6 +752,62 @@ TEST_F(UserDictionaryTest, AsyncLoadTest) {
   }
 }
 
+// On Windows, `storage.Save()` uses `MoveFileExW(...,
+// MOVEFILE_REPLACE_EXISTING)`, which fails with `ERROR_ACCESS_DENIED` if the
+// background reloader thread simultaneously holds an open `InputFileStream`
+// handle to the destination file. On POSIX platforms, `rename(2)` atomically
+// updates the directory entry to a new inode without conflicting with open read
+// descriptors. If `storage.Save()` fails on Windows, retry after sleeping 100
+// milliseconds to wait for the reloader thread to finish.
+TEST_F(UserDictionaryTest, ConsecutiveReloadTest) {
+  TempDirectory temp_dir = testing::MakeTempDirectoryOrDie();
+  const std::string filename =
+      FileUtil::JoinPath(temp_dir.path(), "consecutive_reload_test.db");
+
+  std::unique_ptr<UserDictionary> dic(CreateDictionaryWithFilename(filename));
+  dic->WaitForReloader();
+
+  constexpr int kNumUpdates = 10;
+  for (int i = 0; i < kNumUpdates; ++i) {
+    UserDictionaryStorage storage(filename);
+    if (i > 0) {
+      EXPECT_OK(storage.Load());
+    }
+    EXPECT_TRUE(storage.Lock());
+    EXPECT_OK(storage.CreateDictionary(absl::StrCat("dic_", i)));
+    UserDictionaryStorage::UserDictionary* user_dic =
+        storage.GetProto().mutable_dictionaries(i);
+    for (int j = 0; j < 500; ++j) {
+      UserDictionaryStorage::UserDictionaryEntry* entry =
+          user_dic->add_entries();
+      entry->set_key(absl::StrFormat("key_%d_%d", i, j));
+      entry->set_value(absl::StrFormat("value_%d_%d", i, j));
+      entry->set_pos(user_dictionary::UserDictionary::NOUN);
+    }
+
+    absl::Status save_status;
+    for (int retry = 0; retry < 10; ++retry) {
+      save_status = storage.Save();
+      if (save_status.ok()) {
+        break;
+      }
+      absl::SleepFor(absl::Milliseconds(100));
+    }
+    EXPECT_OK(save_status);
+    EXPECT_TRUE(storage.UnLock());
+
+    // Trigger Reload() immediately without waiting for the previous reload to
+    // finish.
+    EXPECT_TRUE(dic->Reload());
+  }
+
+  dic->WaitForReloader();
+
+  for (int i = 0; i < kNumUpdates; ++i) {
+    EXPECT_FALSE(LookupExact(absl::StrFormat("key_%d_0", i), *dic).empty());
+  }
+}
+
 TEST_F(UserDictionaryTest, TestSuppressionDictionary) {
   std::unique_ptr<UserDictionary> user_dic(CreateDictionaryWithMockPos());
   user_dic->WaitForReloader();
@@ -930,8 +978,8 @@ TEST_F(UserDictionaryTest, TestPopulateTokenFromUserPosToken) {
   const int expected_cost = UserPos::GetCostFromPosType(user_token.pos_type());
   Token token;
 
-  dic->PopulateTokenFromUserPosToken(user_token, UserDictionary::PREFIX,
-                                     &token);
+  dic->PopulateTokenFromUserPosTokenForTesting(user_token,
+                                               UserDictionary::PREFIX, &token);
   EXPECT_EQ(token.key, "key");
   EXPECT_EQ(token.value, "value");
   EXPECT_EQ(token.lid, 10);
@@ -939,58 +987,49 @@ TEST_F(UserDictionaryTest, TestPopulateTokenFromUserPosToken) {
   EXPECT_EQ(token.cost, expected_cost);
   EXPECT_EQ(token.attributes, Token::USER_DICTIONARY);
 
-  user_token.add_attribute(UserPos::Token::NON_JA_LOCALE);
-  dic->PopulateTokenFromUserPosToken(user_token, UserDictionary::PREFIX,
-                                     &token);
-  EXPECT_EQ(token.cost, 10000);
-
-  user_token.attributes = 0;
   user_token.set_pos_type(user_dictionary::UserDictionary::ABBREVIATION);
-  dic->PopulateTokenFromUserPosToken(user_token, UserDictionary::PREFIX,
-                                     &token);
+  dic->PopulateTokenFromUserPosTokenForTesting(user_token,
+                                               UserDictionary::PREFIX, &token);
   EXPECT_EQ(token.cost, 200);
 
-  user_token.attributes = 0;
   user_token.set_pos_type(user_dictionary::UserDictionary::SUGGESTION_ONLY);
-  dic->PopulateTokenFromUserPosToken(
+  dic->PopulateTokenFromUserPosTokenForTesting(
       user_token, UserDictionary::UserDictionary::PREFIX, &token);
   EXPECT_EQ(token.lid, pos_matcher.GetUnknownId());
   EXPECT_EQ(token.rid, pos_matcher.GetUnknownId());
   EXPECT_EQ(token.cost, expected_cost);
 
-  user_token.attributes = 0;
   user_token.set_pos_type(user_dictionary::UserDictionary::NO_POS);
-  dic->PopulateTokenFromUserPosToken(user_token, UserDictionary::PREDICTIVE,
-                                     &token);
+  dic->PopulateTokenFromUserPosTokenForTesting(
+      user_token, UserDictionary::PREDICTIVE, &token);
   // NO_POS id is set via user_pos.def.
   EXPECT_EQ(token.cost, expected_cost);
 
-  user_token.attributes = 0;
   user_token.set_pos_type(user_dictionary::UserDictionary::NO_POS);
 
   user_token.key = "a";  // one char
-  dic->PopulateTokenFromUserPosToken(user_token, UserDictionary::PREFIX,
-                                     &token);
+  dic->PopulateTokenFromUserPosTokenForTesting(user_token,
+                                               UserDictionary::PREFIX, &token);
   EXPECT_EQ(token.cost, expected_cost + 2000 * 3);
 
   user_token.key = "aa";
-  dic->PopulateTokenFromUserPosToken(user_token, UserDictionary::PREFIX,
-                                     &token);
+  dic->PopulateTokenFromUserPosTokenForTesting(user_token,
+                                               UserDictionary::PREFIX, &token);
   EXPECT_EQ(token.cost, expected_cost + 2000 * 2);
 
   user_token.key = "aaa";
-  dic->PopulateTokenFromUserPosToken(user_token, UserDictionary::PREFIX,
-                                     &token);
+  dic->PopulateTokenFromUserPosTokenForTesting(user_token,
+                                               UserDictionary::PREFIX, &token);
   EXPECT_EQ(token.cost, expected_cost + 2000);
 
   user_token.key = "aaaa";
-  dic->PopulateTokenFromUserPosToken(user_token, UserDictionary::PREFIX,
-                                     &token);
+  dic->PopulateTokenFromUserPosTokenForTesting(user_token,
+                                               UserDictionary::PREFIX, &token);
   EXPECT_EQ(token.cost, expected_cost);
 
   user_token.key = "aaaaaaa";
-  dic->PopulateTokenFromUserPosToken(user_token, UserDictionary::PREFIX,
-                                     &token);
+  dic->PopulateTokenFromUserPosTokenForTesting(user_token,
+                                               UserDictionary::PREFIX, &token);
   EXPECT_EQ(token.cost, expected_cost);
 }
 
@@ -1010,8 +1049,8 @@ TEST_F(UserDictionaryTest, TestPopulateTokenFromUserPosTokenWithEntryPenalty) {
   user_token.set_pos_type(user_dictionary::UserDictionary::NOUN);
 
   Token token;
-  dic->PopulateTokenFromUserPosToken(user_token, UserDictionary::PREFIX,
-                                     &token);
+  dic->PopulateTokenFromUserPosTokenForTesting(user_token,
+                                               UserDictionary::PREFIX, &token);
   const int base_cost = UserPos::GetCostFromPosType(user_token.pos_type());
   const int expected_penalty =
       static_cast<int>(500.0 * std::log(11.0));  // N = 10
@@ -1020,105 +1059,105 @@ TEST_F(UserDictionaryTest, TestPopulateTokenFromUserPosTokenWithEntryPenalty) {
   // POS type with cost 0 in user_pos.def (e.g. WA_GROUP1_VERB) uses default
   // cost (5000) without penalty.
   user_token.set_pos_type(user_dictionary::UserDictionary::WA_GROUP1_VERB);
-  dic->PopulateTokenFromUserPosToken(user_token, UserDictionary::PREFIX,
-                                     &token);
+  dic->PopulateTokenFromUserPosTokenForTesting(user_token,
+                                               UserDictionary::PREFIX, &token);
   EXPECT_EQ(token.cost, 5000);
+
+  // ABBREVIATION always uses fixed cost (200) without penalty.
+  user_token.set_pos_type(user_dictionary::UserDictionary::ABBREVIATION);
+  dic->PopulateTokenFromUserPosTokenForTesting(user_token,
+                                               UserDictionary::PREFIX, &token);
+  EXPECT_EQ(token.cost, 200);
+
+  // At N = 148, cost_penalty is static_cast<int>(500 * log(149)) = 2501 >=
+  // 2500, so the per-POS discount is fully phased out and all standard POS
+  // types scale as 2500 + cost_penalty.
+  for (int i = 10; i < 148; ++i) {
+    user_dictionary::UserDictionary::Entry* entry = user_dic->add_entries();
+    entry->set_key(absl::StrCat("key", i));
+    entry->set_value(absl::StrCat("value", i));
+    entry->set_pos(user_dictionary::UserDictionary::NOUN);
+  }
+  dic->Load(storage);
+
+  const int penalty_148 = static_cast<int>(500.0 * std::log(149.0));  // 2501
+  for (const user_dictionary::UserDictionary::PosType pos_type : {
+           user_dictionary::UserDictionary::NOUN,
+           user_dictionary::UserDictionary::PERSONAL_NAME,
+           user_dictionary::UserDictionary::SYMBOL,
+       }) {
+    user_token.set_pos_type(pos_type);
+    dic->PopulateTokenFromUserPosTokenForTesting(
+        user_token, UserDictionary::PREFIX, &token);
+    EXPECT_EQ(token.cost, 2500 + penalty_148);
+  }
+
+  user_token.set_pos_type(user_dictionary::UserDictionary::ABBREVIATION);
+  dic->PopulateTokenFromUserPosTokenForTesting(user_token,
+                                               UserDictionary::PREFIX, &token);
+  EXPECT_EQ(token.cost, 200);
 }
 
-TEST_F(UserDictionaryTest, AsyncImportTest) {
-  const std::string filename = FileUtil::JoinPath(
-      SystemUtil::GetUserProfileDirectory(), "async_import_test.db");
+TEST_F(UserDictionaryTest, LoadFromStreamTest) {
+  std::unique_ptr<UserDictionary> dic(CreateDictionaryWithMockPos());
+  dic->WaitForReloader();
 
-  const testing::MockDataManager mock_data_manager;
-
-  auto make_dic = [&]() {
-    return UserDictionary(
-        make_unique_from_tuples<UserPos>(mock_data_manager.GetUserPosData()),
-        PosMatcher(mock_data_manager.GetPosMatcherData()), filename);
-  };
-
-  auto dic = make_dic();
-
-  constexpr int kThreadsSize = 100;
-  constexpr int kEntrySize = 1000;
-
-  auto make_tsv_dic = [](int i) {
-    std::string tsv;
-    for (int n = 0; n < kEntrySize; ++n) {
-      absl::StrAppendFormat(&tsv, "key_%2.2d%4.4d\tvalue_%2.2d%4.4d\t名詞\n", i,
-                            n, i, n);
-    }
-    // Adds one invalid line.
-    absl::StrAppendFormat(&tsv, "__INVALID__");
-    return tsv;
-  };
+  user_dictionary::UserDictionaryStorage storage;
+  storage.set_version(1);
+  user_dictionary::UserDictionary* user_dic = storage.add_dictionaries();
+  user_dic->set_id(12345);
+  user_dic->set_name("test_dic");
 
   {
-    // Import TSV dictionary asynchronously.
-    user_dictionary::AsyncUserDictionaryImporter importer(dic);
-
-    std::vector<Thread> threads;
-    for (int i = 0; i < kThreadsSize; ++i) {
-      threads.emplace_back([&, i]() {
-        importer.Import(absl::StrCat("dic", i), make_tsv_dic(i));
-      });
-    }
-
-    for (auto& thread : threads) {
-      thread.Join();
-    }
-
-    // The importing process is canceled in destructor so we need to call
-    // Wait() explicitly.
-    importer.Wait();
+    user_dictionary::UserDictionary::Entry* entry = user_dic->add_entries();
+    entry->set_key("start");
+    entry->set_value("start_val");
+    entry->set_pos(user_dictionary::UserDictionary::NOUN);
+    entry->set_comment("test_comment");
   }
-
-  EXPECT_OK(FileUtil::FileExists(filename));
-
-  auto check_entries = [](const UserDictionary& dic) {
-    for (int i = 0; i < kThreadsSize; ++i) {
-      for (int n = 0; n < kEntrySize; ++n) {
-        const std::string key = absl::StrFormat("key_%2.2d%4.4d", i, n);
-        MockCallback mock_callback;
-        EXPECT_CALL(mock_callback, OnKey(Eq(key)))
-            .Times(1)
-            .WillRepeatedly(
-                Return(DictionaryInterface::Callback::TRAVERSE_CONTINUE));
-        EXPECT_CALL(mock_callback, OnActualKey(_, _, _))
-            .Times(1)
-            .WillRepeatedly(
-                Return(DictionaryInterface::Callback::TRAVERSE_CONTINUE));
-        EXPECT_CALL(mock_callback, OnToken(_, _, _))
-            .WillRepeatedly(
-                Return(DictionaryInterface::Callback::TRAVERSE_CONTINUE));
-        dic.LookupExact(key, &mock_callback);
-      }
-    }
-  };
-
-  check_entries(dic);
-
-  auto dic_reloaded = make_dic();
-
-  // reload data.
   {
-    dic_reloaded.Reload();
-    dic_reloaded.WaitForReloader();
-    check_entries(dic_reloaded);
+    user_dictionary::UserDictionary::Entry* entry = user_dic->add_entries();
+    entry->set_key("suppress_key");
+    entry->set_value("suppress_val");
+    entry->set_pos(user_dictionary::UserDictionary::SUPPRESSION_WORD);
   }
 
-  // Clear dictionary with empty TSV.
+  std::string serialized = storage.SerializeAsString();
+  // Append unknown Fixed64 (tag = (15 << 3) | 1 = 0x79) and Fixed32
+  // (tag = (15 << 3) | 5 = 0x7d) fields to verify SkipField handling.
+  serialized.append("\x79\x01\x02\x03\x04\x05\x06\x07\x08", 9);
+  serialized.append("\x7d\x01\x02\x03\x04", 5);
+
   {
-    user_dictionary::AsyncUserDictionaryImporter importer(dic_reloaded);
-
-    importer.Import("dic0", "");
-    importer.Wait();
-
-    mozc::UserDictionaryStorage storage(filename);
-    EXPECT_OK(storage.Load());
-    EXPECT_FALSE(storage.GetUserDictionaryId("dic0").ok());
-    EXPECT_TRUE(storage.GetUserDictionaryId("dic1").ok());
+    std::istringstream iss(serialized);
+    EXPECT_TRUE(dic->Load(iss));
   }
+  EXPECT_THAT(LookupExact("start", *dic),
+              ElementsAre(Entry{"start", "start_val", 100, 100}));
+  EXPECT_EQ(LookupComment(*dic, "start", "start_val"), "test_comment");
+  EXPECT_TRUE(dic->IsSuppressedEntry("suppress_key", "suppress_val"));
+
+  // Corrupted streams (truncated length varint or Entry message) should fail
+  // and keep existing tokens intact.
+  {
+    std::istringstream bad_dic_len_iss("\x12");
+    EXPECT_FALSE(dic->Load(bad_dic_len_iss));
+  }
+  {
+    std::istringstream bad_entry_len_iss("\x22");
+    EXPECT_FALSE(dic->Load(bad_entry_len_iss));
+  }
+  {
+    std::istringstream bad_iss("\x22\x05xyz");
+    EXPECT_FALSE(dic->Load(bad_iss));
+  }
+  // Invalid wire type (wire type 6: tag = (15 << 3) | 6 = 0x7e) should fail.
+  {
+    std::istringstream bad_wire_iss("\x7e");
+    EXPECT_FALSE(dic->Load(bad_wire_iss));
+  }
+  EXPECT_THAT(LookupExact("start", *dic),
+              ElementsAre(Entry{"start", "start_val", 100, 100}));
 }
 
 }  // namespace

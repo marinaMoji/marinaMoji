@@ -34,16 +34,18 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
+#include <cstring>
+#include <ios>
+#include <istream>
 #include <limits>
 #include <memory>
-#include <optional>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/container/flat_hash_set.h"
-#include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
@@ -51,9 +53,14 @@
 #include "absl/strings/ascii.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "absl/synchronization/mutex.h"
+#include "base/bits.h"
+#include "base/container/serialized_string_array.h"
+#include "base/file_stream.h"
 #include "base/file_util.h"
 #include "base/hash.h"
+#include "base/protobuf/coded_stream.h"
+#include "base/protobuf/wire_format_lite.h"
+#include "base/protobuf/zero_copy_stream_impl.h"
 #include "base/strings/assign.h"
 #include "base/strings/japanese.h"
 #include "base/strings/unicode.h"
@@ -62,163 +69,210 @@
 #include "dictionary/dictionary_interface.h"
 #include "dictionary/dictionary_token.h"
 #include "dictionary/pos_matcher.h"
-#include "dictionary/user_dictionary_importer.h"
 #include "dictionary/user_dictionary_storage.h"
 #include "dictionary/user_dictionary_util.h"
 #include "dictionary/user_pos.h"
-#include "protocol/config.pb.h"
 #include "protocol/user_dictionary_storage.pb.h"
 
 namespace mozc {
 namespace dictionary {
 namespace {
 
-struct OrderByKey {
-  bool operator()(const UserPos::Token& token, absl::string_view key) const {
-    return token.key < key;
-  }
+// 512MByte
+// We expand the limit of serialized message from 64MB(default) to 512MB.
+constexpr size_t kDefaultTotalBytesLimit = 512 << 20;
 
-  bool operator()(absl::string_view key, const UserPos::Token& token) const {
-    return key < token.key;
-  }
-};
-
-struct OrderByKeyPrefix {
-  bool operator()(const UserPos::Token& token, absl::string_view prefix) const {
-    return absl::string_view(token.key).substr(0, prefix.size()) < prefix;
-  }
-
-  bool operator()(absl::string_view prefix, const UserPos::Token& token) const {
-    return prefix < absl::string_view(token.key).substr(0, prefix.size());
-  }
-};
-
-struct OrderByKeyThenById {
-  bool operator()(const UserPos::Token& lhs, const UserPos::Token& rhs) const {
-    const int comp = lhs.key.compare(rhs.key);
-    return comp == 0 ? (lhs.id < rhs.id) : (comp < 0);
-  }
-};
-
-class SuppressionDictionary {
- public:
-  bool AddEntry(std::string key, std::string value) {
-    if (key.empty() && value.empty()) {
-      LOG(WARNING) << "Both key and value are empty";
-      return false;
-    }
-
-    if (key.empty()) {
-      values_only_.emplace(std::move(value));
-    } else if (value.empty()) {
-      keys_only_.emplace(std::move(key));
-    } else {
-      keys_values_.emplace(std::move(key), std::move(value));
-    }
-
-    return true;
-  }
-
-  bool IsEmpty() const {
-    return keys_only_.empty() && values_only_.empty() && keys_values_.empty();
-  }
-
-  bool IsSuppressedEntry(const absl::string_view key,
-                         const absl::string_view value) const {
-    return !IsEmpty() &&
-           (keys_values_.contains(std::make_pair(key, value)) ||
-            keys_only_.contains(key) || values_only_.contains(value));
-  }
-
- private:
-  using KeyValue = std::pair<std::string, std::string>;
-  using KeyValueView = std::pair<absl::string_view, absl::string_view>;
-  struct KeyValueHash : public absl::Hash<KeyValueView> {
-    using is_transparent = void;
-  };
-  struct KeyValueEq : public std::equal_to<KeyValueView> {
-    using is_transparent = void;
-  };
-
-  absl::flat_hash_set<KeyValue, KeyValueHash, KeyValueEq> keys_values_;
-  absl::flat_hash_set<std::string> keys_only_;
-  absl::flat_hash_set<std::string> values_only_;
-};
 }  // namespace
 
+// Stores user dictionary tokens in a flat `SerializedStringArray` image
+// (`tokens_`), sorted by `(key, id)`, where each element has the binary layout
+// below. Suppression words (`SUPPRESSION_WORD`) are stored as 64-bit
+// fingerprints in `suppression_set_`.
+//
+// Binary layout of each element in `tokens_`:
+// +---------------------------------------+
+// | id (uint16_t, 2 bytes)                |
+// +---------------------------------------+
+// | raw_pos_type (uint8_t, 1 byte)        |
+// +---------------------------------------+
+// | key_len (uint16_t, 2 bytes)           |
+// +---------------------------------------+
+// | value_len (uint16_t, 2 bytes)         |
+// +---------------------------------------+
+// | key (key_len bytes)                   |
+// +---------------------------------------+
+// | value (value_len bytes)               |
+// +---------------------------------------+
+// | comment (remaining bytes)             |
+// +---------------------------------------+
 class UserDictionary::TokensIndex {
  public:
+  static constexpr size_t kTokenHeaderSize = 7;
+
+  // Lightweight zero-copy view over a serialized token entry.
+  class Token {
+   public:
+    explicit constexpr Token(absl::string_view data) : data_(data) {
+      DCHECK_GE(data.size(), kTokenHeaderSize);
+    }
+
+    uint16_t id() const { return LoadUnaligned<uint16_t>(data_.data()); }
+    uint8_t raw_pos_type() const { return static_cast<uint8_t>(data_[2]); }
+    uint16_t key_len() const {
+      return LoadUnaligned<uint16_t>(data_.data() + 3);
+    }
+    uint16_t value_len() const {
+      return LoadUnaligned<uint16_t>(data_.data() + 5);
+    }
+
+    absl::string_view key() const {
+      return absl::string_view(data_.data() + kTokenHeaderSize, key_len());
+    }
+    absl::string_view value() const {
+      return absl::string_view(data_.data() + kTokenHeaderSize + key_len(),
+                               value_len());
+    }
+    absl::string_view comment() const {
+      const size_t offset = kTokenHeaderSize + key_len() + value_len();
+      return absl::string_view(data_.data() + offset, data_.size() - offset);
+    }
+
+    user_dictionary::UserDictionary::PosType pos_type() const {
+      return static_cast<::mozc::user_dictionary::UserDictionary::PosType>(
+          raw_pos_type());
+    }
+
+   private:
+    absl::string_view data_;
+  };
+
+  using const_iterator = SerializedStringArray::const_iterator;
+
   explicit TokensIndex(const UserPos& user_pos) : user_pos_(user_pos) {}
 
   ~TokensIndex() = default;
 
-  bool empty() const { return user_pos_tokens_.empty(); }
-  size_t size() const { return user_pos_tokens_.size(); }
-  int cost_penalty() const { return cost_penalty_; }
+  bool empty() const { return tokens_.empty(); }
+  size_t size() const { return tokens_.size(); }
 
-  std::vector<UserPos::Token>::const_iterator begin() const {
-    return user_pos_tokens_.begin();
-  }
-  std::vector<UserPos::Token>::const_iterator end() const {
-    return user_pos_tokens_.end();
+  const_iterator begin() const { return tokens_.begin(); }
+  const_iterator end() const { return tokens_.end(); }
+
+  std::pair<const_iterator, const_iterator> EqualRange(
+      absl::string_view key) const {
+    return std::equal_range(begin(), end(), LookupKey{key}, OrderByKey());
   }
 
-  void Load(const user_dictionary::UserDictionaryStorage& storage,
-            std::atomic<bool>* canceled_signal) {
+  std::pair<const_iterator, const_iterator> PrefixEqualRange(
+      absl::string_view prefix) const {
+    return std::equal_range(begin(), end(), LookupKey{prefix},
+                            OrderByKeyPrefix());
+  }
+
+  const_iterator LowerBound(absl::string_view key) const {
+    return std::lower_bound(begin(), end(), LookupKey{key}, OrderByKey());
+  }
+
+  void PopulateToken(const Token& user_pos_token,
+                     UserDictionary::RequestType request_type,
+                     PosMatcher pos_matcher,
+                     mozc::dictionary::Token* token) const {
+    strings::Assign(token->key, user_pos_token.key());
+    strings::Assign(token->value, user_pos_token.value());
+    token->lid = token->rid = user_pos_token.id();
+    token->attributes = mozc::dictionary::Token::USER_DICTIONARY;
+
+    // * Overwrites POS ids.
+    // Actual pos id of suggestion-only candidates are 名詞-サ変.
+    // TODO(taku): We would like to change the POS to 名詞-サ変 in user-pos.def,
+    // because SUGGESTION_ONLY is not POS.
+    if (user_pos_token.pos_type() ==
+        user_dictionary::UserDictionary::SUGGESTION_ONLY) {
+      token->lid = token->rid = pos_matcher.GetUnknownId();
+    }
+
+    // * Overwrites costs.
+    token->cost =
+        UserPos::GetCostFromPosType(user_pos_token.pos_type(), cost_penalty_);
+    DCHECK_GT(token->cost, 0);
+
+    // The treatment for the words with default POS (NO_POS).
+    // Shorter keys have more penalty so that they are not shown in the context.
+    // TODO(taku): Better to apply this cost for all user defined words?
+    if (user_pos_token.pos_type() == user_dictionary::UserDictionary::NO_POS &&
+        (request_type == UserDictionary::PREFIX ||
+         request_type == UserDictionary::EXACT)) {
+      const int key_length = strings::AtLeastCharsLen(token->key, 4);
+      token->cost += (4 - key_length) * 2000;
+    }
+  }
+
+  bool Load(std::istream& ifs, std::atomic<bool>* canceled_signal) {
     DCHECK(canceled_signal);
-    user_pos_tokens_.clear();
+    DCHECK(tokens_.empty());
+    DCHECK(suppression_set_.empty());
+
+    mozc::protobuf::io::IstreamInputStream zero_copy_input(&ifs);
+    mozc::protobuf::io::CodedInputStream decoder(&zero_copy_input);
+    decoder.SetTotalBytesLimit(kDefaultTotalBytesLimit);
+
+    using WireFormatLite = ::mozc::protobuf::internal::WireFormatLite;
+
+    constexpr uint32_t kDictionariesTag = WireFormatLite::MakeTag(
+        user_dictionary::UserDictionaryStorage::kDictionariesFieldNumber,
+        WireFormatLite::WIRETYPE_LENGTH_DELIMITED);
+    constexpr uint32_t kEntriesTag = WireFormatLite::MakeTag(
+        user_dictionary::UserDictionary::kEntriesFieldNumber,
+        WireFormatLite::WIRETYPE_LENGTH_DELIMITED);
+
+    std::vector<std::string> serialized_tokens;
     absl::flat_hash_set<uint64_t> seen;
+    user_dictionary::UserDictionary::Entry entry;
+    uint32_t len = 0;
 
-    for (const UserDictionaryStorage::UserDictionary& dic :
-         storage.dictionaries()) {
-      for (const UserDictionaryStorage::UserDictionaryEntry& entry :
-           dic.entries()) {
-        if (canceled_signal->load()) {
-          LOG(INFO) << "User dictionary loading is canceled";
-          return;
+    while (const uint32_t tag = decoder.ReadTag()) {
+      if (canceled_signal->load()) {
+        LOG(INFO) << "User dictionary loading is canceled";
+        return true;
+      }
+      if (tag == kDictionariesTag) {
+        // Read only the byte-length prefix of the UserDictionary submessage
+        // (without skipping its payload) so subsequent ReadTag() calls in this
+        // loop read the fields inside UserDictionary directly.
+        if (!decoder.ReadVarint32(&len)) {
+          return false;
         }
-
-        if (!user_dictionary::ValidateEntry(entry).ok()) {
-          continue;
+      } else if (tag == kEntriesTag) {
+        if (!decoder.ReadVarint32(&len)) {
+          return false;
         }
-
-        // We cannot call NormalizeVoiceSoundMark inside NormalizeReading,
-        // because the normalization is user-visible.
-        // http://b/2480844
-        std::string reading = japanese::NormalizeVoicedSoundMark(
-            user_dictionary::NormalizeReading(entry.key()));
-
-        DCHECK(user_dictionary::UserDictionary_PosType_IsValid(entry.pos()));
-        static_assert(user_dictionary::UserDictionary_PosType_PosType_MAX <=
-                      std::numeric_limits<char>::max());
-        const char pos_type_as_char[] = {static_cast<char>(entry.pos())};
-        const uint64_t fp = CityFingerprint(
-            absl::StrCat(reading, "\t", entry.value(), "\t",
-                         absl::string_view(pos_type_as_char, 1)));
-        if (!seen.insert(fp).second) {
-          MOZC_VLOG(1) << "Found dup item";
-          continue;
+        const auto limit = decoder.PushLimit(len);
+        entry.Clear();
+        if (!entry.MergeFromCodedStream(&decoder) ||
+            !decoder.ConsumedEntireMessage()) {
+          return false;
         }
-
-        if (entry.pos() == user_dictionary::UserDictionary::SUPPRESSION_WORD) {
-          // "抑制単語"
-          suppression_dictionary_.AddEntry(std::move(reading), entry.value());
-        } else {
-          const absl::string_view comment =
-              absl::StripAsciiWhitespace(entry.comment());
-          for (auto& token :
-               user_pos_.GetTokens(reading, entry.value(), entry.pos())) {
-            strings::Assign(token.comment, comment);
-            user_pos_tokens_.push_back(std::move(token));
-          }
-        }
+        decoder.PopLimit(limit);
+        AddEntry(entry, &seen, &serialized_tokens);
+      } else if (!WireFormatLite::SkipField(&decoder, tag)) {
+        return false;
       }
     }
-    user_pos_tokens_.shrink_to_fit();
+    if (!decoder.ConsumedEntireMessage() || !ifs.eof()) {
+      return false;
+    }
 
-    // Sort first by key and then by POS ID.
-    std::sort(user_pos_tokens_.begin(), user_pos_tokens_.end(),
-              OrderByKeyThenById());
+    if (!serialized_tokens.empty()) {
+      absl::c_sort(serialized_tokens,
+                   [](absl::string_view lhs, absl::string_view rhs) {
+                     const Token lhs_token(lhs);
+                     const Token rhs_token(rhs);
+                     return std::make_pair(lhs_token.key(), lhs_token.id()) <
+                            std::make_pair(rhs_token.key(), rhs_token.id());
+                   });
+      tokens_.Set(SerializedStringArray::SerializeToBuffer(serialized_tokens,
+                                                           &tokens_buffer_));
+    }
 
     // Adds cost penalty based on dictionary entry count N: 500 * log(N + 1).
     //
@@ -241,83 +295,119 @@ class UserDictionary::TokensIndex {
     // - N = 1,000: +3,454
     // - N = 10,000: +4,605
     // - N = 100,000: +5,756
-    cost_penalty_ = static_cast<int>(
-        500.0 * std::log(user_pos_tokens_.size() + 1));
+    cost_penalty_ = static_cast<int>(500.0 * std::log(tokens_.size() + 1));
 
-    MOZC_VLOG(1) << user_pos_tokens_.size() << " user dic entries loaded";
-  }
-
-  bool IsSuppressedEntry(absl::string_view key, absl::string_view value) const {
-    return suppression_dictionary_.IsSuppressedEntry(key, value);
-  }
-
-  bool HasSuppressedEntries() const {
-    return !suppression_dictionary_.IsEmpty();
-  }
-
- private:
-  const UserPos& user_pos_;
-  SuppressionDictionary suppression_dictionary_;
-  std::vector<UserPos::Token> user_pos_tokens_;
-  int cost_penalty_ = 0;
-};
-
-class UserDictionary::UserDictionaryReloader {
- public:
-  explicit UserDictionaryReloader(UserDictionary& dic) : dic_(dic) {}
-
-  UserDictionaryReloader(const UserDictionaryReloader&) = delete;
-  UserDictionaryReloader& operator=(const UserDictionaryReloader&) = delete;
-
-  ~UserDictionaryReloader() { Wait(); }
-
-  // When the user dictionary exists AND the modification time has been updated,
-  // reloads the dictionary.  Returns true when reloader thread is started.
-  bool MaybeStartReload() {
-    if (reload_.IsRunning()) {
-      // Previously started reload is still running.
-      // TODO(tomokinat): test this path.
-      return false;
-    }
-
-    absl::StatusOr<FileTimeStamp> modification_time =
-        FileUtil::GetModificationTime(dic_.GetFileName());
-    if (!modification_time.ok()) {
-      // If the file doesn't exist, return doing nothing.
-      // Therefore if the file is deleted after first reload,
-      // second reload does nothing so the content loaded by first reload
-      // is kept as is.
-      LOG(WARNING) << "Cannot get modification time of the user dictionary: "
-                   << modification_time.status();
-      return false;
-    }
-    if (modified_at_ == *modification_time) {
-      return false;
-    }
-    modified_at_ = *modification_time;
-    // Runs `ThreadMain()` in a background thread.
-    reload_.Schedule([this] { ThreadMain(); });
+    MOZC_VLOG(1) << tokens_.size() << " user dic entries loaded";
     return true;
   }
 
-  void Wait() { reload_.Wait(); }
+  bool IsSuppressedEntry(absl::string_view key, absl::string_view value) const {
+    if (!HasSuppressedEntries()) {
+      return false;
+    }
+    return suppression_set_.contains(SuppressedEntryFingerprint(key, value));
+  }
+
+  bool HasSuppressedEntries() const { return !suppression_set_.empty(); }
+
+  static std::string SerializeToken(const UserPos::Token& token,
+                                    absl::string_view comment) {
+    DCHECK_LE(token.key.size(), std::numeric_limits<uint16_t>::max());
+    DCHECK_LE(token.value.size(), std::numeric_limits<uint16_t>::max());
+    std::string buf(kTokenHeaderSize + token.key.size() + token.value.size() +
+                        comment.size(),
+                    '\0');
+    char* ptr = buf.data();
+    StoreUnaligned<uint16_t>(token.id, ptr);
+    ptr[2] = static_cast<char>(token.raw_pos_type);
+    StoreUnaligned<uint16_t>(static_cast<uint16_t>(token.key.size()), ptr + 3);
+    StoreUnaligned<uint16_t>(static_cast<uint16_t>(token.value.size()),
+                             ptr + 5);
+    ptr += kTokenHeaderSize;
+    std::memcpy(ptr, token.key.data(), token.key.size());
+    ptr += token.key.size();
+    std::memcpy(ptr, token.value.data(), token.value.size());
+    ptr += token.value.size();
+    if (!comment.empty()) {
+      std::memcpy(ptr, comment.data(), comment.size());
+    }
+    return buf;
+  }
 
  private:
-  void ThreadMain() {
-    UserDictionaryStorage storage(dic_.GetFileName());
-
-    // Load from file
-    if (absl::Status s = storage.Load(); !s.ok()) {
-      LOG(ERROR) << "Failed to load the user dictionary: " << s;
+  void AddEntry(const user_dictionary::UserDictionary::Entry& entry,
+                absl::flat_hash_set<uint64_t>* seen,
+                std::vector<std::string>* serialized_tokens) {
+    if (!user_dictionary::ValidateEntry(entry).ok()) {
       return;
     }
 
-    dic_.Load(storage.GetProto());
+    // We cannot call NormalizeVoiceSoundMark inside NormalizeReading,
+    // because the normalization is user-visible.
+    // http://b/2480844
+    const std::string reading = japanese::NormalizeVoicedSoundMark(
+        user_dictionary::NormalizeReading(entry.key()));
+
+    DCHECK(user_dictionary::UserDictionary_PosType_IsValid(entry.pos()));
+    static_assert(user_dictionary::UserDictionary_PosType_PosType_MAX <=
+                  std::numeric_limits<char>::max());
+    const char pos_type_as_char[] = {static_cast<char>(entry.pos())};
+    const uint64_t fp =
+        CityFingerprint(absl::StrCat(reading, "\t", entry.value(), "\t",
+                                     absl::string_view(pos_type_as_char, 1)));
+    if (!seen->insert(fp).second) {
+      MOZC_VLOG(1) << "Found dup item";
+      return;
+    }
+
+    if (entry.pos() == user_dictionary::UserDictionary::SUPPRESSION_WORD) {
+      // "抑制単語"
+      suppression_set_.insert(
+          SuppressedEntryFingerprint(reading, entry.value()));
+    } else {
+      const absl::string_view comment =
+          absl::StripAsciiWhitespace(entry.comment());
+      for (const auto& token :
+           user_pos_.GetTokens(reading, entry.value(), entry.pos())) {
+        serialized_tokens->push_back(SerializeToken(token, comment));
+      }
+    }
   }
 
-  TaskManager reload_;
-  FileTimeStamp modified_at_ = 0;
-  UserDictionary& dic_;
+  static uint64_t SuppressedEntryFingerprint(absl::string_view key,
+                                             absl::string_view value) {
+    return CityFingerprintWithSeed(value, CityFingerprint(key));
+  }
+
+  struct LookupKey {
+    absl::string_view key;
+  };
+
+  struct OrderByKey {
+    bool operator()(absl::string_view raw_token, LookupKey key) const {
+      return Token(raw_token).key() < key.key;
+    }
+
+    bool operator()(LookupKey key, absl::string_view raw_token) const {
+      return key.key < Token(raw_token).key();
+    }
+  };
+
+  struct OrderByKeyPrefix {
+    bool operator()(absl::string_view raw_token, LookupKey prefix) const {
+      return Token(raw_token).key().substr(0, prefix.key.size()) < prefix.key;
+    }
+
+    bool operator()(LookupKey prefix, absl::string_view raw_token) const {
+      return prefix.key < Token(raw_token).key().substr(0, prefix.key.size());
+    }
+  };
+
+  const UserPos& user_pos_;
+  SerializedStringArray tokens_;
+  std::unique_ptr<uint32_t[]> tokens_buffer_;
+  absl::flat_hash_set<uint64_t> suppression_set_;
+  int cost_penalty_ = 0;
 };
 
 UserDictionary::UserDictionary(std::unique_ptr<const UserPos> user_pos,
@@ -328,8 +418,7 @@ UserDictionary::UserDictionary(std::unique_ptr<const UserPos> user_pos,
 
 UserDictionary::UserDictionary(std::unique_ptr<const UserPos> user_pos,
                                PosMatcher pos_matcher, std::string filename)
-    : reloader_(std::make_unique<UserDictionaryReloader>(*this)),
-      user_pos_(std::move(user_pos)),
+    : user_pos_(std::move(user_pos)),
       pos_matcher_(pos_matcher),
       tokens_(std::make_shared<TokensIndex>(*user_pos_)),
       filename_(std::move(filename)) {
@@ -373,12 +462,11 @@ void UserDictionary::LookupPredictive(absl::string_view key,
   }
 
   // Find the starting point of iteration over dictionary contents.
-  Token token;
-  for (auto [begin, end] = std::equal_range(tokens->begin(), tokens->end(), key,
-                                            OrderByKeyPrefix());
-       begin != end; ++begin) {
-    const UserPos::Token& user_pos_token = *begin;
-    switch (callback->OnKey(user_pos_token.key)) {
+  for (auto [begin, end] = tokens->PrefixEqualRange(key); begin != end;
+       ++begin) {
+    const TokensIndex::Token user_pos_token(*begin);
+    const absl::string_view token_key = user_pos_token.key();
+    switch (callback->OnKey(token_key)) {
       case Callback::TRAVERSE_DONE:
         return;
       case Callback::TRAVERSE_NEXT_KEY:
@@ -388,13 +476,14 @@ void UserDictionary::LookupPredictive(absl::string_view key,
         break;
     }
     // b/333613472: Make sure not to set the additional penalties.
-    if (callback->OnActualKey(user_pos_token.key, user_pos_token.key,
+    if (callback->OnActualKey(token_key, token_key,
                               /* num_expanded= */ 0) ==
         Callback::TRAVERSE_DONE) {
       return;
     }
-    PopulateTokenFromUserPosToken(user_pos_token, PREDICTIVE, &token);
-    if (callback->OnToken(user_pos_token.key, user_pos_token.key, token) ==
+    Token token;
+    tokens->PopulateToken(user_pos_token, PREDICTIVE, pos_matcher_, &token);
+    if (callback->OnToken(token_key, token_key, std::move(token)) ==
         Callback::TRAVERSE_DONE) {
       return;
     }
@@ -417,22 +506,20 @@ void UserDictionary::LookupPrefix(absl::string_view key,
 
   // Find the starting point for iteration over dictionary contents.
   const absl::string_view first_char = Utf8AsChars(key).front();
-  Token token;
-  for (auto it = std::lower_bound(tokens->begin(), tokens->end(), first_char,
-                                  OrderByKey());
-       it != tokens->end(); ++it) {
-    const UserPos::Token& user_pos_token = *it;
-    if (user_pos_token.key > key) {
+  for (auto it = tokens->LowerBound(first_char); it != tokens->end(); ++it) {
+    const TokensIndex::Token user_pos_token(*it);
+    const absl::string_view token_key = user_pos_token.key();
+    if (token_key > key) {
       break;
     }
     if (user_pos_token.pos_type() ==
         user_dictionary::UserDictionary::SUGGESTION_ONLY) {
       continue;
     }
-    if (!key.starts_with(user_pos_token.key)) {
+    if (!key.starts_with(token_key)) {
       continue;
     }
-    switch (callback->OnKey(user_pos_token.key)) {
+    switch (callback->OnKey(token_key)) {
       case Callback::TRAVERSE_DONE:
         return;
       case Callback::TRAVERSE_NEXT_KEY:
@@ -443,13 +530,14 @@ void UserDictionary::LookupPrefix(absl::string_view key,
       default:
         break;
     }
-    if (callback->OnActualKey(user_pos_token.key, user_pos_token.key,
+    if (callback->OnActualKey(token_key, token_key,
                               /* num_expanded= */ 0) ==
         Callback::TRAVERSE_DONE) {
       return;
     }
-    PopulateTokenFromUserPosToken(user_pos_token, PREFIX, &token);
-    switch (callback->OnToken(user_pos_token.key, user_pos_token.key, token)) {
+    Token token;
+    tokens->PopulateToken(user_pos_token, PREFIX, pos_matcher_, &token);
+    switch (callback->OnToken(token_key, token_key, std::move(token))) {
       case Callback::TRAVERSE_DONE:
         return;
       case Callback::TRAVERSE_CULL:
@@ -468,11 +556,11 @@ void UserDictionary::LookupExact(absl::string_view key,
   if (key.empty() || tokens->empty()) {
     return;
   }
-  auto [begin, end] =
-      std::equal_range(tokens->begin(), tokens->end(), key, OrderByKey());
+  auto [begin, end] = tokens->EqualRange(key);
   if (begin == end) {
     return;
   }
+
   if (callback->OnKey(key) != Callback::TRAVERSE_CONTINUE) {
     return;
   }
@@ -481,15 +569,16 @@ void UserDictionary::LookupExact(absl::string_view key,
     return;
   }
 
-  Token token;
   for (; begin != end; ++begin) {
-    const UserPos::Token& user_pos_token = *begin;
+    const TokensIndex::Token user_pos_token(*begin);
     if (user_pos_token.pos_type() ==
         user_dictionary::UserDictionary::SUGGESTION_ONLY) {
       continue;
     }
-    PopulateTokenFromUserPosToken(user_pos_token, EXACT, &token);
-    if (callback->OnToken(key, key, token) != Callback::TRAVERSE_CONTINUE) {
+    Token token;
+    tokens->PopulateToken(user_pos_token, EXACT, pos_matcher_, &token);
+    if (callback->OnToken(key, key, std::move(token)) !=
+        Callback::TRAVERSE_CONTINUE) {
       return;
     }
   }
@@ -512,12 +601,10 @@ bool UserDictionary::LookupComment(absl::string_view key,
   }
 
   // Set the comment that was found first.
-  for (auto [begin, end] =
-           std::equal_range(tokens->begin(), tokens->end(), key, OrderByKey());
-       begin != end; ++begin) {
-    const UserPos::Token& token = *begin;
-    if (token.value == value && !token.comment.empty()) {
-      comment->assign(token.comment);
+  for (auto [begin, end] = tokens->EqualRange(key); begin != end; ++begin) {
+    const TokensIndex::Token token(*begin);
+    if (token.value() == value && !token.comment().empty()) {
+      strings::Assign(*comment, token.comment());
       return true;
     }
   }
@@ -534,16 +621,61 @@ bool UserDictionary::HasSuppressedEntries() const {
 }
 
 bool UserDictionary::Reload() {
-  if (!reloader_->MaybeStartReload()) {
+  absl::StatusOr<FileTimeStamp> modification_time =
+      FileUtil::GetModificationTime(filename_);
+  if (!modification_time.ok()) {
+    // If the file doesn't exist, return doing nothing.
+    // Therefore if the file is deleted after first reload,
+    // second reload does nothing so the content loaded by first reload
+    // is kept as is.
+    LOG(WARNING) << "Cannot get modification time of the user dictionary: "
+                 << modification_time.status();
     LOG(INFO) << "MaybeStartReload() didn't start reloading";
+    return true;
+  }
+
+  if (modified_at_.exchange(*modification_time) == *modification_time) {
+    LOG(INFO) << "MaybeStartReload() didn't start reloading";
+    return true;
+  }
+  if (reload_state_.exchange(ReloadState::kRunningWithPending) ==
+      ReloadState::kIdle) {
+    // Runs `ReloadThreadMain()` in a background thread.
+    reload_task_.Schedule([this] { ReloadThreadMain(); });
   }
   return true;
 }
 
-void UserDictionary::WaitForReloader() { reloader_->Wait(); }
+void UserDictionary::WaitForReloader() { reload_task_.Wait(); }
+
+void UserDictionary::ReloadThreadMain() {
+  while (!canceled_signal_.load()) {
+    reload_state_.store(ReloadState::kRunning);
+
+    InputFileStream ifs(filename_, std::ios::binary);
+    if (!ifs) {
+      LOG(ERROR) << "Failed to open the user dictionary: " << filename_;
+    } else if (!Load(ifs)) {
+      LOG(ERROR) << "Failed to load the user dictionary: " << filename_;
+    }
+
+    ReloadState expected = ReloadState::kRunning;
+    if (reload_state_.compare_exchange_strong(expected, ReloadState::kIdle)) {
+      return;
+    }
+  }
+  reload_state_.store(ReloadState::kIdle);
+}
 
 bool UserDictionary::Load(
     const user_dictionary::UserDictionaryStorage& storage) {
+  // proto-based loading is mainly for unittesting, so not optimized.
+  std::stringstream ifs;
+  storage.SerializeToOstream(&ifs);
+  return Load(ifs);
+}
+
+bool UserDictionary::Load(std::istream& ifs) {
   const size_t size = GetTokens()->size();
 
   constexpr size_t kVeryBigUserDictionarySize = 100000;
@@ -554,9 +686,11 @@ bool UserDictionary::Load(
   }
 
   auto tokens = std::make_shared<TokensIndex>(*user_pos_);
-  tokens->Load(storage, &canceled_signal_);
+  if (!tokens->Load(ifs, &canceled_signal_)) {
+    return false;
+  }
 
-  SetTokens(tokens);
+  SetTokens(std::move(tokens));
   return true;
 }
 
@@ -564,168 +698,14 @@ std::vector<std::string> UserDictionary::GetPosList() const {
   return user_pos_->GetPosList();
 }
 
-std::string UserDictionary::GetFileName() const { return filename_; }
-
-void UserDictionary::PopulateTokenFromUserPosToken(
+void UserDictionary::PopulateTokenFromUserPosTokenForTesting(
     const UserPos::Token& user_pos_token, RequestType request_type,
     Token* token) const {
-  token->key = user_pos_token.key;
-  token->value = user_pos_token.value;
-  token->lid = token->rid = user_pos_token.id;
-  token->attributes = Token::USER_DICTIONARY;
-
-  // * Overwrites POS ids.
-  // Actual pos id of suggestion-only candidates are 名詞-サ変.
-  // TODO(taku): We would like to change the POS to 名詞-サ変 in user-pos.def,
-  // because SUGGESTION_ONLY is not POS.
-  if (user_pos_token.pos_type() ==
-      user_dictionary::UserDictionary::SUGGESTION_ONLY) {
-    token->lid = token->rid = pos_matcher_.GetUnknownId();
-  }
-
-  // * Overwrites costs.
-  // Locale is not Japanese.
-  if (user_pos_token.has_attribute(UserPos::Token::NON_JA_LOCALE)) {
-    token->cost = 10000;
-  } else {
-    token->cost = UserPos::GetCostFromPosType(user_pos_token.pos_type(),
-                                              GetTokens()->cost_penalty());
-    DCHECK_GT(token->cost, 0);
-  }
-
-  // The treatment for the words with default POS (NO_POS).
-  // Shorter keys have more penalty so that they are not shown in the context.
-  // TODO(taku): Better to apply this cost for all user defined words?
-  if (user_pos_token.pos_type() == user_dictionary::UserDictionary::NO_POS &&
-      (request_type == PREFIX || request_type == EXACT)) {
-    const int key_length = strings::AtLeastCharsLen(token->key, 4);
-    token->cost += (4 - key_length) * 2000;
-  }
+  const std::string serialized =
+      TokensIndex::SerializeToken(user_pos_token, "");
+  GetTokens()->PopulateToken(TokensIndex::Token(serialized), request_type,
+                             pos_matcher_, token);
 }
 
 }  // namespace dictionary
-
-namespace user_dictionary {
-
-namespace {
-// Gets or Creates the dictionary and dic_id with the name `dic_name`.
-std::pair<UserDictionary*, uint64_t> GetUserDictionary(
-    ::mozc::UserDictionaryStorage& storage, absl::string_view dic_name) {
-  absl::StatusOr<uint64_t> dic_id = storage.GetUserDictionaryId(dic_name);
-
-  if (!dic_id.ok()) {
-    dic_id = storage.CreateDictionary(dic_name);
-  }
-
-  if (!dic_id.ok()) return {nullptr, 0};
-
-  return {storage.GetUserDictionary(dic_id.value()), dic_id.value()};
-}
-}  // namespace
-
-AsyncUserDictionaryImporter::AsyncUserDictionaryImporter(
-    dictionary::UserDictionaryInterface& dic)
-    : dic_(dic) {}
-
-AsyncUserDictionaryImporter::~AsyncUserDictionaryImporter() {
-  canceled_signal_.store(true);
-  task_.Wait();
-}
-
-void AsyncUserDictionaryImporter::Import(std::string name, std::string tsv) {
-  if (name.empty()) return;
-
-  {
-    ImportData import_data{.name = std::move(name), .data = std::move(tsv)};
-
-    absl::MutexLock lock(mutex_);
-    queue_.emplace_back(std::move(import_data));
-  }
-
-  if (!task_.IsRunning()) {
-    task_.Schedule([this]() { StartImportLoop(); });
-  }
-}
-
-std::optional<AsyncUserDictionaryImporter::ImportData>
-AsyncUserDictionaryImporter::PopPendingImportData() {
-  absl::MutexLock lock(mutex_);
-
-  if (queue_.empty()) return std::nullopt;
-
-  std::optional<ImportData> result(std::move(queue_.front()));
-  queue_.pop_front();
-
-  return result;
-}
-
-bool AsyncUserDictionaryImporter::HasPendingImportData() const {
-  absl::MutexLock lock(mutex_);
-  return !queue_.empty();
-}
-
-void AsyncUserDictionaryImporter::StartImportLoop() {
-  while (HasPendingImportData()) {
-    if (IsCanceled()) return;
-
-    ::mozc::UserDictionaryStorage storage(dic_.GetFileName());
-
-    // Storage is loaded and saved on every request. While there is a risk of
-    // overwriting data that failed to load, force to overwrite the data to
-    // ensure the import is completed. This overwrite may also result in a
-    // successful load.
-    if (absl::Status s = storage.Load(); (!s.ok() && !absl::IsNotFound(s))) {
-      LOG(ERROR) << "Failed to load user dictionary storage: " << s;
-    }
-
-    while (true) {
-      if (IsCanceled()) return;
-
-      std::optional<ImportData> import_data = PopPendingImportData();
-      if (!import_data.has_value()) {
-        break;
-      }
-
-      const auto [user_dictionary, id] =
-          GetUserDictionary(storage, import_data->name);
-
-      if (!user_dictionary) {
-        LOG(ERROR) << "Cannot find/create dictionary: " << import_data->name;
-        continue;
-      }
-
-      user_dictionary->clear_entries();
-
-      if (import_data->data.empty()) {
-        storage.DeleteDictionary(id).IgnoreError();
-      } else {
-        StringTextLineIterator iter(import_data->data);
-        // ImportFromTextLineIterator raises a warning even if it fails to load
-        // some data. We ignore the error to load entries successfully loaded.
-        if (absl::Status s = ImportFromTextLineIterator(IME_AUTO_DETECT, &iter,
-                                                        user_dictionary);
-            !s.ok()) {
-          LOG(WARNING) << "All entries are not imported: " << s;
-        }
-      }
-    }
-
-    if (IsCanceled()) return;
-
-    // Enables the entries immediately. dic.Load() is thread-safe.
-    LOG_IF(ERROR, !dic_.Load(storage.GetProto()))
-        << "Failed to load dictionary from storage";
-
-    // Serialize.
-    LOG_IF(ERROR, !storage.Lock()) << "Failed to lock storage";
-
-    if (absl::Status s = storage.Save(); !s.ok()) {
-      LOG(ERROR) << "Failed to save to storage: " << s;
-    }
-
-    LOG_IF(ERROR, !storage.UnLock()) << "Failed to unlock storage";
-  }
-}
-
-}  // namespace user_dictionary
 }  // namespace mozc

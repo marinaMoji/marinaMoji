@@ -19,7 +19,9 @@ absl::Status MergeDictionaryTsv(absl::string_view remote_tsv,
                                 std::string* merged_tsv,
                                 DictionaryMergeStats* stats);
 
-// Merge history TSV lines; sum frequencies for duplicate key/value pairs.
+// Merge history TSV lines; sum frequencies, keep the latest access time and
+// OR entry_flags for duplicate key/value pairs. Input lines may have 5
+// columns (older versions) or 6 (with entry_flags); output always has 6.
 struct HistoryMergeStats {
   int merged = 0;
 };

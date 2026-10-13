@@ -27,32 +27,62 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef MOZC_CONFIG_STATS_CONFIG_UTIL_H_
-#define MOZC_CONFIG_STATS_CONFIG_UTIL_H_
+#ifndef MOZC_BASE_PORT_REVERSED_VIEW_INTERNAL_H_
+#define MOZC_BASE_PORT_REVERSED_VIEW_INTERNAL_H_
+
+#include <iterator>
 
 namespace mozc {
-namespace config {
+namespace port {
+namespace internal {
 
-class StatsConfigUtil {
+// A wrapper class that provides a reversed view of a container.
+//
+// This class is intended to be used as a handy port of
+// std::ranges::reverse_view in C++20.
+template <typename Container>
+class ReversedView {
  public:
-  StatsConfigUtil() = delete;
-  StatsConfigUtil(const StatsConfigUtil&) = delete;
-  StatsConfigUtil& operator=(const StatsConfigUtil&) = delete;
+  constexpr explicit ReversedView(Container& container)
+      : container_(container) {}
 
-  // Get send stats config from proper field.
-  //  Windows: registry
-  //  Mac: text file
-  // If the return value is true, we turn on usage stats.
-  // TODO(toshiyuki): plist for Mac
-  static bool IsEnabled();
+  constexpr auto begin() const {
+    using std::rbegin;
+    return rbegin(container_);
+  }
 
-  // Set send stats config to proper field.
-  // Note: Administrative privilege is required in Windows.
-  // Returns true if succeeded.
-  static bool SetEnabled(bool val);
+  constexpr auto end() const {
+    using std::rend;
+    return rend(container_);
+  }
+
+  constexpr auto rbegin() const {
+    using std::begin;
+    return begin(container_);
+  }
+
+  constexpr auto rend() const {
+    using std::end;
+    return end(container_);
+  }
+
+ private:
+  Container& container_;
 };
 
-}  // namespace config
+template <typename Container>
+constexpr ReversedView<Container> reversed_view(Container& container) {
+  return ReversedView<Container>(container);
+}
+
+template <typename Container>
+constexpr ReversedView<const Container> reversed_view(
+    const Container& container) {
+  return ReversedView<const Container>(container);
+}
+
+}  // namespace internal
+}  // namespace port
 }  // namespace mozc
 
-#endif  // MOZC_CONFIG_STATS_CONFIG_UTIL_H_
+#endif  // MOZC_BASE_PORT_REVERSED_VIEW_INTERNAL_H_

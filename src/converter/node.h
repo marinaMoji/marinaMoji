@@ -32,13 +32,14 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 
 #include "dictionary/dictionary_token.h"
 
 namespace mozc {
 
 struct Node {
-  enum NodeType {
+  enum NodeType : uint8_t {
     NOR_NODE,  // normal node
     BOS_NODE,  // BOS (beginning of sentence)
     EOS_NODE,  // EOS (end of sentence)
@@ -46,23 +47,14 @@ struct Node {
     HIS_NODE,  // history node
   };
 
-  enum Attribute {
+  enum Attribute : uint16_t {
     DEFAULT_ATTRIBUTE = 0,
-    SYSTEM_DICTIONARY = 1 << 0,      // System dictionary (not used now)
+    // SYSTEM_DICTIONARY is deleted.
     USER_DICTIONARY = 1 << 1,        // User dictionary
     NO_VARIANTS_EXPANSION = 1 << 2,  // No need to expand full/half
     STARTS_WITH_PARTICLE = 1 << 4,   // User input starts with particle
     SPELLING_CORRECTION = 1 << 5,    // "Did you mean"
-    // Equal to that of Candidate.
-    // Life of suggestion candidates from realtime conversion is;
-    // 1. Created by ImmutableConverter as Candidate instance.
-    // 2. The Candidate instances are aggregated as Node instances
-    //    in DictionaryPredictor::AggregateRealtimeConversion.
-    // 3. The Node instances are converted into Candidate instances
-    //    in DictionaryPredictor::AddPredictionToCandidates.
-    // To propagate this information from Node to Candidate,
-    // Node should have the same information as Candidate.
-    PARTIALLY_KEY_CONSUMED = 1 << 7,
+    // PARTIALY_KEY_CONSUMED is deleted.
     SUFFIX_DICTIONARY = 1 << 8,  // Suffix dictionary
     KEY_EXPANDED = 1 << 9,       // Keys are expanded.
   };
@@ -96,7 +88,10 @@ struct Node {
   int32_t cost;
 
   NodeType node_type;
-  uint32_t attributes;
+
+  // Bit field of Attribute. 16 bit is enough as the
+  // biggest value is KEY_EXPANDED = 1 << 9.
+  uint16_t attributes;
 
   // key: The user input.
   // value: The surface form of the word.
@@ -121,7 +116,7 @@ struct Node {
     value.clear();
   }
 
-  inline void InitFromToken(const dictionary::Token& token) {
+  void InitFromToken(dictionary::Token token) {
     prev = nullptr;
     next = nullptr;
     constrained_prev = nullptr;
@@ -143,8 +138,8 @@ struct Node {
       attributes |= USER_DICTIONARY;
       attributes |= NO_VARIANTS_EXPANSION;
     }
-    key = token.key;
-    value = token.value;
+    key = std::move(token.key);
+    value = std::move(token.value);
   }
 };
 
