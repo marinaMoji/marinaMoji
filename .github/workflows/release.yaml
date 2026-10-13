@@ -10,8 +10,9 @@ name: Release
 # provenance attestations (verify with:
 #   gh attestation verify <file> --repo <owner>/<repo>).
 #
-# Windows assets are unsigned for now (MSIX via the Microsoft Store will
-# cover signing later).
+# Windows assets are built unsigned here; the maintainer Authenticode-signs
+# the MSIs after the release and replaces them (MSIX via the Microsoft Store
+# may cover signing later).
 #
 # Apt indexes are signed with the CI GPG subkey (secrets APT_GPG_PRIVATE_KEY
 # and APT_GPG_PASSPHRASE). The published suite is "unstable" for now; a
@@ -205,8 +206,9 @@ jobs:
           path: ${{ env.PKG_PATH }}
           if-no-files-found: error
 
-  # Unsigned for now — MSIX via the Microsoft Store will cover Windows
-  # signing later. No secrets needed, so no "release" environment.
+  # Unsigned in CI — the maintainer signs the MSIs after the release (MSIX via
+  # the Microsoft Store may cover Windows signing later). No secrets needed, so
+  # no "release" environment.
   build_windows:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
