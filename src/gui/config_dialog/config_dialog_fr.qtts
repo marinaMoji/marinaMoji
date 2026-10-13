@@ -1251,8 +1251,8 @@ Essayez d’exécuter %3 dans le Terminal et consultez %4.</translation>
     </message>
     <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1419" />
-        <source>Download the installer (.msi) and run it now? You will still need to approve the install -- and since this build is unsigned for now, Windows SmartScreen may warn first; choose "More info" → "Run anyway", same as the initial install.</source>
-        <translation>Télécharger l’installateur (.msi) et l’exécuter maintenant ? Vous devrez encore approuver l’installation — cette version n’étant pas encore signée, Windows SmartScreen peut d’abord avertir ; choisissez « Plus d’infos » → « Exécuter quand même », comme à l’installation initiale.</translation>
+        <source>Download the installer (.msi) and run it now? You will still need to approve the install. The installer is signed, but Windows SmartScreen may still warn first while the certificate builds reputation; choose "More info" → "Run anyway".</source>
+        <translation>Télécharger l’installateur (.msi) et l’exécuter maintenant ? Vous devrez encore approuver l’installation. L’installateur est signé, mais Windows SmartScreen peut quand même avertir d’abord, le temps que le certificat gagne en réputation ; choisissez « Plus d’infos » → « Exécuter quand même ».</translation>
     </message>
     <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1425" />

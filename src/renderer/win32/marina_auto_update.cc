@@ -416,9 +416,10 @@ void PresentUpdateOffer(const MarinaGitHubRelease& release,
       msi_url.empty()
           ? L"Open the release page to download it manually?"
           : L"Download the installer and run it now? You will still need to "
-            L"approve the install -- and since this build is unsigned for "
-            L"now, Windows SmartScreen may warn first; choose \"More "
-            L"info\" → \"Run anyway\", same as the initial install.";
+            L"approve the install. The installer is signed, but Windows "
+            L"SmartScreen may still warn first while the certificate "
+            L"builds reputation; choose \"More info\" → \"Run "
+            L"anyway\".";
 
   TASKDIALOGCONFIG config = {};
   config.cbSize = sizeof(config);

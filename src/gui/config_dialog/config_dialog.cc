@@ -1416,9 +1416,9 @@ void ConfigDialog::OnUpdateAvailable(const QString &tag_name,
 #else  // _WIN32
     box.setInformativeText(
         tr("Download the installer (.msi) and run it now? You will still "
-           "need to approve the install -- and since this build is "
-           "unsigned for now, Windows SmartScreen may warn first; choose "
-           "\"More info\" → \"Run anyway\", same as the initial install."));
+           "need to approve the install. The installer is signed, but "
+           "Windows SmartScreen may still warn first while the certificate "
+           "builds reputation; choose \"More info\" → \"Run anyway\"."));
 #endif  // _WIN32
     QPushButton *install_button =
         box.addButton(tr("Download & Install…"), QMessageBox::AcceptRole);

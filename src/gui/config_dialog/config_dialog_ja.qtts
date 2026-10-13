@@ -1251,8 +1251,8 @@ Try running %3 in Terminal and check %4.</source>
     </message>
     <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1419" />
-        <source>Download the installer (.msi) and run it now? You will still need to approve the install -- and since this build is unsigned for now, Windows SmartScreen may warn first; choose "More info" → "Run anyway", same as the initial install.</source>
-        <translation>インストーラ (.msi) をダウンロードして今すぐ実行しますか？インストールの承認は別途必要です。このビルドはまだ署名されていないため、Windows SmartScreen が警告する場合があります。初回インストールと同様に「詳細情報」→「実行」を選んでください。</translation>
+        <source>Download the installer (.msi) and run it now? You will still need to approve the install. The installer is signed, but Windows SmartScreen may still warn first while the certificate builds reputation; choose "More info" → "Run anyway".</source>
+        <translation>インストーラ (.msi) をダウンロードして今すぐ実行しますか？インストールの承認は別途必要です。インストーラは署名されていますが、証明書の評判が蓄積されるまでは、Windows SmartScreen が警告を表示する場合があります。「詳細情報」→「実行」を選んでください。</translation>
     </message>
     <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1425" />
