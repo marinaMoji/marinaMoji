@@ -10,6 +10,8 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+## v0.0.13
+
 ### macOS: the sync agent can fail to launch after an upgrade (launch constraint) (2026-10-15)
 
 After updating to v0.0.12 in-app, `launchctl list` showed the sync agent with
