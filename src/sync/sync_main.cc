@@ -22,6 +22,10 @@
 // runs this with --daemon, and a console-subsystem binary would show an empty
 // console window at every sign-in.
 #include "base/win32/winmain.h"
+// marinaMoji's self-hosted update check. It runs here, not in the renderer: the
+// renderer is sandboxed (low integrity, locked-down job) and cannot launch an
+// installer, while this logon task runs as the user and can.
+#include "renderer/win32/marina_auto_update.h"
 #endif  // _WIN32
 
 namespace mozc {
@@ -99,6 +103,12 @@ int RunDaemon() {
   if (!RunLevel::IsValidClientRunLevel()) {
     return 1;
   }
+
+#ifdef _WIN32
+  // Background thread: checks GitHub Releases (throttled to once a day, retried
+  // when a check cannot complete) and offers the update.
+  renderer::win32::StartMarinaAutoUpdateChecker();
+#endif  // _WIN32
 
   while (true) {
     const auto config_or = LoadSyncConfig();

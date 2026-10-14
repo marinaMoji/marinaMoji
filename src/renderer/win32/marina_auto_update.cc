@@ -5,7 +5,6 @@
 
 #include <windows.h>
 #include <bcrypt.h>
-#include <commctrl.h>
 #include <winhttp.h>
 
 #include <wil/resource.h>
@@ -411,74 +410,47 @@ bool CanSpawnProcesses() {
   return !limited;
 }
 
+// Plain MessageBoxW rather than TaskDialogIndirect: this code now runs in
+// marinamoji_sync.exe, which has no comctl32 v6 manifest. A binary that
+// imports TaskDialogIndirect without one fails to load at all ("entry point
+// not found"), and that would have taken sync down with it. MB_TOPMOST and
+// MB_SETFOREGROUND make sure a dialog raised by a background process is seen.
+constexpr UINT kDialogFlags = MB_SETFOREGROUND | MB_TOPMOST;
+
+// Used when this process cannot spawn children (see CanSpawnProcesses()).
+// Not the case in the sync daemon, but kept as a safe fallback.
 void PresentUpdateNotice(const MarinaGitHubRelease& release) {
-  const std::wstring message = mozc::win32::Utf8ToWide(
-      absl::StrCat("A newer release is available: ", release.tag_name));
-  TASKDIALOGCONFIG config = {};
-  config.cbSize = sizeof(config);
-  config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_SIZE_TO_CONTENT;
-  config.dwCommonButtons = TDCBF_OK_BUTTON;
-  config.pszWindowTitle = L"marinaMoji";
-  config.pszMainIcon = TD_INFORMATION_ICON;
-  config.pszMainInstruction = message.c_str();
-  config.pszContent =
-      L"To install it, open marinaMoji Preferences (language bar menu → "
-      L"Properties), go to the Misc tab and choose \"Check for updates…\".";
-  int clicked_id = IDOK;
-  ::TaskDialogIndirect(&config, &clicked_id, nullptr, nullptr);
+  const std::wstring text = mozc::win32::Utf8ToWide(absl::StrCat(
+      "A newer release is available: ", release.tag_name,
+      "\n\nTo install it, open marinaMoji Preferences (language bar menu > "
+      "Properties), go to the Misc tab and choose \"Check for updates...\"."));
+  ::MessageBoxW(nullptr, text.c_str(), L"marinaMoji",
+                MB_OK | MB_ICONINFORMATION | kDialogFlags);
 }
 
-// Shows the three-button offer, mirroring mac's NSAlert
-// (Download & Install… / Open release page / Later). Runs on the caller's
-// thread, which is this feature's own dedicated background thread -- never
-// the renderer's main message loop -- so blocking here is fine.
+// Offers the update. Runs on this feature's own background thread, never a UI
+// thread, so blocking in the modal box is fine.
 void PresentUpdateOffer(const MarinaGitHubRelease& release,
                         const std::string& msi_url) {
-  const std::wstring message = mozc::win32::Utf8ToWide(
-      absl::StrCat("A newer release is available: ", release.tag_name));
-
-  constexpr int kInstallButtonId = 100;
-  constexpr int kPageButtonId = 101;
-
-  std::vector<TASKDIALOG_BUTTON> buttons;
+  std::wstring text = mozc::win32::Utf8ToWide(
+      absl::StrCat("A newer release is available: ", release.tag_name, "\n\n"));
+  UINT type = MB_ICONINFORMATION | kDialogFlags;
   if (!msi_url.empty()) {
-    buttons.push_back(TASKDIALOG_BUTTON{kInstallButtonId,
-                                        L"Download && Install…"});
+    text +=
+        L"Download the installer and run it now? You will still need to "
+        L"approve the install. The installer is signed, but Windows "
+        L"SmartScreen may still warn first while the certificate builds "
+        L"reputation; choose \"More info\" > \"Run anyway\".\n\n"
+        L"Yes: download and install\nNo: open the release page\n"
+        L"Cancel: remind me tomorrow";
+    type |= MB_YESNOCANCEL;
+  } else {
+    text += L"Open the release page to download it manually?";
+    type |= MB_YESNO;
   }
-  buttons.push_back(TASKDIALOG_BUTTON{kPageButtonId, L"Open release page"});
-  // Explicit "Later" button (returns IDCANCEL) rather than relying on users
-  // discovering that closing the dialog does the same thing -- mirrors mac's
-  // NSAlert, which always shows all three choices as buttons.
-  buttons.push_back(TASKDIALOG_BUTTON{IDCANCEL, L"Later"});
+  const int clicked = ::MessageBoxW(nullptr, text.c_str(), L"marinaMoji", type);
 
-  const std::wstring content =
-      msi_url.empty()
-          ? L"Open the release page to download it manually?"
-          : L"Download the installer and run it now? You will still need to "
-            L"approve the install. The installer is signed, but Windows "
-            L"SmartScreen may still warn first while the certificate "
-            L"builds reputation; choose \"More info\" → \"Run "
-            L"anyway\".";
-
-  TASKDIALOGCONFIG config = {};
-  config.cbSize = sizeof(config);
-  config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_SIZE_TO_CONTENT;
-  config.pszWindowTitle = L"marinaMoji";
-  config.pszMainIcon = TD_INFORMATION_ICON;
-  config.pszMainInstruction = message.c_str();
-  config.pszContent = content.c_str();
-  config.pButtons = buttons.data();
-  config.cButtons = static_cast<UINT>(buttons.size());
-  config.nDefaultButton = msi_url.empty() ? kPageButtonId : kInstallButtonId;
-  // No hOwner: the offer is not scoped to any one window, matching the
-  // NSAlert popping up independent of whichever app the user is in.
-
-  int clicked_id = IDCANCEL;
-  if (FAILED(::TaskDialogIndirect(&config, &clicked_id, nullptr, nullptr))) {
-    return;
-  }
-
-  if (clicked_id == kInstallButtonId) {
+  if (clicked == IDYES && !msi_url.empty()) {
     const std::wstring dest = mozc::win32::Utf8ToWide(FileUtil::JoinPath(
         SystemUtil::GetUserProfileDirectory(),
         absl::StrCat("marinaMoji-update-",
@@ -492,13 +464,17 @@ void PresentUpdateOffer(const MarinaGitHubRelease& release,
       ok = WinUtil::ShellExecuteInSystemDir(L"open", dest.c_str(), nullptr);
     }
     if (!ok) {
+      LOG(WARNING) << "marinaMoji update: could not download or open the "
+                   << "installer for " << release.tag_name;
       ::MessageBoxW(
           nullptr,
           L"Could not download or open the installer. Try again later from "
-          L"Settings → Misc → Check for updates…",
-          L"marinaMoji update failed", MB_OK | MB_ICONWARNING);
+          L"Preferences > Misc > Check for updates...",
+          L"marinaMoji update failed",
+          MB_OK | MB_ICONWARNING | kDialogFlags);
     }
-  } else if (clicked_id == kPageButtonId) {
+  } else if ((msi_url.empty() && clicked == IDYES) ||
+             (!msi_url.empty() && clicked == IDNO)) {
     Process::OpenBrowser(release.html_url);
   }
 }

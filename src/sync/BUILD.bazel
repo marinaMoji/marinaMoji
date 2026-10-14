@@ -295,7 +295,10 @@ mozc_cc_library(
         # Forces /SUBSYSTEM:WINDOWS. Without it this links as a console
         # application and the Task Scheduler logon task registered by the
         # installer pops an empty console window at every sign-in.
-        windows = ["//base/win32:winmain"],
+        windows = [
+            "//base/win32:winmain",
+            "//renderer/win32:marina_auto_update",
+        ],
     ),
 )
 

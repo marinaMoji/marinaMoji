@@ -46,7 +46,6 @@
 #include "renderer/win32/infolist_window.h"
 #include "renderer/win32/shortcuts_window.h"
 #include "renderer/win32/symbols_palette_window.h"
-#include "renderer/win32/marina_auto_update.h"
 #include "renderer/win32/sync_overlay_window.h"
 #include "renderer/win32/toolbar_window.h"
 #include "renderer/win32/win32_dpi_util.h"
@@ -99,9 +98,9 @@ void WindowManager::Initialize() {
   // marinaMoji: drives itself off sync.status.json rather than
   // RendererCommand, so it is only created here -- see sync_overlay_window.h.
   sync_overlay_window_->Initialize();
-  // marinaMoji: self-hosted update check, not tied to any window -- see
-  // marina_auto_update.h for why it lives here rather than in the TIP.
-  StartMarinaAutoUpdateChecker();
+  // The update check used to start here. It now lives in marinamoji_sync.exe:
+  // this process is sandboxed and cannot launch an installer. See
+  // marina_auto_update.h.
 }
 
 void WindowManager::AsyncHideAllWindows() {
@@ -131,7 +130,6 @@ void WindowManager::DestroyAllWindows() {
   symbols_palette_window_->Destroy();
   shortcuts_window_->Destroy();
   sync_overlay_window_->Destroy();
-  StopMarinaAutoUpdateChecker();
 }
 
 void WindowManager::HideAllWindows() {

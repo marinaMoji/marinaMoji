@@ -10,6 +10,24 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: the update check now runs in the sync task, not the renderer (2026-10-14)
+
+The check lived in the renderer, which is sandboxed (low integrity,
+locked-down job with `ActiveProcessLimit = 1`) and so could not launch an
+installer; on the VM it also showed nothing at all after the stamp file was
+deleted, so automatic updates effectively did not exist and the only working
+path was Preferences > Misc > Check for updates (which needs Preferences open).
+
+**Change:** `marinamoji_sync.exe --daemon` (the per-user Task Scheduler logon
+task, normal integrity) now starts `StartMarinaAutoUpdateChecker()`; the
+renderer no longer does. The offer uses `MessageBoxW` instead of
+`TaskDialogIndirect`, because the sync binary has no comctl32 v6 manifest and
+importing `TaskDialogIndirect` without one would stop the binary loading (and
+take sync down with it). Yes = download and install, No = release page, Cancel =
+remind tomorrow. The settings-dialog path is unchanged. **Not built or run on
+Windows**; the first release containing it cannot be updated *to* by this
+mechanism from older versions, only from itself onwards.
+
 ### Windows: MSI upgrades installed but left the old binaries (2026-10-14)
 
 After the ProductCode fix, upgrading v0.0.8 with the v0.0.9 MSI ran to the end

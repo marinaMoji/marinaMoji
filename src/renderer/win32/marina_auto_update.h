@@ -9,26 +9,20 @@
 // CHANGELOG.md for why the Store was ruled out for this project and why
 // that has no bearing on this mechanism.
 //
-// Deliberately hosted in the renderer rather than the TIP:
-// - The renderer is a single marinaMoji-owned process with a manifest we
-//   control (mozc_renderer.exe.manifest already declares the comctl32 v6
-//   dependency that TaskDialogIndirect requires). The TIP DLL loads
-//   in-process into every application that takes text input -- Notepad,
-//   Chrome, banking software, sandboxed app-container processes -- and we
-//   control none of their manifests, so a v6-only API there would be
-//   unreliable at best. See the MSIX/IME research in CHANGELOG.md for the
-//   broader pattern of what a TIP can and cannot safely do.
-// - It also keeps the network stack (WinHTTP) out of a component that runs
-//   inside arbitrary, possibly low-integrity host processes.
-//
-// Because of that, the trigger is "the renderer is running" (checked once
-// at WindowManager::Initialize, i.e. renderer startup) plus a periodic
-// re-check on a background thread for the case where the renderer stays
-// alive across a day boundary -- rather than mac's per-activation hook,
-// which has no safe Windows equivalent. The 24h throttle in
-// base/marina_update_throttle.h makes both call sites cheap no-ops outside
-// their window, so this is not "more checking," just an adaptation of the
-// trigger to how the Windows renderer process actually lives.
+// Hosted in marinamoji_sync.exe (the per-user Task Scheduler logon task), and
+// deliberately NOT in:
+// - the renderer: it is started through WinSandbox at low integrity inside a
+//   locked-down job (ActiveProcessLimit = 1), so it cannot launch the
+//   downloaded installer or open a browser. The update offer used to live
+//   there and its buttons could never work.
+// - the TIP: that DLL loads into every application that takes text input
+//   (Notepad, Chrome, banking software, sandboxed app-container processes), so
+//   network I/O and dialogs there are unsafe.
+// The sync daemon runs as the user at normal integrity for the whole session,
+// so it can show the offer and start the MSI. Because the process has no
+// comctl32 v6 manifest, the dialogs use MessageBoxW, never TaskDialogIndirect.
+// The 24h throttle in base/marina_update_throttle.h keeps the periodic
+// re-check cheap, and a check that cannot complete does not consume it.
 
 #ifndef MOZC_RENDERER_WIN32_MARINA_AUTO_UPDATE_H_
 #define MOZC_RENDERER_WIN32_MARINA_AUTO_UPDATE_H_
@@ -38,18 +32,18 @@ namespace renderer {
 namespace win32 {
 
 // Starts a background thread that periodically calls the throttled update
-// check for as long as the renderer process lives. Reads
+// check for as long as the hosting process lives. Reads
 // auto_check_for_updates / include_unstable_updates from
 // config::ConfigHandler::GetSharedConfig() itself on each wake, so it always
 // sees the current setting without the caller needing to thread config
-// through. Safe to call once from WindowManager::Initialize(); idempotent
+// through. Safe to call once at startup of the hosting process; idempotent
 // if called again (a second call is a no-op).
 void StartMarinaAutoUpdateChecker();
 
 // Signals the background thread to stop and returns without waiting for it.
 // Detaches rather than joins: the thread may be mid-flight in network I/O
 // with timeouts of several tens of seconds, and process shutdown must not
-// block on that. Call from WindowManager::DestroyAllWindows() before exit.
+// block on that. Call before exit.
 void StopMarinaAutoUpdateChecker();
 
 }  // namespace win32

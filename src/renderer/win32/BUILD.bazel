@@ -302,6 +302,7 @@ mozc_cc_library(
     name = "marina_auto_update",
     srcs = ["marina_auto_update.cc"],
     hdrs = ["marina_auto_update.h"],
+    visibility = ["//sync:__pkg__"],
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
     deps = [
@@ -314,7 +315,6 @@ mozc_cc_library(
         "//base/win32:wide_char",
         "//base/win32:win_util",
         "//bazel/win32:bcrypt",
-        "//bazel/win32:comctl32",
         "//bazel/win32:user32",
         "//bazel/win32:winhttp",
         "//config:config_handler",
@@ -414,7 +414,6 @@ mozc_cc_library(
         ":candidate_window",
         ":indicator_window",
         ":infolist_window",
-        ":marina_auto_update",
         ":shortcuts_window",
         ":symbols_palette_window",
         ":sync_overlay_window",
