@@ -115,9 +115,13 @@ def _GetMarinaWindowsRevision(marina_version_file):
   binaries in place. The fourth field is the only one free to vary (it is
   ignored for ProductVersion comparison but not for file versions).
 
-  "0.0.9" -> 9, "0.1.2" -> 1002. Must fit in 16 bits. An "-rcN" suffix is
-  ignored, so an rc and its final release share a revision: install the final
-  release over an rc only after uninstalling it.
+  revision = major * 10000 + minor * 100 + patch, so "0.0.9" -> 9,
+  "0.0.10" -> 10, "0.1.0" -> 100, "1.0.0" -> 10000. It rises with every
+  release as long as minor and patch stay below 100 and major stays below 6
+  (the field is 16 bits); beyond that the build fails rather than silently
+  producing a version that does not rise. An "-rcN" suffix is ignored, so an
+  rc and its final release share a revision: install the final release over an
+  rc only after uninstalling it.
 
   Args:
     marina_version_file: path to marina_product_version.txt.
@@ -131,11 +135,13 @@ def _GetMarinaWindowsRevision(marina_version_file):
   if not matchobj:
     logging.critical('%s has no X.Y.Z version line', marina_version_file)
     sys.exit(1)
-  minor, patch = int(matchobj.group(2)), int(matchobj.group(3))
-  revision = minor * 1000 + patch
-  if patch >= 1000 or revision > 0xffff:
-    logging.critical('marinaMoji version %s does not fit a 16-bit revision',
-                     lines[0])
+  major, minor, patch = (int(matchobj.group(i)) for i in (1, 2, 3))
+  revision = major * 10000 + minor * 100 + patch
+  if minor >= 100 or patch >= 100 or revision > 0xffff:
+    logging.critical(
+        'marinaMoji version %s does not fit the Windows file-version '
+        'revision (major < 6, minor < 100, patch < 100); revisit '
+        '_GetMarinaWindowsRevision', lines[0])
     sys.exit(1)
   return str(revision)
 

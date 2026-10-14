@@ -57,9 +57,14 @@ confirmed by hashing the files against the MSI contents.
 
 **Fix:** `build_tools/mozc_version.py` takes `--marina_version_file` (wired in
 `base/BUILD.bazel`) and, for Windows only, uses the marinaMoji release as the
-fourth version field: `0.0.9` -> `3.34.6345.9`, `0.1.2` -> `3.34.6345.1002`
-(must fit 16 bits; an `-rcN` suffix is ignored, so an rc and its final release
-share a revision). macOS and Linux versions are unchanged. The existing
+fourth version field: `major*10000 + minor*100 + patch`, so `0.0.9` ->
+`3.34.6345.9`, `0.0.10` -> `.10`, `0.1.0` -> `.100`, `1.0.0` -> `.10000`. It rises
+with every release while minor and patch stay below 100 and the result fits 16
+bits (65535); otherwise the build fails loudly rather than shipping a version
+that does not rise (an earlier draft ignored the major number, so 1.0.0 would
+have mapped to 0). An `-rcN` suffix is ignored, so an rc and its final release
+share a revision. A Mozc merge that raises BUILD (6345) raises every file
+version above these regardless of this field. macOS and Linux versions are unchanged. The existing
 Upgrade-table range is inclusive, so older installs are still detected.
 Effective from the first release built with it; v0.0.9 cannot upgrade v0.0.8
 in place. Not built on Windows.
