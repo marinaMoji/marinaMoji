@@ -2,6 +2,7 @@
 
 #include <array>
 #ifdef __APPLE__
+#include <crt_externs.h>
 #include <spawn.h>
 #include <sys/wait.h>
 #endif  // __APPLE__
@@ -96,10 +97,6 @@ absl::Status MarinaCurlDownload(absl::string_view url,
 #endif
 }
 
-#ifdef __APPLE__
-extern char** environ;
-#endif  // __APPLE__
-
 bool MarinaOpenLocalPath(absl::string_view path) {
 #if defined(__APPLE__)
   // Not Process::SpawnProcess: it splits its argument on spaces, and the
@@ -114,7 +111,8 @@ bool MarinaOpenLocalPath(absl::string_view path) {
   char* const argv[] = {open_path, const_cast<char*>(path_str.c_str()),
                         nullptr};
   pid_t pid = 0;
-  if (posix_spawn(&pid, open_path, nullptr, nullptr, argv, environ) != 0) {
+  if (posix_spawn(&pid, open_path, nullptr, nullptr, argv,
+                  *_NSGetEnviron()) != 0) {
     return false;
   }
   int wait_status = 0;

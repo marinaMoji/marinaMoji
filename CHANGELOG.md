@@ -63,8 +63,16 @@ an argv vector and was not affected; the Windows path uses `QDesktopServices`.)
 **Fix:** `MarinaOpenLocalPath` (`base/marina_curl_fetch.cc`) now spawns `open`
 with the path as a single argv entry and returns false if `open` exits
 non-zero, so a failure shows "Downloaded the installer but could not open it".
-Compiles; not run end to end (the local SDK cannot link). Found by testing the
-real GUI update path, which the `--verify-upgrade` script does not exercise.
+Found by testing the real GUI update path, which the `--verify-upgrade` script
+does not exercise.
+
+**Build break in the first attempt (caught by CI before release):** the fix
+declared `extern char** environ;` inside `namespace mozc`, i.e. the symbol
+`mozc::environ`, so `config_dialog_macos` and `mozc_prelauncher_macos` failed to
+link and the v0.0.11 macOS package did not build. It now uses
+`*_NSGetEnviron()`. The local SDK on the authoring machine cannot link, and the
+isolated compile check had lifted the declaration out of the namespace, so it
+missed this.
 
 ## v0.0.10
 
