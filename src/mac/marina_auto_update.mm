@@ -154,6 +154,12 @@ void MaybeOfferSilentAutoUpdate() {
   if (HasOfferedSilentAutoUpdate()) {
     return;
   }
+  // Already on, e.g. switched on from Preferences: nothing to offer.
+  if ([SMAppService daemonServiceWithPlistName:
+                        @"org.mozc.inputmethod.Japanese.UpdateHelper.plist"]
+          .status == SMAppServiceStatusEnabled) {
+    return;
+  }
   MarkOfferedSilentAutoUpdate();
 
   NSAlert* alert = [[NSAlert alloc] init];

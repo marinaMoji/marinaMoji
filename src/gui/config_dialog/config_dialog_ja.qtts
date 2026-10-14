@@ -1177,6 +1177,24 @@ Try running %3 in Terminal and check %4.</source>
         <translation>現在のバージョン: %1</translation>
     </message>
     <message>
+        <source>Install updates automatically in the background</source>
+        <translation>更新をバックグラウンドで自動的にインストールする</translation>
+    </message>
+    <message>
+        <source>macOS asks you to approve this once in System Settings. Stable releases only. The input method restarts after an update.</source>
+        <translation>システム設定で一度だけ承認が必要です。安定版のみ。更新後に入力メソッドが再起動します。</translation>
+    </message>
+    <message>
+        <source>Could not change automatic updates:
+%1</source>
+        <translation>自動更新を変更できませんでした:
+%1</translation>
+    </message>
+    <message>
+        <source>macOS needs your approval first. In System Settings &gt; General &gt; Login Items &amp; Extensions, switch on marinaMoji under "Allow in the Background" (you may be asked for your password), then tick this box again.</source>
+        <translation>先に macOS の承認が必要です。システム設定 &gt; 一般 &gt; ログイン項目と機能拡張 で、「バックグラウンドで許可」の marinaMoji をオンにし(パスワードを求められる場合があります)、このチェックボックスをもう一度オンにしてください。</translation>
+    </message>
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="539" />
         <source>Automatically check for updates (once a day)</source>
         <translation>更新を自動確認する（1日1回）</translation>

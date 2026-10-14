@@ -317,6 +317,67 @@ int VerifyInputSource() {
   return 0;
 }
 
+// Reads or changes the opt-in silent updater (the UpdateHelper LaunchDaemon),
+// for the Preferences checkbox. It runs here, in the marinaMoji.app binary,
+// because SMAppService resolves the plist against the *calling process's* main
+// bundle: Preferences is a nested ConfigDialog.app whose bundle has no
+// UpdateHelper plist, so it could not register the daemon itself.
+//
+// Prints one word and exits 0 on success:
+//   on        registered and approved
+//   off       not registered
+//   approval  registered but waiting for the user to allow it in System
+//             Settings > General > Login Items & Extensions (that pane is opened)
+//   missing   this bundle has no UpdateHelper plist
+// Exits 1 (with the reason on stderr) if registering or unregistering failed.
+int SilentUpdateCommand(const char *mode) {
+  SMAppService *service = [SMAppService
+      daemonServiceWithPlistName:@"org.mozc.inputmethod.Japanese.UpdateHelper.plist"];
+  const bool enable = std::strcmp(mode, "enable") == 0;
+  const bool disable = std::strcmp(mode, "disable") == 0;
+  if (!enable && !disable && std::strcmp(mode, "status") != 0) {
+    fprintf(stderr, "ERROR: --silent_update takes status, enable or disable\n");
+    return 2;
+  }
+
+  NSError *error = nil;
+  if (enable && service.status != SMAppServiceStatusEnabled) {
+    if (service.status == SMAppServiceStatusRequiresApproval ||
+        [service registerAndReturnError:&error]) {
+      // Registered (or already registered and waiting): either way macOS needs
+      // the user's approval before the daemon may run.
+      if (service.status == SMAppServiceStatusRequiresApproval) {
+        [SMAppService openSystemSettingsLoginItems];
+      }
+    } else {
+      fprintf(stderr, "ERROR: %s\n", [[error localizedDescription] UTF8String]);
+      return 1;
+    }
+  } else if (disable && service.status != SMAppServiceStatusNotRegistered &&
+             service.status != SMAppServiceStatusNotFound) {
+    if (![service unregisterAndReturnError:&error]) {
+      fprintf(stderr, "ERROR: %s\n", [[error localizedDescription] UTF8String]);
+      return 1;
+    }
+  }
+
+  switch (service.status) {
+    case SMAppServiceStatusEnabled:
+      printf("on\n");
+      break;
+    case SMAppServiceStatusRequiresApproval:
+      printf("approval\n");
+      break;
+    case SMAppServiceStatusNotRegistered:
+      printf("off\n");
+      break;
+    default:
+      printf("missing\n");
+      break;
+  }
+  return 0;
+}
+
 }  // namespace
 
 int main(int argc, char *argv[]) {
@@ -331,6 +392,9 @@ int main(int argc, char *argv[]) {
     }
     if (std::strcmp(argv[i], "--verify_input_source") == 0) {
       return VerifyInputSource();
+    }
+    if (std::strcmp(argv[i], "--silent_update") == 0 && i + 1 < argc) {
+      return SilentUpdateCommand(argv[i + 1]);
     }
   }
 

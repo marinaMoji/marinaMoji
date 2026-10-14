@@ -126,6 +126,7 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   QCheckBox *include_unstable_updates_checkbox_ = nullptr;
   QCheckBox *auto_check_for_updates_checkbox_ = nullptr;
   QPushButton *check_for_updates_button_ = nullptr;
+  QCheckBox *silent_update_checkbox_ = nullptr;
   std::unique_ptr<GitHubUpdateChecker> update_checker_;
   bool update_check_silent_ = false;
   bool auto_update_check_started_ = false;

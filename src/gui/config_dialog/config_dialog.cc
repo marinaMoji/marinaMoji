@@ -34,6 +34,10 @@
 #include "gui/config_dialog/config_dialog_sync_tab.h"
 
 #include <QCheckBox>
+#include <QProcess>
+#include <QFileInfo>
+#include <QDir>
+#include <QCoreApplication>
 #include <QFontMetrics>
 #include <QGuiApplication>
 #include <QInputDialog>
@@ -253,6 +257,40 @@ namespace {
 // generous IPC timeout as dictionary_tool (100s), not the 30s client default.
 constexpr absl::Duration kConfigDialogTimeout = absl::Milliseconds(100000);
 }  // namespace
+
+#if defined(MARINAMOJI) && defined(__APPLE__)
+namespace {
+
+// Runs `marinaMoji --silent_update <mode>` (see SilentUpdateCommand in
+// mac/main.mm for why it must be that binary) and returns its one-word result:
+// on / off / approval / missing. Returns an empty string and fills |error| if
+// it could not be run or reported a failure.
+QString RunSilentUpdate(const QString &mode, QString *error) {
+  // Preferences is marinaMoji.app/Contents/Resources/ConfigDialog.app.
+  QString exe = QDir::cleanPath(QCoreApplication::applicationDirPath() +
+                                QStringLiteral("/../../../../MacOS/marinaMoji"));
+  if (!QFileInfo::exists(exe)) {
+    exe = QStringLiteral(
+        "/Library/Input Methods/marinaMoji.app/Contents/MacOS/marinaMoji");
+  }
+  QProcess process;
+  process.start(exe, {QStringLiteral("--silent_update"), mode});
+  if (!process.waitForStarted(5000) || !process.waitForFinished(30000)) {
+    *error = QStringLiteral("could not run %1").arg(exe);
+    return QString();
+  }
+  if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
+    *error = QString::fromUtf8(process.readAllStandardError()).trimmed();
+    if (error->isEmpty()) {
+      *error = QStringLiteral("exit status %1").arg(process.exitCode());
+    }
+    return QString();
+  }
+  return QString::fromUtf8(process.readAllStandardOutput()).trimmed();
+}
+
+}  // namespace
+#endif  // MARINAMOJI && __APPLE__
 
 ConfigDialog::ConfigDialog()
     : client_(client::ClientFactory::NewClient()) {
@@ -606,6 +644,49 @@ ConfigDialog::ConfigDialog()
             &ConfigDialog::EnableApplyButton);
     connect(check_for_updates_button_, &QPushButton::clicked, this,
             &ConfigDialog::CheckForUpdates);
+
+#if defined(__APPLE__)
+    // Opt-in background installer (the UpdateHelper daemon). Acts immediately
+    // rather than on Apply, because it registers or removes a system item.
+    silent_update_checkbox_ = new QCheckBox(
+        tr("Install updates automatically in the background"), updates_widget);
+    silent_update_checkbox_->setToolTip(
+        tr("macOS asks you to approve this once in System Settings. Stable "
+           "releases only. The input method restarts after an update."));
+    updates_layout->addWidget(silent_update_checkbox_);
+    {
+      QString error;
+      silent_update_checkbox_->setChecked(
+          RunSilentUpdate(QStringLiteral("status"), &error) ==
+          QStringLiteral("on"));
+    }
+    connect(silent_update_checkbox_, &QCheckBox::clicked, this,
+            [this](bool checked) {
+              QString error;
+              const QString result = RunSilentUpdate(
+                  checked ? QStringLiteral("enable")
+                          : QStringLiteral("disable"),
+                  &error);
+              if (result.isEmpty()) {
+                silent_update_checkbox_->setChecked(!checked);
+                QMessageBox::warning(
+                    this, windowTitle(),
+                    tr("Could not change automatic updates:\n%1").arg(error));
+                return;
+              }
+              silent_update_checkbox_->setChecked(result ==
+                                                  QStringLiteral("on"));
+              if (checked && result == QStringLiteral("approval")) {
+                QMessageBox::information(
+                    this, windowTitle(),
+                    tr("macOS needs your approval first. In System Settings > "
+                       "General > Login Items & Extensions, switch on "
+                       "marinaMoji under \"Allow in the Background\" "
+                       "(you may be asked for your password), then tick this "
+                       "box again."));
+              }
+            });
+#endif  // __APPLE__
 
     update_checker_ = std::make_unique<GitHubUpdateChecker>(this);
     connect(update_checker_.get(), &GitHubUpdateChecker::updateAvailable, this,

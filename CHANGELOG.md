@@ -10,6 +10,22 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: Preferences switch for automatic background updates (2026-10-14)
+
+The silent updater (the UpdateHelper LaunchDaemon) could only be enabled from
+the one-time alert in the update popup that marinaMoji shows by itself, shown at
+most once ever and never from Preferences; there was no way to turn it off.
+Preferences > Misc now has "Install updates automatically in the background"
+(macOS only, fr/ja translated). It acts immediately, because it registers or
+removes a system item; if macOS needs approval it opens Login Items and says
+what to switch on. The popup no longer offers it when it is already on.
+
+Mechanism: Preferences is a nested `ConfigDialog.app`, and SMAppService
+resolves the plist against the calling process's main bundle, so it could not
+register the daemon itself. `marinaMoji --silent_update status|enable|disable`
+(`mac/main.mm`) does it and prints `on`/`off`/`approval`/`missing`. Compiles;
+the Qt/ObjC code has not been run end to end.
+
 ### macOS: "Download & Install" in Preferences did nothing (2026-10-14)
 
 Clicking Download & Install in Preferences > Misc > Check for updates
