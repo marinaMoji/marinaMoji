@@ -10,6 +10,22 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: MSI upgrades were refused ("Another version of this product is already installed") (2026-10-14)
+
+Upgrading a v0.0.7 install with the v0.0.8 MSI (by hand or via Preferences >
+Check for updates) failed with Windows Installer error 1638. The MSI's
+ProductCode was `uuid5(branding, Mozc version, arch)`, and the Mozc version
+(3.34.6345.x) is the same across many marinaMoji releases, so consecutive
+releases shared one ProductCode with different contents. Fresh installs were
+unaffected. The `Upgrade` table's inclusive range already detects an older
+product with the same Mozc version, so only the ProductCode needed to change.
+
+**Fix:** for marinaMoji branding, `win32/installer/build_installer.py` now adds
+the contents of `marina_product_version.txt` to the ProductCode seed (passed in
+by `installer.bzl` as `--marina_version_file`). **v0.0.8's MSIs cannot upgrade
+an existing v0.0.7**; uninstall first, or use v0.0.9 or later. Not built on
+Windows yet.
+
 ### Windows: the update offer could never launch anything (2026-10-14)
 
 The auto-update check runs in the renderer, which `RendererClient` starts

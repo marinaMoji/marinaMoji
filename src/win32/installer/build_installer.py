@@ -162,9 +162,25 @@ def run_wix4(args) -> None:
   # from branding+version+arch keeps the per-version change upstream relies
   # on while making it identical across cultures and reproducible across
   # builds of the same version.
-  product_code = str(
-      uuid.uuid5(_PRODUCT_CODE_NAMESPACE, f'{branding}-{version_string}-{arch}')
-  ).upper()
+  #
+  # For marinaMoji the version string alone is not enough: it is the upstream
+  # Mozc version (3.34.6345.x), which stays the same across many marinaMoji
+  # releases. Two releases then shared one ProductCode with different contents
+  # and Windows Installer refused to upgrade ("Another version of this product
+  # is already installed", error 1638). The marinaMoji release version
+  # (marina_product_version.txt) is therefore part of the seed. The Upgrade
+  # table's inclusive range still detects the older product and removes it.
+  seed = f'{branding}-{version_string}-{arch}'
+  if branding == 'marinaMoji' and args.marina_version_file:
+    marina_version = ''.join(
+        pathlib.Path(args.marina_version_file)
+        .read_text(encoding='utf-8')
+        .split()
+    )
+    if not marina_version:
+      raise ValueError(f'{args.marina_version_file} has no version')
+    seed += f'-{marina_version}'
+  product_code = str(uuid.uuid5(_PRODUCT_CODE_NAMESPACE, seed)).upper()
 
   omaha_channel_type = 'dev' if version.IsDevChannel() else 'stable'
   vs_configuration_name = 'Debug' if args.debug_build else 'Release'
@@ -235,6 +251,7 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--output', type=str)
   parser.add_argument('--version_file', type=str)
+  parser.add_argument('--marina_version_file', type=str, default='')
   parser.add_argument('--mozc_tool', type=str)
   parser.add_argument('--mozc_renderer', type=str)
   parser.add_argument('--mozc_server', type=str)

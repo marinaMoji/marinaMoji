@@ -227,6 +227,7 @@ exports_files(
         "//mac:__pkg__",
         "//tools:__subpackages__",
         "//tools/release:__pkg__",
+        "//win32/installer:__pkg__",
     ],
 )
 
