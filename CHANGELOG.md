@@ -10,6 +10,38 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: the update offer could never launch anything (2026-10-14)
+
+The auto-update check runs in the renderer, which `RendererClient` starts
+through `WinSandbox` at low integrity with a restricted token inside a
+locked-down job (`ActiveProcessLimit = 1`). Such a process cannot create child
+processes, so "Download & Install" (ShellExecute of the MSI) and "Open release
+page" failed, silently. Separately, `MarkMarinaAutoUpdateCheckRan()` ran
+*before* the network fetch, so one failed check (offline, no proxy yet at
+login) suppressed update checks for the next 24 hours, and nothing was logged.
+
+**Fix** (`renderer/win32/marina_auto_update.cc`): when the renderer detects the
+job limit it shows an information-only notice pointing to Preferences > Misc >
+Check for updates, which runs at normal integrity and can launch the installer.
+The 24h window is consumed only by a completed check, and the check now logs
+(INFO/WARNING) to the renderer log. Found by code reading; **not built or run
+on Windows**. Known remaining gap: the Preferences path downloads with `curl`
+and does not verify the SHA-256 digest the way the renderer path did.
+
+### macOS: tell the user when background items need approval (2026-10-14)
+
+Root cause of the post-v0.0.8 "Failed to retrieve the current configuration
+values": after the upgrade the "Allow in the Background" switch for marinaMoji
+(System Settings > General > Login Items & Extensions) was off, macOS reported
+the agents as `RequiresApproval`, and the app only logged that, so the
+converter never started. Only the user can flip that switch.
+
+**Fix:** `mac/main.mm` shows an alert (en/fr/ja, at most once a day, never
+blocking startup) with a button that opens Login Items. The Preferences error
+message on macOS now names the switch. `vm_trial_marinamoji.sh` labels
+agent-load failures with this cause when `smd` logged status 2. Why the switch
+was off after the upgrade is still unknown.
+
 ## v0.0.8
 
 ### macOS: VM trial script can verify an upgrade (2026-10-14)

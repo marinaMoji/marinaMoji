@@ -23,6 +23,7 @@
 #include <thread>
 #include <vector>
 
+#include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "base/file_util.h"
@@ -389,6 +390,44 @@ std::wstring SanitizeForFilename(const std::string& tag_name) {
   return safe;
 }
 
+// True unless this process is in a job that forbids creating child processes.
+//
+// The renderer is started by RendererClient through WinSandbox with
+// use_locked_down_job (ActiveProcessLimit = 1, low integrity, restricted
+// token), so it can neither launch the downloaded installer nor open a
+// browser: ShellExecute / CreateProcess simply fail. The offer's "Download &
+// Install" and "Open release page" buttons used to be dead for that reason,
+// with the failure swallowed. Settings runs at normal integrity and can do
+// both, so the offer points there instead.
+bool CanSpawnProcesses() {
+  JOBOBJECT_BASIC_LIMIT_INFORMATION info = {};
+  // A null job handle queries the job the calling process belongs to.
+  if (!::QueryInformationJobObject(nullptr, JobObjectBasicLimitInformation,
+                                   &info, sizeof(info), nullptr)) {
+    return true;  // not in a job (or cannot tell): assume unrestricted
+  }
+  const bool limited = (info.LimitFlags & JOB_OBJECT_LIMIT_ACTIVE_PROCESS) &&
+                       info.ActiveProcessLimit <= 1;
+  return !limited;
+}
+
+void PresentUpdateNotice(const MarinaGitHubRelease& release) {
+  const std::wstring message = mozc::win32::Utf8ToWide(
+      absl::StrCat("A newer release is available: ", release.tag_name));
+  TASKDIALOGCONFIG config = {};
+  config.cbSize = sizeof(config);
+  config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_SIZE_TO_CONTENT;
+  config.dwCommonButtons = TDCBF_OK_BUTTON;
+  config.pszWindowTitle = L"marinaMoji";
+  config.pszMainIcon = TD_INFORMATION_ICON;
+  config.pszMainInstruction = message.c_str();
+  config.pszContent =
+      L"To install it, open marinaMoji Preferences (language bar menu → "
+      L"Properties), go to the Misc tab and choose \"Check for updates…\".";
+  int clicked_id = IDOK;
+  ::TaskDialogIndirect(&config, &clicked_id, nullptr, nullptr);
+}
+
 // Shows the three-button offer, mirroring mac's NSAlert
 // (Download & Install… / Open release page / Later). Runs on the caller's
 // thread, which is this feature's own dedicated background thread -- never
@@ -464,21 +503,40 @@ void PresentUpdateOffer(const MarinaGitHubRelease& release,
   }
 }
 
-void RunCheckOnce() {
+// Returns true if the releases were fetched and parsed, whether or not a newer
+// one exists; false if the check could not be completed (offline, DNS, proxy,
+// GitHub error). Only a completed check may consume the 24h throttle window --
+// otherwise one failed attempt, e.g. at login before the network is up, would
+// silence update checks for a whole day.
+bool RunCheckOnce() {
   const auto json = FetchGitHubReleasesJson();
   if (!json.has_value()) {
-    return;
+    LOG(WARNING) << "marinaMoji update check: could not fetch releases";
+    return false;
   }
   const auto releases = ParseMarinaGitHubReleasesJson(*json);
+  if (releases.empty()) {
+    LOG(WARNING) << "marinaMoji update check: no releases parsed";
+    return false;
+  }
 
   const std::shared_ptr<const config::Config> current_config =
       config::ConfigHandler::GetSharedConfig();
   const bool include_unstable = current_config->include_unstable_updates();
 
-  const auto newer = SelectNewerMarinaRelease(
-      releases, Version::GetProductVersion(), include_unstable);
+  const std::string current_version = Version::GetProductVersion();
+  const auto newer =
+      SelectNewerMarinaRelease(releases, current_version, include_unstable);
   if (!newer.has_value()) {
-    return;
+    LOG(INFO) << "marinaMoji update check: " << current_version
+              << " is up to date";
+    return true;
+  }
+  LOG(INFO) << "marinaMoji update check: " << newer->tag_name
+            << " is newer than " << current_version;
+  if (!CanSpawnProcesses()) {
+    PresentUpdateNotice(*newer);
+    return true;
   }
   std::string msi_url;
   if (const auto url =
@@ -487,6 +545,7 @@ void RunCheckOnce() {
     msi_url = *url;
   }
   PresentUpdateOffer(*newer, msi_url);
+  return true;
 }
 
 class AutoUpdateChecker {
@@ -529,8 +588,9 @@ class AutoUpdateChecker {
       const bool enabled = config::ConfigHandler::GetSharedConfig()
                                ->auto_check_for_updates();
       if (enabled && ShouldRunMarinaAutoUpdateCheck()) {
-        MarkMarinaAutoUpdateCheckRan();
-        RunCheckOnce();
+        if (RunCheckOnce()) {
+          MarkMarinaAutoUpdateCheckRan();
+        }
       }
 
       std::unique_lock<std::mutex> lock(mutex_);
