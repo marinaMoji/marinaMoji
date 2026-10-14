@@ -302,9 +302,9 @@ mozc_cc_library(
     name = "marina_auto_update",
     srcs = ["marina_auto_update.cc"],
     hdrs = ["marina_auto_update.h"],
-    visibility = ["//sync:__pkg__"],
     tags = MOZC_TAGS.WIN_ONLY,
     target_compatible_with = ["@platforms//os:windows"],
+    visibility = ["//sync:__pkg__"],
     deps = [
         "//base:file_util",
         "//base:marina_semver",
