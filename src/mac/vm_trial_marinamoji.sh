@@ -21,7 +21,7 @@
 #
 # Upgrade verification (non-interactive apart from the App Management prompt,
 # which --yes skips):
-#   bash vm_trial_marinamoji.sh --label upgrade-0.0.7-to-rc --verify-upgrade \
+#   bash vm_trial_marinamoji.sh --label upgrade-0.0.7-to-0.0.8 --verify-upgrade \
 #        --pkg ~/Downloads/marinaMoji.pkg --yes
 # Needs an existing install. It checks that the converter and renderer are
 # loaded in launchd before the upgrade, right after it, and after the app is
@@ -149,8 +149,13 @@ wait_for_agents() {
   return 1
 }
 
+# The marinaMoji release version (0.0.8), from the package receipt. The bundle's
+# CFBundleShortVersionString is the upstream Mozc number (3.34.6345) and does not
+# change between marinaMoji releases, so it cannot show that an upgrade happened.
 installed_version() {
-  defaults read "${APP}/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo "?"
+  local v
+  v="$(pkgutil --pkg-info org.mozc.pkg.JapaneseInput 2>/dev/null | awk '/^version:/ {print $2}')"
+  echo "${v:-?}"
 }
 
 VERIFY_FAILS=0
@@ -325,9 +330,9 @@ if [[ "${VERIFY_UPGRADE}" -eq 1 ]]; then
   echo "Verifying the upgraded install..."
   VERSION_AFTER="$(installed_version)"
   if [[ "${VERSION_AFTER}" != "${VERSION_BEFORE}" ]]; then
-    verify_result PASS "bundle version changed: ${VERSION_BEFORE} -> ${VERSION_AFTER}"
+    verify_result PASS "installed release version changed: ${VERSION_BEFORE} -> ${VERSION_AFTER}"
   else
-    verify_result FAIL "bundle version unchanged (${VERSION_AFTER}); the package may be the same version or the install did not replace the app"
+    verify_result FAIL "installed release version unchanged (${VERSION_AFTER}); the package may be the same version or the install did not replace the app"
   fi
 
   # What the user has the instant the installer finishes, before anything
