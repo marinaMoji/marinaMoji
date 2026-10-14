@@ -85,6 +85,60 @@ bool IsMachServiceKnown(NSString *machService) {
   return true;
 }
 
+// macOS keeps the agents switched off ("requires approval") until the user
+// allows marinaMoji under System Settings > General > Login Items & Extensions
+// > Allow in the Background. That switch can be off after an install or
+// upgrade, and nothing else tells the user: the converter simply never starts
+// and the settings dialog reports "Failed to retrieve the current configuration
+// values". Only the user can flip it, so say what is wrong and offer to open
+// the right pane.
+//
+// Shown at most once a day (not on every restart), and asynchronously, so a
+// modal alert never delays the input method server coming up.
+NSString *ApprovalText(NSString *en, NSString *fr, NSString *ja) {
+  NSString *language = [NSLocale preferredLanguages].firstObject ?: @"en";
+  if ([language hasPrefix:@"fr"]) return fr;
+  if ([language hasPrefix:@"ja"]) return ja;
+  return en;
+}
+
+void PromptForBackgroundApproval() {
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+  NSString *const kKey = @"marinaMojiBackgroundApprovalPromptTime";
+  NSDate *last = [defaults objectForKey:kKey];
+  if (last != nil && -[last timeIntervalSinceNow] < 24 * 60 * 60) {
+    return;
+  }
+  [defaults setObject:[NSDate date] forKey:kKey];
+
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC),
+                 dispatch_get_main_queue(), ^{
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = ApprovalText(
+        @"marinaMoji must be allowed to run in the background",
+        @"marinaMoji doit être autorisé à s'exécuter en arrière-plan",
+        @"marinaMoji のバックグラウンド実行を許可してください");
+    alert.informativeText = ApprovalText(
+        @"Without this, conversion does not work and Preferences cannot "
+        @"open. In System Settings > General > Login Items & Extensions, "
+        @"switch on marinaMoji under \"Allow in the Background\".",
+        @"Sans cela, la conversion ne fonctionne pas et les Préférences ne "
+        @"s'ouvrent pas. Dans Réglages Système > Général > Éléments de "
+        @"connexion et extensions, activez marinaMoji sous « Autoriser en "
+        @"arrière-plan ».",
+        @"許可しないと変換が動作せず、環境設定も開けません。システム設定 > "
+        @"一般 > ログイン項目と機能拡張 で、「バックグラウンドで許可」の "
+        @"marinaMoji をオンにしてください。");
+    [alert addButtonWithTitle:ApprovalText(@"Open Login Items", @"Ouvrir les éléments de connexion",
+                                           @"ログイン項目を開く")];
+    [alert addButtonWithTitle:ApprovalText(@"Later", @"Plus tard", @"後で")];
+    [NSApp activateIgnoringOtherApps:YES];
+    if ([alert runModal] == NSAlertFirstButtonReturn) {
+      [SMAppService openSystemSettingsLoginItems];
+    }
+  });
+}
+
 void RegisterLaunchAgents() {
   struct Agent {
     NSString *plist;
@@ -97,6 +151,7 @@ void RegisterLaunchAgents() {
        @"org.mozc.inputmethod.Japanese.Renderer.renderer"},
       {@"org.mozc.inputmethod.Japanese.Sync.plist", nil},
   };
+  bool needs_approval = false;
   for (const Agent &agent : agents) {
     NSString *plist = agent.plist;
     SMAppService *service = [SMAppService agentServiceWithPlistName:plist];
@@ -120,6 +175,7 @@ void RegisterLaunchAgents() {
       LOG(ERROR) << "marinaMoji background item awaiting approval in System "
                  << "Settings > General > Login Items: "
                  << [plist UTF8String];
+      needs_approval = true;
       continue;
     }
     NSError *error = nil;
@@ -127,6 +183,13 @@ void RegisterLaunchAgents() {
       LOG(ERROR) << "SMAppService registration failed for " << [plist UTF8String]
                  << ": " << [[error localizedDescription] UTF8String];
     }
+    // A fresh registration succeeds but is parked until the user approves it.
+    if (service.status == SMAppServiceStatusRequiresApproval) {
+      needs_approval = true;
+    }
+  }
+  if (needs_approval) {
+    PromptForBackgroundApproval();
   }
 }
 

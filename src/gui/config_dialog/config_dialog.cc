@@ -692,8 +692,15 @@ bool ConfigDialog::GetConfig(config::Config* config) {
 void ConfigDialog::Reload() {
   config::Config config;
   if (!GetConfig(&config)) {
-    QMessageBox::critical(this, windowTitle(),
-                          tr("Failed to get current config values."));
+    QString message = tr("Failed to get current config values.");
+#if defined(__APPLE__)
+    message += QStringLiteral("\n\n") +
+               tr("If marinaMoji was just installed or updated, open System "
+                  "Settings > General > Login Items & Extensions and switch "
+                  "on marinaMoji under \"Allow in the Background\", then "
+                  "reopen Preferences.");
+#endif  // __APPLE__
+    QMessageBox::critical(this, windowTitle(), message);
   }
   ConvertFromProto(config);
 

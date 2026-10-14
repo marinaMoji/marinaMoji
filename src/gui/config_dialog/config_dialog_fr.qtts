@@ -1314,6 +1314,10 @@ Ouvrir la page de téléchargement ?</translation>
         <translation>Échec de la récupération des valeurs de configuration actuelles.</translation>
     </message>
     <message>
+        <source>If marinaMoji was just installed or updated, open System Settings &gt; General &gt; Login Items &amp; Extensions and switch on marinaMoji under "Allow in the Background", then reopen Preferences.</source>
+        <translation>Si marinaMoji vient d'être installé ou mis à jour, ouvrez Réglages Système &gt; Général &gt; Éléments de connexion et extensions, activez marinaMoji sous « Autoriser en arrière-plan », puis rouvrez les Préférences.</translation>
+    </message>
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="668" />
         <source>The current custom keymap table is empty. When custom keymap is selected, you must customize it.</source>
         <translation>Le tableau de disposition de clavier personnalisée actuel est vide. Lorsque la disposition de clavier personnalisée est sélectionnée, vous devez la personnaliser.</translation>

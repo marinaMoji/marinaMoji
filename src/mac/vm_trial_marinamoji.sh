@@ -152,6 +152,22 @@ wait_for_agents() {
 # The marinaMoji release version (0.0.8), from the package receipt. The bundle's
 # CFBundleShortVersionString is the upstream Mozc number (3.34.6345) and does not
 # change between marinaMoji releases, so it cannot show that an upgrade happened.
+# True if macOS recently reported a marinaMoji background item as "requires
+# approval" (SMAppService status 2): the "Allow in the Background" switch for
+# marinaMoji in System Settings > General > Login Items & Extensions is off.
+# Only the user can turn it on, and with it off nothing else in this script can
+# succeed, so failures are labelled with it rather than reported generically.
+approval_needed() {
+  /usr/bin/log show --last 2m --style compact --predicate 'process == "smd"' 2>/dev/null |
+    grep -q "Found status: 2"
+}
+
+approval_hint() {
+  if approval_needed; then
+    echo " -- CAUSE: macOS says marinaMoji is awaiting approval. Switch it on in System Settings > General > Login Items & Extensions > Allow in the Background, then rerun"
+  fi
+}
+
 installed_version() {
   local v
   v="$(pkgutil --pkg-info org.mozc.pkg.JapaneseInput 2>/dev/null | awk '/^version:/ {print $2}')"
@@ -245,7 +261,7 @@ if [[ "${VERIFY_UPGRADE}" -eq 1 ]]; then
     PRE_LOADED=1
     verify_result PASS "baseline: converter and renderer loaded before upgrade (${VERSION_BEFORE})"
   else
-    verify_result INFO "baseline: agents NOT loaded before upgrade ($(agent_states)); the starting point is already broken, so the post-upgrade result is inconclusive"
+    verify_result INFO "baseline: agents NOT loaded before upgrade ($(agent_states)); the starting point is already broken, so the post-upgrade result is inconclusive$(approval_hint)"
   fi
 fi
 
@@ -344,7 +360,7 @@ if [[ "${VERIFY_UPGRADE}" -eq 1 ]]; then
   if wait_for_agents 30; then
     verify_result PASS "after starting the app: converter and renderer loaded"
   else
-    verify_result FAIL "after starting the app: agents not loaded ($(agent_states)) -- settings would report 'Failed to retrieve the current configuration values'"
+    verify_result FAIL "after starting the app: agents not loaded ($(agent_states)) -- settings would report 'Failed to retrieve the current configuration values'$(approval_hint)"
   fi
 
   HEALTH="$(grep 'postinstall: health check' "${OUT}/02-after-passive.txt" | sed 's/.*postinstall: //' | sort -u | tr '\n' ';')"
@@ -368,7 +384,7 @@ if [[ "${VERIFY_UPGRADE}" -eq 1 ]]; then
     if wait_for_agents 30; then
       verify_result PASS "self-heal: app re-registered agents that launchd had dropped"
     else
-      verify_result FAIL "self-heal: agents still not loaded after restarting the app ($(agent_states))"
+      verify_result FAIL "self-heal: agents still not loaded after restarting the app ($(agent_states))$(approval_hint)"
     fi
   fi
 fi

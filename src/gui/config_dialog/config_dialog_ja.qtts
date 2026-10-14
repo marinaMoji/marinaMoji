@@ -1205,6 +1205,10 @@ Try running %3 in Terminal and check %4.</source>
         <translation>設定の取得に失敗しました。</translation>
     </message>
     <message>
+        <source>If marinaMoji was just installed or updated, open System Settings &gt; General &gt; Login Items &amp; Extensions and switch on marinaMoji under "Allow in the Background", then reopen Preferences.</source>
+        <translation>marinaMoji をインストールまたは更新した直後の場合は、システム設定 &gt; 一般 &gt; ログイン項目と機能拡張 を開き、「バックグラウンドで許可」の marinaMoji をオンにしてから、環境設定を開き直してください。</translation>
+    </message>
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1177" />
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1196" />
         <source>%1 Converter is not running. Settings were not saved.</source>
