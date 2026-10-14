@@ -10,6 +10,17 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: VM trial script can verify an upgrade (2026-10-14)
+
+`mac/vm_trial_marinamoji.sh --verify-upgrade --pkg <new.pkg> [--yes]` upgrades
+an existing install and checks, without any eyeballing: converter and renderer
+loaded in launchd before the upgrade, right after it, and after the app
+starts; bundle version changed; the postinstall health check line; and
+self-heal (it unloads the agents, restarts the app, and requires them to come
+back). PASS/FAIL per check in `05-verify-upgrade.txt` and `report.md`; exit 1
+on any FAIL. Not yet run on a VM. It does not cover the silent LaunchDaemon
+updater or the Settings window itself.
+
 ### Settings: show the installed version (2026-10-14)
 
 On Windows the About dialog is only reachable from the language-bar menu,

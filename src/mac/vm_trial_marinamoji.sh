@@ -19,6 +19,16 @@
 #   bash vm_trial_marinamoji.sh --label upgrade-cli --pkg ~/Downloads/marinaMoji.pkg
 #   bash vm_trial_marinamoji.sh --label baseline --collect-only
 #
+# Upgrade verification (non-interactive apart from the App Management prompt,
+# which --yes skips):
+#   bash vm_trial_marinamoji.sh --label upgrade-0.0.7-to-rc --verify-upgrade \
+#        --pkg ~/Downloads/marinaMoji.pkg --yes
+# Needs an existing install. It checks that the converter and renderer are
+# loaded in launchd before the upgrade, right after it, and after the app is
+# started; that the bundle version changed; that the installer's own health
+# check passed; and that the app re-registers agents when launchd has dropped
+# them. Prints PASS/FAIL per check and exits non-zero if any FAIL.
+#
 # With --pkg the package is installed via the `installer` CLI, which runs no
 # plugin panes. Without it you are prompted to install by hand, which is how you
 # exercise the GUI installer and ActivatePane.
@@ -31,13 +41,17 @@ INSTALL_LOG="/var/log/install.log"
 LABEL=""
 PKG=""
 COLLECT_ONLY=0
+VERIFY_UPGRADE=0
+ASSUME_YES=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --label) LABEL="${2:-}"; shift 2 ;;
     --pkg) PKG="${2:-}"; shift 2 ;;
     --collect-only) COLLECT_ONLY=1; shift ;;
-    -h|--help) sed -n '2,28p' "$0"; exit 0 ;;
+    --verify-upgrade) VERIFY_UPGRADE=1; shift ;;
+    --yes) ASSUME_YES=1; shift ;;
+    -h|--help) sed -n '2,40p' "$0"; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -54,6 +68,17 @@ fi
 if [[ -n "${PKG}" && ! -f "${PKG}" ]]; then
   echo "ERROR: no such package: ${PKG}" >&2
   exit 2
+fi
+
+if [[ "${VERIFY_UPGRADE}" -eq 1 ]]; then
+  if [[ -z "${PKG}" ]]; then
+    echo "ERROR: --verify-upgrade needs --pkg (the new package)." >&2
+    exit 2
+  fi
+  if [[ ! -d "${APP}" ]]; then
+    echo "ERROR: --verify-upgrade needs an existing install to upgrade." >&2
+    exit 2
+  fi
 fi
 
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -87,6 +112,51 @@ binary_arch() {
   else
     echo "${out}"
   fi
+}
+
+# --- launchd health ----------------------------------------------------------
+
+AGENT_PREFIX="org.mozc.inputmethod.Japanese"
+UID_NUM="$(id -u)"
+
+agent_loaded() {
+  launchctl print "gui/${UID_NUM}/${AGENT_PREFIX}.$1" > /dev/null 2>&1
+}
+
+# Converter and renderer both loaded. The sync agent publishes no Mach service
+# and is not needed for typing, so it is not part of the health check.
+agents_loaded() {
+  agent_loaded Converter && agent_loaded Renderer
+}
+
+agent_states() {
+  local a
+  for a in Converter Renderer Sync; do
+    if agent_loaded "${a}"; then echo "${a}=loaded"; else echo "${a}=NOT-loaded"; fi
+  done | tr '\n' ' '
+}
+
+# The IME registers its agents at startup, so starting it is what "typing
+# something" does on a real machine.
+start_app() { open -g "${APP}" > /dev/null 2>&1; }
+
+wait_for_agents() {
+  local i
+  for ((i = 0; i < $1; i++)); do
+    agents_loaded && return 0
+    sleep 1
+  done
+  return 1
+}
+
+installed_version() {
+  defaults read "${APP}/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo "?"
+}
+
+VERIFY_FAILS=0
+verify_result() {  # verify_result PASS|FAIL|INFO "message"
+  [[ "$1" == "FAIL" ]] && VERIFY_FAILS=$((VERIFY_FAILS + 1))
+  printf '%-5s %s\n' "$1" "$2" | tee -a "${OUT}/05-verify-upgrade.txt"
 }
 
 # --- state capture -----------------------------------------------------------
@@ -157,6 +227,23 @@ if [[ "${COLLECT_ONLY}" -eq 1 ]]; then
   exit 0
 fi
 
+# --- phase 0b: upgrade baseline ----------------------------------------------
+
+VERSION_BEFORE="$(installed_version)"
+PRE_LOADED=0
+if [[ "${VERIFY_UPGRADE}" -eq 1 ]]; then
+  : > "${OUT}/05-verify-upgrade.txt"
+  echo
+  echo "Verifying upgrade from ${VERSION_BEFORE}: starting the installed app first..."
+  start_app
+  if wait_for_agents 30; then
+    PRE_LOADED=1
+    verify_result PASS "baseline: converter and renderer loaded before upgrade (${VERSION_BEFORE})"
+  else
+    verify_result INFO "baseline: agents NOT loaded before upgrade ($(agent_states)); the starting point is already broken, so the post-upgrade result is inconclusive"
+  fi
+fi
+
 # --- phase 1: install --------------------------------------------------------
 
 # Upgrading an existing install rewrites another app's bundle, which macOS
@@ -170,7 +257,11 @@ if [[ -n "${PKG}" && -d "${APP}" ]]; then
   echo "  System Settings > Privacy & Security > App Management > enable your terminal"
   echo "A blocked install still removes the old launch agents, which ruins the"
   echo "baseline for a retry -- restore the snapshot again if that happens."
-  read -r -p "Permission granted, and terminal restarted since? [y/N] " APPMGMT
+  if [[ "${ASSUME_YES}" -eq 1 ]]; then
+    APPMGMT=y
+  else
+    read -r -p "Permission granted, and terminal restarted since? [y/N] " APPMGMT
+  fi
   if [[ ! "${APPMGMT}" =~ ^[Yy] ]]; then
     echo "Aborted before touching the machine; the snapshot is still clean."
     rm -rf "${OUT}"
@@ -227,6 +318,63 @@ fi
     echo "(none -- package predates the registering postinstall, or it never ran)"
 } > "${OUT}/02-after-passive.txt" 2>&1
 
+# --- phase 2b: upgrade verification ------------------------------------------
+
+if [[ "${VERIFY_UPGRADE}" -eq 1 ]]; then
+  echo
+  echo "Verifying the upgraded install..."
+  VERSION_AFTER="$(installed_version)"
+  if [[ "${VERSION_AFTER}" != "${VERSION_BEFORE}" ]]; then
+    verify_result PASS "bundle version changed: ${VERSION_BEFORE} -> ${VERSION_AFTER}"
+  else
+    verify_result FAIL "bundle version unchanged (${VERSION_AFTER}); the package may be the same version or the install did not replace the app"
+  fi
+
+  # What the user has the instant the installer finishes, before anything
+  # starts the app again. The postinstall's own health check may already have
+  # started it.
+  verify_result INFO "immediately after install: $(agent_states)"
+
+  start_app
+  if wait_for_agents 30; then
+    verify_result PASS "after starting the app: converter and renderer loaded"
+  else
+    verify_result FAIL "after starting the app: agents not loaded ($(agent_states)) -- settings would report 'Failed to retrieve the current configuration values'"
+  fi
+
+  HEALTH="$(grep 'postinstall: health check' "${OUT}/02-after-passive.txt" | sed 's/.*postinstall: //' | sort -u | tr '\n' ';')"
+  case "${HEALTH}" in
+    *"is loaded"*) verify_result PASS "installer health check: ${HEALTH}" ;;
+    *NOT\ loaded*) verify_result FAIL "installer health check: ${HEALTH}" ;;
+    *) verify_result INFO "installer health check: not logged (package predates it, or install.log unreadable)" ;;
+  esac
+
+  # Self-heal: reproduce the stale state this upgrade bug leaves behind (jobs
+  # unloaded while Background Task Management still says Enabled) and require
+  # the app to repair it by itself on the next start.
+  launchctl bootout "gui/${UID_NUM}/${AGENT_PREFIX}.Converter" > /dev/null 2>&1
+  launchctl bootout "gui/${UID_NUM}/${AGENT_PREFIX}.Renderer" > /dev/null 2>&1
+  pkill -x marinaMoji > /dev/null 2>&1
+  sleep 2
+  if agents_loaded; then
+    verify_result INFO "self-heal: could not unload the agents for the test (still loaded), skipped"
+  else
+    start_app
+    if wait_for_agents 30; then
+      verify_result PASS "self-heal: app re-registered agents that launchd had dropped"
+    else
+      verify_result FAIL "self-heal: agents still not loaded after restarting the app ($(agent_states))"
+    fi
+  fi
+fi
+
+if [[ "${VERIFY_UPGRADE}" -eq 1 ]]; then
+  APPEARS="n/a (--verify-upgrade)"
+  NOTES=""
+  APPEARS_AFTER="n/a"
+  echo "(skipped in --verify-upgrade mode)" > "${OUT}/03-observation.txt"
+  echo "(skipped in --verify-upgrade mode)" > "${OUT}/04-repair.txt"
+else
 # --- phase 3: the observation that actually matters --------------------------
 
 echo
@@ -278,6 +426,7 @@ else
   echo "(skipped)" > "${OUT}/04-repair.txt"
   APPEARS_AFTER="n/a"
 fi
+fi
 
 # --- report ------------------------------------------------------------------
 
@@ -307,6 +456,13 @@ POSTINSTALL="$(grep 'marinaMoji postinstall' "${OUT}/02-after-passive.txt" | sed
   echo "- Appeared after active repair: ${APPEARS_AFTER}"
   [[ -n "${NOTES}" ]] && echo "- Notes: ${NOTES}"
   echo
+  if [[ "${VERIFY_UPGRADE}" -eq 1 ]]; then
+    echo
+    echo "## Upgrade verification (${VERSION_BEFORE} -> ${VERSION_AFTER:-?})"
+    echo
+    sed 's/^/- /' "${OUT}/05-verify-upgrade.txt"
+  fi
+  echo
   echo "## Files"
   echo
   echo '```'
@@ -318,3 +474,11 @@ echo
 echo "=== Verdict ==="
 sed -n '/## Verdict/,/## Files/p' "${OUT}/report.md" | sed '1,2d;$d'
 echo "Full report: ${OUT}/report.md"
+
+if [[ "${VERIFY_UPGRADE}" -eq 1 ]]; then
+  if [[ "${VERIFY_FAILS}" -gt 0 ]]; then
+    echo "UPGRADE VERIFICATION FAILED (${VERIFY_FAILS} check(s))"
+    exit 1
+  fi
+  echo "Upgrade verification passed."
+fi
