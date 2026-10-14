@@ -10,6 +10,8 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+## v0.0.12
+
 ### Release builds log nothing: a diagnostic log for the update checkers (2026-10-14)
 
 `.bazelrc` builds releases with `ABSL_MIN_LOG_LEVEL=100`, which compiles every
