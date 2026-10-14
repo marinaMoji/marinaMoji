@@ -252,6 +252,7 @@ mozc_cc_library(
         "//base:system_util",
         "//base:version",
         "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:globals",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
     ],

@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/log/globals.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -151,6 +152,11 @@ absl::Status RunSilentUpdateCheck() {
 
 int main(int argc, char* argv[]) {
   mozc::InitMozc(argv[0], &argc, &argv);
+  // Everything this daemon does is logged, and launchd captures stderr into
+  // /var/log/marinaMojiUpdateHelper.log (see the LaunchDaemon plist). Without
+  // this, INFO lines were dropped and a failed run (exit status 1) left no
+  // trace of why.
+  absl::SetStderrThreshold(absl::LogSeverityAtLeast::kInfo);
   const absl::Status status = mozc::RunSilentUpdateCheck();
   if (!status.ok()) {
     LOG(ERROR) << "marinaMoji update helper failed: " << status.message();

@@ -80,7 +80,8 @@ absl::Status MarinaCurlDownload(absl::string_view url,
                                 absl::string_view dest_path) {
 #if defined(__APPLE__)
   const std::string args = absl::StrCat(
-      "-fsSL -A marinaMoji-update-check -o ", ShellEscapeSingleQuotes(dest_path),
+      "-fsSL --create-dirs -A marinaMoji-update-check -o ",
+      ShellEscapeSingleQuotes(dest_path),
       " ", ShellEscapeSingleQuotes(url));
   const auto body = RunCurlCapture(args);
   if (!body.ok()) {

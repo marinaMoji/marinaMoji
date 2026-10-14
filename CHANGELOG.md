@@ -10,6 +10,25 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: the silent updater failed under launchd and left no trace (2026-10-14)
+
+With automatic updates enabled, kickstarting the UpdateHelper daemon on a
+v0.0.9 install ended with exit status 1 and nothing was installed. Run by hand
+with `sudo` it updated to v0.0.10 straight away. The helper's first scheduled
+run (nothing newer existed) had exited 0, so networking and `curl` were fine;
+what differs is the download destination, `<profile>/silent-update-*.pkg`:
+`sudo` keeps your own home directory (which exists), launchd uses root's, where
+`marinaMoji/` may not, and `curl -o` does not create directories. The helper
+also logged nothing anywhere (INFO was below the stderr threshold and its log
+file was never created), so the failure was invisible.
+
+**Fix:** `MarinaCurlDownload` passes `--create-dirs`; the helper logs at INFO to
+stderr and the LaunchDaemon plist sends stderr/stdout to
+`/var/log/marinaMojiUpdateHelper.log`. The cause is inferred, not observed (the
+old build logged nothing); the new log will show it if it is something else.
+Note that an already-registered daemon may keep its old launchd definition (no
+log file) until it is re-registered.
+
 ### macOS: Preferences switch for automatic background updates (2026-10-14)
 
 The silent updater (the UpdateHelper LaunchDaemon) could only be enabled from

@@ -20,5 +20,11 @@
 	<true/>
 	<key>KeepAlive</key>
 	<false/>
+	<!-- Everything the helper logs goes here (it runs as root, so /var/log is
+	     writable). Read it with: sudo tail -50 /var/log/marinaMojiUpdateHelper.log -->
+	<key>StandardErrorPath</key>
+	<string>/var/log/marinaMojiUpdateHelper.log</string>
+	<key>StandardOutPath</key>
+	<string>/var/log/marinaMojiUpdateHelper.log</string>
 </dict>
 </plist>
