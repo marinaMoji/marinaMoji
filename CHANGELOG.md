@@ -10,6 +10,21 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: re-register agents that are "enabled" but not loaded in launchd (2026-10-14)
+
+After updating to v0.0.7, Background Task Management kept reporting the
+Converter/Renderer/Sync agents as `Enabled` while launchd had no such jobs
+loaded. `RegisterLaunchAgents()` trusted the status and skipped registration,
+so the converter's Mach service did not exist: typing failed with
+`EnsureSession failed` and the settings dialog showed "Failed to retrieve the
+current configuration values".
+
+**Fix:** `mac/main.mm` now checks with `bootstrap_look_up` that the Mach
+service of an `Enabled` Converter/Renderer is known to launchd; if not, it
+unregisters and registers the item again. Untested on a notarized build.
+Workaround meanwhile: toggle the marinaMoji items off and on in System
+Settings > General > Login Items & Extensions.
+
 ## v0.0.7
 
 ### macOS: pkg postinstall must not ad-hoc re-sign (2026-10-13)

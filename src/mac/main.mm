@@ -37,6 +37,8 @@
 #import "mac/renderer_receiver.h"
 #import "mac/sync_overlay.h"
 
+#include <servers/bootstrap.h>
+
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -66,16 +68,50 @@ namespace {
 // Registering them with SMAppService keeps launchd in the loop while moving the
 // plists inside the app bundle, so macOS attributes the background activity to
 // marinaMoji rather than to the signing identity of whoever built it.
+//
+// After an upgrade, Background Task Management can keep reporting an agent as
+// Enabled while launchd no longer has the job loaded, so the converter's Mach
+// service does not exist: every client call then fails and the settings dialog
+// reports that it cannot fetch the current configuration. |machService| is the
+// name the job is expected to publish (nil for jobs that publish none); when
+// launchd does not know it, the item is unregistered and registered afresh.
+bool IsMachServiceKnown(NSString *machService) {
+  mach_port_t port = MACH_PORT_NULL;
+  if (bootstrap_look_up(bootstrap_port, [machService UTF8String], &port) !=
+      KERN_SUCCESS) {
+    return false;
+  }
+  mach_port_deallocate(mach_task_self(), port);
+  return true;
+}
+
 void RegisterLaunchAgents() {
-  NSArray<NSString *> *plists = @[
-    @"org.mozc.inputmethod.Japanese.Converter.plist",
-    @"org.mozc.inputmethod.Japanese.Renderer.plist",
-    @"org.mozc.inputmethod.Japanese.Sync.plist",
-  ];
-  for (NSString *plist in plists) {
+  struct Agent {
+    NSString *plist;
+    NSString *machService;
+  };
+  const Agent agents[] = {
+      {@"org.mozc.inputmethod.Japanese.Converter.plist",
+       @"org.mozc.inputmethod.Japanese.Converter.session"},
+      {@"org.mozc.inputmethod.Japanese.Renderer.plist",
+       @"org.mozc.inputmethod.Japanese.Renderer.renderer"},
+      {@"org.mozc.inputmethod.Japanese.Sync.plist", nil},
+  };
+  for (const Agent &agent : agents) {
+    NSString *plist = agent.plist;
     SMAppService *service = [SMAppService agentServiceWithPlistName:plist];
     if (service.status == SMAppServiceStatusEnabled) {
-      continue;
+      if (agent.machService == nil || IsMachServiceKnown(agent.machService)) {
+        continue;
+      }
+      LOG(WARNING) << "Enabled but not loaded in launchd; re-registering "
+                   << [plist UTF8String];
+      NSError *unregisterError = nil;
+      if (![service unregisterAndReturnError:&unregisterError]) {
+        LOG(ERROR) << "SMAppService unregister failed for "
+                   << [plist UTF8String] << ": "
+                   << [[unregisterError localizedDescription] UTF8String];
+      }
     }
     if (service.status == SMAppServiceStatusRequiresApproval) {
       // The user has switched the item off in Login Items. Registering again
