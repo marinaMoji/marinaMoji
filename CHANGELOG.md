@@ -10,6 +10,8 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+## v0.0.11
+
 ### macOS: the silent updater failed under launchd and left no trace (2026-10-14)
 
 With automatic updates enabled, kickstarting the UpdateHelper daemon on a
