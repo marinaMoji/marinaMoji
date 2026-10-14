@@ -10,6 +10,8 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+## v0.0.9
+
 ### Windows: MSI upgrades were refused ("Another version of this product is already installed") (2026-10-14)
 
 Upgrading a v0.0.7 install with the v0.0.8 MSI (by hand or via Preferences >
