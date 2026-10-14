@@ -37,8 +37,6 @@
 #import "mac/renderer_receiver.h"
 #import "mac/sync_overlay.h"
 
-#include <servers/bootstrap.h>
-
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -69,22 +67,6 @@ namespace {
 // plists inside the app bundle, so macOS attributes the background activity to
 // marinaMoji rather than to the signing identity of whoever built it.
 //
-// After an upgrade, Background Task Management can keep reporting an agent as
-// Enabled while launchd no longer has the job loaded, so the converter's Mach
-// service does not exist: every client call then fails and the settings dialog
-// reports that it cannot fetch the current configuration. |machService| is the
-// name the job is expected to publish (nil for jobs that publish none); when
-// launchd does not know it, the item is unregistered and registered afresh.
-bool IsMachServiceKnown(NSString *machService) {
-  mach_port_t port = MACH_PORT_NULL;
-  if (bootstrap_look_up(bootstrap_port, [machService UTF8String], &port) !=
-      KERN_SUCCESS) {
-    return false;
-  }
-  mach_port_deallocate(mach_task_self(), port);
-  return true;
-}
-
 // macOS keeps the agents switched off ("requires approval") until the user
 // allows marinaMoji under System Settings > General > Login Items & Extensions
 // > Allow in the Background. That switch can be off after an install or
@@ -139,24 +121,44 @@ void PromptForBackgroundApproval() {
   });
 }
 
+// After an upgrade, Background Task Management can keep reporting an agent as
+// Enabled while launchd no longer has the job loaded. For the converter that
+// means its Mach service does not exist: every client call then fails and the
+// settings dialog reports that it cannot fetch the current configuration
+// values. The sync agent publishes no Mach service, so it can silently stay
+// unloaded the same way (observed: its last run was weeks before the upgrade).
+// Ask launchd directly whether the job is loaded; when it is not, the item is
+// unregistered and registered afresh.
+bool IsJobLoaded(NSString *label) {
+  NSTask *task = [[NSTask alloc] init];
+  task.executableURL = [NSURL fileURLWithPath:@"/bin/launchctl"];
+  task.arguments = @[
+    @"print",
+    [NSString stringWithFormat:@"gui/%u/%@", getuid(), label],
+  ];
+  task.standardOutput = [NSFileHandle fileHandleWithNullDevice];
+  task.standardError = [NSFileHandle fileHandleWithNullDevice];
+  NSError *error = nil;
+  if (![task launchAndReturnError:&error]) {
+    // Cannot tell: assume loaded, so a missing launchctl never causes churn.
+    return true;
+  }
+  [task waitUntilExit];
+  return task.terminationStatus == 0;
+}
+
 void RegisterLaunchAgents() {
-  struct Agent {
-    NSString *plist;
-    NSString *machService;
-  };
-  const Agent agents[] = {
-      {@"org.mozc.inputmethod.Japanese.Converter.plist",
-       @"org.mozc.inputmethod.Japanese.Converter.session"},
-      {@"org.mozc.inputmethod.Japanese.Renderer.plist",
-       @"org.mozc.inputmethod.Japanese.Renderer.renderer"},
-      {@"org.mozc.inputmethod.Japanese.Sync.plist", nil},
-  };
+  NSArray<NSString *> *plists = @[
+    @"org.mozc.inputmethod.Japanese.Converter.plist",
+    @"org.mozc.inputmethod.Japanese.Renderer.plist",
+    @"org.mozc.inputmethod.Japanese.Sync.plist",
+  ];
   bool needs_approval = false;
-  for (const Agent &agent : agents) {
-    NSString *plist = agent.plist;
+  for (NSString *plist in plists) {
+    NSString *label = [plist stringByDeletingPathExtension];
     SMAppService *service = [SMAppService agentServiceWithPlistName:plist];
     if (service.status == SMAppServiceStatusEnabled) {
-      if (agent.machService == nil || IsMachServiceKnown(agent.machService)) {
+      if (IsJobLoaded(label)) {
         continue;
       }
       LOG(WARNING) << "Enabled but not loaded in launchd; re-registering "

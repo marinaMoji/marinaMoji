@@ -10,6 +10,21 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: the sync agent was silently left unloaded after upgrades (2026-10-14)
+
+The v0.0.8 -> v0.0.9 upgrade test passed, but its `INFO` line showed
+`Sync=NOT-loaded`, and BTM's last use for the sync agent was 2026-10-02. Same
+stale "enabled but not loaded" state as the converter, but the startup repair
+skipped it because it had nothing to look up: the check used
+`bootstrap_look_up` on a Mach service, and the sync agent publishes none.
+
+**Fix:** `mac/main.mm` now asks launchd directly (`launchctl print
+gui/<uid>/<label>`, exit status 0 = loaded; verified 0/0/113 for
+converter/renderer/sync on the affected machine) for all three agents and
+re-registers any that are enabled but not loaded. `vm_trial_marinamoji.sh`
+now FAILs when the sync agent is not loaded after the app starts. Not yet
+confirmed in a release.
+
 ### Windows: the update check now runs in the sync task, not the renderer (2026-10-14)
 
 The check lived in the renderer, which is sandboxed (low integrity,
