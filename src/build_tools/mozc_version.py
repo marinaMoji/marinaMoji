@@ -105,8 +105,44 @@ def _GetRevisionForPlatform(revision, target_platform):
   return revision
 
 
+def _GetMarinaWindowsRevision(marina_version_file):
+  """Maps the marinaMoji release version to a Windows file-version revision.
+
+  marinaMoji releases share the upstream Mozc MAJOR.MINOR.BUILD, so without
+  this every Windows binary of every release has the same file version.
+  Windows Installer does not overwrite an installed versioned file with one of
+  the same version, so an MSI upgrade installed fine but left the old
+  binaries in place. The fourth field is the only one free to vary (it is
+  ignored for ProductVersion comparison but not for file versions).
+
+  "0.0.9" -> 9, "0.1.2" -> 1002. Must fit in 16 bits. An "-rcN" suffix is
+  ignored, so an rc and its final release share a revision: install the final
+  release over an rc only after uninstalling it.
+
+  Args:
+    marina_version_file: path to marina_product_version.txt.
+  Returns:
+    The revision as a string.
+  """
+  with open(marina_version_file) as version_file:
+    lines = [line.strip() for line in version_file
+             if line.strip() and not line.strip().startswith('#')]
+  matchobj = re.match(r'v?(\d+)\.(\d+)\.(\d+)', lines[0]) if lines else None
+  if not matchobj:
+    logging.critical('%s has no X.Y.Z version line', marina_version_file)
+    sys.exit(1)
+  minor, patch = int(matchobj.group(2)), int(matchobj.group(3))
+  revision = minor * 1000 + patch
+  if patch >= 1000 or revision > 0xffff:
+    logging.critical('marinaMoji version %s does not fit a 16-bit revision',
+                     lines[0])
+    sys.exit(1)
+  return str(revision)
+
+
 def _ParseVersionTemplateFile(
-    template_path, target_platform, channel, version_override
+    template_path, target_platform, channel, version_override,
+    revision_override=None
 ):
   """Parses a version definition file.
 
@@ -158,6 +194,8 @@ def _ParseVersionTemplateFile(
       template_dict['MINOR'] = nums[1]
       template_dict['BUILD'] = nums[2]
       template_dict['REVISION'] = nums[3]
+  if revision_override and not version_override:
+    template_dict['REVISION'] = revision_override
   return template_dict
 
 
@@ -204,7 +242,8 @@ def GenerateVersionFileFromTemplate(template_path,
                                     version_format,
                                     target_platform,
                                     channel='default',
-                                    version_override=None):
+                                    version_override=None,
+                                    revision_override=None):
   """Generates version file from template file and given parameters.
 
   Args:
@@ -222,7 +261,8 @@ def GenerateVersionFileFromTemplate(template_path,
   """
 
   properties = _ParseVersionTemplateFile(template_path, target_platform,
-                                         channel, version_override)
+                                         channel, version_override,
+                                         revision_override)
   version_definition = _GetVersionInFormat(properties, version_format)
   old_content = ''
   if os.path.exists(output_path):
@@ -239,7 +279,8 @@ def GenerateVersionFileFromTemplate(template_path,
 
 
 def GenerateVersionFile(version_template_path, version_path, target_platform,
-                        channel='default', version_override=None):
+                        channel='default', version_override=None,
+                        revision_override=None):
   """Reads the version template file and stores it into version_path.
 
   This doesn't update the "version_path" if nothing will be changed to
@@ -271,7 +312,8 @@ def GenerateVersionFile(version_template_path, version_path, target_platform,
       version_format,
       target_platform=target_platform,
       channel=channel,
-      version_override=version_override)
+      version_override=version_override,
+      revision_override=revision_override)
 
 
 class MozcVersion(object):
@@ -369,6 +411,12 @@ def main():
           ' build number (e.g. 5840).'
       ),
   )
+  parser.add_option(
+      '--marina_version_file',
+      dest='marina_version_file',
+      help=('Path to marina_product_version.txt. On Windows the marinaMoji'
+            ' release version becomes the file-version revision.'),
+  )
   parser.add_option('--output', dest='output',
                     help='Path to the output version file.')
   parser.add_option('--target_platform', dest='target_platform',
@@ -398,12 +446,16 @@ def main():
     version_override = _GetChangelistNumber(
         options.build_override, options.build_changelist_file
     )
+  revision_override = None
+  if options.marina_version_file and options.target_platform == 'Windows':
+    revision_override = _GetMarinaWindowsRevision(options.marina_version_file)
   GenerateVersionFile(
       version_template_path=options.template_path,
       version_path=options.output,
       target_platform=options.target_platform,
       channel=options.channel,
-      version_override=version_override)
+      version_override=version_override,
+      revision_override=revision_override)
 
 if __name__ == '__main__':
   main()

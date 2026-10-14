@@ -774,6 +774,9 @@ mozc_run_build_tool(
         "--template_path": [
             "//:version.bzl",
         ],
+        "--marina_version_file": [
+            "//:marina_product_version.txt",
+        ],
     },
     outs = {
         "--output": "mozc_version.txt",

@@ -10,6 +10,25 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: MSI upgrades installed but left the old binaries (2026-10-14)
+
+After the ProductCode fix, upgrading v0.0.8 with the v0.0.9 MSI ran to the end
+and asked for a restart, yet Preferences still said 0.0.8. Every Windows binary
+of every marinaMoji release has file version 3.34.6345.0 (the Windows revision
+is 0 on the stable channel), and Windows Installer does not overwrite an
+installed versioned file with one of the same version. Observed on the VM:
+all `marinamoji_*.exe`/`.dll` report 3.34.6345.0; inferred cause, not yet
+confirmed by hashing the files against the MSI contents.
+
+**Fix:** `build_tools/mozc_version.py` takes `--marina_version_file` (wired in
+`base/BUILD.bazel`) and, for Windows only, uses the marinaMoji release as the
+fourth version field: `0.0.9` -> `3.34.6345.9`, `0.1.2` -> `3.34.6345.1002`
+(must fit 16 bits; an `-rcN` suffix is ignored, so an rc and its final release
+share a revision). macOS and Linux versions are unchanged. The existing
+Upgrade-table range is inclusive, so older installs are still detected.
+Effective from the first release built with it; v0.0.9 cannot upgrade v0.0.8
+in place. Not built on Windows.
+
 ## v0.0.9
 
 ### Windows: MSI upgrades were refused ("Another version of this product is already installed") (2026-10-14)
