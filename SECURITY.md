@@ -48,8 +48,15 @@ build provenance attestation (above) for these `.msi` files covers the
 unsigned CI build rather than the signed file you download. The `SHA256SUMS`
 digests match the signed files. Earlier releases are unsigned. This is an
 individual-validation certificate, so SmartScreen may still warn until the
-publisher builds reputation. Signed MSIX packages distributed through the
-Microsoft Store are planned.
+publisher builds reputation.
+
+Each signed stable release is also mirrored at
+`https://marinamoji.github.io/downloads/windows/<tag>/` (repository
+`marinaMoji/downloads`). That workflow publishes a file only if it matches the
+release's `SHA256SUMS` and carries a valid Authenticode signature, with a trusted
+timestamp, from the project's signing certificate, verified against a pinned
+Certum CA bundle. A Microsoft Store listing of the same signed MSI (not MSIX,
+which cannot host a text service) is planned.
 
 ## Signing keys
 

@@ -9,6 +9,16 @@
 // SECURITY.md). SimplySign Desktop must be running and logged in.
 //
 // Usage: node scripts/sign-windows-release.mjs <tag> [--upload] [--work-dir DIR]
+//        node scripts/sign-windows-release.mjs <tag> --mirror-only
+//
+// After a verified --upload the tag is also added to versions.txt in
+// marinaMoji/downloads, whose Pages workflow then re-verifies the signatures and
+// publishes the MSIs at stable URLs (needed for the Microsoft Store). That is
+// done here, not by a GitHub event, because signing is the one interactive step
+// (Certum SimplySign) and uploading release assets fires no workflow event.
+// --mirror-only skips signing: it checks that the release's MSIs are already
+// signed and only does the mirroring step (e.g. for a release signed earlier).
+// Prereleases and drafts are never mirrored.
 //
 // Without --upload nothing on GitHub is modified: everything is prepared and
 // verified in <work-dir>/new for review. With --upload the changed assets are
@@ -24,13 +34,17 @@ import path from 'node:path';
 import process from 'node:process';
 
 const REPO = 'marinaMoji/marinaMoji';
+const DOWNLOADS_REPO = 'marinaMoji/downloads';
 
 const args = process.argv.slice(2);
 const upload = args.includes('--upload');
+const mirrorOnly = args.includes('--mirror-only');
 const workFlag = args.indexOf('--work-dir');
 const tag = args.find((arg, i) => !arg.startsWith('--') && args[i - 1] !== '--work-dir');
 if (!tag || !/^v\d/.test(tag)) {
-  throw new Error('Usage: sign-windows-release.mjs <tag> [--upload] [--work-dir DIR]');
+  throw new Error(
+    'Usage: sign-windows-release.mjs <tag> [--upload | --mirror-only] [--work-dir DIR]',
+  );
 }
 const workDir =
   workFlag >= 0 ? path.resolve(args[workFlag + 1]) : mkdtempSync(path.join(tmpdir(), 'sign-win-'));
@@ -52,12 +66,75 @@ const bundle = path.join(process.env.HOME, '.config/sign-windows/ca/verify-bundl
 const verifySignature = (file) =>
   run('osslsigncode', ['verify', '-CAfile', bundle, '-TSA-CAfile', bundle, '-in', file]);
 
-for (const tool of ['gh', 'sign-windows', 'osslsigncode']) {
+for (const tool of mirrorOnly ? ['gh', 'osslsigncode'] : ['gh', 'sign-windows', 'osslsigncode']) {
   try {
     run('which', [tool]);
   } catch {
     throw new Error(`Required tool not found on PATH: ${tool}`);
   }
+}
+
+// Adds |tag| to versions.txt in the downloads repo (one commit through the API,
+// made with the maintainer's own gh credentials so that the push triggers the
+// Pages workflow). Never throws: the release itself is already published and
+// verified, so a failure here only means the tag must be added by hand.
+function mirrorToDownloads() {
+  try {
+    const release = JSON.parse(gh('release', 'view', tag, '--json', 'isPrerelease,isDraft'));
+    if (release.isPrerelease || release.isDraft) {
+      log(`\n${tag} is a prerelease or draft: not mirrored to ${DOWNLOADS_REPO}.`);
+      return;
+    }
+    const file = JSON.parse(
+      run('gh', ['api', `repos/${DOWNLOADS_REPO}/contents/versions.txt?ref=main`]),
+    );
+    const current = Buffer.from(file.content, 'base64').toString('utf8');
+    const listed = current
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#'));
+    if (listed.includes(tag)) {
+      log(`\n${tag} is already listed in ${DOWNLOADS_REPO}/versions.txt.`);
+      return;
+    }
+    const updated = `${current.endsWith('\n') ? current : `${current}\n`}${tag}\n`;
+    run('gh', [
+      'api',
+      '-X',
+      'PUT',
+      `repos/${DOWNLOADS_REPO}/contents/versions.txt`,
+      '-f',
+      `message=Mirror ${tag}`,
+      '-f',
+      `content=${Buffer.from(updated, 'utf8').toString('base64')}`,
+      '-f',
+      `sha=${file.sha}`,
+      '-f',
+      'branch=main',
+    ]);
+    log(
+      `\nAdded ${tag} to ${DOWNLOADS_REPO}/versions.txt; its Pages workflow now verifies ` +
+        `and publishes the MSIs: https://github.com/${DOWNLOADS_REPO}/actions`,
+    );
+  } catch (error) {
+    log(
+      `\nWARNING: could not update ${DOWNLOADS_REPO}: ${error.message}\n` +
+        `The release is fine. Add "${tag}" to versions.txt there by hand, or re-run with --mirror-only.`,
+    );
+  }
+}
+
+if (mirrorOnly) {
+  const liveMirrorDir = path.join(workDir, 'mirror-check');
+  mkdirSync(liveMirrorDir, { recursive: true });
+  log(`Checking that the ${tag} MSIs on the release are signed`);
+  gh('release', 'download', tag, '--dir', liveMirrorDir, '--clobber', '-p', '*.msi');
+  const found = readdirSync(liveMirrorDir).filter((n) => n.endsWith('.msi'));
+  if (found.length !== 2) throw new Error(`Expected 2 MSIs, found ${found.length}`);
+  for (const name of found) verifySignature(path.join(liveMirrorDir, name));
+  log('Both MSIs carry a valid signature.');
+  mirrorToDownloads();
+  process.exit(0);
 }
 
 log(`Downloading ${tag} Windows assets to ${origDir}`);
@@ -178,3 +255,4 @@ for (const name of msis) {
   }
 }
 log(`\nUploaded and verified. Originals kept in ${origDir}.`);
+mirrorToDownloads();

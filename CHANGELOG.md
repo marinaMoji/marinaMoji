@@ -10,6 +10,35 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: signed MSIs are mirrored for the Store automatically (2026-10-15)
+
+`marinaMoji/downloads` mirrors the signed Windows MSIs on GitHub Pages at stable,
+direct (non-redirecting; verified HTTP 200) URLs, which the Microsoft Store
+needs. Adding a release meant editing `versions.txt` there by hand, and the
+workflow's signature check only grepped each MSI for the text "DigitalSignature",
+which shows a signature exists, not that it is valid or ours.
+
+- **Automatic:** `scripts/sign-windows-release.mjs` now adds the tag to
+  `versions.txt` in the downloads repo after a verified `--upload`. It is done
+  there rather than by a GitHub event because signing is the one interactive step
+  (Certum SimplySign) and uploading release assets fires no workflow event.
+  Prereleases and drafts are skipped; a failure only warns (the release is
+  already published). `--mirror-only <tag>` mirrors an already-signed release
+  without signing again; it checks the MSIs are signed first and is idempotent.
+- **Stricter:** the downloads workflow now runs `osslsigncode verify` against a
+  pinned public Certum CA bundle (`ca/verify-bundle.pem`) with timestamp
+  verification, and requires the signer to be "Open Source Developer Daniel
+  Patrick Morgan". The first attempt matched only Homebrew's subject format and
+  wrongly rejected valid signatures on Ubuntu (caught by the live run; no
+  deploy happened, the old site stayed up); it now accepts both formats. Tested
+  with signed (accepted) and unsigned, imposter-name and CA-certificate subjects
+  (rejected).
+- **Docs:** README and SECURITY no longer promise "signed MSIX packages" for the
+  Store. A Store listing, if done, would be the signed MSI; the earlier decision
+  entry ("Windows ships unsigned; Microsoft Store ruled out") predates Certum
+  signing. No Store submission has been made, and whether certification accepts a
+  system-wide text-service installer is untested.
+
 ## v0.0.13
 
 ### macOS: the sync agent can fail to launch after an upgrade (launch constraint) (2026-10-15)

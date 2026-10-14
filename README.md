@@ -84,8 +84,10 @@ Download the `.msi` for your machine — `x64` or `arm64` — and run it. The
 installer is Authenticode-signed (from v0.0.7; earlier releases are
 unsigned). Windows shows the publisher as "Open Source Developer Daniel
 Patrick Morgan". SmartScreen may still warn while the certificate builds
-reputation — choose "More info" → "Run anyway". Signed packages through the
-Microsoft Store are planned.
+reputation — choose "More info" → "Run anyway". The same signed installers
+are also mirrored at stable, direct URLs
+(`https://marinamoji.github.io/downloads/windows/<tag>/`), which a planned
+Microsoft Store listing of the signed MSI will use.
 
 In **Settings → Misc**, use **Check for updates…** the same way as on macOS
 (stable-only by default; optional unstable/rc channel).
