@@ -10,6 +10,8 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+## v0.0.10
+
 ### macOS: the sync agent was silently left unloaded after upgrades (2026-10-14)
 
 The v0.0.8 -> v0.0.9 upgrade test passed, but its `INFO` line showed
