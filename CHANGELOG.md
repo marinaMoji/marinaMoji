@@ -10,6 +10,25 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: "Download & Install" in Preferences did nothing (2026-10-14)
+
+Clicking Download & Install in Preferences > Misc > Check for updates
+downloaded the package (verified byte-identical to the release) and then
+nothing happened: no Installer window, no error. The app opened it with
+`Process::SpawnProcess("/usr/bin/open", path)`, which splits its argument on
+spaces, and the package is always saved under
+`~/Library/Application Support/marinaMoji/`. `open` therefore got
+`.../Application` and `Support/marinaMoji/...pkg` as two arguments and failed,
+but launching `open` itself succeeded, so the failure was swallowed. Affected
+every macOS user of the in-app updater. (The silent LaunchDaemon updater uses
+an argv vector and was not affected; the Windows path uses `QDesktopServices`.)
+
+**Fix:** `MarinaOpenLocalPath` (`base/marina_curl_fetch.cc`) now spawns `open`
+with the path as a single argv entry and returns false if `open` exits
+non-zero, so a failure shows "Downloaded the installer but could not open it".
+Compiles; not run end to end (the local SDK cannot link). Found by testing the
+real GUI update path, which the `--verify-upgrade` script does not exercise.
+
 ## v0.0.10
 
 ### macOS: the sync agent was silently left unloaded after upgrades (2026-10-14)

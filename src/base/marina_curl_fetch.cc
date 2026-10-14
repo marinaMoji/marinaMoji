@@ -1,6 +1,10 @@
 #include "base/marina_curl_fetch.h"
 
 #include <array>
+#ifdef __APPLE__
+#include <spawn.h>
+#include <sys/wait.h>
+#endif  // __APPLE__
 #include <cstdio>
 #include <string>
 
@@ -91,9 +95,32 @@ absl::Status MarinaCurlDownload(absl::string_view url,
 #endif
 }
 
+#ifdef __APPLE__
+extern char** environ;
+#endif  // __APPLE__
+
 bool MarinaOpenLocalPath(absl::string_view path) {
 #if defined(__APPLE__)
-  return Process::SpawnProcess("/usr/bin/open", path);
+  // Not Process::SpawnProcess: it splits its argument on spaces, and the
+  // downloaded package lives under ~/Library/Application Support/, so `open`
+  // received three bogus arguments and failed. Spawning launched `open`
+  // successfully, so the failure was invisible and the updater's "Download &
+  // Install" appeared to do nothing. Pass the path as one argv entry and use
+  // `open`'s exit status (it returns as soon as the handler has been asked to
+  // open the file).
+  const std::string path_str(path);
+  char open_path[] = "/usr/bin/open";
+  char* const argv[] = {open_path, const_cast<char*>(path_str.c_str()),
+                        nullptr};
+  pid_t pid = 0;
+  if (posix_spawn(&pid, open_path, nullptr, nullptr, argv, environ) != 0) {
+    return false;
+  }
+  int wait_status = 0;
+  if (waitpid(pid, &wait_status, 0) < 0) {
+    return false;
+  }
+  return WIFEXITED(wait_status) && WEXITSTATUS(wait_status) == 0;
 #else
   (void)path;
   return false;
