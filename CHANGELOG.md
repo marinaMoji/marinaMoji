@@ -10,6 +10,31 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: the sync agent can fail to launch after an upgrade (launch constraint) (2026-10-15)
+
+After updating to v0.0.12 in-app, `launchctl list` showed the sync agent with
+exit status 78 and `launchctl print` said `job state = spawn failed`, `last exit
+code = 78: EX_CONFIG` and `needs LWCR update`. SMAppService pins each item's
+launch constraint (LWCR) to the binary's cdhash when it is registered; the
+upgrade replaced the binary, launchd kept the old constraint and refuses to
+start the job. The code is correctly signed and notarized (verified), so this is
+not a signing problem. v0.0.12's restart logic only handles "loaded but not
+running" and `kickstart` cannot fix a stale constraint, so it does nothing here.
+
+**Fix:** `mac/main.mm` treats a job in the `spawn failed` / `needs LWCR update`
+state like an unloaded one and unregisters and registers it again, which
+refreshes the constraint. `vm_trial_marinamoji.sh` reports this state as
+`SPAWN-FAILED(needs re-registration)` and still FAILs the Sync check. Not yet
+confirmed that re-registering clears it; the manual equivalent is switching
+marinaMoji off and on in Login Items & Extensions.
+
+### macOS: a download failure now says why (2026-10-15)
+
+A brief "download failed" during the in-app update gave no reason, and
+`MarinaCurlDownload` swallowed curl's exit status. It now returns "curl failed
+(exit status N)" (shown in Preferences) and writes the same to
+`marina_update.log`.
+
 ## v0.0.12
 
 ### Release builds log nothing: a diagnostic log for the update checkers (2026-10-14)

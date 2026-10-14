@@ -142,6 +142,10 @@ agent_states() {
       echo "${a}=NOT-loaded"
     elif agent_running "${a}"; then
       echo "${a}=running"
+    elif launchctl print "gui/${UID_NUM}/${AGENT_PREFIX}.${a}" 2>/dev/null |
+        grep -q -E 'spawn failed|needs LWCR update'; then
+      # launchd's stored launch constraint no longer matches the upgraded binary.
+      echo "${a}=SPAWN-FAILED(needs re-registration)"
     else
       echo "${a}=loaded-not-running"
     fi

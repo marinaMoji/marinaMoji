@@ -129,7 +129,7 @@ void PromptForBackgroundApproval() {
 // unloaded the same way (observed: its last run was weeks before the upgrade).
 // Ask launchd directly whether the job is loaded; when it is not, the item is
 // unregistered and registered afresh.
-enum class JobState { kNotLoaded, kLoadedNotRunning, kRunning };
+enum class JobState { kNotLoaded, kSpawnFailed, kLoadedNotRunning, kRunning };
 
 // Asks launchd about |label| in this user's GUI domain (`launchctl print`:
 // exit status 0 = the job is loaded; its output says whether a process is
@@ -157,13 +157,27 @@ JobState GetJobState(NSString *label) {
   }
   NSString *output = [[NSString alloc] initWithData:data
                                            encoding:NSUTF8StringEncoding];
-  return [output containsString:@"\tstate = running"]
-             ? JobState::kRunning
-             : JobState::kLoadedNotRunning;
+  if ([output containsString:@"\tstate = running"]) {
+    return JobState::kRunning;
+  }
+  // launchd refuses to start a job whose stored launch constraint (LWCR) no
+  // longer matches the binary on disk. SMAppService pins the constraint to the
+  // binary's cdhash when the item is registered, so after an upgrade replaces
+  // the binary the job shows "job state = spawn failed", "last exit code = 78:
+  // EX_CONFIG" and "needs LWCR update", and it never starts. Observed for the
+  // sync agent after updating to v0.0.12. Only unregistering and registering
+  // the item again refreshes the constraint.
+  if ([output containsString:@"job state = spawn failed"] ||
+      [output containsString:@"needs LWCR update"]) {
+    return JobState::kSpawnFailed;
+  }
+  return JobState::kLoadedNotRunning;
 }
 
+// False when the job is not loaded, or is loaded but cannot be started.
 bool IsJobLoaded(NSString *label) {
-  return GetJobState(label) != JobState::kNotLoaded;
+  const JobState state = GetJobState(label);
+  return state != JobState::kNotLoaded && state != JobState::kSpawnFailed;
 }
 
 // The sync daemon runs for the whole session (RunAtLoad, no KeepAlive), so once
@@ -204,7 +218,8 @@ void RegisterLaunchAgents() {
       if (IsJobLoaded(label)) {
         continue;
       }
-      LOG(WARNING) << "Enabled but not loaded in launchd; re-registering "
+      LOG(WARNING) << "Enabled but not loaded or not startable in launchd; "
+                   << "re-registering "
                    << [plist UTF8String];
       NSError *unregisterError = nil;
       if (![service unregisterAndReturnError:&unregisterError]) {

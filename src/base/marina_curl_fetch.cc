@@ -13,6 +13,7 @@
 #include "absl/strings/str_cat.h"
 
 #if defined(__APPLE__)
+#include "base/marina_update_log.h"
 #include "base/process.h"
 #endif  // __APPLE__
 
@@ -55,7 +56,13 @@ absl::StatusOr<std::string> RunCurlCapture(absl::string_view args) {
   }
   const int status = ::pclose(pipe);
   if (status != 0) {
-    return absl::UnavailableError("curl failed.");
+    // curl's own exit codes: 22 = HTTP error (-f), 6 = DNS, 7 = connect, 28 =
+    // timeout, 23 = could not write the output file, 35/60 = TLS.
+    const int code = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+    MarinaUpdateLog(absl::StrCat("curl failed with exit status ", code, " for ",
+                                 args.substr(0, 200)));
+    return absl::UnavailableError(absl::StrCat("curl failed (exit status ", code,
+                                               ")."));
   }
   return body;
 }

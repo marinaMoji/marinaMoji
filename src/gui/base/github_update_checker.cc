@@ -78,7 +78,11 @@ bool GitHubUpdateChecker::DownloadAndOpenInstaller(const QString& pkg_url,
       MarinaCurlDownload(pkg_url.toStdString(), dest);
   if (!status.ok()) {
     if (error_message != nullptr) {
-      *error_message = tr("Could not download the installer.");
+      *error_message =
+          tr("Could not download the installer.") + QStringLiteral(" (") +
+          QString::fromUtf8(status.message().data(),
+                            static_cast<int>(status.message().size())) +
+          QStringLiteral(")");
     }
     return false;
   }
