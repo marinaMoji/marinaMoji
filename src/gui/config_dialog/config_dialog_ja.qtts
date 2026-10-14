@@ -1173,6 +1173,10 @@ Try running %3 in Terminal and check %4.</source>
         <translation>%1 は利用統計やクラッシュ報告を Google にも marinaMoji 開発者にも送りません。上流の Mozc には任意のテレメトリ設定がありますが、ここでは常に無効です。</translation>
     </message>
     <message>
+        <source>Current version: %1</source>
+        <translation>現在のバージョン: %1</translation>
+    </message>
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="539" />
         <source>Automatically check for updates (once a day)</source>
         <translation>更新を自動確認する（1日1回）</translation>

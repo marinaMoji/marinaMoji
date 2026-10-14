@@ -10,6 +10,33 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Settings: show the installed version (2026-10-14)
+
+On Windows the About dialog is only reachable from the language-bar menu,
+which is easy to miss on Windows 11, so there was no obvious way to check
+which version is installed (e.g. when testing auto-update in a VM). The
+Misc tab of the settings dialog, next to the update controls, now shows
+"Current version: X" on every platform. fr/ja translations and `.qm` files
+updated. Not compiled locally (Qt Bazel repository unavailable in the
+authoring shell).
+
+### macOS: upgrades no longer unload the live agents (2026-10-14)
+
+Probable root cause of the post-update "Failed to retrieve the current
+configuration values" error. The postinstall's legacy-agent cleanup ran
+`launchctl bootout gui/<uid>/<label>` for Converter/Renderer/Sync on every
+install, whether or not a legacy plist existed. Those are the same labels the
+app registers with SMAppService, so each upgrade unloaded the live jobs while
+Background Task Management kept reporting them `Enabled`, and the app skipped
+re-registering them.
+
+**Fix:** `mac/installer/postflight_template.sh` boots a job out only when a
+legacy plist for it exists. It also starts the new app at the end and logs
+`health check: converter is loaded in launchd` (or a `WARNING ... NOT loaded`
+line) to `/var/log/install.log`, so a broken update is visible there. Together
+with the startup re-registration below this should make updates, including the
+silent auto-updater, self-healing. Untested on a notarized build.
+
 ### macOS: re-register agents that are "enabled" but not loaded in launchd (2026-10-14)
 
 After updating to v0.0.7, Background Task Management kept reporting the

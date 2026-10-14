@@ -1173,6 +1173,10 @@ Essayez d’exécuter %3 dans le Terminal et consultez %4.</translation>
         <translation>%1 n’envoie pas de statistiques d’utilisation ni de rapports de plantage à Google ni aux développeurs de marinaMoji. Mozc en amont propose une télémétrie facultative ; ce réglage est définitivement désactivé ici.</translation>
     </message>
     <message>
+        <source>Current version: %1</source>
+        <translation>Version actuelle : %1</translation>
+    </message>
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="539" />
         <source>Automatically check for updates (once a day)</source>
         <translation>Rechercher les mises à jour automatiquement (une fois par jour)</translation>

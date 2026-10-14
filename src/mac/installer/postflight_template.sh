@@ -77,8 +77,20 @@ if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
   # names, so they are removed here. Each job is booted out first: deleting the
   # plist alone leaves it loaded until the next logout.
   CONSOLE_HOME=`/usr/bin/dscl . -read "/Users/${CONSOLE_USER}" NFSHomeDirectory 2>/dev/null | /usr/bin/sed 's/^NFSHomeDirectory: //'`
+  #
+  # The bootout must only happen when a legacy plist actually exists. The
+  # SMAppService jobs registered by the app use the very same labels, so an
+  # unconditional bootout unloads the live Converter/Renderer on every upgrade
+  # while Background Task Management keeps reporting them as Enabled; the app
+  # then never re-registers them and the converter's Mach service is gone
+  # (settings: "Failed to retrieve the current configuration values").
   for agent in ${LEGACY_AGENTS}; do
-    as_console_user /bin/launchctl bootout "gui/${CONSOLE_UID}/${agent}" > /dev/null 2>&1
+    LEGACY_FOUND=0
+    [ -f "${LAUNCH_AGENTS}/${agent}.plist" ] && LEGACY_FOUND=1
+    [ -n "${CONSOLE_HOME}" ] && [ -f "${CONSOLE_HOME}/Library/LaunchAgents/${agent}.plist" ] && LEGACY_FOUND=1
+    if [ "${LEGACY_FOUND}" = "1" ]; then
+      as_console_user /bin/launchctl bootout "gui/${CONSOLE_UID}/${agent}" > /dev/null 2>&1
+    fi
     if [ -f "${LAUNCH_AGENTS}/${agent}.plist" ]; then
       /bin/rm -f "${LAUNCH_AGENTS}/${agent}.plist" &&
         log "removed legacy agent ${agent}.plist"
@@ -171,6 +183,30 @@ if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
     log "WARNING: could not register input sources for ${CONSOLE_USER};"
     log "         log out and log back in once, then add marinaMoji under"
     log "         System Settings -> Keyboard -> Input Sources."
+  fi
+fi
+
+# Health check, logged only (never fails the install): start the freshly
+# installed app, which registers the converter/renderer with SMAppService at
+# startup, and record whether launchd then knows the converter. A "NOT loaded"
+# line in /var/log/install.log is the signature of the stale-registration bug.
+if [ "${HAVE_CONSOLE_USER}" = "1" ] && [ -x "${IMK}" ]; then
+  as_console_user /usr/bin/open -g "${APP}" > /dev/null 2>&1
+  CONVERTER_LOADED=0
+  tries=0
+  while [ "${tries}" -lt 10 ]; do
+    if as_console_user /bin/launchctl print "gui/${CONSOLE_UID}/org.mozc.inputmethod.Japanese.Converter" > /dev/null 2>&1; then
+      CONVERTER_LOADED=1
+      break
+    fi
+    /bin/sleep 1
+    tries=`expr ${tries} + 1`
+  done
+  if [ "${CONVERTER_LOADED}" = "1" ]; then
+    log "health check: converter is loaded in launchd"
+  else
+    log "WARNING: health check: converter is NOT loaded in launchd; it will be"
+    log "         re-registered the next time marinaMoji starts"
   fi
 fi
 

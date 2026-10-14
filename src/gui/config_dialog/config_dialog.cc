@@ -37,6 +37,7 @@
 #include <QFontMetrics>
 #include <QGuiApplication>
 #include <QInputDialog>
+#include <QLabel>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QShowEvent>
@@ -88,6 +89,7 @@
 
 #if defined(__APPLE__) || defined(_WIN32)
 #include "base/marina_update_throttle.h"
+#include "base/version.h"
 #endif  // __APPLE__ || _WIN32
 
 #ifdef __APPLE__
@@ -572,6 +574,16 @@ ConfigDialog::ConfigDialog()
     auto *updates_layout = new QVBoxLayout(updates_widget);
     updates_layout->setContentsMargins(0, 0, 5, 10);
     updates_layout->setSpacing(8);
+
+    // The installed version, so it can be compared with the latest release
+    // without hunting for the About dialog (which on Windows is only in the
+    // language bar menu, easy to miss on Windows 11).
+    auto *version_label = new QLabel(
+        tr("Current version: %1")
+            .arg(QString::fromStdString(Version::GetProductVersion())),
+        updates_widget);
+    version_label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    updates_layout->addWidget(version_label);
 
     auto_check_for_updates_checkbox_ = new QCheckBox(
         tr("Automatically check for updates (once a day)"), updates_widget);
