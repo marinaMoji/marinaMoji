@@ -308,6 +308,7 @@ mozc_cc_library(
     deps = [
         "//base:file_util",
         "//base:marina_semver",
+        "//base:marina_update_log",
         "//base:marina_update_throttle",
         "//base:process",
         "//base:system_util",
@@ -319,7 +320,6 @@ mozc_cc_library(
         "//bazel/win32:winhttp",
         "//config:config_handler",
         "//protocol:config_cc_proto",
-        "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
         "@com_microsoft_wil//:wil",
     ],

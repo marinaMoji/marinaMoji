@@ -22,11 +22,11 @@
 #include <thread>
 #include <vector>
 
-#include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "base/file_util.h"
 #include "base/marina_github_releases.h"
+#include "base/marina_update_log.h"
 #include "base/marina_update_throttle.h"
 #include "base/process.h"
 #include "base/system_util.h"
@@ -464,8 +464,8 @@ void PresentUpdateOffer(const MarinaGitHubRelease& release,
       ok = WinUtil::ShellExecuteInSystemDir(L"open", dest.c_str(), nullptr);
     }
     if (!ok) {
-      LOG(WARNING) << "marinaMoji update: could not download or open the "
-                   << "installer for " << release.tag_name;
+      MarinaUpdateLog(absl::StrCat("update: could not download or open the ",
+                                   "installer for ", release.tag_name));
       ::MessageBoxW(
           nullptr,
           L"Could not download or open the installer. Try again later from "
@@ -487,12 +487,12 @@ void PresentUpdateOffer(const MarinaGitHubRelease& release,
 bool RunCheckOnce() {
   const auto json = FetchGitHubReleasesJson();
   if (!json.has_value()) {
-    LOG(WARNING) << "marinaMoji update check: could not fetch releases";
+    MarinaUpdateLog("update check: could not fetch releases");
     return false;
   }
   const auto releases = ParseMarinaGitHubReleasesJson(*json);
   if (releases.empty()) {
-    LOG(WARNING) << "marinaMoji update check: no releases parsed";
+    MarinaUpdateLog("update check: no releases parsed");
     return false;
   }
 
@@ -504,12 +504,12 @@ bool RunCheckOnce() {
   const auto newer =
       SelectNewerMarinaRelease(releases, current_version, include_unstable);
   if (!newer.has_value()) {
-    LOG(INFO) << "marinaMoji update check: " << current_version
-              << " is up to date";
+    MarinaUpdateLog(
+        absl::StrCat("update check: ", current_version, " is up to date"));
     return true;
   }
-  LOG(INFO) << "marinaMoji update check: " << newer->tag_name
-            << " is newer than " << current_version;
+  MarinaUpdateLog(absl::StrCat("update check: ", newer->tag_name,
+                               " is newer than ", current_version));
   if (!CanSpawnProcesses()) {
     PresentUpdateNotice(*newer);
     return true;

@@ -676,6 +676,16 @@ ConfigDialog::ConfigDialog()
               }
               silent_update_checkbox_->setChecked(result ==
                                                   QStringLiteral("on"));
+              if (checked && result == QStringLiteral("on")) {
+                QMessageBox::information(
+                    this, windowTitle(),
+                    tr("Automatic updates are on. marinaMoji checks once a "
+                       "day and installs new stable releases in the "
+                       "background."));
+              } else if (!checked && result == QStringLiteral("off")) {
+                QMessageBox::information(this, windowTitle(),
+                                         tr("Automatic updates are off."));
+              }
               if (checked && result == QStringLiteral("approval")) {
                 QMessageBox::information(
                     this, windowTitle(),

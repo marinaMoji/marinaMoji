@@ -129,10 +129,22 @@ agents_loaded() {
   agent_loaded Converter && agent_loaded Renderer
 }
 
+# True if launchd has a process running for the agent (not merely loaded).
+agent_running() {
+  launchctl print "gui/${UID_NUM}/${AGENT_PREFIX}.$1" 2>/dev/null |
+    grep -q $'^\tstate = running'
+}
+
 agent_states() {
   local a
   for a in Converter Renderer Sync; do
-    if agent_loaded "${a}"; then echo "${a}=loaded"; else echo "${a}=NOT-loaded"; fi
+    if ! agent_loaded "${a}"; then
+      echo "${a}=NOT-loaded"
+    elif agent_running "${a}"; then
+      echo "${a}=running"
+    else
+      echo "${a}=loaded-not-running"
+    fi
   done | tr '\n' ' '
 }
 
@@ -359,17 +371,18 @@ if [[ "${VERIFY_UPGRADE}" -eq 1 ]]; then
   start_app
   if wait_for_agents 30; then
     verify_result PASS "after starting the app: converter and renderer loaded"
-    # Sync publishes no Mach service, so it can sit enabled-but-unloaded without
-    # any visible symptom (observed: not run since before the upgrade).
+    # Sync publishes no Mach service, so it can sit enabled-but-unloaded, or
+    # loaded-but-killed (an upgrade kills it, exit status -9), with no visible
+    # symptom. "Loaded" is not enough: it must be running, or auto-sync is dead.
     SYNC_OK=0
-    for ((i = 0; i < 15; i++)); do
-      agent_loaded Sync && { SYNC_OK=1; break; }
+    for ((i = 0; i < 20; i++)); do
+      agent_running Sync && { SYNC_OK=1; break; }
       sleep 1
     done
     if [[ "${SYNC_OK}" -eq 1 ]]; then
-      verify_result PASS "after starting the app: sync agent loaded"
+      verify_result PASS "after starting the app: sync agent running"
     else
-      verify_result FAIL "after starting the app: sync agent NOT loaded ($(agent_states))"
+      verify_result FAIL "after starting the app: sync agent not running ($(agent_states))"
     fi
   else
     verify_result FAIL "after starting the app: agents not loaded ($(agent_states)) -- settings would report 'Failed to retrieve the current configuration values'$(approval_hint)"

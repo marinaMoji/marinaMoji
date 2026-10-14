@@ -1181,6 +1181,14 @@ Try running %3 in Terminal and check %4.</source>
         <translation>更新をバックグラウンドで自動的にインストールする</translation>
     </message>
     <message>
+        <source>Automatic updates are on. marinaMoji checks once a day and installs new stable releases in the background.</source>
+        <translation>自動更新をオンにしました。marinaMoji は1日1回確認し、新しい安定版をバックグラウンドでインストールします。</translation>
+    </message>
+    <message>
+        <source>Automatic updates are off.</source>
+        <translation>自動更新をオフにしました。</translation>
+    </message>
+    <message>
         <source>macOS asks you to approve this once in System Settings. Stable releases only. The input method restarts after an update.</source>
         <translation>システム設定で一度だけ承認が必要です。安定版のみ。更新後に入力メソッドが再起動します。</translation>
     </message>

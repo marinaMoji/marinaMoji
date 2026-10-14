@@ -14,8 +14,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/log/globals.h"
-#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -24,6 +22,7 @@
 #include "base/init_mozc.h"
 #include "base/marina_curl_fetch.h"
 #include "base/marina_github_releases.h"
+#include "base/marina_update_log.h"
 #include "base/system_util.h"
 #include "base/version.h"
 
@@ -34,6 +33,15 @@ namespace {
 
 constexpr char kReleasesApiUrl[] =
     "https://api.github.com/repos/marinaMoji/marinaMoji/releases?per_page=50";
+
+// Everything goes through MarinaUpdateLog, not LOG(): release builds compile
+// every LOG statement out (ABSL_MIN_LOG_LEVEL=100), which is how an earlier
+// failed run (exit status 1) left no trace of why. The log is
+// marina_update.log in this daemon's (root's) profile directory, and stderr,
+// which the LaunchDaemon plist sends to /var/log/marinaMojiUpdateHelper.log.
+void Log(absl::string_view message) {
+  MarinaUpdateLog(absl::StrCat("update helper: ", message));
+}
 
 // Only characters that are always filename-safe survive.
 std::string SanitizeForFileName(absl::string_view tag) {
@@ -61,16 +69,16 @@ int RunCommand(const std::vector<std::string>& argv) {
   const int spawn_status = posix_spawn(&pid, argv[0].c_str(), nullptr, nullptr,
                                        c_argv.data(), environ);
   if (spawn_status != 0) {
-    LOG(ERROR) << "posix_spawn(" << argv[0] << ") failed: " << spawn_status;
+    Log(absl::StrCat("posix_spawn(", argv[0], ") failed: ", spawn_status));
     return -1;
   }
   int wait_status = 0;
   if (waitpid(pid, &wait_status, 0) < 0) {
-    LOG(ERROR) << "waitpid for " << argv[0] << " failed";
+    Log(absl::StrCat("waitpid for ", argv[0], " failed"));
     return -1;
   }
   if (!WIFEXITED(wait_status)) {
-    LOG(ERROR) << argv[0] << " did not exit normally";
+    Log(absl::StrCat(argv[0], " did not exit normally"));
     return -1;
   }
   return WEXITSTATUS(wait_status);
@@ -78,8 +86,7 @@ int RunCommand(const std::vector<std::string>& argv) {
 
 absl::Status RunSilentUpdateCheck() {
   const std::string current_version = Version::GetProductVersion();
-  LOG(INFO) << "marinaMoji update helper: checking for updates (current="
-            << current_version << ")";
+  Log(absl::StrCat("checking for updates (current=", current_version, ")"));
 
   const absl::StatusOr<std::string> json = MarinaCurlGet(kReleasesApiUrl);
   if (!json.ok()) {
@@ -95,7 +102,7 @@ absl::Status RunSilentUpdateCheck() {
       SelectNewerMarinaRelease(releases, current_version,
                                /*include_unstable=*/false);
   if (!newer.has_value()) {
-    LOG(INFO) << "marinaMoji update helper: already up to date";
+    Log("already up to date");
     return absl::OkStatus();
   }
 
@@ -112,6 +119,7 @@ absl::Status RunSilentUpdateCheck() {
       absl::StrCat("silent-update-", SanitizeForFileName(newer->tag_name),
                   ".pkg"));
   const FileUnlinker cleanup(dest);
+  Log(absl::StrCat("downloading ", newer->tag_name, " to ", dest));
   if (const absl::Status s = MarinaCurlDownload(*pkg_url, dest); !s.ok()) {
     return absl::UnavailableError(
         absl::StrCat("download failed: ", s.message()));
@@ -127,23 +135,21 @@ absl::Status RunSilentUpdateCheck() {
           ": expected ", expected_digest, ", got ",
           actual_digest.empty() ? "<unavailable>" : actual_digest));
     }
-    LOG(INFO) << "marinaMoji update helper: verified SHA-256 for "
-              << newer->tag_name;
+    Log(absl::StrCat("verified SHA-256 for ", newer->tag_name));
   } else {
-    LOG(WARNING) << "marinaMoji update helper: no published digest for "
-                 << newer->tag_name
-                 << "; installing without a checksum check (macOS still "
-                 << "verifies the notarized installer's code signature)";
+    Log(absl::StrCat("no published digest for ", newer->tag_name,
+                     "; installing without a checksum check (macOS still "
+                     "verifies the notarized installer's code signature)"));
   }
 
-  LOG(INFO) << "marinaMoji update helper: installing " << newer->tag_name;
+  Log(absl::StrCat("installing ", newer->tag_name));
   const int exit_code =
       RunCommand({"/usr/sbin/installer", "-pkg", dest, "-target", "/"});
   if (exit_code != 0) {
     return absl::InternalError(
         absl::StrCat("installer exited with status ", exit_code));
   }
-  LOG(INFO) << "marinaMoji update helper: installed " << newer->tag_name;
+  Log(absl::StrCat("installed ", newer->tag_name));
   return absl::OkStatus();
 }
 
@@ -152,14 +158,10 @@ absl::Status RunSilentUpdateCheck() {
 
 int main(int argc, char* argv[]) {
   mozc::InitMozc(argv[0], &argc, &argv);
-  // Everything this daemon does is logged, and launchd captures stderr into
-  // /var/log/marinaMojiUpdateHelper.log (see the LaunchDaemon plist). Without
-  // this, INFO lines were dropped and a failed run (exit status 1) left no
-  // trace of why.
-  absl::SetStderrThreshold(absl::LogSeverityAtLeast::kInfo);
   const absl::Status status = mozc::RunSilentUpdateCheck();
   if (!status.ok()) {
-    LOG(ERROR) << "marinaMoji update helper failed: " << status.message();
+    mozc::MarinaUpdateLog(
+        absl::StrCat("update helper: FAILED: ", status.message()));
     return 1;
   }
   return 0;

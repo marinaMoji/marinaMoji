@@ -129,22 +129,65 @@ void PromptForBackgroundApproval() {
 // unloaded the same way (observed: its last run was weeks before the upgrade).
 // Ask launchd directly whether the job is loaded; when it is not, the item is
 // unregistered and registered afresh.
-bool IsJobLoaded(NSString *label) {
+enum class JobState { kNotLoaded, kLoadedNotRunning, kRunning };
+
+// Asks launchd about |label| in this user's GUI domain (`launchctl print`:
+// exit status 0 = the job is loaded; its output says whether a process is
+// running). When launchctl itself cannot be run, reports kRunning so that a
+// missing tool never causes any re-registration or restarts.
+JobState GetJobState(NSString *label) {
   NSTask *task = [[NSTask alloc] init];
   task.executableURL = [NSURL fileURLWithPath:@"/bin/launchctl"];
   task.arguments = @[
     @"print",
     [NSString stringWithFormat:@"gui/%u/%@", getuid(), label],
   ];
-  task.standardOutput = [NSFileHandle fileHandleWithNullDevice];
+  NSPipe *pipe = [NSPipe pipe];
+  task.standardOutput = pipe;
   task.standardError = [NSFileHandle fileHandleWithNullDevice];
   NSError *error = nil;
   if (![task launchAndReturnError:&error]) {
-    // Cannot tell: assume loaded, so a missing launchctl never causes churn.
-    return true;
+    return JobState::kRunning;
   }
+  // Read before waiting, so a full pipe cannot block launchctl.
+  NSData *data = [pipe.fileHandleForReading readDataToEndOfFile];
   [task waitUntilExit];
-  return task.terminationStatus == 0;
+  if (task.terminationStatus != 0) {
+    return JobState::kNotLoaded;
+  }
+  NSString *output = [[NSString alloc] initWithData:data
+                                           encoding:NSUTF8StringEncoding];
+  return [output containsString:@"\tstate = running"]
+             ? JobState::kRunning
+             : JobState::kLoadedNotRunning;
+}
+
+bool IsJobLoaded(NSString *label) {
+  return GetJobState(label) != JobState::kNotLoaded;
+}
+
+// The sync daemon runs for the whole session (RunAtLoad, no KeepAlive), so once
+// something stops it -- an upgrade does: observed exit status -9 afterwards --
+// nothing starts it again until the next login, and sync silently stops. Start
+// it when it is loaded but not running.
+void EnsureSyncAgentRunning() {
+  NSString *label = @"org.mozc.inputmethod.Japanese.Sync";
+  if (GetJobState(label) != JobState::kLoadedNotRunning) {
+    return;
+  }
+  LOG(WARNING) << "Sync agent is loaded but not running; starting it";
+  NSTask *task = [[NSTask alloc] init];
+  task.executableURL = [NSURL fileURLWithPath:@"/bin/launchctl"];
+  task.arguments = @[
+    @"kickstart",
+    [NSString stringWithFormat:@"gui/%u/%@", getuid(), label],
+  ];
+  task.standardOutput = [NSFileHandle fileHandleWithNullDevice];
+  task.standardError = [NSFileHandle fileHandleWithNullDevice];
+  NSError *error = nil;
+  if ([task launchAndReturnError:&error]) {
+    [task waitUntilExit];
+  }
 }
 
 void RegisterLaunchAgents() {
@@ -192,6 +235,8 @@ void RegisterLaunchAgents() {
   }
   if (needs_approval) {
     PromptForBackgroundApproval();
+  } else {
+    EnsureSyncAgentRunning();
   }
 }
 

@@ -1181,6 +1181,14 @@ Essayez d’exécuter %3 dans le Terminal et consultez %4.</translation>
         <translation>Installer les mises à jour automatiquement en arrière-plan</translation>
     </message>
     <message>
+        <source>Automatic updates are on. marinaMoji checks once a day and installs new stable releases in the background.</source>
+        <translation>Les mises à jour automatiques sont activées. marinaMoji vérifie une fois par jour et installe les nouvelles versions stables en arrière-plan.</translation>
+    </message>
+    <message>
+        <source>Automatic updates are off.</source>
+        <translation>Les mises à jour automatiques sont désactivées.</translation>
+    </message>
+    <message>
         <source>macOS asks you to approve this once in System Settings. Stable releases only. The input method restarts after an update.</source>
         <translation>macOS vous demande de l'approuver une fois dans Réglages Système. Versions stables uniquement. La méthode de saisie redémarre après une mise à jour.</translation>
     </message>

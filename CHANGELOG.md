@@ -10,6 +10,41 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release builds log nothing: a diagnostic log for the update checkers (2026-10-14)
+
+`.bazelrc` builds releases with `ABSL_MIN_LOG_LEVEL=100`, which compiles every
+`LOG(...)` statement out, and `RegisterLogFileSink` is compiled out under
+`NDEBUG`. So no release binary has ever written a log, which is why the macOS
+helper's failed run and the Windows update check that never showed a popup both
+left nothing to debug. (My earlier "log to stderr" fix for the helper could not
+have worked for the same reason.) New `base/marina_update_log.{h,cc}` appends one
+plain line per decision or failure to `<profile dir>/marina_update.log`
+(capped at 64 KB) and, on macOS, to stderr, which the UpdateHelper plist sends to
+`/var/log/marinaMojiUpdateHelper.log`. Used by the macOS helper and the Windows
+update check (`renderer/win32/marina_auto_update.cc`, now hosted in the sync
+task). On Windows read `...\AppData\LocalLow\marinaMoji\marina_update.log`.
+Compile-checked on macOS only; the Windows code is built in CI.
+
+### macOS: the sync agent stays dead after an upgrade (2026-10-14)
+
+After an upgrade `launchctl list` showed the sync agent loaded but not running
+(last exit -9). It runs for the whole session (RunAtLoad, no KeepAlive), so
+nothing started it again and auto-sync stopped until the next login. The
+upgrade check passed anyway because it only looked at "loaded".
+
+**Fix:** `mac/main.mm` now reads `launchctl print` to tell loaded-and-running
+from loaded-but-stopped (running jobs print `state = running`; verified on the
+affected machine) and `launchctl kickstart`s the sync agent at startup when it
+is loaded but not running. `vm_trial_marinamoji.sh` now requires the sync agent
+to be *running*, and lists each agent as running / loaded-not-running /
+NOT-loaded. Compiles; not run end to end.
+
+### macOS: Preferences gives feedback when switching automatic updates (2026-10-14)
+
+Ticking the new "Install updates automatically" box worked but showed nothing, so
+it looked like it did nothing. It now confirms "Automatic updates are on" /
+"are off" (fr/ja translated).
+
 ## v0.0.11
 
 ### macOS: the silent updater failed under launchd and left no trace (2026-10-14)
