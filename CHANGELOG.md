@@ -10,6 +10,33 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: no more "this package needs to run a program" warning (2026-10-15)
+
+Every macOS install showed a system dialog before anything else: *"Ce paquet exige
+l'exécution d'un programme pour déterminer si l'installation est possible"*
+(Annuler / Autoriser). It comes from an installer plugin inside the package,
+`ActivatePane.bundle`, inherited from upstream Mozc (the final "activate marinaMoji
+now?" pane). Confirmed by experiment: v0.0.13 and v0.0.14 packages both showed it,
+and a copy of v0.0.14 with the plugin removed showed no warning at all.
+
+The plugin had nothing left to do for marinaMoji: the postinstall already
+registers, enables and selects the input source; the plugin's own launchd step
+loads two `/Library/LaunchAgents` plists that no longer exist (the agents are
+registered inside the app with SMAppService and the postinstall deletes the old
+ones); its usage-statistics part only applies to Google's builds. The final
+Conclusion page still tells the user to log out and in if the input source is not
+listed.
+
+**Change:** `mac/tweak_installer_files.py` leaves the plugin and
+`InstallerSections.plist` out of marinaMoji (`oss`) packages; the stock-Mozc path
+still includes them (checked with a simulated layout). `mac/build_package.py`
+passes `--plugins` to `productbuild` only if `Plugins/` exists: verified that
+`productbuild` builds fine without the option and **fails** if it names a missing
+folder, so that guard is required. The plugin's source and Bazel targets are left
+in the tree and still built (unused); delete them later if this holds. The real
+package pipeline was not run locally; the first CI build of this change is the
+test.
+
 ## v0.0.14
 
 ### macOS: "could not open it" shown although the Installer opened (2026-10-15)

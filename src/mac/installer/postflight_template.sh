@@ -3,8 +3,10 @@
 #
 # Text Input Services registration is per-user and only takes effect inside the
 # console user's GUI session, so it cannot be done directly from this script,
-# which runs as root. The optional ActivatePane installer plugin normally does
-# it, but it is silently skipped whenever the plugin does not load, and on a Mac
+# which runs as root. (Upstream's optional ActivatePane installer plugin used to
+# do it; marinaMoji packages no longer ship it, since it only added a macOS
+# warning before every install.) A plugin would also be silently skipped
+# whenever it does not load, and on a Mac
 # whose login session has been alive for weeks (never restarted, never updated)
 # the input-source agents keep serving cached state, so marinaMoji never shows
 # up under System Settings -> Keyboard -> Input Sources until a logout.
@@ -12,7 +14,7 @@
 # This script therefore performs the registration itself, in the console user's
 # session, and verifies that macOS lists the input sources afterwards. It never
 # fails the installation: a failure here is reported to /var/log/install.log
-# (and the Conclusion / ActivatePane pages warn that a logout may still be
+# (and the Conclusion page warns that a logout may still be
 # needed), and the user can still add the input source manually after a logout.
 
 APP="/Library/Input Methods/marinaMoji.app"
@@ -129,10 +131,9 @@ if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
   as_console_user /usr/bin/killall imklaunchagent > /dev/null 2>&1
   /bin/sleep 3
 
-  # Register, enable, and select. --select_input_source also registers, and is
-  # what ActivatePane does when the user chooses "Yes". Doing it here means
-  # silent installs (auto-updater / installer CLI) still activate the IME, and
-  # GUI installs show ActivatePane as already enabled.
+  # Register, enable, and select. --select_input_source also registers. Doing it
+  # here means every install (GUI, installer CLI, the auto-updater) activates the
+  # IME; there is no separate installer pane for it any more.
   REGISTERED=0
   if [ -x "${IMK}" ]; then
     # Recorded because a package built for the other architecture fails here in

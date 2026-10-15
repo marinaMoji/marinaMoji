@@ -30,8 +30,8 @@
 # them. Prints PASS/FAIL per check and exits non-zero if any FAIL.
 #
 # With --pkg the package is installed via the `installer` CLI, which runs no
-# plugin panes. Without it you are prompted to install by hand, which is how you
-# exercise the GUI installer and ActivatePane.
+# GUI steps. Without it you are prompted to install by hand, which is how you
+# exercise the GUI installer.
 set -uo pipefail
 
 APP="/Library/Input Methods/marinaMoji.app"
@@ -308,7 +308,7 @@ fi
 
 if [[ -n "${PKG}" ]]; then
   {
-    echo "Method: installer CLI (no plugin panes, ActivatePane does NOT run)"
+    echo "Method: installer CLI (GUI installer steps do not run)"
     echo "Package: ${PKG}"
     echo "sha256: $(shasum -a 256 "${PKG}" | awk '{print $1}')"
     echo
@@ -324,7 +324,7 @@ else
   read -r -p "Package path (Enter to skip): " MANUAL_PKG
   MANUAL_PKG="${MANUAL_PKG%\"}"; MANUAL_PKG="${MANUAL_PKG#\"}"
   {
-    echo "Method: manual / GUI install (ActivatePane DOES run)"
+    echo "Method: manual / GUI install (GUI installer steps run)"
     if [[ -n "${MANUAL_PKG}" && -f "${MANUAL_PKG}" ]]; then
       echo "Package: ${MANUAL_PKG}"
       echo "sha256: $(shasum -a 256 "${MANUAL_PKG}" | awk '{print $1}')"

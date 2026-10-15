@@ -166,8 +166,12 @@ def main():
         '/usr/bin/productbuild',
         '--distribution',
         'distribution.xml',
-        '--plugins',
-        'Plugins/',
+    ]
+    # marinaMoji builds have no installer plugins (see tweak_installer_files.py),
+    # and productbuild fails if --plugins names a directory that does not exist.
+    if os.path.isdir('Plugins'):
+      productbuild_commands += ['--plugins', 'Plugins/']
+    productbuild_commands += [
         '--resources',
         'Resources/',
         'package.pkg',  # this name is only used within this script.
