@@ -38,10 +38,13 @@ unzip -q "$ZIP" -d "$ROOT"
 rm -rf "$ROOT/tmp"
 
 # Desktop entries, hicolor icons and AppStream metadata (shared with the Arch
-# packages), plus the Debian copyright file.
+# packages), plus the Debian copyright file and man page.
 bash "$HERE/install_desktop_metadata.sh" --root "$ROOT" --version "$VERSION"
 install -d "$ROOT/usr/share/doc/marinamoji"
 install -m 644 "$HERE/data/copyright" "$ROOT/usr/share/doc/marinamoji/copyright"
+install -d "$ROOT/usr/share/man/man1"
+gzip -9n < "$HERE/data/mozc_emacs_helper.1" \
+  > "$ROOT/usr/share/man/man1/mozc_emacs_helper.1.gz"
 
 # Policy 12.7: a native package ships its Debian changelog as changelog.gz.
 # A single generated entry pointing at CHANGELOG.md; gzip -n keeps it

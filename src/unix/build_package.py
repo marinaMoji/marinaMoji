@@ -81,9 +81,10 @@ class Packager:
 
   def GetDestName(self, src: str) -> str:
     basename = os.path.basename(src)
-    # Toolbar and logo SVGs go to IBus install dir so the GTK toolbar can load them.
-    if basename.endswith('.svg') and (
-        basename.startswith('toolbar_') or basename.startswith('logo_long_')):
+    # Toolbar and logo SVGs (//unix/ibus:toolbar_icons) go to IBus install dir
+    # so the GTK toolbar can load them. Route every SVG there: a name missing
+    # from location_rules would otherwise be installed at the filesystem root.
+    if basename.endswith('.svg'):
       return os.path.join(self.ibus_icons_dir, basename)
     return self.location_rules.get(basename, basename)
 
