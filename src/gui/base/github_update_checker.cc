@@ -3,7 +3,10 @@
 #include <cctype>
 #include <string>
 
+#include <QByteArray>
+#include <QCryptographicHash>
 #include <QDesktopServices>
+#include <QFile>
 #include <QProcess>
 #include <QUrl>
 
@@ -20,7 +23,40 @@ namespace {
 constexpr char kReleasesApiUrl[] =
     "https://api.github.com/repos/marinaMoji/marinaMoji/releases?per_page=50";
 
+// Checks the downloaded file against GitHub's published digest. On a mismatch
+// the file is deleted (so it cannot be opened later by hand) and
+// |error_message| is set.
+bool VerifyDownloadOrDelete(const QString& path, const QString& expected_sha256,
+                            QString* error_message) {
+  if (GitHubUpdateChecker::FileMatchesSha256(path, expected_sha256)) {
+    return true;
+  }
+  QFile::remove(path);
+  if (error_message != nullptr) {
+    *error_message = QObject::tr(
+        "The downloaded installer does not match the checksum GitHub "
+        "published for it, so it was deleted and not opened.");
+  }
+  return false;
+}
+
 }  // namespace
+
+bool GitHubUpdateChecker::FileMatchesSha256(const QString& path,
+                                            const QString& expected_sha256) {
+  if (expected_sha256.isEmpty()) {
+    return true;
+  }
+  QFile file(path);
+  if (!file.open(QIODevice::ReadOnly)) {
+    return false;
+  }
+  QCryptographicHash hash(QCryptographicHash::Sha256);
+  if (!hash.addData(&file)) {
+    return false;
+  }
+  return hash.result().toHex() == expected_sha256.trimmed().toLower().toLatin1();
+}
 
 GitHubUpdateChecker::GitHubUpdateChecker(QObject* parent) : QObject(parent) {}
 
@@ -54,9 +90,9 @@ void GitHubUpdateChecker::CheckForUpdates(bool include_unstable) {
   }
 }
 
-bool GitHubUpdateChecker::DownloadAndOpenInstaller(const QString& pkg_url,
-                                                   const QString& tag_name,
-                                                   QString* error_message) {
+bool GitHubUpdateChecker::DownloadAndOpenInstaller(
+    const QString& pkg_url, const QString& tag_name,
+    const QString& expected_sha256, QString* error_message) {
 #if defined(__APPLE__)
   if (pkg_url.isEmpty()) {
     if (error_message != nullptr) {
@@ -84,6 +120,10 @@ bool GitHubUpdateChecker::DownloadAndOpenInstaller(const QString& pkg_url,
                             static_cast<int>(status.message().size())) +
           QStringLiteral(")");
     }
+    return false;
+  }
+  if (!VerifyDownloadOrDelete(QString::fromStdString(dest), expected_sha256,
+                              error_message)) {
     return false;
   }
   if (!MarinaOpenLocalPath(dest)) {
@@ -128,6 +168,9 @@ bool GitHubUpdateChecker::DownloadAndOpenInstaller(const QString& pkg_url,
     }
     return false;
   }
+  if (!VerifyDownloadOrDelete(dest, expected_sha256, error_message)) {
+    return false;
+  }
   // QDesktopServices::openUrl on a file:// URL is Qt's cross-platform
   // "open with the OS default handler" -- for an .msi that is msiexec via
   // shell association, which raises the UAC elevation prompt just like the
@@ -144,6 +187,7 @@ bool GitHubUpdateChecker::DownloadAndOpenInstaller(const QString& pkg_url,
 #else
   (void)pkg_url;
   (void)tag_name;
+  (void)expected_sha256;
   if (error_message != nullptr) {
     *error_message = tr("Installer download is only available on macOS and Windows.");
   }
@@ -195,22 +239,26 @@ void GitHubUpdateChecker::onProcessFinished(int exit_code) {
   }
 
   QString pkg_url;
+  std::string pkg_sha256;
 #if defined(__APPLE__)
   if (const auto url =
           FindMarinaPkgDownloadUrl(*newer, MarinaHostMacPkgArchToken());
       url.has_value()) {
     pkg_url = QString::fromStdString(*url);
+    pkg_sha256 = FindMarinaPkgSha256Digest(*newer, MarinaHostMacPkgArchToken());
   }
 #elif defined(_WIN32)
   if (const auto url =
           FindMarinaMsiDownloadUrl(*newer, MarinaHostWindowsArchToken());
       url.has_value()) {
     pkg_url = QString::fromStdString(*url);
+    pkg_sha256 = FindMarinaMsiSha256Digest(*newer, MarinaHostWindowsArchToken());
   }
 #endif
 
   emit updateAvailable(QString::fromStdString(newer->tag_name),
-                       QString::fromStdString(newer->html_url), pkg_url);
+                       QString::fromStdString(newer->html_url), pkg_url,
+                       QString::fromStdString(pkg_sha256));
 }
 
 }  // namespace mozc::gui

@@ -86,7 +86,8 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   virtual void EnableApplyButton();
   virtual void CheckForUpdates();
   virtual void OnUpdateAvailable(const QString& tag_name, const QString& html_url,
-                                 const QString& pkg_url);
+                                 const QString& pkg_url,
+                                 const QString& pkg_sha256);
   virtual void OnUpdateUpToDate();
   virtual void OnUpdateCheckFailed(const QString& message);
 
