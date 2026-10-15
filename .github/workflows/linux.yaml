@@ -135,6 +135,51 @@ jobs:
             dist/lintian-*.txt
           if-no-files-found: error
 
+  install_test:
+    # Smoke test (#57): the .deb is built on Ubuntu 24.04, but users install it
+    # on other releases. Install it from the build artifact into a clean
+    # container of each release, so a missing or renamed dependency (e.g. a
+    # library whose package name differs on Debian) fails here, not for users.
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, arm64]
+        image: ['ubuntu:24.04', 'debian:trixie']
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Download .deb
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
+        with:
+          name: marinaMoji-linux-${{ matrix.arch }}-deb
+          path: dist
+
+      - name: Install in ${{ matrix.image }}
+        run: |
+          docker run --rm -v "$PWD/dist:/dist:ro" -e DEBIAN_FRONTEND=noninteractive \
+            '${{ matrix.image }}' bash -euxo pipefail -c '
+              apt-get update -qq
+              # apt resolves the Depends from the distribution archive.
+              apt-get install -y -qq /dist/*.deb
+              dpkg -s marinamoji | grep -q "^Status: install ok installed"
+              # Every shipped binary must find all its shared libraries.
+              for f in /usr/lib/marinamoji/mozc_server /usr/lib/marinamoji/mozc_tool \
+                       /usr/lib/marinamoji/mozc_renderer /usr/lib/marinamoji/mozc_sync \
+                       /usr/lib/ibus-marinamoji/ibus-engine-marinamoji \
+                       /usr/bin/mozc_emacs_helper; do
+                if ldd "$f" | grep "not found"; then echo "missing libs: $f"; exit 1; fi
+              done
+              # Removal must also work.
+              apt-get purge -y -qq marinamoji
+            '
+
   test:
     # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md
     strategy:
