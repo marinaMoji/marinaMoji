@@ -176,7 +176,7 @@ bool MacStatsConfigUtilImpl::IsEnabled() {
 
   // The value of usage stats is a 32-bit int and 1 (true) means
   // "sending the usage stats to Google".  When the meaning of the
-  // value changed, we should fix mac/ActivatePane.m too.
+  // value changed, note that the removed installer plugin mac/ActivatePane used to write it too.
   // TODO(mukai): export MacStatsConfigUtilImpl and share the code
   // among them.
   return static_cast<bool>(value);

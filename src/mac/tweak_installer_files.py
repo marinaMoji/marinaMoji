@@ -170,21 +170,16 @@ def TweakForProductbuild(
     name = 'GoogleJapaneseInput'
     folder = 'GoogleJapaneseInput.localized'
 
-  # marinaMoji ships no installer plugin. Upstream's ActivatePane asks "activate
-  # now?" at the end, but the postinstall script already registers, enables and
-  # selects the input source, and its launchd step loads agent plists that no
-  # longer exist (the agents are registered inside the app with SMAppService).
-  # The only visible effect was a macOS warning, "this package needs to run a
-  # program to determine whether the installation is possible", before every
-  # install. Confirmed: the same package without the plugin shows no warning.
-  plugin_renames = (
-      []
-      if oss
-      else [
-          ('ActivatePane.bundle', 'Plugins/'),
-          ('InstallerSections.plist', 'Plugins/'),
-      ]
-  )
+  # marinaMoji ships no installer plugin. Upstream's ActivatePane (removed) asked
+  # "activate now?" at the end, but the postinstall script already registers the
+  # input source, and macOS lets only the user add a third-party input method;
+  # the pane's launchd step loaded agent plists that no longer exist (the agents
+  # are registered inside the app with SMAppService). Its only visible effect
+  # was a macOS warning, "this package needs to run a program to determine
+  # whether the installation is possible", before every install. Confirmed: the
+  # same package without it shows no warning. The section list file is still
+  # moved for the stock-Mozc (non-oss) path.
+  plugin_renames = [] if oss else [('InstallerSections.plist', 'Plugins/')]
 
   renames = [
       (f'Uninstall{name}.app', f'root/Applications/{folder}/'),
