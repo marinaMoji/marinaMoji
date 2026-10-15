@@ -10,6 +10,8 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+## v0.0.15
+
 ### macOS: no more "this package needs to run a program" warning (2026-10-15)
 
 Every macOS install showed a system dialog before anything else: *"Ce paquet exige
