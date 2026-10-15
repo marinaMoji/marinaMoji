@@ -10,6 +10,8 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+## v0.0.16
+
 ### macOS: first installs never add marinaMoji by themselves, so the last screen says what to do (2026-10-15)
 
 A control run settles the question the plugin removal raised. On the same clean VM
