@@ -10,6 +10,25 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: first installs never add marinaMoji by themselves, so the last screen says what to do (2026-10-15)
+
+A control run settles the question the plugin removal raised. On the same clean VM
+snapshot, the **v0.0.14** package (with the ActivatePane plugin, "activate" chosen)
+behaves exactly like v0.0.15: everything works, but marinaMoji is only offered under
+"+" in System Settings > Keyboard > Input Sources and has to be added by hand. So
+removing the plugin did not cause it, and the plugin never did that job. The earlier
+"parent entry enabled=0" reading is therefore a symptom to investigate, not a
+regression, and the enable-order change already on `master` is an unproven
+experiment (kept for its per-call status logging, which will show what macOS
+answers).
+
+Since a new user always has to add it, the Conclusion page (en/fr/ja) now says so
+plainly: *add it under System Settings > Keyboard > Input Sources > Edit… > + >
+Japanese > marinaMoji > Add*, already there when updating, with the logout advice
+kept as a fallback. Before, it only said "if it does not appear, log out and add it",
+which buried the one step every first install needs. The French menu names should be
+checked on a French Mac ("Sources d'entrée" was the existing wording).
+
 ### macOS: enable the parent input source last (first install on a clean VM) (2026-10-15)
 
 After a graphical install of v0.0.15 on a clean VM, marinaMoji was only offered
