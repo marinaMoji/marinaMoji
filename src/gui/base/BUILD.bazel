@@ -97,6 +97,10 @@ mozc_cc_test(
     name = "github_update_checker_test",
     size = "small",
     srcs = ["github_update_checker_test.cc"],
+    # Needs Qt, which only the Linux test job has installed; the macOS and
+    # Windows "test" jobs run `bazel test ...` without it and would fail to
+    # analyze this target.
+    target_compatible_with = ["@platforms//os:linux"],
     deps = [
         ":github_update_checker",
         "//testing:gunit_main",
