@@ -80,17 +80,22 @@ In **Preferences → Misc**, marinaMoji can check GitHub Releases for you:
 
 ### Windows
 
-Download the `.msi` for your machine — `x64` or `arm64` — and run it. The
-installer is Authenticode-signed (from v0.0.7; earlier releases are
-unsigned). Windows shows the publisher as "Open Source Developer Daniel
-Patrick Morgan". SmartScreen may still warn while the certificate builds
-reputation — choose "More info" → "Run anyway". The same signed installers
-are also mirrored at stable, direct URLs
-(`https://marinamoji.github.io/downloads/windows/<tag>/`), which a planned
-Microsoft Store listing of the signed MSI will use.
+Install marinaMoji from the
+[Microsoft Store](https://apps.microsoft.com/detail/xpdm29n64d0t42). The Store
+installs the signed installer for your machine (`x64` or `arm64`) and keeps it
+up to date; there is no separate download to run and no SmartScreen prompt. The
+installer is Authenticode-signed; Windows shows the publisher as "Open Source
+Developer Daniel Patrick Morgan".
 
-In **Settings → Misc**, use **Check for updates…** the same way as on macOS
-(stable-only by default; optional unstable/rc channel).
+The Store installs the signed `.msi` from stable, direct URLs
+(`https://marinamoji.github.io/downloads/windows/<tag>/`, repository
+`marinaMoji/downloads`). That is the Store's source, not a supported way to
+install by hand.
+
+A Store install has no in-app updater, so **Settings → Misc** shows no update
+controls. A copy installed earlier from a downloaded `.msi` (before the Store
+listing) offers to open the Store page instead of downloading anything;
+installing from the Store replaces it.
 
 ### Linux
 

@@ -307,6 +307,7 @@ mozc_cc_library(
     visibility = ["//sync:__pkg__"],
     deps = [
         "//base:file_util",
+        "//base:marina_install_source",
         "//base:marina_semver",
         "//base:marina_update_log",
         "//base:marina_update_throttle",

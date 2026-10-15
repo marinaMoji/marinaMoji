@@ -91,6 +91,10 @@
 #include "gui/base/win_util.h"
 #endif  // _WIN32
 
+#ifdef _WIN32
+#include "base/marina_install_source.h"
+#endif  // _WIN32
+
 #if defined(__APPLE__) || defined(_WIN32)
 #include "base/marina_update_throttle.h"
 #include "base/version.h"
@@ -256,6 +260,16 @@ namespace {
 // Preferences may trigger a slow server-side config write; use the same
 // generous IPC timeout as dictionary_tool (100s), not the 30s client default.
 constexpr absl::Duration kConfigDialogTimeout = absl::Milliseconds(100000);
+
+// On Windows the Microsoft Store distributes and updates marinaMoji, so a Store
+// install has no in-app updater (see base/marina_install_source.h).
+bool InAppUpdaterDisabled() {
+#ifdef _WIN32
+  return MarinaIsStoreInstall();
+#else
+  return false;
+#endif  // _WIN32
+}
 }  // namespace
 
 #if defined(MARINAMOJI) && defined(__APPLE__)
@@ -606,7 +620,7 @@ ConfigDialog::ConfigDialog()
   sync_tab_->AddToTabWidget(configDialogTabWidget);
 
 #if defined(MARINAMOJI) && (defined(_WIN32) || defined(__APPLE__))
-  {
+  if (!InAppUpdaterDisabled()) {
     auto *updates_widget = new QWidget(miscTab);
     updates_widget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     auto *updates_layout = new QVBoxLayout(updates_widget);
@@ -1529,23 +1543,37 @@ void ConfigDialog::OnUpdateAvailable(const QString &tag_name,
   (void)automatic_check;
 #endif  // MARINAMOJI && (_WIN32 || __APPLE__)
 
-#if defined(__APPLE__) || defined(_WIN32)
+#if defined(_WIN32)
+  // Windows installs outside the Microsoft Store are pointed to it instead of
+  // downloading an MSI; Store installs never get here (no updater).
+  {
+    QMessageBox box(this);
+    box.setWindowTitle(windowTitle());
+    box.setIcon(QMessageBox::Information);
+    box.setText(tr("A newer release is available: %1").arg(tag_name));
+    box.setInformativeText(
+        tr("marinaMoji is now distributed through the Microsoft Store, which "
+           "also keeps it up to date. Installing it from the Store replaces "
+           "this version and keeps your settings."));
+    QPushButton *store_button =
+        box.addButton(tr("Open Microsoft Store page"), QMessageBox::AcceptRole);
+    box.addButton(QMessageBox::Cancel);
+    box.setDefaultButton(store_button);
+    box.exec();
+    if (box.clickedButton() == store_button) {
+      Process::OpenBrowser(kMarinaStoreUrl);
+    }
+    return;
+  }
+#elif defined(__APPLE__)
   if (!pkg_url.isEmpty()) {
     QMessageBox box(this);
     box.setWindowTitle(windowTitle());
     box.setIcon(QMessageBox::Information);
     box.setText(tr("A newer release is available: %1").arg(tag_name));
-#if defined(__APPLE__)
     box.setInformativeText(
         tr("Download the notarized .pkg and open the macOS Installer? "
            "You will still need to approve the install."));
-#else  // _WIN32
-    box.setInformativeText(
-        tr("Download the installer (.msi) and run it now? You will still "
-           "need to approve the install. The installer is signed, but "
-           "Windows SmartScreen may still warn first while the certificate "
-           "builds reputation; choose \"More info\" → \"Run anyway\"."));
-#endif  // _WIN32
     QPushButton *install_button =
         box.addButton(tr("Download & Install…"), QMessageBox::AcceptRole);
     QPushButton *page_button =
@@ -1565,7 +1593,7 @@ void ConfigDialog::OnUpdateAvailable(const QString &tag_name,
     }
     return;
   }
-#endif  // __APPLE__ || _WIN32
+#endif  // _WIN32 / __APPLE__
 
   const QString message =
       tr("A newer release is available: %1\n\nOpen the download page?")

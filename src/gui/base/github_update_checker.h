@@ -19,9 +19,9 @@ class GitHubUpdateChecker : public QObject {
 
   void CheckForUpdates(bool include_unstable);
 
-  // Downloads |pkg_url| to a temp file and opens it with the OS installer
-  // (macOS Installer.app for a .pkg, msiexec via shell association for a
-  // .msi on Windows). Not implemented on other platforms; returns false on
+  // Downloads |pkg_url| to a temp file and opens it with Installer.app
+  // (macOS .pkg). Not implemented on other platforms (on Windows the
+  // Microsoft Store distributes and updates marinaMoji); returns false on
   // failure.
   //
   // |expected_sha256| is the digest GitHub published for the asset (see
@@ -42,7 +42,8 @@ class GitHubUpdateChecker : public QObject {
 
  signals:
   // |pkg_url| is non-empty when a matching installer asset was found for
-  // the current platform (a .pkg on macOS, a .msi on Windows).
+  // the current platform (a .pkg on macOS; always empty on Windows, which is
+  // updated through the Microsoft Store).
   // |pkg_sha256| is the lowercase hex SHA-256 GitHub published for that
   // asset, or empty if it published none.
   void updateAvailable(const QString& tag_name, const QString& html_url,

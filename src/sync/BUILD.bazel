@@ -296,6 +296,7 @@ mozc_cc_library(
         # application and the Task Scheduler logon task registered by the
         # installer pops an empty console window at every sign-in.
         windows = [
+            "//base:marina_install_source",
             "//base/win32:winmain",
             "//renderer/win32:marina_auto_update",
         ],

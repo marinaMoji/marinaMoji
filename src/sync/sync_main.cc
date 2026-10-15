@@ -21,6 +21,7 @@
 // generated WinMain. The installer registers a Task Scheduler logon task that
 // runs this with --daemon, and a console-subsystem binary would show an empty
 // console window at every sign-in.
+#include "base/marina_install_source.h"
 #include "base/win32/winmain.h"
 // marinaMoji's self-hosted update check. It runs here, not in the renderer: the
 // renderer is sandboxed (low integrity, locked-down job) and cannot launch an
@@ -105,9 +106,13 @@ int RunDaemon() {
   }
 
 #ifdef _WIN32
-  // Background thread: checks GitHub Releases (throttled to once a day, retried
-  // when a check cannot complete) and offers the update.
-  renderer::win32::StartMarinaAutoUpdateChecker();
+  // Background thread: checks GitHub Releases (throttled, retried when a check
+  // cannot complete) and tells installs that did not come from the Microsoft
+  // Store to move to it. A Store install is updated by the Store, so it never
+  // runs this.
+  if (!MarinaIsStoreInstall()) {
+    renderer::win32::StartMarinaAutoUpdateChecker();
+  }
 #endif  // _WIN32
 
   while (true) {

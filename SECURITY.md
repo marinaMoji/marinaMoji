@@ -50,13 +50,15 @@ digests match the signed files. Earlier releases are unsigned. This is an
 individual-validation certificate, so SmartScreen may still warn until the
 publisher builds reputation.
 
-Each signed stable release is also mirrored at
-`https://marinamoji.github.io/downloads/windows/<tag>/` (repository
-`marinaMoji/downloads`). That workflow publishes a file only if it matches the
-release's `SHA256SUMS` and carries a valid Authenticode signature, with a trusted
-timestamp, from the project's signing certificate, verified against a pinned
-Certum CA bundle. A Microsoft Store listing of the same signed MSI (not MSIX,
-which cannot host a text service) is planned.
+Windows is distributed through the Microsoft Store. The Store installs the
+signed MSI from `https://marinamoji.github.io/downloads/windows/<tag>/`
+(repository `marinaMoji/downloads`), so that mirror stays. Its workflow
+publishes a file only if it matches the release's `SHA256SUMS` and carries a
+valid Authenticode signature, with a trusted timestamp, from the project's
+signing certificate, verified against a pinned Certum CA bundle. The Store
+passes `INSTALLSOURCE=store` to the installer; a Store install is updated by the
+Store and has no in-app updater. (The listing is an MSI, not MSIX, which cannot
+host a text service.)
 
 ## Signing keys
 

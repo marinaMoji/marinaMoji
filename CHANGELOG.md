@@ -10,6 +10,29 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: distributed and updated through the Microsoft Store (2026-10-15)
+
+Windows is now distributed only through the Microsoft Store listing
+(`apps.microsoft.com/detail/xpdm29n64d0t42`), which installs the same signed MSI
+and updates it. The Store submission passes `/qn /norestart INSTALLSOURCE=store`.
+
+- **Installer:** a secure public property `INSTALLSOURCE`, recorded in
+  `HKLM\SOFTWARE\marinaMoji\InstallSource` when it is set
+  (`installer_marinamoji_64bit.wxs`). `MarinaIsStoreInstall()`
+  (`base/marina_install_source.h`) reads it.
+- **Store installs:** no in-app updater. The sync task does not start its update
+  checker, and Preferences → Misc has no update controls.
+- **Installs from a downloaded MSI** (v0.0.7 to v0.0.16, no flag): the periodic
+  check and **Check for updates…** no longer download or run an MSI; they offer
+  to open the Store page. Installing from the Store replaces them (not verified
+  with a real Store upgrade of a direct install, which depends on the Store
+  re-running the same MSI upgrade).
+- **README, SECURITY** say Windows is Store-only.
+- **Not done:** the now-unused MSI download and SHA-256 helpers in
+  `renderer/win32/marina_auto_update.cc` are left in place; removing them is a
+  follow-up. The installer property and the Windows code were not built or run
+  on Windows here; Windows CI is the first build.
+
 ### An update now restarts the sync agent, so it runs the new code (#63) (2026-10-15)
 
 After an in-place update the sync agent, which on Windows also hosts the update

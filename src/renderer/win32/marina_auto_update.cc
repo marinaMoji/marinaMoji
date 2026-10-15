@@ -26,6 +26,7 @@
 #include "absl/strings/string_view.h"
 #include "base/file_util.h"
 #include "base/marina_github_releases.h"
+#include "base/marina_install_source.h"
 #include "base/marina_update_log.h"
 #include "base/marina_update_throttle.h"
 #include "base/process.h"
@@ -417,65 +418,32 @@ bool CanSpawnProcesses() {
 // MB_SETFOREGROUND make sure a dialog raised by a background process is seen.
 constexpr UINT kDialogFlags = MB_SETFOREGROUND | MB_TOPMOST;
 
-// Used when this process cannot spawn children (see CanSpawnProcesses()).
-// Not the case in the sync daemon, but kept as a safe fallback.
-void PresentUpdateNotice(const MarinaGitHubRelease& release) {
-  const std::wstring text = mozc::win32::Utf8ToWide(absl::StrCat(
+// marinaMoji for Windows is distributed through the Microsoft Store, which
+// also updates it. This install did not come from the Store (a Store install
+// never starts this checker, see sync_main.cc), so instead of downloading and
+// running an installer the offer points to the Store listing. Runs on this
+// feature's own background thread, never a UI thread, so blocking in the
+// modal box is fine.
+void PresentStoreNotice(const MarinaGitHubRelease& release) {
+  std::wstring text = mozc::win32::Utf8ToWide(absl::StrCat(
       "A newer release is available: ", release.tag_name,
-      "\n\nTo install it, open marinaMoji Preferences (language bar menu > "
-      "Properties), go to the Misc tab and choose \"Check for updates...\"."));
-  ::MessageBoxW(nullptr, text.c_str(), L"marinaMoji",
-                MB_OK | MB_ICONINFORMATION | kDialogFlags);
-}
-
-// Offers the update. Runs on this feature's own background thread, never a UI
-// thread, so blocking in the modal box is fine.
-void PresentUpdateOffer(const MarinaGitHubRelease& release,
-                        const std::string& msi_url) {
-  std::wstring text = mozc::win32::Utf8ToWide(
-      absl::StrCat("A newer release is available: ", release.tag_name, "\n\n"));
+      "\n\nmarinaMoji is now distributed through the Microsoft Store, which "
+      "also keeps it up to date. Installing it from the Store replaces this "
+      "version and keeps your settings.\n\n"));
   UINT type = MB_ICONINFORMATION | kDialogFlags;
-  if (!msi_url.empty()) {
-    text +=
-        L"Download the installer and run it now? You will still need to "
-        L"approve the install. The installer is signed, but Windows "
-        L"SmartScreen may still warn first while the certificate builds "
-        L"reputation; choose \"More info\" > \"Run anyway\".\n\n"
-        L"Yes: download and install\nNo: open the release page\n"
-        L"Cancel: remind me tomorrow";
-    type |= MB_YESNOCANCEL;
-  } else {
-    text += L"Open the release page to download it manually?";
+  if (CanSpawnProcesses()) {
+    text += L"Open the Microsoft Store page now?";
     type |= MB_YESNO;
+  } else {
+    // Cannot launch a browser from here: name the page instead.
+    text += mozc::win32::Utf8ToWide(
+        absl::StrCat("Search for marinaMoji in the Microsoft Store, or open ",
+                     kMarinaStoreUrl, " in a browser."));
+    type |= MB_OK;
   }
   const int clicked = ::MessageBoxW(nullptr, text.c_str(), L"marinaMoji", type);
-
-  if (clicked == IDYES && !msi_url.empty()) {
-    const std::wstring dest = mozc::win32::Utf8ToWide(FileUtil::JoinPath(
-        SystemUtil::GetUserProfileDirectory(),
-        absl::StrCat("marinaMoji-update-",
-                     mozc::win32::WideToUtf8(
-                         SanitizeForFilename(release.tag_name)),
-                     ".msi")));
-    const std::string expected_sha256 =
-        FindMarinaMsiSha256Digest(release, MarinaHostWindowsArchToken());
-    bool ok = DownloadToFile(msi_url, dest, expected_sha256);
-    if (ok) {
-      ok = WinUtil::ShellExecuteInSystemDir(L"open", dest.c_str(), nullptr);
-    }
-    if (!ok) {
-      MarinaUpdateLog(absl::StrCat("update: could not download or open the ",
-                                   "installer for ", release.tag_name));
-      ::MessageBoxW(
-          nullptr,
-          L"Could not download or open the installer. Try again later from "
-          L"Preferences > Misc > Check for updates...",
-          L"marinaMoji update failed",
-          MB_OK | MB_ICONWARNING | kDialogFlags);
-    }
-  } else if ((msi_url.empty() && clicked == IDYES) ||
-             (!msi_url.empty() && clicked == IDNO)) {
-    Process::OpenBrowser(release.html_url);
+  if (clicked == IDYES) {
+    Process::OpenBrowser(kMarinaStoreUrl);
   }
 }
 
@@ -520,17 +488,7 @@ bool RunCheckOnce() {
     return true;
   }
   MarkMarinaUpdateOffered(newer->tag_name);
-  if (!CanSpawnProcesses()) {
-    PresentUpdateNotice(*newer);
-    return true;
-  }
-  std::string msi_url;
-  if (const auto url =
-          FindMarinaMsiDownloadUrl(*newer, MarinaHostWindowsArchToken());
-      url.has_value()) {
-    msi_url = *url;
-  }
-  PresentUpdateOffer(*newer, msi_url);
+  PresentStoreNotice(*newer);
   return true;
 }
 

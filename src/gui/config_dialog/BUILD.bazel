@@ -265,6 +265,7 @@ mozc_cc_qt_library(
             "//base:marina_update_throttle",
         ],
         windows = [
+            "//base:marina_install_source",
             "//base:marina_update_throttle",
             "//gui/base:win_util",
             "//win32/base:sticky_keys_util",

@@ -129,6 +129,14 @@
     </Property>
     <Launch Condition="(OS_BUILD_NUMBER AND (OS_BUILD_NUMBER &gt;= 17763)) OR (REMOVE=&quot;ALL&quot;)" Message="!(loc.LaunchConditionWindowsVersion)" />
 
+    <!--
+      Set by the Microsoft Store submission (silent switches "/qn /norestart
+      INSTALLSOURCE=store"). A secure public property, so it reaches the elevated
+      install. It is recorded in the registry below so the app knows the Store
+      updates it and does not run its own updater (base/marina_install_source.h).
+    -->
+    <Property Id="INSTALLSOURCE" Secure="yes" />
+
     <!-- Check if the user have the administrative privileges. -->
     <Launch Condition="Privileged" Message="!(loc.LaunchConditionPrivileged)" />
     <Media Id="1" Cabinet="marinaMoji.cab" EmbedCab="yes" CompressionLevel="high" />
@@ -173,6 +181,7 @@
         <ComponentRef Id="MarinaMojiTIP64X" />
       <?endif?>
       <ComponentRef Id="MarinaMojiBroker" />
+      <ComponentRef Id="MarinaMojiInstallSource" />
       <ComponentRef Id="MarinaMojiConverter" />
       <ComponentRef Id="MarinaMojiCacheService" />
       <ComponentRef Id="MarinaMojiRenderer" />
@@ -431,6 +440,10 @@
             <File Id="marinamoji_tip64x.dll" Name="marinamoji_tip64x.dll" DiskId="1" Checksum="yes" Source="$(var.MozcTIP64XPath)" Vital="yes" />
           </Component>
         <?endif?>
+        <Component Id="MarinaMojiInstallSource" Bitness="always64">
+          <Condition>INSTALLSOURCE</Condition>
+          <RegistryValue Root="HKLM" Key="SOFTWARE\marinaMoji" Name="InstallSource" Type="string" Value="[INSTALLSOURCE]" KeyPath="yes" />
+        </Component>
         <Component Id="MarinaMojiBroker" Permanent="no">
           <File Id="marinamoji_broker.exe" Name="marinamoji_broker.exe" DiskId="1" Checksum="yes" Source="$(var.MozcBroker64Path)" Vital="yes" />
         </Component>
