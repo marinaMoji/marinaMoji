@@ -269,6 +269,12 @@ void MaybeScheduleMarinaAutoUpdateCheck(bool include_unstable,
     if (!offer.has_value()) {
       return;
     }
+    // Check often, ask rarely: the same release is offered at most once a
+    // day, a newer one at the next check.
+    if (!ShouldOfferMarinaUpdate(offer->tag_name)) {
+      return;
+    }
+    MarkMarinaUpdateOffered(offer->tag_name);
     UpdateOffer copy = *offer;
     dispatch_async(dispatch_get_main_queue(), ^{
       PresentUpdateOfferOnMainThread(std::move(copy));

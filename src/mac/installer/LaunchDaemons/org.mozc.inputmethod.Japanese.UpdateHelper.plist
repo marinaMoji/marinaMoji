@@ -12,10 +12,10 @@
 	</array>
 	<!-- Registration is opt-in only, triggered once from the update-available
 	     alert (mac/marina_auto_update.mm) after the user explicitly agrees to
-	     silent background updates. Runs daily, plus once at load in case the
+	     silent background updates. Runs every 6 hours, plus once at load in case the
 	     machine was asleep or off through a scheduled run. -->
 	<key>StartInterval</key>
-	<integer>86400</integer>
+	<integer>21600</integer>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>KeepAlive</key>

@@ -510,6 +510,16 @@ bool RunCheckOnce() {
   }
   MarinaUpdateLog(absl::StrCat("update check: ", newer->tag_name,
                                " is newer than ", current_version));
+  // Checking is frequent, bothering the user is not: the same release is shown
+  // at most once a day (whatever was answered), while a newer one is shown at
+  // the next check.
+  if (!ShouldOfferMarinaUpdate(newer->tag_name)) {
+    MarinaUpdateLog(absl::StrCat("update check: ", newer->tag_name,
+                                 " was already offered recently; not asking",
+                                 " again yet"));
+    return true;
+  }
+  MarkMarinaUpdateOffered(newer->tag_name);
   if (!CanSpawnProcesses()) {
     PresentUpdateNotice(*newer);
     return true;

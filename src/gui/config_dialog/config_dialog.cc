@@ -1511,7 +1511,22 @@ void ConfigDialog::OnUpdateAvailable(const QString &tag_name,
     check_for_updates_button_->setEnabled(true);
     check_for_updates_button_->setText(tr("Check for updates…"));
   }
+  // An automatic check (Preferences just opened) follows the same rule as the
+  // background checkers: the same release is offered at most once a day. A
+  // check the user started by clicking the button always shows its result.
+  const bool automatic_check = update_check_silent_;
   update_check_silent_ = false;
+#if defined(MARINAMOJI) && (defined(_WIN32) || defined(__APPLE__))
+  if (automatic_check) {
+    const std::string tag = tag_name.toStdString();
+    if (!ShouldOfferMarinaUpdate(tag)) {
+      return;
+    }
+    MarkMarinaUpdateOffered(tag);
+  }
+#else
+  (void)automatic_check;
+#endif  // MARINAMOJI && (_WIN32 || __APPLE__)
 
 #if defined(__APPLE__) || defined(_WIN32)
   if (!pkg_url.isEmpty()) {

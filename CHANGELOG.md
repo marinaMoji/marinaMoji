@@ -27,13 +27,27 @@ the failing step was opening the installer (this is why an earlier report called
 it a download failure); it now says "The update could not be downloaded or
 started" (fr/ja translated). Compile-checked only.
 
-### Windows: the sync task checks at most once per 24 hours (note, 2026-10-15)
+### Update checks every 6 hours; the same release is offered at most once a day (2026-10-15)
 
-Left running overnight, the VM showed no popup for v0.0.12, while deleting the
-stamp file produced one immediately. That is the designed throttle
-(`kMarinaAutoUpdateCheckInterval` = 24h from the last *completed* check; the
-thread wakes every 2h but the stamp gates it), not a failure: a release published
-a few hours after a check can wait up to a day. Not changed yet.
+One 24-hour stamp used to do two jobs: spacing out checks and limiting how often
+the popup appears. Left running overnight the Windows VM showed no popup for a
+release published a few hours after its last check, while deleting the stamp gave
+one at once (the designed throttle, not a failure), so a release could take up to
+a day to reach anyone. Checking is one small request, so the two are now separate:
+
+- **Check:** `kMarinaAutoUpdateCheckInterval` is 6 hours (was 24). The macOS
+  UpdateHelper `StartInterval` is 21600 s (was 86400).
+- **Offer:** new `marina_auto_update_offer` stamp ("<unix seconds> <tag>"). The same
+  release is shown again only after 24 hours (`kMarinaUpdateOfferInterval`), whatever
+  was answered, so "Later" does not nag every 6 hours; a different (newer) tag is
+  never held back and is offered at the next check. The decision is a pure function,
+  `ShouldOfferMarinaUpdateGiven`, with `marina_update_throttle_test` (6 cases, run
+  and passing under Bazel). Used by the Windows sync-task check, the macOS popup and
+  Preferences' automatic check on opening. A check the user starts by clicking
+  "Check for updates" always shows its result.
+- Not changed: the macOS popup still records a check before the request finishes (to
+  stop concurrent activations fanning out), so a failed request still uses that
+  6-hour slot; the Windows check records only completed checks.
 
 ### Windows: signed MSIs are mirrored for the Store automatically (2026-10-15)
 

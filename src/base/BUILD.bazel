@@ -857,6 +857,17 @@ mozc_cc_library(
 )
 
 mozc_cc_test(
+    name = "marina_update_throttle_test",
+    size = "small",
+    srcs = ["marina_update_throttle_test.cc"],
+    deps = [
+        ":marina_update_throttle",
+        "//testing:gunit_main",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+mozc_cc_test(
     name = "marina_semver_test",
     size = "small",
     srcs = ["marina_semver_test.cc"],
