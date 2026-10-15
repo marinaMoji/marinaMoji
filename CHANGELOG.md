@@ -10,6 +10,21 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### vm_trial_marinamoji.sh read the wrong preference for "enabled" (2026-10-15)
+
+A clean-VM install reported `Enabled: (no marinaMoji)`, which I took to mean the
+installer had not enabled the input source (bug #66, and a postinstall change that
+waited for the setting to be saved). That was a misreading: the script looked only
+at `com.apple.HIToolbox` `AppleEnabledInputSources`, which holds layouts and Apple's
+own methods. A third-party method such as marinaMoji is enabled in
+`com.apple.inputsources` `AppleEnabledThirdPartyInputSources`; on a Mac where
+marinaMoji works it is absent from the HIToolbox list and present in the third-party
+one, and the VM report's `ThirdParty:` line did contain `org.mozc.inputmethod.Japanese`.
+The script now reports `Enabled: YES/NO` from the third-party list and labels the
+other lines (`Selected` is the source in use right now, which is often another
+layout). The postinstall change was never committed. What the VM user actually saw
+in System Settings (already in the list, or had to be added) is still to be settled.
+
 ### macOS: the installer no longer triggers "install the command line developer tools" (2026-10-15)
 
 On a clean VM the postinstall log contained `binary arch: xcode-select: note: No

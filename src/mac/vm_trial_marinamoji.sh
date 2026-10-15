@@ -220,12 +220,24 @@ capture_bundle() {
 
 # Passive only: reads preference domains, never touches Text Input Services.
 capture_input_state() {
-  echo -n "Selected:     "
-  defaults read com.apple.HIToolbox AppleSelectedInputSources 2>/dev/null | grep -i 'org.mozc' || echo "(no marinaMoji)"
-  echo -n "Enabled:      "
-  defaults read com.apple.HIToolbox AppleEnabledInputSources 2>/dev/null | grep -i 'org.mozc' || echo "(no marinaMoji)"
-  echo -n "ThirdParty:   "
-  defaults read com.apple.inputsources AppleEnabledThirdPartyInputSources 2>/dev/null | grep -i 'org.mozc' | head -1 || echo "(no marinaMoji)"
+  # An input method that is not Apple's is enabled in com.apple.inputsources
+  # (AppleEnabledThirdPartyInputSources), not in the com.apple.HIToolbox
+  # AppleEnabledInputSources list, which holds layouts and Apple's own methods.
+  # Checked on a Mac where marinaMoji is enabled and working: it is absent from
+  # the HIToolbox list. Reading only that list made a working install look like
+  # "not enabled" (a false alarm that cost a bug report).
+  local n
+  n="$(defaults read com.apple.inputsources AppleEnabledThirdPartyInputSources 2>/dev/null | grep -ci 'org.mozc')"
+  if [[ "${n:-0}" -gt 0 ]]; then
+    echo "Enabled:      YES (${n} marinaMoji entries in AppleEnabledThirdPartyInputSources)"
+  else
+    echo "Enabled:      NO (no marinaMoji in AppleEnabledThirdPartyInputSources)"
+  fi
+  local sel hit
+  sel="$(defaults read com.apple.HIToolbox AppleSelectedInputSources 2>/dev/null | grep -i 'org.mozc' | head -1)"
+  echo "Selected:     ${sel:-(another input source is in use right now)}"
+  hit="$(defaults read com.apple.HIToolbox AppleEnabledInputSources 2>/dev/null | grep -i 'org.mozc' | head -1)"
+  echo "HIToolbox:    ${hit:-(not listed there; expected for third-party methods)}"
   echo "Agents:"
   launchctl print "gui/$(id -u)" 2>/dev/null | grep -i mozc | sed 's/^/  /' || echo "  (none loaded)"
   echo "Processes:"
