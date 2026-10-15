@@ -7,7 +7,7 @@
 # dependencies with dpkg-shlibdeps (the same mechanism debhelper uses), and
 # wraps the result with dpkg-deb.
 #
-# Requires: unzip, dpkg-dev.
+# Requires: unzip, dpkg-dev, binutils (strip).
 set -euo pipefail
 
 usage() {
@@ -43,6 +43,19 @@ bash "$HERE/install_desktop_metadata.sh" --root "$ROOT" --version "$VERSION"
 install -d "$ROOT/usr/share/doc/marinamoji"
 install -m 644 "$HERE/data/copyright" "$ROOT/usr/share/doc/marinamoji/copyright"
 
+# Policy 12.7: a native package ships its Debian changelog as changelog.gz.
+# A single generated entry pointing at CHANGELOG.md; gzip -n keeps it
+# reproducible (no embedded name or timestamp).
+CHANGELOG_DATE="$(date -R ${SOURCE_DATE_EPOCH:+-d "@$SOURCE_DATE_EPOCH"})"
+cat <<EOF | gzip -9n > "$ROOT/usr/share/doc/marinamoji/changelog.gz"
+marinamoji ($VERSION) unstable; urgency=medium
+
+  * Release $VERSION. See CHANGELOG.md in the source tree:
+    https://github.com/marinaMoji/marinaMoji/blob/master/CHANGELOG.md
+
+ -- Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>  $CHANGELOG_DATE
+EOF
+
 find "$ROOT" -type d -exec chmod 755 {} +
 find "$ROOT" -type f -exec chmod 644 {} +
 BINARIES=(
@@ -55,6 +68,10 @@ BINARIES=(
 )
 for bin in "${BINARIES[@]}"; do
   chmod 755 "$ROOT/$bin"
+  # Same flags dh_strip uses. CI builds natively on each arch, so the host
+  # strip matches the binaries.
+  strip --remove-section=.comment --remove-section=.note --strip-unneeded \
+    "$ROOT/$bin"
 done
 
 # dpkg-shlibdeps needs a debian/control in the working directory.
@@ -107,6 +124,12 @@ EOF
 # Maintainer scripts: refresh IBus component cache only (never restart).
 install -m 755 "$HERE/data/postinst" "$ROOT/DEBIAN/postinst"
 install -m 755 "$HERE/data/postrm" "$ROOT/DEBIAN/postrm"
+
+# DEBIAN/md5sums lists every shipped file (paths relative to /), as
+# dh_md5sums does; dpkg --verify / debsums read it.
+(cd "$ROOT" && find . -path ./DEBIAN -prune -o -type f -printf '%P\0' \
+  | LC_ALL=C sort -z | xargs -0 md5sum) > "$ROOT/DEBIAN/md5sums"
+chmod 644 "$ROOT/DEBIAN/md5sums"
 
 mkdir -p "$OUTDIR"
 dpkg-deb --build --root-owner-group -Zxz "$ROOT" \
