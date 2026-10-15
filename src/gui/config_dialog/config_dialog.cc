@@ -1506,7 +1506,8 @@ void ConfigDialog::showEvent(QShowEvent *event) {
 
 void ConfigDialog::OnUpdateAvailable(const QString &tag_name,
                                      const QString &html_url,
-                                     const QString &pkg_url) {
+                                     const QString &pkg_url,
+                                     const QString &pkg_sha256) {
   if (check_for_updates_button_ != nullptr) {
     check_for_updates_button_->setEnabled(true);
     check_for_updates_button_->setText(tr("Check for updates…"));
@@ -1554,8 +1555,8 @@ void ConfigDialog::OnUpdateAvailable(const QString &tag_name,
     box.exec();
     if (box.clickedButton() == install_button) {
       QString error;
-      if (!GitHubUpdateChecker::DownloadAndOpenInstaller(pkg_url, tag_name,
-                                                         &error)) {
+      if (!GitHubUpdateChecker::DownloadAndOpenInstaller(
+              pkg_url, tag_name, pkg_sha256, &error)) {
         QMessageBox::warning(this, windowTitle(),
                              tr("The update could not be downloaded or started:\n%1").arg(error));
       }

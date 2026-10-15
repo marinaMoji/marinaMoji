@@ -93,6 +93,21 @@ mozc_cc_qt_library(
     ],
 )
 
+mozc_cc_test(
+    name = "github_update_checker_test",
+    size = "small",
+    srcs = ["github_update_checker_test.cc"],
+    deps = [
+        ":github_update_checker",
+        "//testing:gunit_main",
+    ] + mozc_select(
+        default = ["//third_party/qt/qt6:qt_native"],
+        oss_linux = ["@qt_linux//:qt_linux"],
+        oss_macos = ["@qt_mac//:qt_mac"],
+        oss_windows = ["@qt_win//:qt_win"],
+    ),
+)
+
 mozc_qt_moc(
     name = "base_files",
     srcs = ["window_title_modifier.h"],
