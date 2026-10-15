@@ -55,8 +55,10 @@ Each signed stable release is also mirrored at
 `marinaMoji/downloads`). That workflow publishes a file only if it matches the
 release's `SHA256SUMS` and carries a valid Authenticode signature, with a trusted
 timestamp, from the project's signing certificate, verified against a pinned
-Certum CA bundle. A Microsoft Store listing of the same signed MSI (not MSIX,
-which cannot host a text service) is planned.
+Certum CA bundle. The Microsoft Store listing installs the same signed MSI from
+that mirror (an MSI, not MSIX, which cannot host a text service). The Store does
+not update MSI apps, so installs from the Store and direct downloads update
+through marinaMoji's own updater.
 
 ## Signing keys
 

@@ -80,17 +80,26 @@ In **Preferences → Misc**, marinaMoji can check GitHub Releases for you:
 
 ### Windows
 
-Download the `.msi` for your machine — `x64` or `arm64` — and run it. The
-installer is Authenticode-signed (from v0.0.7; earlier releases are
-unsigned). Windows shows the publisher as "Open Source Developer Daniel
-Patrick Morgan". SmartScreen may still warn while the certificate builds
-reputation — choose "More info" → "Run anyway". The same signed installers
-are also mirrored at stable, direct URLs
-(`https://marinamoji.github.io/downloads/windows/<tag>/`), which a planned
-Microsoft Store listing of the signed MSI will use.
+**Recommended:** install marinaMoji from the
+[Microsoft Store](https://apps.microsoft.com/detail/xpdm29n64d0t42). It is the
+easiest route: the Store installs the signed installer for your machine and
+Windows shows no SmartScreen warning.
 
-In **Settings → Misc**, use **Check for updates…** the same way as on macOS
-(stable-only by default; optional unstable/rc channel).
+**Direct download:** the Store may be unavailable (managed or institutional
+computers can disable it), so the signed `.msi` stays available on the
+[Releases page](https://github.com/marinaMoji/marinaMoji/releases). Download the
+one for your machine — `x64` or `arm64` — and run it. The installer is
+Authenticode-signed (from v0.0.7; earlier releases are unsigned); Windows shows
+the publisher as "Open Source Developer Daniel Patrick Morgan". SmartScreen may
+still warn while the certificate builds reputation — choose "More info" → "Run
+anyway". The same signed installers are mirrored at stable, direct URLs
+(`https://marinamoji.github.io/downloads/windows/<tag>/`), which the Store
+listing uses.
+
+**Updates:** the Store does not update MSI-based apps, so every Windows
+install, from the Store or direct, updates itself. In **Settings → Misc**, use
+**Check for updates…** the same way as on macOS (stable-only by default;
+optional unstable/rc channel).
 
 ### Linux
 
