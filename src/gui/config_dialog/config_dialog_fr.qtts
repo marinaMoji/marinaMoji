@@ -1302,6 +1302,12 @@ Essayez d’exécuter %3 dans le Terminal et consultez %4.</translation>
 %1</translation>
     </message>
     <message>
+        <source>The update could not be downloaded or started:
+%1</source>
+        <translation>La mise à jour n'a pas pu être téléchargée ou lancée :
+%1</translation>
+    </message>
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1446" />
         <source>A newer release is available: %1
 

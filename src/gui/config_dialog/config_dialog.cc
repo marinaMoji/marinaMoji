@@ -1542,7 +1542,7 @@ void ConfigDialog::OnUpdateAvailable(const QString &tag_name,
       if (!GitHubUpdateChecker::DownloadAndOpenInstaller(pkg_url, tag_name,
                                                          &error)) {
         QMessageBox::warning(this, windowTitle(),
-                             tr("Update download failed:\n%1").arg(error));
+                             tr("The update could not be downloaded or started:\n%1").arg(error));
       }
     } else if (box.clickedButton() == page_button) {
       Process::OpenBrowser(html_url.toStdString());

@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 
 #include <cctype>
+#include <cerrno>
 #include <optional>
 #include <string>
 #include <vector>
@@ -73,7 +74,11 @@ int RunCommand(const std::vector<std::string>& argv) {
     return -1;
   }
   int wait_status = 0;
-  if (waitpid(pid, &wait_status, 0) < 0) {
+  pid_t waited = 0;
+  do {
+    waited = waitpid(pid, &wait_status, 0);
+  } while (waited < 0 && errno == EINTR);
+  if (waited < 0) {
     Log(absl::StrCat("waitpid for ", argv[0], " failed"));
     return -1;
   }

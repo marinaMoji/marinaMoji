@@ -10,6 +10,31 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: "could not open it" shown although the Installer opened (2026-10-15)
+
+With v0.0.12, Download & Install now opened the Installer, but an error
+"Downloaded the installer but could not open it" appeared at the same moment. The
+download itself had succeeded (no entry in `marina_update.log`, package on disk).
+`MarinaOpenLocalPath` waits for `open` with `waitpid`, and Preferences is a Qt
+application whose `SIGCHLD` handler can interrupt that call (EINTR) before the
+status is collected; any `-1` was treated as failure. Most likely cause; not
+reproduced from outside the app.
+
+**Fix:** retry `waitpid` on EINTR, and treat ECHILD (already reaped elsewhere) as
+success because `open` was launched. The silent helper's `RunCommand` got the
+same EINTR loop. Also the dialog title said "Update download failed" even when
+the failing step was opening the installer (this is why an earlier report called
+it a download failure); it now says "The update could not be downloaded or
+started" (fr/ja translated). Compile-checked only.
+
+### Windows: the sync task checks at most once per 24 hours (note, 2026-10-15)
+
+Left running overnight, the VM showed no popup for v0.0.12, while deleting the
+stamp file produced one immediately. That is the designed throttle
+(`kMarinaAutoUpdateCheckInterval` = 24h from the last *completed* check; the
+thread wakes every 2h but the stamp gates it), not a failure: a release published
+a few hours after a check can wait up to a day. Not changed yet.
+
 ### Windows: signed MSIs are mirrored for the Store automatically (2026-10-15)
 
 `marinaMoji/downloads` mirrors the signed Windows MSIs on GitHub Pages at stable,

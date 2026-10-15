@@ -1306,6 +1306,12 @@ Try running %3 in Terminal and check %4.</source>
 %1</translation>
     </message>
     <message>
+        <source>The update could not be downloaded or started:
+%1</source>
+        <translation>更新をダウンロードまたは開始できませんでした:
+%1</translation>
+    </message>
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="1446" />
         <source>A newer release is available: %1
 

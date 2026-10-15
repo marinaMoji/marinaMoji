@@ -1,6 +1,7 @@
 #include "base/marina_curl_fetch.h"
 
 #include <array>
+#include <cerrno>
 #ifdef __APPLE__
 #include <crt_externs.h>
 #include <spawn.h>
@@ -122,9 +123,19 @@ bool MarinaOpenLocalPath(absl::string_view path) {
                   *_NSGetEnviron()) != 0) {
     return false;
   }
+  // Preferences is a Qt application, and Qt installs a SIGCHLD handler for its
+  // own helper processes. When `open` exits, that signal can interrupt
+  // waitpid() (EINTR) before the status is collected; treating that as a
+  // failure reported "could not open it" even though the Installer had opened.
+  // Retry on EINTR. If the child was already reaped by someone else (ECHILD),
+  // `open` was launched successfully and there is no status left to inspect.
   int wait_status = 0;
-  if (waitpid(pid, &wait_status, 0) < 0) {
-    return false;
+  pid_t waited = 0;
+  do {
+    waited = waitpid(pid, &wait_status, 0);
+  } while (waited < 0 && errno == EINTR);
+  if (waited < 0) {
+    return true;
   }
   return WIFEXITED(wait_status) && WEXITSTATUS(wait_status) == 0;
 #else
