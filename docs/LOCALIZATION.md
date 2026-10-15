@@ -9,7 +9,6 @@ UI language follows the **system locale** only (no in-app language picker).
 | Input-source name in menu bar / System Settings | [`src/mac/{English,French,Japanese}.lproj/InfoPlist.strings`](../src/mac/English.lproj/InfoPlist.strings) (`com.apple.inputmethod.Japanese` → `marinaMoji`). French is required; without it macOS shows the raw ID and may hide the IME. |
 | IME menu, floating toolbar | [`src/mac/Resources/*/Localizable.strings`](../src/mac/Resources/en.lproj/Localizable.strings) + `MarinaLocalizedString()` |
 | Qt tools (Preferences, Dictionary, About, …) | Qt `.qm` files (`*_en`, `*_fr`, `*_ja`) |
-| Installer ActivatePane | `ActivatePane/{English,Japanese,fr}.lproj/Localizable.strings` |
 | Applications folder name in `.pkg` | `installer/Resources/{en,fr,ja}.lproj/Localizable.strings` |
 
 **Test:** System Settings → General → Language → French (or Japanese). Restart apps after rebuild. Open marinaMoji menu, toolbar, Preferences.

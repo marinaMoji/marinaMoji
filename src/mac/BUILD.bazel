@@ -433,36 +433,6 @@ genrule(
 )
 
 mozc_objc_library(
-    name = "activate_pane_lib",
-    srcs = ["ActivatePane/ActivatePane.mm"],
-    hdrs = ["ActivatePane/ActivatePane.h"],
-    data = ["ActivatePane/ActivatePane.xib"],
-    sdk_frameworks = [
-        "Carbon",
-        "Cocoa",
-        "Foundation",
-        "InstallerPlugins",
-    ],
-    tags = ["manual"],
-    deps = ["//base:const"],
-)
-
-mozc_macos_bundle(
-    name = "activate_pane",
-    bundle_name = "ActivatePane",
-    infoplists = ["ActivatePane/Info.plist"],
-    strings = [
-        "ActivatePane/English.lproj/InfoPlist.strings",
-        "ActivatePane/English.lproj/Localizable.strings",
-        "ActivatePane/fr.lproj/InfoPlist.strings",
-        "ActivatePane/fr.lproj/Localizable.strings",
-        "ActivatePane/Japanese.lproj/InfoPlist.strings",
-        "ActivatePane/Japanese.lproj/Localizable.strings",
-    ],
-    deps = ["activate_pane_lib"],
-)
-
-mozc_objc_library(
     name = "dev_confirm_pane_lib",
     srcs = ["DevConfirmPane/DevConfirmPane.mm"],
     hdrs = ["DevConfirmPane/DevConfirmPane.h"],
@@ -592,7 +562,6 @@ genrule(
     ] + mozc_select(
         # Common files for all build types.
         macos = [
-            ":activate_pane",
             ":dev_confirm_pane",
             ":mozc_macos",
             ":uninstaller_macos",

@@ -10,6 +10,22 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: the unused ActivatePane installer plugin is deleted (#65) (2026-10-15)
+
+It stopped being shipped in `ccb106a3f` (and a clean-VM control run showed it never
+added marinaMoji to the input sources anyway), but its source and Bazel targets were
+still built into every release. Removed: `src/mac/ActivatePane/` (source, xib,
+en/fr/ja strings), the `activate_pane` and `activate_pane_lib` targets and the
+`:activate_pane` input of `zipped_installer_files` in `mac/BUILD.bazel`, its entry in
+`InstallerSections.plist`, its file-move in `mac/tweak_installer_files.py`, and the
+stale references in `docs/LOCALIZATION.md`, `mac/README.md` and a comment in
+`gui/base/stats_config_util.cc`. Left alone: `DevConfirmPane` (dev channel), the
+section-list file (still moved for the non-marinaMoji path), the unused Packages-app
+template `mac/installer/Mozc_template.pkgproj` and the upstream design note
+`docs/design_doc/mac_version.md`, which still mention it. Checked: buildifier, and the
+file-moving script on layouts without the plugin for both the marinaMoji and the stock
+paths. The real package build is exercised by the macOS CI (`bazelisk build package`).
+
 ### macOS: an installer cannot enable the parent input source; the enable-order theory was wrong (2026-10-15)
 
 The v0.0.16 install log from a clean macOS 27.0.1 VM (the status logging added in
@@ -24,13 +40,14 @@ enabled=1" difference was just that the maintainer's own Mac had it added by han
 Tested on macOS 27 only; older versions may let `TISEnableInputSource` work, so the
 enable/select calls stay.
 
-Follow-up (not done): drop the three parent retries in `RegisterInputSource`
-(`mac/main.mm`), which now only add about 3 seconds to every clean install, and keep
-the per-call status logging; optionally revert the modes-first ordering too. Closes
-the "does the installer activate it" question (#66); the manual step is explained on
-the installer's last screen.
-
-## v0.0.16
+Cleanup (done, in the next release): `RegisterInputSource` (`mac/main.mm`) is back to a
+single pass in the order macOS lists the sources, without the three parent retries (about
+3 seconds per clean install, to no effect) and without the modes-first/parent-last
+ordering that did not help; it keeps the per-call `TISEnableInputSource` /
+`TISSelectInputSource` status logging that settled the question, and selects only the
+base mode (the parent is not select-capable). The calls stay for macOS versions that may
+still honour them. Closes the "does the installer activate it" question (#66); the manual
+step is explained on the installer's last screen. Compile-checked only.
 
 ### macOS: first installs never add marinaMoji by themselves, so the last screen says what to do (2026-10-15)
 

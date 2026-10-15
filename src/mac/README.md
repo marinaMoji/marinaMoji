@@ -8,9 +8,9 @@ It contains
 *   Uninstaller
 *   Interface classes for macOS IMF (i.e. the subclass of `IMKInputController`).
 
-## ActivatePane / DevConfirmPane
+## DevConfirmPane
 
-Modules used in the installer.
+Installer module for the dev channel. (The ActivatePane installer plugin was removed: macOS only lets the user add a third-party input method, and the plugin only caused a "needs to run a program" warning.)
 
 ## English.lproj / Japanese.lproj
 
