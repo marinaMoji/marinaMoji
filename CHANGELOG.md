@@ -37,9 +37,9 @@ PID through two silent updates).
   stop Sync, restart the app, Sync is running again with a new PID (45848 became
   74987).
 
-Not yet verified: the Windows C++ (it is only built by CI, so far unbuilt), and
-either change inside a real installer run; both need the first release containing
-them. The sync process is ended abruptly, so an update that lands in the middle of a
+The Windows C++ compiled in CI on both architectures (`CI for Windows` on `bd99dcd`:
+x64 and ARM64 builds and tests passed). Not yet verified: either change inside a real
+installer run; that needs the first release containing them (test issue #68). The sync process is ended abruptly, so an update that lands in the middle of a
 sync could cut it short.
 
 ### macOS: the unused ActivatePane installer plugin is deleted (#65) (2026-10-15)
