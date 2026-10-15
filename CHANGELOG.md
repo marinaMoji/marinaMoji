@@ -10,6 +10,8 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+## v0.0.14
+
 ### macOS: "could not open it" shown although the Installer opened (2026-10-15)
 
 With v0.0.12, Download & Install now opened the Installer, but an error
