@@ -10,6 +10,26 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: an installer cannot enable the parent input source; the enable-order theory was wrong (2026-10-15)
+
+The v0.0.16 install log from a clean macOS 27.0.1 VM (the status logging added in
+v0.0.16 did its job) shows `TISEnableInputSource(org.mozc.inputmethod.Japanese): 0`
+(success) for the parent, then three retries, each `0`, and the parent still reported
+`enabled=0`; `TISSelectInputSource(...base)` returns `-50`; all five modes report
+`enabled=1`. So enabling modes first and the parent last, with retries, changes
+nothing, exactly like the v0.0.14 control with the plugin: macOS only lets the user
+add a third-party input method (System Settings > Input Sources > +). Registration
+works and the source is offered under "+" at once. The earlier "parent enabled=0 vs
+enabled=1" difference was just that the maintainer's own Mac had it added by hand.
+Tested on macOS 27 only; older versions may let `TISEnableInputSource` work, so the
+enable/select calls stay.
+
+Follow-up (not done): drop the three parent retries in `RegisterInputSource`
+(`mac/main.mm`), which now only add about 3 seconds to every clean install, and keep
+the per-call status logging; optionally revert the modes-first ordering too. Closes
+the "does the installer activate it" question (#66); the manual step is explained on
+the installer's last screen.
+
 ## v0.0.16
 
 ### macOS: first installs never add marinaMoji by themselves, so the last screen says what to do (2026-10-15)
