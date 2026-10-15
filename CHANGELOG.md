@@ -10,6 +10,26 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: enable the parent input source last (first install on a clean VM) (2026-10-15)
+
+After a graphical install of v0.0.15 on a clean VM, marinaMoji was only offered
+under "+" in System Settings > Keyboard > Input Sources and had to be added by hand.
+The postinstall log (the registration code's own report after enabling) shows why it
+is plausible: the parent entry `org.mozc.inputmethod.Japanese` (the top-level
+"marinaMoji" the Settings list shows) was `enabled=0` while every mode was
+`enabled=1`, whereas `marinaMoji --verify_input_source` on a Mac where it works shows
+the parent `enabled=1`. macOS returns the sources in no fixed order, and on the VM
+the parent was listed first, so it was enabled before its modes.
+
+**Change:** `RegisterInputSource` (`mac/main.mm`) enables the modes first and the
+parent last, in a freshly fetched list, retries the parent up to three times if it is
+still reported disabled, and prints each `TISEnableInputSource` /
+`TISSelectInputSource` status into the install log. **Unconfirmed:** this is a
+hypothesis from one log; compile-checked only, not run (the registration needs a
+real GUI session and cannot be linked on the authoring machine). It needs a clean-VM
+install of the first release containing it (#62, #66). Whether the removed ActivatePane
+plugin would have enabled the parent on the same VM was never measured.
+
 ### vm_trial_marinamoji.sh read the wrong preference for "enabled" (2026-10-15)
 
 A clean-VM install reported `Enabled: (no marinaMoji)`, which I took to mean the

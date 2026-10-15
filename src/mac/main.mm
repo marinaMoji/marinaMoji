@@ -327,21 +327,65 @@ int RegisterInputSource(bool select) {
           static_cast<int>(status));
 
   if (select) {
-    CFArrayRef sourceList = TISCreateInputSourceList(nullptr, true);
-    if (sourceList != nullptr) {
+    // Enable the modes first and the parent entry (the top-level "marinaMoji" that
+    // System Settings lists, id == the bundle id) last, in a freshly fetched list.
+    // macOS returns the sources in no fixed order: on a clean VM the parent came
+    // first, was enabled before its modes, and stayed `enabled=0` while every mode
+    // reported `enabled=1`, so marinaMoji was only offered under "+" in Input
+    // Sources and had to be added by hand. On a Mac where it works the parent is
+    // `enabled=1`. Each call's status is printed so the install log shows what
+    // macOS answered.
+    NSString *const baseID = [bundleID stringByAppendingString:@".base"];
+    for (int pass = 0; pass < 2; ++pass) {
+      const bool parent_pass = (pass == 1);
+      CFArrayRef sourceList = TISCreateInputSourceList(nullptr, true);
+      if (sourceList == nullptr) {
+        continue;
+      }
       for (CFIndex i = 0; i < CFArrayGetCount(sourceList); ++i) {
         TISInputSourceRef source = (TISInputSourceRef)(CFArrayGetValueAtIndex(sourceList, i));
         NSString *sourceID = InputSourceID(source);
         if (![sourceID hasPrefix:bundleID]) {
           continue;
         }
-        TISEnableInputSource(source);
-        if ([sourceID isEqualToString:[bundleID stringByAppendingString:@".base"]] ||
-            [sourceID isEqualToString:bundleID]) {
-          TISSelectInputSource(source);
+        const bool is_parent = [sourceID isEqualToString:bundleID];
+        if (is_parent != parent_pass) {
+          continue;
+        }
+        const OSStatus enable_status = TISEnableInputSource(source);
+        fprintf(stderr, "TISEnableInputSource(%s): %d\n", [sourceID UTF8String],
+                static_cast<int>(enable_status));
+        if ([sourceID isEqualToString:baseID]) {
+          const OSStatus select_status = TISSelectInputSource(source);
+          fprintf(stderr, "TISSelectInputSource(%s): %d\n", [sourceID UTF8String],
+                  static_cast<int>(select_status));
         }
       }
       CFRelease(sourceList);
+    }
+    // If the parent is still reported disabled, try again a couple of times.
+    for (int retry = 0; retry < 3; ++retry) {
+      bool parent_enabled = true;
+      CFArrayRef sourceList = TISCreateInputSourceList(nullptr, true);
+      if (sourceList != nullptr) {
+        for (CFIndex i = 0; i < CFArrayGetCount(sourceList); ++i) {
+          TISInputSourceRef source = (TISInputSourceRef)(CFArrayGetValueAtIndex(sourceList, i));
+          if ([InputSourceID(source) isEqualToString:bundleID]) {
+            parent_enabled = TISBool(source, kTISPropertyInputSourceIsEnabled) == 1;
+            if (!parent_enabled) {
+              const OSStatus status = TISEnableInputSource(source);
+              fprintf(stderr, "parent %s still disabled; TISEnableInputSource retry %d: %d\n",
+                      [bundleID UTF8String], retry + 1, static_cast<int>(status));
+            }
+            break;
+          }
+        }
+        CFRelease(sourceList);
+      }
+      if (parent_enabled) {
+        break;
+      }
+      [NSThread sleepForTimeInterval:1.0];
     }
   }
 
