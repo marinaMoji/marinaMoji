@@ -103,15 +103,10 @@ has_reg_flag() {
 
 binary_arch() {
   [[ -f "${IMK}" ]] || { echo "?(no binary)"; return; }
-  # /usr/bin/lipo exists even with no developer tools: it is a stub that prints
-  # an xcode-select notice, so `command -v` is not a usable test.
-  local out
-  out="$(lipo -archs "${IMK}" 2>/dev/null)"
-  if [[ -z "${out}" || "${out}" == *"xcode-select"* ]]; then
-    echo "?(lipo unavailable - no developer tools installed)"
-  else
-    echo "${out}"
-  fi
+  # /usr/bin/file, not lipo: lipo is a developer-tool shim, and merely running
+  # it on a clean machine (no command line developer tools) makes macOS offer to
+  # install them, which also disturbs what the trial is measuring.
+  file -b "${IMK}" 2>/dev/null | head -1
 }
 
 # --- launchd health ----------------------------------------------------------

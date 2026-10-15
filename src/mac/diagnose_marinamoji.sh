@@ -84,14 +84,9 @@ if [[ ! -d "${APP}" ]]; then
 fi
 echo "Version:    $(defaults read "${APP}/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo '?')"
 echo "Installed:  $(stat -f%Sm "${APP}")"
-# /usr/bin/lipo is a stub without developer tools: it prints an xcode-select
-# notice rather than failing, so its output has to be inspected.
-ARCH_OUT="$(lipo -archs "${IMK}" 2>/dev/null)"
-if [[ -z "${ARCH_OUT}" || "${ARCH_OUT}" == *"xcode-select"* ]]; then
-  echo "Binary:     ?(lipo unavailable - no developer tools installed)"
-else
-  echo "Binary:     ${ARCH_OUT}"
-fi
+# /usr/bin/file, not lipo: lipo is a developer-tool shim, and running it without
+# the command line developer tools makes macOS offer to install them.
+echo "Binary:     $(file -b "${IMK}" 2>/dev/null | head -1)"
 REG_FLAG="$(grep -ac "register_input_source" "${IMK}" 2>/dev/null)"
 echo "Reg flag:   ${REG_FLAG:-0}"
 echo "Quarantine: $(xattr -p com.apple.quarantine "${IMK}" 2>/dev/null || echo none)"

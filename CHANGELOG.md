@@ -10,6 +10,24 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: the installer no longer triggers "install the command line developer tools" (2026-10-15)
+
+On a clean VM the postinstall log contained `binary arch: xcode-select: note: No
+developer tools were found, requesting install.` The postinstall ran
+`/usr/bin/lipo -archs` to record the binary's architecture. `lipo` is one of the 78
+hard-linked developer-tool shims in `/usr/bin` (link count 78; `file` and
+`codesign` are real programs, link count 1), and on a Mac without the command line
+developer tools, merely running it makes macOS offer to install them. Most users'
+Macs do not have them, so every install and update, including silent ones, could
+raise that dialog. Developer Macs hid it.
+
+**Fix:** `mac/installer/postflight_template.sh`, `mac/diagnose_marinamoji.sh` and
+`mac/vm_trial_marinamoji.sh` use `/usr/bin/file -b` (e.g. `Mach-O 64-bit executable
+arm64`; a universal binary reports both architectures) instead. No other `lipo` call
+exists in `mac/` or `base/`, and no other developer-tool shim is used by the
+installer scripts. From the first release containing this (the fix is not in
+v0.0.15). Not yet checked on a Mac without developer tools after the change.
+
 ## v0.0.15
 
 ### macOS: no more "this package needs to run a program" warning (2026-10-15)

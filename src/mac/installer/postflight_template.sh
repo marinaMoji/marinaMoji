@@ -139,7 +139,12 @@ if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
     # Recorded because a package built for the other architecture fails here in
     # a way that is otherwise indistinguishable from a registration failure:
     # without Rosetta 2 the binary cannot execute at all.
-    log "host arch: `/usr/bin/uname -m`, binary arch: `/usr/bin/lipo -archs "${IMK}" 2>&1`"
+    # /usr/bin/file, not /usr/bin/lipo: lipo is one of the developer-tool shims,
+    # and on a Mac without the command line developer tools merely running it
+    # makes macOS pop up "install the command line developer tools" (seen on a
+    # clean VM: "xcode-select: note: No developer tools were found, requesting
+    # install."). Most users' Macs do not have them. file is a real program.
+    log "host arch: `/usr/bin/uname -m`, binary: `/usr/bin/file -b "${IMK}" 2>&1 | /usr/bin/head -1`"
     attempt=1
     while [ "${attempt}" -le 3 ]; do
       REG_OUT=`as_console_user "${IMK}" --select_input_source 2>&1`
