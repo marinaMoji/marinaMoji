@@ -1,0 +1,31 @@
+.TH MOZC_EMACS_HELPER 1 "2026-10-15" "marinaMoji" "User Commands"
+.SH NAME
+mozc_emacs_helper \- marinaMoji conversion helper for the Emacs mozc.el client
+.SH SYNOPSIS
+.B mozc_emacs_helper
+.RB [ \-\-suppress_stderr ]
+.SH DESCRIPTION
+.B mozc_emacs_helper
+connects Emacs to the marinaMoji conversion server.
+It is started by
+.I mozc.el
+and is not meant to be run by hand: it reads requests as S-expressions
+on standard input and writes the server's responses to standard output.
+.PP
+The package conflicts with
+.B emacs-mozc
+and
+.BR emacs-mozc-bin ,
+since both install a helper with this name.
+.SH OPTIONS
+.TP
+.B \-\-suppress_stderr
+Discard all output to standard error.
+.SH FILES
+.TP
+.I /usr/share/emacs/site-lisp/emacs-mozc/mozc.el
+The Emacs client that runs this helper.
+.SH SEE ALSO
+.BR emacs (1)
+.PP
+https://github.com/marinaMoji/marinaMoji

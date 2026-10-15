@@ -110,22 +110,23 @@ jobs:
             --arch ${{ matrix.deb_arch }} \
             --output-dir dist
 
-      # Advisory only: never fail the job on lintian findings.
-      - name: lintian (advisory)
+      # Hard gate: fail on lintian errors and warnings. Info and pedantic
+      # findings are still shown in the report but do not fail the job.
+      # Intentional overrides, if ever needed, belong in the package itself
+      # (packaging/linux/data/) with a comment saying why.
+      - name: lintian
         run: |
           set -euo pipefail
           sudo apt-get install -y lintian
           mkdir -p dist
           report="dist/lintian-${{ matrix.deb_arch }}.txt"
-          # Capture output and exit status; always succeed so packaging noise
-          # does not block CI while we still surface the report as an artifact.
-          set +e
-          lintian --display-info --show-overrides dist/*.deb 2>&1 | tee "$report"
-          echo "lintian_exit=$?" >> "$report"
-          set -e
-          echo "lintian finished (advisory; see $report)"
+          # pipefail makes the pipeline fail with lintian's status; tee keeps
+          # the report even when lintian fails.
+          lintian --display-info --show-overrides --fail-on error,warning \
+            dist/*.deb 2>&1 | tee "$report"
 
       - name: Upload .deb
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: marinaMoji-linux-${{ matrix.arch }}-deb
