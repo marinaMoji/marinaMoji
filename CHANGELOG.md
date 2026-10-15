@@ -26,8 +26,8 @@ Since a new user always has to add it, the Conclusion page (en/fr/ja) now says s
 plainly: *add it under System Settings > Keyboard > Input Sources > Edit… > + >
 Japanese > marinaMoji > Add*, already there when updating, with the logout advice
 kept as a fallback. Before, it only said "if it does not appear, log out and add it",
-which buried the one step every first install needs. The French menu names should be
-checked on a French Mac ("Sources d'entrée" was the existing wording).
+which buried the one step every first install needs. The French menu name was checked
+on a French Mac: it is "Méthodes de saisie" (not "Sources d'entrée", the earlier wording).
 
 ### macOS: enable the parent input source last (first install on a clean VM) (2026-10-15)
 
