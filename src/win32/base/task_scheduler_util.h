@@ -61,6 +61,13 @@ class TaskSchedulerUtil {
                                    std::wstring_view exe_path,
                                    std::wstring_view args);
 
+  // Starts the already registered task |task_name| now, for the user it is
+  // registered under, instead of waiting for its next trigger. That user must
+  // be logged on interactively (the task uses an interactive token), so the
+  // call fails otherwise; callers should treat failure as non-fatal. The caller
+  // is responsible for initializing COM before calling this function.
+  static HRESULT RunTask(std::wstring_view task_name);
+
   // Removes the task named |task_name| if present. Never treats "task did
   // not exist" as an error. The caller is responsible for initializing COM
   // before calling this function.

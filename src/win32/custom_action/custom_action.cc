@@ -33,6 +33,7 @@
 #include <windows.h>
 #include <atlbase.h>
 #include <msiquery.h>
+#include <tlhelp32.h>
 #include <wow64apiset.h>
 // clang-format on
 
@@ -533,6 +534,44 @@ UINT __stdcall UnregisterTIPRollback(MSIHANDLE msi_handle) {
 }
 
 // [Return='ignore']
+// Terminates the running sync daemons (marinamoji_sync.exe) this process is
+// allowed to terminate, i.e. those of the user the custom action runs as, and
+// waits briefly for each to exit. Other users' daemons are left alone (the
+// open fails) and keep running until those users sign in again.
+//
+// The daemon hosts the update check and keeps running the code it started
+// with: after an in-place update the installer replaced marinamoji_sync.exe but
+// the old process stayed alive and, once its offer hold expired, would have
+// offered the version that was just installed again.
+static void TerminateRunningSyncDaemons() {
+  const std::wstring exe_name =
+      mozc::win32::Utf8ToWide(mozc::kMozcSyncExecutable);
+  HANDLE snapshot = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (snapshot == INVALID_HANDLE_VALUE) {
+    return;
+  }
+  PROCESSENTRY32W entry = {};
+  entry.dwSize = sizeof(entry);
+  for (BOOL ok = ::Process32FirstW(snapshot, &entry); ok;
+       ok = ::Process32NextW(snapshot, &entry)) {
+    if (::lstrcmpiW(entry.szExeFile, exe_name.c_str()) != 0) {
+      continue;
+    }
+    HANDLE process = ::OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, FALSE,
+                                   entry.th32ProcessID);
+    if (process == nullptr) {
+      continue;  // Another user's process, or already gone.
+    }
+    // Exit code 0, so Task Scheduler does not count it as a failure and start
+    // its own restart attempt on top of ours.
+    if (::TerminateProcess(process, 0)) {
+      ::WaitForSingleObject(process, 5000);
+    }
+    ::CloseHandle(process);
+  }
+  ::CloseHandle(snapshot);
+}
+
 // Registers a per-user Task Scheduler logon task that runs
 // marinamoji_sync.exe --daemon, mirroring the macOS LaunchAgent / Linux
 // systemd --user unit process model (see docs/WINDOWS_PORT_PLAN.md Phase 5).
@@ -550,6 +589,14 @@ UINT __stdcall RegisterSyncTask(MSIHANDLE msi_handle) {
       mozc::kMozcSyncTaskName, sync_path, L"--daemon");
   if (FAILED(result)) {
     LOG_ERROR_FOR_OMAHA();
+  } else {
+    // The new executable is in place by now (this runs just before
+    // InstallFinalize). Stop this user's old daemon and start the task again so
+    // the update does not leave it running the pre-update code until the next
+    // sign-in. Starting the task can fail (e.g. the installing user is not the
+    // one logged on interactively); that is not an error for the install.
+    TerminateRunningSyncDaemons();
+    mozc::win32::TaskSchedulerUtil::RunTask(mozc::kMozcSyncTaskName);
   }
   return ERROR_SUCCESS;
 }
@@ -567,5 +614,9 @@ UINT __stdcall UnregisterSyncTask(MSIHANDLE msi_handle) {
   DEBUG_BREAK_FOR_DEBUGGER();
   mozc::ScopedCOMInitializer com_initializer;
   mozc::win32::TaskSchedulerUtil::UnregisterTask(mozc::kMozcSyncTaskName);
+  // Also stop the running daemon, so uninstalling or rolling back is not
+  // blocked by a locked marinamoji_sync.exe. This action is skipped on
+  // upgrades (see the .wxs), so it never kills the daemon in the middle of one.
+  TerminateRunningSyncDaemons();
   return ERROR_SUCCESS;
 }

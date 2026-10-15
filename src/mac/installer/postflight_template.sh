@@ -52,6 +52,13 @@ fi
 if [ "${HAVE_CONSOLE_USER}" = "1" ]; then
   /usr/bin/sudo -u "${CONSOLE_USER}" /usr/bin/killall marinaMojiConverter > /dev/null 2>&1
   /usr/bin/sudo -u "${CONSOLE_USER}" /usr/bin/killall marinaMojiRenderer > /dev/null 2>&1
+  # The sync agent (RunAtLoad, no KeepAlive) is not restarted by launchd when it
+  # stops, and it hosts nothing the new version could replace while it runs, so
+  # an update used to leave it running the old code until the next login. Stop
+  # it here, after the new files are in place; the app, started by the health
+  # check below, starts it again (re-registering it first if launchd refuses
+  # because its launch constraint still names the old binary).
+  /usr/bin/sudo -u "${CONSOLE_USER}" /usr/bin/killall marinaMojiSync > /dev/null 2>&1
   /usr/bin/sudo -u "${CONSOLE_USER}" /usr/bin/killall marinaMoji > /dev/null 2>&1
 fi
 

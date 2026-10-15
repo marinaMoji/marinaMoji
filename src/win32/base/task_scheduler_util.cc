@@ -192,6 +192,28 @@ HRESULT TaskSchedulerUtil::RegisterLogonTask(std::wstring_view task_name,
       &registered_task);
 }
 
+HRESULT TaskSchedulerUtil::RunTask(std::wstring_view task_name) {
+  wil::com_ptr_nothrow<ITaskService> service;
+  HRESULT hr = ConnectTaskService(service);
+  if (FAILED(hr)) {
+    return hr;
+  }
+  wil::com_ptr_nothrow<ITaskFolder> root_folder;
+  hr = GetRootFolder(service.get(), root_folder);
+  if (FAILED(hr)) {
+    return hr;
+  }
+  const wil::unique_bstr name_bstr = MakeBstr(task_name);
+  wil::com_ptr_nothrow<IRegisteredTask> registered_task;
+  hr = root_folder->GetTask(name_bstr.get(), &registered_task);
+  if (FAILED(hr)) {
+    return hr;
+  }
+  VARIANT no_params = MakeEmptyVariant();
+  wil::com_ptr_nothrow<IRunningTask> running_task;
+  return registered_task->Run(no_params, &running_task);
+}
+
 HRESULT TaskSchedulerUtil::UnregisterTask(std::wstring_view task_name) {
   wil::com_ptr_nothrow<ITaskService> service;
   if (FAILED(ConnectTaskService(service))) {

@@ -10,6 +10,38 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### An update now restarts the sync agent, so it runs the new code (#63) (2026-10-15)
+
+After an in-place update the sync agent, which on Windows also hosts the update
+check, kept running the code it had started with until the next sign-in or login:
+on Windows the installer replaced `marinamoji_sync.exe` but left the old process
+alive (observed: its start time was before the install while the cache service,
+renderer and server were restarted), so once the 24 h offer hold expired it would
+have offered a release that was already installed again; on macOS the postinstall
+stopped the converter, renderer and the IME but not Sync (observed: the same Sync
+PID through two silent updates).
+
+- **Windows:** the installer's `RegisterSyncTask` custom action (which runs just
+  before `InstallFinalize`, after the files are in place) now terminates the
+  installing user's running `marinamoji_sync.exe` and starts the task again
+  (`TaskSchedulerUtil::RunTask`, new). Other users' daemons keep running until they
+  sign in (the open fails; they are not touched). The process is ended with exit
+  code 0 so Task Scheduler does not add its own restart attempt. `UnregisterSyncTask`
+  (uninstall and rollback; it is skipped on upgrades) also stops the daemon, so a
+  locked executable no longer blocks removal. Starting the task can fail when the
+  installing user is not the one logged on; that is ignored.
+- **macOS:** the postinstall now also runs `killall marinaMojiSync` next to the
+  converter and renderer. The health check that follows starts the app, which
+  starts Sync again (`EnsureSyncAgentRunning`, re-registering first if launchd
+  reports a stale launch constraint). Checked on this Mac with the same steps:
+  stop Sync, restart the app, Sync is running again with a new PID (45848 became
+  74987).
+
+Not yet verified: the Windows C++ (it is only built by CI, so far unbuilt), and
+either change inside a real installer run; both need the first release containing
+them. The sync process is ended abruptly, so an update that lands in the middle of a
+sync could cut it short.
+
 ### macOS: the unused ActivatePane installer plugin is deleted (#65) (2026-10-15)
 
 It stopped being shipped in `ccb106a3f` (and a clean-VM control run showed it never
