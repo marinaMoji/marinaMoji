@@ -101,6 +101,19 @@ SHLIB_DEPS="$(echo "$SHLIB_DEPS" | awk -F', ' '{
     printf "%s%s", dep, (i < NF ? ", " : "")
   }
 }')"
+# Why each hard dependency:
+#   ibus (>= 1.5.0)     the package is an IBus engine: it ships the engine
+#                       binary and the component XML that ibus-daemon loads.
+#                       The 1.5.0 floor predates every supported release.
+#   hicolor-icon-theme  owns /usr/share/icons/hicolor, where we install the
+#                       application icons, so the directory and its
+#                       index.theme must exist.
+#   shlibs:Depends      the exact libraries the binaries link against, from
+#                       dpkg-shlibdeps (Qt, protobuf, ...), with t64 aliases.
+# Nothing is Recommends/Suggests: the GUI tools, renderer and Emacs helper
+# are part of this package, and no optional package improves it. The
+# postinst only calls `ibus write-cache` if ibus is present, so a broken
+# ibus never fails an install.
 DEPS="ibus (>= 1.5.0), hicolor-icon-theme${SHLIB_DEPS:+, $SHLIB_DEPS}"
 
 INSTALLED_SIZE="$(du -sk "$ROOT" | cut -f1)"
