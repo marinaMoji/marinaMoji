@@ -1,0 +1,13 @@
+#!/bin/sh
+# Refresh the IBus component cache after remove/purge so marinamoji.xml
+# drops out of the engine list. Never restart IBus from here. Always exit 0.
+case "$1" in
+  remove|purge)
+    if command -v ibus >/dev/null 2>&1; then
+      ibus write-cache >/dev/null 2>&1 || \
+        echo "marinamoji: ibus write-cache failed (non-fatal); run 'ibus write-cache' and restart IBus or re-login if the engine still appears." >&2
+    fi
+    ;;
+esac
+
+exit 0

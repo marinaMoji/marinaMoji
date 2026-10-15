@@ -52,7 +52,46 @@ tag over raw.githubusercontent. Those four extra `source=()` entries need real
 
 The metainfo has no `<screenshots>` yet — software centres rank and display
 entries much better with them, but they must be served from stable URLs (the
-gh-pages site). Tracked in the project TODO under Block 2: Deployment.
+gh-pages site). Tracked as a GitHub issue under the
+[`debian packaging`](https://github.com/marinaMoji/marinaMoji/issues?q=is%3Aissue+label%3A%22debian+packaging%22)
+label (and on the Docs Wiki Deployment list).
+
+### Maintainer scripts
+
+`data/postinst` and `data/postrm` run `ibus write-cache` when `ibus` is
+available (install/upgrade and remove/purge). They never call `ibus restart`
+and never fail the package if IBus is missing or the cache refresh fails.
+Users may still need `ibus restart` or a re-login before the engine appears
+in the input-source list.
+
+## Install smoke checklist (packaging)
+
+Packaging-only checks after building or downloading a `.deb`. For IME
+behaviour, use the project’s WP7 testing checklist.
+
+1. Install with `sudo apt install ./marinamoji_*.deb` (or from the apt repo).
+2. Confirm `/usr/share/ibus/component/marinamoji.xml` exists.
+3. If marinaMoji is missing from input sources, run `ibus write-cache` and
+   `ibus restart` (or re-login), then add **marinaMoji** in Settings.
+4. Type in a text field and confirm conversion works.
+5. Install a newer `.deb` over the old one (upgrade path).
+6. `sudo apt remove marinamoji` — engine gone after cache refresh; user
+   config under `~/.config/marinamoji/` should remain.
+7. Reinstall, then `sudo apt purge marinamoji` — same as remove for this
+   package (no purge-specific config deletion).
+
+## Known gaps
+
+This packaging path is a **binary `.deb`** repack of `mozc.zip`, plus a
+signed third-party apt repo on GitHub Pages. It is **not** an official
+Debian/Ubuntu archive source package.
+
+- Build uses Bazel and needs network access for modules and some archives.
+- Linux integration is **IBus only** (no Fcitx/Fcitx5 package).
+- Maintainer scripts refresh the IBus component cache only.
+- Fuller DFSG copyright, `debian/` source packaging, offline/`sbuild`
+  builds, and related archive work live as GitHub issues labeled
+  [`debian packaging`](https://github.com/marinaMoji/marinaMoji/issues?q=is%3Aissue+label%3A%22debian+packaging%22).
 
 ## Product version (About / update checks)
 

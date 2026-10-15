@@ -1,0 +1,15 @@
+#!/bin/sh
+# Refresh the IBus component cache after install/upgrade so marinamoji.xml
+# is visible. Never restart IBus from here (that would disrupt live sessions).
+# Always exit 0 so a missing or failing ibus never leaves the package
+# half-configured.
+case "$1" in
+  configure)
+    if command -v ibus >/dev/null 2>&1; then
+      ibus write-cache >/dev/null 2>&1 || \
+        echo "marinamoji: ibus write-cache failed (non-fatal); run 'ibus write-cache' and restart IBus or re-login if marinaMoji does not appear." >&2
+    fi
+    ;;
+esac
+
+exit 0

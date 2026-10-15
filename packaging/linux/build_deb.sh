@@ -104,6 +104,10 @@ Description: Japanese input method for classical and literary Japanese
  alongside stock Mozc, GUI configuration tools, and an Emacs helper.
 EOF
 
+# Maintainer scripts: refresh IBus component cache only (never restart).
+install -m 755 "$HERE/data/postinst" "$ROOT/DEBIAN/postinst"
+install -m 755 "$HERE/data/postrm" "$ROOT/DEBIAN/postrm"
+
 mkdir -p "$OUTDIR"
 dpkg-deb --build --root-owner-group -Zxz "$ROOT" \
   "$OUTDIR/marinamoji_${VERSION}_${ARCH}.deb"
