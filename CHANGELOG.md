@@ -28,6 +28,12 @@ logon-trigger task, the error was swallowed (`Return="ignore"`), and nothing was
 - Both registration attempts now write their HRESULT to the installer log
   (`msiexec /l*v`): look for lines starting `marinaMoji:`. Seen on the x64 machine:
   `RegisterSyncTask as the installing user failed, HRESULT 0x80070005` (access denied).
+- The SYSTEM action now always registers (updates) the task for the logged-on user, not only
+  when it is missing. Seen on a private x64 laptop (v0.0.17-rc5): an old install had left a
+  task with Task Scheduler's defaults (no author, no trigger delay, "do not start on
+  batteries"), the unelevated update could not replace it, and on battery the daemon sat
+  `Queued` and never ran. Started by hand the daemon was fine. Deployment-tool installs with
+  no interactive user (SYSTEM, machine account) are skipped.
 - The daemon refresh no longer depends on that first attempt succeeding: the old daemon is
   stopped either way, and the SYSTEM action starts the task whether it just registered it or
   found it already there. (v0.0.17-rc4 only did this when the first attempt succeeded, so on

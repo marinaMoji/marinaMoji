@@ -40,6 +40,7 @@
 #include <cstdarg>
 #include <cstddef>
 #include <cstdio>
+#include <cwchar>
 #include <memory>
 #include <string>
 #include <vector>
@@ -626,31 +627,36 @@ UINT __stdcall RegisterSyncTask(MSIHANDLE msi_handle) {
   return ERROR_SUCCESS;
 }
 
-// Fallback for RegisterSyncTask. That action runs impersonated as the
-// installing user, and when the installer was started unelevated (a
-// double-click, with elevation granted by the UAC prompt) the impersonated token
-// is not elevated, so Task Scheduler refuses to create a logon-trigger task and
-// the registration fails without a trace. This action runs as SYSTEM, and
-// registers the task for the logged-on user named in CustomActionData
-// ("DOMAIN\\user"), but only when the task still does not exist, so a working
-// first attempt is never touched. Either way it then starts the task, which
-// restarts the sync daemon after the user-context action stopped the old one.
+// Registers (or updates) the sync task as SYSTEM, for the logged-on user named
+// in CustomActionData ("DOMAIN\\user"), then starts it.
+//
+// RegisterSyncTask above runs impersonated as the installing user. When the
+// installer was started unelevated (a double-click, with elevation granted by
+// the UAC prompt) that token is not elevated, so Task Scheduler refuses to
+// create or update a logon-trigger task (HRESULT 0x80070005) and the
+// registration fails without a trace. SYSTEM can do it.
+//
+// This always registers, not only when the task is missing: an upgrade must be
+// able to replace an old task definition, which keeps the defaults of the
+// version that created it (e.g. "do not start on batteries", which left the
+// daemon queued and never running on a laptop). Registering again is
+// idempotent (TASK_CREATE_OR_UPDATE).
 // [Return='ignore']
 UINT __stdcall RegisterSyncTaskForLoggedOnUser(MSIHANDLE msi_handle) {
   DEBUG_BREAK_FOR_DEBUGGER();
   mozc::ScopedCOMInitializer com_initializer;
-  if (!mozc::win32::TaskSchedulerUtil::IsTaskRegistered(
-          mozc::kMozcSyncTaskName)) {
-    std::wstring user = GetProperty(msi_handle, L"CustomActionData");
-    if (!user.empty() && user.front() == L'\\') {
-      user.erase(0, 1);  // No domain: the "[%USERDOMAIN]\\" prefix was empty.
-    }
-    if (user.empty()) {
-      LogToMsi(msi_handle,
-               L"marinaMoji: sync task not registered and no logged-on user is "
-               L"known; it will be missing until the next install");
-      return ERROR_SUCCESS;
-    }
+  std::wstring user = GetProperty(msi_handle, L"CustomActionData");
+  if (!user.empty() && user.front() == L'\\') {
+    user.erase(0, 1);  // No domain: the "[%USERDOMAIN]\\" prefix was empty.
+  }
+  // Installs run by a deployment tool have no interactive user; the machine or
+  // SYSTEM account would get a logon task that never fires.
+  const size_t slash = user.find_last_of(L'\\');
+  const std::wstring name =
+      slash == std::wstring::npos ? user : user.substr(slash + 1);
+  const bool has_user = !name.empty() && name.back() != L'$' &&
+                        ::_wcsicmp(name.c_str(), L"SYSTEM") != 0;
+  if (has_user) {
     const std::wstring sync_path =
         GetMozcComponentPath(mozc::kMozcSyncExecutable);
     const HRESULT result = mozc::win32::TaskSchedulerUtil::RegisterLogonTask(
@@ -660,16 +666,18 @@ UINT __stdcall RegisterSyncTaskForLoggedOnUser(MSIHANDLE msi_handle) {
       LogToMsi(msi_handle, L"marinaMoji: RegisterSyncTask as SYSTEM for " +
                                user + L" failed, HRESULT " +
                                HResultText(result));
-      return ERROR_SUCCESS;
+    } else {
+      LogToMsi(msi_handle, L"marinaMoji: registered the sync task as SYSTEM "
+                           L"for " + user);
     }
-    LogToMsi(msi_handle, L"marinaMoji: registered the sync task as SYSTEM for " +
-                             user + L" (the user's own registration failed)");
+  } else {
+    LogToMsi(msi_handle,
+             L"marinaMoji: no interactive logged-on user is known, so the "
+             L"sync task was not registered as SYSTEM");
   }
   // Start the task now so sync runs the new code without waiting for the next
-  // sign-in, whether it was just registered here or already existed (an
-  // earlier install registered it, and the user-context attempt above cannot
-  // restart it when it is refused). Does nothing if the daemon is already
-  // running, and fails harmlessly if that user is not logged on.
+  // sign-in. Does nothing if the daemon is already running, and fails
+  // harmlessly if that user is not logged on or no task exists.
   mozc::win32::TaskSchedulerUtil::RunTask(mozc::kMozcSyncTaskName);
   return ERROR_SUCCESS;
 }
