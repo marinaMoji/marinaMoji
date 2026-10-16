@@ -52,9 +52,17 @@ PID through two silent updates).
   74987).
 
 The Windows C++ compiled in CI on both architectures (`CI for Windows` on `bd99dcd`:
-x64 and ARM64 builds and tests passed). Not yet verified: either change inside a real
-installer run; that needs the first release containing them (test issue #68). The sync process is ended abruptly, so an update that lands in the middle of a
-sync could cut it short.
+x64 and ARM64 builds and tests passed).
+
+**Validated in real installer runs (#68, v0.0.16 to v0.0.17-rc1, 2026-10-16):** on a
+Windows 11 ARM VM the sync process was replaced during the update with no sign-out
+(PID 10204 became 1696), the new daemon reported `0.0.17-rc1 is up to date` with no
+popup, an update over v0.0.16 with no daemon running left the task running with a new
+process, and uninstalling left no `marinamoji_sync.exe` behind (the uninstall restart
+prompt is by design: the installer's `ScheduleReboot`, not the daemon). On macOS the
+Sync PID changed during the in-app update (74987 became 5955) and stayed running with
+no `spawn failed`. The sync process is ended abruptly, so an update that lands in the
+middle of a sync could cut it short.
 
 ### macOS: the unused ActivatePane installer plugin is deleted (#65) (2026-10-15)
 
