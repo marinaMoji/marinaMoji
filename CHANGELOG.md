@@ -10,6 +10,8 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+## v0.0.17 (2026-10-16)
+
 ### The Windows installer registers the sync task even when started unelevated (#46)
 
 On a managed x64 machine (domain admin account) installing the MSI by double-click left no
