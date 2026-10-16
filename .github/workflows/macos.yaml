@@ -43,7 +43,17 @@ jobs:
         run: |
           python3 build_tools/update_deps.py
 
+      # Qt is compiled from source (build_qt.py). Cache the installed result so it
+      # is only rebuilt when the build script or the pinned Qt version changes.
+      - name: Restore Qt build cache
+        id: qt_cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: src/third_party/qt
+          key: qt-${{ runner.os }}-${{ runner.arch }}-arm64-${{ hashFiles('src/build_tools/build_qt.py', 'src/build_tools/update_deps.py') }}
+
       - name: Build Qt
+        if: steps.qt_cache.outputs.cache-hit != 'true'
         working-directory: ./src
         run: |
           python3 build_tools/build_qt.py --release --confirm_license --macos_cpus=arm64
@@ -84,7 +94,17 @@ jobs:
         run: |
           python3 build_tools/update_deps.py
 
+      # Qt is compiled from source (build_qt.py). Cache the installed result so it
+      # is only rebuilt when the build script or the pinned Qt version changes.
+      - name: Restore Qt build cache
+        id: qt_cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: src/third_party/qt
+          key: qt-${{ runner.os }}-${{ runner.arch }}-x86_64-${{ hashFiles('src/build_tools/build_qt.py', 'src/build_tools/update_deps.py') }}
+
       - name: Build Qt
+        if: steps.qt_cache.outputs.cache-hit != 'true'
         working-directory: ./src
         run: |
           python3 build_tools/build_qt.py --release --confirm_license --macos_cpus=x86_64
