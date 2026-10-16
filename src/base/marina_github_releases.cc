@@ -226,6 +226,36 @@ std::optional<MarinaGitHubRelease> SelectNewerMarinaRelease(
 
 namespace {
 
+// The hosts report short architecture tokens ("x64" on Windows, "intel64" on
+// macOS), but the release workflow names the Intel/x64 builds "x86_64"
+// (marinaMoji-<tag>-windows-x86_64.msi, marinaMoji-<tag>-macos-x86_64.pkg).
+// "x64" is not a substring of "x86_64", so matching the host token alone never
+// found those assets and the updaters fell back to the release page.
+bool NameOrUrlContains(const MarinaGitHubAsset& asset, absl::string_view s) {
+  return absl::StrContains(asset.name, s) ||
+         absl::StrContains(asset.browser_download_url, s);
+}
+
+bool AssetMatchesArch(const MarinaGitHubAsset& asset,
+                      absl::string_view arch_token) {
+  if (arch_token == "x64") {
+    return NameOrUrlContains(asset, "x64") ||
+           NameOrUrlContains(asset, "x86_64") ||
+           NameOrUrlContains(asset, "amd64");
+  }
+  if (arch_token == "intel64") {
+    return NameOrUrlContains(asset, "intel64") ||
+           NameOrUrlContains(asset, "x86_64") ||
+           NameOrUrlContains(asset, "x64") ||
+           NameOrUrlContains(asset, "amd64");
+  }
+  if (arch_token == "arm64") {
+    return NameOrUrlContains(asset, "arm64") ||
+           NameOrUrlContains(asset, "aarch64");
+  }
+  return NameOrUrlContains(asset, arch_token);
+}
+
 // Shared by FindMarinaPkgDownloadUrl and FindMarinaPkgSha256Digest so both
 // agree on exactly which asset they mean.
 const MarinaGitHubAsset* FindMarinaPkgAsset(const MarinaGitHubRelease& release,
@@ -238,9 +268,7 @@ const MarinaGitHubAsset* FindMarinaPkgAsset(const MarinaGitHubRelease& release,
     if (!is_pkg) {
       continue;
     }
-    if (!arch_token.empty() &&
-        (absl::StrContains(asset.name, arch_token) ||
-         absl::StrContains(asset.browser_download_url, arch_token))) {
+    if (!arch_token.empty() && AssetMatchesArch(asset, arch_token)) {
       return &asset;
     }
     if (absl::StrContains(asset.name, "universal") ||
@@ -304,9 +332,7 @@ const MarinaGitHubAsset* FindMarinaMsiAsset(const MarinaGitHubRelease& release,
     if (!is_msi) {
       continue;
     }
-    if (arch_token.empty() ||
-        absl::StrContains(asset.name, arch_token) ||
-        absl::StrContains(asset.browser_download_url, arch_token)) {
+    if (arch_token.empty() || AssetMatchesArch(asset, arch_token)) {
       return &asset;
     }
   }

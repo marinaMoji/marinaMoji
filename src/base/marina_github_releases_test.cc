@@ -104,4 +104,50 @@ TEST(MarinaHostWindowsArchTokenTest, ReturnsPlausibleTokenOrEmpty) {
 }
 
 }  // namespace
+// The real release assets name the Intel/x64 builds "x86_64"; the hosts report
+// "x64" (Windows) and "intel64" (macOS). These used to match nothing.
+TEST(FindMarinaMsiDownloadUrlTest, MatchesTheRealX86_64AssetName) {
+  MarinaGitHubRelease release;
+  release.tag_name = "v0.0.16";
+  release.assets = {
+      Asset("marinaMoji-v0.0.16-windows-arm64.msi",
+            "https://example.com/marinaMoji-v0.0.16-windows-arm64.msi"),
+      Asset("marinaMoji-v0.0.16-windows-x86_64.msi",
+            "https://example.com/marinaMoji-v0.0.16-windows-x86_64.msi"),
+  };
+  EXPECT_EQ(FindMarinaMsiDownloadUrl(release, "x64"),
+            "https://example.com/marinaMoji-v0.0.16-windows-x86_64.msi");
+  EXPECT_EQ(FindMarinaMsiDownloadUrl(release, "arm64"),
+            "https://example.com/marinaMoji-v0.0.16-windows-arm64.msi");
+}
+
+TEST(FindMarinaPkgDownloadUrlTest, MatchesTheRealX86_64AssetName) {
+  MarinaGitHubRelease release;
+  release.tag_name = "v0.0.16";
+  release.assets = {
+      Asset("marinaMoji-v0.0.16-macos-arm64.pkg",
+            "https://example.com/marinaMoji-v0.0.16-macos-arm64.pkg"),
+      Asset("marinaMoji-v0.0.16-macos-x86_64.pkg",
+            "https://example.com/marinaMoji-v0.0.16-macos-x86_64.pkg"),
+  };
+  EXPECT_EQ(FindMarinaPkgDownloadUrl(release, "intel64"),
+            "https://example.com/marinaMoji-v0.0.16-macos-x86_64.pkg");
+  EXPECT_EQ(FindMarinaPkgDownloadUrl(release, "arm64"),
+            "https://example.com/marinaMoji-v0.0.16-macos-arm64.pkg");
+}
+
+TEST(FindMarinaMsiSha256DigestTest, DigestFollowsTheX86_64Asset) {
+  MarinaGitHubRelease release;
+  release.tag_name = "v0.0.16";
+  MarinaGitHubAsset arm = Asset("marinaMoji-v0.0.16-windows-arm64.msi",
+                                "https://example.com/arm64.msi");
+  arm.digest_sha256 = "aaaa";
+  MarinaGitHubAsset x64 = Asset("marinaMoji-v0.0.16-windows-x86_64.msi",
+                                "https://example.com/x86_64.msi");
+  x64.digest_sha256 = "bbbb";
+  release.assets = {arm, x64};
+  EXPECT_EQ(FindMarinaMsiSha256Digest(release, "x64"), "bbbb");
+  EXPECT_EQ(FindMarinaMsiSha256Digest(release, "arm64"), "aaaa");
+}
+
 }  // namespace mozc

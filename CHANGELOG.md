@@ -10,6 +10,18 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### The updaters find the x64 MSI and the Intel .pkg (2026-10-16)
+
+On an x64 Windows machine "Check for updates…" and the update offer sent the user to the
+releases page instead of downloading, because the updater looked for an asset whose name
+contains `x64` while the MSI is published as `marinaMoji-<tag>-windows-x86_64.msi` (`x64`
+is not a substring of `x86_64`). The macOS Intel package had the same problem (`intel64`
+versus `macos-x86_64.pkg`). `AssetMatchesArch` in `base/marina_github_releases.cc` now also
+accepts `x86_64` (and `amd64`, `aarch64` for ARM). The unit tests used made-up names
+(`-x64.msi`), so they never caught it; the new ones use the real asset names and fail on the
+old matcher. Found while testing the x64 MSI (#46). Existing x64 installs cannot update
+themselves into the first release that contains this; they need a manual install once.
+
 ### Windows MSI adds a Start menu entry (2026-10-16)
 
 Microsoft Store certification (10.1.2.10) failed the listing because the

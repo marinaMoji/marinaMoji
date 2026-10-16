@@ -39,7 +39,8 @@ std::optional<MarinaGitHubRelease> SelectNewerMarinaRelease(
     absl::string_view current_version, bool include_unstable);
 
 // Prefer marinaMoji-*-arm64.pkg or marinaMoji-*-intel64.pkg from assets.
-// |arch_token| is typically "arm64" or "intel64". When set, does not return a
+// |arch_token| is typically "arm64" or "intel64" ("intel64" also matches assets
+// named "x86_64", which is how the Intel package is published). When set, does not return a
 // mismatched single-arch .pkg (may still return a "universal" asset).
 std::optional<std::string> FindMarinaPkgDownloadUrl(
     const MarinaGitHubRelease& release, absl::string_view arch_token);
@@ -58,7 +59,8 @@ std::string MarinaHostMacPkgArchToken();
 
 // Prefer marinaMoji-<tag>-x64.msi or marinaMoji-<tag>-arm64.msi from assets,
 // matching the naming .github/workflows/release.yaml publishes. |arch_token|
-// is typically "x64" or "arm64". Unlike FindMarinaPkgDownloadUrl there is no
+// is typically "x64" or "arm64" ("x64" also matches assets named "x86_64" or
+// "amd64", which is how the x64 MSI is published). Unlike FindMarinaPkgDownloadUrl there is no
 // "universal" Windows installer, so an unmatched arch simply returns nullopt
 // rather than falling back to a mismatched asset.
 std::optional<std::string> FindMarinaMsiDownloadUrl(
