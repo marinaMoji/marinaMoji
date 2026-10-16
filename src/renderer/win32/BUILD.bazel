@@ -308,6 +308,7 @@ mozc_cc_library(
     deps = [
         "//base:file_util",
         "//base:marina_semver",
+        "//base:marina_update_cleanup",
         "//base:marina_update_log",
         "//base:marina_update_throttle",
         "//base:process",
