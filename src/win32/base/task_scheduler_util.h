@@ -57,9 +57,21 @@ class TaskSchedulerUtil {
   // restarts it a few times if it exits with an error. The caller is
   // responsible for initializing COM (CoInitialize/CoInitializeEx) before
   // calling this function.
+  //
+  // |user_id| ("DOMAIN\\user") names the account the task runs as. Leave it
+  // empty to register for the calling user, which is what Task Scheduler does
+  // by default; that only works when the caller's token is elevated, because a
+  // logon-trigger task needs administrator rights to create. Pass the account
+  // explicitly when registering from an elevated context (e.g. SYSTEM) on
+  // behalf of a user whose own token is not elevated.
   static HRESULT RegisterLogonTask(std::wstring_view task_name,
                                    std::wstring_view exe_path,
-                                   std::wstring_view args);
+                                   std::wstring_view args,
+                                   std::wstring_view user_id = {});
+
+  // True if a task named |task_name| exists. The caller is responsible for
+  // initializing COM before calling this function.
+  static bool IsTaskRegistered(std::wstring_view task_name);
 
   // Starts the already registered task |task_name| now, for the user it is
   // registered under, instead of waiting for its next trigger. That user must

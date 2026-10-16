@@ -18,5 +18,6 @@ EXPORTS
     WriteApValue
     WriteApValueRollback
     RegisterSyncTask
+    RegisterSyncTaskForLoggedOnUser
     RegisterSyncTaskRollback
     UnregisterSyncTask

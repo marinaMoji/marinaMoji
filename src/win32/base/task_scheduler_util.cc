@@ -78,7 +78,8 @@ HRESULT GetRootFolder(ITaskService* service,
 
 HRESULT TaskSchedulerUtil::RegisterLogonTask(std::wstring_view task_name,
                                              std::wstring_view exe_path,
-                                             std::wstring_view args) {
+                                             std::wstring_view args,
+                                             std::wstring_view user_id) {
   wil::com_ptr_nothrow<ITaskService> service;
   HRESULT hr = ConnectTaskService(service);
   if (FAILED(hr)) {
@@ -115,6 +116,13 @@ HRESULT TaskSchedulerUtil::RegisterLogonTask(std::wstring_view task_name,
   hr = principal->put_LogonType(TASK_LOGON_INTERACTIVE_TOKEN);
   if (FAILED(hr)) {
     return hr;
+  }
+  if (!user_id.empty()) {
+    const wil::unique_bstr user_bstr = MakeBstr(user_id);
+    hr = principal->put_UserId(user_bstr.get());
+    if (FAILED(hr)) {
+      return hr;
+    }
   }
 
   // Task Scheduler has no direct "keep this process alive" primitive like
@@ -190,6 +198,20 @@ HRESULT TaskSchedulerUtil::RegisterLogonTask(std::wstring_view task_name,
       name_bstr.get(), task.get(), TASK_CREATE_OR_UPDATE, register_empty,
       register_empty, TASK_LOGON_INTERACTIVE_TOKEN, register_empty,
       &registered_task);
+}
+
+bool TaskSchedulerUtil::IsTaskRegistered(std::wstring_view task_name) {
+  wil::com_ptr_nothrow<ITaskService> service;
+  if (FAILED(ConnectTaskService(service))) {
+    return false;
+  }
+  wil::com_ptr_nothrow<ITaskFolder> root_folder;
+  if (FAILED(GetRootFolder(service.get(), root_folder))) {
+    return false;
+  }
+  const wil::unique_bstr name_bstr = MakeBstr(task_name);
+  wil::com_ptr_nothrow<IRegisteredTask> registered_task;
+  return SUCCEEDED(root_folder->GetTask(name_bstr.get(), &registered_task));
 }
 
 HRESULT TaskSchedulerUtil::RunTask(std::wstring_view task_name) {

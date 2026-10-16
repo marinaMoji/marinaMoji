@@ -39,6 +39,7 @@
 
 #include <cstdarg>
 #include <cstddef>
+#include <cstdio>
 #include <memory>
 #include <string>
 #include <vector>
@@ -572,6 +573,24 @@ static void TerminateRunningSyncDaemons() {
   ::CloseHandle(snapshot);
 }
 
+// Writes |message| to the Windows Installer log (visible with msiexec /l*v).
+// RegisterSyncTask and friends ignore their own failures so that sync never
+// fails an install, which also used to make a failed registration invisible.
+static void LogToMsi(MSIHANDLE msi_handle, const std::wstring& message) {
+  PMSIHANDLE record = ::MsiCreateRecord(1);
+  if (record == 0) {
+    return;
+  }
+  ::MsiRecordSetStringW(record, 0, message.c_str());
+  ::MsiProcessMessage(msi_handle, INSTALLMESSAGE_INFO, record);
+}
+
+static std::wstring HResultText(HRESULT hr) {
+  wchar_t buffer[16] = {};
+  ::swprintf_s(buffer, L"0x%08X", static_cast<unsigned int>(hr));
+  return buffer;
+}
+
 // Registers a per-user Task Scheduler logon task that runs
 // marinamoji_sync.exe --daemon, mirroring the macOS LaunchAgent / Linux
 // systemd --user unit process model (see docs/WINDOWS_PORT_PLAN.md Phase 5).
@@ -589,6 +608,8 @@ UINT __stdcall RegisterSyncTask(MSIHANDLE msi_handle) {
       mozc::kMozcSyncTaskName, sync_path, L"--daemon");
   if (FAILED(result)) {
     LOG_ERROR_FOR_OMAHA();
+    LogToMsi(msi_handle, L"marinaMoji: RegisterSyncTask as the installing user "
+                         L"failed, HRESULT " + HResultText(result));
   } else {
     // The new executable is in place by now (this runs just before
     // InstallFinalize). Stop this user's old daemon and start the task again so
@@ -598,6 +619,49 @@ UINT __stdcall RegisterSyncTask(MSIHANDLE msi_handle) {
     TerminateRunningSyncDaemons();
     mozc::win32::TaskSchedulerUtil::RunTask(mozc::kMozcSyncTaskName);
   }
+  return ERROR_SUCCESS;
+}
+
+// Fallback for RegisterSyncTask. That action runs impersonated as the
+// installing user, and when the installer was started unelevated (a
+// double-click, with elevation granted by the UAC prompt) the impersonated token
+// is not elevated, so Task Scheduler refuses to create a logon-trigger task and
+// the registration fails without a trace. This action runs as SYSTEM, and
+// registers the task for the logged-on user named in CustomActionData
+// ("DOMAIN\\user"), but only when the task still does not exist, so a working
+// first attempt is never touched.
+// [Return='ignore']
+UINT __stdcall RegisterSyncTaskForLoggedOnUser(MSIHANDLE msi_handle) {
+  DEBUG_BREAK_FOR_DEBUGGER();
+  mozc::ScopedCOMInitializer com_initializer;
+  if (mozc::win32::TaskSchedulerUtil::IsTaskRegistered(mozc::kMozcSyncTaskName)) {
+    return ERROR_SUCCESS;
+  }
+  std::wstring user = GetProperty(msi_handle, L"CustomActionData");
+  if (!user.empty() && user.front() == L'\\') {
+    user.erase(0, 1);  // No domain: the "[%USERDOMAIN]\\" prefix was empty.
+  }
+  if (user.empty()) {
+    LogToMsi(msi_handle,
+             L"marinaMoji: sync task not registered and no logged-on user is "
+             L"known; it will be missing until the next install");
+    return ERROR_SUCCESS;
+  }
+  const std::wstring sync_path =
+      GetMozcComponentPath(mozc::kMozcSyncExecutable);
+  const HRESULT result = mozc::win32::TaskSchedulerUtil::RegisterLogonTask(
+      mozc::kMozcSyncTaskName, sync_path, L"--daemon", user);
+  if (FAILED(result)) {
+    LOG_ERROR_FOR_OMAHA();
+    LogToMsi(msi_handle, L"marinaMoji: RegisterSyncTask as SYSTEM for " + user +
+                             L" failed, HRESULT " + HResultText(result));
+    return ERROR_SUCCESS;
+  }
+  LogToMsi(msi_handle, L"marinaMoji: registered the sync task as SYSTEM for " +
+                           user + L" (the user's own registration failed)");
+  // Start it now so sync runs without waiting for the next sign-in. Fails
+  // harmlessly if that user is not logged on.
+  mozc::win32::TaskSchedulerUtil::RunTask(mozc::kMozcSyncTaskName);
   return ERROR_SUCCESS;
 }
 

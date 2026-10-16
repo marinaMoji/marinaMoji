@@ -103,6 +103,10 @@ UINT __stdcall WriteApValueRollback(MSIHANDLE msi_handle);
 // Registers a per-user Task Scheduler logon task that runs the sync daemon.
 UINT __stdcall RegisterSyncTask(MSIHANDLE msi_handle);
 
+// Registers the same task as SYSTEM, for the logged-on user, when
+// RegisterSyncTask could not (an unelevated install). No-op if it exists.
+UINT __stdcall RegisterSyncTaskForLoggedOnUser(MSIHANDLE msi_handle);
+
 // A rollback custom action for RegisterSyncTask.
 UINT __stdcall RegisterSyncTaskRollback(MSIHANDLE msi_handle);
 

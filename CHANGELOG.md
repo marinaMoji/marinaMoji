@@ -10,6 +10,28 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### The Windows installer registers the sync task even when started unelevated (#46)
+
+On a managed x64 machine (domain admin account) installing the MSI by double-click left no
+`marinaMoji Sync` task: the installer ran, `RegisterSyncTask` returned success, and nothing
+was registered, so there was no sync daemon and therefore no update check. The same repair
+run from an elevated PowerShell registered the task and started it. Cause: `RegisterSyncTask`
+runs impersonated as the installing user, and when the installer is started unelevated the
+impersonated token is not elevated; Task Scheduler needs elevation to create a
+logon-trigger task, the error was swallowed (`Return="ignore"`), and nothing was logged.
+
+- New `RegisterSyncTaskForLoggedOnUser` action, run as SYSTEM right after `RegisterSyncTask`,
+  registers the task for the logged-on user (`[%USERDOMAIN]\[LogonUser]`, passed as
+  CustomActionData) only if the task still does not exist, then starts it. A working first
+  attempt is left untouched. `RegisterLogonTask` gained an optional `user_id`, and
+  `IsTaskRegistered` is new (`win32/base/task_scheduler_util`).
+- Both registration attempts now write their HRESULT to the installer log
+  (`msiexec /l*v`): look for lines starting `marinaMoji:`.
+- `RegisterSyncTaskRollback` runs as SYSTEM so it can delete a task SYSTEM created.
+- Not built or run on Windows here (Windows CI compiles it); the x64 machine that showed the
+  problem needs a double-click install of the next release to confirm. Uninstall still removes
+  the task as the impersonated user; check it removes a task registered by the fallback.
+
 ### The updaters find the x64 MSI and the Intel .pkg (2026-10-16)
 
 On an x64 Windows machine "Check for updates…" and the update offer sent the user to the
