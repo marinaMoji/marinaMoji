@@ -282,7 +282,7 @@ jobs:
         shell: cmd
         working-directory: .\src
         run: |
-          rmdir third_party\qt_src /s /q
+          if exist third_party\qt_src rmdir third_party\qt_src /s /q
 
       - name: build installer
         shell: cmd
