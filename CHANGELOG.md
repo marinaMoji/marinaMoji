@@ -26,7 +26,12 @@ logon-trigger task, the error was swallowed (`Return="ignore"`), and nothing was
   attempt is left untouched. `RegisterLogonTask` gained an optional `user_id`, and
   `IsTaskRegistered` is new (`win32/base/task_scheduler_util`).
 - Both registration attempts now write their HRESULT to the installer log
-  (`msiexec /l*v`): look for lines starting `marinaMoji:`.
+  (`msiexec /l*v`): look for lines starting `marinaMoji:`. Seen on the x64 machine:
+  `RegisterSyncTask as the installing user failed, HRESULT 0x80070005` (access denied).
+- The daemon refresh no longer depends on that first attempt succeeding: the old daemon is
+  stopped either way, and the SYSTEM action starts the task whether it just registered it or
+  found it already there. (v0.0.17-rc4 only did this when the first attempt succeeded, so on
+  such a machine a repair or update left no daemon running until the next sign-in.)
 - `RegisterSyncTaskRollback` runs as SYSTEM so it can delete a task SYSTEM created.
 - Not built or run on Windows here (Windows CI compiles it); the x64 machine that showed the
   problem needs a double-click install of the next release to confirm. Uninstall still removes

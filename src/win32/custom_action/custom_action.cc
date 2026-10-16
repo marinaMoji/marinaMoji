@@ -610,13 +610,17 @@ UINT __stdcall RegisterSyncTask(MSIHANDLE msi_handle) {
     LOG_ERROR_FOR_OMAHA();
     LogToMsi(msi_handle, L"marinaMoji: RegisterSyncTask as the installing user "
                          L"failed, HRESULT " + HResultText(result));
-  } else {
-    // The new executable is in place by now (this runs just before
-    // InstallFinalize). Stop this user's old daemon and start the task again so
-    // the update does not leave it running the pre-update code until the next
-    // sign-in. Starting the task can fail (e.g. the installing user is not the
-    // one logged on interactively); that is not an error for the install.
-    TerminateRunningSyncDaemons();
+  }
+  // The new executable is in place by now (this runs just before
+  // InstallFinalize). Stop this user's old daemon so the update does not leave
+  // it running the pre-update code until the next sign-in. This is done even
+  // when the registration above failed (an unelevated install; see
+  // RegisterSyncTaskForLoggedOnUser), because the task may exist from an
+  // earlier install and the fallback starts it again afterwards.
+  TerminateRunningSyncDaemons();
+  if (SUCCEEDED(result)) {
+    // Starting the task can fail (e.g. the installing user is not the one
+    // logged on interactively); that is not an error for the install.
     mozc::win32::TaskSchedulerUtil::RunTask(mozc::kMozcSyncTaskName);
   }
   return ERROR_SUCCESS;
@@ -629,38 +633,43 @@ UINT __stdcall RegisterSyncTask(MSIHANDLE msi_handle) {
 // the registration fails without a trace. This action runs as SYSTEM, and
 // registers the task for the logged-on user named in CustomActionData
 // ("DOMAIN\\user"), but only when the task still does not exist, so a working
-// first attempt is never touched.
+// first attempt is never touched. Either way it then starts the task, which
+// restarts the sync daemon after the user-context action stopped the old one.
 // [Return='ignore']
 UINT __stdcall RegisterSyncTaskForLoggedOnUser(MSIHANDLE msi_handle) {
   DEBUG_BREAK_FOR_DEBUGGER();
   mozc::ScopedCOMInitializer com_initializer;
-  if (mozc::win32::TaskSchedulerUtil::IsTaskRegistered(mozc::kMozcSyncTaskName)) {
-    return ERROR_SUCCESS;
+  if (!mozc::win32::TaskSchedulerUtil::IsTaskRegistered(
+          mozc::kMozcSyncTaskName)) {
+    std::wstring user = GetProperty(msi_handle, L"CustomActionData");
+    if (!user.empty() && user.front() == L'\\') {
+      user.erase(0, 1);  // No domain: the "[%USERDOMAIN]\\" prefix was empty.
+    }
+    if (user.empty()) {
+      LogToMsi(msi_handle,
+               L"marinaMoji: sync task not registered and no logged-on user is "
+               L"known; it will be missing until the next install");
+      return ERROR_SUCCESS;
+    }
+    const std::wstring sync_path =
+        GetMozcComponentPath(mozc::kMozcSyncExecutable);
+    const HRESULT result = mozc::win32::TaskSchedulerUtil::RegisterLogonTask(
+        mozc::kMozcSyncTaskName, sync_path, L"--daemon", user);
+    if (FAILED(result)) {
+      LOG_ERROR_FOR_OMAHA();
+      LogToMsi(msi_handle, L"marinaMoji: RegisterSyncTask as SYSTEM for " +
+                               user + L" failed, HRESULT " +
+                               HResultText(result));
+      return ERROR_SUCCESS;
+    }
+    LogToMsi(msi_handle, L"marinaMoji: registered the sync task as SYSTEM for " +
+                             user + L" (the user's own registration failed)");
   }
-  std::wstring user = GetProperty(msi_handle, L"CustomActionData");
-  if (!user.empty() && user.front() == L'\\') {
-    user.erase(0, 1);  // No domain: the "[%USERDOMAIN]\\" prefix was empty.
-  }
-  if (user.empty()) {
-    LogToMsi(msi_handle,
-             L"marinaMoji: sync task not registered and no logged-on user is "
-             L"known; it will be missing until the next install");
-    return ERROR_SUCCESS;
-  }
-  const std::wstring sync_path =
-      GetMozcComponentPath(mozc::kMozcSyncExecutable);
-  const HRESULT result = mozc::win32::TaskSchedulerUtil::RegisterLogonTask(
-      mozc::kMozcSyncTaskName, sync_path, L"--daemon", user);
-  if (FAILED(result)) {
-    LOG_ERROR_FOR_OMAHA();
-    LogToMsi(msi_handle, L"marinaMoji: RegisterSyncTask as SYSTEM for " + user +
-                             L" failed, HRESULT " + HResultText(result));
-    return ERROR_SUCCESS;
-  }
-  LogToMsi(msi_handle, L"marinaMoji: registered the sync task as SYSTEM for " +
-                           user + L" (the user's own registration failed)");
-  // Start it now so sync runs without waiting for the next sign-in. Fails
-  // harmlessly if that user is not logged on.
+  // Start the task now so sync runs the new code without waiting for the next
+  // sign-in, whether it was just registered here or already existed (an
+  // earlier install registered it, and the user-context attempt above cannot
+  // restart it when it is refused). Does nothing if the daemon is already
+  // running, and fails harmlessly if that user is not logged on.
   mozc::win32::TaskSchedulerUtil::RunTask(mozc::kMozcSyncTaskName);
   return ERROR_SUCCESS;
 }
