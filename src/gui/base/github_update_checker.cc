@@ -14,6 +14,7 @@
 #include "base/file_util.h"
 #include "base/marina_curl_fetch.h"
 #include "base/marina_github_releases.h"
+#include "base/marina_update_cleanup.h"
 #include "base/system_util.h"
 #include "base/version.h"
 
@@ -74,6 +75,13 @@ void GitHubUpdateChecker::CheckForUpdates(bool include_unstable) {
   }
   include_unstable_ = include_unstable;
   busy_ = true;
+
+#if defined(__APPLE__) || defined(_WIN32)
+  // Earlier updates leave their downloaded installer behind; drop the ones that
+  // are no longer newer than this version (base/marina_update_cleanup.h).
+  RemoveStaleMarinaUpdateInstallers(SystemUtil::GetUserProfileDirectory(),
+                                    Version::GetProductVersion());
+#endif  // __APPLE__ || _WIN32
 
   process_ = new QProcess(this);
   connect(process_,

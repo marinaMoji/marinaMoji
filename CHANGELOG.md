@@ -10,6 +10,20 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Updaters delete the installers they downloaded earlier (#74) (2026-10-16)
+
+Each in-app update left its `marinaMoji-update-<tag>.msi` (Windows, ~27 MB) or
+`.pkg` (macOS Preferences path) in the user profile directory, so a Windows VM
+that had updated eight times held over 200 MB. `base/marina_update_cleanup.h`
+deletes a file named `marinaMoji-update-<tag>.msi|.pkg` once its tag is not newer
+than the running version (compared with `marina_semver`; a download of a newer
+release is left alone, and names or versions that do not parse are never
+touched). It runs at the start of the Windows sync check (logged in
+`marina_update.log` when it removes something) and of the Preferences check on
+macOS and Windows. The macOS background helper and `marina_auto_update.mm`
+already deleted their own package. Unit-tested (`marina_update_cleanup_test`);
+the Windows and Preferences call sites are not run on a real machine yet.
+
 ### An update now restarts the sync agent, so it runs the new code (#63) (2026-10-15)
 
 After an in-place update the sync agent, which on Windows also hosts the update

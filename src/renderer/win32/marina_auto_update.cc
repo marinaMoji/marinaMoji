@@ -26,6 +26,7 @@
 #include "absl/strings/string_view.h"
 #include "base/file_util.h"
 #include "base/marina_github_releases.h"
+#include "base/marina_update_cleanup.h"
 #include "base/marina_update_log.h"
 #include "base/marina_update_throttle.h"
 #include "base/process.h"
@@ -485,6 +486,14 @@ void PresentUpdateOffer(const MarinaGitHubRelease& release,
 // otherwise one failed attempt, e.g. at login before the network is up, would
 // silence update checks for a whole day.
 bool RunCheckOnce() {
+  // Earlier updates leave their downloaded MSI behind; drop the ones that are
+  // no longer newer than this version (base/marina_update_cleanup.h).
+  const int removed = RemoveStaleMarinaUpdateInstallers(
+      SystemUtil::GetUserProfileDirectory(), Version::GetProductVersion());
+  if (removed > 0) {
+    MarinaUpdateLog(
+        absl::StrCat("update check: removed ", removed, " old installer(s)"));
+  }
   const auto json = FetchGitHubReleasesJson();
   if (!json.has_value()) {
     MarinaUpdateLog("update check: could not fetch releases");
