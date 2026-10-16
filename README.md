@@ -63,7 +63,10 @@ release assets can be verified as described in [SECURITY.md](SECURITY.md).
 ### macOS
 
 Download the `.pkg` for your machine — `arm64` (Apple silicon), `intel64`,
-or `universal` (both, larger download) — and run it. The packages are
+or `universal` (both, larger download) — and run it. The Intel package is
+**experimental**: it is built and published with every release, but there is no
+Intel Mac to test it on, so it has never been installed. Apple silicon is the
+supported Mac platform. The packages are
 signed and notarized, so Gatekeeper accepts them without warnings. Log out
 and back in, then add marinaMoji in
 System Settings → Keyboard → Input Sources.
