@@ -1,10 +1,19 @@
 name: CI for Linux
 # https://github.com/marinaMoji/marinaMoji/blob/main/docs/build_marinamoji_for_linux.md
 
-# Run on push and pull request.
+# Run on push and pull request, except for changes that only touch
+# documentation (nothing in the build reads them).
 on:
-  - push
-  - pull_request
+  push:
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - 'CHANGELOG.md'
+  pull_request:
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - 'CHANGELOG.md'
 
 permissions:
   contents: read

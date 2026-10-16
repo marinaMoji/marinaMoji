@@ -1,8 +1,14 @@
 name: CI for macOS
 # https://github.com/marinaMoji/marinaMoji/blob/main/docs/build_marinamoji_on_macos.md
 
-# Run on push.
-on: push
+# Run on push, except for changes that only touch documentation (nothing in
+# the build reads them).
+on:
+  push:
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - 'CHANGELOG.md'
 
 permissions:
   contents: read
