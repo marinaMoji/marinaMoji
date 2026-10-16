@@ -10,6 +10,16 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows MSI adds a Start menu entry (2026-10-16)
+
+Microsoft Store certification (10.1.2.10) failed the listing because the
+installed product could not be found in the app list or on the desktop: the MSI
+registered the input method but created no shortcut. The MSI now installs an
+all-users Start menu shortcut, "marinaMoji Preferences", that opens the
+preferences dialog (`marinamoji_tool.exe --mode=config_dialog`). The fix takes
+effect in the next release; the Store submission must then be updated to that
+release's MSI.
+
 ### Updaters delete the installers they downloaded earlier (#74) (2026-10-16)
 
 Each in-app update left its `marinaMoji-update-<tag>.msi` (Windows, ~27 MB) or

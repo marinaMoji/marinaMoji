@@ -442,6 +442,12 @@
         </Component>
         <Component Id="MarinaMojiTool">
           <File Id="marinamoji_tool.exe" Name="marinamoji_tool.exe" DiskId="1" Checksum="yes" Source="$(var.MozcToolPath)" Vital="yes" />
+          <!--
+            An IME has no window of its own, so without a Start menu entry the
+            installed product cannot be found or launched (Microsoft Store
+            certification 10.1.2.10). Open the preferences dialog.
+          -->
+          <Shortcut Id="MarinaMojiPreferencesShortcut" Directory="ProgramMenuFolder" Name="marinaMoji Preferences" Description="Open marinaMoji preferences" Target="[#marinamoji_tool.exe]" Arguments="--mode=config_dialog" Icon="add_remove_program_icon.ico" WorkingDirectory="MarinaMojiDir" />
         </Component>
         <?if $(var.VSConfigurationName) = "Release" ?>
           <Component Id="msvcp140">
