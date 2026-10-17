@@ -59,6 +59,8 @@ Composition	Shift Left	MoveCursorLeft
 Composition	Shift Muhenkan	ConvertToFullAlphanumeric
 Composition	Shift Right	MoveCursorRight
 Composition	Shift Space	Convert
+# With live conversion on, Space promotes/refines the live realtime result
+# (EngineConverter::Convert); classic Convert when live is off.
 Composition	Space	Convert
 Composition	Tab	PredictAndConvert
 Composition	VirtualLeft	MoveCursorLeft

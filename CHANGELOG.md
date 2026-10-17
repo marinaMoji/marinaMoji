@@ -10,6 +10,20 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Live conversion toolbar toggle (Apple-like preedit)
+
+Optional **live conversion**: while composing, the top realtime conversion
+(REALTIME_TOP) is shown in the underline instead of raw kana. Default **off**
+so literary / careful typing stays kana-until-Space.
+
+- Preferences → Suggest → **Use live conversion**, and a toolbar button
+  (か / 漢) on macOS, Linux, and Windows; persists via `use_live_conversion`.
+- Manyōshū mode leaves live conversion off (kana display wins).
+- Enter commits the live surface; Space promotes/refines it (single-segment
+  cycles candidates; multi-segment runs full Convert for segment focus).
+- Distinct from **Use realtime conversion**, which only fills the suggestion
+  list.
+
 ## v0.0.17 (2026-10-16)
 
 ### The Windows installer registers the sync task even when started unelevated (#46)

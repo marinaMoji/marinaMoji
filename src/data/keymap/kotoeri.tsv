@@ -54,6 +54,8 @@ Composition	Option Space	InsertFullSpace
 Composition	Option x	DisplayAsFullKatakana
 Composition	Option z	DisplayAsHiragana
 Composition	Right	MoveCursorRight
+# With live conversion on, Space promotes/refines the live realtime result
+# (EngineConverter::Convert); classic Convert when live is off.
 Composition	Space	Convert
 Composition	Tab	PredictAndConvert
 Composition	VirtualLeft	MoveCursorLeft
