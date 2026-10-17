@@ -164,6 +164,11 @@ class SessionRegressionTest : public testing::TestWithTempUserProfile {
 
   void ResetSession() {
     session_ = handler_->NewSession();
+    // marinaMoji: a new session starts from the built-in default config, where
+    // live conversion is on. These tests expect the classic kana preedit.
+    config::Config session_config = config::ConfigHandler::GetCopiedConfig();
+    session_config.set_use_live_conversion(false);
+    session_->SetConfig(session_config);
     commands::Request request;
     auto table = std::make_shared<composer::Table>();
     table->InitializeWithRequestAndConfig(request, config_);
