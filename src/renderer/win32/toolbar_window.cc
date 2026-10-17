@@ -725,7 +725,7 @@ void ToolbarWindow::Redraw() {
 
     const auto id = static_cast<ButtonId>(i);
 
-    // Hover / pressed feedback. Without this the six icons look like
+    // Hover / pressed feedback. Without this the icons look like
     // decoration rather than controls; mac gets the equivalent for free from
     // NSButton. |pressed_button_| only counts while the cursor is still on
     // the button it went down on, matching the click semantics below.
