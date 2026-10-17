@@ -818,7 +818,7 @@ std::string GetKeymapPath(const std::string &filename) {
   client_ = client;
   currentMode_ = mode;
   useTraditionalKanji_ = false;
-  useLiveConversion_ = false;
+  useLiveConversion_ = true;  // config default; real value arrives with the first update
   leftShiftDirectLock_ = false;
   isDarkMode_ = [self isDarkAppearance];
 

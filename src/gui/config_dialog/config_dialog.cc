@@ -360,8 +360,12 @@ ConfigDialog::ConfigDialog()
   startKanjiModeComboBox->addItem(tr("Shin (modern)"));
   startKanjiModeComboBox->addItem(tr("Kyu (traditional)"));
 #else
-  miscStartKanjiModeWidget->setVisible(false);
+  // Shin/kyu start-up style is Linux/macOS only; the conversion mode below is
+  // offered everywhere.
+  widget_start_kanji->setVisible(false);
 #endif
+  startLiveModeComboBox->addItem(tr("Automatic (live)"));
+  startLiveModeComboBox->addItem(tr("Manual (Space to convert)"));
 
 #ifdef NDEBUG
   // disable logging options
@@ -495,8 +499,6 @@ ConfigDialog::ConfigDialog()
   QObject::connect(dictionarySuggestCheckBox, SIGNAL(stateChanged(int)), this,
                    SLOT(SelectSuggestionSetting(int)));
   QObject::connect(realtimeConversionCheckBox, SIGNAL(stateChanged(int)), this,
-                   SLOT(SelectSuggestionSetting(int)));
-  QObject::connect(liveConversionCheckBox, SIGNAL(stateChanged(int)), this,
                    SLOT(SelectSuggestionSetting(int)));
   QObject::connect(launchAdministrationDialogButton, SIGNAL(clicked()), this,
                    SLOT(LaunchAdministrationDialog()));
@@ -1089,7 +1091,6 @@ void ConfigDialog::ConvertFromProto(const config::Config& config) {
   SET_CHECKBOX(historySuggestCheckBox, use_history_suggest);
   SET_CHECKBOX(dictionarySuggestCheckBox, use_dictionary_suggest);
   SET_CHECKBOX(realtimeConversionCheckBox, use_realtime_conversion);
-  SET_CHECKBOX(liveConversionCheckBox, use_live_conversion);
 
   suggestionsSizeSpinBox->setValue(
       std::clamp<int>(config.suggestions_size(), 1, 9));
@@ -1105,6 +1106,7 @@ void ConfigDialog::ConvertFromProto(const config::Config& config) {
   SET_COMBOBOX(yenSignComboBox, YenSignCharacter, yen_sign_character);
 #if defined(__linux__) || defined(__APPLE__)
   startKanjiModeComboBox->setCurrentIndex(config.use_traditional_kanji() ? 1 : 0);
+  startLiveModeComboBox->setCurrentIndex(config.use_live_conversion() ? 0 : 1);
 #endif
   if (include_unstable_updates_checkbox_ != nullptr) {
     include_unstable_updates_checkbox_->setChecked(
@@ -1238,7 +1240,6 @@ void ConfigDialog::ConvertToProto(config::Config* config) const {
   GET_CHECKBOX(historySuggestCheckBox, use_history_suggest);
   GET_CHECKBOX(dictionarySuggestCheckBox, use_dictionary_suggest);
   GET_CHECKBOX(realtimeConversionCheckBox, use_realtime_conversion);
-  GET_CHECKBOX(liveConversionCheckBox, use_live_conversion);
 
   config->set_suggestions_size(
       static_cast<uint32_t>(suggestionsSizeSpinBox->value()));
@@ -1269,6 +1270,7 @@ void ConfigDialog::ConvertToProto(config::Config* config) const {
   GET_COMBOBOX(yenSignComboBox, YenSignCharacter, yen_sign_character);
 #if defined(__linux__) || defined(__APPLE__)
   config->set_use_traditional_kanji(startKanjiModeComboBox->currentIndex() == 1);
+  config->set_use_live_conversion(startLiveModeComboBox->currentIndex() == 0);
 #endif
   if (include_unstable_updates_checkbox_ != nullptr) {
     config->set_include_unstable_updates(
@@ -1426,8 +1428,7 @@ void ConfigDialog::SelectAutoConversionSetting(int state) {
 void ConfigDialog::SelectSuggestionSetting(int state) {
   if (historySuggestCheckBox->isChecked() ||
       dictionarySuggestCheckBox->isChecked() ||
-      realtimeConversionCheckBox->isChecked() ||
-      liveConversionCheckBox->isChecked()) {
+      realtimeConversionCheckBox->isChecked()) {
     presentationModeCheckBox->setEnabled(true);
   } else {
     presentationModeCheckBox->setEnabled(false);

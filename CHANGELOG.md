@@ -42,12 +42,19 @@ real character composer comes later.
 
 ### Live conversion toolbar toggle (Apple-like preedit)
 
-Optional **live conversion**: while composing, the top realtime conversion
-(REALTIME_TOP) is shown in the underline instead of raw kana. Default **off**
-so literary / careful typing stays kana-until-Space.
+Optional **live conversion** (automatic conversion): while composing, the top
+realtime conversion (REALTIME_TOP) is shown in the underline instead of raw
+kana. **On by default** for new installs (together with shin, the default kanji
+style); switch it off for kana-until-Space typing.
 
-- Preferences → Suggest → **Use live conversion**, and a toolbar button
-  (か / 漢) on macOS, Linux, and Windows; persists via `use_live_conversion`.
+- Toolbar button on macOS, Linux, and Windows. Toggling it saves the setting
+  (`use_live_conversion`), so it persists across sessions like shin/kyu does.
+- Preferences → Misc → **Initial conversion mode** (Automatic / Manual) sets the
+  start-up value, next to **Initial kanji style**. It replaces the old
+  "Use live conversion" checkbox on the Suggest tab, and is shown on Windows too
+  (the kanji-style row is still Linux/macOS only).
+- The saved default flipped from off to on: installs that never set the option
+  (for example release-candidate testers) now start in automatic mode.
 - Default shortcut **Ctrl+Shift+6** (also **Ctrl+Shift+L** in the keymap
   TSVs); remappable under Preferences → Shortcuts with the other number-row
   actions. Older profiles that only store six bindings get the new row when

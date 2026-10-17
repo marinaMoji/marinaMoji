@@ -1179,16 +1179,6 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="0" colspan="3">
-             <widget class="QCheckBox" name="liveConversionCheckBox">
-              <property name="toolTip">
-               <string>Show the top conversion in the underline as you type (Apple-like). Off by default.</string>
-              </property>
-              <property name="text">
-               <string>Use live conversion</string>
-              </property>
-             </widget>
-            </item>
            </layout>
           </widget>
          </item>
@@ -1704,6 +1694,32 @@
                </item>
                <item>
                 <widget class="QComboBox" name="startKanjiModeComboBox">
+                 <property name="minimumSize">
+                  <size>
+                   <width>140</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QWidget" name="widget_start_live" native="true">
+              <layout class="QHBoxLayout" name="horizontalLayout_start_live">
+               <property name="margin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="startLiveModeLabel">
+                 <property name="text">
+                  <string>Initial conversion mode</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QComboBox" name="startLiveModeComboBox">
                  <property name="minimumSize">
                   <size>
                    <width>140</width>
@@ -2266,7 +2282,6 @@
   <tabstop>historySuggestCheckBox</tabstop>
   <tabstop>dictionarySuggestCheckBox</tabstop>
   <tabstop>realtimeConversionCheckBox</tabstop>
-  <tabstop>liveConversionCheckBox</tabstop>
   <tabstop>suggestionsSizeSpinBox</tabstop>
   <tabstop>incognitoModeCheckBox</tabstop>
   <tabstop>presentationModeCheckBox</tabstop>

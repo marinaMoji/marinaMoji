@@ -356,11 +356,15 @@
         <translation></translation>
     </message>
     <message>
-        <source>Use live conversion</source>
+        <source>Initial conversion mode</source>
         <translation></translation>
     </message>
     <message>
-        <source>Show the top conversion in the underline as you type (Apple-like). Off by default.</source>
+        <source>Automatic (live)</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Manual (Space to convert)</source>
         <translation></translation>
     </message>
     <message>
