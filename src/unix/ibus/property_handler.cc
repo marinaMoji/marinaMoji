@@ -201,6 +201,7 @@ PropertyHandler::PropertyHandler(
   AppendTraditionalKanjiPropertyToPanel();
   AppendOdorijiPalettePropertyToPanel();
   AppendPrivacyModePropertyToPanel();
+  AppendKeyboardShortcutsPropertyToPanel();
   if (toolbar_available) {
     AppendToolbarPropertyToPanel();
   }
@@ -223,6 +224,8 @@ PropertyHandler::~PropertyHandler() {
   prop_odoriji_palette_.Unref();
 
   prop_privacy_mode_.Unref();
+
+  prop_keyboard_shortcuts_.Unref();
 
   if (prop_toolbar_.IsInitialized()) {
     prop_toolbar_.Unref();
@@ -361,6 +364,15 @@ void PropertyHandler::AppendOdorijiPalettePropertyToPanel() {
       PROP_STATE_UNCHECKED, nullptr);
   prop_odoriji_palette_.RefSink();
   prop_root_.Append(&prop_odoriji_palette_);
+}
+
+void PropertyHandler::AppendKeyboardShortcutsPropertyToPanel() {
+  const std::string label = translator_->MaybeTranslate("Keyboard Shortcuts");
+  prop_keyboard_shortcuts_.Initialize(
+      "Option.KeyboardShortcuts", PROP_TYPE_NORMAL, label, "" /* icon */,
+      PROP_STATE_UNCHECKED, nullptr);
+  prop_keyboard_shortcuts_.RefSink();
+  prop_root_.Append(&prop_keyboard_shortcuts_);
 }
 
 void PropertyHandler::AppendPrivacyModePropertyToPanel() {

@@ -1036,6 +1036,32 @@ bool TipEditSession::ShowOdorijiPaletteAsync(TipTextService* text_service) {
   return OnSessionCommandAsync(text_service, context.get(), command);
 }
 
+bool TipEditSession::ToggleShortcutsWindowAsync(TipTextService* text_service) {
+  ITfThreadMgr* thread_mgr = text_service->GetThreadManager();
+  if (thread_mgr == nullptr) {
+    return false;
+  }
+  wil::com_ptr_nothrow<ITfDocumentMgr> document;
+  if (FAILED(thread_mgr->GetFocus(&document)) || document == nullptr) {
+    return false;
+  }
+  // The renderer's click path (SHOW/HIDE_SHORTCUTS_WINDOW in
+  // OnRendererCallbackAsync) writes the flag on the base context; do the same
+  // so the two entry points agree on which context holds it.
+  wil::com_ptr_nothrow<ITfContext> context;
+  if (FAILED(document->GetBase(&context)) || context == nullptr) {
+    return false;
+  }
+  TipPrivateContext* private_context =
+      text_service->GetPrivateContext(context.get());
+  if (private_context == nullptr) {
+    return false;
+  }
+  private_context->set_shortcuts_window_visible(
+      !private_context->shortcuts_window_visible());
+  return OnLayoutChangedAsyncImpl(text_service, context.get());
+}
+
 bool TipEditSession::GetTextSync(TipTextService* text_service, ITfRange* range,
                                  std::wstring* text, bool* is_composing) {
   wil::com_ptr_nothrow<ITfContext> context;

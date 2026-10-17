@@ -45,6 +45,10 @@ void MozcToolbarSaveVisiblePreference(bool visible);
 // Call immediately before launching a marinaMoji tool window (dictionary, word
 // register, etc.).  macOS may send |-setValue:| DIRECT when focus leaves the
 // host app; suppress that transient signal so composition mode is preserved.
+// Opens (or brings to the front) the Keyboard Shortcuts window. The toolbar no
+// longer has a button for it; the input-method menu calls this.
+void MozcShortcutsWindowShow(client::ClientInterface *client);
+
 void MozcImkNotifyToolLaunchStarting();
 bool MozcImkShouldSuppressSetValueDirect();
 

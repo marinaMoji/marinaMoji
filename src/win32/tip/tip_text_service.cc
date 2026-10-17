@@ -1005,6 +1005,12 @@ class TipTextServiceImpl
         PostUIUpdateMessage();
         return S_OK;
       }
+      case TipLangBarCallback::kKeyboardShortcuts:
+        // marinaMoji: the toolbar no longer has a Shortcuts button; this
+        // menu (reachable from the taskbar even with the toolbar hidden) and
+        // the toolbar's right-click menu open the window instead.
+        return TipEditSession::ToggleShortcutsWindowAsync(this) ? S_OK
+                                                                : E_FAIL;
       case TipLangBarCallback::kPrivacyMode: {
         auto* private_context = GetFocusedPrivateContext();
         if (private_context == nullptr) {

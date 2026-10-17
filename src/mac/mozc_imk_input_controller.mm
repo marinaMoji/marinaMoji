@@ -613,6 +613,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
       {@selector(odorijiPaletteMenuClicked:), @"MM.Odoriji"},
       {@selector(toolbarVisibilityMenuClicked:), @"MM.Toolbar"},
       {@selector(privacyModeMenuClicked:), @"MM.PrivacyMode"},
+      {@selector(keyboardShortcutsMenuClicked:), @"MM.KeyboardShortcuts"},
   };
   for (NSMenuItem *item in menu_.itemArray) {
     for (const auto &entry : kItems) {
@@ -706,6 +707,13 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
       keyEquivalent:@""];
   privacyModeMenuItem_.target = self;
   [menu_ insertItem:privacyModeMenuItem_ atIndex:insertIndex++];
+
+  NSMenuItem *shortcutsItem = [[NSMenuItem alloc]
+      initWithTitle:MarinaLocalizedString(@"MM.KeyboardShortcuts")
+             action:@selector(keyboardShortcutsMenuClicked:)
+      keyEquivalent:@""];
+  shortcutsItem.target = self;
+  [menu_ insertItem:shortcutsItem atIndex:insertIndex++];
 
   [menu_ insertItem:[NSMenuItem separatorItem] atIndex:insertIndex];
   [self updateImeMenuState:nullptr];
@@ -2228,6 +2236,11 @@ bool IsConfigOnlySessionOutput(const Output &output) {
 - (IBAction)configClicked:(id)sender {
   mozc::mac::MozcImkNotifyToolLaunchStarting();
   MacProcess::LaunchMozcTool("config_dialog");
+}
+
+- (IBAction)keyboardShortcutsMenuClicked:(id)sender {
+  (void)sender;
+  mozc::mac::MozcShortcutsWindowShow(mozcClient_.get());
 }
 
 - (IBAction)dictionaryToolClicked:(id)sender {

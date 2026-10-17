@@ -587,8 +587,6 @@ void ToolbarWindow::LoadIcons() {
   icon_cache_[static_cast<int>(ButtonId::kCharacterComposer)] =
       GetOrLoadCachedIcon(absl::StrCat("toolbar_composer_", theme), tier,
                           nullptr);
-  icon_cache_[static_cast<int>(ButtonId::kShortcuts)] = GetOrLoadCachedIcon(
-      absl::StrCat("toolbar_shortcuts_", theme), tier, nullptr);
 
   CSize logo_natural(0, 0);
   logo_cache_ = GetOrLoadCachedIcon(absl::StrCat("logo_long_", theme), tier,
@@ -731,11 +729,10 @@ void ToolbarWindow::Redraw() {
     // the button it went down on, matching the click semantics below.
     const bool is_pressed = (pressed_button_ == i && hovered_button_ == i);
     const bool is_hovered = (hovered_button_ == i);
-    // The Symbols and Shortcuts buttons toggle a window, so show them held
-    // down while that window is up.
+    // The Symbols button toggles a window, so show it held down while that
+    // window is up.
     const bool is_toggled_on =
-        (id == ButtonId::kSymbols && symbols_palette_visible_) ||
-        (id == ButtonId::kShortcuts && shortcuts_window_visible_);
+        (id == ButtonId::kSymbols && symbols_palette_visible_);
     uint8_t highlight_alpha = 0;
     if (is_pressed || is_toggled_on) {
       highlight_alpha = is_dark_theme_ ? 51 : 41;  // 20% / 16%
@@ -832,8 +829,6 @@ const wchar_t* ToolbarWindow::GetButtonName(ButtonId button) {
       return MarinaLocalizedString(L"MM.RegisterWord");
     case ButtonId::kCharacterComposer:
       return MarinaLocalizedString(L"MM.CharacterComposer");
-    case ButtonId::kShortcuts:
-      return MarinaLocalizedString(L"MM.KeyboardShortcuts");
     default:
       return L"";
   }
@@ -934,9 +929,6 @@ void ToolbarWindow::ActivateButton(ButtonId button) {
       break;
     case ButtonId::kSymbols:
       SendToggleSymbolsPalette();
-      break;
-    case ButtonId::kShortcuts:
-      SendToggleShortcutsWindow();
       break;
     default:
       break;

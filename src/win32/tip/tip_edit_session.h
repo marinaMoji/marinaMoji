@@ -112,6 +112,12 @@ class TipEditSession {
   // next keystroke happens to refresh the UI.
   static bool ShowOdorijiPaletteAsync(TipTextService* text_service);
 
+  // marinaMoji: opens the Keyboard Shortcuts window, or closes it if it is
+  // already open, from the langbar menu. Does what the toolbar's click does
+  // (flip the focused context's shortcuts-window flag, then refresh the UI),
+  // but on the focused document rather than via the renderer.
+  static bool ToggleShortcutsWindowAsync(TipTextService* text_service);
+
   // Begins an async edit session to change input mode specified by
   // |native_mode|.
   static bool SwitchInputModeAsync(TipTextService* text_service,

@@ -56,6 +56,7 @@ class TipLangBarCallback : public IUnknown {
     kOdoriji = 24,
     kToolbarVisibility = 25,
     kPrivacyMode = 26,
+    kKeyboardShortcuts = 27,
 
     // Help Menu
     kHelp = 30,

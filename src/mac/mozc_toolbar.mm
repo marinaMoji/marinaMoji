@@ -775,7 +775,6 @@ std::string GetKeymapPath(const std::string &filename) {
   NSButton *symbolsButton_;
   NSButton *dictButton_;
   NSButton *composerButton_;
-  NSButton *shortcutsButton_;
 
   mozc::client::ClientInterface *client_;
   mozc::commands::CompositionMode currentMode_;
@@ -808,7 +807,7 @@ std::string GetKeymapPath(const std::string &filename) {
 
 - (instancetype)initWithClient:(mozc::client::ClientInterface *)client
                           mode:(mozc::commands::CompositionMode)mode {
-  CGFloat totalWidth = kLogoWidth + kButtonWidth * 7 + 10;
+  CGFloat totalWidth = kLogoWidth + kButtonWidth * 6 + 10;
   NSRect frame = NSMakeRect(0, 0, totalWidth, kToolbarHeight);
   self = [super initWithFrame:frame];
   if (!self) return nil;
@@ -891,11 +890,6 @@ std::string GetKeymapPath(const std::string &filename) {
   composerButton_.toolTip = MarinaLocalizedString(@"MM.CharacterComposer");
   [self addSubview:composerButton_];
   x += kButtonWidth;
-
-  // Shortcuts
-  shortcutsButton_ = [self makeButtonAt:x action:@selector(shortcutsClicked:)];
-  shortcutsButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_shortcuts_dark" : @"toolbar_shortcuts_light"];
-  [self addSubview:shortcutsButton_];
 
   // Shin/kyu state is applied via MozcToolbarUpdate after the controller is active.
 
@@ -1236,21 +1230,6 @@ std::string GetKeymapPath(const std::string &filename) {
   client_->LaunchTool("dictionary_tool", "");
 }
 
-- (void)shortcutsClicked:(id)sender {
-  if (!client_) return;
-  mozc::mac::MozcImkNotifyToolLaunchStarting();
-  if (g_shortcuts_window_controller != nil &&
-      g_shortcuts_window_controller.window.isVisible) {
-    [g_shortcuts_window_controller showWindow:sender];
-    [g_shortcuts_window_controller.window makeKeyAndOrderFront:sender];
-    return;
-  }
-  g_shortcuts_window_controller =
-      [[MozcShortcutsWindowController alloc] initWithClient:client_];
-  [g_shortcuts_window_controller showWindow:sender];
-  [g_shortcuts_window_controller.window makeKeyAndOrderFront:sender];
-}
-
 - (void)symbolsClicked:(id)sender {
   if (!client_) return;
   mozc::mac::MozcImkNotifyToolLaunchStarting();
@@ -1300,7 +1279,7 @@ std::string GetKeymapPath(const std::string &filename) {
 - (NSSize)toolbarSize {
   NSSize size = self.frame.size;
   if (size.width < 1 || size.height < 1) {
-    size = NSMakeSize(kLogoWidth + kButtonWidth * 7 + 10, kToolbarHeight);
+    size = NSMakeSize(kLogoWidth + kButtonWidth * 6 + 10, kToolbarHeight);
   }
   return size;
 }
@@ -1374,7 +1353,6 @@ std::string GetKeymapPath(const std::string &filename) {
   dictButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_dict_dark" : @"toolbar_dict_light"];
   composerButton_.image =
       [self loadSvg:isDarkMode_ ? @"toolbar_composer_dark" : @"toolbar_composer_light"];
-  shortcutsButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_shortcuts_dark" : @"toolbar_shortcuts_light"];
 }
 
 @end
@@ -1553,6 +1531,18 @@ void MozcToolbarUpdate(const commands::Output &output,
       [g_toolbar_view updateLiveConversion:use_live];
     }
   });
+}
+
+void MozcShortcutsWindowShow(client::ClientInterface *client) {
+  if (client == nullptr) return;
+  MozcImkNotifyToolLaunchStarting();
+  if (g_shortcuts_window_controller == nil ||
+      !g_shortcuts_window_controller.window.isVisible) {
+    g_shortcuts_window_controller =
+        [[MozcShortcutsWindowController alloc] initWithClient:client];
+  }
+  [g_shortcuts_window_controller showWindow:nil];
+  [g_shortcuts_window_controller.window makeKeyAndOrderFront:nil];
 }
 
 bool MozcToolbarLoadVisiblePreference() {

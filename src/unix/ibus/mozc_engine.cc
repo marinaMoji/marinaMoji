@@ -961,6 +961,12 @@ void MozcEngine::PropertyActivate(IbusEngineWrapper* engine,
     property_handler_->UpdateToolbarLabel(engine, toolbar_visible_);
     return;
   }
+  // Keyboard Shortcuts: the floating toolbar no longer has a button for it.
+  if (property_name != nullptr &&
+      strcmp(property_name, "Option.KeyboardShortcuts") == 0) {
+    MozcShortcutsWindowShow();
+    return;
+  }
   // Odoriji palette button: same as Ctrl+Shift+2 (open iteration marks palette).
   if (property_name != nullptr &&
       strcmp(property_name, "Option.OdorijiPalette") == 0) {

@@ -193,6 +193,7 @@ BEGIN
     IDS_TRADITIONAL_KANJI   "伝統漢字（旧字体）"
     IDS_ODORIJI             "踊り字（繰り返し記号）"
     IDS_PRIVACY_MODE        "プライバシーモード"
+    IDS_KEYBOARD_SHORTCUTS  "キーボードショートカット"
 #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
     IDS_UNOBSERVABLE_SUGGEST_WINDOW  "Google 日本語入力 サジェストウィンドウ"
     IDS_OBSERVABLE_SUGGEST_WINDOW    "Google 日本語入力 サジェスト候補ウィンドウ"
@@ -251,6 +252,7 @@ BEGIN
     IDS_TRADITIONAL_KANJI   "Traditional kanji (Kyūjitai)"
     IDS_ODORIJI             "Odoriji (iteration marks)"
     IDS_PRIVACY_MODE        "Privacy mode"
+    IDS_KEYBOARD_SHORTCUTS  "Keyboard Shortcuts"
 #if defined(GOOGLE_JAPANESE_INPUT_BUILD)
     IDS_UNOBSERVABLE_SUGGEST_WINDOW  "Google Japanese Input Suggestion Window"
     IDS_OBSERVABLE_SUGGEST_WINDOW    "Google Japanese Input Suggestion Candidate Window"

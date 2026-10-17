@@ -10,6 +10,26 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Keyboard Shortcuts moved from the toolbar into menus
+
+The toolbar had too many buttons, so the Keyboard Shortcuts button is gone on
+every platform; the window itself is unchanged.
+
+- **Windows:** the toolbar's right-click menu already had *Keyboard Shortcuts*.
+  It is now also in the taskbar input-indicator (language-bar) menu, so it is
+  reachable with the toolbar hidden. New `TipLangBarCallback::kKeyboardShortcuts`
+  and `TipEditSession::ToggleShortcutsWindowAsync` (flips the focused context's
+  shortcuts-window flag, as the renderer's click does); strings added for
+  Japanese and English.
+- **macOS:** *Keyboard Shortcuts* added to the input-method menu
+  (`MozcShortcutsWindowShow`).
+- **Linux:** *Keyboard Shortcuts* added to the ibus panel menu
+  (`Option.KeyboardShortcuts`, handled in `MozcEngine::PropertyActivate`), with
+  French and Japanese translations.
+- The `toolbar_shortcuts` icons are no longer used by any toolbar; the files are
+  still shipped. Not built or run; whether the Windows window opens when the
+  toolbar is hidden needs checking on a real machine.
+
 ### Windows file versions now rise between release candidates
 
 The Windows MSI replaces an installed `.exe`/`.dll` only if the new file has a

@@ -49,6 +49,10 @@ bool MozcToolbarIsSymbolsPaletteVisible();
 // (treated as "clicked outside" -- see FocusOut in mozc_engine.cc).
 void MozcToolbarHideSymbolsPalette();
 
+// Opens (or raises) the Keyboard Shortcuts window. The toolbar has no button
+// for it any more; the engine's panel menu calls this.
+void MozcShortcutsWindowShow();
+
 }  // namespace ibus
 }  // namespace mozc
 

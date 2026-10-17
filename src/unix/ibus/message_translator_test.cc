@@ -84,6 +84,8 @@ TEST(LocaleBasedMessageTranslatorTest, KnownFrenchLocaleName) {
   LocaleBasedMessageTranslator translator("fr_FR.UTF-8");
   EXPECT_EQ(translator.MaybeTranslate("foobar"), "foobar");
   EXPECT_EQ(translator.MaybeTranslate("Properties"), "Propriétés");
+  EXPECT_EQ(translator.MaybeTranslate("Keyboard Shortcuts"),
+            "Raccourcis clavier");
   EXPECT_EQ(translator.MaybeTranslate("Input Mode"), "Mode de saisie");
 }
 

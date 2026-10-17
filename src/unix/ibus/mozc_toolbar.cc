@@ -73,7 +73,6 @@ GtkWidget* g_live_btn = nullptr;
 GtkWidget* g_symbols_btn = nullptr;
 GtkWidget* g_dict_cell = nullptr;
 GtkWidget* g_composer_btn = nullptr;
-GtkWidget* g_shortcuts_btn = nullptr;
 MozcEngine* g_engine = nullptr;
 bool g_toolbar_positioned = false;
 bool g_use_layer_shell = false;  // true if we used gtk-layer-shell for positioning
@@ -255,13 +254,11 @@ static bool IsButtonWidget(GtkWidget* widget) {
   if (!widget) return false;
   return (widget == g_trad_btn || widget == g_live_btn || widget == g_symbols_btn ||
           widget == g_dict_cell || widget == g_composer_btn ||
-          widget == g_shortcuts_btn ||
           gtk_widget_is_ancestor(widget, g_trad_btn) ||
           gtk_widget_is_ancestor(widget, g_live_btn) ||
           gtk_widget_is_ancestor(widget, g_symbols_btn) ||
           gtk_widget_is_ancestor(widget, g_dict_cell) ||
-          gtk_widget_is_ancestor(widget, g_composer_btn) ||
-          gtk_widget_is_ancestor(widget, g_shortcuts_btn));
+          gtk_widget_is_ancestor(widget, g_composer_btn));
 }
 
 static bool IsModeIndicatorWidget(GtkWidget* widget) {
@@ -902,10 +899,6 @@ static void RefreshToolbarTheme() {
   if (g_composer_btn) {
     SetButtonIcon(GTK_BUTTON(g_composer_btn),
                   g_toolbar_dark_theme ? "toolbar_composer_dark.svg" : "toolbar_composer_light.svg");
-  }
-  if (g_shortcuts_btn) {
-    SetButtonIcon(GTK_BUTTON(g_shortcuts_btn),
-                  g_toolbar_dark_theme ? "toolbar_shortcuts_dark.svg" : "toolbar_shortcuts_light.svg");
   }
 }
 
@@ -1709,10 +1702,6 @@ static void ShowShortcutsPopup() {
   gtk_widget_show_all(g_shortcuts_window);
 }
 
-void OnShortcutsClicked(GtkWidget* /*widget*/, gpointer /*data*/) {
-  ShowShortcutsPopup();
-}
-
 void EnsureToolbarCreated() {
   if (g_toolbar_window) return;
   MaybeForceX11OnGnomeWayland();
@@ -1903,18 +1892,6 @@ void EnsureToolbarCreated() {
   g_signal_connect(g_composer_btn, "clicked", G_CALLBACK(OnComposerClicked), nullptr);
   gtk_box_pack_start(GTK_BOX(g_toolbar_box), g_composer_btn, FALSE, FALSE, 0);
 
-  g_shortcuts_btn = gtk_button_new();
-  gtk_button_set_relief(GTK_BUTTON(g_shortcuts_btn), GTK_RELIEF_NONE);
-  gtk_widget_set_focus_on_click(g_shortcuts_btn, FALSE);
-  gtk_widget_set_can_focus(g_shortcuts_btn, FALSE);
-  gtk_widget_set_size_request(g_shortcuts_btn, 32, 32);
-  gtk_widget_set_name(g_shortcuts_btn, "marinamoji-shortcuts-btn");
-  gtk_button_set_label(GTK_BUTTON(g_shortcuts_btn), "");
-  SetButtonIcon(GTK_BUTTON(g_shortcuts_btn),
-                g_toolbar_dark_theme ? "toolbar_shortcuts_dark.svg" : "toolbar_shortcuts_light.svg");
-  g_signal_connect(g_shortcuts_btn, "clicked", G_CALLBACK(OnShortcutsClicked), nullptr);
-  gtk_box_pack_start(GTK_BOX(g_toolbar_box), g_shortcuts_btn, FALSE, FALSE, 0);
-
   g_trail_cell = gtk_event_box_new();
   gtk_widget_set_size_request(g_trail_cell, 8, kToolbarHeight);
   gtk_widget_set_can_focus(g_trail_cell, FALSE);
@@ -1976,6 +1953,19 @@ void MozcToolbarHide() {
   CancelPendingHide();
   g_idle_add(HideIdleCb, nullptr);
 }
+
+namespace {
+gboolean ShowShortcutsIdleCb(gpointer /*data*/) {
+  // The toolbar may never have been created (it can be hidden by preference),
+  // in which case nothing has initialised GTK yet.
+  if (gtk_init_check(nullptr, nullptr)) {
+    ShowShortcutsPopup();
+  }
+  return G_SOURCE_REMOVE;
+}
+}  // namespace
+
+void MozcShortcutsWindowShow() { g_idle_add(ShowShortcutsIdleCb, nullptr); }
 
 bool MozcToolbarShouldHideOnFocusLoss() {
   return ShouldHideOnFocusLoss();
@@ -2060,6 +2050,7 @@ void MozcToolbarScheduleHideDelayed(unsigned int /*delay_ms*/) {}
 void MozcToolbarUpdate(const commands::Output& /*output*/) {}
 bool MozcToolbarIsSymbolsPaletteVisible() { return false; }
 void MozcToolbarHideSymbolsPalette() {}
+void MozcShortcutsWindowShow() {}
 bool MozcToolbarAvailable() { return false; }
 bool MozcToolbarLoadVisiblePreference() { return true; }
 void MozcToolbarSaveVisiblePreference(bool /*visible*/) {}

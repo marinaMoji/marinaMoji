@@ -220,6 +220,9 @@
 /** privacyModeMenuClicked: toggles incognito / no-learning privacy mode. */
 - (IBAction)privacyModeMenuClicked:(id)sender;
 
+/** keyboardShortcutsMenuClicked: opens the Keyboard Shortcuts window. */
+- (IBAction)keyboardShortcutsMenuClicked:(id)sender;
+
 /** Sets the ClientInterface to use in the controller.
  *
  * @param newMozcClient The client object to communicate with the Mozc server process.

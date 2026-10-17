@@ -65,6 +65,7 @@ const TranslationMap kUTF8JapaneseMap[] = {
     {"Traditional kanji (Kyūjitai)", "伝統漢字（旧字体）"},
     {"Odoriji (iteration marks)", "踊り字（繰り返し記号）"},
     {"Privacy mode", "プライバシーモード"},
+    {"Keyboard Shortcuts", "キーボードショートカット"},
 #ifdef MARINAMOJI
     {"About marinaMoji", "marinaMoji について"},
 #elif defined(GOOGLE_JAPANESE_INPUT_BUILD)
@@ -92,6 +93,7 @@ const TranslationMap kUTF8FrenchMap[] = {
     {"Traditional kanji (Kyūjitai)", "Kanji traditionnels (kyūjitai)"},
     {"Odoriji (iteration marks)", "Odoriji (marques d'itération)"},
     {"Privacy mode", "Mode confidentialité"},
+    {"Keyboard Shortcuts", "Raccourcis clavier"},
 #ifdef MARINAMOJI
     {"About marinaMoji", "À propos de marinaMoji"},
 #elif defined(GOOGLE_JAPANESE_INPUT_BUILD)
