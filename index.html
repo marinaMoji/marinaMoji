@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>marinaMoji apt repository</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    code, pre { font-family: ui-monospace, monospace; }
+    pre { background: #f4f4f4; padding: 1rem; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>marinaMoji apt repository</h1>
+  <p>Debian/Ubuntu packages for <a href="https://github.com/marinaMoji/marinaMoji">marinaMoji</a>
+  (<strong>unstable</strong> channel).</p>
+  <h2>Install</h2>
+  <pre>curl -fsSL https://marinamoji.github.io/marinaMoji/marinaMoji-release-public-key.asc \
+  | sudo gpg --dearmor -o /usr/share/keyrings/marinamoji-archive-keyring.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/marinamoji-archive-keyring.gpg] https://marinamoji.github.io/marinaMoji unstable main" \
+  | sudo tee /etc/apt/sources.list.d/marinamoji.list
+
+sudo apt update
+sudo apt install marinamoji
+ibus restart</pre>
+  <p>See <a href="https://github.com/marinaMoji/marinaMoji#linux">README</a> and
+  <a href="https://github.com/marinaMoji/marinaMoji/blob/main/SECURITY.md">SECURITY.md</a>.</p>
+</body>
+</html>
