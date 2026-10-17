@@ -11,6 +11,7 @@
 #include "base/file_util.h"
 #include "composer/kaeriten_table_util.h"
 #include "session/marina_number_row_bindings_util.h"
+#include "unix/ibus/marina_localized_string.h"
 #include "unix/ibus/mozc_engine.h"
 #include "unix/ibus/path_util.h"
 #include "protocol/commands.pb.h"
@@ -240,19 +241,6 @@ static GdkPixbuf* LoadSvgIcon(const std::string& filename, int w, int h) {
 }
 
 // Set a button image from an SVG icon; if load fails, leave the label.
-// Picks the English, French or Japanese text for the user's language, using
-// GLib's ordered list of preferred languages (LANGUAGE, LC_ALL, LC_MESSAGES,
-// LANG). The same three languages as the mac and Windows toolbars.
-static const char* LocalizedText(const char* en, const char* fr,
-                                 const char* ja) {
-  for (const gchar* const* lang = g_get_language_names(); *lang; ++lang) {
-    if (g_str_has_prefix(*lang, "ja")) return ja;
-    if (g_str_has_prefix(*lang, "fr")) return fr;
-    if (g_str_has_prefix(*lang, "en")) return en;
-  }
-  return en;
-}
-
 static void SetButtonIcon(GtkButton* btn, const char* svg_name) {
   GdkPixbuf* pixbuf = LoadSvgIcon(svg_name, kIconSize, kIconSize);
   if (pixbuf) {
@@ -285,15 +273,15 @@ static bool IsModeIndicatorWidget(GtkWidget* widget) {
 // Menu entries for the mode-indicator popup (same order as IME panel).
 struct ModeMenuEntry {
   commands::CompositionMode mode;
-  const char* label;
+  const char* label_key;  // MarinaLocalizedString() key
 };
 static constexpr ModeMenuEntry kModeMenuEntries[] = {
-    {commands::DIRECT, "Direct input"},
-    {commands::HIRAGANA, "Hiragana"},
-    {commands::FULL_KATAKANA, "Katakana"},
-    {commands::HALF_ASCII, "Latin"},
-    {commands::FULL_ASCII, "Wide Latin"},
-    {commands::HALF_KATAKANA, "Half width katakana"},
+    {commands::DIRECT, "MM.DirectInput"},
+    {commands::HIRAGANA, "MM.Hiragana"},
+    {commands::FULL_KATAKANA, "MM.Katakana"},
+    {commands::HALF_ASCII, "MM.Latin"},
+    {commands::FULL_ASCII, "MM.WideLatin"},
+    {commands::HALF_KATAKANA, "MM.HalfWidthKatakana"},
 };
 
 static void OnModeMenuActivate(GtkMenuItem* item, gpointer /*user_data*/) {
@@ -333,7 +321,8 @@ static void ShowModeIndicatorMenu(GdkEventButton* event) {
   if (!g_mode_indicator_cell || !g_engine) return;
   GtkWidget* menu = gtk_menu_new();
   for (const ModeMenuEntry& entry : kModeMenuEntries) {
-    GtkWidget* item = gtk_menu_item_new_with_label(entry.label);
+    GtkWidget* item = gtk_menu_item_new_with_label(
+        MarinaLocalizedString(entry.label_key));
     // Store (mode + 1) so DIRECT (0) is not stored as NULL (GINT_TO_POINTER(0) == NULL).
     g_object_set_data(G_OBJECT(item), "composition-mode",
                       GINT_TO_POINTER(static_cast<int>(entry.mode) + 1));
@@ -1372,10 +1361,10 @@ constexpr int kSymbolsTabUser = 3;
 static void RefreshUserSymbolsTab() {
   if (!g_symbols_notebook) return;
   GtkWidget* new_page = CreateSymbolsTabPage(
-      LoadUserSymbolsFromFile(), "Edit user symbols in Preferences.", false);
+      LoadUserSymbolsFromFile(), MarinaLocalizedString("MM.UserSymbolsHint"), false);
   gtk_notebook_remove_page(GTK_NOTEBOOK(g_symbols_notebook), kSymbolsTabUser);
   gtk_notebook_insert_page(GTK_NOTEBOOK(g_symbols_notebook), new_page,
-                           gtk_label_new("User"), kSymbolsTabUser);
+                           gtk_label_new(MarinaLocalizedString("MM.User")), kSymbolsTabUser);
   gtk_widget_show_all(new_page);
 }
 
@@ -1389,7 +1378,7 @@ static void ShowSymbolsPalette() {
   }
 
   g_symbols_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_title(GTK_WINDOW(g_symbols_window), "Symbols Palette");
+  gtk_window_set_title(GTK_WINDOW(g_symbols_window), MarinaLocalizedString("MM.SymbolsPalette"));
   gtk_window_set_resizable(GTK_WINDOW(g_symbols_window), TRUE);
   gtk_window_set_default_size(GTK_WINDOW(g_symbols_window), 520, 380);
   gtk_window_set_position(GTK_WINDOW(g_symbols_window), GTK_WIN_POS_CENTER);
@@ -1402,30 +1391,27 @@ static void ShowSymbolsPalette() {
   g_symbols_notebook = gtk_notebook_new();
   gtk_box_pack_start(GTK_BOX(content), g_symbols_notebook, TRUE, TRUE, 0);
 
-  const char* odoriji_hint =
-      "Clicking an odoriji inserts it and sets it as your default (same as the "
-      "main Odoriji palette). Shortcuts are available in your keymap "
-      "(Ctrl+Shift+1/2 on common layouts).";
+  const char* odoriji_hint = MarinaLocalizedString("MM.OdorijiHint");
   GtkWidget* odoriji_page =
       CreateSymbolsTabPage(BuildDefaultOdorijiSymbols(), odoriji_hint, true);
   gtk_notebook_append_page(GTK_NOTEBOOK(g_symbols_notebook), odoriji_page,
-                           gtk_label_new("Odoriji"));
+                           gtk_label_new(MarinaLocalizedString("MM.OdorijiTab")));
 
   GtkWidget* kaeriten_page = CreateSymbolsTabPage(
-      BuildDefaultKaeritenSymbols(),
-      "Shortcuts are available in your keymap.", false);
+      BuildDefaultKaeritenSymbols(), MarinaLocalizedString("MM.KaeritenHint"),
+      false);
   gtk_notebook_append_page(GTK_NOTEBOOK(g_symbols_notebook), kaeriten_page,
-                           gtk_label_new("Kaeriten"));
+                           gtk_label_new(MarinaLocalizedString("MM.Kaeriten")));
 
   GtkWidget* symbols_page =
       CreateSymbolsTabPage(BuildDefaultGeneralSymbols(), nullptr, false);
   gtk_notebook_append_page(GTK_NOTEBOOK(g_symbols_notebook), symbols_page,
-                           gtk_label_new("Symbols"));
+                           gtk_label_new(MarinaLocalizedString("MM.Symbols")));
 
   GtkWidget* user_page = CreateSymbolsTabPage(
-      LoadUserSymbolsFromFile(), "Edit user symbols in Preferences.", false);
+      LoadUserSymbolsFromFile(), MarinaLocalizedString("MM.UserSymbolsHint"), false);
   gtk_notebook_append_page(GTK_NOTEBOOK(g_symbols_notebook), user_page,
-                           gtk_label_new("User"));
+                           gtk_label_new(MarinaLocalizedString("MM.User")));
 
   int last_tab = LoadSymbolsPalettePref("symbols_palette_last_tab", kSymbolsTabOdoriji);
   if (last_tab < 0 || last_tab >= 4) {
@@ -1433,7 +1419,8 @@ static void ShowSymbolsPalette() {
   }
   gtk_notebook_set_current_page(GTK_NOTEBOOK(g_symbols_notebook), last_tab);
 
-  g_symbols_pin_check = gtk_check_button_new_with_label("Pin palette");
+  g_symbols_pin_check = gtk_check_button_new_with_label(
+      MarinaLocalizedString("MM.PinPalette"));
   gtk_widget_set_focus_on_click(g_symbols_pin_check, FALSE);
   gtk_widget_set_can_focus(g_symbols_pin_check, FALSE);
   gtk_toggle_button_set_active(
@@ -1462,7 +1449,11 @@ static GtkLabel* g_shortcuts_next_label = nullptr;
 static GtkListBox* g_shortcuts_script_list = nullptr;
 static GtkListBox* g_shortcuts_comp_list = nullptr;
 static GtkListBox* g_shortcuts_kaeriten_list = nullptr;
-static const char* const kPageNames[] = {"Script", "Composition", "Kaeriten"};
+static const char* const kPageNameKeys[] = {"MM.Script", "MM.Composition",
+                                            "MM.Kaeriten"};
+static const char* PageName(int page) {
+  return MarinaLocalizedString(kPageNameKeys[page]);
+}
 enum { kPageScript = 0, kPageComposition = 1, kPageKaeriten = 2, kPageCount = 3 };
 static int g_shortcuts_page = 0;
 
@@ -1519,13 +1510,13 @@ static void ShortcutsPopupRefreshPage(int page, ShortcutsData* data) {
 }
 
 static void ShortcutsPopupUpdateHeader() {
-  char* bold = g_strdup_printf("<b>%s</b>", kPageNames[g_shortcuts_page]);
+  char* bold = g_strdup_printf("<b>%s</b>", PageName(g_shortcuts_page));
   gtk_label_set_markup(g_shortcuts_title, bold);
   g_free(bold);
   int prev_i = (g_shortcuts_page + kPageCount - 1) % kPageCount;
   int next_i = (g_shortcuts_page + 1) % kPageCount;
-  gtk_label_set_text(g_shortcuts_prev_label, kPageNames[prev_i]);
-  gtk_label_set_text(g_shortcuts_next_label, kPageNames[next_i]);
+  gtk_label_set_text(g_shortcuts_prev_label, PageName(prev_i));
+  gtk_label_set_text(g_shortcuts_next_label, PageName(next_i));
   gtk_widget_set_sensitive(g_shortcuts_prev_btn, TRUE);
   gtk_widget_set_sensitive(g_shortcuts_next_btn, TRUE);
 }
@@ -1639,7 +1630,7 @@ static void ShowShortcutsPopup() {
   GroupShortcutsByCommand(kaeriten_entries, nullptr, &data->kaeriten);
 
   g_shortcuts_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_title(GTK_WINDOW(g_shortcuts_window), "Keyboard shortcuts");
+  gtk_window_set_title(GTK_WINDOW(g_shortcuts_window), MarinaLocalizedString("MM.KeyboardShortcuts"));
   gtk_window_set_decorated(GTK_WINDOW(g_shortcuts_window), TRUE);
   gtk_window_set_resizable(GTK_WINDOW(g_shortcuts_window), TRUE);
   gtk_window_set_default_size(GTK_WINDOW(g_shortcuts_window), 420, 380);
@@ -1680,7 +1671,7 @@ static void ShowShortcutsPopup() {
   g_shortcuts_script_list = GTK_LIST_BOX(gtk_list_box_new());
   gtk_container_add(GTK_CONTAINER(script_sw), GTK_WIDGET(g_shortcuts_script_list));
   gtk_container_add(GTK_CONTAINER(script_frame), script_sw);
-  gtk_stack_add_titled(GTK_STACK(g_shortcuts_stack), script_frame, "script", "Script");
+  gtk_stack_add_titled(GTK_STACK(g_shortcuts_stack), script_frame, "script", PageName(kPageScript));
   GtkWidget* comp_frame = gtk_frame_new(nullptr);
   GtkWidget* comp_sw = gtk_scrolled_window_new(nullptr, nullptr);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(comp_sw), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
@@ -1688,7 +1679,7 @@ static void ShowShortcutsPopup() {
   g_shortcuts_comp_list = GTK_LIST_BOX(gtk_list_box_new());
   gtk_container_add(GTK_CONTAINER(comp_sw), GTK_WIDGET(g_shortcuts_comp_list));
   gtk_container_add(GTK_CONTAINER(comp_frame), comp_sw);
-  gtk_stack_add_titled(GTK_STACK(g_shortcuts_stack), comp_frame, "composition", "Composition");
+  gtk_stack_add_titled(GTK_STACK(g_shortcuts_stack), comp_frame, "composition", PageName(kPageComposition));
   GtkWidget* kaeriten_frame = gtk_frame_new(nullptr);
   GtkWidget* kaeriten_sw = gtk_scrolled_window_new(nullptr, nullptr);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(kaeriten_sw), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
@@ -1696,11 +1687,11 @@ static void ShowShortcutsPopup() {
   g_shortcuts_kaeriten_list = GTK_LIST_BOX(gtk_list_box_new());
   gtk_container_add(GTK_CONTAINER(kaeriten_sw), GTK_WIDGET(g_shortcuts_kaeriten_list));
   gtk_container_add(GTK_CONTAINER(kaeriten_frame), kaeriten_sw);
-  gtk_stack_add_titled(GTK_STACK(g_shortcuts_stack), kaeriten_frame, "kaeriten", "Kaeriten");
+  gtk_stack_add_titled(GTK_STACK(g_shortcuts_stack), kaeriten_frame, "kaeriten", PageName(kPageKaeriten));
   gtk_box_pack_start(GTK_BOX(content), g_shortcuts_stack, TRUE, TRUE, 0);
   GtkWidget* footer = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
   gtk_button_box_set_layout(GTK_BUTTON_BOX(footer), GTK_BUTTONBOX_END);
-  GtkWidget* close_btn = gtk_button_new_with_label("Close");
+  GtkWidget* close_btn = gtk_button_new_with_label(MarinaLocalizedString("MM.Close"));
   g_signal_connect(close_btn, "clicked", G_CALLBACK(OnShortcutsClose), nullptr);
   gtk_container_add(GTK_CONTAINER(footer), close_btn);
   gtk_box_pack_start(GTK_BOX(content), footer, FALSE, FALSE, 0);
@@ -1858,8 +1849,7 @@ void EnsureToolbarCreated() {
   gtk_widget_set_size_request(g_live_btn, 32, 32);
   gtk_widget_set_name(g_live_btn, "marinamoji-live-btn");
   gtk_widget_set_tooltip_text(
-      g_live_btn, LocalizedText("Live conversion", "Conversion en direct",
-                                "ライブ変換"));
+      g_live_btn, MarinaLocalizedString("MM.LiveConversion"));
   gtk_button_set_label(GTK_BUTTON(g_live_btn), "");
   SetButtonIcon(GTK_BUTTON(g_live_btn),
                 g_toolbar_dark_theme ? "toolbar_live_off_dark.svg"
@@ -1906,8 +1896,7 @@ void EnsureToolbarCreated() {
   gtk_widget_set_name(g_composer_btn, "marinamoji-composer-btn");
   gtk_widget_set_tooltip_text(
       g_composer_btn,
-      LocalizedText("Character composer", "Compositeur de caractères",
-                    "文字合成"));
+      MarinaLocalizedString("MM.CharacterComposer"));
   gtk_button_set_label(GTK_BUTTON(g_composer_btn), "");
   SetButtonIcon(GTK_BUTTON(g_composer_btn),
                 g_toolbar_dark_theme ? "toolbar_composer_dark.svg" : "toolbar_composer_light.svg");

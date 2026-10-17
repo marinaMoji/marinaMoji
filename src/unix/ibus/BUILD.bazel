@@ -176,10 +176,12 @@ mozc_cc_library(
 mozc_cc_library(
     name = "ibus_utils",
     srcs = [
+        "marina_localized_string.cc",
         "message_translator.cc",
         "path_util.cc",
     ],
     hdrs = [
+        "marina_localized_string.h",
         "message_translator.h",
         "path_util.h",
     ],
@@ -223,6 +225,7 @@ mozc_cc_test(
     name = "ibus_utils_test",
     size = "small",
     srcs = [
+        "marina_localized_string_test.cc",
         "message_translator_test.cc",
         "path_util_test.cc",
     ],

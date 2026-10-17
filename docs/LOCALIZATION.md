@@ -17,9 +17,13 @@ UI language follows the **system locale** only (no in-app language picker).
 
 Menu labels use [`message_translator.cc`](../src/unix/ibus/message_translator.cc) for `ja_JP.UTF-8` and `fr_FR.UTF-8`.
 
+The floating toolbar, Symbols Palette and Keyboard Shortcuts window use [`marina_localized_string.cc`](../src/unix/ibus/marina_localized_string.cc): the same `MM.*` keys and wordings as mac, in a table with en/fr/ja columns. The language comes from `LANGUAGE`, `LC_ALL`, `LC_MESSAGES` or `LANG` (first of `ja`/`fr`/`en`); anything else is English.
+
 ```bash
 LC_ALL=fr_FR.UTF-8 ibus-daemon -drx   # example; then select marinaMoji
 ```
+
+To add a toolbar string: add a row to `kEntries` in `marina_localized_string.cc` (reuse the mac key if one exists), add the key to `marina_localized_string_test.cc`, and call `MarinaLocalizedString("MM.YourKey")` in `mozc_toolbar.cc`.
 
 ## Qt translation workflow
 
