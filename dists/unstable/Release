@@ -1,0 +1,48 @@
+Architectures: amd64 arm64
+Codename: unstable
+Components: main
+Date: Sat, 17 Oct 2026 17:25:23 +0000
+Description: marinaMoji Debian/Ubuntu packages
+Label: marinaMoji
+Origin: marinaMoji
+Suite: unstable
+MD5Sum:
+ 456eafd4ec66b6ce6cb1800cda680f65              201 Release
+ d41d8cd98f00b204e9800998ecf8427e                0 main/Contents-amd64
+ 4a4dd3598707603b3f76a2378a4504aa               20 main/Contents-amd64.gz
+ d41d8cd98f00b204e9800998ecf8427e                0 main/Contents-arm64
+ 4a4dd3598707603b3f76a2378a4504aa               20 main/Contents-arm64.gz
+ c3a8b9164db10f40c2c951ea176573c7            37188 main/binary-amd64/Packages
+ 7c41ceb3ed983c925aaa3e21d23bef6e             3638 main/binary-amd64/Packages.gz
+ 574b3f861f78b5acb0af99477da71c81            37188 main/binary-arm64/Packages
+ 3494a5ae001acacc7b725e5ebd0e8799             3638 main/binary-arm64/Packages.gz
+SHA1:
+ b1421ac4abfc83b74229f0a342745e77761e2baf              201 Release
+ da39a3ee5e6b4b0d3255bfef95601890afd80709                0 main/Contents-amd64
+ a0fddd5458378c1bf3c10dd2f5c060d1347741ed               20 main/Contents-amd64.gz
+ da39a3ee5e6b4b0d3255bfef95601890afd80709                0 main/Contents-arm64
+ a0fddd5458378c1bf3c10dd2f5c060d1347741ed               20 main/Contents-arm64.gz
+ d738719d1bd1856b689c8c085a487e8ac522fa95            37188 main/binary-amd64/Packages
+ c72c4a8fb50d9d3f5bb901ed79ac51ff02153a8a             3638 main/binary-amd64/Packages.gz
+ b2f4573632aad79b00cd34745f79df3a73962a46            37188 main/binary-arm64/Packages
+ 9cd4398196bc986c2ed27cb34f5b1c4a3da62d2b             3638 main/binary-arm64/Packages.gz
+SHA256:
+ 28b421e30e56fad7d6275cac508870277333973e4d003fe69979d00c59e54ea9              201 Release
+ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855                0 main/Contents-amd64
+ f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec               20 main/Contents-amd64.gz
+ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855                0 main/Contents-arm64
+ f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec               20 main/Contents-arm64.gz
+ b9465bc131e7d3c574771dba2bf497c028a3949796fd14a1ae65013d229653c1            37188 main/binary-amd64/Packages
+ 4d2114d6fa35eebe4d2121191f708a5c7a64074e0911cea3b4a419383c00c1a4             3638 main/binary-amd64/Packages.gz
+ b8c07a71078764e3662f5f48ca7c9638098172c48783ff76f4240d859a5fa8aa            37188 main/binary-arm64/Packages
+ 010f240c640cf52267e6e6ab95d9042b76eef24fba07317d052f95a79704aa4a             3638 main/binary-arm64/Packages.gz
+SHA512:
+ e3afdfc6d9b9df06fd26987ad757e75fc53214c329b1cb09703b0e3b660bebd2f14bcdf05e8a4188bf0b85cc7eaf7f65e95705791fde86f2f4c4dfda80eba0d6              201 Release
+ cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e                0 main/Contents-amd64
+ 1b46b9b08d5b338be9d732a1724795b2eab63daffde377218727c90857b79fe6a47bceed495117fcde60f7339812ef75ef4c69f82dd79fb69b6cbf8006b521f2               20 main/Contents-amd64.gz
+ cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e                0 main/Contents-arm64
+ 1b46b9b08d5b338be9d732a1724795b2eab63daffde377218727c90857b79fe6a47bceed495117fcde60f7339812ef75ef4c69f82dd79fb69b6cbf8006b521f2               20 main/Contents-arm64.gz
+ ffcbefd78e93a1d4523be111b3e72e8202e4c0c167e19ec300d97353efd5fea19b2774c37d119ebdba54a56275ed4bab8eaa9474e5df757b72d9aab4c7048e0e            37188 main/binary-amd64/Packages
+ 38240e7267f21e04a1fe510a50700405b72e98162633124128161ef3cb57d5c0751ece7c6c663a76b8501a249203dd7575eee244580be5dc9f82f977a7cd9edb             3638 main/binary-amd64/Packages.gz
+ ade4f9c6674a6b05c1741d47db9e1f15bea89c119eea242374beb18f0eecd1205107f04057e9043387fa078d82b4bbf3c4f3bfd9495aaec5e22e00c181a9bb4a            37188 main/binary-arm64/Packages
+ 0307d68fd34f053a394a998800792a34db25b9f5cd88ab066941099fd6a1f8adf6ac7d3d767cfad3e170e3c28772008a78708964912b1d4cfb1c2c82c77cb7ba             3638 main/binary-arm64/Packages.gz
