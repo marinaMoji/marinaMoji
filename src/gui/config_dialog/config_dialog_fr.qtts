@@ -447,6 +447,14 @@
         <translation>Utiliser la conversion en temps réel</translation>
     </message>
     <message>
+        <source>Use live conversion</source>
+        <translation>Utiliser la conversion en direct</translation>
+    </message>
+    <message>
+        <source>Show the top conversion in the underline as you type (Apple-like). Off by default.</source>
+        <translation>Affiche la meilleure conversion dans le soulignement pendant la frappe (comme sur Apple). Désactivé par défaut.</translation>
+    </message>
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1564" />
         <source>Help make [ProductName] better by automatically sending usage statistics and crash reports to Google (changes will take effect after you log out and log back in)</source>
         <translation>Aidez à faire de [ProductName] meilleur en envoyant automatiquement les statistiques d'utilisation et les rapports de plantage à Google (les changements prendront effet après vous vous déconnecter et vous reconnecter)</translation>

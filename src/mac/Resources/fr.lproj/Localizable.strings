@@ -7,6 +7,7 @@
 "MM.WideLatin" = "Alphanumérique pleine chasse";
 "MM.HalfWidthKatakana" = "Katakana demi-chasse";
 "MM.TraditionalKanji" = "Kanji traditionnels (kyūjitai)";
+"MM.LiveConversion" = "Conversion en direct";
 "MM.Odoriji" = "Odoriji (marques d'itération)";
 "MM.Toolbar" = "Barre d'outils";
 "MM.PrivacyMode" = "Mode confidentialité";

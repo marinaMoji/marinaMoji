@@ -512,6 +512,8 @@ void KeyMapManager::InitCommandData() {
                                 PrecompositionState::TOGGLE_HIRAGANA_DIRECT);
   RegisterPrecompositionCommand("ToggleTraditionalKanji",
                                 PrecompositionState::TOGGLE_TRADITIONAL_KANJI);
+  RegisterPrecompositionCommand("ToggleLiveConversion",
+                                PrecompositionState::TOGGLE_LIVE_CONVERSION);
   RegisterPrecompositionCommand("ShowOdorijiPalette",
                                 PrecompositionState::SHOW_ODORIJI_PALETTE);
   RegisterPrecompositionCommand("InsertOdorijiDefault",
@@ -644,6 +646,8 @@ void KeyMapManager::InitCommandData() {
                              CompositionState::TOGGLE_HIRAGANA_DIRECT);
   RegisterCompositionCommand("ToggleTraditionalKanji",
                              CompositionState::TOGGLE_TRADITIONAL_KANJI);
+  RegisterCompositionCommand("ToggleLiveConversion",
+                             CompositionState::TOGGLE_LIVE_CONVERSION);
   RegisterCompositionCommand("ShowOdorijiPalette",
                              CompositionState::SHOW_ODORIJI_PALETTE);
   RegisterCompositionCommand("InsertOdorijiDefault",
@@ -745,6 +749,8 @@ void KeyMapManager::InitCommandData() {
                             ConversionState::TOGGLE_HIRAGANA_DIRECT);
   RegisterConversionCommand("ToggleTraditionalKanji",
                             ConversionState::TOGGLE_TRADITIONAL_KANJI);
+  RegisterConversionCommand("ToggleLiveConversion",
+                            ConversionState::TOGGLE_LIVE_CONVERSION);
   RegisterConversionCommand("ShowOdorijiPalette",
                             ConversionState::SHOW_ODORIJI_PALETTE);
   RegisterConversionCommand("InsertOdorijiDefault",

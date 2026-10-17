@@ -44,6 +44,8 @@ constexpr LocalizedEntry kEntries[] = {
     {L"MM.InputMode", L"Input Mode", L"Mode de saisie", L"入力モード"},
     {L"MM.TraditionalKanji", L"Traditional kanji (Kyūjitai)",
      L"Kanji traditionnels (kyūjitai)", L"伝統漢字（旧字体）"},
+    {L"MM.LiveConversion", L"Live conversion", L"Conversion en direct",
+     L"ライブ変換"},
     {L"MM.SymbolsPalette", L"Symbols Palette", L"Palette de symboles",
      L"記号パレット"},
     {L"MM.RegisterWord", L"Add Word...", L"Ajouter un mot...", L"単語登録..."},

@@ -496,6 +496,8 @@ ConfigDialog::ConfigDialog()
                    SLOT(SelectSuggestionSetting(int)));
   QObject::connect(realtimeConversionCheckBox, SIGNAL(stateChanged(int)), this,
                    SLOT(SelectSuggestionSetting(int)));
+  QObject::connect(liveConversionCheckBox, SIGNAL(stateChanged(int)), this,
+                   SLOT(SelectSuggestionSetting(int)));
   QObject::connect(launchAdministrationDialogButton, SIGNAL(clicked()), this,
                    SLOT(LaunchAdministrationDialog()));
   QObject::connect(launchAdministrationDialogButtonForUsageStats,
@@ -1087,6 +1089,7 @@ void ConfigDialog::ConvertFromProto(const config::Config& config) {
   SET_CHECKBOX(historySuggestCheckBox, use_history_suggest);
   SET_CHECKBOX(dictionarySuggestCheckBox, use_dictionary_suggest);
   SET_CHECKBOX(realtimeConversionCheckBox, use_realtime_conversion);
+  SET_CHECKBOX(liveConversionCheckBox, use_live_conversion);
 
   suggestionsSizeSpinBox->setValue(
       std::clamp<int>(config.suggestions_size(), 1, 9));
@@ -1235,6 +1238,7 @@ void ConfigDialog::ConvertToProto(config::Config* config) const {
   GET_CHECKBOX(historySuggestCheckBox, use_history_suggest);
   GET_CHECKBOX(dictionarySuggestCheckBox, use_dictionary_suggest);
   GET_CHECKBOX(realtimeConversionCheckBox, use_realtime_conversion);
+  GET_CHECKBOX(liveConversionCheckBox, use_live_conversion);
 
   config->set_suggestions_size(
       static_cast<uint32_t>(suggestionsSizeSpinBox->value()));
@@ -1422,7 +1426,8 @@ void ConfigDialog::SelectAutoConversionSetting(int state) {
 void ConfigDialog::SelectSuggestionSetting(int state) {
   if (historySuggestCheckBox->isChecked() ||
       dictionarySuggestCheckBox->isChecked() ||
-      realtimeConversionCheckBox->isChecked()) {
+      realtimeConversionCheckBox->isChecked() ||
+      liveConversionCheckBox->isChecked()) {
     presentationModeCheckBox->setEnabled(true);
   } else {
     presentationModeCheckBox->setEnabled(false);

@@ -516,6 +516,8 @@ void UpdateCommand(TipTextService* text_service, ITfContext* context,
             command->output().status().left_shift_direct_lock());
         info->mutable_status()->set_use_traditional_kanji(
             command->output().status().use_traditional_kanji());
+        info->mutable_status()->set_use_live_conversion(
+            command->output().status().use_live_conversion());
       }
     }
   }

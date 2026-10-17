@@ -77,6 +77,7 @@ struct PrecompositionState {
     TOGGLE_ALPHANUMERIC_MODE,  // toggle AlphaNumeric and Hiragana mode.
     TOGGLE_HIRAGANA_DIRECT,    // toggle Hiragana and Direct input (Ctrl+Shift+5/²).
     TOGGLE_TRADITIONAL_KANJI,  // toggle traditional (kyūjitai) / modern (shinjitai) kanji.
+    TOGGLE_LIVE_CONVERSION,    // toggle Apple-like live conversion (preedit rewrite).
     SHOW_ODORIJI_PALETTE,      // show iteration marks (々ゝゞ…) in candidate window
     INSERT_ODORIJI_DEFAULT,    // insert session default odoriji (e.g. 々) without opening palette
     TOGGLE_FULL_HALF_WIDTH,    // toggle half/full width
@@ -151,6 +152,7 @@ struct CompositionState {
     TOGGLE_ALPHANUMERIC_MODE,  // toggle AlphaNumeric and Hiragana mode.
     TOGGLE_HIRAGANA_DIRECT,    // toggle Hiragana and Direct input (Ctrl+Shift+5/²).
     TOGGLE_TRADITIONAL_KANJI,  // toggle traditional (kyūjitai) / modern (shinjitai) kanji.
+    TOGGLE_LIVE_CONVERSION,    // toggle Apple-like live conversion (preedit rewrite).
     SHOW_ODORIJI_PALETTE,      // show iteration marks (々ゝゞ…) in candidate window
     INSERT_ODORIJI_DEFAULT,    // insert session default odoriji (e.g. 々) without opening palette
     TOGGLE_FULL_HALF_WIDTH,    // toggle half/full width
@@ -211,6 +213,7 @@ struct ConversionState {
     TOGGLE_ALPHANUMERIC_MODE,  // toggle AlphaNumeric and Hiragana mode.
     TOGGLE_HIRAGANA_DIRECT,    // toggle Hiragana and Direct input (Ctrl+Shift+5/²).
     TOGGLE_TRADITIONAL_KANJI,  // toggle traditional (kyūjitai) / modern (shinjitai) kanji.
+    TOGGLE_LIVE_CONVERSION,    // toggle Apple-like live conversion (preedit rewrite).
     SHOW_ODORIJI_PALETTE,     // show iteration marks (々ゝゞ…) in candidate window
     INSERT_ODORIJI_DEFAULT,   // insert session default odoriji without opening palette
     TOGGLE_FULL_HALF_WIDTH,   // toggle half/full width

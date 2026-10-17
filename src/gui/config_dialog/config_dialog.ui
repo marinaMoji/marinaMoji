@@ -1179,6 +1179,16 @@
               </property>
              </widget>
             </item>
+            <item row="3" column="0" colspan="3">
+             <widget class="QCheckBox" name="liveConversionCheckBox">
+              <property name="toolTip">
+               <string>Show the top conversion in the underline as you type (Apple-like). Off by default.</string>
+              </property>
+              <property name="text">
+               <string>Use live conversion</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </item>
@@ -2256,6 +2266,7 @@
   <tabstop>historySuggestCheckBox</tabstop>
   <tabstop>dictionarySuggestCheckBox</tabstop>
   <tabstop>realtimeConversionCheckBox</tabstop>
+  <tabstop>liveConversionCheckBox</tabstop>
   <tabstop>suggestionsSizeSpinBox</tabstop>
   <tabstop>incognitoModeCheckBox</tabstop>
   <tabstop>presentationModeCheckBox</tabstop>

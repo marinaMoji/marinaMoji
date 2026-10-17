@@ -105,6 +105,7 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   enum class ButtonId {
     kMode = 0,
     kTraditionalKanji,
+    kLiveConversion,
     kSymbols,
     kDictionary,
     kSettings,
@@ -278,6 +279,7 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   void SendSwitchCompositionMode(commands::CompositionMode mode);
   void SendTurnOffIme();
   void SendToggleTraditionalKanji();
+  void SendToggleLiveConversion();
   void SendLaunchWordRegisterDialog();
   void SendLaunchDictionaryTool();
   void SendLaunchConfigDialog();
@@ -336,6 +338,7 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   bool activated_;
   bool left_shift_direct_lock_;
   bool use_traditional_kanji_;
+  bool use_live_conversion_;
   bool symbols_palette_visible_;
   bool shortcuts_window_visible_;
 

@@ -385,6 +385,14 @@
         <translation>リアルタイム変換を有効にする</translation>
     </message>
     <message>
+        <source>Use live conversion</source>
+        <translation>ライブ変換を有効にする</translation>
+    </message>
+    <message>
+        <source>Show the top conversion in the underline as you type (Apple-like). Off by default.</source>
+        <translation>入力中に最上位の変換候補を下線上に表示します（Apple風）。既定ではオフです。</translation>
+    </message>
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1350" />
         <source>Secret mode</source>
         <translation>シークレットモード</translation>

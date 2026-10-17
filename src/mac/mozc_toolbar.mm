@@ -768,6 +768,7 @@ std::string GetKeymapPath(const std::string &filename) {
   NSImageView *logoView_;
   NSButton *modeButton_;
   NSButton *tradButton_;
+  NSButton *liveButton_;
   NSButton *symbolsButton_;
   NSButton *dictButton_;
   NSButton *shortcutsButton_;
@@ -775,6 +776,7 @@ std::string GetKeymapPath(const std::string &filename) {
   mozc::client::ClientInterface *client_;
   mozc::commands::CompositionMode currentMode_;
   bool useTraditionalKanji_;
+  bool useLiveConversion_;
   bool leftShiftDirectLock_;
   bool isDarkMode_;
 
@@ -787,6 +789,7 @@ std::string GetKeymapPath(const std::string &filename) {
 - (void)updateMode:(mozc::commands::CompositionMode)mode
             locked:(bool)locked;
 - (void)updateTraditionalKanji:(bool)useTrad;
+- (void)updateLiveConversion:(bool)useLive;
 - (void)setClient:(mozc::client::ClientInterface *)client;
 - (void)applyToolbarChrome;
 - (mozc::client::ClientInterface *)mozcClient;
@@ -801,7 +804,7 @@ std::string GetKeymapPath(const std::string &filename) {
 
 - (instancetype)initWithClient:(mozc::client::ClientInterface *)client
                           mode:(mozc::commands::CompositionMode)mode {
-  CGFloat totalWidth = kLogoWidth + kButtonWidth * 5 + 10;
+  CGFloat totalWidth = kLogoWidth + kButtonWidth * 6 + 10;
   NSRect frame = NSMakeRect(0, 0, totalWidth, kToolbarHeight);
   self = [super initWithFrame:frame];
   if (!self) return nil;
@@ -811,6 +814,7 @@ std::string GetKeymapPath(const std::string &filename) {
   client_ = client;
   currentMode_ = mode;
   useTraditionalKanji_ = false;
+  useLiveConversion_ = false;
   leftShiftDirectLock_ = false;
   isDarkMode_ = [self isDarkAppearance];
 
@@ -845,6 +849,14 @@ std::string GetKeymapPath(const std::string &filename) {
   tradButton_ = [self makeButtonAt:x action:@selector(tradClicked:)];
   tradButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_shin_dark" : @"toolbar_shin_light"];
   [self addSubview:tradButton_];
+  x += kButtonWidth;
+
+  // Live conversion toggle
+  liveButton_ = [self makeButtonAt:x action:@selector(liveClicked:)];
+  liveButton_.image =
+      [self loadSvg:isDarkMode_ ? @"toolbar_live_off_dark" : @"toolbar_live_off_light"];
+  liveButton_.toolTip = MarinaLocalizedString(@"MM.LiveConversion");
+  [self addSubview:liveButton_];
   x += kButtonWidth;
 
   // Symbols palette
@@ -1029,6 +1041,11 @@ std::string GetKeymapPath(const std::string &filename) {
   [self updateTradIcon];
 }
 
+- (void)updateLiveConversion:(bool)useLive {
+  useLiveConversion_ = useLive;
+  [self updateLiveIcon];
+}
+
 - (void)updateTradIcon {
   NSString *iconName =
       useTraditionalKanji_
@@ -1036,6 +1053,14 @@ std::string GetKeymapPath(const std::string &filename) {
           : (isDarkMode_ ? @"toolbar_shin_dark" : @"toolbar_shin_light");
   NSImage *img = [self loadSvg:iconName];
   tradButton_.image = img;
+}
+
+- (void)updateLiveIcon {
+  NSString *iconName =
+      useLiveConversion_
+          ? (isDarkMode_ ? @"toolbar_live_on_dark" : @"toolbar_live_on_light")
+          : (isDarkMode_ ? @"toolbar_live_off_dark" : @"toolbar_live_off_light");
+  liveButton_.image = [self loadSvg:iconName];
 }
 
 - (void)setClient:(mozc::client::ClientInterface *)client {
@@ -1140,6 +1165,27 @@ std::string GetKeymapPath(const std::string &filename) {
   }
 }
 
+- (void)liveClicked:(id)sender {
+  (void)sender;
+  mozc::commands::SessionCommand command;
+  command.set_type(mozc::commands::SessionCommand::TOGGLE_LIVE_CONVERSION);
+
+  id<ControllerCallback> controller = g_active_controller;
+  if (controller) {
+    [controller sendCommand:command];
+    return;
+  }
+
+  if (!client_) return;
+  mozc::commands::Output output;
+  if (client_->SendCommand(command, &output)) {
+    if (output.has_config()) {
+      useLiveConversion_ = output.config().use_live_conversion();
+      [self updateLiveIcon];
+    }
+  }
+}
+
 - (void)dictClicked:(id)sender {
   if (!client_) return;
   id<ControllerCallback> controller = g_active_controller;
@@ -1237,7 +1283,7 @@ std::string GetKeymapPath(const std::string &filename) {
 - (NSSize)toolbarSize {
   NSSize size = self.frame.size;
   if (size.width < 1 || size.height < 1) {
-    size = NSMakeSize(kLogoWidth + kButtonWidth * 5 + 10, kToolbarHeight);
+    size = NSMakeSize(kLogoWidth + kButtonWidth * 6 + 10, kToolbarHeight);
   }
   return size;
 }
@@ -1305,6 +1351,7 @@ std::string GetKeymapPath(const std::string &filename) {
   logoView_.image = [self loadLogoSvg:isDarkMode_ ? @"logo_long_dark" : @"logo_long_light"];
   modeButton_.image = [self modeIconForMode:currentMode_ locked:leftShiftDirectLock_];
   [self updateTradIcon];
+  [self updateLiveIcon];
   symbolsButton_.image =
       [self loadSvg:isDarkMode_ ? @"toolbar_symbols_dark" : @"toolbar_symbols_light"];
   dictButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_dict_dark" : @"toolbar_dict_light"];
@@ -1339,6 +1386,7 @@ static void EnsureToolbar(mozc::client::ClientInterface *client,
   mozc::config::Config config;
   if (client->GetConfig(&config)) {
     [g_toolbar_view updateTraditionalKanji:config.use_traditional_kanji()];
+    [g_toolbar_view updateLiveConversion:config.use_live_conversion()];
   }
 
   NSRect contentRect = g_toolbar_view.bounds;
@@ -1466,6 +1514,14 @@ void MozcToolbarUpdate(const commands::Output &output,
           ? output.status().use_traditional_kanji()
           : (output.has_config() ? output.config().use_traditional_kanji()
                                  : false);
+  bool has_live =
+      (output.has_status() && output.status().has_use_live_conversion()) ||
+      (output.has_config() && output.config().has_use_live_conversion());
+  bool use_live =
+      output.has_status() && output.status().has_use_live_conversion()
+          ? output.status().use_live_conversion()
+          : (output.has_config() ? output.config().use_live_conversion()
+                                 : false);
   bool locked = output.has_status() && output.status().left_shift_direct_lock();
 
   RunOnMainThread(^{
@@ -1473,6 +1529,9 @@ void MozcToolbarUpdate(const commands::Output &output,
     [g_toolbar_view updateMode:display_mode locked:locked];
     if (has_trad) {
       [g_toolbar_view updateTraditionalKanji:use_trad];
+    }
+    if (has_live) {
+      [g_toolbar_view updateLiveConversion:use_live];
     }
   });
 }

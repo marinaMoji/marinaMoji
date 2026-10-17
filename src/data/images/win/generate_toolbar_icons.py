@@ -45,6 +45,8 @@ SQUARE_ICON_NAMES = [
     "toolbar_roma_half_light", "toolbar_roma_half_dark",
     "toolbar_shin_light", "toolbar_shin_dark",
     "toolbar_kyu_light", "toolbar_kyu_dark",
+    "toolbar_live_off_light", "toolbar_live_off_dark",
+    "toolbar_live_on_light", "toolbar_live_on_dark",
     "toolbar_symbols_light", "toolbar_symbols_dark",
     "toolbar_dict_light", "toolbar_dict_dark",
     "toolbar_settings_light", "toolbar_settings_dark",

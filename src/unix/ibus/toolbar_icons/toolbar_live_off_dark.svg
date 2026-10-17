@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="30mm"
+   height="30mm"
+   viewBox="0 0 30 30"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg">
+  <rect
+     style="fill:#ffffff"
+     id="rect_bg"
+     width="26.022566"
+     height="25.998259"
+     x="1.9887171"
+     y="2.0008707"
+     ry="6.2886238" />
+  <text
+     x="15"
+     y="21.5"
+     text-anchor="middle"
+     style="font-weight:bold;font-size:16px;font-family:'Noto Sans CJK JP',sans-serif;fill:#000000">K</text>
+</svg>

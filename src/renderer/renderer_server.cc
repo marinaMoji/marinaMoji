@@ -100,6 +100,7 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       case commands::SessionCommand::SWITCH_COMPOSITION_MODE:
       case commands::SessionCommand::TURN_OFF_IME:
       case commands::SessionCommand::TOGGLE_TRADITIONAL_KANJI:
+      case commands::SessionCommand::TOGGLE_LIVE_CONVERSION:
       case commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
       case commands::SessionCommand::LAUNCH_CONFIG_DIALOG:
       case commands::SessionCommand::LAUNCH_DICTIONARY_TOOL:

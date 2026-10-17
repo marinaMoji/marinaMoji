@@ -565,6 +565,9 @@ bool Session::SendCommand(commands::Command* command) {
     case commands::SessionCommand::TOGGLE_TRADITIONAL_KANJI:
       result = ToggleTraditionalKanji(command);
       break;
+    case commands::SessionCommand::TOGGLE_LIVE_CONVERSION:
+      result = ToggleLiveConversion(command);
+      break;
     case commands::SessionCommand::TOGGLE_PRIVACY_MODE:
       result = TogglePrivacyMode(command);
       break;
@@ -1079,6 +1082,8 @@ bool Session::SendKeyPrecompositionState(commands::Command* command) {
       return ToggleHiraganaDirect(command);
     case keymap::PrecompositionState::TOGGLE_TRADITIONAL_KANJI:
       return ToggleTraditionalKanji(command);
+    case keymap::PrecompositionState::TOGGLE_LIVE_CONVERSION:
+      return ToggleLiveConversion(command);
     case keymap::PrecompositionState::SHOW_ODORIJI_PALETTE:
       return ShowOdorijiPalette(command);
     case keymap::PrecompositionState::INSERT_ODORIJI_DEFAULT:
@@ -1270,6 +1275,8 @@ bool Session::SendKeyCompositionState(commands::Command* command) {
       return ToggleHiraganaDirect(command);
     case keymap::CompositionState::TOGGLE_TRADITIONAL_KANJI:
       return ToggleTraditionalKanji(command);
+    case keymap::CompositionState::TOGGLE_LIVE_CONVERSION:
+      return ToggleLiveConversion(command);
     case keymap::CompositionState::SHOW_ODORIJI_PALETTE:
       return ShowOdorijiPalette(command);
     case keymap::CompositionState::INSERT_ODORIJI_DEFAULT:
@@ -1435,6 +1442,8 @@ bool Session::SendKeyConversionState(commands::Command* command) {
 
     case keymap::ConversionState::TOGGLE_TRADITIONAL_KANJI:
       return ToggleTraditionalKanji(command);
+    case keymap::ConversionState::TOGGLE_LIVE_CONVERSION:
+      return ToggleLiveConversion(command);
     case keymap::ConversionState::SHOW_ODORIJI_PALETTE:
       return ShowOdorijiPalette(command);
     case keymap::ConversionState::INSERT_ODORIJI_DEFAULT:
@@ -3140,6 +3149,20 @@ bool Session::ToggleTraditionalKanji(commands::Command* command) {
   return true;
 }
 
+bool Session::ToggleLiveConversion(commands::Command* command) {
+  command->mutable_output()->set_consumed(true);
+  config::Config config = config::ConfigHandler::GetCopiedConfig();
+  config.set_use_live_conversion(!config.use_live_conversion());
+  config::ConfigHandler::SetConfig(std::move(config));
+  context_->SetConfig(config::ConfigHandler::GetSharedConfig());
+  *command->mutable_output()->mutable_config() =
+      config::ConfigHandler::GetCopiedConfig();
+  // Live rewrite applies on the next keystroke; keep the toggle path light
+  // (same freeze-avoidance pattern as ToggleTraditionalKanji).
+  OutputComposition(command);
+  return true;
+}
+
 bool Session::TogglePrivacyMode(commands::Command* command) {
   command->mutable_output()->set_consumed(true);
   const bool enable_privacy =
@@ -3761,6 +3784,15 @@ void Session::Output(commands::Command* command) {
   OutputMode(command);
   context_->mutable_converter()->PopOutput(context_->composer(),
                                            command->mutable_output());
+  // marinaMoji: live conversion is a no-op in Manyōshū — restore composer kana
+  // (then ApplyManyoshuDisplayConversion katakana-izes as usual).
+  if (manyoshu_mode_ &&
+      config::ConfigHandler::GetSharedConfig()->use_live_conversion() &&
+      !context_->composer().Empty()) {
+    command->mutable_output()->clear_preedit();
+    context_->converter().FillPreedit(
+        context_->composer(), command->mutable_output()->mutable_preedit());
+  }
   if (odoriji_palette_visible_) {
     OdorijiPalette::OverlayOutput(command->mutable_output(),
                                   odoriji_focused_index_);
@@ -3807,6 +3839,8 @@ void Session::OutputMode(commands::Command* command) const {
   status->set_left_shift_direct_lock(left_shift_mode_lock_);
   status->set_use_traditional_kanji(
       config::ConfigHandler::GetSharedConfig()->use_traditional_kanji());
+  status->set_use_live_conversion(
+      config::ConfigHandler::GetSharedConfig()->use_live_conversion());
 }
 
 void Session::OutputComposition(commands::Command* command) const {

@@ -356,6 +356,14 @@
         <translation></translation>
     </message>
     <message>
+        <source>Use live conversion</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>Show the top conversion in the underline as you type (Apple-like). Off by default.</source>
+        <translation></translation>
+    </message>
+    <message>
         <location filename="config_dialog.ui" line="1032"/>
         <source>Help make [ProductName] better by automatically sending usage statistics and crash reports to Google (changes will take effect after you log out and log back in)</source>
         <translation></translation>

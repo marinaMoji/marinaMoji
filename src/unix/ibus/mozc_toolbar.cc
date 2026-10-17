@@ -68,6 +68,7 @@ GtkWidget* g_trail_cell = nullptr;
 GtkWidget* g_mode_indicator_cell = nullptr;
 GtkWidget* g_mode_indicator_image = nullptr;
 GtkWidget* g_trad_btn = nullptr;
+GtkWidget* g_live_btn = nullptr;
 GtkWidget* g_symbols_btn = nullptr;
 GtkWidget* g_dict_cell = nullptr;
 GtkWidget* g_shortcuts_btn = nullptr;
@@ -250,9 +251,10 @@ static void SetButtonIcon(GtkButton* btn, const char* svg_name) {
 
 static bool IsButtonWidget(GtkWidget* widget) {
   if (!widget) return false;
-  return (widget == g_trad_btn || widget == g_symbols_btn ||
+  return (widget == g_trad_btn || widget == g_live_btn || widget == g_symbols_btn ||
           widget == g_dict_cell || widget == g_shortcuts_btn ||
           gtk_widget_is_ancestor(widget, g_trad_btn) ||
+          gtk_widget_is_ancestor(widget, g_live_btn) ||
           gtk_widget_is_ancestor(widget, g_symbols_btn) ||
           gtk_widget_is_ancestor(widget, g_dict_cell) ||
           gtk_widget_is_ancestor(widget, g_shortcuts_btn));
@@ -621,14 +623,26 @@ static gboolean ShowIdleCb(gpointer data) {
     GdkWindow* gw = gtk_widget_get_window(g_toolbar_window);
     if (gw) gdk_window_raise(gw);
   }
-  // Set shin/kyu icon from current config so toolbar matches actual mode at startup.
-  if (g_trad_btn && g_engine) {
+  // Set shin/kyu and live icons from current config so toolbar matches at startup.
+  if (g_engine) {
     config::Config config;
     if (g_engine->GetConfig(&config)) {
-      bool use_trad = config.use_traditional_kanji();
-      const char* kyu = g_toolbar_dark_theme ? "toolbar_kyu_dark.svg" : "toolbar_kyu_light.svg";
-      const char* shin = g_toolbar_dark_theme ? "toolbar_shin_dark.svg" : "toolbar_shin_light.svg";
-      SetButtonIcon(GTK_BUTTON(g_trad_btn), use_trad ? kyu : shin);
+      if (g_trad_btn) {
+        bool use_trad = config.use_traditional_kanji();
+        const char* kyu =
+            g_toolbar_dark_theme ? "toolbar_kyu_dark.svg" : "toolbar_kyu_light.svg";
+        const char* shin =
+            g_toolbar_dark_theme ? "toolbar_shin_dark.svg" : "toolbar_shin_light.svg";
+        SetButtonIcon(GTK_BUTTON(g_trad_btn), use_trad ? kyu : shin);
+      }
+      if (g_live_btn) {
+        bool use_live = config.use_live_conversion();
+        const char* on =
+            g_toolbar_dark_theme ? "toolbar_live_on_dark.svg" : "toolbar_live_on_light.svg";
+        const char* off =
+            g_toolbar_dark_theme ? "toolbar_live_off_dark.svg" : "toolbar_live_off_light.svg";
+        SetButtonIcon(GTK_BUTTON(g_live_btn), use_live ? on : off);
+      }
     }
   }
   return G_SOURCE_REMOVE;
@@ -851,6 +865,18 @@ static void RefreshToolbarTheme() {
                   use_trad ? (g_toolbar_dark_theme ? "toolbar_kyu_dark.svg" : "toolbar_kyu_light.svg")
                           : (g_toolbar_dark_theme ? "toolbar_shin_dark.svg" : "toolbar_shin_light.svg"));
   }
+  if (g_live_btn && g_engine) {
+    config::Config config;
+    bool use_live = false;
+    if (g_engine->GetConfig(&config)) use_live = config.use_live_conversion();
+    SetButtonIcon(
+        GTK_BUTTON(g_live_btn),
+        use_live
+            ? (g_toolbar_dark_theme ? "toolbar_live_on_dark.svg"
+                                    : "toolbar_live_on_light.svg")
+            : (g_toolbar_dark_theme ? "toolbar_live_off_dark.svg"
+                                    : "toolbar_live_off_light.svg"));
+  }
   if (g_symbols_btn) {
     SetButtonIcon(GTK_BUTTON(g_symbols_btn),
                   g_toolbar_dark_theme ? "toolbar_symbols_dark.svg" : "toolbar_symbols_light.svg");
@@ -894,6 +920,13 @@ void OnTradClicked(GtkWidget* /*widget*/, gpointer /*data*/) {
   if (g_engine) {
     g_engine->SendToolbarSessionCommand(
         commands::SessionCommand::TOGGLE_TRADITIONAL_KANJI);
+  }
+}
+
+void OnLiveClicked(GtkWidget* /*widget*/, gpointer /*data*/) {
+  if (g_engine) {
+    g_engine->SendToolbarSessionCommand(
+        commands::SessionCommand::TOGGLE_LIVE_CONVERSION);
   }
 }
 
@@ -1790,6 +1823,20 @@ void EnsureToolbarCreated() {
   g_signal_connect(g_trad_btn, "clicked", G_CALLBACK(OnTradClicked), nullptr);
   gtk_box_pack_start(GTK_BOX(g_toolbar_box), g_trad_btn, FALSE, FALSE, 0);
 
+  g_live_btn = gtk_button_new();
+  gtk_button_set_relief(GTK_BUTTON(g_live_btn), GTK_RELIEF_NONE);
+  gtk_widget_set_focus_on_click(g_live_btn, FALSE);
+  gtk_widget_set_can_focus(g_live_btn, FALSE);
+  gtk_widget_set_size_request(g_live_btn, 32, 32);
+  gtk_widget_set_name(g_live_btn, "marinamoji-live-btn");
+  gtk_widget_set_tooltip_text(g_live_btn, "Live conversion");
+  gtk_button_set_label(GTK_BUTTON(g_live_btn), "");
+  SetButtonIcon(GTK_BUTTON(g_live_btn),
+                g_toolbar_dark_theme ? "toolbar_live_off_dark.svg"
+                                     : "toolbar_live_off_light.svg");
+  g_signal_connect(g_live_btn, "clicked", G_CALLBACK(OnLiveClicked), nullptr);
+  gtk_box_pack_start(GTK_BOX(g_toolbar_box), g_live_btn, FALSE, FALSE, 0);
+
   g_symbols_btn = gtk_button_new();
   gtk_button_set_relief(GTK_BUTTON(g_symbols_btn), GTK_RELIEF_NONE);
   gtk_widget_set_focus_on_click(g_symbols_btn, FALSE);
@@ -1853,6 +1900,23 @@ void ApplyOutputToToolbar(const commands::Output& output) {
     const char* kyu = g_toolbar_dark_theme ? "toolbar_kyu_dark.svg" : "toolbar_kyu_light.svg";
     const char* shin = g_toolbar_dark_theme ? "toolbar_shin_dark.svg" : "toolbar_shin_light.svg";
     SetButtonIcon(GTK_BUTTON(g_trad_btn), use_trad ? kyu : shin);
+  }
+  if (g_live_btn) {
+    if (output.has_status() && output.status().has_use_live_conversion()) {
+      bool use_live = output.status().use_live_conversion();
+      const char* on =
+          g_toolbar_dark_theme ? "toolbar_live_on_dark.svg" : "toolbar_live_on_light.svg";
+      const char* off =
+          g_toolbar_dark_theme ? "toolbar_live_off_dark.svg" : "toolbar_live_off_light.svg";
+      SetButtonIcon(GTK_BUTTON(g_live_btn), use_live ? on : off);
+    } else if (output.has_config()) {
+      bool use_live = output.config().use_live_conversion();
+      const char* on =
+          g_toolbar_dark_theme ? "toolbar_live_on_dark.svg" : "toolbar_live_on_light.svg";
+      const char* off =
+          g_toolbar_dark_theme ? "toolbar_live_off_dark.svg" : "toolbar_live_off_light.svg";
+      SetButtonIcon(GTK_BUTTON(g_live_btn), use_live ? on : off);
+    }
   }
   if (output.has_status() && g_mode_indicator_image) {
     commands::CompositionMode mode = output.status().activated()

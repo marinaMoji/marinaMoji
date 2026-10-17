@@ -758,6 +758,7 @@ bool TipEditSession::OnRendererCallbackAsync(TipTextService* text_service,
     }
     case SessionCommand::TURN_OFF_IME:
     case SessionCommand::TOGGLE_TRADITIONAL_KANJI:
+    case SessionCommand::TOGGLE_LIVE_CONVERSION:
     case SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
     case SessionCommand::LAUNCH_CONFIG_DIALOG:
     case SessionCommand::LAUNCH_DICTIONARY_TOOL: {

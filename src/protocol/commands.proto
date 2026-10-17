@@ -526,6 +526,9 @@ message SessionCommand {
     // toolbar button now sends LAUNCH_WORD_REGISTER_DIALOG like every other
     // platform.
     reserved 43;
+
+    // marinaMoji: toggle Apple-like live conversion (config.use_live_conversion).
+    TOGGLE_LIVE_CONVERSION = 44;
   }
   required CommandType type = 1;
 
@@ -1466,6 +1469,10 @@ message Status {
   // the toolbar icon can follow Ctrl+Shift+3/F even when output.config() is
   // absent (it is only filled on the toggle command itself).
   optional bool use_traditional_kanji = 28 [default = false];
+
+  // marinaMoji: live conversion is on. Always set by OutputMode so the toolbar
+  // icon can follow TOGGLE_LIVE_CONVERSION even when output.config() is absent.
+  optional bool use_live_conversion = 29 [default = false];
 }
 
 // This message contains which characters are to be deleted by client.

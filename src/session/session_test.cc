@@ -1013,6 +1013,35 @@ TEST_F(SessionTest, OutputModeCarriesTraditionalKanjiFlag) {
   config::ConfigHandler::SetConfig(original);
 }
 
+TEST_F(SessionTest, ToggleLiveConversion) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  const config::Config original = config::ConfigHandler::GetCopiedConfig();
+  config::Config cfg = original;
+  cfg.set_use_live_conversion(false);
+  config::ConfigHandler::SetConfig(cfg);
+  session.SetConfig(cfg);
+
+  commands::Command command;
+  EXPECT_TRUE(SendCommand(commands::SessionCommand::TOGGLE_LIVE_CONVERSION,
+                          &session, &command));
+  EXPECT_TRUE(command.output().status().use_live_conversion());
+  EXPECT_TRUE(command.output().config().use_live_conversion());
+
+  EXPECT_TRUE(SendKey("a", &session, &command));
+  EXPECT_TRUE(command.output().status().has_use_live_conversion());
+  EXPECT_TRUE(command.output().status().use_live_conversion());
+
+  EXPECT_TRUE(SendCommand(commands::SessionCommand::TOGGLE_LIVE_CONVERSION,
+                          &session, &command));
+  EXPECT_FALSE(command.output().config().use_live_conversion());
+
+  config::ConfigHandler::SetConfig(original);
+}
+
 TEST_F(SessionTest, LeftShiftTogglesManyoshuAndDirect) {
   MockEngine engine;
   CreateEngineConverterMock(&engine);

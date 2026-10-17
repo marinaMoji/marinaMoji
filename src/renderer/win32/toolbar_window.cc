@@ -273,6 +273,7 @@ ToolbarWindow::ToolbarWindow()
       activated_(false),
       left_shift_direct_lock_(false),
       use_traditional_kanji_(false),
+      use_live_conversion_(false),
       symbols_palette_visible_(false),
       shortcuts_window_visible_(false),
       icon_draw_size_(kIconSize),
@@ -483,6 +484,11 @@ void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
           ? output.status().use_traditional_kanji()
           : (output.has_config() ? output.config().use_traditional_kanji()
                                  : use_traditional_kanji_);
+  const bool use_live =
+      output.has_status() && output.status().has_use_live_conversion()
+          ? output.status().use_live_conversion()
+          : (output.has_config() ? output.config().use_live_conversion()
+                                 : use_live_conversion_);
   // marinaMoji: |is_dark_theme_| is not re-polled here -- it is a registry
   // read, and this function runs on every RendererCommand, i.e. every
   // keystroke while the toolbar is visible. OnCreate() sets the initial
@@ -491,12 +497,14 @@ void ToolbarWindow::OnUpdate(const commands::RendererCommand& command) {
   // keystroke for no benefit.
   const bool state_changed =
       !has_state_ || mode != current_mode_ || activated != activated_ ||
-      lock != left_shift_direct_lock_ || use_trad != use_traditional_kanji_;
+      lock != left_shift_direct_lock_ || use_trad != use_traditional_kanji_ ||
+      use_live != use_live_conversion_;
 
   current_mode_ = mode;
   activated_ = activated;
   left_shift_direct_lock_ = lock;
   use_traditional_kanji_ = use_trad;
+  use_live_conversion_ = use_live;
 
   const bool first_show = !has_state_;
   has_state_ = true;
@@ -566,6 +574,11 @@ void ToolbarWindow::LoadIcons() {
       use_traditional_kanji_ ? "toolbar_kyu_" : "toolbar_shin_", theme);
   icon_cache_[static_cast<int>(ButtonId::kTraditionalKanji)] =
       GetOrLoadCachedIcon(trad_name, tier, nullptr);
+
+  const std::string live_name = absl::StrCat(
+      use_live_conversion_ ? "toolbar_live_on_" : "toolbar_live_off_", theme);
+  icon_cache_[static_cast<int>(ButtonId::kLiveConversion)] =
+      GetOrLoadCachedIcon(live_name, tier, nullptr);
 
   icon_cache_[static_cast<int>(ButtonId::kSymbols)] = GetOrLoadCachedIcon(
       absl::StrCat("toolbar_symbols_", theme), tier, nullptr);
@@ -810,6 +823,8 @@ const wchar_t* ToolbarWindow::GetButtonName(ButtonId button) {
       return MarinaLocalizedString(L"MM.InputMode");
     case ButtonId::kTraditionalKanji:
       return MarinaLocalizedString(L"MM.TraditionalKanji");
+    case ButtonId::kLiveConversion:
+      return MarinaLocalizedString(L"MM.LiveConversion");
     case ButtonId::kSymbols:
       return MarinaLocalizedString(L"MM.SymbolsPalette");
     case ButtonId::kDictionary:
@@ -906,6 +921,9 @@ void ToolbarWindow::ActivateButton(ButtonId button) {
       break;
     case ButtonId::kTraditionalKanji:
       SendToggleTraditionalKanji();
+      break;
+    case ButtonId::kLiveConversion:
+      SendToggleLiveConversion();
       break;
     case ButtonId::kDictionary:
       SendLaunchWordRegisterDialog();
@@ -1208,6 +1226,16 @@ void ToolbarWindow::SendToggleTraditionalKanji() {
   }
   commands::SessionCommand command;
   command.set_type(commands::SessionCommand::TOGGLE_TRADITIONAL_KANJI);
+  commands::Output output;
+  send_command_interface_->SendCommand(command, &output);
+}
+
+void ToolbarWindow::SendToggleLiveConversion() {
+  if (send_command_interface_ == nullptr) {
+    return;
+  }
+  commands::SessionCommand command;
+  command.set_type(commands::SessionCommand::TOGGLE_LIVE_CONVERSION);
   commands::Output output;
   send_command_interface_->SendCommand(command, &output);
 }
