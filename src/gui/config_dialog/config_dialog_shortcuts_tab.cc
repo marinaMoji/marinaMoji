@@ -37,9 +37,10 @@ MarinaNumberRowAction ActionForRow(int row) {
       MarinaNumberRowAction::MARINA_NR_TRADITIONAL_KANJI,
       MarinaNumberRowAction::MARINA_NR_MANYOSHU_HIRAGANA,
       MarinaNumberRowAction::MARINA_NR_HIRAGANA_DIRECT,
+      MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION,
       MarinaNumberRowAction::MARINA_NR_WORD_REGISTER,
   };
-  if (row < 0 || row >= 6) {
+  if (row < 0 || row >= 7) {
     return MarinaNumberRowAction::MARINA_NR_ODORIJI_DEFAULT;
   }
   return kActions[row];
@@ -104,6 +105,8 @@ QString ActionLabel(MarinaNumberRowAction action) {
       return QObject::tr("Hiragana ↔ Manyōshū");
     case MarinaNumberRowAction::MARINA_NR_HIRAGANA_DIRECT:
       return QObject::tr("Japanese ↔ direct input");
+    case MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION:
+      return QObject::tr("Live conversion");
     case MarinaNumberRowAction::MARINA_NR_WORD_REGISTER:
       return QObject::tr("Dictionary entry");
     default:
@@ -249,13 +252,13 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
   win_number_row_note_ = nullptr;
 #endif  // _WIN32
 
-  number_row_table_ = new QTableWidget(6, 3, tab_);
+  number_row_table_ = new QTableWidget(7, 3, tab_);
   number_row_table_->setHorizontalHeaderLabels(
       {QObject::tr("Action"), QObject::tr("Modifier"), QObject::tr("Key")});
   number_row_table_->verticalHeader()->setVisible(false);
   number_row_table_->setSelectionMode(QAbstractItemView::NoSelection);
   number_row_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
-  for (int row = 0; row < 6; ++row) {
+  for (int row = 0; row < 7; ++row) {
     const MarinaNumberRowAction action = ActionForRow(row);
     auto* action_item = new QTableWidgetItem(ActionLabel(action));
     number_row_table_->setItem(row, kColumnAction, action_item);
@@ -324,7 +327,7 @@ void ConfigDialogShortcutsTab::LoadFromConfig(const config::Config& config) {
 
   const std::vector<MarinaNumberRowBinding> bindings =
       session::GetEffectiveMarinaNumberRowBindings(config);
-  for (int row = 0; row < 6; ++row) {
+  for (int row = 0; row < 7; ++row) {
     const MarinaNumberRowAction action = ActionForRow(row);
     MarinaNumberRowBinding binding;
     for (const auto& candidate : bindings) {
@@ -359,8 +362,8 @@ void ConfigDialogShortcutsTab::LoadFromConfig(const config::Config& config) {
 std::vector<MarinaNumberRowBinding>
 ConfigDialogShortcutsTab::CollectBindingsFromTable() const {
   std::vector<MarinaNumberRowBinding> bindings;
-  bindings.reserve(6);
-  for (int row = 0; row < 6; ++row) {
+  bindings.reserve(7);
+  for (int row = 0; row < 7; ++row) {
     MarinaNumberRowBinding binding;
     binding.set_action(ActionForRow(row));
 
@@ -427,7 +430,7 @@ void ConfigDialogShortcutsTab::ConnectApplyButton(const QObject* receiver,
                                                   const char* slot) {
   QObject::connect(disable_left_shift_direct_toggle_, SIGNAL(clicked()), receiver,
                    slot);
-  for (int row = 0; row < 6; ++row) {
+  for (int row = 0; row < 7; ++row) {
     if (auto* modifier_combo = qobject_cast<QComboBox*>(
             number_row_table_->cellWidget(row, kColumnModifier))) {
       QObject::connect(modifier_combo, SIGNAL(currentIndexChanged(int)), receiver,

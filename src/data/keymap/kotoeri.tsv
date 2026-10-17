@@ -21,6 +21,8 @@ Composition	Delete	Delete
 Composition	Ctrl Shift `	ToggleAlphanumericMode
 Composition	Ctrl Shift F	ToggleTraditionalKanji
 Composition	Ctrl Shift f	ToggleTraditionalKanji
+Composition	Ctrl Shift L	ToggleLiveConversion
+Composition	Ctrl Shift l	ToggleLiveConversion
 Composition	RightShift	ToggleManyoshuHiragana
 Composition	RightAlt ¨	SetMacronDeadKey
 Composition	RightAlt ^	SetMacronDeadKey
@@ -71,6 +73,8 @@ Conversion	RightAlt ^	SetMacronDeadKey
 Conversion	Ctrl Shift `	ToggleAlphanumericMode
 Conversion	Ctrl Shift F	ToggleTraditionalKanji
 Conversion	Ctrl Shift f	ToggleTraditionalKanji
+Conversion	Ctrl Shift L	ToggleLiveConversion
+Conversion	Ctrl Shift l	ToggleLiveConversion
 Conversion	Ctrl ;	DisplayAsHalfWidth
 Conversion	Ctrl :	DisplayAsHalfAlphanumeric
 Conversion	Ctrl '	DisplayAsHalfAlphanumeric
@@ -153,6 +157,8 @@ Precomposition	Ctrl Shift r	Reconvert
 Precomposition	Ctrl Shift `	ToggleAlphanumericMode
 Precomposition	Ctrl Shift F	ToggleTraditionalKanji
 Precomposition	Ctrl Shift f	ToggleTraditionalKanji
+Precomposition	Ctrl Shift L	ToggleLiveConversion
+Precomposition	Ctrl Shift l	ToggleLiveConversion
 Precomposition	RightShift	ToggleManyoshuHiragana
 Precomposition	RightAlt ¨	SetMacronDeadKey
 Precomposition	RightAlt ^	SetMacronDeadKey

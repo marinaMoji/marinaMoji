@@ -40,18 +40,19 @@
 namespace mozc {
 namespace session {
 
-// Bundled default bindings (Ctrl+Shift+1..5; dictionary is Ctrl+Shift+0 on
+// Bundled default bindings (Ctrl+Shift+1..6; dictionary is Ctrl+Shift+0 on
 // Linux/macOS and Ctrl+Shift+9 on Windows, where the OS swallows Ctrl+Shift+0).
 std::vector<config::MarinaNumberRowBinding> GetDefaultMarinaNumberRowBindings();
 
 // Effective bindings: config repeated field or defaults when empty. Also
 // migrates stale dictionary chords (Ctrl+0 everywhere; Ctrl+Shift+0 →
-// Ctrl+Shift+9 on Windows).
+// Ctrl+Shift+9 on Windows) and adds live conversion when older profiles omit
+// it.
 std::vector<config::MarinaNumberRowBinding> GetEffectiveMarinaNumberRowBindings(
     const config::Config& config);
 
 // Returns true when |bindings| has no duplicate (modifier, slot) pairs and
-// includes all six actions. On Windows, also rejects Ctrl+Shift+0 (OS
+// includes all seven actions. On Windows, also rejects Ctrl+Shift+0 (OS
 // swallows that chord).
 bool ValidateMarinaNumberRowBindings(
     const std::vector<config::MarinaNumberRowBinding>& bindings,

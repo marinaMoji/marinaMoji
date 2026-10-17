@@ -32,9 +32,9 @@ using ShortcutEntry = std::pair<std::string, std::string>;
 // Keymap commands surfaced on the Script tab, in display order.
 const char* const kScriptCommands[] = {
     "ToggleAlphanumericMode", "ToggleHiraganaDirect", "ToggleTraditionalKanji",
-    "ToggleManyoshuHiragana", "ToggleHiraganaKatakana", "ConvertToFullKatakana",
-    "ConvertToHalfWidth",
-    "ConvertToFullAlphanumeric", "ConvertToHiragana", nullptr};
+    "ToggleLiveConversion", "ToggleManyoshuHiragana", "ToggleHiraganaKatakana",
+    "ConvertToFullKatakana", "ConvertToHalfWidth", "ConvertToFullAlphanumeric",
+    "ConvertToHiragana", nullptr};
 
 // ... and on the Composition tab.
 const char* const kCompositionCommands[] = {
@@ -135,6 +135,9 @@ void FillDefaultScriptShortcuts(std::vector<ShortcutEntry>* script) {
       {"Ctrl Shift F", "ToggleTraditionalKanji"},
       {"Ctrl Shift 3", "ToggleTraditionalKanji"},
       {"Ctrl Shift #", "ToggleTraditionalKanji"},
+      {"Ctrl Shift L", "ToggleLiveConversion"},
+      {"Ctrl Shift 6", "ToggleLiveConversion"},
+      {"Ctrl Shift ^", "ToggleLiveConversion"},
       {"Ctrl Shift 4", "ToggleManyoshuHiragana"},
       {"Ctrl Shift $", "ToggleManyoshuHiragana"},
       {"Ctrl Shift %", "ToggleHiraganaDirect"},

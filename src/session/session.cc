@@ -3784,19 +3784,12 @@ void Session::Output(commands::Command* command) {
   OutputMode(command);
   context_->mutable_converter()->PopOutput(context_->composer(),
                                            command->mutable_output());
-  // marinaMoji: live conversion is a no-op in Manyōshū — restore composer kana
-  // (then ApplyManyoshuDisplayConversion katakana-izes as usual).
-  if (manyoshu_mode_ &&
-      config::ConfigHandler::GetSharedConfig()->use_live_conversion() &&
-      !context_->composer().Empty()) {
-    command->mutable_output()->clear_preedit();
-    context_->converter().FillPreedit(
-        context_->composer(), command->mutable_output()->mutable_preedit());
-  }
   if (odoriji_palette_visible_) {
     OdorijiPalette::OverlayOutput(command->mutable_output(),
                                   odoriji_focused_index_);
   }
+  // Manyōshū: katakana-ize remaining kana only. Live-conversion kanji in the
+  // preedit is left alone (HiraganaToKatakana does not touch kanji).
   if (manyoshu_mode_) {
     ApplyManyoshuDisplayConversion(command->mutable_output());
   }

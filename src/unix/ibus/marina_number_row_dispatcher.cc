@@ -190,6 +190,10 @@ bool DispatchMarinaNumberRowShortcut(
       command.set_type(SessionCommand::TOGGLE_TRADITIONAL_KANJI);
       return SendSessionCommand(client, command, output);
 
+    case MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION:
+      command.set_type(SessionCommand::TOGGLE_LIVE_CONVERSION);
+      return SendSessionCommand(client, command, output);
+
     case MarinaNumberRowAction::MARINA_NR_WORD_REGISTER:
       command.set_type(SessionCommand::LAUNCH_WORD_REGISTER_DIALOG);
       return SendSessionCommand(client, command, output);

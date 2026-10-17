@@ -980,9 +980,9 @@ static std::string KeymapFilenameFromSessionKeymap(
 
 static const char* const kScriptCommands[] = {
     "ToggleAlphanumericMode", "ToggleHiraganaDirect", "ToggleTraditionalKanji",
-    "ToggleManyoshuHiragana", "ToggleHiraganaKatakana", "ConvertToFullKatakana",
-    "ConvertToHalfWidth",
-    "ConvertToFullAlphanumeric", "ConvertToHiragana", nullptr};
+    "ToggleLiveConversion", "ToggleManyoshuHiragana", "ToggleHiraganaKatakana",
+    "ConvertToFullKatakana", "ConvertToHalfWidth", "ConvertToFullAlphanumeric",
+    "ConvertToHiragana", nullptr};
 static const char* const kCompositionCommands[] = {
     "Commit", "InsertOdorijiDefault", "ShowOdorijiPalette",
     "LaunchWordRegisterDialog", "SegmentWidthShrink", "SegmentWidthExpand",
@@ -1091,6 +1091,9 @@ static void FillDefaultScriptShortcuts(std::vector<ShortcutEntry>* script) {
       {"Ctrl Shift 5", "ToggleHiraganaDirect"},
       {"Ctrl Shift ²", "ToggleHiraganaDirect"},
       {"Ctrl Shift F", "ToggleTraditionalKanji"},
+      {"Ctrl Shift L", "ToggleLiveConversion"},
+      {"Ctrl Shift 6", "ToggleLiveConversion"},
+      {"Ctrl Shift ^", "ToggleLiveConversion"},
       {"RightShift", "ToggleManyoshuHiragana"},
       {"Ctrl i", "ConvertToFullKatakana"},
       {"F7", "ConvertToFullKatakana"},

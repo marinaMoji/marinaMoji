@@ -92,6 +92,8 @@ Conversion	RightShift	ToggleManyoshuHiragana
 Conversion	Ctrl Shift `	ToggleAlphanumericMode
 Conversion	Ctrl Shift F	ToggleTraditionalKanji
 Conversion	Ctrl Shift f	ToggleTraditionalKanji
+Conversion	Ctrl Shift L	ToggleLiveConversion
+Conversion	Ctrl Shift l	ToggleLiveConversion
 Conversion	Ctrl Shift Space	InsertFullSpace
 Conversion	Ctrl Space	InsertHalfSpace
 Conversion	Ctrl t	ConvertToHalfAlphanumeric

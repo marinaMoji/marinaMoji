@@ -1120,6 +1120,11 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
       [self sendCommand:command];
       return YES;
 
+    case mozc::config::MARINA_NR_LIVE_CONVERSION:
+      command.set_type(SessionCommand::TOGGLE_LIVE_CONVERSION);
+      [self sendCommand:command];
+      return YES;
+
     case mozc::config::MARINA_NR_WORD_REGISTER:
       command.set_type(SessionCommand::LAUNCH_WORD_REGISTER_DIALOG);
       [self sendCommand:command];

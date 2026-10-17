@@ -26,6 +26,8 @@ Composition	RightAlt ^	SetMacronDeadKey
 Composition	Ctrl Shift `	ToggleAlphanumericMode
 Composition	Ctrl Shift F	ToggleTraditionalKanji
 Composition	Ctrl Shift f	ToggleTraditionalKanji
+Composition	Ctrl Shift L	ToggleLiveConversion
+Composition	Ctrl Shift l	ToggleLiveConversion
 Composition	Ctrl Shift Space	InsertFullSpace
 Composition	Ctrl Space	InsertHalfSpace
 Composition	Ctrl t	ConvertToHalfAlphanumeric
@@ -95,6 +97,8 @@ Conversion	RightAlt ¨	SetMacronDeadKey
 Conversion	RightAlt ^	SetMacronDeadKey
 Conversion	Ctrl Shift F	ToggleTraditionalKanji
 Conversion	Ctrl Shift f	ToggleTraditionalKanji
+Conversion	Ctrl Shift L	ToggleLiveConversion
+Conversion	Ctrl Shift l	ToggleLiveConversion
 Conversion	Ctrl Shift Space	InsertFullSpace
 Conversion	Ctrl Space	InsertHalfSpace
 Conversion	Ctrl t	ConvertToHalfAlphanumeric
@@ -167,6 +171,8 @@ Precomposition	RightAlt ^	SetMacronDeadKey
 Precomposition	Ctrl Shift `	ToggleAlphanumericMode
 Precomposition	Ctrl Shift F	ToggleTraditionalKanji
 Precomposition	Ctrl Shift f	ToggleTraditionalKanji
+Precomposition	Ctrl Shift L	ToggleLiveConversion
+Precomposition	Ctrl Shift l	ToggleLiveConversion
 Precomposition	Ctrl Shift Space	InsertFullSpace
 Precomposition	Eisu	ToggleAlphanumericMode
 Precomposition	Hankaku/Zenkaku	IMEOff

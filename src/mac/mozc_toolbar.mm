@@ -62,9 +62,9 @@ using GroupedShortcutRow = std::pair<std::string, std::string>;
 
 const char *const kScriptCommands[] = {
     "ToggleAlphanumericMode", "ToggleHiraganaDirect", "ToggleTraditionalKanji",
-    "ToggleManyoshuHiragana", "ToggleHiraganaKatakana", "ConvertToFullKatakana",
-    "ConvertToHalfWidth",
-    "ConvertToFullAlphanumeric", "ConvertToHiragana", nullptr};
+    "ToggleLiveConversion", "ToggleManyoshuHiragana", "ToggleHiraganaKatakana",
+    "ConvertToFullKatakana", "ConvertToHalfWidth", "ConvertToFullAlphanumeric",
+    "ConvertToHiragana", nullptr};
 const char *const kCompositionCommands[] = {
     "Commit", "InsertOdorijiDefault", "ShowOdorijiPalette",
     "LaunchWordRegisterDialog", "SegmentWidthShrink", "SegmentWidthExpand",
@@ -167,6 +167,9 @@ void FillDefaultScriptShortcuts(std::vector<ShortcutEntry> *script) {
       {"Ctrl Shift F", "ToggleTraditionalKanji"},
       {"Ctrl Shift 3", "ToggleTraditionalKanji"},
       {"Ctrl Shift #", "ToggleTraditionalKanji"},
+      {"Ctrl Shift L", "ToggleLiveConversion"},
+      {"Ctrl Shift 6", "ToggleLiveConversion"},
+      {"Ctrl Shift ^", "ToggleLiveConversion"},
       {"Ctrl Shift 4", "ToggleManyoshuHiragana"},
       {"Ctrl Shift $", "ToggleManyoshuHiragana"},
       {"Ctrl Shift %", "ToggleHiraganaDirect"},

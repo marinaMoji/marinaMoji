@@ -18,7 +18,12 @@ so literary / careful typing stays kana-until-Space.
 
 - Preferences → Suggest → **Use live conversion**, and a toolbar button
   (か / 漢) on macOS, Linux, and Windows; persists via `use_live_conversion`.
-- Manyōshū mode leaves live conversion off (kana display wins).
+- Default shortcut **Ctrl+Shift+6** (also **Ctrl+Shift+L** in the keymap
+  TSVs); remappable under Preferences → Shortcuts with the other number-row
+  actions. Older profiles that only store six bindings get the new row when
+  slot 6 is free.
+- Manyōshū mode keeps live conversion: kanji stay in the underline; leftover
+  kana are still shown as katakana.
 - Enter commits the live surface; Space promotes/refines it (single-segment
   cycles candidates; multi-segment runs full Convert for segment focus).
 - Distinct from **Use realtime conversion**, which only fills the suggestion

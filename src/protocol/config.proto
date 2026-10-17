@@ -43,6 +43,9 @@ enum MarinaNumberRowAction {
   MARINA_NR_MANYOSHU_HIRAGANA = 4;
   MARINA_NR_HIRAGANA_DIRECT = 5;
   MARINA_NR_WORD_REGISTER = 6;
+  // Apple-like live conversion (config.use_live_conversion). Default chord:
+  // Ctrl+Shift+6.
+  MARINA_NR_LIVE_CONVERSION = 7;
 }
 
 enum MarinaShortcutModifier {
@@ -365,7 +368,7 @@ message Config {
   optional bytes custom_kaeriten_table = 71;
 
   // Custom marina number-row shortcut bindings. When empty, bundled defaults
-  // apply (Ctrl+Shift+1..5 for marina actions; dictionary is Ctrl+Shift+0 on
+  // apply (Ctrl+Shift+1..6 for marina actions; dictionary is Ctrl+Shift+0 on
   // Linux/macOS and Ctrl+Shift+9 on Windows).
   repeated MarinaNumberRowBinding marina_number_row_bindings = 72;
 
@@ -452,8 +455,9 @@ message Config {
   optional bool use_realtime_conversion = 102 [default = true];
 
   // marinaMoji: Apple-like live conversion. When true, the top realtime
-  // conversion is projected into the preedit underline while composing
-  // (except in Manyōshū mode). Default off so literary/default UX stays
+  // conversion is projected into the preedit underline while composing.
+  // In Manyōshū mode, leftover kana are still shown as katakana; kanji from
+  // live conversion are kept. Default off so literary/default UX stays
   // kana-until-Space. Distinct from use_realtime_conversion, which only
   // affects the suggestion list.
   optional bool use_live_conversion = 103 [default = false];
