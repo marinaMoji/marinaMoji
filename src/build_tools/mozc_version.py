@@ -105,8 +105,16 @@ def _GetRevisionForPlatform(revision, target_platform):
   return revision
 
 
-def _GetMarinaWindowsRevision(marina_version_file):
-  """Maps the marinaMoji release version to a Windows file-version revision.
+# marinaMoji: slots per X.Y.Z in the Windows file-version revision. Slots 1-14
+# are the release candidates (-rc1 ... -rc14) and slot 15 is the final release,
+# so rcN < rcN+1 < final.
+_MARINA_REVISION_SLOTS = 16
+_MARINA_FINAL_SLOT = 15
+_MARINA_MAX_RC = 14
+
+
+def _MarinaWindowsRevisionFromVersion(version):
+  """Maps a marinaMoji release version to a Windows file-version revision.
 
   marinaMoji releases share the upstream Mozc MAJOR.MINOR.BUILD, so without
   this every Windows binary of every release has the same file version.
@@ -115,35 +123,62 @@ def _GetMarinaWindowsRevision(marina_version_file):
   binaries in place. The fourth field is the only one free to vary (it is
   ignored for ProductVersion comparison but not for file versions).
 
-  revision = major * 10000 + minor * 100 + patch, so "0.0.9" -> 9,
-  "0.0.10" -> 10, "0.1.0" -> 100, "1.0.0" -> 10000. It rises with every
-  release as long as minor and patch stay below 100 and major stays below 6
-  (the field is 16 bits); beyond that the build fails rather than silently
-  producing a version that does not rise. An "-rcN" suffix is ignored, so an
-  rc and its final release share a revision: install the final release over an
-  rc only after uninstalling it.
+  revision = (major * 10000 + minor * 100 + patch) * 16 + slot, where slot is
+  the rc number for an "-rcN" release (1..14) and 15 for a final release. So
+  "0.0.18-rc1" -> 289, "0.0.18-rc2" -> 290, "0.0.18" -> 303, "0.0.19-rc1" ->
+  305: it rises with every release, rc or final, and an rc is always lower than
+  its final. The field is 16 bits, so the base (major * 10000 + minor * 100 +
+  patch) must stay below 4096 (0.40.95); beyond that, or for a suffix other
+  than -rcN, or an rc number above 14, the build fails rather than silently
+  producing a version that does not rise.
+
+  Versions released before this scheme used revision = major * 10000 +
+  minor * 100 + patch with no slot (0.0.17 -> 17, and 0.0.18-rc1/-rc2 -> 18).
+  Every value from this scheme is larger than those, so they upgrade cleanly.
 
   Args:
-    marina_version_file: path to marina_product_version.txt.
+    version: a marinaMoji release version such as "0.0.18-rc2" or "v0.0.18".
   Returns:
     The revision as a string.
+  Raises:
+    ValueError: if the version cannot be mapped to a rising revision.
   """
+  matchobj = re.fullmatch(r'v?(\d+)\.(\d+)\.(\d+)(?:-rc(\d+))?', version)
+  if not matchobj:
+    raise ValueError(
+        'marinaMoji version %r is not X.Y.Z or X.Y.Z-rcN' % version)
+  major, minor, patch = (int(matchobj.group(i)) for i in (1, 2, 3))
+  if matchobj.group(4) is None:
+    slot = _MARINA_FINAL_SLOT
+  else:
+    slot = int(matchobj.group(4))
+    if not 1 <= slot <= _MARINA_MAX_RC:
+      raise ValueError(
+          'marinaMoji version %r: rc number must be 1..%d'
+          % (version, _MARINA_MAX_RC))
+  base = major * 10000 + minor * 100 + patch
+  revision = base * _MARINA_REVISION_SLOTS + slot
+  if minor >= 100 or patch >= 100 or revision > 0xffff:
+    raise ValueError(
+        'marinaMoji version %r does not fit the Windows file-version '
+        'revision (X.Y.Z below 0.41.0); revisit '
+        '_MarinaWindowsRevisionFromVersion' % version)
+  return str(revision)
+
+
+def _GetMarinaWindowsRevision(marina_version_file):
+  """Reads marina_product_version.txt and returns its Windows revision."""
   with open(marina_version_file) as version_file:
     lines = [line.strip() for line in version_file
              if line.strip() and not line.strip().startswith('#')]
-  matchobj = re.match(r'v?(\d+)\.(\d+)\.(\d+)', lines[0]) if lines else None
-  if not matchobj:
-    logging.critical('%s has no X.Y.Z version line', marina_version_file)
+  if not lines:
+    logging.critical('%s has no version line', marina_version_file)
     sys.exit(1)
-  major, minor, patch = (int(matchobj.group(i)) for i in (1, 2, 3))
-  revision = major * 10000 + minor * 100 + patch
-  if minor >= 100 or patch >= 100 or revision > 0xffff:
-    logging.critical(
-        'marinaMoji version %s does not fit the Windows file-version '
-        'revision (major < 6, minor < 100, patch < 100); revisit '
-        '_GetMarinaWindowsRevision', lines[0])
+  try:
+    return _MarinaWindowsRevisionFromVersion(lines[0])
+  except ValueError as e:
+    logging.critical('%s: %s', marina_version_file, e)
     sys.exit(1)
-  return str(revision)
 
 
 def _ParseVersionTemplateFile(

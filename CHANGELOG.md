@@ -10,6 +10,24 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows file versions now rise between release candidates
+
+The Windows MSI replaces an installed `.exe`/`.dll` only if the new file has a
+higher file version. The fourth version field ignored the `-rcN` suffix, so
+`0.0.18-rc1` and `-rc2` (and the final) had identical binary versions:
+upgrading rc1 to rc2 refreshed the unversioned files (icons) but left the old
+program files running — the Windows toolbar showed the new live-conversion icon
+next to the old Settings button.
+
+`build_tools/mozc_version.py` now maps `X.Y.Z[-rcN]` to
+`(major*10000 + minor*100 + patch) * 16 + slot`, with slot = rc number (1-14) for
+an rc and 15 for the final: `0.0.18-rc1` -> 289, `-rc2` -> 290, `0.0.18` -> 303.
+Always rising, rc below its final, and above every value the old scheme gave
+(0.0.17 -> 17, 0.0.18-rc1/-rc2 -> 18), so existing installs upgrade normally.
+Limit: X.Y.Z below 0.41.0 (16-bit field); other suffixes, rc0 and rc15+ fail the
+build. Installs of rc1/rc2 stay on stale binaries until they move to the next
+release built with this change. Tests added; not built on Windows.
+
 ### Character composer toolbar button (placeholder)
 
 New toolbar button right after the dictionary one, on macOS, Linux, and
