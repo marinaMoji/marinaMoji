@@ -153,6 +153,30 @@ bool EngineConverter::Convert(const composer::Composer& composer,
 
   DCHECK(request_);
   DCHECK(config_);
+
+  // marinaMoji: with live conversion, Space refines the already-shown realtime
+  // result. Single-segment live candidates are promoted in place so Space
+  // cycles alternatives (CONVERT_NEXT). Multi-segment live results fall
+  // through to StartConversion so segment focus/resize work normally.
+  if (config_->use_live_conversion() && CheckState(SUGGESTION)) {
+    const int live_id = output::FindLiveConversionCandidateId(segments_);
+    if (live_id >= 0) {
+      const converter::Candidate& live =
+          segments_.conversion_segment(0).candidate(live_id);
+      if (live.inner_segment_boundary.size() <= 1) {
+        candidate_list_.MoveToId(live_id);
+        candidate_list_.set_focused(true);
+        state_ = CONVERSION;
+        request_type_ = ConversionRequest::CONVERSION;
+        segment_index_ = 0;
+        candidate_list_visible_ = true;
+        InitializeSelectedCandidateIndices();
+        UpdateSelectedCandidateIndex();
+        return true;
+      }
+    }
+  }
+
   ConversionRequest::Options options;
   options.enable_user_history_for_conversion = preferences.use_history;
   SetRequestType(ConversionRequest::CONVERSION, options);
@@ -978,6 +1002,19 @@ void EngineConverter::CommitSegmentsInternal(const composer::Composer& composer,
 
 void EngineConverter::CommitPreedit(const composer::Composer& composer,
                                     const commands::Context& context) {
+  // marinaMoji: Enter while live conversion shows the realtime surface should
+  // commit that candidate, not the raw kana reading.
+  if (config_ && config_->use_live_conversion() && CheckState(SUGGESTION)) {
+    const int live_id = output::FindLiveConversionCandidateId(segments_);
+    if (live_id >= 0) {
+      size_t consumed_key_size = 0;
+      if (CommitSuggestionById(live_id, composer, context,
+                               &consumed_key_size)) {
+        return;
+      }
+    }
+  }
+
   const std::string key = composer.GetQueryForConversion();
   const std::string preedit = composer.GetStringForSubmission();
   std::string normalized_preedit = TextNormalizer::NormalizeText(preedit);
@@ -1413,9 +1450,15 @@ void EngineConverter::FillOutput(const composer::Composer& composer,
 
   // Composition on Suggestion
   if (CheckState(SUGGESTION)) {
-    // When the suggestion comes from zero query suggestion, the
-    // composer is empty.  In that case, preedit is not rendered.
-    if (!composer.Empty()) {
+    // marinaMoji: Apple-like live conversion — project REALTIME_TOP into the
+    // underline while staying in SUGGESTION so further keys extend the reading.
+    if (config_ && config_->use_live_conversion() && !composer.Empty() &&
+        output::FillLiveConversionPreedit(segments_,
+                                          output->mutable_preedit())) {
+      // Live preedit filled; keep suggestion candidates as usual below.
+    } else if (!composer.Empty()) {
+      // When the suggestion comes from zero query suggestion, the
+      // composer is empty.  In that case, preedit is not rendered.
       output::FillPreedit(composer, output->mutable_preedit());
     }
   } else if (CheckState(PREDICTION | CONVERSION)) {

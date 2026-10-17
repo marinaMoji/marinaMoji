@@ -97,6 +97,15 @@ void FillPreedit(const composer::Composer& composer,
 void FillConversion(const Segments& segments, size_t segment_index,
                     int candidate_id, commands::Preedit* preedit);
 
+// marinaMoji: id of REALTIME_TOP (else first REALTIME_CONVERSION) on the
+// first conversion segment, or -1 if none.
+int FindLiveConversionCandidateId(const Segments& segments);
+
+// marinaMoji: fill preedit from the live-conversion candidate (multi-segment
+// when inner_segment_boundary is present). Returns false if unavailable.
+bool FillLiveConversionPreedit(const Segments& segments,
+                               commands::Preedit* preedit);
+
 enum SegmentType {
   PREEDIT = 1,
   CONVERSION = 2,

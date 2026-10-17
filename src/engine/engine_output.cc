@@ -52,6 +52,7 @@
 #include "composer/composer.h"
 #include "converter/attribute.h"
 #include "converter/candidate.h"
+#include "converter/inner_segment.h"
 #include "converter/segments.h"
 #include "engine/candidate_list.h"
 #include "protocol/candidate_window.pb.h"
@@ -511,6 +512,69 @@ void FillConversion(const Segments& segments, const size_t segment_index,
     }
   }
   preedit->set_cursor(cursor);
+}
+
+int FindLiveConversionCandidateId(const Segments& segments) {
+  if (segments.conversion_segments_size() == 0) {
+    return -1;
+  }
+  const Segment& segment = segments.conversion_segment(0);
+  for (size_t i = 0; i < segment.candidates_size(); ++i) {
+    if (segment.candidate(i).attributes & converter::Attribute::REALTIME_TOP) {
+      return static_cast<int>(i);
+    }
+  }
+  for (size_t i = 0; i < segment.candidates_size(); ++i) {
+    if (segment.candidate(i).attributes &
+        converter::Attribute::REALTIME_CONVERSION) {
+      return static_cast<int>(i);
+    }
+  }
+  return -1;
+}
+
+bool FillLiveConversionPreedit(const Segments& segments,
+                               commands::Preedit* preedit) {
+  if (preedit == nullptr) {
+    return false;
+  }
+  const int id = FindLiveConversionCandidateId(segments);
+  if (id < 0) {
+    return false;
+  }
+  const Segment& segment = segments.conversion_segment(0);
+  const converter::Candidate& candidate = segment.candidate(id);
+  preedit->Clear();
+
+  constexpr uint32_t kBaseType = CONVERSION | FOCUSED;
+  if (!candidate.inner_segment_boundary.empty()) {
+    const converter::InnerSegments inners(candidate.key, candidate.value,
+                                          candidate.inner_segment_boundary);
+    size_t cursor = 0;
+    bool first = true;
+    for (const auto& iter : inners) {
+      const uint32_t type = first ? kBaseType : CONVERSION;
+      if (AddSegment(iter.GetKey(), iter.GetValue(), type, preedit) && first) {
+        preedit->set_highlighted_position(cursor);
+      }
+      cursor += Util::CharsLen(iter.GetValue());
+      first = false;
+    }
+    if (preedit->segment_size() > 0) {
+      preedit->set_cursor(cursor);
+      return true;
+    }
+  }
+
+  // Single-segment fallback (whole realtime value).
+  if (!AddSegment(candidate.key.empty() ? absl::string_view(segment.key())
+                                        : absl::string_view(candidate.key),
+                  candidate.value, kBaseType, preedit)) {
+    return false;
+  }
+  preedit->set_highlighted_position(0);
+  preedit->set_cursor(Util::CharsLen(candidate.value));
+  return true;
 }
 
 void FillConversionResultWithoutNormalization(std::string key,

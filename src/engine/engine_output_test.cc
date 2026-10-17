@@ -39,6 +39,7 @@
 #include "base/util.h"
 #include "converter/attribute.h"
 #include "converter/candidate.h"
+#include "converter/inner_segment.h"
 #include "converter/segments.h"
 #include "engine/candidate_list.h"
 #include "protocol/candidate_window.pb.h"
@@ -974,6 +975,63 @@ TEST(EngineOutputTest, FillRemovedCandidateWords) {
 
   // Execute FillAllCandidateWords
   output::FillRemovedCandidates(segment, &candidates_proto);
+}
+
+TEST(EngineOutputTest, FindLiveConversionCandidateId) {
+  Segments segments;
+  Segment* seg = segments.add_segment();
+  seg->set_key("にほんご");
+  converter::Candidate* hist = seg->push_back_candidate();
+  hist->value = "history";
+  hist->attributes = converter::Attribute::USER_HISTORY_PREDICTION;
+  converter::Candidate* live = seg->push_back_candidate();
+  live->value = "日本語";
+  live->key = "にほんご";
+  live->attributes = converter::Attribute::REALTIME_TOP |
+                     converter::Attribute::REALTIME_CONVERSION;
+  EXPECT_EQ(output::FindLiveConversionCandidateId(segments), 1);
+
+  Segments empty;
+  EXPECT_EQ(output::FindLiveConversionCandidateId(empty), -1);
+}
+
+TEST(EngineOutputTest, FillLiveConversionPreedit) {
+  Segments segments;
+  Segment* seg = segments.add_segment();
+  seg->set_key("にほんご");
+  converter::Candidate* live = seg->push_back_candidate();
+  live->value = "日本語";
+  live->key = "にほんご";
+  live->attributes = converter::Attribute::REALTIME_TOP |
+                     converter::Attribute::REALTIME_CONVERSION;
+
+  commands::Preedit preedit;
+  ASSERT_TRUE(output::FillLiveConversionPreedit(segments, &preedit));
+  EXPECT_EQ(preedit.segment_size(), 1);
+  EXPECT_EQ(preedit.segment(0).value(), "日本語");
+  EXPECT_EQ(preedit.segment(0).annotation(),
+            commands::Preedit::Segment::HIGHLIGHT);
+}
+
+TEST(EngineOutputTest, FillLiveConversionPreedit_InnerSegments) {
+  Segments segments;
+  Segment* seg = segments.add_segment();
+  seg->set_key("わたしは");
+  converter::Candidate* live = seg->push_back_candidate();
+  live->value = "私は";
+  live->key = "わたしは";
+  live->attributes = converter::Attribute::REALTIME_TOP |
+                     converter::Attribute::REALTIME_CONVERSION;
+  live->inner_segment_boundary = converter::BuildInnerSegmentBoundary(
+      {{9, 3, 9, 3}, {3, 3, 3, 3}}, "わたしは", "私は");
+
+  commands::Preedit preedit;
+  ASSERT_TRUE(output::FillLiveConversionPreedit(segments, &preedit));
+  ASSERT_EQ(preedit.segment_size(), 2);
+  EXPECT_EQ(preedit.segment(0).value(), "私");
+  EXPECT_EQ(preedit.segment(1).value(), "は");
+  EXPECT_EQ(preedit.segment(0).annotation(),
+            commands::Preedit::Segment::HIGHLIGHT);
 }
 
 TEST(EngineOutputTest, FillConversion_MultiSegmentSpan) {
