@@ -240,6 +240,19 @@ static GdkPixbuf* LoadSvgIcon(const std::string& filename, int w, int h) {
 }
 
 // Set a button image from an SVG icon; if load fails, leave the label.
+// Picks the English, French or Japanese text for the user's language, using
+// GLib's ordered list of preferred languages (LANGUAGE, LC_ALL, LC_MESSAGES,
+// LANG). The same three languages as the mac and Windows toolbars.
+static const char* LocalizedText(const char* en, const char* fr,
+                                 const char* ja) {
+  for (const gchar* const* lang = g_get_language_names(); *lang; ++lang) {
+    if (g_str_has_prefix(*lang, "ja")) return ja;
+    if (g_str_has_prefix(*lang, "fr")) return fr;
+    if (g_str_has_prefix(*lang, "en")) return en;
+  }
+  return en;
+}
+
 static void SetButtonIcon(GtkButton* btn, const char* svg_name) {
   GdkPixbuf* pixbuf = LoadSvgIcon(svg_name, kIconSize, kIconSize);
   if (pixbuf) {
@@ -1844,7 +1857,9 @@ void EnsureToolbarCreated() {
   gtk_widget_set_can_focus(g_live_btn, FALSE);
   gtk_widget_set_size_request(g_live_btn, 32, 32);
   gtk_widget_set_name(g_live_btn, "marinamoji-live-btn");
-  gtk_widget_set_tooltip_text(g_live_btn, "Live conversion");
+  gtk_widget_set_tooltip_text(
+      g_live_btn, LocalizedText("Live conversion", "Conversion en direct",
+                                "ライブ変換"));
   gtk_button_set_label(GTK_BUTTON(g_live_btn), "");
   SetButtonIcon(GTK_BUTTON(g_live_btn),
                 g_toolbar_dark_theme ? "toolbar_live_off_dark.svg"
@@ -1889,7 +1904,10 @@ void EnsureToolbarCreated() {
   gtk_widget_set_can_focus(g_composer_btn, FALSE);
   gtk_widget_set_size_request(g_composer_btn, 32, 32);
   gtk_widget_set_name(g_composer_btn, "marinamoji-composer-btn");
-  gtk_widget_set_tooltip_text(g_composer_btn, "Character composer");
+  gtk_widget_set_tooltip_text(
+      g_composer_btn,
+      LocalizedText("Character composer", "Compositeur de caractères",
+                    "文字合成"));
   gtk_button_set_label(GTK_BUTTON(g_composer_btn), "");
   SetButtonIcon(GTK_BUTTON(g_composer_btn),
                 g_toolbar_dark_theme ? "toolbar_composer_dark.svg" : "toolbar_composer_light.svg");
