@@ -34,6 +34,7 @@
 "MM.UserSymbolsHint" = "ユーザー記号は環境設定で編集できます。";
 "MM.Dict" = "辞書";
 "MM.DictionaryTool" = "辞書ツール...";
+"MM.CharacterComposer" = "文字合成";
 "MM.Mode" = "モード";
 "MM.KatakanaManyoshu" = "カタカナ（万葉仮名）";
 "MM.HalfWidthRoman" = "半角ローマ字";

@@ -104,6 +104,7 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       case commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
       case commands::SessionCommand::LAUNCH_CONFIG_DIALOG:
       case commands::SessionCommand::LAUNCH_DICTIONARY_TOOL:
+      case commands::SessionCommand::OPEN_CHARACTER_COMPOSER:
       case commands::SessionCommand::INSERT_SYMBOL_TEXT:
       case commands::SessionCommand::SHOW_SYMBOLS_PALETTE:
       case commands::SessionCommand::HIDE_SYMBOLS_PALETTE:

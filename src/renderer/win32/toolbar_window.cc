@@ -584,6 +584,9 @@ void ToolbarWindow::LoadIcons() {
       absl::StrCat("toolbar_symbols_", theme), tier, nullptr);
   icon_cache_[static_cast<int>(ButtonId::kDictionary)] = GetOrLoadCachedIcon(
       absl::StrCat("toolbar_dict_", theme), tier, nullptr);
+  icon_cache_[static_cast<int>(ButtonId::kCharacterComposer)] =
+      GetOrLoadCachedIcon(absl::StrCat("toolbar_composer_", theme), tier,
+                          nullptr);
   icon_cache_[static_cast<int>(ButtonId::kSettings)] = GetOrLoadCachedIcon(
       absl::StrCat("toolbar_settings_", theme), tier, nullptr);
   icon_cache_[static_cast<int>(ButtonId::kShortcuts)] = GetOrLoadCachedIcon(
@@ -829,6 +832,8 @@ const wchar_t* ToolbarWindow::GetButtonName(ButtonId button) {
       return MarinaLocalizedString(L"MM.SymbolsPalette");
     case ButtonId::kDictionary:
       return MarinaLocalizedString(L"MM.RegisterWord");
+    case ButtonId::kCharacterComposer:
+      return MarinaLocalizedString(L"MM.CharacterComposer");
     case ButtonId::kSettings:
       return MarinaLocalizedString(L"MM.Settings");
     case ButtonId::kShortcuts:
@@ -927,6 +932,9 @@ void ToolbarWindow::ActivateButton(ButtonId button) {
       break;
     case ButtonId::kDictionary:
       SendLaunchWordRegisterDialog();
+      break;
+    case ButtonId::kCharacterComposer:
+      SendOpenCharacterComposer();
       break;
     case ButtonId::kSettings:
       SendLaunchConfigDialog();
@@ -1249,6 +1257,16 @@ void ToolbarWindow::SendLaunchWordRegisterDialog() {
   // last commit); the TIP's MaybeSpawnTool is what launches the dialog with
   // it, so nothing here needs to look at |output|.
   command.set_type(commands::SessionCommand::LAUNCH_WORD_REGISTER_DIALOG);
+  commands::Output output;
+  send_command_interface_->SendCommand(command, &output);
+}
+
+void ToolbarWindow::SendOpenCharacterComposer() {
+  if (send_command_interface_ == nullptr) {
+    return;
+  }
+  commands::SessionCommand command;
+  command.set_type(commands::SessionCommand::OPEN_CHARACTER_COMPOSER);
   commands::Output output;
   send_command_interface_->SendCommand(command, &output);
 }

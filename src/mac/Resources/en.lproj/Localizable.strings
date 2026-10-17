@@ -34,6 +34,7 @@
 "MM.UserSymbolsHint" = "Edit user symbols in Preferences.";
 "MM.Dict" = "Dict";
 "MM.DictionaryTool" = "Dictionary Tool...";
+"MM.CharacterComposer" = "Character composer";
 "MM.Mode" = "Mode";
 "MM.KatakanaManyoshu" = "Katakana (Manyōshū)";
 "MM.HalfWidthRoman" = "Half-width Roman";

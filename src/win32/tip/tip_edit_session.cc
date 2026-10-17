@@ -44,6 +44,7 @@
 #include "absl/strings/str_cat.h"
 #include "base/win32/com.h"
 #include "base/win32/wide_char.h"
+#include "base/win32/win_util.h"
 #include "client/client_interface.h"
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
@@ -767,6 +768,13 @@ bool TipEditSession::OnRendererCallbackAsync(TipTextService* text_service,
       SessionCommand command;
       command.set_type(type);
       return OnSessionCommandAsync(text_service, context, command);
+    }
+    case SessionCommand::OPEN_CHARACTER_COMPOSER: {
+      // marinaMoji: toolbar "Character composer" click. The renderer runs in a
+      // locked-down job and cannot open a browser, so the TIP (which runs in
+      // the application's own process) does it. Not forwarded to the session.
+      return WinUtil::ShellExecuteInSystemDir(L"open", L"https://zi.tools/",
+                                              nullptr);
     }
     case SessionCommand::SHOW_SHORTCUTS_WINDOW:
     case SessionCommand::HIDE_SHORTCUTS_WINDOW: {

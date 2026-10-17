@@ -774,6 +774,7 @@ std::string GetKeymapPath(const std::string &filename) {
   NSButton *liveButton_;
   NSButton *symbolsButton_;
   NSButton *dictButton_;
+  NSButton *composerButton_;
   NSButton *shortcutsButton_;
 
   mozc::client::ClientInterface *client_;
@@ -807,7 +808,7 @@ std::string GetKeymapPath(const std::string &filename) {
 
 - (instancetype)initWithClient:(mozc::client::ClientInterface *)client
                           mode:(mozc::commands::CompositionMode)mode {
-  CGFloat totalWidth = kLogoWidth + kButtonWidth * 6 + 10;
+  CGFloat totalWidth = kLogoWidth + kButtonWidth * 7 + 10;
   NSRect frame = NSMakeRect(0, 0, totalWidth, kToolbarHeight);
   self = [super initWithFrame:frame];
   if (!self) return nil;
@@ -881,6 +882,14 @@ std::string GetKeymapPath(const std::string &filename) {
                    keyEquivalent:@""];
   dictToolItem.target = self;
   dictButton_.menu = dictMenu;
+  x += kButtonWidth;
+
+  // Character composer (for now: opens zi.tools in the default browser)
+  composerButton_ = [self makeButtonAt:x action:@selector(composerClicked:)];
+  composerButton_.image =
+      [self loadSvg:isDarkMode_ ? @"toolbar_composer_dark" : @"toolbar_composer_light"];
+  composerButton_.toolTip = MarinaLocalizedString(@"MM.CharacterComposer");
+  [self addSubview:composerButton_];
   x += kButtonWidth;
 
   // Shortcuts
@@ -1212,6 +1221,11 @@ std::string GetKeymapPath(const std::string &filename) {
   client_->LaunchTool("word_register_dialog", "");
 }
 
+- (void)composerClicked:(id)sender {
+  (void)sender;
+  [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://zi.tools/"]];
+}
+
 - (void)dictToolClicked:(id)sender {
   if (!client_) return;
   id<ControllerCallback> controller = g_active_controller;
@@ -1286,7 +1300,7 @@ std::string GetKeymapPath(const std::string &filename) {
 - (NSSize)toolbarSize {
   NSSize size = self.frame.size;
   if (size.width < 1 || size.height < 1) {
-    size = NSMakeSize(kLogoWidth + kButtonWidth * 6 + 10, kToolbarHeight);
+    size = NSMakeSize(kLogoWidth + kButtonWidth * 7 + 10, kToolbarHeight);
   }
   return size;
 }
@@ -1358,6 +1372,8 @@ std::string GetKeymapPath(const std::string &filename) {
   symbolsButton_.image =
       [self loadSvg:isDarkMode_ ? @"toolbar_symbols_dark" : @"toolbar_symbols_light"];
   dictButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_dict_dark" : @"toolbar_dict_light"];
+  composerButton_.image =
+      [self loadSvg:isDarkMode_ ? @"toolbar_composer_dark" : @"toolbar_composer_light"];
   shortcutsButton_.image = [self loadSvg:isDarkMode_ ? @"toolbar_shortcuts_dark" : @"toolbar_shortcuts_light"];
 }
 

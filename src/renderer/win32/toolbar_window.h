@@ -108,6 +108,7 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
     kLiveConversion,
     kSymbols,
     kDictionary,
+    kCharacterComposer,
     kSettings,
     kShortcuts,
     kNumButtons,
@@ -281,6 +282,7 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
   void SendToggleTraditionalKanji();
   void SendToggleLiveConversion();
   void SendLaunchWordRegisterDialog();
+  void SendOpenCharacterComposer();
   void SendLaunchDictionaryTool();
   void SendLaunchConfigDialog();
   void SendToggleSymbolsPalette();

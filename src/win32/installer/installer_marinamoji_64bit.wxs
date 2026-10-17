@@ -207,6 +207,12 @@
       <ComponentRef Id="MMToolbarIcon_logo_long_light_24" />
       <ComponentRef Id="MMToolbarIcon_logo_long_light_36" />
       <ComponentRef Id="MMToolbarIcon_logo_long_light_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_composer_dark_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_composer_dark_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_composer_dark_48" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_composer_light_24" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_composer_light_36" />
+      <ComponentRef Id="MMToolbarIcon_toolbar_composer_light_48" />
       <ComponentRef Id="MMToolbarIcon_toolbar_dict_dark_24" />
       <ComponentRef Id="MMToolbarIcon_toolbar_dict_dark_36" />
       <ComponentRef Id="MMToolbarIcon_toolbar_dict_dark_48" />
@@ -587,6 +593,24 @@
           </Component>
           <Component Id="MMToolbarIcon_logo_long_light_48">
             <File Id="logo_long_light_48.png" Name="logo_long_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/logo_long_light_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_composer_dark_24">
+            <File Id="toolbar_composer_dark_24.png" Name="toolbar_composer_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_composer_dark_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_composer_dark_36">
+            <File Id="toolbar_composer_dark_36.png" Name="toolbar_composer_dark_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_composer_dark_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_composer_dark_48">
+            <File Id="toolbar_composer_dark_48.png" Name="toolbar_composer_dark_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_composer_dark_48.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_composer_light_24">
+            <File Id="toolbar_composer_light_24.png" Name="toolbar_composer_light_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_composer_light_24.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_composer_light_36">
+            <File Id="toolbar_composer_light_36.png" Name="toolbar_composer_light_36.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_composer_light_36.png" />
+          </Component>
+          <Component Id="MMToolbarIcon_toolbar_composer_light_48">
+            <File Id="toolbar_composer_light_48.png" Name="toolbar_composer_light_48.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_composer_light_48.png" />
           </Component>
           <Component Id="MMToolbarIcon_toolbar_dict_dark_24">
             <File Id="toolbar_dict_dark_24.png" Name="toolbar_dict_dark_24.png" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ToolbarIconsDir)/toolbar_dict_dark_24.png" />

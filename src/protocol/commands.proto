@@ -529,6 +529,12 @@ message SessionCommand {
 
     // marinaMoji: toggle Apple-like live conversion (config.use_live_conversion).
     TOGGLE_LIVE_CONVERSION = 44;
+
+    // marinaMoji: toolbar "Character composer" button. For now it only opens
+    // https://zi.tools/ in the default browser. Handled by the client side
+    // (Windows TIP) without reaching the session; mac and Linux toolbars open
+    // the URL themselves and never send it.
+    OPEN_CHARACTER_COMPOSER = 45;
   }
   required CommandType type = 1;
 

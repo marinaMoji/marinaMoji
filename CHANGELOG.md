@@ -10,6 +10,18 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer toolbar button (placeholder)
+
+New toolbar button right after the dictionary one, on macOS, Linux, and
+Windows. For now it only opens <https://zi.tools/> in the default browser; a
+real character composer comes later.
+
+- Icons: `toolbar_composer_{light,dark}` (SVG for mac/Linux, pre-rendered PNGs
+  at 24/36/48 px for Windows, listed in the WiX manifest).
+- Windows: the renderer is locked down and cannot open a browser, so the click
+  sends `OPEN_CHARACTER_COMPOSER` to the TIP, which opens the URL itself.
+  macOS and Linux open it directly from the toolbar.
+
 ### Live conversion toolbar toggle (Apple-like preedit)
 
 Optional **live conversion**: while composing, the top realtime conversion

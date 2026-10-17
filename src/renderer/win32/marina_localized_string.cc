@@ -51,6 +51,8 @@ constexpr LocalizedEntry kEntries[] = {
     {L"MM.RegisterWord", L"Add Word...", L"Ajouter un mot...", L"単語登録..."},
     {L"MM.DictionaryTool", L"Dictionary Tool...", L"Outil dictionnaire...",
      L"辞書ツール..."},
+    {L"MM.CharacterComposer", L"Character composer",
+     L"Compositeur de caractères", L"文字合成"},
     {L"MM.Settings", L"Settings...", L"Paramètres...", L"設定..."},
     {L"MM.KeyboardShortcuts", L"Keyboard Shortcuts", L"Raccourcis clavier",
      L"キーボードショートカット"},

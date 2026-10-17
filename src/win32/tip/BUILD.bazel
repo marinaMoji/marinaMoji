@@ -789,6 +789,7 @@ mozc_cc_library(
         "//base:util",
         "//base/win32:com",
         "//base/win32:wide_char",
+        "//base/win32:win_util",
         "//client:client_interface",
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",

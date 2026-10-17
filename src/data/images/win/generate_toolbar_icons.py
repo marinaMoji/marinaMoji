@@ -49,6 +49,7 @@ SQUARE_ICON_NAMES = [
     "toolbar_live_on_light", "toolbar_live_on_dark",
     "toolbar_symbols_light", "toolbar_symbols_dark",
     "toolbar_dict_light", "toolbar_dict_dark",
+    "toolbar_composer_light", "toolbar_composer_dark",
     "toolbar_settings_light", "toolbar_settings_dark",
     "toolbar_shortcuts_light", "toolbar_shortcuts_dark",
 ]

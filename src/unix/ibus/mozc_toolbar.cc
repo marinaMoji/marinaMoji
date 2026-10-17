@@ -71,6 +71,7 @@ GtkWidget* g_trad_btn = nullptr;
 GtkWidget* g_live_btn = nullptr;
 GtkWidget* g_symbols_btn = nullptr;
 GtkWidget* g_dict_cell = nullptr;
+GtkWidget* g_composer_btn = nullptr;
 GtkWidget* g_shortcuts_btn = nullptr;
 MozcEngine* g_engine = nullptr;
 bool g_toolbar_positioned = false;
@@ -252,11 +253,13 @@ static void SetButtonIcon(GtkButton* btn, const char* svg_name) {
 static bool IsButtonWidget(GtkWidget* widget) {
   if (!widget) return false;
   return (widget == g_trad_btn || widget == g_live_btn || widget == g_symbols_btn ||
-          widget == g_dict_cell || widget == g_shortcuts_btn ||
+          widget == g_dict_cell || widget == g_composer_btn ||
+          widget == g_shortcuts_btn ||
           gtk_widget_is_ancestor(widget, g_trad_btn) ||
           gtk_widget_is_ancestor(widget, g_live_btn) ||
           gtk_widget_is_ancestor(widget, g_symbols_btn) ||
           gtk_widget_is_ancestor(widget, g_dict_cell) ||
+          gtk_widget_is_ancestor(widget, g_composer_btn) ||
           gtk_widget_is_ancestor(widget, g_shortcuts_btn));
 }
 
@@ -894,6 +897,10 @@ static void RefreshToolbarTheme() {
       g_list_free(children);
     }
   }
+  if (g_composer_btn) {
+    SetButtonIcon(GTK_BUTTON(g_composer_btn),
+                  g_toolbar_dark_theme ? "toolbar_composer_dark.svg" : "toolbar_composer_light.svg");
+  }
   if (g_shortcuts_btn) {
     SetButtonIcon(GTK_BUTTON(g_shortcuts_btn),
                   g_toolbar_dark_theme ? "toolbar_shortcuts_dark.svg" : "toolbar_shortcuts_light.svg");
@@ -947,6 +954,11 @@ static gboolean OnDictButtonPress(GtkWidget* /*widget*/, GdkEventButton* event,
     return TRUE;
   }
   return FALSE;
+}
+
+// Character composer: for now just opens zi.tools in the default browser.
+void OnComposerClicked(GtkWidget* /*widget*/, gpointer /*data*/) {
+  g_app_info_launch_default_for_uri("https://zi.tools/", nullptr, nullptr);
 }
 
 // Shortcuts popup: multi-page dialog listing key combinations from the keymap
@@ -1870,6 +1882,19 @@ void EnsureToolbarCreated() {
                    G_CALLBACK(OnDictButtonPress), nullptr);
   gtk_container_add(GTK_CONTAINER(g_dict_cell), dict_img);
   gtk_box_pack_start(GTK_BOX(g_toolbar_box), g_dict_cell, FALSE, FALSE, 0);
+
+  g_composer_btn = gtk_button_new();
+  gtk_button_set_relief(GTK_BUTTON(g_composer_btn), GTK_RELIEF_NONE);
+  gtk_widget_set_focus_on_click(g_composer_btn, FALSE);
+  gtk_widget_set_can_focus(g_composer_btn, FALSE);
+  gtk_widget_set_size_request(g_composer_btn, 32, 32);
+  gtk_widget_set_name(g_composer_btn, "marinamoji-composer-btn");
+  gtk_widget_set_tooltip_text(g_composer_btn, "Character composer");
+  gtk_button_set_label(GTK_BUTTON(g_composer_btn), "");
+  SetButtonIcon(GTK_BUTTON(g_composer_btn),
+                g_toolbar_dark_theme ? "toolbar_composer_dark.svg" : "toolbar_composer_light.svg");
+  g_signal_connect(g_composer_btn, "clicked", G_CALLBACK(OnComposerClicked), nullptr);
+  gtk_box_pack_start(GTK_BOX(g_toolbar_box), g_composer_btn, FALSE, FALSE, 0);
 
   g_shortcuts_btn = gtk_button_new();
   gtk_button_set_relief(GTK_BUTTON(g_shortcuts_btn), GTK_RELIEF_NONE);
