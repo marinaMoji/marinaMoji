@@ -132,6 +132,10 @@ void SessionHandlerTestBase::TearDown() {
 void SessionHandlerTestBase::ClearState() {
   config::Config config;
   ConfigHandler::GetDefaultConfig(&config);
+  // marinaMoji: live conversion is on by default, but these tests (and their
+  // scenario files) describe classic kana-until-Space typing, where the
+  // preedit stays kana. Pin that here; live conversion has its own tests.
+  config.set_use_live_conversion(false);
   ConfigHandler::SetConfig(config);
 
   // CharacterFormManager is not automatically updated when the config is

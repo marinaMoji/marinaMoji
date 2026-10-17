@@ -93,6 +93,12 @@ class SessionRegressionTest : public testing::TestWithTempUserProfile {
     // internally depends on global flags, e.g., for creation of rewriters.
     std::unique_ptr<Engine> engine = MockDataEngineFactory::Create().value();
 
+    // marinaMoji: live conversion is on by default; these tests expect the
+    // classic kana-until-Space preedit, so turn it off for them.
+    config::Config test_config = config::ConfigHandler::GetCopiedConfig();
+    test_config.set_use_live_conversion(false);
+    config::ConfigHandler::SetConfig(test_config);
+
     // Clear previous data just in case. It should work without this clear,
     // however the reality is Windows environment has a flacky test issue.
     engine->ClearUserHistory();
@@ -420,6 +426,7 @@ TEST_F(SessionRegressionTest, AutoConversionTest) {
     InitSessionToPrecomposition(session_.get());
     config::Config config;
     config::ConfigHandler::GetDefaultConfig(&config);
+    config.set_use_live_conversion(false);
     config.set_use_auto_conversion(true);
     session_->SetConfig(config);
 
