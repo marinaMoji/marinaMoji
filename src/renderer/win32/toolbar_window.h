@@ -109,7 +109,6 @@ class ToolbarWindow : public ATL::CWindowImpl<ToolbarWindow, ATL::CWindow,
     kSymbols,
     kDictionary,
     kCharacterComposer,
-    kSettings,
     kShortcuts,
     kNumButtons,
   };

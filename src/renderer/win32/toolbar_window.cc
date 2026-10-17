@@ -587,8 +587,6 @@ void ToolbarWindow::LoadIcons() {
   icon_cache_[static_cast<int>(ButtonId::kCharacterComposer)] =
       GetOrLoadCachedIcon(absl::StrCat("toolbar_composer_", theme), tier,
                           nullptr);
-  icon_cache_[static_cast<int>(ButtonId::kSettings)] = GetOrLoadCachedIcon(
-      absl::StrCat("toolbar_settings_", theme), tier, nullptr);
   icon_cache_[static_cast<int>(ButtonId::kShortcuts)] = GetOrLoadCachedIcon(
       absl::StrCat("toolbar_shortcuts_", theme), tier, nullptr);
 
@@ -834,8 +832,6 @@ const wchar_t* ToolbarWindow::GetButtonName(ButtonId button) {
       return MarinaLocalizedString(L"MM.RegisterWord");
     case ButtonId::kCharacterComposer:
       return MarinaLocalizedString(L"MM.CharacterComposer");
-    case ButtonId::kSettings:
-      return MarinaLocalizedString(L"MM.Settings");
     case ButtonId::kShortcuts:
       return MarinaLocalizedString(L"MM.KeyboardShortcuts");
     default:
@@ -935,9 +931,6 @@ void ToolbarWindow::ActivateButton(ButtonId button) {
       break;
     case ButtonId::kCharacterComposer:
       SendOpenCharacterComposer();
-      break;
-    case ButtonId::kSettings:
-      SendLaunchConfigDialog();
       break;
     case ButtonId::kSymbols:
       SendToggleSymbolsPalette();
