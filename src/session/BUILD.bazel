@@ -108,6 +108,7 @@ mozc_cc_test(
         ":keymap",
         ":session",
         "//base:clock_mock",
+        "//base:port",
         "//base:vlog",
         "//base/strings:assign",
         "//base/strings:unicode",
@@ -294,6 +295,7 @@ mozc_cc_library(
     visibility = ["//server:__pkg__"],
     deps = [
         ":session_handler",
+        "//base:port",
         "//base:vlog",
         "//engine:engine_factory",
         "//ipc",

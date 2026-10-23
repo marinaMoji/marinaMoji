@@ -449,6 +449,7 @@ mozc_cc_test(
         ":candidate_list",
         ":engine_converter",
         ":engine_converter_interface",
+        "//base:port",
         "//base:util",
         "//composer",
         "//composer:table",
