@@ -84,6 +84,7 @@ mozc_cc_qt_library(
     local_defines = ["MARINAMOJI"],
     deps = [
         "//base:file_util",
+        "//base:port",
         "//base:process",
         "//base:run_level",
         "//base:system_util",
