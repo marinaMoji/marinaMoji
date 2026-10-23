@@ -55,6 +55,7 @@
 #include "base/file_util.h"
 #include "base/font_coverage.h"
 #include "base/japanese_util.h"
+#include "base/port.h"
 #include "base/system_util.h"
 #include "base/util.h"
 #include "config/config_handler.h"
@@ -397,10 +398,9 @@ std::unique_ptr<ImeContext> Session::CreateContext(
   // TODO(team): Remove #if based behavior change for cascading window.
   // Tests for session layer (session_handler_scenario_test, etc) can be
   // unstable.
-#if (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE) || defined(__linux__) || \
-    defined(__wasm__)
-  context->mutable_converter()->set_use_cascading_window(false);
-#endif  // TARGET_OS_IPHONE || __linux__ || __wasm__
+  if constexpr (port::IsIos() || port::IsLinuxBase() || port::IsWasm()) {
+    context->mutable_converter()->set_use_cascading_window(false);
+  }
 
   return context;
 }
@@ -1537,15 +1537,14 @@ void Session::UpdatePreferences(commands::Command* command) {
         config.selection_shortcut());
   }
 
-#if (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE) || defined(__linux__) || \
-    defined(__wasm__)
-  context_->mutable_converter()->set_use_cascading_window(false);
-#else   // TARGET_OS_IPHONE || __linux__ || __wasm__
-  if (config.has_use_cascading_window()) {
-    context_->mutable_converter()->set_use_cascading_window(
-        config.use_cascading_window());
+  if constexpr (port::IsIos() || port::IsLinuxBase() || port::IsWasm()) {
+    context_->mutable_converter()->set_use_cascading_window(false);
+  } else {
+    if (config.has_use_cascading_window()) {
+      context_->mutable_converter()->set_use_cascading_window(
+          config.use_cascading_window());
+    }
   }
-#endif  // TARGET_OS_IPHONE || __linux__ || __wasm__
 }
 
 bool Session::IMEOn(commands::Command* command) {
