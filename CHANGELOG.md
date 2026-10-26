@@ -10,6 +10,21 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Linux: a pinned symbols palette stays open when focus moves to another window
+
+`MozcEngine::FocusOut` closed the symbols palette unconditionally, so the
+"Pin palette" checkbox only took effect after clicking a symbol
+(`OnSymbolButtonClicked`) and the palette still vanished whenever you clicked
+into another window.
+
+- `MozcToolbarHideSymbolsPalette(bool force = false)` now does nothing while
+  the palette is pinned unless `force` is true. Focus-out uses the default, so
+  a pinned palette stays; the toolbar's delayed hide is skipped with it, as it
+  already was for any visible palette.
+- Escape passes `force=true`, so it still closes a pinned palette (the palette
+  never takes keyboard focus, so Escape is the only keyboard way to close it).
+- Not built or run.
+
 ### Keyboard Shortcuts moved from the toolbar into menus
 
 The toolbar had too many buttons, so the Keyboard Shortcuts button is gone on
