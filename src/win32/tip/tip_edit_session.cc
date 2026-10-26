@@ -320,6 +320,23 @@ bool OnSessionCommandAsync(TipTextService* text_service, ITfContext* context,
   return SUCCEEDED(hr) && SUCCEEDED(edit_session_result);
 }
 
+// marinaMoji: same as OnSessionCommandAsync but TF_ES_SYNC so the caller
+// (SendMessageTimeout from the renderer) does not return until the session
+// has applied the Output. Needed for SHOW_ODORIJI_PALETTE + SUBMIT_CANDIDATE
+// pairs from the Symbols Palette: SUBMIT requires the palette to be visible
+// already (issue #80).
+bool OnSessionCommandSync(TipTextService* text_service, ITfContext* context,
+                          const SessionCommand& session_command) {
+  auto edit_session = MakeComPtr<AsyncSessionCommandEditSessionImpl>(
+      text_service, context, session_command);
+
+  HRESULT edit_session_result = S_OK;
+  const HRESULT hr = context->RequestEditSession(
+      text_service->GetClientID(), edit_session.get(),
+      TF_ES_SYNC | TF_ES_READWRITE, &edit_session_result);
+  return SUCCEEDED(hr) && SUCCEEDED(edit_session_result);
+}
+
 bool TurnOnImeAndTryToReconvertFromIme(TipTextService* text_service,
                                        ITfContext* context) {
   if (context == nullptr) {
@@ -747,6 +764,21 @@ bool TipEditSession::OnRendererCallbackAsync(TipTextService* text_service,
       command.set_type(type);
       command.set_id(candidate_id);
       return OnSessionCommandAsync(text_service, context, command);
+    }
+    case SessionCommand::SUBMIT_CANDIDATE: {
+      // marinaMoji: sync — see OnSessionCommandSync. Used after
+      // SHOW_ODORIJI_PALETTE from the Symbols Palette Odoriji tab.
+      SessionCommand command;
+      command.set_type(type);
+      command.set_id(static_cast<int32_t>(lparam));
+      return OnSessionCommandSync(text_service, context, command);
+    }
+    case SessionCommand::SHOW_ODORIJI_PALETTE: {
+      // marinaMoji: Symbols Palette Odoriji tab sends SHOW then SUBMIT. Sync
+      // so SUBMIT sees odoriji_palette_visible_ already set (issue #80).
+      SessionCommand command;
+      command.set_type(type);
+      return OnSessionCommandSync(text_service, context, command);
     }
     case SessionCommand::SWITCH_COMPOSITION_MODE: {
       // marinaMoji: floating toolbar mode-select click. The PostMessage-based

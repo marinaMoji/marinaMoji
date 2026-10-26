@@ -69,6 +69,34 @@ TEST(OdorijiPaletteTest, OverlayDoesNotInjectPreeditText) {
             static_cast<int>(OdorijiPalette::kCount));
 }
 
+TEST(OdorijiPaletteTest, TryCommitCandidateFromSelectId) {
+  commands::Command command;
+  command.mutable_input()->mutable_command()->set_id(3);
+  bool visible = true;
+  int default_index = 0;
+  std::string commit_result;
+
+  EXPECT_TRUE(OdorijiPalette::TryCommitCandidate(
+      &command, &visible, &default_index, &commit_result));
+  EXPECT_FALSE(visible);
+  EXPECT_EQ(default_index, 3);
+  EXPECT_EQ(commit_result, OdorijiPalette::GetCharacter(3));
+}
+
+TEST(OdorijiPaletteTest, TryHighlightCandidateUpdatesFocus) {
+  commands::Command command;
+  command.mutable_input()->mutable_command()->set_id(5);
+  int focused_index = 0;
+
+  EXPECT_TRUE(
+      OdorijiPalette::TryHighlightCandidate(&command, true, &focused_index));
+  EXPECT_EQ(focused_index, 5);
+
+  EXPECT_FALSE(
+      OdorijiPalette::TryHighlightCandidate(&command, false, &focused_index));
+  EXPECT_EQ(focused_index, 5);
+}
+
 }  // namespace
 }  // namespace session
 }  // namespace mozc

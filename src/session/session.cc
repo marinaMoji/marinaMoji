@@ -1628,6 +1628,13 @@ bool Session::EchoBackAndClearUndoContext(commands::Command* command) {
 
 bool Session::DoNothing(commands::Command* command) {
   command->mutable_output()->set_consumed(true);
+  // Keep the odoriji candidate window in last_output while the palette is
+  // open. Without this, TestSendKey / no-op paths in PRECOMPOSITION return an
+  // empty Output and the Windows TIP can drop the list on the next key.
+  if (odoriji_palette_visible_) {
+    Output(command);
+    return true;
+  }
   // Quick hack for zero query suggestion.
   // Caveats: Resetting converter causes b/8703702 on Windows.
   // Basically we should not *do* something in DoNothing.
@@ -1878,6 +1885,23 @@ bool Session::SelectCandidateInternal(commands::Command* command) {
 }
 
 bool Session::SelectCandidate(commands::Command* command) {
+  // Windows (and other) candidate windows send SELECT_CANDIDATE on click.
+  // Odoriji is not a converter list, so handle it here the same way as
+  // SUBMIT_CANDIDATE — otherwise the click is a no-op (issue #80).
+  std::string odoriji_commit_result;
+  if (OdorijiPalette::TryCommitCandidate(command, &odoriji_palette_visible_,
+                                         &odoriji_default_index_,
+                                         &odoriji_commit_result)) {
+    Output(command);
+    if (!odoriji_commit_result.empty()) {
+      commands::Result* result = command->mutable_output()->mutable_result();
+      result->set_type(commands::Result::STRING);
+      result->set_value(odoriji_commit_result);
+    }
+    command->mutable_output()->set_consumed(true);
+    return true;
+  }
+
   if (!SelectCandidateInternal(command)) {
     return DoNothing(command);
   }
@@ -1960,6 +1984,16 @@ bool Session::CommitCandidate(commands::Command* command) {
 }
 
 bool Session::HighlightCandidate(commands::Command* command) {
+  // Mouse-move over the odoriji candidate window sends HIGHLIGHT_CANDIDATE.
+  // Without this, SelectCandidateInternal fails (no converter list) and the
+  // highlight never follows the pointer (issue #80).
+  if (OdorijiPalette::TryHighlightCandidate(
+          command, odoriji_palette_visible_, &odoriji_focused_index_)) {
+    command->mutable_output()->set_consumed(true);
+    Output(command);
+    return true;
+  }
+
   if (!SelectCandidateInternal(command)) {
     return false;
   }

@@ -10,6 +10,30 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: odoriji candidate list and Symbols Palette odoriji insert (#80)
+
+Ctrl+Shift+2 opened the odoriji candidate list, but arrows, Space, and clicks
+did nothing; the Symbols Palette opened but its Odoriji tab also failed to
+insert. Two Windows/session gaps:
+
+- **Candidate window click/hover.** The renderer sends `SELECT_CANDIDATE` /
+  `HIGHLIGHT_CANDIDATE`. Odoriji commit lived only under `SUBMIT_CANDIDATE`,
+  and highlight went through the converter path (inactive for this list), so
+  clicks and mouse-move were no-ops. `SelectCandidate` / `HighlightCandidate`
+  now call `OdorijiPalette::TryCommitCandidate` /
+  `TryHighlightCandidate` when the palette is open. `DoNothing` also keeps
+  overlaying the list while it is visible so TestSendKey / no-op paths do not
+  wipe `last_output` on Windows.
+- **Symbols Palette Odoriji tab.** `SendShowOdorijiPaletteAndSubmit` sends
+  `SHOW_ODORIJI_PALETTE` then `SUBMIT_CANDIDATE`, but the Windows
+  renderer→TIP allowlist rejected both. They are allowlisted, handled in
+  `OnRendererCallbackAsync`, and applied with a **synchronous** edit session
+  so SHOW finishes before SUBMIT (SUBMIT needs the palette already visible).
+
+Not built on this machine (no Windows toolchain here). Re-test on Windows:
+Ctrl+Shift+2 → Space/arrows move highlight, Enter/1–8/click insert; Symbols
+Palette → Odoriji tab click inserts and sets the Ctrl+Shift+1 default.
+
 ### Character composer (Linux): build a character from its parts and insert it
 
 The toolbar's character-composer button used to open zi.tools. On Linux it now

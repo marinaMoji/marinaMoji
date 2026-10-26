@@ -19,7 +19,7 @@ To keep **upstream merges** easy, odoriji logic is isolated in a single module; 
   - **Enter:** Insert the focused odoriji, set it as session default, and close the palette.
   - **Navigation (same as conversion candidate window):** **Up**, **Down**, **Left**, **Right** (and Virtual variants) move the focus. **Space** = next candidate, **Shift+Space** = previous candidate.
   - **Escape:** Close the palette without inserting (default for Ctrl+Shift+1 is unchanged).
-  - **Click:** The client can send `SUBMIT_CANDIDATE` with the chosen candidate `id` (0–7); the session commits that odoriji, sets it as session default, and closes the palette.
+  - **Click:** The client can send `SUBMIT_CANDIDATE` or `SELECT_CANDIDATE` with the chosen candidate `id` (0–7); the session commits that odoriji, sets it as session default, and closes the palette. (Windows candidate windows use `SELECT_CANDIDATE` on click; `HIGHLIGHT_CANDIDATE` moves focus without committing.)
 - All navigation and selection keys are consumed by the palette (no space or other character is inserted; the palette stays open until commit or Escape).
 
 ## Implementation (less invasive)
@@ -28,7 +28,8 @@ To keep **upstream merges** easy, odoriji logic is isolated in a single module; 
 - **Session touch points:** `Session` keeps three members (`odoriji_palette_visible_`, `odoriji_focused_index_`, `odoriji_default_index_`) and delegates in five places:
   - **SendKey:** if palette visible and `OdorijiPalette::HandleKey(..., &odoriji_default_index_)` returns true → `Output(command)`; return true.
   - **Output:** if palette visible → `OdorijiPalette::OverlayOutput(output, focused_index)`.
-  - **CommitCandidate:** if `OdorijiPalette::TryCommitCandidate(command, &visible, &odoriji_default_index_)` returns true → `Output(command)`; return true.
+  - **CommitCandidate / SelectCandidate:** if `OdorijiPalette::TryCommitCandidate(...)` returns true → commit result, `Output(command)`; return true.
+  - **HighlightCandidate:** if `OdorijiPalette::TryHighlightCandidate(...)` returns true → update focus, `Output(command)`; return true.
   - **ShowOdorijiPalette:** `OdorijiPalette::Show(&visible, &focused_index)`; `Output(command)`.
   - **InsertOdorijiDefault:** set `output.result` to `OdorijiPalette::GetCharacter(odoriji_default_index_)`; `OutputFromState(command)`; return true.
 - **Keymap/TSV:** Two commands: `ShowOdorijiPalette` (Ctrl+Shift+2) and `InsertOdorijiDefault` (Ctrl+Shift+1). Same states as before.

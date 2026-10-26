@@ -48,14 +48,20 @@ class OdorijiPalette {
   // If palette is visible, overwrite output preedit and candidate_window.
   static void OverlayOutput(commands::Output* output, int focused_index);
 
-  // If palette is visible and command has SUBMIT_CANDIDATE with id in [0,7],
-  // set *commit_result to the chosen character, *visible = false; if
-  // session_default_index non-null set it to id. Caller must set commit_result
-  // on output after Output() since PopOutput overwrites. Return true.
-  // Otherwise return false.
+  // If palette is visible and command carries a candidate id in [0,7]
+  // (SUBMIT_CANDIDATE or SELECT_CANDIDATE from a click), set *commit_result to
+  // the chosen character, *visible = false; if session_default_index non-null
+  // set it to id. Caller must set commit_result on output after Output() since
+  // PopOutput overwrites. Return true. Otherwise return false.
   static bool TryCommitCandidate(commands::Command* command, bool* visible,
                                   int* session_default_index = nullptr,
                                   std::string* commit_result = nullptr);
+
+  // If palette is visible and command carries a candidate id in [0,7]
+  // (HIGHLIGHT_CANDIDATE from mouse move), set *focused_index to that id and
+  // return true. Does not close the palette or commit. Otherwise return false.
+  static bool TryHighlightCandidate(const commands::Command* command,
+                                    bool visible, int* focused_index);
 };
 
 }  // namespace session

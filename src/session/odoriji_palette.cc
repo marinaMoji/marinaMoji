@@ -225,5 +225,18 @@ bool OdorijiPalette::TryCommitCandidate(commands::Command* command,
   return true;
 }
 
+bool OdorijiPalette::TryHighlightCandidate(const commands::Command* command,
+                                           bool visible, int* focused_index) {
+  if (!visible || !focused_index || !command ||
+      !command->input().has_command() ||
+      !command->input().command().has_id()) {
+    return false;
+  }
+  const int id = command->input().command().id();
+  if (id < 0 || id >= static_cast<int>(kCount)) return false;
+  *focused_index = id;
+  return true;
+}
+
 }  // namespace session
 }  // namespace mozc
