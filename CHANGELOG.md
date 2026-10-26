@@ -10,6 +10,15 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Linux: Symbols Palette can be dragged and no longer looks permanently grey
+
+The palette reused the toolbar's "no dock" hints, including X11
+`override_redirect` (unmanaged → titlebar drag does nothing) and
+`accept_focus=false` (themes paint `:backdrop`, so it looked deselected). It
+is now a keep-above utility that still refuses keyboard focus, with its own
+header-bar drag (manual move, same idea as the toolbar) and CSS so `:backdrop`
+keeps the active colours. Not built or run.
+
 ### Live conversion off by default at install
 
 `use_live_conversion` now defaults to false (kana until Space). New installs

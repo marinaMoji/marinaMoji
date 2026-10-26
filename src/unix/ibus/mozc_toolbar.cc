@@ -487,21 +487,6 @@ static void OnNoDockRealize(GtkWidget* w, gpointer /*data*/) {
 #endif
 }
 
-static void ApplyNoDockWindowHints(GtkWidget* window, bool keep_above) {
-  gtk_window_set_wmclass(GTK_WINDOW(window), "marinamoji-toolbar",
-                         "marinamoji-toolbar");
-  gtk_window_set_skip_taskbar_hint(GTK_WINDOW(window), TRUE);
-  gtk_window_set_skip_pager_hint(GTK_WINDOW(window), TRUE);
-  gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_UTILITY);
-  gtk_window_set_accept_focus(GTK_WINDOW(window), FALSE);
-  gtk_window_set_focus_on_map(GTK_WINDOW(window), FALSE);
-  gtk_widget_set_can_focus(window, FALSE);
-  if (keep_above) {
-    gtk_window_set_keep_above(GTK_WINDOW(window), TRUE);
-  }
-  g_signal_connect(window, "realize", G_CALLBACK(OnNoDockRealize), nullptr);
-}
-
 static void ApplyToolbarWindowHints(GtkWidget* window) {
   gtk_window_set_wmclass(GTK_WINDOW(window), "marinamoji-toolbar",
                          "marinamoji-toolbar");
@@ -1283,9 +1268,139 @@ struct SymbolButtonData {
 static GtkWidget* g_symbols_window = nullptr;
 static GtkWidget* g_symbols_notebook = nullptr;
 static GtkWidget* g_symbols_pin_check = nullptr;
+static GtkCssProvider* g_symbols_css_provider = nullptr;
+static bool g_symbols_drag_active = false;
+static int g_symbols_drag_offset_x = 0;
+static int g_symbols_drag_offset_y = 0;
 
 constexpr int kSymbolsTabOdoriji = 0;
 constexpr int kSymbolsGridColumns = 8;
+
+// The palette must stay above the focused app without becoming the focused
+// window (so IME focus / typing stay in the text field). Themes then paint it
+// with :backdrop (grey "deselected" chrome). Force the active colours.
+static void EnsureSymbolsPaletteCSS() {
+  if (g_symbols_css_provider) return;
+  g_symbols_css_provider = gtk_css_provider_new();
+  const char* css =
+      "#marinamoji-symbols-palette,"
+      "#marinamoji-symbols-palette:backdrop {"
+      "  background-color: @theme_bg_color;"
+      "  color: @theme_fg_color;"
+      "}"
+      "#marinamoji-symbols-palette headerbar,"
+      "#marinamoji-symbols-palette headerbar:backdrop {"
+      "  background-color: @theme_bg_color;"
+      "  color: @theme_fg_color;"
+      "  box-shadow: none;"
+      "}"
+      "#marinamoji-symbols-palette decoration,"
+      "#marinamoji-symbols-palette decoration:backdrop {"
+      "  background-color: @theme_bg_color;"
+      "  box-shadow: none;"
+      "}";
+  gtk_css_provider_load_from_data(g_symbols_css_provider, css, -1, nullptr);
+  gtk_style_context_add_provider_for_screen(
+      gdk_screen_get_default(), GTK_STYLE_PROVIDER(g_symbols_css_provider),
+      GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+}
+
+// Toolbar helpers use override_redirect on X11 so they never appear in the
+// dock. That also makes the window unmanaged, so a titlebar cannot be dragged
+// and often looks permanently inactive. The symbols palette is a normal
+// keep-above utility instead: still out of the dock via WM hints + Wayland
+// app_id, but WM-managed so it can move.
+static void OnSymbolsPaletteRealize(GtkWidget* w, gpointer /*data*/) {
+  GdkWindow* gw = gtk_widget_get_window(w);
+  if (!gw) return;
+#if defined(GDK_WINDOWING_WAYLAND)
+  if (GDK_IS_WAYLAND_DISPLAY(gdk_window_get_display(gw))) {
+    gdk_wayland_window_set_application_id(gw, "io.marinamoji.toolbar");
+  }
+#endif
+}
+
+static void ApplySymbolsPaletteWindowHints(GtkWidget* window) {
+  gtk_window_set_wmclass(GTK_WINDOW(window), "marinamoji-toolbar",
+                         "marinamoji-toolbar");
+  gtk_window_set_skip_taskbar_hint(GTK_WINDOW(window), TRUE);
+  gtk_window_set_skip_pager_hint(GTK_WINDOW(window), TRUE);
+  gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_UTILITY);
+  gtk_window_set_keep_above(GTK_WINDOW(window), TRUE);
+  gtk_window_set_accept_focus(GTK_WINDOW(window), FALSE);
+  gtk_window_set_focus_on_map(GTK_WINDOW(window), FALSE);
+  gtk_widget_set_can_focus(window, FALSE);
+  gtk_window_set_decorated(GTK_WINDOW(window), TRUE);
+  gtk_widget_set_name(window, "marinamoji-symbols-palette");
+  EnsureSymbolsPaletteCSS();
+  g_signal_connect(window, "realize", G_CALLBACK(OnSymbolsPaletteRealize),
+                   nullptr);
+}
+
+static void GetSymbolsWindowOrigin(int* x, int* y) {
+  *x = 0;
+  *y = 0;
+  if (!g_symbols_window) return;
+  GdkWindow* gw = gtk_widget_get_window(g_symbols_window);
+  if (gw) {
+    gdk_window_get_origin(gw, x, y);
+    return;
+  }
+  gtk_window_get_position(GTK_WINDOW(g_symbols_window), x, y);
+}
+
+static bool SymbolsEventTargetIsButton(GtkWidget* target) {
+  if (!target) return false;
+  if (GTK_IS_BUTTON(target)) return true;
+  return gtk_widget_get_ancestor(target, GTK_TYPE_BUTTON) != nullptr;
+}
+
+static gboolean OnSymbolsHeaderButtonPress(GtkWidget* /*widget*/,
+                                           GdkEventButton* event,
+                                           gpointer /*data*/) {
+  if (!g_symbols_window || event->type != GDK_BUTTON_PRESS ||
+      event->button != 1) {
+    return FALSE;
+  }
+  GtkWidget* target =
+      gtk_get_event_widget(reinterpret_cast<GdkEvent*>(event));
+  // Leave the close button (and any other header controls) alone.
+  if (SymbolsEventTargetIsButton(target)) return FALSE;
+
+  int origin_x = 0;
+  int origin_y = 0;
+  GetSymbolsWindowOrigin(&origin_x, &origin_y);
+  g_symbols_drag_offset_x = static_cast<int>(event->x_root) - origin_x;
+  g_symbols_drag_offset_y = static_cast<int>(event->y_root) - origin_y;
+  g_symbols_drag_active = true;
+  gtk_grab_add(g_symbols_window);
+  return TRUE;
+}
+
+static gboolean OnSymbolsWindowButtonRelease(GtkWidget* /*widget*/,
+                                             GdkEventButton* event,
+                                             gpointer /*data*/) {
+  if (event->button == 1 && g_symbols_drag_active) {
+    g_symbols_drag_active = false;
+    gtk_grab_remove(g_symbols_window);
+    g_symbols_drag_offset_x = 0;
+    g_symbols_drag_offset_y = 0;
+    return TRUE;
+  }
+  return FALSE;
+}
+
+static gboolean OnSymbolsWindowMotion(GtkWidget* /*widget*/,
+                                      GdkEventMotion* event,
+                                      gpointer /*data*/) {
+  if (!g_symbols_window || !g_symbols_drag_active) return FALSE;
+  const gint new_x =
+      static_cast<gint>(event->x_root) - g_symbols_drag_offset_x;
+  const gint new_y =
+      static_cast<gint>(event->y_root) - g_symbols_drag_offset_y;
+  gtk_window_move(GTK_WINDOW(g_symbols_window), new_x, new_y);
+  return TRUE;
+}
 
 static void SaveSymbolsPalettePref(const char* key, int value) {
   gchar* path = GetToolbarConfigPath();
@@ -1412,6 +1527,10 @@ static void OnSymbolsNotebookSwitch(GtkNotebook* /*notebook*/, GtkWidget* /*page
 }
 
 static void OnSymbolsWindowDestroy(GtkWidget* /*widget*/, gpointer /*data*/) {
+  if (g_symbols_drag_active && g_symbols_window) {
+    gtk_grab_remove(g_symbols_window);
+  }
+  g_symbols_drag_active = false;
   g_symbols_window = nullptr;
   g_symbols_notebook = nullptr;
   g_symbols_pin_check = nullptr;
@@ -1447,11 +1566,33 @@ static void ShowSymbolsPalette() {
   }
 
   g_symbols_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_title(GTK_WINDOW(g_symbols_window), MarinaLocalizedString("MM.SymbolsPalette"));
+  gtk_window_set_title(GTK_WINDOW(g_symbols_window),
+                       MarinaLocalizedString("MM.SymbolsPalette"));
   gtk_window_set_resizable(GTK_WINDOW(g_symbols_window), TRUE);
   gtk_window_set_default_size(GTK_WINDOW(g_symbols_window), 520, 380);
   gtk_window_set_position(GTK_WINDOW(g_symbols_window), GTK_WIN_POS_CENTER);
-  ApplyNoDockWindowHints(g_symbols_window, /*keep_above=*/TRUE);
+  ApplySymbolsPaletteWindowHints(g_symbols_window);
+
+  // Own header so we can drag it without taking keyboard focus (CSD titlebars
+  // on a never-focused window often refuse WM move). Close still works.
+  GtkWidget* header = gtk_header_bar_new();
+  gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(header), TRUE);
+  gtk_header_bar_set_title(GTK_HEADER_BAR(header),
+                           MarinaLocalizedString("MM.SymbolsPalette"));
+  gtk_widget_add_events(header, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
+                                    GDK_BUTTON1_MOTION_MASK |
+                                    GDK_POINTER_MOTION_MASK);
+  g_signal_connect(header, "button-press-event",
+                   G_CALLBACK(OnSymbolsHeaderButtonPress), nullptr);
+  gtk_window_set_titlebar(GTK_WINDOW(g_symbols_window), header);
+
+  gtk_widget_add_events(g_symbols_window,
+                        GDK_BUTTON_RELEASE_MASK | GDK_BUTTON1_MOTION_MASK |
+                            GDK_POINTER_MOTION_MASK);
+  g_signal_connect(g_symbols_window, "button-release-event",
+                   G_CALLBACK(OnSymbolsWindowButtonRelease), nullptr);
+  g_signal_connect(g_symbols_window, "motion-notify-event",
+                   G_CALLBACK(OnSymbolsWindowMotion), nullptr);
 
   GtkWidget* content = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
   gtk_container_set_border_width(GTK_CONTAINER(content), 8);
