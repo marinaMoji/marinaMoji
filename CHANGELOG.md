@@ -23,6 +23,15 @@ says that the parts overlap but not where, so the drawing is schematic. About
 Built and unit-tested on Linux (`layout_geometry_test`); not viewed in the
 running dialog.
 
+### Composer toolbar icon: 日 counters were filled solid on macOS
+
+`toolbar_composer_{light,dark}.svg` drew the left-half fill and the 日 outline
+in one nonzero-winding path. That left the 日 counters at winding ≥ 1, so they
+stayed blue instead of punching through to white (月 was fine — it sits outside
+the half-fill). Split into two `fill-rule:evenodd` paths (left half + 日 holes;
+月 + its holes) and regenerated the Windows PNGs. Checked with an NSImage
+render before and after.
+
 ### Linux: Backspace after kana commit still crashed some terminals (#36)
 
 Follow-up: the earlier “only delete when preceding text is non-empty” gate
