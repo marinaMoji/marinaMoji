@@ -23,14 +23,13 @@ says that the parts overlap but not where, so the drawing is schematic. About
 Built and unit-tested on Linux (`layout_geometry_test`); not viewed in the
 running dialog.
 
-### Composer toolbar icon: 日 counters were filled solid on macOS
+### Composer toolbar icon: back to white 日 strokes on navy
 
-`toolbar_composer_{light,dark}.svg` drew the left-half fill and the 日 outline
-in one nonzero-winding path. That left the 日 counters at winding ≥ 1, so they
-stayed blue instead of punching through to white (月 was fine — it sits outside
-the half-fill). Split into two `fill-rule:evenodd` paths (left half + 日 holes;
-月 + its holes) and regenerated the Windows PNGs. Checked with an NSImage
-render before and after.
+The previous macOS fix split the artwork so the 日 counters became white boxes,
+which changed the look (navy lines on white). Restored the original single-path
+artwork with `fill-rule:evenodd` instead: the half-fill is navy, the 日 strokes
+are knocked out to white, and the counters stay navy; 月 is unchanged. Windows
+PNGs restored to the original renders. Checked with an NSImage render.
 
 ### Linux: Backspace after kana commit still crashed some terminals (#36)
 
