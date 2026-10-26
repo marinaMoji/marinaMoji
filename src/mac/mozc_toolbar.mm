@@ -758,7 +758,11 @@ std::string GetKeymapPath(const std::string &filename) {
 - (void)symbolClicked:(NSButton *)sender {
   NSString *text = sender.title;
   if (text.length == 0) return;
-  id<ControllerCallback> controller = callbackController_ ? callbackController_ : g_active_controller;
+  // Prefer the controller for the field that currently has focus, so a pinned
+  // palette can insert into a different caret position or a different app
+  // after the user clicks away. Fall back to the controller captured at open.
+  id<ControllerCallback> controller =
+      g_active_controller ? g_active_controller : callbackController_;
   if (!controller) return;
 
   // Odoriji tab uses the same session flow as the main odoriji palette so the
@@ -783,8 +787,9 @@ std::string GetKeymapPath(const std::string &filename) {
   }
 }
 
-// Escape closes the palette. Standard NSResponder action for Esc/Cmd-.;
-// reaches us because the panel is made key on open (see symbolsClicked:).
+// Escape closes the palette even when pinned (same as Linux force=true).
+// Standard NSResponder action for Esc/Cmd-.; reaches us because the panel
+// is made key on open (see symbolsClicked:).
 - (void)cancelOperation:(id)sender {
   [self dismissPalette];
 }
@@ -793,9 +798,14 @@ std::string GetKeymapPath(const std::string &filename) {
 // panels can become key for their own controls without stealing app
 // activation from the composing text field's app), so clicking anywhere
 // else -- including back into that text field -- resigns key status. Left
-// unhandled, a palette the user opens and then ignores (clicks nothing,
-// hits nothing) has no way to close and sits on screen indefinitely.
+// unhandled, an *unpinned* palette the user opens and then ignores has no
+// way to close and sits on screen indefinitely. When Pin is checked, keep
+// the palette up so the user can click a new caret position (or another
+// app) and keep inserting — matching Linux MozcToolbarHideSymbolsPalette.
 - (void)windowDidResignKey:(NSNotification *)notification {
+  if (pinCheckbox_.state == NSControlStateValueOn) {
+    return;
+  }
   [self dismissPalette];
 }
 
@@ -867,7 +877,7 @@ std::string GetKeymapPath(const std::string &filename) {
   client_ = client;
   currentMode_ = mode;
   useTraditionalKanji_ = false;
-  useLiveConversion_ = true;  // config default; real value arrives with the first update
+  useLiveConversion_ = false;  // config default; real value arrives with the first update
   leftShiftDirectLock_ = false;
   isDarkMode_ = [self isDarkAppearance];
 

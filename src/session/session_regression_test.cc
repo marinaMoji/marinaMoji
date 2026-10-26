@@ -93,8 +93,7 @@ class SessionRegressionTest : public testing::TestWithTempUserProfile {
     // internally depends on global flags, e.g., for creation of rewriters.
     std::unique_ptr<Engine> engine = MockDataEngineFactory::Create().value();
 
-    // marinaMoji: live conversion is on by default; these tests expect the
-    // classic kana-until-Space preedit, so turn it off for them.
+    // Pin classic kana-until-Space preedit; live conversion has its own tests.
     config::Config test_config = config::ConfigHandler::GetCopiedConfig();
     test_config.set_use_live_conversion(false);
     config::ConfigHandler::SetConfig(test_config);

@@ -457,11 +457,12 @@ message Config {
   // marinaMoji: Apple-like live conversion ("automatic" conversion). When
   // true, the top realtime conversion is projected into the preedit underline
   // while composing. In Manyōshū mode, leftover kana are still shown as
-  // katakana; kanji from live conversion are kept. Default on for new
-  // installs; Preferences -> Misc -> "Initial conversion mode" sets it and the
-  // toolbar / Ctrl+Shift+6 toggle changes (and saves) it. Distinct from
-  // use_realtime_conversion, which only affects the suggestion list.
-  optional bool use_live_conversion = 103 [default = true];
+  // katakana; kanji from live conversion are kept. Default off for new
+  // installs (kana until Space); Preferences -> Misc -> "Initial conversion
+  // mode" sets it and the toolbar / Ctrl+Shift+6 toggle changes (and saves)
+  // it. Distinct from use_realtime_conversion, which only affects the
+  // suggestion list.
+  optional bool use_live_conversion = 103 [default = false];
 
   // Size of suggestions.
   optional uint32 suggestions_size = 110 [default = 3];

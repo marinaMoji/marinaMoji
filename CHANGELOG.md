@@ -10,6 +10,22 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Live conversion off by default at install
+
+`use_live_conversion` now defaults to false (kana until Space). New installs
+and profiles that never saved the option start in Manual mode; Preferences →
+Misc → Initial conversion mode, the toolbar button, and Ctrl+Shift+6 still
+turn it on. Profiles that already saved Automatic keep that setting.
+
+### macOS: a pinned Symbols Palette stays open when you click away
+
+`windowDidResignKey:` always called `dismissPalette`, so "Pin palette" only
+kept the window open after inserting a symbol — clicking the document (or
+another app) still closed it. Same idea as the earlier Linux FocusOut fix:
+when Pin is checked, ignore focus loss; Escape still closes. Symbol clicks
+now prefer `g_active_controller` so inserts go to the field that currently
+has focus after you click away. Not built or run.
+
 ### Character composer: Overlap (⿻) now looks like an overlap
 
 The twelfth layout drew as a plain square and opened two fields stacked as

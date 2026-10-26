@@ -273,7 +273,7 @@ ToolbarWindow::ToolbarWindow()
       activated_(false),
       left_shift_direct_lock_(false),
       use_traditional_kanji_(false),
-      use_live_conversion_(true),  // config default; replaced on first update
+      use_live_conversion_(false),  // config default; replaced on first update
       symbols_palette_visible_(false),
       shortcuts_window_visible_(false),
       icon_draw_size_(kIconSize),

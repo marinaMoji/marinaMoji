@@ -19,9 +19,9 @@ This document describes the toolbar Symbols Palette in marinaMoji (macOS and Lin
 - Clicking a symbol inserts it immediately.
 - On the **Odoriji** tab, the choice also becomes your default odoriji (same as the main Odoriji palette / Ctrl+Shift+1).
 - Default behavior is **insert and close**.
-- If `Pin palette` is checked, the palette stays open after insertion.
+- If `Pin palette` is checked, the palette stays open after insertion **and** when focus leaves the composing text field (clicking another position in the same app, or switching to another app). Escape still closes a pinned palette.
 - `Odoriji` and `Kaeriten` tabs include a note that keyboard shortcuts exist in the active keymap.
-- The palette also closes on **Escape**, or when focus leaves the composing text field (clicking into a different field or application). Both are handled outside the palette window itself, since it deliberately never takes keyboard focus (so opening it doesn't interrupt typing) — see each platform's key-event/focus-loss handling (`unix/ibus/mozc_engine.cc`, `mac/mozc_toolbar.mm`'s `-cancelOperation:`/`-windowDidResignKey:`, `win32/tip/tip_keyevent_handler.cc`). Without this, a palette left open with nothing clicked had no way to close and would sit on screen indefinitely.
+- An **unpinned** palette also closes on **Escape**, or when focus leaves the composing text field. Both are handled outside the palette window itself, since it deliberately avoids interrupting typing — see each platform's key-event/focus-loss handling (`unix/ibus/mozc_engine.cc`, `mac/mozc_toolbar.mm`'s `-cancelOperation:`/`-windowDidResignKey:`, `win32/tip/tip_keyevent_handler.cc`). Without the unpinned focus-loss close, a palette left open with nothing clicked had no way to dismiss and would sit on screen indefinitely. (Windows focus-loss still closes even when pinned; Linux and macOS respect Pin.)
 
 ## Tab contents
 
