@@ -10,6 +10,19 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer: Overlap (⿻) now looks like an overlap
+
+The twelfth layout drew as a plain square and opened two fields stacked as
+top/bottom halves, which looked like Above / below. It now draws two dashed
+squares offset diagonally so they overlap, in the palette icon and in the
+editor, with the first part at the upper left and the second at the lower
+right. Only the geometry changed (`layout_geometry.cc`); the CHISE IDS data
+says that the parts overlap but not where, so the drawing is schematic. About
+300 characters use ⿻ at the top level (中 ⿻口丨, 大 ⿻一人, 乘 ⿻禾北).
+
+Built and unit-tested on Linux (`layout_geometry_test`); not viewed in the
+running dialog.
+
 ### Linux: Backspace after kana commit still crashed some terminals (#36)
 
 Follow-up: the earlier “only delete when preceding text is non-empty” gate

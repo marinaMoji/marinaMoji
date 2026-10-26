@@ -55,6 +55,19 @@ TEST(LayoutGeometryTest, EnclosureFrameFillsSquareAndInnerSitsInTheOpening) {
   EXPECT_LT(GeometryFor("⿺").cell[1].y, GeometryFor("⿸").cell[1].y);
 }
 
+TEST(LayoutGeometryTest, OverlapDrawsTwoOverlappingSquaresWithDiagonalFields) {
+  const OperatorGeometry g = GeometryFor("⿻");
+  ASSERT_EQ(g.frames.size(), 2);
+  EXPECT_TRUE(g.dividers.empty());
+  const FRect &a = g.frames[0];
+  const FRect &b = g.frames[1];
+  EXPECT_LT(b.x, a.x + a.w);  // the squares overlap
+  EXPECT_LT(b.y, a.y + a.h);
+  EXPECT_LT(g.cell[0].x, g.cell[1].x);  // first part upper left
+  EXPECT_LT(g.cell[0].y, g.cell[1].y);
+  EXPECT_LE(g.cell[0].x + g.cell[0].w, g.cell[1].x);  // fields do not collide
+}
+
 TEST(LayoutGeometryTest, UnknownOperatorFallsBackToLeftRight) {
   EXPECT_EQ(GeometryFor("木").count, 2);
   EXPECT_EQ(GeometryFor("木").dividers.size(), 1);

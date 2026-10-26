@@ -61,11 +61,14 @@ OperatorGeometry GeometryFor(std::string_view op) {
   if (op == "⿹") return Enclosure({0.44, 0.04, 0.5, 0.18}, {0.04, 0.38, 0.58, 0.58});
   if (op == "⿺") return Enclosure({0.06, 0.78, 0.5, 0.18}, {0.38, 0.04, 0.58, 0.58});
   if (op == "⿻") {
-    // Two fields share one box; there is no split line to draw.
+    // Two squares offset diagonally so they overlap; each field sits in the
+    // corner of its own square that the other one does not cover.
     OperatorGeometry g;
     g.count = 2;
-    g.cell[0] = g.edit[0] = {0, 0, 1, 0.5};
-    g.cell[1] = g.edit[1] = {0, 0.5, 1, 0.5};
+    g.cell[0] = g.edit[0] = {0.07, 0.07, 0.4, 0.4};
+    g.cell[1] = g.edit[1] = {0.53, 0.53, 0.4, 0.4};
+    g.frames.push_back({0.05, 0.05, 0.6, 0.6});
+    g.frames.push_back({0.35, 0.35, 0.6, 0.6});
     return g;
   }
   return Columns(2);
