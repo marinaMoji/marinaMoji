@@ -10,6 +10,35 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Linux: Backspace after kana commit still crashed some terminals (#36)
+
+The 2026-09-09 fix declined synthetic Backspace only when the client had no
+`IBUS_CAP_SURROUNDING_TEXT` bit. On Wayland, VTE/gnome-terminal often *sets*
+that bit while `retrieve-surrounding` is still a stub that returns empty text
+(GNOME mutter#3102), so echo-back still took the "forward a press/release"
+path and killed the terminal. The engine now treats surrounding text as usable
+only when retrieve returns a non-empty preceding buffer; otherwise it declines
+and lets IBus deliver the real Backspace. The same rule covers the SendKey
+failure path, the stale-surround Left injection, and `UpdateDeletionRange`.
+`MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1` still restores the old synthetic forward.
+
+Linux-only; not compiled locally (macOS has no ibus headers). Re-test: in
+gnome-terminal, かねとも → 兼倶 → Enter → Backspace (terminal stays up; the
+character deletes).
+
+### Linux: defer the odoriji candidate window until it can be placed (#25)
+
+The palette no longer paints at the top-left (or a stale caret) and then jumps.
+When there is no usable caret rect yet — IME-menu click while the panel owns
+focus, or odoriji as the first input before `set_cursor_location` — the Output
+is stashed and the window stays hidden until FocusIn / a usable
+`set_cursor_location`. If the text field still has a real caret at menu-click
+time, it still opens immediately.
+
+Linux-only; not compiled locally (macOS has no ibus headers). Re-test: IME-menu
+Odoriji on gedit (no corner flash); Ctrl+Shift+2 as first key in a fresh
+Firefox/LibreOffice window (appears at caret once, not in the corner first).
+
 ### Windows: odoriji candidate list and Symbols Palette odoriji insert (#80)
 
 Ctrl+Shift+2 opened the odoriji candidate list, but arrows, Space, and clicks

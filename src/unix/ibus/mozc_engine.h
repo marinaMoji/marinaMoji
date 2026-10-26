@@ -32,6 +32,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -137,11 +138,17 @@ class MozcEngine : public EngineInterface {
   bool UpdateDeletionRange(IbusEngineWrapper* engine,
                            const commands::Output& output);
 
-  // marinaMoji: re-issues SHOW_ODORIJI_PALETTE if the palette was opened from
-  // the panel menu and focus has just come back to a text surface. No-op (and
-  // clears the pending flag) outside the retry window; stays pending while no
-  // usable caret rect is available. Returns true if the palette was re-shown.
+  // marinaMoji: re-issues SHOW_ODORIJI_PALETTE (or flushes a deferred
+  // candidate Output) if the palette was opened from the panel menu and focus
+  // has just come back to a text surface. No-op (and clears the pending flag)
+  // outside the retry window; stays pending while no usable caret rect is
+  // available. Returns true if the palette was shown.
   bool MaybeReshowOdorijiPalette(IbusEngineWrapper* engine);
+
+  // marinaMoji: if a candidate window was deferred for lack of a caret rect
+  // and one is usable now, paint it once and clear the deferral. Used for the
+  // typed / Ctrl+Shift+2 path (issue #25 part 3). Returns true if it showed.
+  bool MaybeFlushDeferredCandidateWindow(IbusEngineWrapper* engine);
 
   // marinaMoji: false for the empty or zero-sized caret rects the engine holds
   // before an app has reported one, or while a menu owns the focus. The
@@ -249,11 +256,18 @@ class MozcEngine : public EngineInterface {
   // marinaMoji: set when the palette was opened from the ibus panel menu, and
   // cleared by the first FocusIn / set_cursor_location that follows. While the
   // menu is up the keyboard focus (and, on some compositors, the reported
-  // cursor rect) belongs to the menu, not to the text field, so the palette is
-  // drawn at a stale or zero rect -- the top-left corner -- and is torn down
-  // when the menu closes. The palette is re-shown once focus is back on a text
-  // surface. See MaybeReshowOdorijiPalette().
+  // cursor rect) belongs to the menu, not to the text field, so drawing now
+  // would flash in the corner (or at a stale rect) before the reshow. The
+  // Output is kept in deferred_candidate_output_ and painted once focus is
+  // back. See MaybeReshowOdorijiPalette().
   bool odoriji_show_pending_ = false;
+
+  // marinaMoji: candidate Output waiting for a usable caret rect before the
+  // window is shown (issue #25). Set when UpdateAll would otherwise draw at
+  // the top-left corner, or when the IME-menu path defers the first paint.
+  // Cleared when the window is finally shown, dismissed, or the engine is
+  // disabled.
+  std::optional<commands::Output> deferred_candidate_output_;
 
   // marinaMoji: the last caret rect reported through set_cursor_location that
   // was worth drawing at. Used to place a palette opened from the panel menu

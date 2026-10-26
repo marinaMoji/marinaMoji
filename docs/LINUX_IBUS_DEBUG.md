@@ -117,7 +117,9 @@ Key tags:
 |-----|---------|
 | `engine.key return_output_consumed consumed=0` | Engine passed Return to IBus/app |
 | `engine.echoback delete_surrounding` | Backspace handled without synthetic keys |
-| `engine.echoback forward_no_surrounding_cap` | App lacks surrounding text; keys injected |
+| `engine.echoback decline_surrounding_unusable` | Cap set but retrieve empty/failed; key declined (issue #36) |
+| `engine.echoback decline_no_surrounding_cap` | App lacks surrounding text; key declined |
+| `engine.echoback forward_no_surrounding_cap` / `forward_surrounding_unusable` | Synthetic forward (only with `MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1`) |
 | `engine.forward forward_key` | Synthetic key injected (count per echo-back Backspace) |
 | `engine.lifecycle capabilities` | App capabilities at focus-in |
 | `engine.lifecycle cursor_at_focus_in` | Caret rect when focus enters a field (`surround_stale` flag included) |
@@ -137,6 +139,7 @@ marinaMoji's key handler.
 |----------|----------|--------|
 | `MARINAMOJI_IBUS_DEBUG_LOG` | Yes, for logging | Path to append-only TSV log |
 | `MARINAMOJI_IBUS_ECHO_BACK_SHIFT_L` | No | `1` / `true` restores legacy Shift_L release on echo-back Backspace |
+| `MARINAMOJI_IBUS_ECHO_BACK_FORWARD` | No | `1` / `true` restores synthetic Backspace forward when surrounding text is missing or unusable (off by default; see issue #36) |
 
-Truthy values for the Shift_L flag: `1`, `true`, `yes`, `on`. Falsy: unset, `0`,
+Truthy values for the flags: `1`, `true`, `yes`, `on`. Falsy: unset, `0`,
 `false`, `no`, `off`.
