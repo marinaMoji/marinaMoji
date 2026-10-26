@@ -36,6 +36,8 @@
 #include <string>
 #include <vector>
 
+#include <glib.h>
+
 #include "absl/container/flat_hash_map.h"
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
@@ -149,6 +151,11 @@ class MozcEngine : public EngineInterface {
   // and one is usable now, paint it once and clear the deferral. Used for the
   // typed / Ctrl+Shift+2 path (issue #25 part 3). Returns true if it showed.
   bool MaybeFlushDeferredCandidateWindow(IbusEngineWrapper* engine);
+
+  // marinaMoji: g_timeout for IME-menu odoriji when focus never bounces.
+  void ScheduleOdorijiDeferredShowTimeout();
+  void CancelOdorijiDeferredShowTimeout();
+  static gboolean OdorijiDeferredShowTimeoutCb(gpointer user_data);
 
   // marinaMoji: false for the empty or zero-sized caret rects the engine holds
   // before an app has reported one, or while a menu owns the focus. The
@@ -268,6 +275,14 @@ class MozcEngine : public EngineInterface {
   // Cleared when the window is finally shown, dismissed, or the engine is
   // disabled.
   std::optional<commands::Output> deferred_candidate_output_;
+
+  // marinaMoji: g_timeout_add id for the no-bounce menu fallback; 0 if none.
+  unsigned int odoriji_deferred_show_timeout_id_ = 0;
+
+  // marinaMoji: set if FocusOut arrived while a menu odoriji show is pending.
+  // The 80ms timeout must not paint in that case — the menu may still own a
+  // caret rect, and painting then moving is the flash. FocusIn shows instead.
+  bool odoriji_menu_saw_focus_out_ = false;
 
   // marinaMoji: the last caret rect reported through set_cursor_location that
   // was worth drawing at. Used to place a palette opened from the panel menu

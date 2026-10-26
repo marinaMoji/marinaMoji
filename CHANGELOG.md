@@ -12,28 +12,34 @@ changed and, where it isn't obvious, why.
 
 ### Linux: Backspace after kana commit still crashed some terminals (#36)
 
-The 2026-09-09 fix declined synthetic Backspace only when the client had no
-`IBUS_CAP_SURROUNDING_TEXT` bit. On Wayland, VTE/gnome-terminal often *sets*
-that bit while `retrieve-surrounding` is still a stub that returns empty text
-(GNOME mutter#3102), so echo-back still took the "forward a press/release"
-path and killed the terminal. The engine now treats surrounding text as usable
-only when retrieve returns a non-empty preceding buffer; otherwise it declines
-and lets IBus deliver the real Backspace. The same rule covers the SendKey
-failure path, the stale-surround Left injection, and `UpdateDeletionRange`.
-`MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1` still restores the old synthetic forward.
+Follow-up: the earlier “only delete when preceding text is non-empty” gate
+still crashed. Wayland can report preceding text while GTK has no real
+surrounding buffer, and `delete_surrounding_text` then SIGSEGVs gnome-terminal
+(LP#2051381 / mutter#3102); synthetic `forward_key` is the other killer (key
+loop). Echo-back Backspace now matches upstream Mozc by default: decline the
+key and let IBus deliver the real Backspace — no delete, no synthetic forward.
+The SendKey-failure fallback and the stale-surround Left injection follow the
+same rule. `MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1` restores the old
+delete-or-forward behaviour for A/B testing only.
 
 Linux-only; not compiled locally (macOS has no ibus headers). Re-test: in
 gnome-terminal, かねとも → 兼倶 → Enter → Backspace (terminal stays up; the
-character deletes).
+character deletes). Debug log should show `engine.echoback decline_passthrough`.
 
 ### Linux: defer the odoriji candidate window until it can be placed (#25)
 
-The palette no longer paints at the top-left (or a stale caret) and then jumps.
-When there is no usable caret rect yet — IME-menu click while the panel owns
-focus, or odoriji as the first input before `set_cursor_location` — the Output
-is stashed and the window stays hidden until FocusIn / a usable
-`set_cursor_location`. If the text field still has a real caret at menu-click
-time, it still opens immediately.
+Opening Odoriji from the IME menu (and typed odoriji / Ctrl+Shift+2 with no
+caret yet) used to paint the candidate window at a zero or stale rect and then
+move it — a quick corner flash, or a jump after FocusIn.
+
+- **IME menu:** never paint in `PropertyActivate`. Stash the Output in
+  `deferred_candidate_output_` and show it once on FocusIn or a usable
+  `set_cursor_location`. An 80ms timeout covers apps that do not bounce focus;
+  it is skipped if FocusOut already ran, so we do not paint while the panel may
+  own the caret. The old re-SHOW round-trip is removed.
+- **Typed / Ctrl+Shift+2:** `UpdateAll` defers the same way when
+  `EnsureUsableCursorArea` fails; `MaybeFlushDeferredCandidateWindow` paints
+  on the first usable caret report.
 
 Linux-only; not compiled locally (macOS has no ibus headers). Re-test: IME-menu
 Odoriji on gedit (no corner flash); Ctrl+Shift+2 as first key in a fresh

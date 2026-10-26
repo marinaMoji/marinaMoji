@@ -29,6 +29,8 @@
 
 #include "unix/ibus/mozc_engine.h"
 
+#include <glib.h>
+
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
@@ -103,6 +105,12 @@ const absl::Duration kOdorijiPropertyFocusOutGrace = absl::Milliseconds(500);
 // grace above: the menu is dismissed by the click, but the app may take a
 // moment to get the input focus (and the caret rect) back.
 const absl::Duration kOdorijiPropertyReshowWindow = absl::Seconds(3);
+
+// When the panel click does not bounce focus, there is no second FocusIn.
+// After this delay, try to paint the deferred palette once if a caret rect is
+// still usable (issue #25). Short enough to feel instant; long enough that a
+// bounce's FocusIn usually wins first.
+constexpr guint kOdorijiDeferredShowTimeoutMsec = 80;
 
 const char* kUILocaleEnvNames[] = {
     "LC_ALL",
@@ -306,7 +314,9 @@ void MozcEngine::CursorUp(IbusEngineWrapper* engine) {
 
 void MozcEngine::Disable(IbusEngineWrapper* engine) {
   LogLifecycle("disable", engine);
+  CancelOdorijiDeferredShowTimeout();
   odoriji_show_pending_ = false;
+  odoriji_menu_saw_focus_out_ = false;
   deferred_candidate_output_.reset();
   if (MozcToolbarAvailable()) {
     MozcToolbarHide();
@@ -440,10 +450,17 @@ void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
       since_odoriji_property < kOdorijiPropertyFocusOutGrace ||
       (odoriji_show_pending_ &&
        since_odoriji_property < kOdorijiPropertyReshowWindow);
+  if (odoriji_show_pending_) {
+    // Menu bounce (or genuine leave while pending): the timeout must not paint
+    // while the panel may still own the caret rect.
+    odoriji_menu_saw_focus_out_ = true;
+  }
   if (!suppress_for_odoriji_menu) {
     GetCandidateWindowHandler(engine)->Hide(engine);
     // Genuine focus loss: drop any candidate window waiting on a caret rect.
+    CancelOdorijiDeferredShowTimeout();
     odoriji_show_pending_ = false;
+    odoriji_menu_saw_focus_out_ = false;
     deferred_candidate_output_.reset();
   }
   property_handler_->ResetContentType(engine);
@@ -599,17 +616,22 @@ bool TrySynthesizeBackspaceKey(uint keyval, uint keycode, uint modifiers,
   return true;
 }
 
-// IBus often does not deliver Backspace to the app when process_key_event
-// returns false. Mozc echoes Backspace back for empty composition (Revert);
-// perform the deletion explicitly when surrounding text is usable.
+// Mozc EchoBack (Revert after a commit) returns consumed=false so the app
+// should see the real Backspace. Upstream ibus-mozc stops there.
 //
-// Never synthesise a Backspace press/release by default. A client that hands
-// forwarded events back to the engine turns that into a loop, and
-// gnome-terminal dies on it (issue #36). Wayland/VTE often *advertises*
-// IBUS_CAP_SURROUNDING_TEXT while retrieve-surrounding is still a stub that
-// returns empty text (GNOME mutter#3102), so the capability bit alone is not
-// enough — only a non-empty preceding buffer means we can delete safely.
-// MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1 restores the old synthetic forward.
+// marinaMoji used to "help" by calling delete_surrounding_text or synthesising
+// a Backspace press/release. Both kill gnome-terminal on Wayland:
+//
+// - delete_surrounding → SIGSEGV in GTK's text_input_delete_surrounding_text
+//   when the client has no real surrounding buffer (LP#2051381 / mutter#3102).
+//   The capability bit and even a non-empty retrieve are not trustworthy for
+//   VTE: Wayland still advertises surrounding-text support.
+// - forward_key → the terminal hands the synthetic event back to the engine
+//   and the loop takes out gnome-terminal-server (issue #36).
+//
+// Default: decline (return false) and let IBus deliver the real key — same as
+// upstream. MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1 restores the old delete-or-
+// forward behaviour for A/B testing only.
 bool TryHandleEchoBackBackspace(IbusEngineWrapper* engine,
                                 const commands::Output& output,
                                 const commands::KeyEvent& key,
@@ -621,6 +643,11 @@ bool TryHandleEchoBackBackspace(IbusEngineWrapper* engine,
   if (HasNonemptyPreedit(output) || had_preedit_before) {
     engine->HidePreeditText();
   }
+  if (!ShouldForwardEchoBackWithoutSurroundingText()) {
+    MaybeLogIbusDebug("engine.echoback", "decline_passthrough");
+    return false;
+  }
+  // Opt-in legacy path (unsafe on VTE/Wayland).
   if (engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT)) {
     SurroundingTextInfo info;
     if (GetSurroundingText(engine, &info) && !info.preceding_text.empty()) {
@@ -628,19 +655,9 @@ bool TryHandleEchoBackBackspace(IbusEngineWrapper* engine,
       engine->DeleteSurroundingText(-1, 1);
       return true;
     }
-    // Cap claimed but nothing usable to delete (empty buffer, stub retrieve,
-    // or retrieve failure). Decline unless the opt-in forward is enabled.
-    if (!ShouldForwardEchoBackWithoutSurroundingText()) {
-      MaybeLogIbusDebug("engine.echoback", "decline_surrounding_unusable");
-      return false;
-    }
     MaybeLogIbusDebug("engine.echoback", "forward_surrounding_unusable");
     engine->ForwardBackspaceForEchoBack(keyval, keycode);
     return true;
-  }
-  if (!ShouldForwardEchoBackWithoutSurroundingText()) {
-    MaybeLogIbusDebug("engine.echoback", "decline_no_surrounding_cap");
-    return false;
   }
   MaybeLogIbusDebug("engine.echoback", "forward_no_surrounding_cap");
   engine->ForwardBackspaceForEchoBack(keyval, keycode);
@@ -845,17 +862,17 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
     LOG(ERROR) << "SendKey failed";
     MaybeLogIbusDebug("engine.key", "send_key_failed");
     if (IsBackspaceKeyEvent(key)) {
-      SurroundingTextInfo info;
-      if (engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT) &&
-          GetSurroundingText(engine, &info) && !info.preceding_text.empty()) {
-        engine->DeleteSurroundingText(-1, 1);
-        MaybeLogIbusDebug("engine.key",
-                          "return_send_failed_backspace_deleted");
-        return true;
-      }
-      // Same rule as TryHandleEchoBackBackspace: do not synthesise a key into
-      // a terminal-like client (issue #36).
+      // Same default as TryHandleEchoBackBackspace: do not delete_surrounding
+      // or synthesise a key (issue #36 / LP#2051381).
       if (ShouldForwardEchoBackWithoutSurroundingText()) {
+        SurroundingTextInfo info;
+        if (engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT) &&
+            GetSurroundingText(engine, &info) && !info.preceding_text.empty()) {
+          engine->DeleteSurroundingText(-1, 1);
+          MaybeLogIbusDebug("engine.key",
+                            "return_send_failed_backspace_deleted");
+          return true;
+        }
         engine->ForwardBackspaceForEchoBack(keyval, keycode);
         MaybeLogIbusDebug("engine.key",
                           "return_send_failed_backspace_echoed");
@@ -921,19 +938,11 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
   }
   if (surround_stale_after_echo_back_ && !output.consumed() &&
       IsBackspaceKeyEvent(key)) {
-    // Surrounding text lags after Enter echo-back. On clients where surrounding
-    // text is actually populated, forward Left to reposition the cursor, then
-    // return false so IBus delivers Backspace. Skip the synthetic Left on
-    // clients that only advertise the capability (VTE/Wayland stubs) — those
-    // forwarded keys are the same class of injection that kills gnome-terminal
-    // (issue #36).
-    SurroundingTextInfo info;
-    if (engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT) &&
-        GetSurroundingText(engine, &info) &&
-        (!info.preceding_text.empty() || !info.following_text.empty())) {
+    // Surrounding text can lag after Enter echo-back. Never inject Left by
+    // default — synthetic keys kill gnome-terminal (issue #36). Opt-in only.
+    if (ShouldForwardEchoBackWithoutSurroundingText()) {
       constexpr uint kLeftKeyval = 0xff51;  // IBUS_Left
       engine->ForwardKeyEvent(kLeftKeyval, 0, 0);
-      // Pair with a release so the client does not treat Left as still held.
       engine->ForwardKeyEvent(kLeftKeyval, 0, IBUS_RELEASE_MASK);
       MaybeLogIbusDebug("engine.key",
                         "return_stale_backspace_left_then_forward");
@@ -998,27 +1007,18 @@ void MozcEngine::PropertyActivate(IbusEngineWrapper* engine,
     if (client_->SendCommand(command, &output)) {
       odoriji_property_show_time_ = Clock::GetAbslTime();
       odoriji_show_pending_ = true;
-      // Draw now only when the text field still owns a usable caret rect
-      // (panel click did not steal focus). Otherwise stash the Output and wait
-      // for FocusIn / set_cursor_location — painting at a menu/zero rect and
-      // then moving is the corner flash on #25.
-      const bool caret_already_usable =
-          IsUsableCursorArea(engine->GetCursorArea());
-      MaybeLogIbusDebug("engine.odoriji",
-                        "show_from_menu caret_usable=%d defer=%d",
-                        caret_already_usable ? 1 : 0,
-                        caret_already_usable ? 0 : 1);
-      if (caret_already_usable) {
-        deferred_candidate_output_.reset();
-        UpdateAll(engine, output);
-      } else {
-        deferred_candidate_output_ = output;
-        // Apply preedit/toolbar/property side effects without showing the
-        // candidate window at the corner.
-        commands::Output without_candidates = output;
-        without_candidates.clear_candidate_window();
-        UpdateAll(engine, without_candidates);
-      }
+      odoriji_menu_saw_focus_out_ = false;
+      // Always defer the first paint. The engine often still holds the text
+      // field's caret when the menu is clicked (so a "usable" check looks fine)
+      // but FocusIn after the bounce then re-shows — that paint-then-move is
+      // the remaining flash on #25. Stash the Output; FocusIn /
+      // set_cursor_location / a short timeout (no-bounce only) paints it once.
+      deferred_candidate_output_ = output;
+      MaybeLogIbusDebug("engine.odoriji", "show_from_menu defer=1");
+      commands::Output without_candidates = output;
+      without_candidates.clear_candidate_window();
+      UpdateAll(engine, without_candidates);
+      ScheduleOdorijiDeferredShowTimeout();
     }
     return;
   }
@@ -1247,22 +1247,15 @@ bool MozcEngine::UpdateDeletionRange(IbusEngineWrapper* engine,
     return true;
   }
   // The server is told unconditionally that we can delete preceding text (see
-  // CreateAndConfigureClient), which is what enables undo-on-Backspace after a
-  // commit. Clients without a *usable* surrounding buffer cannot honour the
-  // request — the capability bit alone is not enough on Wayland/VTE stubs
-  // (issue #36 / GNOME mutter#3102) — so drop the range and leave the
-  // committed text alone.
-  SurroundingTextInfo info;
-  if (!engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT) ||
-      !GetSurroundingText(engine, &info) || info.preceding_text.empty()) {
+  // CreateAndConfigureClient). Plain Backspace after a commit is EchoBack and
+  // never reaches here; this path is Undo (e.g. Ctrl+Backspace). Still refuse
+  // when the client has no surrounding-text capability — VTE on X11 — so we
+  // do not call delete_surrounding_text into a stub (issue #36).
+  if (!engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT)) {
     MaybeLogIbusDebug("engine.deletion",
-                      "skip_surrounding_unusable offset=%d length=%d "
-                      "cap=%d",
+                      "skip_no_surrounding_cap offset=%d length=%d",
                       output.deletion_range().offset(),
-                      output.deletion_range().length(),
-                      engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT)
-                          ? 1
-                          : 0);
+                      output.deletion_range().length());
     return true;
   }
   MaybeLogIbusDebug("engine.deletion", "delete_surrounding offset=%d length=%d",
@@ -1437,6 +1430,39 @@ bool MozcEngine::EnsureUsableCursorArea(IbusEngineWrapper* engine) {
   return true;
 }
 
+void MozcEngine::CancelOdorijiDeferredShowTimeout() {
+  if (odoriji_deferred_show_timeout_id_ == 0) {
+    return;
+  }
+  g_source_remove(odoriji_deferred_show_timeout_id_);
+  odoriji_deferred_show_timeout_id_ = 0;
+}
+
+void MozcEngine::ScheduleOdorijiDeferredShowTimeout() {
+  CancelOdorijiDeferredShowTimeout();
+  odoriji_deferred_show_timeout_id_ = g_timeout_add(
+      kOdorijiDeferredShowTimeoutMsec, OdorijiDeferredShowTimeoutCb, this);
+}
+
+// static
+gboolean MozcEngine::OdorijiDeferredShowTimeoutCb(gpointer user_data) {
+  auto* self = static_cast<MozcEngine*>(user_data);
+  self->odoriji_deferred_show_timeout_id_ = 0;
+  if (self->current_engine_ == nullptr) {
+    return G_SOURCE_REMOVE;
+  }
+  // A FocusOut means the panel likely stole focus; painting here can land on
+  // the menu's caret rect and then jump — the flash. Wait for FocusIn.
+  if (self->odoriji_menu_saw_focus_out_) {
+    MaybeLogIbusDebug("engine.odoriji", "defer_timeout_skip_after_focus_out");
+    return G_SOURCE_REMOVE;
+  }
+  IbusEngineWrapper wrapper(self->current_engine_);
+  // No bounce: paint the stashed Output once if a caret rect is usable.
+  self->MaybeReshowOdorijiPalette(&wrapper);
+  return G_SOURCE_REMOVE;
+}
+
 bool MozcEngine::MaybeFlushDeferredCandidateWindow(IbusEngineWrapper* engine) {
   if (!deferred_candidate_output_.has_value()) {
     return false;
@@ -1446,6 +1472,7 @@ bool MozcEngine::MaybeFlushDeferredCandidateWindow(IbusEngineWrapper* engine) {
   }
   commands::Output output = std::move(*deferred_candidate_output_);
   deferred_candidate_output_.reset();
+  CancelOdorijiDeferredShowTimeout();
   MaybeLogIbusDebug("engine.odoriji", "flush_deferred_candidate_draw");
   UpdateAll(engine, output);
   return true;
@@ -1457,7 +1484,9 @@ bool MozcEngine::MaybeReshowOdorijiPalette(IbusEngineWrapper* engine) {
   }
   if (Clock::GetAbslTime() - odoriji_property_show_time_ >
       kOdorijiPropertyReshowWindow) {
+    CancelOdorijiDeferredShowTimeout();
     odoriji_show_pending_ = false;
+    odoriji_menu_saw_focus_out_ = false;
     deferred_candidate_output_.reset();
     return false;
   }
@@ -1467,23 +1496,19 @@ bool MozcEngine::MaybeReshowOdorijiPalette(IbusEngineWrapper* engine) {
     // set_cursor_location that follows is the event we actually want.
     return false;
   }
-  odoriji_show_pending_ = false;
-  // Prefer the Output stashed at menu-activate (never painted). Re-SHOW only
-  // when the first paint already happened (caret was usable at click time).
-  if (deferred_candidate_output_.has_value()) {
-    commands::Output output = std::move(*deferred_candidate_output_);
-    deferred_candidate_output_.reset();
-    MaybeLogIbusDebug("engine.odoriji", "show_deferred_from_menu");
-    UpdateAll(engine, output);
-    return true;
-  }
-  commands::SessionCommand command;
-  command.set_type(commands::SessionCommand::SHOW_ODORIJI_PALETTE);
-  commands::Output output;
-  if (!client_->SendCommand(command, &output)) {
+  if (!deferred_candidate_output_.has_value()) {
+    // Nothing stashed (should not happen with always-defer menu activate).
+    odoriji_show_pending_ = false;
+    odoriji_menu_saw_focus_out_ = false;
+    CancelOdorijiDeferredShowTimeout();
     return false;
   }
-  MaybeLogIbusDebug("engine.odoriji", "reshow_from_menu");
+  odoriji_show_pending_ = false;
+  odoriji_menu_saw_focus_out_ = false;
+  CancelOdorijiDeferredShowTimeout();
+  commands::Output output = std::move(*deferred_candidate_output_);
+  deferred_candidate_output_.reset();
+  MaybeLogIbusDebug("engine.odoriji", "show_deferred_from_menu");
   UpdateAll(engine, output);
   return true;
 }

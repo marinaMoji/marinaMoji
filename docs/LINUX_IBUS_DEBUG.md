@@ -116,10 +116,9 @@ Key tags:
 | Tag | Meaning |
 |-----|---------|
 | `engine.key return_output_consumed consumed=0` | Engine passed Return to IBus/app |
-| `engine.echoback delete_surrounding` | Backspace handled without synthetic keys |
-| `engine.echoback decline_surrounding_unusable` | Cap set but retrieve empty/failed; key declined (issue #36) |
-| `engine.echoback decline_no_surrounding_cap` | App lacks surrounding text; key declined |
-| `engine.echoback forward_no_surrounding_cap` / `forward_surrounding_unusable` | Synthetic forward (only with `MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1`) |
+| `engine.echoback decline_passthrough` | Default: key declined, IBus delivers real Backspace (issue #36) |
+| `engine.echoback delete_surrounding` | Legacy delete (only with `MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1`) |
+| `engine.echoback forward_no_surrounding_cap` / `forward_surrounding_unusable` | Legacy synthetic forward (same opt-in) |
 | `engine.forward forward_key` | Synthetic key injected (count per echo-back Backspace) |
 | `engine.lifecycle capabilities` | App capabilities at focus-in |
 | `engine.lifecycle cursor_at_focus_in` | Caret rect when focus enters a field (`surround_stale` flag included) |

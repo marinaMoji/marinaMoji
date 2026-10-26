@@ -117,7 +117,7 @@ New log tags to expect:
 
 - `engine.forward forward_key keyval=… keycode=… modifiers=0x… release=…` — every synthetic key event the engine injects.
 - `engine.forward delete_surrounding offset=… size=…`
-- `engine.echoback delete_surrounding | decline_surrounding_unusable | decline_no_surrounding_cap | forward_surrounding_unusable | forward_no_surrounding_cap` — which exit the echo-back Backspace took. **Only `delete_surrounding` injects nothing;** the `decline_*` exits hand the real key to IBus; the `forward_*` exits need `MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1`.
+- `engine.echoback decline_passthrough | delete_surrounding | forward_surrounding_unusable | forward_no_surrounding_cap` — which exit the echo-back Backspace took. **Default is `decline_passthrough`** (real key to IBus). The delete/forward exits need `MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1` and are unsafe on VTE/Wayland.
 - `engine.lifecycle capabilities caps=0x… surrounding_text=…` — at every `focus_in`.
 
 ### 3.1 Prior context on these files
