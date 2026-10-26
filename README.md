@@ -112,8 +112,8 @@ another has not been tested yet.
 
 **Register the apt repository and install (Debian/Ubuntu, amd64 or arm64)**
 
-This is the **unstable** channel (tracks release builds, including rc tags).
-A separate stable channel will be added later. Indexes are GPG-signed; see
+Two channels are published: **stable** (final releases only, recommended) and
+**unstable** (every release, including rc tags). Indexes are GPG-signed; see
 [SECURITY.md](SECURITY.md).
 
 ```bash
@@ -122,8 +122,9 @@ curl -fsSL https://marinamoji.github.io/marinaMoji/marinaMoji-release-public-key
   | sudo gpg --dearmor -o /usr/share/keyrings/marinamoji-archive-keyring.gpg
 
 # 2. Register the repository
-echo "deb [signed-by=/usr/share/keyrings/marinamoji-archive-keyring.gpg] https://marinamoji.github.io/marinaMoji unstable main" \
+echo "deb [signed-by=/usr/share/keyrings/marinamoji-archive-keyring.gpg] https://marinamoji.github.io/marinaMoji stable main" \
   | sudo tee /etc/apt/sources.list.d/marinamoji.list
+# (use "unstable" instead of "stable" to also receive release candidates)
 
 # 3. Install
 sudo apt update

@@ -109,9 +109,15 @@ installer PE metadata).
 with the CI GPG subkey, and deploys the tree to the `gh-pages` branch (GitHub
 Pages).
 
-The published suite is currently **`unstable`**. A separate **`stable`**
-channel can be added later (same pool, second `dists/<suite>/` tree, or a
-second Pages path).
+Two suites are published from one shared pool, each with its own signed
+`Release` / `InRelease` / `Release.gpg`:
+
+- **`stable`** — final releases only. A package whose Version ends in `-rcN` or
+  `~rcN` is excluded.
+- **`unstable`** — everything, including release candidates.
+
+Both are built in a single run (the `gh-pages` deploy uses `force_orphan`, so
+they must be), and the build fails if a suite would be empty.
 
 ### One-time GitHub setup
 
@@ -144,5 +150,5 @@ bash packaging/linux/build_apt_repo.sh \
 ```
 
 Add `--gpg-key-id A1DFB08FD78B8A8F941EAD5FE4A4FB8B462A09F5` after importing the
-private key into your GnuPG home to produce `InRelease` / `Release.gpg`. Pass
-`--suite stable` when you introduce a stable channel.
+private key into your GnuPG home to produce `InRelease` / `Release.gpg`. Repeat
+`--suite` to choose suites (default: `unstable` and `stable`).

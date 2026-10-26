@@ -93,6 +93,7 @@ jobs:
             --output-dir apt-repo \
             --public-key marinaMoji-release-public-key.asc \
             --suite unstable \
+            --suite stable \
             --gpg-key-id A1DFB08FD78B8A8F941EAD5FE4A4FB8B462A09F5
           find apt-repo -type f | sort
 

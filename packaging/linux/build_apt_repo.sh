@@ -3,15 +3,17 @@
 #
 # Layout (standard dists/ + pool/):
 #   pool/main/m/marinamoji/*.deb
-#   dists/unstable/main/binary-{amd64,arm64}/Packages{,.gz}
-#   dists/unstable/Release
-#   dists/unstable/InRelease          (clearsigned; requires --gpg-key-id)
-#   dists/unstable/Release.gpg        (detached; requires --gpg-key-id)
+#   dists/<suite>/main/binary-{amd64,arm64}/Packages{,.gz}
+#   dists/<suite>/Release
+#   dists/<suite>/InRelease          (clearsigned; requires --gpg-key-id)
+#   dists/<suite>/Release.gpg        (detached; requires --gpg-key-id)
 #   marinaMoji-release-public-key.asc
 #   index.html                      (human-facing install blurb)
 #
-# The default suite is "unstable" (pre-stable channel). Pass --suite stable
-# later when a stable channel is published alongside it.
+# One shared pool serves every suite. --suite may be repeated (default:
+# unstable and stable). "stable" lists final releases only; any RC (Version
+# ending in -rcN or ~rcN) is left out. Every other suite, "unstable" included,
+# lists all packages.
 #
 # Requires: dpkg-dev, apt-utils (apt-ftparchive), gzip; gnupg when signing.
 set -euo pipefail
@@ -24,16 +26,15 @@ usage: build_apt_repo.sh \
   [--public-key <marinaMoji-release-public-key.asc>] \
   [--gpg-key-id <fingerprint>] \
   [--origin marinaMoji] \
-  [--suite unstable]
+  [--suite unstable --suite stable]
 EOF
   exit 1
 }
 
 DEB_DIR='' OUTDIR='' PUBLIC_KEY='' GPG_KEY_ID=''
 ORIGIN='marinaMoji'
-SUITE='unstable'
+SUITES=()
 LABEL='marinaMoji'
-CODENAME='unstable'
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -42,12 +43,13 @@ while [[ $# -gt 0 ]]; do
     --public-key) PUBLIC_KEY="$2"; shift 2 ;;
     --gpg-key-id) GPG_KEY_ID="$2"; shift 2 ;;
     --origin) ORIGIN="$2"; shift 2 ;;
-    --suite) SUITE="$2"; CODENAME="$2"; shift 2 ;;
+    --suite) SUITES+=("$2"); shift 2 ;;
     *) usage ;;
   esac
 done
 
 [[ -n "$DEB_DIR" && -n "$OUTDIR" ]] || usage
+[[ ${#SUITES[@]} -gt 0 ]] || SUITES=(unstable stable)
 [[ -d "$DEB_DIR" ]] || { echo "error: --deb-dir is not a directory: $DEB_DIR" >&2; exit 1; }
 
 shopt -s nullglob
@@ -62,63 +64,87 @@ POOL="$OUTDIR/pool/main/m/marinamoji"
 mkdir -p "$POOL"
 cp -f "${DEBS[@]}" "$POOL/"
 
-ARCHES=()
+# Classify each package: a release candidate has a Version ending in
+# -rcN / ~rcN. The "stable" suite excludes them; every other suite takes all.
+is_rc() { [[ "$(dpkg-deb -f "$1" Version)" =~ [-~+.]rc[0-9]*$ ]]; }
+
 for deb in "$POOL"/*.deb; do
   arch="$(dpkg-deb -f "$deb" Architecture)"
   case "$arch" in
-    amd64|arm64) ARCHES+=("$arch") ;;
+    amd64|arm64) ;;
     *)
       echo "error: unsupported Architecture '$arch' in $(basename "$deb")" >&2
       exit 1
       ;;
   esac
 done
-# Unique sorted arches.
-mapfile -t ARCHES < <(printf '%s\n' "${ARCHES[@]}" | sort -u)
 
-for arch in "${ARCHES[@]}"; do
-  bin_dir="$OUTDIR/dists/$SUITE/main/binary-$arch"
-  mkdir -p "$bin_dir"
-  # Paths in Packages must be relative to the archive root (OUTDIR).
-  (
-    cd "$OUTDIR"
-    dpkg-scanpackages --arch "$arch" --multiversion pool/main \
-      >"dists/$SUITE/main/binary-$arch/Packages"
-  )
-  gzip -9n -c "$bin_dir/Packages" >"$bin_dir/Packages.gz"
-done
+STAGE="$(mktemp -d)"
+trap 'rm -rf "$STAGE"' EXIT
 
-# Empty Contents files keep apt-ftparchive / clients happier on small repos.
-for arch in "${ARCHES[@]}"; do
-  : >"$OUTDIR/dists/$SUITE/main/Contents-$arch"
-  gzip -9n -c "$OUTDIR/dists/$SUITE/main/Contents-$arch" \
-    >"$OUTDIR/dists/$SUITE/main/Contents-$arch.gz"
-done
-
-ARCH_LIST="$(IFS=' '; echo "${ARCHES[*]}")"
-apt-ftparchive \
-  -o "APT::FTPArchive::Release::Origin=$ORIGIN" \
-  -o "APT::FTPArchive::Release::Label=$LABEL" \
-  -o "APT::FTPArchive::Release::Suite=$SUITE" \
-  -o "APT::FTPArchive::Release::Codename=$CODENAME" \
-  -o "APT::FTPArchive::Release::Architectures=$ARCH_LIST" \
-  -o "APT::FTPArchive::Release::Components=main" \
-  -o "APT::FTPArchive::Release::Description=marinaMoji Debian/Ubuntu packages" \
-  release "$OUTDIR/dists/$SUITE" >"$OUTDIR/dists/$SUITE/Release"
-
-if [[ -n "$GPG_KEY_ID" ]]; then
-  command -v gpg >/dev/null || { echo "error: gpg not found" >&2; exit 1; }
-  gpg_args=(--batch --yes --pinentry-mode loopback --local-user "$GPG_KEY_ID")
-  if [[ -n "${APT_GPG_PASSPHRASE:-}" ]]; then
-    gpg_args+=(--passphrase "$APT_GPG_PASSPHRASE")
+build_suite() {
+  local suite="$1" deb arch
+  local -a members=() arches=()
+  for deb in "$POOL"/*.deb; do
+    if [[ "$suite" == stable ]] && is_rc "$deb"; then continue; fi
+    members+=("$deb")
+  done
+  if [[ ${#members[@]} -eq 0 ]]; then
+    echo "error: suite '$suite' would contain no packages" >&2
+    exit 1
   fi
-  gpg "${gpg_args[@]}" --clearsign \
-    -o "$OUTDIR/dists/$SUITE/InRelease" "$OUTDIR/dists/$SUITE/Release"
-  gpg "${gpg_args[@]}" -abs \
-    -o "$OUTDIR/dists/$SUITE/Release.gpg" "$OUTDIR/dists/$SUITE/Release"
-else
-  echo "warning: --gpg-key-id not set; writing unsigned Release only" >&2
-fi
+  mapfile -t arches < <(for deb in "${members[@]}"; do dpkg-deb -f "$deb" Architecture; done | sort -u)
+
+  # dpkg-scanpackages scans a directory, so give it a per-suite view of the
+  # shared pool (symlinks) rooted so Filename: still reads pool/main/...
+  local view="$STAGE/$suite"
+  mkdir -p "$view/pool/main/m/marinamoji"
+  for deb in "${members[@]}"; do
+    ln -s "$(cd "$(dirname "$deb")" && pwd)/$(basename "$deb")" \
+      "$view/pool/main/m/marinamoji/$(basename "$deb")"
+  done
+
+  for arch in "${arches[@]}"; do
+    local bin_dir="$OUTDIR/dists/$suite/main/binary-$arch"
+    mkdir -p "$bin_dir"
+    (cd "$view" && dpkg-scanpackages --arch "$arch" --multiversion pool/main) \
+      >"$bin_dir/Packages"
+    gzip -9n -c "$bin_dir/Packages" >"$bin_dir/Packages.gz"
+    # Empty Contents files keep apt-ftparchive / clients happier on small repos.
+    : >"$OUTDIR/dists/$suite/main/Contents-$arch"
+    gzip -9n -c "$OUTDIR/dists/$suite/main/Contents-$arch" \
+      >"$OUTDIR/dists/$suite/main/Contents-$arch.gz"
+  done
+
+  apt-ftparchive \
+    -o "APT::FTPArchive::Release::Origin=$ORIGIN" \
+    -o "APT::FTPArchive::Release::Label=$LABEL" \
+    -o "APT::FTPArchive::Release::Suite=$suite" \
+    -o "APT::FTPArchive::Release::Codename=$suite" \
+    -o "APT::FTPArchive::Release::Architectures=${arches[*]}" \
+    -o "APT::FTPArchive::Release::Components=main" \
+    -o "APT::FTPArchive::Release::Description=marinaMoji Debian/Ubuntu packages ($suite)" \
+    release "$OUTDIR/dists/$suite" >"$OUTDIR/dists/$suite/Release"
+
+  if [[ -n "$GPG_KEY_ID" ]]; then
+    command -v gpg >/dev/null || { echo "error: gpg not found" >&2; exit 1; }
+    local -a gpg_args=(--batch --yes --pinentry-mode loopback --local-user "$GPG_KEY_ID")
+    if [[ -n "${APT_GPG_PASSPHRASE:-}" ]]; then
+      gpg_args+=(--passphrase "$APT_GPG_PASSPHRASE")
+    fi
+    gpg "${gpg_args[@]}" --clearsign \
+      -o "$OUTDIR/dists/$suite/InRelease" "$OUTDIR/dists/$suite/Release"
+    gpg "${gpg_args[@]}" -abs \
+      -o "$OUTDIR/dists/$suite/Release.gpg" "$OUTDIR/dists/$suite/Release"
+  else
+    echo "warning: --gpg-key-id not set; writing unsigned Release for $suite" >&2
+  fi
+  echo "Suite $suite: ${#members[@]} package(s), arches: ${arches[*]}"
+}
+
+for suite in "${SUITES[@]}"; do
+  build_suite "$suite"
+done
 
 if [[ -n "$PUBLIC_KEY" ]]; then
   [[ -f "$PUBLIC_KEY" ]] || { echo "error: public key not found: $PUBLIC_KEY" >&2; exit 1; }
@@ -141,21 +167,24 @@ cat >"$OUTDIR/index.html" <<EOF
 <body>
   <h1>marinaMoji apt repository</h1>
   <p>Debian/Ubuntu packages for <a href="https://github.com/marinaMoji/marinaMoji">marinaMoji</a>
-  (<strong>unstable</strong> channel).</p>
+  in two channels: <strong>stable</strong> (final releases only) and
+  <strong>unstable</strong> (every release, including release candidates).</p>
   <h2>Install</h2>
   <pre>curl -fsSL ${PAGES_URL_HINT}/marinaMoji-release-public-key.asc \\
   | sudo gpg --dearmor -o /usr/share/keyrings/marinamoji-archive-keyring.gpg
 
-echo "deb [signed-by=/usr/share/keyrings/marinamoji-archive-keyring.gpg] ${PAGES_URL_HINT} unstable main" \\
+echo "deb [signed-by=/usr/share/keyrings/marinamoji-archive-keyring.gpg] ${PAGES_URL_HINT} stable main" \\
   | sudo tee /etc/apt/sources.list.d/marinamoji.list
 
 sudo apt update
 sudo apt install marinamoji
 ibus restart</pre>
+  <p>To follow release candidates too, use <code>unstable</code> instead of
+  <code>stable</code> in the <code>deb</code> line.</p>
   <p>See <a href="https://github.com/marinaMoji/marinaMoji#linux">README</a> and
   <a href="https://github.com/marinaMoji/marinaMoji/blob/main/SECURITY.md">SECURITY.md</a>.</p>
 </body>
 </html>
 EOF
 
-echo "Built apt repo at $OUTDIR (${#DEBS[@]} package(s), arches: ${ARCHES[*]})"
+echo "Built apt repo at $OUTDIR (${#DEBS[@]} package(s) in pool; suites: ${SUITES[*]})"

@@ -81,7 +81,7 @@ Subkeys:
 
 The apt repository is served from
 [https://marinamoji.github.io/marinaMoji](https://marinamoji.github.io/marinaMoji)
-(**unstable** suite for now; a stable channel will be added later) and rebuilt
+(**stable** suite for final releases, **unstable** for all releases including rcs) and rebuilt
 on every `v*` release. Install instructions are in the
 [README](./README.md#linux).
 
