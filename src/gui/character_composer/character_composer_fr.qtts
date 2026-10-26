@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.0" language="fr">
+<context>
+    <name>mozc::gui::CharacterComposerDialog</name>
+    <message>
+        <source>Remove this layout</source>
+        <translation>Supprimer cette disposition</translation>
+    </message>
+    <message>
+        <source>Character composer</source>
+        <translation>Compositeur de caractères</translation>
+    </message>
+    <message>
+        <source>Clear all but one of the filled boxes before removing this layout.</source>
+        <translation>Videz toutes les cases remplies sauf une avant de supprimer cette disposition.</translation>
+    </message>
+    <message>
+        <source>Pick a layout. Click a box first to put the layout inside that box.</source>
+        <translation>Choisissez une disposition. Cliquez d’abord sur une case pour y placer la disposition.</translation>
+    </message>
+    <message>
+        <source>Next form of this radical</source>
+        <translation>Forme suivante de ce radical</translation>
+    </message>
+    <message>
+        <source>Break apart a character</source>
+        <translation>Décomposer un caractère</translation>
+    </message>
+    <message>
+        <source>Type a character</source>
+        <translation>Saisissez un caractère</translation>
+    </message>
+    <message>
+        <source>Break apart</source>
+        <translation>Décomposer</translation>
+    </message>
+    <message>
+        <source>Insert</source>
+        <translation>Insérer</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Copier</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>Effacer</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Fermer</translation>
+    </message>
+    <message>
+        <source>Character data was not found in %1, so the character cannot be looked up. You can still build the IDS above.</source>
+        <translation>Les données de caractères sont introuvables dans %1 : la recherche du caractère est donc impossible. Vous pouvez tout de même composer l’IDS ci-dessus.</translation>
+    </message>
+    <message>
+        <source>No encoded character has this structure.</source>
+        <translation>Aucun caractère codé n’a cette structure.</translation>
+    </message>
+    <message>
+        <source>Fill in every box to look up the character.</source>
+        <translation>Remplissez toutes les cases pour rechercher le caractère.</translation>
+    </message>
+    <message>
+        <source>Copied to the clipboard.</source>
+        <translation>Copié dans le presse-papiers.</translation>
+    </message>
+    <message>
+        <source>Select a box holding a radical that has other forms.</source>
+        <translation>Sélectionnez une case contenant un radical qui a d’autres formes.</translation>
+    </message>
+    <message>
+        <source>No decomposition on record for this character.</source>
+        <translation>Aucune décomposition connue pour ce caractère.</translation>
+    </message>
+    <message>
+        <source>Some parts have no encoded character; fill those boxes in.</source>
+        <translation>Certaines parties n’ont pas de caractère codé : remplissez ces cases.</translation>
+    </message>
+    <message>
+        <source>Left / right</source>
+        <translation>Gauche / droite</translation>
+    </message>
+    <message>
+        <source>Above / below</source>
+        <translation>Haut / bas</translation>
+    </message>
+    <message>
+        <source>Left / middle / right</source>
+        <translation>Gauche / milieu / droite</translation>
+    </message>
+    <message>
+        <source>Top / middle / bottom</source>
+        <translation>Haut / milieu / bas</translation>
+    </message>
+    <message>
+        <source>Full enclosure</source>
+        <translation>Enveloppe complète</translation>
+    </message>
+    <message>
+        <source>Surround from above</source>
+        <translation>Enveloppe par le haut</translation>
+    </message>
+    <message>
+        <source>Surround from below</source>
+        <translation>Enveloppe par le bas</translation>
+    </message>
+    <message>
+        <source>Surround from left</source>
+        <translation>Enveloppe par la gauche</translation>
+    </message>
+    <message>
+        <source>Upper-left enclosure</source>
+        <translation>Enveloppe en haut à gauche</translation>
+    </message>
+    <message>
+        <source>Upper-right enclosure</source>
+        <translation>Enveloppe en haut à droite</translation>
+    </message>
+    <message>
+        <source>Lower-left enclosure</source>
+        <translation>Enveloppe en bas à gauche</translation>
+    </message>
+    <message>
+        <source>Overlap</source>
+        <translation>Superposition</translation>
+    </message>
+</context>
+</TS>

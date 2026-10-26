@@ -1,0 +1,26 @@
+# Copyright 2026, the marinaMoji authors.
+# All rights reserved.
+#
+# The data in this package is NOT covered by the BSD license of the rest of the
+# tree. See README.md and LICENSE.GPL-2.0 in this directory.
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "LICENSE.GPL-2.0",
+    "README.md",
+    "ids_table.tsv",
+    "radical_forms.tsv",
+])
+
+# Installed as separate files next to mozc_server; never a dependency of a
+# cc_library or cc_binary.
+filegroup(
+    name = "character_composer_data",
+    srcs = [
+        "LICENSE.GPL-2.0",
+        "README.md",
+        "ids_table.tsv",
+        "radical_forms.tsv",
+    ],
+)

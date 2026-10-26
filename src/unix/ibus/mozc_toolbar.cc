@@ -9,6 +9,7 @@
 
 #include "absl/log/log.h"
 #include "base/file_util.h"
+#include "base/system_util.h"
 #include "composer/kaeriten_table_util.h"
 #include "session/marina_number_row_bindings_util.h"
 #include "unix/ibus/marina_localized_string.h"
@@ -951,9 +952,84 @@ static gboolean OnDictButtonPress(GtkWidget* /*widget*/, GdkEventButton* event,
   return FALSE;
 }
 
-// Character composer: for now just opens zi.tools in the default browser.
+// The character composer runs as `mozc_tool --mode=character_composer`. When
+// the user presses Insert it prints the chosen character on stdout, which is
+// read here and inserted into the focused application.
+struct ComposerChild {
+  std::string output;
+};
+
+// Longest result accepted from the tool: one character is at most 4 bytes of
+// UTF-8, so this leaves room for a newline and a combining sequence.
+constexpr size_t kMaxComposerResultBytes = 32;
+
+void FinishComposerRead(ComposerChild* child, GIOChannel* source) {
+  std::string text = child->output;
+  while (!text.empty() && (text.back() == '\n' || text.back() == '\r')) {
+    text.pop_back();
+  }
+  if (!text.empty() && text.size() <= kMaxComposerResultBytes &&
+      g_utf8_validate(text.data(), static_cast<gssize>(text.size()), nullptr) &&
+      g_engine) {
+    g_engine->CommitToolbarText(text);
+  }
+  g_io_channel_shutdown(source, FALSE, nullptr);
+  delete child;
+}
+
+gboolean OnComposerOutput(GIOChannel* source, GIOCondition condition,
+                          gpointer data) {
+  ComposerChild* child = static_cast<ComposerChild*>(data);
+  if (condition & G_IO_IN) {
+    gchar buffer[64];
+    gsize read = 0;
+    const GIOStatus status =
+        g_io_channel_read_chars(source, buffer, sizeof(buffer), &read, nullptr);
+    if (read > 0 && child->output.size() <= kMaxComposerResultBytes) {
+      child->output.append(buffer, read);
+    }
+    if (status == G_IO_STATUS_NORMAL || status == G_IO_STATUS_AGAIN) {
+      if (!(condition & G_IO_HUP)) return TRUE;
+    }
+  }
+  FinishComposerRead(child, source);
+  return FALSE;
+}
+
+void OnComposerChildExited(GPid pid, gint /*status*/, gpointer /*data*/) {
+  g_spawn_close_pid(pid);
+}
+
 void OnComposerClicked(GtkWidget* /*widget*/, gpointer /*data*/) {
-  g_app_info_launch_default_for_uri("https://zi.tools/", nullptr, nullptr);
+  const std::string tool = SystemUtil::GetToolPath();
+  if (tool.empty() || !FileUtil::FileExists(tool).ok()) {
+    LOG(ERROR) << "mozc_tool not found; opening zi.tools instead";
+    g_app_info_launch_default_for_uri("https://zi.tools/", nullptr, nullptr);
+    return;
+  }
+  const std::string mode_arg = "--mode=character_composer";
+  gchar* argv[] = {const_cast<gchar*>(tool.c_str()),
+                   const_cast<gchar*>(mode_arg.c_str()), nullptr};
+  GPid pid = 0;
+  gint out_fd = -1;
+  GError* error = nullptr;
+  if (!g_spawn_async_with_pipes(nullptr, argv, nullptr, G_SPAWN_DO_NOT_REAP_CHILD,
+                                nullptr, nullptr, &pid, nullptr, &out_fd, nullptr,
+                                &error)) {
+    LOG(ERROR) << "cannot start the character composer: "
+               << (error ? error->message : "unknown error");
+    if (error) g_error_free(error);
+    return;
+  }
+  g_child_watch_add(pid, OnComposerChildExited, nullptr);
+  GIOChannel* channel = g_io_channel_unix_new(out_fd);
+  g_io_channel_set_encoding(channel, nullptr, nullptr);
+  g_io_channel_set_flags(channel, G_IO_FLAG_NONBLOCK, nullptr);
+  g_io_channel_set_close_on_unref(channel, TRUE);
+  g_io_add_watch_full(channel, G_PRIORITY_DEFAULT,
+                      static_cast<GIOCondition>(G_IO_IN | G_IO_HUP | G_IO_ERR),
+                      OnComposerOutput, new ComposerChild(), nullptr);
+  g_io_channel_unref(channel);
 }
 
 // Shortcuts popup: multi-page dialog listing key combinations from the keymap

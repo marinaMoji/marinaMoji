@@ -231,6 +231,7 @@ mozc_cc_library(
         "//base/win32:hresultor",
         "//base/win32:wide_char",
         "//base/win32:win_util",
+        "//composer_ids:composer_result",
         "//config:config_handler",
         "//protocol:commands_cc_proto",
         "//win32/base:msctf_dll",  # buildcleaner: keep

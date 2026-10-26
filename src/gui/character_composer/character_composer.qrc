@@ -1,0 +1,10 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+  <file>character_composer_ja.qm</file>
+  <file>character_composer_en.qm</file>
+  <file>character_composer_fr.qm</file>
+  <file alias="tr_ja.qm">../base/tr_ja.qm</file>
+  <file alias="tr_en.qm">../base/tr_en.qm</file>
+  <file alias="tr_fr.qm">../base/tr_fr.qm</file>
+</qresource>
+</RCC>

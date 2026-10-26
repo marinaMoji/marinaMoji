@@ -47,6 +47,16 @@ MARINA_OPENCC_FILES = (
 )
 
 
+# Character composer data (GPL-2.0-or-later, see data/character_composer/README.md),
+# installed as plain files beside mozc_server and read by mozc_tool at run time.
+CHARACTER_COMPOSER_FILES = (
+    'ids_table.tsv',
+    'radical_forms.tsv',
+    'LICENSE.GPL-2.0',
+    'README.md',
+)
+
+
 class Packager:
   """Packager to locate the build targets to the install paths."""
 
@@ -72,6 +82,9 @@ class Packager:
     opencc_dir = os.path.join(args.mozc_dir, 'opencc')
     for filename in MARINA_OPENCC_FILES:
       self.location_rules[filename] = os.path.join(opencc_dir, filename)
+    composer_dir = os.path.join(args.mozc_dir, 'character_composer')
+    for filename in CHARACTER_COMPOSER_FILES:
+      self.location_rules[filename] = os.path.join(composer_dir, filename)
 
   def PackageFiles(self, inputs: List[str], output: str) -> None:
     with tempfile.TemporaryDirectory() as tmp_dir:

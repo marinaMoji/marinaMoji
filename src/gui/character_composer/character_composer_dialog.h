@@ -1,0 +1,180 @@
+// Copyright 2026 marinaMoji contributors.
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// marinaMoji's character composer: pick an IDS layout, fill the boxes (nesting
+// as deep as needed) and see the encoded Unicode character that structure
+// describes. Insert sends that character to the application.
+//
+// The behaviour follows the composer in the Grognard editor (the layout
+// square with a selection rule, a live IDS string, a palette of the twelve
+// operators), but this one only ever produces a Unicode character.
+
+#ifndef MOZC_GUI_CHARACTER_COMPOSER_CHARACTER_COMPOSER_DIALOG_H_
+#define MOZC_GUI_CHARACTER_COMPOSER_CHARACTER_COMPOSER_DIALOG_H_
+
+#include <QDialog>
+#include <QLineEdit>
+#include <QString>
+#include <QWidget>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "composer_ids/ids_table.h"
+#include "composer_ids/ids_tree.h"
+
+class QButtonGroup;
+class QComboBox;
+class QLabel;
+class QPushButton;
+class QToolButton;
+
+namespace mozc {
+namespace gui {
+
+class LayoutEditor;
+
+// A one-component text field. Tells the editor when it gets the focus, which
+// is how a field becomes the selected region.
+class SlotEdit : public QLineEdit {
+  Q_OBJECT
+
+ public:
+  SlotEdit(composer_ids::SlotPath path, QWidget *parent);
+  const composer_ids::SlotPath &path() const { return path_; }
+  void SetSelected(bool selected);
+
+ signals:
+  void gotFocus(const std::vector<int> &path);
+
+ protected:
+  void focusInEvent(QFocusEvent *event) override;
+
+ private:
+  composer_ids::SlotPath path_;
+};
+
+// One layout drawn as a square: its components sit in the operator's shape,
+// nested layouts draw the same thing again inside their cell. Clicking its
+// padding (not a field) selects it.
+class LayoutView : public QWidget {
+  Q_OBJECT
+
+ public:
+  LayoutView(LayoutEditor *editor, composer_ids::SlotPath path, std::string op,
+             const std::vector<composer_ids::ComposerSlot> &parts,
+             QWidget *parent);
+  const composer_ids::SlotPath &path() const { return path_; }
+  void SetSelected(bool selected);
+
+ protected:
+  void paintEvent(QPaintEvent *event) override;
+  void resizeEvent(QResizeEvent *event) override;
+  void mousePressEvent(QMouseEvent *event) override;
+
+ private:
+  void PlaceChildren();
+
+  LayoutEditor *editor_;
+  composer_ids::SlotPath path_;
+  std::string op_;
+  bool selected_ = false;
+  std::vector<QWidget *> children_;  // SlotEdit or LayoutView, one per part
+  QToolButton *remove_button_ = nullptr;
+};
+
+// Owns the composer state (outer operator, slot tree, selection) and the
+// widget tree that shows it. The widgets are rebuilt when the structure
+// changes and left alone while the user types.
+class LayoutEditor : public QWidget {
+  Q_OBJECT
+
+ public:
+  explicit LayoutEditor(QWidget *parent = nullptr);
+
+  const std::string &op() const { return op_; }
+  const std::vector<composer_ids::ComposerSlot> &parts() const { return parts_; }
+  const composer_ids::SlotPath &selection() const { return selection_; }
+
+  void SetLayout(const std::string &op,
+                 std::vector<composer_ids::ComposerSlot> parts);
+  // A palette click: acts on the selected region (see ApplyPaletteOperator).
+  void ApplyOperator(const std::string &op);
+  // Replaces the selected field's character by the next form of its radical.
+  // Returns false when nothing is selected or the character has no other form.
+  bool CycleSelectedForm(const composer_ids::IdsTable &table);
+  // Selects the region at |path| ({} is the outer square).
+  void Select(const composer_ids::SlotPath &path);
+  // Called by the view widgets.
+  void SetLeafInput(const composer_ids::SlotPath &path, const QString &text);
+  // × on a nested layout: back to a single field, or false (and a message) if
+  // that would throw away more than one filled field.
+  bool Flatten(const composer_ids::SlotPath &path);
+  void Clear();
+  // The operator of the region the palette would change (the selected layout,
+  // or the outer one when a field or nothing is selected).
+  std::string SelectedLayoutOp() const;
+
+ signals:
+  void changed();
+  void selectionChanged();
+  void flattenRefused();
+
+ private:
+  void Rebuild();
+  void ApplySelectionToWidgets();
+
+  std::string op_ = "⿰";
+  std::vector<composer_ids::ComposerSlot> parts_;
+  composer_ids::SlotPath selection_;
+  LayoutView *root_view_ = nullptr;
+};
+
+class CharacterComposerDialog : public QDialog {
+  Q_OBJECT
+
+ public:
+  // |table| may be null (data files missing): the dialog still builds IDS
+  // strings, only the character lookup is unavailable.
+  CharacterComposerDialog(std::unique_ptr<composer_ids::IdsTable> table,
+                          const QString &data_directory, QWidget *parent = nullptr);
+
+  // The character the user chose to insert, UTF-8; empty if none.
+  const std::string &result() const { return result_; }
+
+ private slots:
+  void OnLayoutChanged();
+  void OnPaletteClicked(int index);
+  void OnInsert();
+  void OnCopy();
+  void OnBreakApart();
+  void OnCycleForm();
+
+ private:
+  void BuildUi(const QString &data_directory);
+  void UpdateResult();
+  void UpdatePaletteHighlight();
+
+  std::unique_ptr<composer_ids::IdsTable> table_;
+  LayoutEditor *editor_ = nullptr;
+  QButtonGroup *palette_ = nullptr;
+  QLabel *ids_label_ = nullptr;
+  QLabel *char_label_ = nullptr;
+  QLabel *codepoint_label_ = nullptr;
+  QLabel *status_label_ = nullptr;
+  QLineEdit *break_apart_edit_ = nullptr;
+  QComboBox *decomposition_combo_ = nullptr;
+  QPushButton *insert_button_ = nullptr;
+  QPushButton *copy_button_ = nullptr;
+  QPushButton *cycle_button_ = nullptr;
+
+  QString note_;  // a one-off message that replaces the status line
+  QString data_directory_;
+  std::string found_;   // the encoded character for the current layout, or ""
+  std::string result_;  // what Insert chose
+};
+
+}  // namespace gui
+}  // namespace mozc
+
+#endif  // MOZC_GUI_CHARACTER_COMPOSER_CHARACTER_COMPOSER_DIALOG_H_

@@ -10,6 +10,7 @@
 
 #include <fstream>
 #include <map>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -20,6 +21,7 @@
 #include "base/file_util.h"
 #include "base/mac/mac_util.h"
 #include "composer/kaeriten_table_util.h"
+#include "composer_ids/composer_result.h"
 #include "session/marina_number_row_bindings_util.h"
 #include "base/system_util.h"
 #include "client/client_interface.h"
@@ -37,6 +39,54 @@ static NSTimeInterval g_suppress_set_value_direct_until = 0;
 static bool g_symbols_palette_visible = false;
 static bool g_toolbar_reshow_after_palette_close = false;
 static MozcShortcutsWindowController *g_shortcuts_window_controller = nil;
+
+// marinaMoji: character composer. CharacterComposer.app is a separate app (the
+// toolbar lives in the input method process and cannot show Qt windows). An
+// app started through LaunchServices cannot be given arguments, so it leaves
+// the character the user inserted in composer_ids::DefaultResultFilePath()
+// just before it quits; this watches for the quit and then commits that text
+// through the active controller, the way a Symbols Palette click does.
+static BOOL g_character_composer_watching = NO;
+
+// Commits |text| through the active controller. The composer's window takes
+// the focus, so right after it quits the controller may not be active again
+// yet; retry for a few seconds before giving up.
+static void CommitCharacterComposerText(NSString *text, int attemptsLeft) {
+  id<ControllerCallback> controller = g_active_controller;
+  if (controller) {
+    mozc::commands::Output output;
+    output.mutable_result()->set_value(text.UTF8String);
+    [controller outputResult:output];
+    return;
+  }
+  if (attemptsLeft <= 0) {
+    LOG(WARNING) << "character composer: no active controller; result dropped";
+    return;
+  }
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)),
+                 dispatch_get_main_queue(), ^{
+                   CommitCharacterComposerText(text, attemptsLeft - 1);
+                 });
+}
+
+static void WatchCharacterComposer(NSRunningApplication *app) {
+  if (g_character_composer_watching) return;  // the same app, merely re-activated
+  g_character_composer_watching = YES;
+  NSTimer *timer = [NSTimer timerWithTimeInterval:0.25
+                                          repeats:YES
+                                            block:^(NSTimer *timer) {
+    if (!app.terminated) return;
+    [timer invalidate];
+    g_character_composer_watching = NO;
+    const std::string path = mozc::composer_ids::DefaultResultFilePath();
+    const std::optional<std::string> text = mozc::composer_ids::ReadComposerResult(path);
+    mozc::FileUtil::Unlink(path).IgnoreError();
+    if (text.has_value()) {
+      CommitCharacterComposerText([NSString stringWithUTF8String:text->c_str()], 15);
+    }
+  }];
+  [[NSRunLoop mainRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
+}
 
 namespace {
 
@@ -883,7 +933,7 @@ std::string GetKeymapPath(const std::string &filename) {
   dictButton_.menu = dictMenu;
   x += kButtonWidth;
 
-  // Character composer (for now: opens zi.tools in the default browser)
+  // Character composer (runs CharacterComposer.app; see WatchCharacterComposer)
   composerButton_ = [self makeButtonAt:x action:@selector(composerClicked:)];
   composerButton_.image =
       [self loadSvg:isDarkMode_ ? @"toolbar_composer_dark" : @"toolbar_composer_light"];
@@ -1217,7 +1267,32 @@ std::string GetKeymapPath(const std::string &filename) {
 
 - (void)composerClicked:(id)sender {
   (void)sender;
-  [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://zi.tools/"]];
+  id<ControllerCallback> controller = g_active_controller;
+  if (controller) {
+    [controller flushCompositionForToolLaunch:controller];
+  }
+  // A stale result from an earlier run must not be inserted by this one.
+  if (!g_character_composer_watching) {
+    mozc::FileUtil::Unlink(mozc::composer_ids::DefaultResultFilePath()).IgnoreError();
+  }
+  NSString *directory = [NSString stringWithUTF8String:mozc::MacUtil::GetServerDirectory().c_str()];
+  NSURL *appURL =
+      [NSURL fileURLWithPath:[directory stringByAppendingPathComponent:@"CharacterComposer.app"]];
+  NSWorkspaceOpenConfiguration *configuration = [NSWorkspaceOpenConfiguration configuration];
+  configuration.activates = YES;
+  [[NSWorkspace sharedWorkspace]
+      openApplicationAtURL:appURL
+             configuration:configuration
+         completionHandler:^(NSRunningApplication *app, NSError *error) {
+           if (app == nil) {
+             LOG(ERROR) << "Cannot start the character composer: "
+                        << (error ? error.localizedDescription.UTF8String : "unknown error");
+             return;
+           }
+           dispatch_async(dispatch_get_main_queue(), ^{
+             WatchCharacterComposer(app);
+           });
+         }];
 }
 
 - (void)dictToolClicked:(id)sender {

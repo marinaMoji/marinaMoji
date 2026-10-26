@@ -1,0 +1,145 @@
+# Copyright 2026 marinaMoji contributors.
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# The character composer dialog (mozc_tool --mode=character_composer). The IDS
+# data it reads is the GPL-2.0-or-later files in //data/character_composer; it
+# is read at run time and is deliberately not a dependency of anything here.
+
+load(
+    "//:build_defs.bzl",
+    "mozc_cc_library",
+    "mozc_cc_test",
+)
+load(
+    "//bazel:qt.bzl",
+    "mozc_cc_qt_binary",
+    "mozc_cc_qt_library",
+    "mozc_macos_qt_application",
+    "mozc_qt_moc",
+    "mozc_qt_rcc",
+)
+
+package(default_visibility = ["//gui:__subpackages__"])
+
+mozc_qt_moc(
+    name = "moc_character_composer_dialog",
+    srcs = ["character_composer_dialog.h"],
+    outs = ["moc_character_composer_dialog.cc"],
+)
+
+mozc_qt_rcc(
+    name = "qrc_character_composer",
+    srcs = [
+        "character_composer_en.qm",
+        "character_composer_fr.qm",
+        "character_composer_ja.qm",
+        "//gui/base:tr_en.qm",
+        "//gui/base:tr_fr.qm",
+        "//gui/base:tr_ja.qm",
+    ],
+    outs = ["qrc_character_composer.cc"],
+    qrc_file = "character_composer.qrc",
+    qrc_name = "qrc_character_composer",
+)
+
+mozc_cc_library(
+    name = "layout_geometry",
+    srcs = ["layout_geometry.cc"],
+    hdrs = ["layout_geometry.h"],
+)
+
+mozc_cc_test(
+    name = "layout_geometry_test",
+    size = "small",
+    srcs = ["layout_geometry_test.cc"],
+    deps = [
+        ":layout_geometry",
+        "//composer_ids:ids_operator",
+        "//testing:gunit_main",
+    ],
+)
+
+mozc_cc_qt_library(
+    name = "character_composer",
+    srcs = [
+        "character_composer_dialog.cc",
+        "character_composer_libmain.cc",
+        ":moc_character_composer_dialog",
+        ":qrc_character_composer",
+    ],
+    hdrs = ["character_composer_dialog.h"],
+    local_defines = ["MARINAMOJI"],
+    deps = [
+        ":layout_geometry",
+        "//base:system_util",
+        "//composer_ids:composer_result",
+        "//composer_ids:ids_operator",
+        "//composer_ids:ids_table",
+        "//composer_ids:ids_tree",
+        "//gui/base:gui_base",
+        "//gui/base:singleton_window_helper",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+    ],
+)
+
+mozc_cc_test(
+    name = "character_composer_dialog_test",
+    size = "small",
+    srcs = ["character_composer_dialog_test.cc"],
+    data = [
+        "//composer_ids:testdata/ids_table.tsv",
+        "//composer_ids:testdata/radical_forms.tsv",
+    ],
+    env = {"QT_QPA_PLATFORM": "offscreen"},
+    deps = [
+        ":character_composer",
+        "//base:file_util",
+        "//composer_ids:ids_table",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+    ],
+)
+
+mozc_cc_test(
+    name = "character_composer_libmain_test",
+    size = "small",
+    srcs = ["character_composer_libmain_test.cc"],
+    data = [
+        "//composer_ids:testdata/ids_table.tsv",
+        "//composer_ids:testdata/radical_forms.tsv",
+    ],
+    env = {"QT_QPA_PLATFORM": "offscreen"},
+    deps = [
+        ":character_composer",
+        "//base:file_util",
+        "//base:system_util",
+        "//composer_ids:composer_result",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+        "@com_google_absl//absl/flags:flag",
+    ],
+)
+
+mozc_cc_qt_library(
+    name = "character_composer_main_lib",
+    srcs = ["character_composer_main.cc"],
+    deps = [
+        ":character_composer",
+        "//base:init_mozc",
+        "//gui/base:gui_base",
+    ],
+)
+
+mozc_cc_qt_binary(
+    name = "character_composer_main",
+    deps = [":character_composer_main_lib"],
+)
+
+# macOS: the composer is its own app bundle, started through LaunchServices
+# (which cannot pass arguments, hence the default result file path).
+mozc_macos_qt_application(
+    name = "character_composer_macos",
+    bundle_name = "CharacterComposer",
+    deps = [":character_composer_main_lib"],
+)

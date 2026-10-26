@@ -771,10 +771,11 @@ bool TipEditSession::OnRendererCallbackAsync(TipTextService* text_service,
     }
     case SessionCommand::OPEN_CHARACTER_COMPOSER: {
       // marinaMoji: toolbar "Character composer" click. The renderer runs in a
-      // locked-down job and cannot open a browser, so the TIP (which runs in
-      // the application's own process) does it. Not forwarded to the session.
-      return WinUtil::ShellExecuteInSystemDir(L"open", L"https://zi.tools/",
-                                              nullptr);
+      // locked-down job and cannot start a process, so the TIP (which runs in
+      // the application's own process) starts the composer and, when it
+      // closes, inserts the character it chose. Not forwarded to the session.
+      text_service->LaunchCharacterComposer();
+      return true;
     }
     case SessionCommand::SHOW_SHORTCUTS_WINDOW:
     case SessionCommand::HIDE_SHORTCUTS_WINDOW: {

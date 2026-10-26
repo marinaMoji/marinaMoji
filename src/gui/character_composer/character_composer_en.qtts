@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.0" language="en">
+<context>
+    <name>mozc::gui::CharacterComposerDialog</name>
+    <message>
+        <source>Remove this layout</source>
+        <translation>Remove this layout</translation>
+    </message>
+    <message>
+        <source>Character composer</source>
+        <translation>Character composer</translation>
+    </message>
+    <message>
+        <source>Clear all but one of the filled boxes before removing this layout.</source>
+        <translation>Clear all but one of the filled boxes before removing this layout.</translation>
+    </message>
+    <message>
+        <source>Pick a layout. Click a box first to put the layout inside that box.</source>
+        <translation>Pick a layout. Click a box first to put the layout inside that box.</translation>
+    </message>
+    <message>
+        <source>Next form of this radical</source>
+        <translation>Next form of this radical</translation>
+    </message>
+    <message>
+        <source>Break apart a character</source>
+        <translation>Break apart a character</translation>
+    </message>
+    <message>
+        <source>Type a character</source>
+        <translation>Type a character</translation>
+    </message>
+    <message>
+        <source>Break apart</source>
+        <translation>Break apart</translation>
+    </message>
+    <message>
+        <source>Insert</source>
+        <translation>Insert</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Copy</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>Clear</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Close</translation>
+    </message>
+    <message>
+        <source>Character data was not found in %1, so the character cannot be looked up. You can still build the IDS above.</source>
+        <translation>Character data was not found in %1, so the character cannot be looked up. You can still build the IDS above.</translation>
+    </message>
+    <message>
+        <source>No encoded character has this structure.</source>
+        <translation>No encoded character has this structure.</translation>
+    </message>
+    <message>
+        <source>Fill in every box to look up the character.</source>
+        <translation>Fill in every box to look up the character.</translation>
+    </message>
+    <message>
+        <source>Copied to the clipboard.</source>
+        <translation>Copied to the clipboard.</translation>
+    </message>
+    <message>
+        <source>Select a box holding a radical that has other forms.</source>
+        <translation>Select a box holding a radical that has other forms.</translation>
+    </message>
+    <message>
+        <source>No decomposition on record for this character.</source>
+        <translation>No decomposition on record for this character.</translation>
+    </message>
+    <message>
+        <source>Some parts have no encoded character; fill those boxes in.</source>
+        <translation>Some parts have no encoded character; fill those boxes in.</translation>
+    </message>
+    <message>
+        <source>Left / right</source>
+        <translation>Left / right</translation>
+    </message>
+    <message>
+        <source>Above / below</source>
+        <translation>Above / below</translation>
+    </message>
+    <message>
+        <source>Left / middle / right</source>
+        <translation>Left / middle / right</translation>
+    </message>
+    <message>
+        <source>Top / middle / bottom</source>
+        <translation>Top / middle / bottom</translation>
+    </message>
+    <message>
+        <source>Full enclosure</source>
+        <translation>Full enclosure</translation>
+    </message>
+    <message>
+        <source>Surround from above</source>
+        <translation>Surround from above</translation>
+    </message>
+    <message>
+        <source>Surround from below</source>
+        <translation>Surround from below</translation>
+    </message>
+    <message>
+        <source>Surround from left</source>
+        <translation>Surround from left</translation>
+    </message>
+    <message>
+        <source>Upper-left enclosure</source>
+        <translation>Upper-left enclosure</translation>
+    </message>
+    <message>
+        <source>Upper-right enclosure</source>
+        <translation>Upper-right enclosure</translation>
+    </message>
+    <message>
+        <source>Lower-left enclosure</source>
+        <translation>Lower-left enclosure</translation>
+    </message>
+    <message>
+        <source>Overlap</source>
+        <translation>Overlap</translation>
+    </message>
+</context>
+</TS>

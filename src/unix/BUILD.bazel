@@ -99,6 +99,7 @@ genrule(
     srcs = [
         ":icons",
         ":mozc_sync_bin",
+        "//data/character_composer:character_composer_data",
         "//data/marina_opencc:opencc_data",
         "//gui/tool:mozc_tool",
         "//server:mozc_server",

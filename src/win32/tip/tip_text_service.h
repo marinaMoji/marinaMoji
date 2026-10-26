@@ -80,6 +80,12 @@ class TipTextService : public IUnknown {
   // Returns true if the language bar is initialized.
   virtual bool IsLangbarInitialized() const = 0;
 
+  // marinaMoji: starts the character composer (mozc_tool, character_composer
+  // mode) and inserts the character the user chooses into the focused
+  // context. Does nothing while a composer started from this service is still
+  // open.
+  virtual void LaunchCharacterComposer() = 0;
+
   virtual ~TipTextService() = default;
 };
 

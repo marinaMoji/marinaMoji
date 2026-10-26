@@ -136,6 +136,7 @@ def TweakQtApps(top_dir: str, oss: bool, branding: str) -> None:
   name = OssProductName(oss, branding)
   sub_qt_apps = [
       'AboutDialog',
+      'CharacterComposer',
       'DictionaryTool',
       'ErrorMessageDialog',
       f'{name}Prelauncher',

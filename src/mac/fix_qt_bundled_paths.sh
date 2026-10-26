@@ -245,7 +245,7 @@ fi
 fix_config_dialog_app "$CONFIG_APP"
 
 HOST_FW="../../../ConfigDialog.app/Contents/Frameworks"
-for app in AboutDialog DictionaryTool ErrorMessageDialog WordRegisterDialog; do
+for app in AboutDialog CharacterComposer DictionaryTool ErrorMessageDialog WordRegisterDialog; do
   fix_nested_qt_app "${APP}/Contents/Resources/${app}.app" "$HOST_FW"
 done
 

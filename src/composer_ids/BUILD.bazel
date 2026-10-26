@@ -1,0 +1,142 @@
+# Copyright 2026 marinaMoji contributors.
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# The character composer's logic: the IDS operators, the slot tree and the
+# IDS lookup. No UI, and no data compiled in: the lookup reads the
+# GPL-2.0-or-later files in //data/character_composer at run time.
+
+load(
+    "//:build_defs.bzl",
+    "mozc_cc_library",
+    "mozc_cc_test",
+)
+
+package(default_visibility = ["//visibility:private"])
+
+exports_files(
+    [
+        "testdata/ids_table.tsv",
+        "testdata/radical_forms.tsv",
+    ],
+    visibility = ["//gui/character_composer:__pkg__"],
+)
+
+mozc_cc_library(
+    name = "ids_operator",
+    srcs = ["ids_operator.cc"],
+    hdrs = ["ids_operator.h"],
+    visibility = ["//gui/character_composer:__pkg__"],
+    deps = ["@com_google_absl//absl/types:span"],
+)
+
+mozc_cc_library(
+    name = "ids_tree",
+    srcs = ["ids_tree.cc"],
+    hdrs = ["ids_tree.h"],
+    visibility = ["//gui/character_composer:__pkg__"],
+    deps = [
+        ":ids_operator",
+        "//base/strings:unicode",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_library(
+    name = "ids_table",
+    srcs = ["ids_table.cc"],
+    hdrs = ["ids_table.h"],
+    visibility = ["//gui/character_composer:__pkg__"],
+    deps = [
+        "//base:file_util",
+        "//base:system_util",
+        "//base/strings:unicode",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_library(
+    name = "composer_result",
+    srcs = ["composer_result.cc"],
+    hdrs = ["composer_result.h"],
+    visibility = [
+        "//gui/character_composer:__pkg__",
+        "//mac:__pkg__",
+        "//win32/tip:__pkg__",
+    ],
+    deps = [
+        "//base:file_util",
+        "//base:system_util",
+        "//base/strings:unicode",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_test(
+    name = "composer_result_test",
+    size = "small",
+    srcs = ["composer_result_test.cc"],
+    deps = [
+        ":composer_result",
+        "//base:file_util",
+        "//base:system_util",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+    ],
+)
+
+mozc_cc_test(
+    name = "ids_operator_test",
+    size = "small",
+    srcs = ["ids_operator_test.cc"],
+    deps = [
+        ":ids_operator",
+        "//testing:gunit_main",
+    ],
+)
+
+mozc_cc_test(
+    name = "ids_tree_test",
+    size = "small",
+    srcs = ["ids_tree_test.cc"],
+    deps = [
+        ":ids_tree",
+        "//testing:gunit_main",
+    ],
+)
+
+mozc_cc_test(
+    name = "ids_table_test",
+    size = "small",
+    srcs = ["ids_table_test.cc"],
+    data = [
+        "testdata/ids_table.tsv",
+        "testdata/radical_forms.tsv",
+    ],
+    deps = [
+        ":ids_table",
+        "//base:file_util",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+    ],
+)
+
+# Runs against the real installed-data files. Manual: it needs the GPL table,
+# which the unit tests above deliberately do not.
+mozc_cc_test(
+    name = "ids_table_real_data_test",
+    size = "medium",
+    srcs = ["ids_table_real_data_test.cc"],
+    data = ["//data/character_composer:character_composer_data"],
+    tags = ["manual"],
+    deps = [
+        ":ids_table",
+        "//base:file_util",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+    ],
+)

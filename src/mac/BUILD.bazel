@@ -98,6 +98,7 @@ mozc_macos_application(
             "//mac/installer:bundled_launch_daemons": "Library",
             "//mac:marina_update_helper_macos": "Resources",
             "//gui/about_dialog:about_dialog_macos": "Resources",
+            "//gui/character_composer:character_composer_macos": "Resources",
             "//gui/config_dialog:config_dialog_macos": "Resources",
             "//gui/dictionary_tool:dictionary_tool_macos": "Resources",
             "//gui/error_message_dialog:error_message_dialog_macos": "Resources",
@@ -107,6 +108,9 @@ mozc_macos_application(
             "//server:mozc_server_macos": "Resources",
             "//sync:marinaMojiSync_macos": "Resources",
             "//data/marina_opencc:opencc_data": "Resources/opencc",
+            # GPL-2.0-or-later data read by CharacterComposer.app at run time;
+            # see data/character_composer/README.md.
+            "//data/character_composer:character_composer_data": "Resources/character_composer",
             "//unix/ibus:toolbar_icons": "Resources",
             "//data/keymap:keymap_files": "Resources/keymap",
             "//data/preedit:kaeriten.tsv": "Resources/keymap",
@@ -199,6 +203,7 @@ mozc_objc_library(
         "//base/mac:mac_util",
         "//client:client_interface",
         "//composer:kaeriten_table_util",
+        "//composer_ids:composer_result",
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",
         "//session:marina_number_row_bindings_util",

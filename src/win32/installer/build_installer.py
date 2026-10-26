@@ -128,6 +128,10 @@ def run_wix4(args) -> None:
   opencc_characters = pathlib.Path(args.opencc_characters).resolve()
   opencc_phrases = pathlib.Path(args.opencc_phrases).resolve()
   opencc_variants = pathlib.Path(args.opencc_variants).resolve()
+  composer_ids = pathlib.Path(args.composer_ids).resolve()
+  composer_forms = pathlib.Path(args.composer_forms).resolve()
+  composer_license = pathlib.Path(args.composer_license).resolve()
+  composer_readme = pathlib.Path(args.composer_readme).resolve()
   # All toolbar_icons/*.png live alongside this one sample file (see
   # data/images/win/generate_toolbar_icons.py); only its parent directory is
   # needed since installer_marinamoji_64bit.wxs references each file by its
@@ -213,6 +217,10 @@ def run_wix4(args) -> None:
       '-define', f'OpenccCharactersPath={opencc_characters}',
       '-define', f'OpenccPhrasesPath={opencc_phrases}',
       '-define', f'OpenccVariantsPath={opencc_variants}',
+      '-define', f'ComposerIdsPath={composer_ids}',
+      '-define', f'ComposerFormsPath={composer_forms}',
+      '-define', f'ComposerLicensePath={composer_license}',
+      '-define', f'ComposerReadmePath={composer_readme}',
       '-define', f'ToolbarIconsDir={toolbar_icons_dir}',
       '-define', f'DocumentsDir={document_dir}',
       '-define', f'QtDir={qt_dir}',
@@ -267,6 +275,10 @@ def main():
   parser.add_argument('--opencc_characters', type=str)
   parser.add_argument('--opencc_phrases', type=str)
   parser.add_argument('--opencc_variants', type=str)
+  parser.add_argument('--composer_ids', type=str)
+  parser.add_argument('--composer_forms', type=str)
+  parser.add_argument('--composer_license', type=str)
+  parser.add_argument('--composer_readme', type=str)
   parser.add_argument('--toolbar_icons_sample', type=str)
   parser.add_argument('--icon_path', type=str)
   parser.add_argument('--credit_file', type=str)

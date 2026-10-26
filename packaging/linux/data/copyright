@@ -18,6 +18,18 @@ Copyright: 2010-2024, Carbo Kuo and OpenCC contributors
 License: Apache-2.0
 Comment: Conversion tables derived from OpenCC and recompiled for marinaMoji.
 
+Files: usr/lib/marinamoji/character_composer/*
+Copyright: CHISE project and contributors
+           kawabata (cjkvi-ids)
+           2024-2026, Marina Pandolfino and Daniel Patrick Morgan (format conversion)
+License: GPL-2+
+Comment:
+ Character composer data: IDS (ideographic description sequence) tables
+ derived from the CHISE IDS project (via github.com/cjkvi/cjkvi-ids and
+ github.com/chise/ids). These files are plain data read at run time by
+ mozc_tool; they are not compiled or linked into any binary, which stay
+ BSD-3-Clause. See character_composer/README.md in the same directory.
+
 Files: usr/share/icons/marinamoji/dictionary.* usr/share/icons/marinamoji/properties.* usr/share/icons/marinamoji/tool.*
 Copyright: Google LLC
 License: Apache-2.0
@@ -333,3 +345,17 @@ License: Japan-Post-Postal-Code-Data
  (For postal code data only, Japan Post Co., Ltd. does not claim copyright.
  You are welcome to distribute it freely. For the office data it adds that no
  permission from Japan Post is required.)
+
+License: GPL-2+
+ This data is free software; you can redistribute it and/or modify it
+ under the terms of the GNU General Public License as published by the
+ Free Software Foundation; either version 2 of the License, or (at your
+ option) any later version.
+ .
+ This data is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ Public License for more details.
+ .
+ On Debian systems the full text of the GNU General Public License
+ version 2 can be found in /usr/share/common-licenses/GPL-2.

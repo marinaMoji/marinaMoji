@@ -200,6 +200,10 @@
       <ComponentRef Id="MarinaMojiOpenccCharacters" />
       <ComponentRef Id="MarinaMojiOpenccPhrases" />
       <ComponentRef Id="MarinaMojiOpenccVariants" />
+      <ComponentRef Id="MarinaMojiComposerIds" />
+      <ComponentRef Id="MarinaMojiComposerForms" />
+      <ComponentRef Id="MarinaMojiComposerLicense" />
+      <ComponentRef Id="MarinaMojiComposerReadme" />
       <ComponentRef Id="MarinaMojiSync" />
       <ComponentRef Id="MMToolbarIcon_logo_long_dark_24" />
       <ComponentRef Id="MMToolbarIcon_logo_long_dark_36" />
@@ -565,6 +569,28 @@
           </Component>
           <Component Id="MarinaMojiOpenccVariants">
             <File Id="marinaShin2KyuVariants.ocd2" Name="marinaShin2KyuVariants.ocd2" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.OpenccVariantsPath)" />
+          </Component>
+        </Directory>
+        <!--
+          Character composer data (GPL-2.0-or-later, derived from CHISE IDS; see
+          data/character_composer/README.md). Plain data files read by
+          marinamoji_tool.exe; never linked into a program. Path must match
+          IdsTable::DefaultDirectory(): SystemUtil::GetServerDirectory() +
+          "/character_composer/". The licence text and README are installed
+          with the data.
+        -->
+        <Directory Id="ComposerDir" Name="character_composer">
+          <Component Id="MarinaMojiComposerIds">
+            <File Id="ids_table.tsv" Name="ids_table.tsv" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ComposerIdsPath)" />
+          </Component>
+          <Component Id="MarinaMojiComposerForms">
+            <File Id="radical_forms.tsv" Name="radical_forms.tsv" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ComposerFormsPath)" />
+          </Component>
+          <Component Id="MarinaMojiComposerLicense">
+            <File Id="composer_LICENSE.GPL_2.0" Name="LICENSE.GPL-2.0" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ComposerLicensePath)" />
+          </Component>
+          <Component Id="MarinaMojiComposerReadme">
+            <File Id="composer_README.md" Name="README.md" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ComposerReadmePath)" />
           </Component>
         </Directory>
         <!--

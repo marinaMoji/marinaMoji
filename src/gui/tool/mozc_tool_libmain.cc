@@ -61,6 +61,7 @@ ABSL_DECLARE_FLAG(std::string, error_type);
 
 // Run* are defined in each qt module
 int RunAboutDialog(int argc, char *argv[]);
+int RunCharacterComposer(int argc, char *argv[]);
 int RunConfigDialog(int argc, char *argv[]);
 int RunDictionaryTool(int argc, char *argv[]);
 int RunWordRegisterDialog(int argc, char *argv[]);
@@ -147,6 +148,8 @@ int RunMozcTool(int argc, char *argv[]) {
     return RunErrorMessageDialog(argc, argv);
   } else if (absl::GetFlag(FLAGS_mode) == "about_dialog") {
     return RunAboutDialog(argc, argv);
+  } else if (absl::GetFlag(FLAGS_mode) == "character_composer") {
+    return RunCharacterComposer(argc, argv);
 #ifdef _WIN32
   } else if (absl::GetFlag(FLAGS_mode) == "post_install_dialog") {
     // post_install_dialog is used on Windows only.

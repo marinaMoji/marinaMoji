@@ -10,6 +10,73 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer (Linux): build a character from its parts and insert it
+
+The toolbar's character-composer button used to open zi.tools. On Linux it now
+runs `mozc_tool --mode=character_composer`, a Qt dialog modelled on the composer
+in the Grognard editor, limited to producing an encoded Unicode character.
+
+- Pick one of the twelve IDS layouts (⿰ ⿱ ⿲ ⿳ ⿴ ⿵ ⿶ ⿷ ⿸ ⿹ ⿺ ⿻), type a
+  component in each box, and the character that structure describes appears
+  (`⿰言某` → 謀). A box can itself become a layout, to any depth: click a box,
+  then a layout. Clicking the square's padding selects the outer layout again;
+  × turns a nested layout back into one box (refused while two or more of its
+  boxes are filled, so nothing is dropped silently).
+- Matching also works across the forms of a radical (`⿰業刀` finds 𠟪, which the
+  data records as `⿰業刂`), and is refused when two characters would share the
+  reduced form.
+- "Break apart" does the reverse: type 謀 and the layout fills in `⿰言某`.
+- Insert prints the character on stdout; the toolbar reads it and commits it
+  with `CommitToolbarText`. Copy puts it on the clipboard instead.
+- New code: `src/composer_ids/` (operators, slot tree, IDS table; no Qt, no UI),
+  `src/gui/character_composer/` (dialog, shape geometry shared by the square and
+  the palette icons, EN/FR/JA translations). BSD-3-Clause.
+- **Licence note.** The lookup data (`src/data/character_composer/ids_table.tsv`,
+  101,298 pairs, and `radical_forms.tsv`) comes from the CHISE IDS project and is
+  GPL-2.0-or-later. Rebuilt from upstream (cjkvi-ids `86b4d16`, chise/ids
+  `ac35413`) by `build_ids_data.py`, a Python port of Grognard's two build
+  scripts; the same inputs reproduce Grognard's table except for one Extension H
+  entry upstream has since corrected. It is installed as plain files in
+  `<server dir>/character_composer/` and read at run time; it is never compiled
+  or linked into a binary, so the code stays BSD. The licence text and a README
+  ship beside it, and `packaging/linux/data/copyright` and `credits_en.html` list
+  it. Without the files the dialog still builds IDS strings; only the lookup is
+  unavailable.
+- Tests: `//composer_ids:all` (fixture tables, no GPL data), `//gui/character_composer:all`
+  (offscreen Qt), and the manual `//composer_ids:ids_table_real_data_test`.
+- **Windows and macOS: written, not built or run.** The result goes back through a
+  file instead of a pipe (`composer_ids/composer_result.*`: the tool writes the
+  character to `--result_file`, or on macOS to
+  `<user profile>/character_composer_result.txt`, just before it exits; the input
+  method reads it once the tool has exited, accepts at most 32 bytes of valid
+  UTF-8, and deletes the file). The tool half is covered on Linux by
+  `character_composer_libmain_test`, which drives `RunCharacterComposer()` offscreen
+  and checks the file.
+  - Windows: `TipTextService::LaunchCharacterComposer()` (`tip_text_service.cc`)
+    starts `marinamoji_tool.exe --mode=character_composer --result_file="<temp>"`,
+    waits for the process on a timer of the renderer callback window (so no worker
+    thread outlives the DLL), then inserts the text through the same path as a
+    Symbols Palette click. `OPEN_CHARACTER_COMPOSER` calls it instead of opening
+    zi.tools. The installer ships `character_composer\` (the two TSV files, the
+    GPL text and the README) beside the server (`installer_marinamoji_64bit.wxs`,
+    `installer.bzl`, `build_installer.py`).
+  - macOS: new `CharacterComposer.app` (`character_composer_macos`) in
+    `Resources`, data in `Resources/character_composer`. The toolbar button
+    (`composerClicked:`) opens the app, watches for it to quit, and commits the
+    result with `outputResult:`, retrying for 3 s while the text field's
+    controller becomes active again. `fix_qt_bundled_paths.sh` and
+    `tweak_installer_files.py` list the new app.
+  - Signing: nothing new to sign. On macOS `CharacterComposer.app` is signed with the
+    other nested tool apps (the release `CODESIGN` define, then
+    `fix_qt_bundled_paths.sh`, which now lists it); notarization is the first real
+    test, so run `codesign --verify --deep --strict marinaMoji.app` on the first signed
+    build. On Windows it is a mode of the existing `marinamoji_tool.exe`, already in
+    the MSI, and the data files are plain text.
+  - To check on each platform: button opens the dialog; Insert puts the character
+    in the focused field; closing the dialog inserts nothing; a second click while
+    open only raises the window; the data directory is present in the installed
+    product.
+
 ### Linux: a pinned symbols palette stays open when focus moves to another window
 
 `MozcEngine::FocusOut` closed the symbols palette unconditionally, so the

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.0" language="ja">
+<context>
+    <name>mozc::gui::CharacterComposerDialog</name>
+    <message>
+        <source>Remove this layout</source>
+        <translation>この配置を削除</translation>
+    </message>
+    <message>
+        <source>Character composer</source>
+        <translation>文字の組み立て</translation>
+    </message>
+    <message>
+        <source>Clear all but one of the filled boxes before removing this layout.</source>
+        <translation>この配置を削除する前に、入力済みの欄を1つだけ残して消去してください。</translation>
+    </message>
+    <message>
+        <source>Pick a layout. Click a box first to put the layout inside that box.</source>
+        <translation>配置を選んでください。先に欄をクリックすると、その欄の中に配置されます。</translation>
+    </message>
+    <message>
+        <source>Next form of this radical</source>
+        <translation>この部首の次の字形</translation>
+    </message>
+    <message>
+        <source>Break apart a character</source>
+        <translation>文字を分解</translation>
+    </message>
+    <message>
+        <source>Type a character</source>
+        <translation>文字を入力</translation>
+    </message>
+    <message>
+        <source>Break apart</source>
+        <translation>分解</translation>
+    </message>
+    <message>
+        <source>Insert</source>
+        <translation>挿入</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>コピー</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>クリア</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>閉じる</translation>
+    </message>
+    <message>
+        <source>Character data was not found in %1, so the character cannot be looked up. You can still build the IDS above.</source>
+        <translation>文字データが %1 に見つからないため、文字を検索できません。上の IDS は引き続き組み立てられます。</translation>
+    </message>
+    <message>
+        <source>No encoded character has this structure.</source>
+        <translation>この構造を持つ符号化文字はありません。</translation>
+    </message>
+    <message>
+        <source>Fill in every box to look up the character.</source>
+        <translation>すべての欄を入力すると文字を検索します。</translation>
+    </message>
+    <message>
+        <source>Copied to the clipboard.</source>
+        <translation>クリップボードにコピーしました。</translation>
+    </message>
+    <message>
+        <source>Select a box holding a radical that has other forms.</source>
+        <translation>他の字形を持つ部首が入っている欄を選んでください。</translation>
+    </message>
+    <message>
+        <source>No decomposition on record for this character.</source>
+        <translation>この文字の分解は登録されていません。</translation>
+    </message>
+    <message>
+        <source>Some parts have no encoded character; fill those boxes in.</source>
+        <translation>符号化文字のない部分があります。その欄は自分で入力してください。</translation>
+    </message>
+    <message>
+        <source>Left / right</source>
+        <translation>左右</translation>
+    </message>
+    <message>
+        <source>Above / below</source>
+        <translation>上下</translation>
+    </message>
+    <message>
+        <source>Left / middle / right</source>
+        <translation>左・中・右</translation>
+    </message>
+    <message>
+        <source>Top / middle / bottom</source>
+        <translation>上・中・下</translation>
+    </message>
+    <message>
+        <source>Full enclosure</source>
+        <translation>全包囲</translation>
+    </message>
+    <message>
+        <source>Surround from above</source>
+        <translation>上から囲む</translation>
+    </message>
+    <message>
+        <source>Surround from below</source>
+        <translation>下から囲む</translation>
+    </message>
+    <message>
+        <source>Surround from left</source>
+        <translation>左から囲む</translation>
+    </message>
+    <message>
+        <source>Upper-left enclosure</source>
+        <translation>左上から囲む</translation>
+    </message>
+    <message>
+        <source>Upper-right enclosure</source>
+        <translation>右上から囲む</translation>
+    </message>
+    <message>
+        <source>Lower-left enclosure</source>
+        <translation>左下から囲む</translation>
+    </message>
+    <message>
+        <source>Overlap</source>
+        <translation>重ね</translation>
+    </message>
+</context>
+</TS>

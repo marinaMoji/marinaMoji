@@ -34,6 +34,7 @@
 #include <msctf.h>
 #include <objbase.h>
 #include <wil/com.h>
+#include <wil/resource.h>
 #include <wil/result_macros.h>
 #include <windows.h>
 
@@ -42,6 +43,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -51,6 +53,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/log/log.h"
 #include "base/const.h"
+#include "composer_ids/composer_result.h"
 #include "base/process.h"
 #include "base/system_util.h"
 #include "base/update_util.h"
@@ -118,6 +121,11 @@ volatile bool g_module_unloaded = false;
 volatile DWORD g_tls_index = TLS_OUT_OF_INDEXES;
 
 constexpr UINT kUpdateUIMessage = WM_USER;
+
+// marinaMoji: timer on the renderer callback window that waits for the
+// character composer to exit.
+constexpr UINT_PTR kComposerTimerId = 0x4D43;
+constexpr UINT kComposerPollMsec = 250;
 
 #ifdef GOOGLE_JAPANESE_INPUT_BUILD
 
@@ -1631,6 +1639,7 @@ class TipTextServiceImpl
     if (!::IsWindow(renderer_callback_window_handle_)) {
       return S_FALSE;
     }
+    CancelCharacterComposerWatch();
     ::DestroyWindow(renderer_callback_window_handle_);
     renderer_callback_window_handle_ = nullptr;
     return S_OK;
@@ -1684,6 +1693,10 @@ class TipTextServiceImpl
     if (window_handle == self->renderer_callback_window_handle_) {
       if (message == renderer_callback_message) {
         self->OnRendererCallback(wparam, lparam);
+        return 0;
+      }
+      if (message == WM_TIMER && wparam == kComposerTimerId) {
+        self->OnCharacterComposerTimer();
         return 0;
       }
       if (message == WM_COPYDATA) {
@@ -1755,6 +1768,87 @@ class TipTextServiceImpl
     return nullptr;
   }
 
+  // marinaMoji: the character composer runs as mozc_tool in its own process.
+  // It writes the character the user inserted to a temporary file and exits;
+  // this watches for the exit on the callback window's timer (so everything
+  // stays on the TSF thread, with no worker thread left running if the DLL is
+  // unloaded) and then inserts the text the way a Symbols Palette click does.
+  void LaunchCharacterComposer() override {
+    if (composer_process_ || !::IsWindow(renderer_callback_window_handle_)) {
+      return;
+    }
+    wchar_t temp_dir[MAX_PATH + 1] = {};
+    wchar_t temp_file[MAX_PATH] = {};
+    if (::GetTempPathW(MAX_PATH, temp_dir) == 0 ||
+        ::GetTempFileNameW(temp_dir, L"mmc", 0, temp_file) == 0) {
+      LOG(ERROR) << "Cannot create a result file for the character composer";
+      return;
+    }
+    const std::string arg =
+        "--mode=character_composer --result_file=\"" + WideToUtf8(temp_file) +
+        "\"";
+    size_t pid = 0;
+    if (!Process::SpawnMozcProcess(kMozcTool, arg, &pid)) {
+      LOG(ERROR) << "Cannot start the character composer";
+      ::DeleteFileW(temp_file);
+      return;
+    }
+    wil::unique_process_handle process(
+        ::OpenProcess(SYNCHRONIZE, FALSE, static_cast<DWORD>(pid)));
+    composer_result_path_ = temp_file;
+    if (!process) {
+      // Already gone (or not ours to wait on): read whatever it left.
+      FinishCharacterComposer();
+      return;
+    }
+    composer_process_ = std::move(process);
+    ::SetTimer(renderer_callback_window_handle_, kComposerTimerId,
+               kComposerPollMsec, nullptr);
+  }
+
+  void OnCharacterComposerTimer() {
+    if (!composer_process_) {
+      ::KillTimer(renderer_callback_window_handle_, kComposerTimerId);
+      return;
+    }
+    if (::WaitForSingleObject(composer_process_.get(), 0) != WAIT_OBJECT_0) {
+      return;  // still open
+    }
+    FinishCharacterComposer();
+  }
+
+  // Reads the composer's result file, removes it and inserts the character.
+  void FinishCharacterComposer() {
+    if (::IsWindow(renderer_callback_window_handle_)) {
+      ::KillTimer(renderer_callback_window_handle_, kComposerTimerId);
+    }
+    composer_process_.reset();
+    const std::wstring path = std::move(composer_result_path_);
+    composer_result_path_.clear();
+    if (path.empty()) {
+      return;
+    }
+    const std::optional<std::string> text =
+        composer_ids::ReadComposerResult(WideToUtf8(path));
+    ::DeleteFileW(path.c_str());
+    if (text.has_value()) {
+      OnRendererSymbolTextCallback(*text);
+    }
+  }
+
+  // Forgets a composer that is still open (the window that watches it is going
+  // away). The tool keeps running; its result is simply not inserted.
+  void CancelCharacterComposerWatch() {
+    if (::IsWindow(renderer_callback_window_handle_)) {
+      ::KillTimer(renderer_callback_window_handle_, kComposerTimerId);
+    }
+    composer_process_.reset();
+    if (!composer_result_path_.empty()) {
+      ::DeleteFileW(composer_result_path_.c_str());
+      composer_result_path_.clear();
+    }
+  }
+
   void OnRendererSymbolTextCallback(const std::string& text) {
     wil::com_ptr_nothrow<ITfContext> context = GetRendererCallbackContext();
     if (!context) {
@@ -1775,6 +1869,11 @@ class TipTextServiceImpl
 
   // Represents the status of the thread manager which owns this IME object.
   wil::com_ptr_nothrow<ITfThreadMgr> thread_mgr_;
+
+  // marinaMoji: the open character composer, if any, and the file it will
+  // leave its result in. See LaunchCharacterComposer().
+  wil::unique_process_handle composer_process_;
+  std::wstring composer_result_path_;
 
   // marinaMoji: last non-null focused document manager, used as a fallback
   // target for renderer callbacks when the thread focus is transiently lost
