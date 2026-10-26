@@ -23,8 +23,18 @@ std::string DefaultResultFilePath() {
                             "character_composer_result.txt");
 }
 
+std::string DefaultSvgResultFilePath() {
+  return FileUtil::JoinPath(SystemUtil::GetUserProfileDirectory(),
+                            "character_composer_result.svg");
+}
+
 absl::Status WriteComposerResult(std::string_view path, std::string_view text) {
   return FileUtil::SetContents(path, absl::StrCat(text, "\n"));
+}
+
+absl::Status WriteComposerSvgResult(std::string_view path,
+                                    std::string_view svg) {
+  return FileUtil::SetContents(path, svg);
 }
 
 std::optional<std::string> ReadComposerResult(std::string_view path) {
@@ -33,6 +43,16 @@ std::optional<std::string> ReadComposerResult(std::string_view path) {
   const std::string_view text = absl::StripAsciiWhitespace(*contents);
   if (text.empty() || text.size() > kMaxComposerResultBytes ||
       !strings::IsValidUtf8(text)) {
+    return std::nullopt;
+  }
+  return std::string(text);
+}
+
+std::optional<std::string> ReadComposerSvgResult(std::string_view path) {
+  const absl::StatusOr<std::string> contents = FileUtil::GetContents(path);
+  if (!contents.ok()) return std::nullopt;
+  const std::string_view text = absl::StripAsciiWhitespace(*contents);
+  if (text.empty() || text.find("<svg") == std::string_view::npos) {
     return std::nullopt;
   }
   return std::string(text);

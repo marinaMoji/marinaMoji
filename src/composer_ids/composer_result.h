@@ -31,13 +31,22 @@ inline constexpr size_t kMaxComposerResultBytes = 32;
 // given arguments.
 std::string DefaultResultFilePath();
 
+// Sibling of DefaultResultFilePath() with a .svg suffix — unencoded drawings.
+std::string DefaultSvgResultFilePath();
+
 // Writes |text| (UTF-8, one character) to |path|, replacing any file there.
 absl::Status WriteComposerResult(std::string_view path, std::string_view text);
+
+// Writes an SVG document (UTF-8) for a composed-but-unencoded character.
+absl::Status WriteComposerSvgResult(std::string_view path, std::string_view svg);
 
 // The result stored in |path|: surrounding whitespace removed, and nullopt if
 // the file is missing, empty, longer than kMaxComposerResultBytes, or not valid
 // UTF-8.
 std::optional<std::string> ReadComposerResult(std::string_view path);
+
+// Full SVG text from |path|, or nullopt if missing/empty/unreadable.
+std::optional<std::string> ReadComposerSvgResult(std::string_view path);
 
 }  // namespace composer_ids
 }  // namespace mozc

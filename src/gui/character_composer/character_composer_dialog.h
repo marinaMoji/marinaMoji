@@ -3,11 +3,9 @@
 //
 // marinaMoji's character composer: pick an IDS layout, fill the boxes (nesting
 // as deep as needed) and see the encoded Unicode character that structure
-// describes. Insert sends that character to the application.
-//
-// The behaviour follows the composer in the Grognard editor (the layout
-// square with a selection rule, a live IDS string, a palette of the twelve
-// operators), but this one only ever produces a Unicode character.
+// describes. Insert sends that character to the application when one exists;
+// when the structure is unrecorded, Insert produces an SVG drawing instead
+// (for office plugins / clipboard).
 
 #ifndef MOZC_GUI_CHARACTER_COMPOSER_CHARACTER_COMPOSER_DIALOG_H_
 #define MOZC_GUI_CHARACTER_COMPOSER_CHARACTER_COMPOSER_DIALOG_H_
@@ -139,8 +137,11 @@ class CharacterComposerDialog : public QDialog {
   CharacterComposerDialog(std::unique_ptr<composer_ids::IdsTable> table,
                           const QString &data_directory, QWidget *parent = nullptr);
 
-  // The character the user chose to insert, UTF-8; empty if none.
+  // The character the user chose to insert, UTF-8; empty if none (or SVG-only).
   const std::string &result() const { return result_; }
+  // SVG for an unencoded structure; empty if Insert chose a Unicode character
+  // or the dialog was cancelled.
+  const std::string &result_svg() const { return result_svg_; }
 
  private slots:
   void OnLayoutChanged();
@@ -170,8 +171,10 @@ class CharacterComposerDialog : public QDialog {
 
   QString note_;  // a one-off message that replaces the status line
   QString data_directory_;
-  std::string found_;   // the encoded character for the current layout, or ""
-  std::string result_;  // what Insert chose
+  std::string found_;       // the encoded character for the current layout, or ""
+  std::string result_;      // Unicode Insert chose, or ""
+  std::string result_svg_;  // SVG Insert chose for an unencoded layout, or ""
+  std::string pending_svg_; // live SVG preview for the current filled layout
 };
 
 }  // namespace gui

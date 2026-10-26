@@ -22,12 +22,11 @@ ABSL_FLAG(std::string, result_file, "",
           "character_composer: write the chosen character to this file "
           "instead of stdout (Windows; macOS uses a default path).");
 
-// Runs the character composer. The chosen character is passed to the input
-// method as UTF-8 and nothing else: on Linux it is printed to stdout followed
-// by a newline; with --result_file (Windows) it is written to that file, and
-// on macOS, where an app bundle cannot be given arguments, to
-// composer_ids::DefaultResultFilePath(). Exit status 0 means a character was
-// chosen, 1 that the dialog was closed without one (no file is written).
+// Runs the character composer. A Unicode character is passed to the input
+// method as UTF-8 (Linux stdout, --result_file on Windows, default path on
+// macOS). An unencoded structure writes an SVG beside that path (and to the
+// clipboard from the dialog) for office plugins. Exit status 0 means Insert
+// was used; 1 means the dialog was closed without inserting.
 int RunCharacterComposer(int argc, char *argv[]) {
   Q_INIT_RESOURCE(qrc_character_composer);
   auto app = mozc::gui::GuiUtil::InitQt(argc, argv);
@@ -59,7 +58,9 @@ int RunCharacterComposer(int argc, char *argv[]) {
   dialog.activateWindow();
   app->exec();
 
-  if (dialog.result().empty()) return 1;
+  const bool has_char = !dialog.result().empty();
+  const bool has_svg = !dialog.result_svg().empty();
+  if (!has_char && !has_svg) return 1;
 
   std::string result_file = absl::GetFlag(FLAGS_result_file);
 #ifdef __APPLE__
@@ -67,6 +68,26 @@ int RunCharacterComposer(int argc, char *argv[]) {
     result_file = mozc::composer_ids::DefaultResultFilePath();
   }
 #endif  // __APPLE__
+
+  if (has_svg) {
+    std::string svg_path = mozc::composer_ids::DefaultSvgResultFilePath();
+    if (!absl::GetFlag(FLAGS_result_file).empty()) {
+      // Windows temp path: keep the SVG beside the text result file.
+      svg_path = absl::GetFlag(FLAGS_result_file) + ".svg";
+    }
+    if (absl::Status status = mozc::composer_ids::WriteComposerSvgResult(
+            svg_path, dialog.result_svg());
+        !status.ok()) {
+      LOG(ERROR) << "Cannot write the SVG to " << svg_path << ": " << status;
+      return 2;
+    }
+  }
+
+  if (!has_char) {
+    // SVG-only: nothing for the IME to type; office plugins use clipboard/file.
+    return 0;
+  }
+
   if (!result_file.empty()) {
     if (absl::Status status = mozc::composer_ids::WriteComposerResult(
             result_file, dialog.result());

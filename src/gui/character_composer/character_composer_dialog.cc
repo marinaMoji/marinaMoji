@@ -33,7 +33,10 @@
 #include "composer_ids/ids_operator.h"
 #include "composer_ids/ids_table.h"
 #include "composer_ids/ids_tree.h"
+#include "gui/character_composer/composer_svg.h"
 #include "gui/character_composer/layout_geometry.h"
+
+#include <QMimeData>
 
 namespace mozc {
 namespace gui {
@@ -485,17 +488,28 @@ void CharacterComposerDialog::UpdatePaletteHighlight() {
 void CharacterComposerDialog::UpdateResult() {
   ids_label_->setText(FromUtf8(composer_ids::DraftIds(editor_->op(), editor_->parts())));
   found_.clear();
+  pending_svg_.clear();
 
   QString status;
+  bool insertable = false;
   if (table_ == nullptr) {
     status = Tr("Character data was not found in %1, so the character cannot be "
                 "looked up. You can still build the IDS above.")
                  .arg(data_directory_);
-  } else if (const auto ids = composer_ids::ComposeIds(editor_->op(), editor_->parts())) {
-    if (const auto found = table_->FindEncodedCharacter(*ids)) {
-      found_ = *found;
-    } else {
-      status = Tr("No encoded character has this structure.");
+  }
+  if (const auto ids = composer_ids::ComposeIds(editor_->op(), editor_->parts())) {
+    pending_svg_ = RenderComposerSvg(editor_->op(), editor_->parts());
+    insertable = !pending_svg_.empty();
+    if (table_ != nullptr) {
+      if (const auto found = table_->FindEncodedCharacter(*ids)) {
+        found_ = *found;
+      } else {
+        status = Tr("No encoded character has this structure. Insert places a "
+                    "drawing on the clipboard for Word (Kaeriten → Insert "
+                    "composed character) or other office plugins.");
+      }
+    } else if (insertable) {
+      status = Tr("Insert places a drawing on the clipboard (lookup data missing).");
     }
   } else {
     status = Tr("Fill in every box to look up the character.");
@@ -514,20 +528,43 @@ void CharacterComposerDialog::UpdateResult() {
                       : QStringLiteral("U+%1").arg(cps.first(), 4, 16, QLatin1Char('0')).toUpper());
   }
   status_label_->setText(status);
-  insert_button_->setEnabled(!found_.empty());
-  copy_button_->setEnabled(!found_.empty());
+  insert_button_->setEnabled(insertable);
+  copy_button_->setEnabled(!found_.empty() || insertable);
 }
 
 void CharacterComposerDialog::OnInsert() {
-  if (found_.empty()) return;
-  result_ = found_;
+  result_.clear();
+  result_svg_.clear();
+  if (!found_.empty()) {
+    result_ = found_;
+    accept();
+    return;
+  }
+  if (pending_svg_.empty()) return;
+  result_svg_ = pending_svg_;
+  // Office.js cannot read local files; the Word add-in reads this clipboard.
+  auto *mime = new QMimeData;
+  mime->setData(QStringLiteral("image/svg+xml"),
+                QByteArray::fromStdString(result_svg_));
+  mime->setText(QString::fromStdString(result_svg_));
+  QApplication::clipboard()->setMimeData(mime);
   accept();
 }
 
 void CharacterComposerDialog::OnCopy() {
-  if (found_.empty()) return;
-  QApplication::clipboard()->setText(FromUtf8(found_));
-  note_ = Tr("Copied to the clipboard.");
+  if (!found_.empty()) {
+    QApplication::clipboard()->setText(FromUtf8(found_));
+    note_ = Tr("Copied to the clipboard.");
+    UpdateResult();
+    return;
+  }
+  if (pending_svg_.empty()) return;
+  auto *mime = new QMimeData;
+  mime->setData(QStringLiteral("image/svg+xml"),
+                QByteArray::fromStdString(pending_svg_));
+  mime->setText(QString::fromStdString(pending_svg_));
+  QApplication::clipboard()->setMimeData(mime);
+  note_ = Tr("Drawing copied to the clipboard.");
   UpdateResult();
 }
 

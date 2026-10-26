@@ -10,6 +10,17 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer: unencoded structures produce an SVG drawing
+
+When every box is filled but no Unicode character matches, Insert is still
+enabled. The composer draws the IDS layout as SVG (`composer_svg`), writes
+`character_composer_result.svg` (beside the usual result file), and puts the
+SVG on the clipboard (`image/svg+xml` + plain text). Encoded matches still
+insert as text through the IME as before. Office plugins (Word first) pick up
+the clipboard drawing; LibreOffice / ONLYOFFICE wiring comes next.
+
+Unit-tested (`composer_svg_test`); dialog Qt tests not linked on this Mac.
+
 ### Linux: Symbols Palette can be dragged and no longer looks permanently grey
 
 The palette reused the toolbar's "no dock" hints, including X11

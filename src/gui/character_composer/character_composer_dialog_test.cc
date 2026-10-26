@@ -97,20 +97,25 @@ TEST_F(CharacterComposerDialogTest, FillingBothBoxesFindsTheEncodedCharacter) {
   EXPECT_EQ(dialog->result(), "謀");
 }
 
-TEST_F(CharacterComposerDialogTest, UnrecordedStructureCannotBeInserted) {
+TEST_F(CharacterComposerDialogTest, UnrecordedStructureInsertsSvg) {
   auto dialog = MakeDialog();
   auto edits = Edits(dialog.get());
   Type(edits[0], QStringLiteral("牙"));
   Type(edits[1], QStringLiteral("齒"));
-  EXPECT_FALSE(Button(dialog.get(), "Insert")->isEnabled());
+  EXPECT_TRUE(Button(dialog.get(), "Insert")->isEnabled());
+  Button(dialog.get(), "Insert")->click();
   EXPECT_TRUE(dialog->result().empty());
+  EXPECT_NE(dialog->result_svg().find("<svg"), std::string::npos);
+  EXPECT_NE(dialog->result_svg().find("牙"), std::string::npos);
+  EXPECT_NE(dialog->result_svg().find("齒"), std::string::npos);
 }
 
 TEST_F(CharacterComposerDialogTest, PaletteChangesOuterLayoutAndKeepsText) {
   auto dialog = MakeDialog();
   Type(Edits(dialog.get())[0], QStringLiteral("艹"));
   Type(Edits(dialog.get())[1], QStringLiteral("干"));
-  EXPECT_FALSE(Button(dialog.get(), "Insert")->isEnabled());  // ⿰艹干: not recorded
+  // ⿰艹干 is unrecorded, but Insert is still offered (SVG drawing).
+  EXPECT_TRUE(Button(dialog.get(), "Insert")->isEnabled());
   // Palette: the outer square is selected after the layout was rebuilt? Select
   // it explicitly, as a click on the padding does.
   dialog->findChild<LayoutEditor *>()->Select({});
@@ -119,6 +124,7 @@ TEST_F(CharacterComposerDialogTest, PaletteChangesOuterLayoutAndKeepsText) {
   EXPECT_TRUE(Button(dialog.get(), "Insert")->isEnabled());  // ⿱艹干 -> ⺸
   Button(dialog.get(), "Insert")->click();
   EXPECT_EQ(dialog->result(), "⺸");
+  EXPECT_TRUE(dialog->result_svg().empty());
 }
 
 TEST_F(CharacterComposerDialogTest, ThreePartOperatorAddsAThirdBox) {
