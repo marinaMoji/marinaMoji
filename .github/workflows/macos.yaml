@@ -145,21 +145,6 @@ jobs:
         run: |
           python3 build_tools/update_deps.py
 
-      # The tests analyse the Qt-based GUI targets too, so they need the same
-      # Qt build as build_arm64 (shares its cache key).
-      - name: Restore Qt build cache
-        id: qt_cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
-        with:
-          path: src/third_party/qt
-          key: qt-${{ runner.os }}-${{ runner.arch }}-arm64-${{ hashFiles('src/build_tools/build_qt.py', 'src/build_tools/update_deps.py') }}
-
-      - name: Build Qt
-        if: steps.qt_cache.outputs.cache-hit != 'true'
-        working-directory: ./src
-        run: |
-          python3 build_tools/build_qt.py --release --confirm_license --macos_cpus=arm64
-
       - name: bazel test
         working-directory: ./src
         run: |

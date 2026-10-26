@@ -183,7 +183,8 @@ TEST_F(CharacterComposerDialogTest, WorksWithoutDataFiles) {
   auto edits = Edits(&dialog);
   Type(edits[0], QStringLiteral("言"));
   Type(edits[1], QStringLiteral("某"));
-  EXPECT_FALSE(Button(&dialog, "Insert")->isEnabled());
+  // No data files: nothing is encoded, so Insert offers the SVG drawing.
+  EXPECT_TRUE(Button(&dialog, "Insert")->isEnabled());
 }
 
 }  // namespace

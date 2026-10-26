@@ -110,6 +110,10 @@ mozc_cc_test(
     name = "character_composer_dialog_test",
     size = "small",
     srcs = ["character_composer_dialog_test.cc"],
+    # Needs Qt to link, which only the Linux test job provides (on macOS the
+    # Qt frameworks are linked by the app bundle, on Windows Qt is not built
+    # for tests).
+    target_compatible_with = ["@platforms//os:linux"],
     data = [
         "//composer_ids:testdata/ids_table.tsv",
         "//composer_ids:testdata/radical_forms.tsv",
@@ -128,6 +132,10 @@ mozc_cc_test(
     name = "character_composer_libmain_test",
     size = "small",
     srcs = ["character_composer_libmain_test.cc"],
+    # Needs Qt to link, which only the Linux test job provides (on macOS the
+    # Qt frameworks are linked by the app bundle, on Windows Qt is not built
+    # for tests).
+    target_compatible_with = ["@platforms//os:linux"],
     data = [
         "//composer_ids:testdata/ids_table.tsv",
         "//composer_ids:testdata/radical_forms.tsv",

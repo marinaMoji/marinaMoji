@@ -10,6 +10,17 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### CI: character composer Qt tests only run on Linux
+
+`character_composer_dialog_test` and `character_composer_libmain_test` link
+Qt, which only the Linux test job provides (on macOS the Qt frameworks are
+linked by the app bundle, so a plain `cc_test` failed with undefined `QWidget`
+symbols; the Windows x64 job builds no Qt). Both are now
+`target_compatible_with = linux`, like `github_update_checker_test`, and the
+Windows x64 test job skips `//gui/character_composer/...` as arm64 already
+did. `WorksWithoutDataFiles` now expects Insert to be enabled (SVG drawing)
+when no data files are found, matching the SVG-export change below.
+
 ### Character composer: unencoded structures produce an SVG drawing
 
 When every box is filled but no Unicode character matches, Insert is still
