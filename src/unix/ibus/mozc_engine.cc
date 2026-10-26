@@ -409,7 +409,8 @@ void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
   // palette that the user never clicks a symbol in has no way to close and
   // sits on screen indefinitely (an always-on-top, undecorated,
   // never-focusable window -- exactly the shape that can wedge some window
-  // managers/compositors). Do this before the toolbar-hide check below so a
+  // managers/compositors). A pinned palette is deliberately left open.
+  // Do this before the toolbar-hide check below so a
   // focus-out that closes the palette also unblocks the toolbar's own hide.
   if (MozcToolbarAvailable()) {
     MozcToolbarHideSymbolsPalette();
@@ -758,7 +759,7 @@ bool MozcEngine::ProcessKeyEventInternal(IbusEngineWrapper* engine,
   // instead, for as long as MozcToolbarUpdate keeps the palette in sync.
   if (key.has_special_key() && key.special_key() == commands::KeyEvent::ESCAPE &&
       MozcToolbarAvailable() && MozcToolbarIsSymbolsPaletteVisible()) {
-    MozcToolbarHideSymbolsPalette();
+    MozcToolbarHideSymbolsPalette(/*force=*/true);
     MaybeLogIbusDebug("engine.key", "return_symbols_palette_escape_consumed");
     return true;
   }

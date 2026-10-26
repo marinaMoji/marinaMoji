@@ -1984,8 +1984,12 @@ void MozcToolbarUpdate(const commands::Output& output) {
 
 bool MozcToolbarIsSymbolsPaletteVisible() { return g_symbols_palette_visible; }
 
-void MozcToolbarHideSymbolsPalette() {
+void MozcToolbarHideSymbolsPalette(bool force) {
   if (!g_symbols_window) return;
+  if (!force && g_symbols_pin_check &&
+      gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_symbols_pin_check))) {
+    return;
+  }
   gtk_widget_hide(g_symbols_window);
   g_symbols_palette_visible = false;
 }
@@ -2049,7 +2053,7 @@ bool MozcToolbarShouldHideOnFocusLoss() { return false; }
 void MozcToolbarScheduleHideDelayed(unsigned int /*delay_ms*/) {}
 void MozcToolbarUpdate(const commands::Output& /*output*/) {}
 bool MozcToolbarIsSymbolsPaletteVisible() { return false; }
-void MozcToolbarHideSymbolsPalette() {}
+void MozcToolbarHideSymbolsPalette(bool /*force*/) {}
 void MozcShortcutsWindowShow() {}
 bool MozcToolbarAvailable() { return false; }
 bool MozcToolbarLoadVisiblePreference() { return true; }

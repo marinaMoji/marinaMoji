@@ -47,7 +47,8 @@ bool MozcToolbarIsSymbolsPaletteVisible();
 // never accepts keyboard focus, so Escape reaches the engine's normal key
 // pipeline, not the window itself) or when the IME context loses focus
 // (treated as "clicked outside" -- see FocusOut in mozc_engine.cc).
-void MozcToolbarHideSymbolsPalette();
+// Hides the symbols palette. A pinned palette stays open unless force is true.
+void MozcToolbarHideSymbolsPalette(bool force = false);
 
 // Opens (or raises) the Keyboard Shortcuts window. The toolbar has no button
 // for it any more; the engine's panel menu calls this.
