@@ -45,11 +45,16 @@
 #include <QFont>
 #include <QGuiApplication>
 #include <QObject>
+#include <QStringList>
 #include <QStyleFactory>
 #include <QtGui>
 #include <memory>
 #include <string>
 #include <utility>
+
+#ifdef __APPLE__
+#include <CoreFoundation/CoreFoundation.h>
+#endif  // __APPLE__
 
 #ifdef MOZC_SHOW_BUILD_NUMBER_ON_TITLE
 #include "gui/base/window_title_modifier.h"
@@ -67,6 +72,22 @@ void InstallEventFilter() {
   qApp->installEventFilter(&window_title_modifier);
 #endif  // MOZC_SHOW_BUILD_NUMBER_ON_TITLE
 }
+
+#ifdef __APPLE__
+// The system's preferred languages (e.g. "fr-FR", "en-FR"), most preferred
+// first, as System Settings > Language & Region lists them.
+QStringList PreferredLanguages() {
+  QStringList languages;
+  CFArrayRef array = CFLocaleCopyPreferredLanguages();
+  if (array == nullptr) return languages;
+  for (CFIndex i = 0; i < CFArrayGetCount(array); ++i) {
+    const auto cf_string = static_cast<CFStringRef>(CFArrayGetValueAtIndex(array, i));
+    languages.append(QString::fromCFString(cf_string));
+  }
+  CFRelease(array);
+  return languages;
+}
+#endif  // __APPLE__
 
 void InstallDefaultTranslator() {
   // qApplication must be loaded first
@@ -115,12 +136,27 @@ void GuiUtil::InstallTranslator(absl::string_view resource_name) {
     return;
   }
   auto translator = std::make_unique<QTranslator>();
+  const QLatin1String name(resource_name.data(), resource_name.size());
 
-  // Load ":/<resource_name>_<lang>.qm" from a qrc file.
-  if (translator->load(
-          QLocale::system(),
-          QLatin1String(resource_name.data(), resource_name.size()),
-          QLatin1String("_"), QLatin1String(":/"), QLatin1String(".qm"))) {
+  // Load ":/<resource_name>_<lang>.qm" from a qrc file. On macOS, try the
+  // user's preferred languages first, in order: Qt's own list can be cut down
+  // to the languages the app bundle declares, which silently lands a French
+  // user on the bundle's Japanese development region.
+  bool loaded = false;
+#ifdef __APPLE__
+  for (const QString &language : PreferredLanguages()) {
+    if (translator->load(QLocale(language), name, QLatin1String("_"),
+                         QLatin1String(":/"), QLatin1String(".qm"))) {
+      loaded = true;
+      break;
+    }
+  }
+#endif  // __APPLE__
+  if (!loaded) {
+    loaded = translator->load(QLocale::system(), name, QLatin1String("_"),
+                              QLatin1String(":/"), QLatin1String(".qm"));
+  }
+  if (loaded) {
     qApp->installTranslator(translator.get());
     translators->emplace(resource_name, std::move(translator));
   }

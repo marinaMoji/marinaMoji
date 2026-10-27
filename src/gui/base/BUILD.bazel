@@ -167,6 +167,9 @@ mozc_cc_qt_library(
     ] + mozc_select(
         windows = [":win_util"],
     ),
+    linkopts = mozc_select(
+        apple = ["-framework CoreFoundation"],
+    ),
 )
 
 mozc_cc_library(
