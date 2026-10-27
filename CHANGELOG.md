@@ -10,6 +10,13 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.18-rc14
+
+rc13 plus two character composer fixes, described below: on Wayland the composer
+runs through XWayland (#91, #92), and on Windows the drawing is written where
+the office plugins look. Pair it with the LibreOffice extension 0.3.12, the first
+to insert the composer's drawings.
+
 ### Windows: the composer's drawing reaches office plugins
 
 The Windows IME starts the composer with a temporary `--result_file`, and the
