@@ -21,6 +21,11 @@ changed and, where it isn't obvious, why.
   (LibreOffice's `OnFocus` job) could look before the file existed and never
   insert. They are now written from `OnInsert`, just before `accept()`.
   Not yet verified in the app.
+- A part in a narrow or flat cell (the halves of ⿰ or ⿱) was drawn at half the
+  cell's short side and left unsqueezed, so ⿰木巻 came out as two small full-
+  width glyphs. Each part now takes the cell's long side as its size and is
+  squeezed to fit (`scale_x` / `scale_y` on `PlacedGlyph`, a `transform` in
+  the SVG), like the parts of a composed character.
 
 ### Character composer: hand the drawing to the ONLYOFFICE plugin (macOS)
 

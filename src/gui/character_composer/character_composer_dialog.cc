@@ -105,7 +105,11 @@ QPixmap DrawingPreview(const std::vector<PlacedGlyph> &glyphs, const QPalette &p
     p.setFont(f);
     const QString text = QString::fromUtf8(g.text.data(), static_cast<int>(g.text.size()));
     const qreal width = QFontMetricsF(f).horizontalAdvance(text);
-    p.drawText(QPointF(g.x * scale - width / 2, g.y * scale), text);
+    p.save();
+    p.translate(g.x * scale, g.y * scale);
+    p.scale(g.scale_x, g.scale_y);
+    p.drawText(QPointF(-width / 2, 0), text);
+    p.restore();
   }
   p.end();
   return pixmap;

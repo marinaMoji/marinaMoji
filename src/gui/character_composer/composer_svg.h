@@ -17,12 +17,16 @@ namespace mozc {
 namespace gui {
 
 // One glyph of a laid-out structure, in user units of a |view_box| square.
-// |y| is the baseline; the text is centred horizontally on |x|.
+// |y| is the baseline; the text is centred horizontally on |x|. A glyph in a
+// narrow or flat cell keeps the cell's long side as its size and is squeezed by
+// |scale_x| / |scale_y| (<= 1) about (x, y), as in a composed character.
 struct PlacedGlyph {
   std::string text;
   double x = 0;
   double y = 0;
   double font_size = 0;
+  double scale_x = 1;
+  double scale_y = 1;
 };
 
 // Where each filled leaf is drawn, or empty if the layout is incomplete. The

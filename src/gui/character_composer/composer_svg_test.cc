@@ -39,6 +39,22 @@ TEST(ComposerSvgTest, NestedLayout) {
   EXPECT_NE(svg.find("言"), std::string::npos);
 }
 
+TEST(ComposerSvgTest, LeftRightSqueezesEachPartHorizontally) {
+  const auto glyphs = ComposerGlyphs(
+      "⿰", {composer_ids::ComposerSlot::Leaf("木"),
+             composer_ids::ComposerSlot::Leaf("巻")});
+  ASSERT_EQ(glyphs.size(), 2);
+  for (const PlacedGlyph &g : glyphs) {
+    EXPECT_LT(g.scale_x, 0.75);
+    EXPECT_EQ(g.scale_y, 1);
+  }
+  EXPECT_LT(glyphs[0].x, glyphs[1].x);
+  const std::string svg = RenderComposerSvg(
+      "⿰", {composer_ids::ComposerSlot::Leaf("木"),
+             composer_ids::ComposerSlot::Leaf("巻")});
+  EXPECT_NE(svg.find("scale("), std::string::npos);
+}
+
 }  // namespace
 }  // namespace gui
 }  // namespace mozc
