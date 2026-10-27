@@ -274,6 +274,44 @@ TEST_F(SymbolRewriterTest, RareSymbolTest) {
   }
 }
 
+TEST_F(SymbolRewriterTest, KanaLigatureTest) {
+  auto symbol_rewriter = std::make_from_tuple<SymbolRewriter>(
+      data_manager_->GetSymbolRewriterData());
+  const ConversionRequest request;
+  constexpr int kCandidatesSize = 100;
+  struct {
+    const char *key;
+    const char *ligature;
+    const char *description;
+  } kCases[] = {
+      {"こと", "ヿ", "合字 コト"},
+      {"ごと", "ヿ゙", "合字 ゴト"},
+      {"とも", "\U0002A708", "合字 トモ"},
+      {"ども", "\U0002A708゙", "合字 ドモ"},
+      {"して", "\U0002CF00", "合字 シテ"},
+      {"なり", "\U0002CF02", "合字 なり"},
+      {"なり", "\U0002CEFF", "合字 ナリ"},
+      {"より", "ゟ", ""},
+  };
+  for (const auto &c : kCases) {
+    Segments segments;
+    AddSegment(c.key, {c.key}, &segments);
+    for (int i = 0; i < kCandidatesSize; ++i) {
+      AddCandidate("test", segments.mutable_segment(0));
+    }
+    EXPECT_TRUE(symbol_rewriter.Rewrite(request, &segments)) << c.key;
+    // Ligatures are not rare symbols: they must not be pushed to the bottom.
+    const int index = GetCandidateIndex(segments, 0, c.ligature);
+    EXPECT_GE(index, 0) << c.ligature;
+    EXPECT_LT(index, kCandidatesSize) << c.ligature;
+    if (c.description[0] != '\0') {
+      EXPECT_TRUE(
+          HasCandidateAndDescription(segments, 0, c.ligature, c.description))
+          << c.ligature;
+    }
+  }
+}
+
 TEST_F(SymbolRewriterTest, TriggerRewriteDescriptionTest) {
   auto symbol_rewriter = std::make_from_tuple<SymbolRewriter>(
       data_manager_->GetSymbolRewriterData());
