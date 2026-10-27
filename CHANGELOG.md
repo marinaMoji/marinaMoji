@@ -10,7 +10,14 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
-### Release candidate 0.0.18-rc8
+### Release candidate 0.0.18-rc9
+
+rc8 was tagged but never published: its new "Verify product version in build"
+step used `find bazel-bin`, which does not follow the `bazel-bin` symlink, so
+every Linux and macOS build job failed. `release.yaml` now uses `find -L`. rc9
+is rc8's content with that fix.
+
+### Release candidate 0.0.18-rc8 (not published)
 
 Rolls up the composer and palette fixes below, plus the CI changes since rc7
 (buildifier ordering of `target_compatible_with` in the composer tests). The
