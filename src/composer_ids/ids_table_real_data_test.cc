@@ -4,7 +4,9 @@
 // Checks the shipped GPL table (data/character_composer). Tagged "manual" so
 // the ordinary unit tests do not depend on that data.
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "base/file_util.h"
 #include "composer_ids/ids_table.h"
@@ -46,6 +48,20 @@ TEST(IdsTableRealDataTest, AutomaticRadicalFormsByPosition) {
   EXPECT_EQ(table.AutomaticFormFor("手", "⿰", 1), std::nullopt);
   EXPECT_EQ(table.AutomaticFormFor("水", "⿰", 0), "氵");
   EXPECT_EQ(table.AutomaticFormFor("竹", "⿱", 0), "𥫗");
+}
+
+TEST(IdsTableRealDataTest, MovesToTheHeapAndSourceCanBeDestroyed) {
+  // What the composer's main() does with the loaded table.
+  const std::string ids = testing::GetSourceFileOrDie(
+      {"data", "character_composer", "ids_table.tsv"});
+  std::unique_ptr<IdsTable> table;
+  {
+    auto loaded = IdsTable::LoadFromDirectory(FileUtil::Dirname(ids));
+    ASSERT_TRUE(loaded.ok()) << loaded.status();
+    table = std::make_unique<IdsTable>(*std::move(loaded));
+  }
+  EXPECT_EQ(table->AutomaticFormFor("手", "⿰", 0), "扌");
+  EXPECT_EQ(table->FindEncodedCharacter("⿰言某"), "謀");
 }
 
 TEST(IdsTableRealDataTest, NoStrayTagsRemain) {
