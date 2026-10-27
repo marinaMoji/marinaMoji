@@ -66,9 +66,11 @@ mozc_cc_library(
     srcs = ["composer_kage.cc"],
     hdrs = ["composer_kage.h"],
     deps = [
+        "//base:file_util",
         "//base/strings:unicode",
         "//composer_ids:ids_tree",
         "//kage",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
     ],
 )

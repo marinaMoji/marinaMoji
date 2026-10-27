@@ -23,7 +23,7 @@
 
 #include "composer_ids/ids_table.h"
 #include "composer_ids/ids_tree.h"
-#include "kage/kage_engine.h"
+#include "gui/character_composer/composer_kage.h"
 
 class QButtonGroup;
 class QComboBox;
@@ -183,7 +183,7 @@ class CharacterComposerDialog : public QDialog {
   void UpdatePaletteHighlight();
 
   std::unique_ptr<composer_ids::IdsTable> table_;
-  std::unique_ptr<kage::Buhin> kage_glyphs_;  // GlyphWiki strokes; may be null
+  std::unique_ptr<KageResources> kage_;  // GlyphWiki strokes; may be null
   LayoutEditor *editor_ = nullptr;
   QButtonGroup *palette_ = nullptr;
   QLabel *ids_label_ = nullptr;

@@ -24,6 +24,15 @@ old text drawing.
 - **`src/kage/`**: C++ port of kurgm's KAGE engine (Mincho). It reproduces the
   JavaScript engine's polygons point for point on real glyphs and composed
   layouts (`kage_engine_test`).
+- **Laid out as GlyphWiki lays it out.** Placing each component in a plain half
+  of the cell looked crude (a full-width 木 beside 幾). `kage_layout.tsv`
+  (15,984 entries, 0.5 MB, learned offline from GlyphWiki's own glyphs and the
+  IDS table) gives, for each operator, position and component, the variant
+  GlyphWiki draws there (木 on the left is `u6728-01`, 心 at the bottom
+  `u5fc3-04`, the left form of 言 is `u8a01-01`) and the box it puts it in. For
+  characters GlyphWiki has, the result is nearly the same drawing; for new
+  combinations the parts keep their usual shapes and places. No network is used
+  at any point.
 - **`src/data/kage/kage_glyphs.tsv`**: 57,161 GlyphWiki glyphs (radicals, kana,
   Extension A, Unified Ideographs, and what they place), 3.7 MB, installed with
   the other composer data on macOS, Windows and Linux; rebuilt by

@@ -11,8 +11,13 @@
 #include <utility>
 #include <vector>
 
+#include "absl/status/statusor.h"
+#include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
+#include "absl/strings/str_split.h"
+#include "base/file_util.h"
+#include "kage/kage_data.h"
 #include "base/strings/unicode.h"
 #include "composer_ids/ids_tree.h"
 #include "kage/kage_engine.h"
@@ -60,16 +65,25 @@ std::string GlyphName(std::string_view ch) {
 }
 
 std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &parts,
-                          kage::Buhin *nested) {
+                          kage::Buhin *nested, const ComposerLayout *layout) {
   const std::vector<Box> boxes = BoxesFor(op);
   std::vector<std::string> records;
   for (size_t i = 0; i < parts.size(); ++i) {
-    const Box &box = boxes[std::min(i, boxes.size() - 1)];
+    Box box = boxes[std::min(i, boxes.size() - 1)];
     std::string name;
     if (parts[i].kind == ComposerSlot::Kind::kLeaf) {
       name = GlyphName(parts[i].input);
+      if (layout != nullptr) {
+        const ComposerLayout::Entry *e =
+            layout->Find(op, static_cast<int>(i), parts[i].input);
+        if (e != nullptr && !nested->Search(e->variant).empty()) {
+          name = e->variant;
+          box = {e->left, e->top, e->right, e->bottom};
+        }
+      }
     } else {
-      const std::string inner = ComposeLayout(parts[i].op, parts[i].parts, nested);
+      const std::string inner =
+          ComposeLayout(parts[i].op, parts[i].parts, nested, layout);
       if (inner.empty()) return {};
       name = absl::StrCat("__nested", nested->size());
       nested->Set(name, inner);
@@ -83,20 +97,60 @@ std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &
 
 }  // namespace
 
+ComposerLayout ComposerLayout::Parse(std::string_view contents) {
+  ComposerLayout layout;
+  for (std::string_view line : absl::StrSplit(contents, '\n')) {
+    if (line.empty() || line.front() == '#') continue;
+    const std::vector<std::string_view> f = absl::StrSplit(line, '\t');
+    if (f.size() < 5) continue;
+    int position = 0;
+    const std::vector<std::string_view> box = absl::StrSplit(f[4], ' ');
+    Entry e;
+    if (!absl::SimpleAtoi(f[1], &position) || box.size() != 4 ||
+        !absl::SimpleAtoi(box[0], &e.left) || !absl::SimpleAtoi(box[1], &e.top) ||
+        !absl::SimpleAtoi(box[2], &e.right) || !absl::SimpleAtoi(box[3], &e.bottom)) {
+      continue;
+    }
+    e.variant = std::string(f[3]);
+    layout.entries_[absl::StrCat(f[0], position, f[2])] = std::move(e);
+  }
+  return layout;
+}
+
+const ComposerLayout::Entry *ComposerLayout::Find(std::string_view op, int position,
+                                                  std::string_view component) const {
+  const auto it = entries_.find(absl::StrCat(op, position, component));
+  return it == entries_.end() ? nullptr : &it->second;
+}
+
+std::optional<KageResources> KageResources::LoadFromDirectory(
+    std::string_view directory) {
+  absl::StatusOr<kage::Buhin> glyphs = kage::LoadBuhinFromFile(
+      FileUtil::JoinPath(directory, "kage_glyphs.tsv"));
+  if (!glyphs.ok() || glyphs->size() == 0) return std::nullopt;
+  KageResources resources{*std::move(glyphs), {}};
+  if (absl::StatusOr<std::string> layout = FileUtil::GetContents(
+          FileUtil::JoinPath(directory, "kage_layout.tsv"));
+      layout.ok()) {
+    resources.layout = ComposerLayout::Parse(*layout);
+  }
+  return resources;
+}
+
 std::string ComposeKageData(std::string_view op,
                             const std::vector<ComposerSlot> &parts,
-                            kage::Buhin *nested) {
+                            kage::Buhin *nested, const ComposerLayout *layout) {
   if (!composer_ids::ComposeIds(op, parts)) return {};
-  return ComposeLayout(op, parts, nested);
+  return ComposeLayout(op, parts, nested, layout);
 }
 
 std::optional<std::vector<Contour>> ComposerOutlines(
     std::string_view op, const std::vector<ComposerSlot> &parts,
-    const kage::Buhin &glyphs, int view_box) {
+    const KageResources &resources, int view_box) {
   // Nested layouts are glyphs of their own; keep them in a table on top of the
   // shared, read-only one.
-  kage::Buhin scratch(&glyphs);
-  const std::string data = ComposeKageData(op, parts, &scratch);
+  kage::Buhin scratch(&resources.glyphs);
+  const std::string data = ComposeKageData(op, parts, &scratch, &resources.layout);
   if (data.empty()) return std::nullopt;
 
   const kage::Kage kage(&scratch);
