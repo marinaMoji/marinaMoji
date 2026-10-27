@@ -58,7 +58,19 @@ bool StringAsIntegerComparator(absl::string_view lhs, absl::string_view rhs) {
 
 std::string Version::GetMozcVersion() { return version::kMozcVersion; }
 
-std::string Version::GetProductVersion() { return version::kProductVersion; }
+// Kept as one contiguous string in the binary: with kProductVersion alone the
+// compiler folds the short std::string into instruction immediates on some
+// targets, which hides the version from strings(1) and from
+// build_tools/verify_product_version.sh. The volatile pointer stops the
+// optimizer and linker from folding or dropping the array.
+extern "C" const char kMarinaProductVersionMarker[] =
+    "marinaMoji-product-version=" MARINA_PRODUCT_VERSION_LITERAL;
+
+std::string Version::GetProductVersion() {
+  static const char* volatile version_ptr =
+      kMarinaProductVersionMarker + sizeof("marinaMoji-product-version=") - 1;
+  return version_ptr;
+}
 
 #ifdef _WIN32
 std::wstring Version::GetMozcVersionW() {

@@ -839,6 +839,9 @@ namespace version {
 inline constexpr const char kProductVersion[] = "$$V";
 }  // namespace version
 }  // namespace mozc
+// String-literal form, so version.cc can embed one contiguous copy in the
+// binary for verify_product_version.sh.
+#define MARINA_PRODUCT_VERSION_LITERAL "$$V"
 #endif  // MOZC_BASE_PRODUCT_VERSION_DEF_H_
 EOF
 """,
