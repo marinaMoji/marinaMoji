@@ -10,6 +10,15 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Linux: character composer Insert into LibreOffice is less flaky
+
+The composer's Qt window steals IBus focus. Insert already retried
+`CommitToolbarText` for ~3 s waiting for `FocusIn`, but LibreOffice often
+hands focus back later (or only after a click in the document), so the
+character was dropped. The text is now kept on the engine and flushed on
+the next `FocusIn` (up to 60 s). Matches the "sometimes works" pattern
+when the user happened to click back into Writer in time.
+
 ### Release candidate 0.0.18-rc11
 
 rc10 was tagged but never published: its Windows jobs failed in "Verify product

@@ -106,8 +106,9 @@ class MozcEngine : public EngineInterface {
                                 int32_t candidate_id = -1);
 
   // Inserts |text| into the focused application via the last focused IBus
-  // engine. Returns false when there is no engine to commit into (e.g. right
-  // after the character composer stole focus); callers can retry.
+  // engine. Returns false when there is no live FocusIn yet (e.g. right after
+  // the character composer stole focus); the text is kept and flushed on the
+  // next FocusIn, and callers may also retry.
   bool CommitToolbarText(absl::string_view text);
 
   // Called by the toolbar when the user picks a composition mode from the
@@ -153,6 +154,11 @@ class MozcEngine : public EngineInterface {
   // and one is usable now, paint it once and clear the deferral. Used for the
   // typed / Ctrl+Shift+2 path (issue #25 part 3). Returns true if it showed.
   bool MaybeFlushDeferredCandidateWindow(IbusEngineWrapper* engine);
+
+  // marinaMoji: inserts text queued by CommitToolbarText while the engine was
+  // unfocused (character composer). LibreOffice often takes longer than the
+  // toolbar's short retry window to hand focus back.
+  void MaybeFlushPendingToolbarCommit(IbusEngineWrapper* engine);
 
   // marinaMoji: g_timeout for IME-menu odoriji when focus never bounces.
   void ScheduleOdorijiDeferredShowTimeout();
@@ -229,6 +235,10 @@ class MozcEngine : public EngineInterface {
   // True between FocusIn and FocusOut. The character composer steals focus, so
   // CommitToolbarText must wait until this is true again before inserting.
   bool engine_focused_ = false;
+  // Character (or other toolbar text) waiting for the next FocusIn. Cleared on
+  // successful commit, Disable, or when older than the grace below.
+  std::string pending_toolbar_commit_;
+  absl::Time pending_toolbar_commit_time_ = absl::InfinitePast();
 
   // When true, show toolbar on focus; toggled by IME menu "Hide/Show toolbar".
   // Default true (on) for first install; thereafter loaded/saved via toolbar.conf.

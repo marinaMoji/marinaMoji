@@ -963,8 +963,10 @@ gboolean OnPendingComposerCommit(gpointer data) {
     return G_SOURCE_REMOVE;
   }
   if (--pending->attempts_left <= 0) {
-    LOG(WARNING) << "character composer: no engine to insert into; "
-                    "result dropped";
+    // CommitToolbarText already queued the text for the next FocusIn (up to
+    // ~60 s). LibreOffice often restores IBus focus after this short loop.
+    LOG(WARNING) << "character composer: no FocusIn yet; "
+                    "queued until the document regains IME focus";
     delete pending;
     return G_SOURCE_REMOVE;
   }

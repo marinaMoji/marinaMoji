@@ -106,6 +106,11 @@ const absl::Duration kOdorijiPropertyFocusOutGrace = absl::Milliseconds(500);
 // moment to get the input focus (and the caret rect) back.
 const absl::Duration kOdorijiPropertyReshowWindow = absl::Seconds(3);
 
+// How long a CommitToolbarText queued during FocusOut is kept for the next
+// FocusIn. LibreOffice on Linux often restores IBus focus well after the
+// toolbar's short retry loop has given up.
+const absl::Duration kPendingToolbarCommitGrace = absl::Seconds(60);
+
 // When the panel click does not bounce focus, there is no second FocusIn.
 // After this delay, try to paint the deferred palette once if a caret rect is
 // still usable (issue #25). Short enough to feel instant; long enough that a
@@ -318,6 +323,8 @@ void MozcEngine::Disable(IbusEngineWrapper* engine) {
   odoriji_show_pending_ = false;
   odoriji_menu_saw_focus_out_ = false;
   deferred_candidate_output_.reset();
+  pending_toolbar_commit_.clear();
+  pending_toolbar_commit_time_ = absl::InfinitePast();
   if (MozcToolbarAvailable()) {
     MozcToolbarHide();
   }
@@ -414,6 +421,8 @@ void MozcEngine::FocusIn(IbusEngineWrapper* engine) {
   if (!MaybeReshowOdorijiPalette(engine)) {
     MaybeFlushDeferredCandidateWindow(engine);
   }
+  // Character composer (and similar) queued an insert while unfocused.
+  MaybeFlushPendingToolbarCommit(engine);
 }
 
 void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
@@ -1129,14 +1138,45 @@ bool MozcEngine::CommitToolbarText(absl::string_view text) {
   // Require a live FocusIn: after the character composer (or any other
   // window) steals focus, CommitText on the stale engine is dropped by the
   // client. Symbols Palette never takes focus, so it still commits here.
-  if (text.empty() || current_engine_ == nullptr || !engine_focused_) {
+  // When unfocused, keep the text and flush it from FocusIn — LibreOffice
+  // often needs longer than the toolbar retry window to hand focus back.
+  if (text.empty()) {
     return false;
   }
+  if (current_engine_ == nullptr || !engine_focused_) {
+    pending_toolbar_commit_ = std::string(text);
+    pending_toolbar_commit_time_ = Clock::GetAbslTime();
+    MaybeLogIbusDebug("engine.toolbar", "commit_queued_until_focus_in");
+    return false;
+  }
+  pending_toolbar_commit_.clear();
+  pending_toolbar_commit_time_ = absl::InfinitePast();
   commands::Output output;
   output.mutable_result()->set_value(std::string(text));
   IbusEngineWrapper wrapper(current_engine_);
   UpdateAll(&wrapper, output);
   return true;
+}
+
+void MozcEngine::MaybeFlushPendingToolbarCommit(IbusEngineWrapper* engine) {
+  if (pending_toolbar_commit_.empty() || engine == nullptr) {
+    return;
+  }
+  const absl::Time now = Clock::GetAbslTime();
+  if (pending_toolbar_commit_time_ != absl::InfinitePast() &&
+      now - pending_toolbar_commit_time_ > kPendingToolbarCommitGrace) {
+    MaybeLogIbusDebug("engine.toolbar", "commit_queued_expired");
+    pending_toolbar_commit_.clear();
+    pending_toolbar_commit_time_ = absl::InfinitePast();
+    return;
+  }
+  const std::string text = std::move(pending_toolbar_commit_);
+  pending_toolbar_commit_.clear();
+  pending_toolbar_commit_time_ = absl::InfinitePast();
+  MaybeLogIbusDebug("engine.toolbar", "commit_flushed_on_focus_in");
+  commands::Output output;
+  output.mutable_result()->set_value(text);
+  UpdateAll(engine, output);
 }
 
 void MozcEngine::SetCompositionModeFromToolbar(
