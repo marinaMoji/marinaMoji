@@ -10,6 +10,17 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.18-rc10
+
+rc8 and rc9 were tagged but never published: the new "Verify product version
+in build" step failed every build job (it could not find the generated header
+under `bazel-bin`, and on x86_64 `strings` cannot see a version string the
+compiler folds into instructions; fixed in `159c8fd52`). rc10 is everything
+since rc7 with that check working. Not yet verified in real hosts: the
+character composer's hand-off to LibreOffice and ONLYOFFICE, the radical-form
+rules and the drawing preview. As with rc7, the Windows MSIs are built unsigned
+by CI and need `scripts/sign-windows-release.mjs`.
+
 ### Character composer: radical forms follow position, as in Grognard
 
 Typing 手 in the left box of ⿰ now shows 扌 (and 言 → 訁, 水 → 氵, 人 → 亻,
@@ -57,7 +68,7 @@ structure. Insert places a drawing…", the lookup-data-missing variant, and
 translation files, so they showed in English in the French and Japanese
 dialogs. The `.qtts` files are updated and the `.qm` files regenerated.
 
-### Release candidate 0.0.18-rc9
+### Release candidate 0.0.18-rc9 (not published)
 
 rc8 was tagged but never published: its new "Verify product version in build"
 step used `find bazel-bin`, which does not follow the `bazel-bin` symlink, so
