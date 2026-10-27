@@ -41,7 +41,6 @@
 #include "composer_ids/ids_tree.h"
 #include "gui/character_composer/composer_kage.h"
 #include "gui/character_composer/composer_svg.h"
-#include "kage/kage_data.h"
 #include "gui/character_composer/layout_geometry.h"
 
 #include <QMimeData>
@@ -414,10 +413,8 @@ CharacterComposerDialog::CharacterComposerDialog(
     : QDialog(parent), table_(std::move(table)), data_directory_(data_directory) {
   // GlyphWiki's strokes, to draw a structure with no Unicode character as one
   // glyph. Missing is fine: the drawing falls back to the components as text.
-  if (auto glyphs = kage::LoadBuhinFromFile(
-          data_directory_.toStdString() + "/kage_glyphs.tsv");
-      glyphs.ok()) {
-    kage_glyphs_ = std::make_unique<kage::Buhin>(*std::move(glyphs));
+  if (auto resources = KageResources::LoadFromDirectory(data_directory_.toStdString())) {
+    kage_ = std::make_unique<KageResources>(*std::move(resources));
   }
   BuildUi(data_directory);
   OnLayoutChanged();
@@ -633,7 +630,7 @@ void CharacterComposerDialog::UpdateResult() {
   }
   if (const auto ids = composer_ids::ComposeIds(editor_->op(), editor_->parts())) {
     pending_svg_ = RenderComposerSvg(editor_->op(), editor_->parts(), 1000,
-                                     kage_glyphs_.get());
+                                     kage_.get());
     insertable = !pending_svg_.empty();
     if (table_ != nullptr) {
       if (const auto found = table_->FindEncodedCharacter(*ids)) {
@@ -655,8 +652,8 @@ void CharacterComposerDialog::UpdateResult() {
     char_label_->clear();
     if (insertable) {
       std::optional<std::vector<Contour>> outlines;
-      if (kage_glyphs_ != nullptr) {
-        outlines = ComposerOutlines(editor_->op(), editor_->parts(), *kage_glyphs_);
+      if (kage_ != nullptr) {
+        outlines = ComposerOutlines(editor_->op(), editor_->parts(), *kage_);
       }
       char_label_->setPixmap(
           outlines ? OutlinePreview(*outlines, palette(), devicePixelRatioF())

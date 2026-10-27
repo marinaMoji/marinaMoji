@@ -205,6 +205,7 @@
       <ComponentRef Id="MarinaMojiComposerLicense" />
       <ComponentRef Id="MarinaMojiComposerReadme" />
       <ComponentRef Id="MarinaMojiKageGlyphs" />
+      <ComponentRef Id="MarinaMojiKageLayout" />
       <ComponentRef Id="MarinaMojiKageLicense" />
       <ComponentRef Id="MarinaMojiKageReadme" />
       <ComponentRef Id="MarinaMojiSync" />
@@ -601,6 +602,9 @@
           -->
           <Component Id="MarinaMojiKageGlyphs">
             <File Id="kage_glyphs.tsv" Name="kage_glyphs.tsv" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.KageGlyphsPath)" />
+          </Component>
+          <Component Id="MarinaMojiKageLayout">
+            <File Id="kage_layout.tsv" Name="kage_layout.tsv" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.KageLayoutPath)" />
           </Component>
           <Component Id="MarinaMojiKageLicense">
             <File Id="kage_LICENSE.GlyphWiki" Name="LICENSE.GlyphWiki" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.KageLicensePath)" />

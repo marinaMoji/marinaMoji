@@ -83,13 +83,13 @@ std::vector<PlacedGlyph> ComposerGlyphs(std::string_view op,
 
 std::string RenderComposerSvg(std::string_view op,
                               const std::vector<ComposerSlot> &parts,
-                              int view_box, const kage::Buhin *glyphs) {
+                              int view_box, const KageResources *kage) {
   if (!composer_ids::ComposeIds(op, parts)) return {};
   if (view_box < 32) view_box = 32;
 
   std::string body;
   std::optional<std::vector<Contour>> outlines;
-  if (glyphs != nullptr) outlines = ComposerOutlines(op, parts, *glyphs, view_box);
+  if (kage != nullptr) outlines = ComposerOutlines(op, parts, *kage, view_box);
   if (outlines) {
     absl::StrAppend(&body, "<path fill=\"#000\" d=\"",
                     OutlinesToPathData(*outlines), "\"/>");

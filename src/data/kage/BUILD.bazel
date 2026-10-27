@@ -11,6 +11,7 @@ exports_files([
     "LICENSE.GlyphWiki",
     "README.kage.md",
     "kage_glyphs.tsv",
+    "kage_layout.tsv",
 ])
 
 filegroup(
@@ -19,5 +20,6 @@ filegroup(
         "LICENSE.GlyphWiki",
         "README.kage.md",
         "kage_glyphs.tsv",
+        "kage_layout.tsv",
     ],
 )

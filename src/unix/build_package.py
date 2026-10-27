@@ -56,6 +56,7 @@ CHARACTER_COMPOSER_FILES = (
     'README.md',
     # GlyphWiki stroke data for drawing composed glyphs (data/kage).
     'kage_glyphs.tsv',
+    'kage_layout.tsv',
     'LICENSE.GlyphWiki',
     'README.kage.md',
 )
