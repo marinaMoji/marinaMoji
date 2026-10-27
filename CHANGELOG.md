@@ -10,6 +10,15 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.18-rc13
+
+rc12 was tagged but never published: its macOS jobs were cancelled waiting for a
+hosted runner, and its Windows jobs failed in "Verify product version in build"
+as rc10 and rc11 had (the build and the MSI were fine; the step could not find
+the tool by file name). rc13 is rc12 with that step fixed (see the entry below);
+the character composer drawing and the licence note in the rc12 entry apply
+unchanged.
+
 ### Release CI: Windows version check finds the tool by its marker, not its name
 
 rc10, rc11 and rc12 all failed on Windows in "Verify product version in build"
