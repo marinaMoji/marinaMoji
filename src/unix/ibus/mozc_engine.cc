@@ -405,6 +405,9 @@ void MozcEngine::FocusIn(IbusEngineWrapper* engine) {
                       surround_stale_after_echo_back_ ? 1 : 0);
   }
   current_engine_ = engine->GetEngine();
+  // A new focus target (another window, or the character composer) must not
+  // inherit the previous preedit's left edge.
+  mozc_candidate_window_handler_.ClearCursorPositionCache();
   engine_focused_ = true;
   property_handler_->Register(engine);
   if (MozcToolbarAvailable()) {

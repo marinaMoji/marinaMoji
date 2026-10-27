@@ -10,6 +10,31 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer: stays visible, Insert after IME input, candidate position
+
+- The window now stays on top of the document (`WindowStaysOnTopHint`; X11 and
+  macOS — Wayland compositors may ignore it). Pressing the toolbar button
+  while a composer is already open now raises it on Linux/macOS: the second
+  process sends SIGUSR1 to the first (it only worked on Windows before).
+- Insert / Enter first commits any pending IME preedit, so a character still
+  being converted in a box is no longer one step behind (Insert greyed out, or
+  the previous character inserted). Enter in the search fields runs the
+  search instead of Insert.
+- IBus candidate window: the remembered preedit start (`preedit_begin_`) is
+  only reused while the caret is at or right of it, and is cleared on
+  FocusIn. Moving between boxes on the same row no longer drags the list back
+  to an earlier box's left edge.
+
+### Character composer: find characters containing components
+
+New "Find characters containing…" group under "Break apart a character".
+Type one or more components; the list shows only characters whose
+decomposition contains **every** one of them, at any depth (木 finds 某 and,
+through it, 謀). Radical forms count as one component (typing 扌 also finds
+what 手 builds). Click a result to load its parts into the editor. Backed by
+`IdsTable::FindContaining`, whose inverted index is built on first search.
+Results beyond 500 are not listed; add components to narrow.
+
 ### Character composer: a structure with no Unicode character is drawn as one new glyph
 
 Insert on a layout like ⿰木巻 used to place the two components side by side as

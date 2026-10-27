@@ -47,10 +47,13 @@ mozc_cc_library(
     hdrs = ["ids_table.h"],
     visibility = ["//gui/character_composer:__pkg__"],
     deps = [
+        ":ids_operator",
         "//base:file_util",
         "//base:system_util",
         "//base/strings:unicode",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/container:node_hash_map",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",

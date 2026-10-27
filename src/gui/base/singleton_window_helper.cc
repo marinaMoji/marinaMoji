@@ -157,5 +157,12 @@ bool SingletonWindowHelper::ActivatePreviousWindow() {
 #endif  // _WIN32
 }
 
+bool SingletonWindowHelper::PreviousProcessId(uint32_t* process_id) {
+  ipc::WindowInfo window_info;
+  if (!ReadWindowInfo(mutex_->lock_filename(), &window_info)) return false;
+  *process_id = window_info.process_id();
+  return true;
+}
+
 }  // namespace gui
 }  // namespace mozc

@@ -18,6 +18,7 @@ namespace mozc {
 namespace composer_ids {
 namespace {
 
+using ::testing::Contains;
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
 
@@ -116,6 +117,50 @@ TEST(IdsTableTest, MalformedLineIsAnError) {
   EXPECT_FALSE(IdsTable::FromTsv("⿰言某\n", "").ok());
   EXPECT_FALSE(IdsTable::FromTsv("a\tb\tc\n", "").ok());
   EXPECT_FALSE(IdsTable::FromTsv("\tb\n", "").ok());
+}
+
+TEST(IdsTableTest, FindContainingMatchesAtAnyDepth) {
+  const IdsTable table = LoadFixture();
+  // 謀 = ⿰言某 and 某 = ⿱廿木, so 木 is two levels down in 謀.
+  EXPECT_THAT(table.FindContaining("木"), ElementsAre("某", "相", "謀"));
+}
+
+TEST(IdsTableTest, FindContainingRequiresEveryComponent) {
+  const IdsTable table = LoadFixture();
+  EXPECT_THAT(table.FindContaining("木目"), ElementsAre("相"));
+  EXPECT_THAT(table.FindContaining("言木"), ElementsAre("謀"));
+  EXPECT_THAT(table.FindContaining("言 木 "), ElementsAre("謀"));  // blanks ignored
+  EXPECT_THAT(table.FindContaining("目言"), IsEmpty());
+}
+
+TEST(IdsTableTest, FindContainingTreatsRadicalFormsAsOneComponent) {
+  const IdsTable table = LoadFixture();
+  EXPECT_THAT(table.FindContaining("訁"), ElementsAre("謀", "𪘙"));  // typed 訁, stored 言
+  EXPECT_THAT(table.FindContaining("刀"), ElementsAre("𠟪"));         // stored 刂
+  EXPECT_THAT(table.FindContaining("氵"), ElementsAre("一", "二"));  // 水 too
+}
+
+TEST(IdsTableTest, FindContainingNeverMatchesTheCharacterItself) {
+  const IdsTable table = LoadFixture();
+  EXPECT_THAT(table.FindContaining("謀"), IsEmpty());
+  EXPECT_THAT(table.FindContaining("某"), ElementsAre("謀"));
+}
+
+TEST(IdsTableTest, FindContainingIgnoresOperatorsAndUnknownInput) {
+  const IdsTable table = LoadFixture();
+  EXPECT_THAT(table.FindContaining(""), IsEmpty());
+  EXPECT_THAT(table.FindContaining("⿰"), IsEmpty());
+  EXPECT_THAT(table.FindContaining("abc"), IsEmpty());
+  EXPECT_THAT(table.FindContaining("龘"), IsEmpty());
+  // An operator typed next to a component is skipped, not a filter.
+  EXPECT_THAT(table.FindContaining("⿰木目"), ElementsAre("相"));
+}
+
+TEST(IdsTableTest, FindContainingSurvivesCyclicData) {
+  auto table = IdsTable::FromTsv("⿰乙丙\t甲\n⿰甲丁\t乙\n", "");
+  ASSERT_TRUE(table.ok());
+  // Malformed data: only that it terminates and finds the direct container.
+  EXPECT_THAT(table->FindContaining("丁"), Contains("乙"));
 }
 
 TEST(IdsTableTest, MissingDirectoryIsAnError) {

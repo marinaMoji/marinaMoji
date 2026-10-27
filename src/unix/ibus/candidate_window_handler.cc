@@ -131,11 +131,15 @@ bool CandidateWindowHandler::SendUpdateCommand(IbusEngineWrapper* engine,
   if (output.preedit().segment_size() == 0) {
     preedit_begin_ = *preedit_rectangle;
   } else if (preedit_begin_.top() == preedit_rectangle->top() &&
-             preedit_begin_.bottom() == preedit_rectangle->bottom()) {
+             preedit_begin_.bottom() == preedit_rectangle->bottom() &&
+             preedit_rectangle->left() >= preedit_begin_.left()) {
     // If the Y coordinates are moved, it means that the preedit is:
     //   1. moved for some reasons, or
     //   2. extended to multiple lines.
     // The workaround is only applied when the Y coordinates are not moved.
+    // A caret left of the remembered start cannot belong to the same preedit
+    // (the user moved to another box on the same row, as in the character
+    // composer), so the stale left edge must not drag the window back.
     preedit_rectangle->set_left(preedit_begin_.left());
   }
 

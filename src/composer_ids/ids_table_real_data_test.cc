@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "base/file_util.h"
 #include "composer_ids/ids_table.h"
@@ -62,6 +63,15 @@ TEST(IdsTableRealDataTest, MovesToTheHeapAndSourceCanBeDestroyed) {
   }
   EXPECT_EQ(table->AutomaticFormFor("手", "⿰", 0), "扌");
   EXPECT_EQ(table->FindEncodedCharacter("⿰言某"), "謀");
+}
+
+TEST(IdsTableRealDataTest, FindContainingWorksOnTheFullTable) {
+  const IdsTable table = LoadRealTable();
+  const std::vector<std::string> found = table.FindContaining("言某");
+  EXPECT_THAT(found, ::testing::Contains("謀"));
+  // Deeper than the top level: 謀 = ⿰言某, 某 = ⿱廿木.
+  EXPECT_THAT(table.FindContaining("言木"), ::testing::Contains("謀"));
+  EXPECT_GT(table.FindContaining("木").size(), found.size());
 }
 
 TEST(IdsTableRealDataTest, NoStrayTagsRemain) {

@@ -13,8 +13,11 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
+#include <QGuiApplication>
 #include <QIcon>
+#include <QInputMethod>
 #include <QLabel>
+#include <QListWidget>
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
@@ -422,8 +425,10 @@ CharacterComposerDialog::CharacterComposerDialog(
 
 void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   setWindowTitle(Tr("Character composer"));
+  // A separate process cannot be made a child of the document window, so
+  // without this the document hides the dialog as soon as it is clicked.
   setWindowFlags(Qt::WindowSystemMenuHint | Qt::WindowCloseButtonHint |
-                 Qt::WindowTitleHint);
+                 Qt::WindowTitleHint | Qt::WindowStaysOnTopHint);
 
   // Palette of the twelve layouts.
   palette_ = new QButtonGroup(this);
@@ -499,6 +504,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
 
   auto *break_group = new QGroupBox(Tr("Break apart a character"), this);
   break_apart_edit_ = new QLineEdit(break_group);
+  break_apart_edit_->setObjectName(QStringLiteral("break_apart_edit"));
   break_apart_edit_->setPlaceholderText(Tr("Type a character"));
   auto *break_button = new QPushButton(Tr("Break apart"), break_group);
   break_button->setAutoDefault(false);
@@ -519,6 +525,37 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
               editor_->SetLayout(parsed->op, std::move(parsed->parts));
             }
           });
+
+  auto *containing_group = new QGroupBox(Tr("Find characters containing…"), this);
+  containing_edit_ = new QLineEdit(containing_group);
+  containing_edit_->setObjectName(QStringLiteral("containing_edit"));
+  containing_edit_->setPlaceholderText(Tr("Type one or more components"));
+  auto *containing_button = new QPushButton(Tr("Find"), containing_group);
+  containing_button->setAutoDefault(false);
+  containing_button->setEnabled(table_ != nullptr);
+  containing_list_ = new QListWidget(containing_group);
+  containing_list_->setViewMode(QListView::IconMode);
+  containing_list_->setResizeMode(QListView::Adjust);
+  containing_list_->setMovement(QListView::Static);
+  containing_list_->setUniformItemSizes(true);
+  containing_list_->setGridSize(QSize(44, 44));
+  containing_list_->setFixedHeight(140);
+  containing_list_->setVisible(false);
+  QFont containing_font = containing_list_->font();
+  containing_font.setPointSize(containing_font.pointSize() + 8);
+  containing_list_->setFont(containing_font);
+  auto *containing_layout = new QGridLayout(containing_group);
+  containing_layout->addWidget(containing_edit_, 0, 0);
+  containing_layout->addWidget(containing_button, 0, 1);
+  containing_layout->addWidget(containing_list_, 1, 0, 1, 2);
+  connect(containing_button, &QPushButton::clicked, this,
+          &CharacterComposerDialog::OnFindContaining);
+  connect(containing_edit_, &QLineEdit::returnPressed, this,
+          &CharacterComposerDialog::OnFindContaining);
+  connect(containing_list_, &QListWidget::itemClicked, this,
+          &CharacterComposerDialog::OnContainingPicked);
+  connect(containing_list_, &QListWidget::itemActivated, this,
+          &CharacterComposerDialog::OnContainingPicked);
 
   insert_button_ = new QPushButton(Tr("Insert"), this);
   insert_button_->setDefault(true);
@@ -548,6 +585,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   right->addWidget(cycle_button_);
   right->addStretch(1);
   right->addWidget(break_group);
+  right->addWidget(containing_group);
   right->addLayout(buttons);
 
   auto *root = new QHBoxLayout(this);
@@ -639,16 +677,24 @@ void CharacterComposerDialog::UpdateResult() {
   copy_button_->setEnabled(!found_.empty() || insertable);
 }
 
-void CharacterComposerDialog::OnSubmitRequested() {
+void CharacterComposerDialog::OnSubmitRequested() { TryInsert(); }
+
+void CharacterComposerDialog::TryInsert() {
+  // Text still being composed in an IME is not in the box yet, so the layout
+  // (and the Insert button) would be one character behind.
+  if (QInputMethod *input_method = QGuiApplication::inputMethod()) {
+    input_method->commit();
+  }
   if (insert_button_ != nullptr && insert_button_->isEnabled()) {
     OnInsert();
   }
 }
 
 void CharacterComposerDialog::keyPressEvent(QKeyEvent *event) {
-  if ((event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) &&
-      insert_button_ != nullptr && insert_button_->isEnabled()) {
-    OnInsert();
+  if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
+    // Enter in the search fields runs the search, not Insert.
+    QWidget *focus = focusWidget();
+    if (focus != break_apart_edit_ && focus != containing_edit_) TryInsert();
     return;
   }
   QDialog::keyPressEvent(event);
@@ -724,6 +770,49 @@ void CharacterComposerDialog::OnBreakApart() {
       decomposition_combo_->addItem(FromUtf8(ids));
     }
     decomposition_combo_->setVisible(true);
+  }
+}
+
+void CharacterComposerDialog::OnFindContaining() {
+  containing_list_->clear();
+  containing_list_->setVisible(false);
+  if (table_ == nullptr) return;
+  const std::vector<std::string> matches =
+      table_->FindContaining(ToUtf8(containing_edit_->text()));
+  if (matches.empty()) {
+    note_ = Tr("No character contains all of these components.");
+    UpdateResult();
+    return;
+  }
+  // The list is only a pick-list; a component like 一 matches thousands.
+  constexpr size_t kMaxShown = 500;
+  for (size_t i = 0; i < matches.size() && i < kMaxShown; ++i) {
+    auto *item = new QListWidgetItem(FromUtf8(matches[i]), containing_list_);
+    item->setTextAlignment(Qt::AlignCenter);
+  }
+  containing_list_->setVisible(true);
+  note_ = matches.size() > kMaxShown
+              ? Tr("%1 characters found; showing the first %2. Add more "
+                   "components to narrow the search.")
+                    .arg(matches.size())
+                    .arg(kMaxShown)
+              : Tr("%1 characters found. Click one to load its parts.")
+                    .arg(matches.size());
+  UpdateResult();
+}
+
+void CharacterComposerDialog::OnContainingPicked(QListWidgetItem *item) {
+  if (item == nullptr || table_ == nullptr) return;
+  const std::string ch = ToUtf8(item->text());
+  for (const std::string &ids : table_->FindDecompositions(ch)) {
+    auto parsed = composer_ids::ParseIdsToComposerTree(ids);
+    if (!parsed) continue;
+    editor_->SetLayout(parsed->op, std::move(parsed->parts));
+    if (parsed->unencoded_count > 0) {
+      note_ = Tr("Some parts have no encoded character; fill those boxes in.");
+      UpdateResult();
+    }
+    return;
   }
 }
 

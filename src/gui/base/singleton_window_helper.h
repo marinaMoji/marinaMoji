@@ -44,6 +44,7 @@
 #ifndef MOZC_GUI_BASE_SINGLETON_WINDOW_HELPER_H_
 #define MOZC_GUI_BASE_SINGLETON_WINDOW_HELPER_H_
 
+#include <cstdint>
 #include <memory>
 
 #include "absl/strings/string_view.h"
@@ -65,6 +66,11 @@ class SingletonWindowHelper final {
 
   // Activate window.
   bool ActivatePreviousWindow();
+
+  // Process id recorded by the instance holding the lock; false if unreadable.
+  // For callers that know how to wake their own previous instance (the
+  // generic ActivatePreviousWindow does nothing outside Windows).
+  bool PreviousProcessId(uint32_t* process_id);
 
  private:
   std::unique_ptr<ProcessMutex> mutex_;

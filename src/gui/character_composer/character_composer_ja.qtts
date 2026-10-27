@@ -135,5 +135,29 @@
         <source>Overlap</source>
         <translation>重ね</translation>
     </message>
+    <message>
+        <source>Find characters containing…</source>
+        <translation>次の部品を含む文字を検索…</translation>
+    </message>
+    <message>
+        <source>Type one or more components</source>
+        <translation>部品を1つ以上入力</translation>
+    </message>
+    <message>
+        <source>Find</source>
+        <translation>検索</translation>
+    </message>
+    <message>
+        <source>No character contains all of these components.</source>
+        <translation>これらの部品をすべて含む文字はありません。</translation>
+    </message>
+    <message>
+        <source>%1 characters found; showing the first %2. Add more components to narrow the search.</source>
+        <translation>%1 文字が見つかりました。先頭の %2 文字を表示しています。部品を増やして絞り込んでください。</translation>
+    </message>
+    <message>
+        <source>%1 characters found. Click one to load its parts.</source>
+        <translation>%1 文字が見つかりました。クリックすると部品を読み込みます。</translation>
+    </message>
 </context>
 </TS>

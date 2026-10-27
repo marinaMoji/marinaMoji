@@ -52,6 +52,15 @@ class IdsTable {
   // or empty input.
   std::vector<std::string> FindDecompositions(std::string_view input) const;
 
+  // Every encoded character whose decomposition contains every component in
+  // |components| (one character each; whitespace and duplicates are ignored),
+  // at any depth: with 某 = ⿱廿木 and 謀 = ⿰言某, "木" finds both. Radical
+  // forms count as the same component (扌 finds what 手 builds), and a
+  // component never matches itself. Sorted by code point; empty when
+  // |components| holds no component or nothing matches. The index behind this
+  // is built on first use, so the table is not safe to share across threads.
+  std::vector<std::string> FindContaining(std::string_view components) const;
+
   // Every form of the radical |ch| belongs to, |ch| included, base form
   // first. 阝 belongs to two families (阜 and 邑) and gets both. Empty when
   // |ch| is not a known radical form.
@@ -74,6 +83,7 @@ class IdsTable {
   IdsTable() = default;
 
   std::string WithBaseRadicals(std::string_view ids) const;
+  void BuildContainingIndex() const;
 
   absl::flat_hash_map<std::string, std::string> by_ids_;
   // Reduced (base-radical) IDS -> character; empty string when ambiguous.
@@ -84,6 +94,11 @@ class IdsTable {
   absl::flat_hash_map<std::string, std::string> automatic_forms_;
   // Any form of a radical -> the base form of its (first) family.
   absl::flat_hash_map<std::string, std::string> base_form_;
+  // Base form of a component -> sorted characters containing it at any depth.
+  // Built by FindContaining.
+  mutable std::optional<
+      absl::flat_hash_map<std::string, std::vector<std::string>>>
+      containing_;
 };
 
 }  // namespace composer_ids

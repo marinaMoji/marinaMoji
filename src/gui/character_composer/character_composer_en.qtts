@@ -135,5 +135,29 @@
         <source>Overlap</source>
         <translation>Overlap</translation>
     </message>
+    <message>
+        <source>Find characters containing…</source>
+        <translation>Find characters containing…</translation>
+    </message>
+    <message>
+        <source>Type one or more components</source>
+        <translation>Type one or more components</translation>
+    </message>
+    <message>
+        <source>Find</source>
+        <translation>Find</translation>
+    </message>
+    <message>
+        <source>No character contains all of these components.</source>
+        <translation>No character contains all of these components.</translation>
+    </message>
+    <message>
+        <source>%1 characters found; showing the first %2. Add more components to narrow the search.</source>
+        <translation>%1 characters found; showing the first %2. Add more components to narrow the search.</translation>
+    </message>
+    <message>
+        <source>%1 characters found. Click one to load its parts.</source>
+        <translation>%1 characters found. Click one to load its parts.</translation>
+    </message>
 </context>
 </TS>

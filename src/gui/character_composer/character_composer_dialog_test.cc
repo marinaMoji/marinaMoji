@@ -11,6 +11,8 @@
 #include <QEvent>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QLineEdit>
+#include <QListWidget>
 #include <QPushButton>
 #include <QString>
 #include <QToolButton>
@@ -173,14 +175,8 @@ TEST_F(CharacterComposerDialogTest, RemovingAFilledNestedLayoutIsRefused) {
 
 TEST_F(CharacterComposerDialogTest, BreakApartLoadsTheDecomposition) {
   auto dialog = MakeDialog();
-  auto *edit = dialog->findChild<QLineEdit *>(QString(), Qt::FindChildrenRecursively);
-  // The break-apart field is the only plain QLineEdit (box fields are SlotEdit).
-  QLineEdit *break_apart = nullptr;
-  for (QLineEdit *e : dialog->findChildren<QLineEdit *>()) {
-    if (!dynamic_cast<SlotEdit *>(e)) break_apart = e;
-  }
+  auto *break_apart = dialog->findChild<QLineEdit *>(QStringLiteral("break_apart_edit"));
   ASSERT_NE(break_apart, nullptr);
-  (void)edit;
   break_apart->setText(QStringLiteral("謀"));
   Button(dialog.get(), "Break apart")->click();
   auto *editor = dialog->findChild<LayoutEditor *>();
@@ -188,6 +184,32 @@ TEST_F(CharacterComposerDialogTest, BreakApartLoadsTheDecomposition) {
   EXPECT_EQ(editor->parts()[0].input, "言");
   EXPECT_EQ(editor->parts()[1].input, "某");
   EXPECT_TRUE(Button(dialog.get(), "Insert")->isEnabled());
+}
+
+TEST_F(CharacterComposerDialogTest, FindContainingListsOnlyCharactersWithEveryComponent) {
+  auto dialog = MakeDialog();
+  auto *edit = dialog->findChild<QLineEdit *>(QStringLiteral("containing_edit"));
+  auto *list = dialog->findChild<QListWidget *>();
+  ASSERT_NE(edit, nullptr);
+  ASSERT_NE(list, nullptr);
+  edit->setText(QStringLiteral("言木"));  // 木 is inside 某, inside 謀
+  Button(dialog.get(), "Find")->click();
+  ASSERT_EQ(list->count(), 1);
+  EXPECT_EQ(list->item(0)->text(), QStringLiteral("謀"));
+
+  edit->setText(QStringLiteral("木"));
+  Button(dialog.get(), "Find")->click();
+  EXPECT_EQ(list->count(), 3);
+
+  // Picking a result loads its parts into the editor.
+  emit list->itemClicked(list->item(0));  // 某 = ⿱廿木
+  auto *editor = dialog->findChild<LayoutEditor *>();
+  EXPECT_EQ(editor->op(), "⿱");
+  EXPECT_EQ(editor->parts()[1].input, "木");
+
+  edit->setText(QStringLiteral("目言"));
+  Button(dialog.get(), "Find")->click();
+  EXPECT_EQ(list->count(), 0);
 }
 
 TEST_F(CharacterComposerDialogTest, WorksWithoutDataFiles) {

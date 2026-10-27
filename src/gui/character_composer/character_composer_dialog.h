@@ -28,6 +28,8 @@
 class QButtonGroup;
 class QComboBox;
 class QLabel;
+class QListWidget;
+class QListWidgetItem;
 class QPushButton;
 class QToolButton;
 
@@ -171,6 +173,8 @@ class CharacterComposerDialog : public QDialog {
   void OnInsert();
   void OnCopy();
   void OnBreakApart();
+  void OnFindContaining();
+  void OnContainingPicked(QListWidgetItem *item);
   void OnCycleForm();
   void OnSubmitRequested();
 
@@ -180,6 +184,8 @@ class CharacterComposerDialog : public QDialog {
  private:
   void BuildUi(const QString &data_directory);
   void UpdateResult();
+  // Insert if ready, after committing any IME preedit.
+  void TryInsert();
   void UpdatePaletteHighlight();
 
   std::unique_ptr<composer_ids::IdsTable> table_;
@@ -192,6 +198,8 @@ class CharacterComposerDialog : public QDialog {
   QLabel *status_label_ = nullptr;
   QLineEdit *break_apart_edit_ = nullptr;
   QComboBox *decomposition_combo_ = nullptr;
+  QLineEdit *containing_edit_ = nullptr;
+  QListWidget *containing_list_ = nullptr;
   QPushButton *insert_button_ = nullptr;
   QPushButton *copy_button_ = nullptr;
   QPushButton *cycle_button_ = nullptr;

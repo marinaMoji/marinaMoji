@@ -11,6 +11,8 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_set.h"
+#include "absl/container/node_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
@@ -19,6 +21,7 @@
 #include "base/file_util.h"
 #include "base/strings/unicode.h"
 #include "base/system_util.h"
+#include "composer_ids/ids_operator.h"
 
 namespace mozc {
 namespace composer_ids {
@@ -179,6 +182,94 @@ std::vector<std::string> IdsTable::FindDecompositions(
     return it == by_char_.end() ? std::vector<std::string>() : it->second;
   }
   return {};
+}
+
+namespace {
+
+using ComponentSet = absl::flat_hash_set<std::string>;
+
+// A component is a single non-ASCII character that is not an operator; ASCII
+// is what the data uses for placeholders like "&CDP-8C4D;".
+bool IsComponent(std::string_view ch) {
+  return ch.size() > 1 && !IsIdsOperator(ch);
+}
+
+}  // namespace
+
+void IdsTable::BuildContainingIndex() const {
+  if (containing_.has_value()) return;
+
+  // character -> base forms of everything below it, over all its recorded
+  // decompositions. node_hash_map keeps references stable while recursing.
+  absl::node_hash_map<std::string, ComponentSet> memo;
+  absl::flat_hash_set<std::string> visiting;  // guards against data cycles
+
+  auto base_of = [this](const std::string &ch) {
+    const auto it = base_form_.find(ch);
+    return it == base_form_.end() ? ch : it->second;
+  };
+
+  auto expand = [&](auto &&self, const std::string &ch) -> const ComponentSet & {
+    if (const auto it = memo.find(ch); it != memo.end()) return it->second;
+    ComponentSet &result = memo[ch];
+    const auto decompositions = by_char_.find(ch);
+    if (decompositions == by_char_.end() || !visiting.insert(ch).second) {
+      return result;
+    }
+    for (const std::string &ids : decompositions->second) {
+      for (const std::string_view part : Utf8AsChars(ids)) {
+        if (!IsComponent(part)) continue;
+        const std::string part_str(part);
+        result.insert(base_of(part_str));
+        if (part_str == ch) continue;
+        // Copy: |result| may not be touched while |self| fills other entries.
+        const ComponentSet below = self(self, part_str);
+        result.insert(below.begin(), below.end());
+      }
+    }
+    visiting.erase(ch);
+    return result;
+  };
+
+  absl::flat_hash_map<std::string, std::vector<std::string>> index;
+  for (const auto &entry : by_char_) {
+    const std::string &ch = entry.first;
+    for (const std::string &component : expand(expand, ch)) {
+      if (component != base_of(ch)) index[component].push_back(ch);
+    }
+  }
+  for (auto &entry : index) std::sort(entry.second.begin(), entry.second.end());
+  containing_ = std::move(index);
+}
+
+std::vector<std::string> IdsTable::FindContaining(
+    std::string_view components) const {
+  std::vector<const std::vector<std::string> *> lists;
+  ComponentSet seen;
+  BuildContainingIndex();
+  for (const std::string_view ch :
+       Utf8AsChars(absl::StripAsciiWhitespace(components))) {
+    if (!IsComponent(ch)) continue;
+    const auto base = base_form_.find(std::string(ch));
+    const std::string key = base == base_form_.end() ? std::string(ch) : base->second;
+    if (!seen.insert(key).second) continue;
+    const auto it = containing_->find(key);
+    if (it == containing_->end()) return {};  // nothing contains this one
+    lists.push_back(&it->second);
+  }
+  if (lists.empty()) return {};
+
+  std::sort(lists.begin(), lists.end(),
+            [](const auto *a, const auto *b) { return a->size() < b->size(); });
+  std::vector<std::string> result;
+  for (const std::string &ch : *lists.front()) {
+    const bool in_all = std::all_of(
+        lists.begin() + 1, lists.end(), [&](const std::vector<std::string> *list) {
+          return std::binary_search(list->begin(), list->end(), ch);
+        });
+    if (in_all) result.push_back(ch);
+  }
+  return result;
 }
 
 }  // namespace composer_ids

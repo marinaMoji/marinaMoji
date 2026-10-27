@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <QGuiApplication>
+#include <QSocketNotifier>
 #include <QString>
 #include <QtGui>
 #include <chrono>
@@ -10,6 +11,12 @@
 #include <memory>
 #include <string>
 #include <utility>
+
+#ifndef _WIN32
+#include <fcntl.h>
+#include <signal.h>
+#include <unistd.h>
+#endif  // !_WIN32
 
 #include "absl/flags/flag.h"
 #include "absl/log/log.h"
@@ -24,6 +31,33 @@ ABSL_FLAG(std::string, result_file, "",
           "character_composer: write the chosen character to this file "
           "instead of stdout (Windows; macOS uses a default path).");
 
+#ifndef _WIN32
+namespace {
+int g_wake_pipe[2] = {-1, -1};
+
+// Async-signal-safe: just poke the pipe the Qt event loop is watching.
+void OnWakeSignal(int) {
+  const char byte = 1;
+  if (g_wake_pipe[1] >= 0) (void)!write(g_wake_pipe[1], &byte, 1);
+}
+
+// SIGUSR1 means "a second composer was started: show yourself". Installed
+// before the singleton check so the signal can never hit the default action.
+void InstallWakeSignal() {
+  if (pipe(g_wake_pipe) != 0) return;
+  for (int fd : g_wake_pipe) {
+    fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+    fcntl(fd, F_SETFD, FD_CLOEXEC);
+  }
+  struct sigaction action = {};
+  action.sa_handler = OnWakeSignal;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = SA_RESTART;
+  sigaction(SIGUSR1, &action, nullptr);
+}
+}  // namespace
+#endif  // !_WIN32
+
 // Runs the character composer. A Unicode character is passed to the input
 // method as UTF-8 (Linux stdout, --result_file on Windows, default path on
 // macOS). An unencoded structure writes an SVG beside that path (and to the
@@ -32,12 +66,23 @@ ABSL_FLAG(std::string, result_file, "",
 int RunCharacterComposer(int argc, char *argv[]) {
   Q_INIT_RESOURCE(qrc_character_composer);
   auto app = mozc::gui::GuiUtil::InitQt(argc, argv);
+#ifndef _WIN32
+  InstallWakeSignal();
+#endif  // !_WIN32
 
   std::string name = "character_composer.";
   name += mozc::SystemUtil::GetDesktopNameAsString();
   mozc::gui::SingletonWindowHelper window_helper(name);
   if (window_helper.FindPreviousWindow()) {
     window_helper.ActivatePreviousWindow();
+#ifndef _WIN32
+    // ActivatePreviousWindow only does something on Windows. Ask the running
+    // composer to raise itself, or the toolbar button seems to do nothing
+    // while the window is hidden behind the document.
+    if (uint32_t pid = 0; window_helper.PreviousProcessId(&pid) && pid > 1) {
+      kill(static_cast<pid_t>(pid), SIGUSR1);
+    }
+#endif  // !_WIN32
     return -1;
   }
 
@@ -90,6 +135,18 @@ int RunCharacterComposer(int argc, char *argv[]) {
       LOG(ERROR) << "Cannot write the SVG: " << status;
     }
   });
+
+#ifndef _WIN32
+  QSocketNotifier wake_notifier(g_wake_pipe[0], QSocketNotifier::Read);
+  QObject::connect(&wake_notifier, &QSocketNotifier::activated, [&]() {
+    char drain[16];
+    while (read(g_wake_pipe[0], drain, sizeof(drain)) > 0) {
+    }
+    dialog.showNormal();
+    dialog.raise();
+    dialog.activateWindow();
+  });
+#endif  // !_WIN32
 
   dialog.show();
   dialog.raise();
