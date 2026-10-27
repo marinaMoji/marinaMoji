@@ -56,8 +56,16 @@
         <translation>Les données de caractères sont introuvables dans %1 : la recherche du caractère est donc impossible. Vous pouvez tout de même composer l’IDS ci-dessus.</translation>
     </message>
     <message>
-        <source>No encoded character has this structure.</source>
-        <translation>Aucun caractère codé n’a cette structure.</translation>
+        <source>No encoded character has this structure. Insert places a drawing on the clipboard for Word (Kaeriten → Insert composed character) or other office plugins.</source>
+        <translation>Aucun caractère codé n’a cette structure. Insérer place un dessin dans le presse-papiers pour Word (Kaeriten → Insérer le caractère composé) ou d’autres modules bureautiques.</translation>
+    </message>
+    <message>
+        <source>Insert places a drawing on the clipboard (lookup data missing).</source>
+        <translation>Insérer place un dessin dans le presse-papiers (données de recherche introuvables).</translation>
+    </message>
+    <message>
+        <source>Drawing copied to the clipboard.</source>
+        <translation>Dessin copié dans le presse-papiers.</translation>
     </message>
     <message>
         <source>Fill in every box to look up the character.</source>

@@ -10,6 +10,14 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer: SVG status messages are translated
+
+Three strings added with the SVG export ("No encoded character has this
+structure. Insert places a drawing…", the lookup-data-missing variant, and
+"Drawing copied to the clipboard.") had no entries in the en/fr/ja
+translation files, so they showed in English in the French and Japanese
+dialogs. The `.qtts` files are updated and the `.qm` files regenerated.
+
 ### Release candidate 0.0.18-rc9
 
 rc8 was tagged but never published: its new "Verify product version in build"
