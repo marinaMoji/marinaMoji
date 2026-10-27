@@ -321,8 +321,10 @@ jobs:
           EXPECTED="${MARINA_PRODUCT_VERSION}"
           # bazelisk on Windows prints BAZEL_* lines (CRLF) before the path.
           OUT="$(bazelisk info output_path | tail -n 1 | tr -d '\r')"
-          TOOL="$(find -L "$OUT" -name marinamoji_tool.exe -print -quit)"
-          [[ -n "$TOOL" ]] || { echo "marinamoji_tool.exe not found under $OUT"; exit 1; }
+          # The default (Mozc) branding names it mozc_tool.exe; marinamoji_tool.exe
+          # only exists under the marinaMoji branding.
+          TOOL="$(find -L "$OUT" \( -name mozc_tool.exe -o -name marinamoji_tool.exe \) -print -quit)"
+          [[ -n "$TOOL" ]] || { echo "mozc_tool.exe not found under $OUT"; exit 1; }
           bash build_tools/verify_product_version.sh \
             --expected "$EXPECTED" --search "$OUT" --binary "$TOOL"
 
