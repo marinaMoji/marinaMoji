@@ -10,6 +10,17 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.18-rc12
+
+rc11 plus everything below down to the rc11 entry: the character composer draws
+a structure with no Unicode character as one glyph (KAGE), laid out as GlyphWiki
+lays it out, and finds characters by components. **Licence change to know
+about:** `mozc_tool` and the standalone composer link the GPL-3.0 KAGE port
+(`src/kage`) and are GPL-3.0 as distributed; the input method itself is
+unchanged (BSD-3-Clause). macOS CI's test job never got a runner on this
+commit (a hosted-runner capacity failure); both macOS builds and all Linux and
+Windows jobs passed.
+
 ### Character composer: stays visible, Insert after IME input, candidate position
 
 - The window now stays on top of the document (`WindowStaysOnTopHint`; X11 and
