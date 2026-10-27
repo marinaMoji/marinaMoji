@@ -3210,6 +3210,11 @@ bool Session::TogglePrivacyMode(commands::Command* command) {
 }
 
 bool Session::ShowOdorijiPalette(commands::Command* command) {
+  // In Direct input nothing consumes the palette's selection, so it would just
+  // follow the cursor until the mode changed.
+  if (context_->state() == ImeContext::DIRECT) {
+    return DoNothing(command);
+  }
   command->mutable_output()->set_consumed(true);
   OdorijiPalette::Show(&odoriji_palette_visible_, &odoriji_focused_index_);
   Output(command);

@@ -1221,6 +1221,19 @@ TEST_F(SessionTest, RightShiftAloneInDirectArmsMacronDeadKey) {
   EXPECT_EQ(command.output().result().value(), "ō");
 }
 
+TEST_F(SessionTest, OdorijiPaletteDoesNotOpenInDirect) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToDirect(&session);
+  commands::Command command;
+
+  EXPECT_TRUE(SendCommand(commands::SessionCommand::SHOW_ODORIJI_PALETTE,
+                          &session, &command));
+  EXPECT_TRUE(command.output().consumed());
+  EXPECT_FALSE(command.output().has_candidate_window());
+}
+
 TEST_F(SessionTest, MacronDeadKeyProducesUppercaseWithShift) {
   MockEngine engine;
   CreateEngineConverterMock(&engine);
