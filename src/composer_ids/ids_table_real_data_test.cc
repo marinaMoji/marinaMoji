@@ -40,6 +40,14 @@ TEST(IdsTableRealDataTest, RadicalFormsAndReverseLookup) {
   EXPECT_THAT(table.FindDecompositions("謀"), Contains("⿰言某"));
 }
 
+TEST(IdsTableRealDataTest, AutomaticRadicalFormsByPosition) {
+  const IdsTable table = LoadRealTable();
+  EXPECT_EQ(table.AutomaticFormFor("手", "⿰", 0), "扌");
+  EXPECT_EQ(table.AutomaticFormFor("手", "⿰", 1), std::nullopt);
+  EXPECT_EQ(table.AutomaticFormFor("水", "⿰", 0), "氵");
+  EXPECT_EQ(table.AutomaticFormFor("竹", "⿱", 0), "𥫗");
+}
+
 TEST(IdsTableRealDataTest, NoStrayTagsRemain) {
   const IdsTable table = LoadRealTable();
   EXPECT_FALSE(table.FindEncodedCharacter("⿰言某[GTKV]").has_value());
