@@ -99,6 +99,7 @@ class RendererServerSendCommand : public client::SendCommandInterface {
       case commands::SessionCommand::HIGHLIGHT_CANDIDATE:
       case commands::SessionCommand::SUBMIT_CANDIDATE:
       case commands::SessionCommand::SHOW_ODORIJI_PALETTE:
+      case commands::SessionCommand::INSERT_ODORIJI_DEFAULT:
       case commands::SessionCommand::SWITCH_COMPOSITION_MODE:
       case commands::SessionCommand::TURN_OFF_IME:
       case commands::SessionCommand::TOGGLE_TRADITIONAL_KANJI:
@@ -116,9 +117,9 @@ class RendererServerSendCommand : public client::SendCommandInterface {
         // marinaMoji: floating toolbar button and context-menu clicks (mode
         // switch, shin-kyu toggle, add word, dictionary tool, settings, hide),
         // Symbols Palette and Shortcuts window open/close signals,
-        // Symbols Palette commits (including odoriji via SHOW_ODORIJI_PALETTE
-        // + SUBMIT_CANDIDATE), in addition to the original candidate click
-        // commands.
+        // Symbols Palette commits (including odoriji via
+        // INSERT_ODORIJI_DEFAULT with |id|), in addition to the original
+        // candidate click commands.
         break;
       default:
         // Unsupported command.
@@ -177,16 +178,17 @@ class RendererServerSendCommand : public client::SendCommandInterface {
     // synchronously so the focused context refreshes its RendererCommand
     // before the toolbar click returns; a queued PostMessage can otherwise be
     // superseded by the next renderer update and leave the palette unopened.
-    // SHOW_ODORIJI_PALETTE + SUBMIT_CANDIDATE from the Symbols Palette Odoriji
-    // tab must also be synchronous and ordered: SUBMIT needs the palette
-    // visible on the session before it can commit (issue #80).
+    // INSERT_ODORIJI_DEFAULT from the Symbols Palette Odoriji tab must be
+    // synchronous so the character reaches the document before the click
+    // returns (same ordering concern as issue #80's old SHOW+SUBMIT pair).
     if (command.type() == commands::SessionCommand::SHOW_SYMBOLS_PALETTE ||
         command.type() == commands::SessionCommand::HIDE_SYMBOLS_PALETTE ||
         command.type() == commands::SessionCommand::SHOW_SHORTCUTS_WINDOW ||
         command.type() == commands::SessionCommand::HIDE_SHORTCUTS_WINDOW ||
         command.type() == commands::SessionCommand::HIDE_TOOLBAR ||
         command.type() == commands::SessionCommand::SHOW_ODORIJI_PALETTE ||
-        command.type() == commands::SessionCommand::SUBMIT_CANDIDATE) {
+        command.type() == commands::SessionCommand::SUBMIT_CANDIDATE ||
+        command.type() == commands::SessionCommand::INSERT_ODORIJI_DEFAULT) {
       DWORD_PTR result = 0;
       ::SendMessageTimeout(target, mozc_msg, type, id, SMTO_ABORTIFHUNG,
                            kSendTimeoutMsec, &result);

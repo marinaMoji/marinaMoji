@@ -149,7 +149,7 @@ class SymbolsPaletteWindow
   COLORREF BackgroundColor() const;
   COLORREF TextColor() const;
 
-  void SendShowOdorijiPaletteAndSubmit(int index);
+  void SendInsertOdorijiAtIndex(int index);
   void SendInsertSymbolText(const std::wstring& symbol);
   void SendHidePaletteSignal();
 

@@ -744,7 +744,7 @@ void SymbolsPaletteWindow::OnSymbolClicked(Tab tab, int index) {
   }
 
   if (tab == Tab::kOdoriji) {
-    SendShowOdorijiPaletteAndSubmit(index);
+    SendInsertOdorijiAtIndex(index);
   } else {
     SendInsertSymbolText(symbols[index]);
   }
@@ -768,20 +768,18 @@ LRESULT SymbolsPaletteWindow::OnCloseMessage(UINT msg_id, WPARAM wparam,
   return 0;
 }
 
-void SymbolsPaletteWindow::SendShowOdorijiPaletteAndSubmit(int index) {
+void SymbolsPaletteWindow::SendInsertOdorijiAtIndex(int index) {
   if (send_command_interface_ == nullptr) {
     return;
   }
-  commands::SessionCommand show;
-  show.set_type(commands::SessionCommand::SHOW_ODORIJI_PALETTE);
-  commands::Output show_output;
-  send_command_interface_->SendCommand(show, &show_output);
-
-  commands::SessionCommand submit;
-  submit.set_type(commands::SessionCommand::SUBMIT_CANDIDATE);
-  submit.set_id(index);
-  commands::Output submit_output;
-  send_command_interface_->SendCommand(submit, &submit_output);
+  // One command: insert this odoriji and make it the Ctrl+Shift+1 default.
+  // The old SHOW_ODORIJI_PALETTE + SUBMIT_CANDIDATE pair needed the candidate
+  // palette armed, which Direct input no longer does.
+  commands::SessionCommand command;
+  command.set_type(commands::SessionCommand::INSERT_ODORIJI_DEFAULT);
+  command.set_id(index);
+  commands::Output output;
+  send_command_interface_->SendCommand(command, &output);
 }
 
 void SymbolsPaletteWindow::SendInsertSymbolText(const std::wstring& symbol) {

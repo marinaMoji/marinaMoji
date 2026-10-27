@@ -322,9 +322,9 @@ bool OnSessionCommandAsync(TipTextService* text_service, ITfContext* context,
 
 // marinaMoji: same as OnSessionCommandAsync but TF_ES_SYNC so the caller
 // (SendMessageTimeout from the renderer) does not return until the session
-// has applied the Output. Needed for SHOW_ODORIJI_PALETTE + SUBMIT_CANDIDATE
-// pairs from the Symbols Palette: SUBMIT requires the palette to be visible
-// already (issue #80).
+// has applied the Output. Needed for Symbols Palette odoriji insert
+// (INSERT_ODORIJI_DEFAULT with |id|) and for candidate-window SUBMIT.
+
 bool OnSessionCommandSync(TipTextService* text_service, ITfContext* context,
                           const SessionCommand& session_command) {
   auto edit_session = MakeComPtr<AsyncSessionCommandEditSessionImpl>(
@@ -766,16 +766,26 @@ bool TipEditSession::OnRendererCallbackAsync(TipTextService* text_service,
       return OnSessionCommandAsync(text_service, context, command);
     }
     case SessionCommand::SUBMIT_CANDIDATE: {
-      // marinaMoji: sync — see OnSessionCommandSync. Used after
-      // SHOW_ODORIJI_PALETTE from the Symbols Palette Odoriji tab.
+      // marinaMoji: sync — see OnSessionCommandSync. Still used by the
+      // candidate-window odoriji list (click / Enter).
+      SessionCommand command;
+      command.set_type(type);
+      command.set_id(static_cast<int32_t>(lparam));
+      return OnSessionCommandSync(text_service, context, command);
+    }
+    case SessionCommand::INSERT_ODORIJI_DEFAULT: {
+      // marinaMoji: Symbols Palette Odoriji tab. |lparam| is the clicked
+      // index (0..7); the session inserts that character and makes it the
+      // Ctrl+Shift+1 default. Sync so the glyph is in the document before
+      // the click returns. Works in Direct input (unlike SHOW+SUBMIT).
       SessionCommand command;
       command.set_type(type);
       command.set_id(static_cast<int32_t>(lparam));
       return OnSessionCommandSync(text_service, context, command);
     }
     case SessionCommand::SHOW_ODORIJI_PALETTE: {
-      // marinaMoji: Symbols Palette Odoriji tab sends SHOW then SUBMIT. Sync
-      // so SUBMIT sees odoriji_palette_visible_ already set (issue #80).
+      // marinaMoji: toolbar / IME-menu odoriji candidate list. Sync so the
+      // context's last Output is replaced before the next UI refresh.
       SessionCommand command;
       command.set_type(type);
       return OnSessionCommandSync(text_service, context, command);

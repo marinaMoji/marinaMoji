@@ -1450,10 +1450,11 @@ static void OnSymbolButtonClicked(GtkButton* /*button*/, gpointer user_data) {
   SymbolButtonData* data = static_cast<SymbolButtonData*>(user_data);
   if (!data || !g_engine) return;
   if (data->is_odoriji) {
+    // Insert this mark and make it the Ctrl+Shift+1 default. One command —
+    // the old SHOW+SUBMIT pair needed the candidate palette armed, which
+    // Direct input no longer does.
     g_engine->SendToolbarSessionCommand(
-        commands::SessionCommand::SHOW_ODORIJI_PALETTE);
-    g_engine->SendToolbarSessionCommand(
-        commands::SessionCommand::SUBMIT_CANDIDATE, data->odoriji_index);
+        commands::SessionCommand::INSERT_ODORIJI_DEFAULT, data->odoriji_index);
   } else {
     g_engine->CommitToolbarText(data->text);
   }

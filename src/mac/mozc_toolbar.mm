@@ -765,17 +765,14 @@ std::string GetKeymapPath(const std::string &filename) {
       g_active_controller ? g_active_controller : callbackController_;
   if (!controller) return;
 
-  // Odoriji tab uses the same session flow as the main odoriji palette so the
-  // selected symbol becomes the new default odoriji.
+  // Odoriji tab: insert the clicked mark and make it the Ctrl+Shift+1 default.
+  // One command — the old SHOW+SUBMIT pair needed the candidate palette armed,
+  // which Direct input no longer does.
   if ([sender.identifier isEqualToString:@"odorijiSymbolButton"]) {
-    mozc::commands::SessionCommand show;
-    show.set_type(mozc::commands::SessionCommand::SHOW_ODORIJI_PALETTE);
-    [controller sendCommand:show];
-
-    mozc::commands::SessionCommand submit;
-    submit.set_type(mozc::commands::SessionCommand::SUBMIT_CANDIDATE);
-    submit.set_id(static_cast<int32_t>(sender.tag));
-    [controller sendCommand:submit];
+    mozc::commands::SessionCommand insert;
+    insert.set_type(mozc::commands::SessionCommand::INSERT_ODORIJI_DEFAULT);
+    insert.set_id(static_cast<int32_t>(sender.tag));
+    [controller sendCommand:insert];
   } else {
     mozc::commands::Output output;
     output.mutable_result()->set_value(text.UTF8String);

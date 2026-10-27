@@ -1234,6 +1234,31 @@ TEST_F(SessionTest, OdorijiPaletteDoesNotOpenInDirect) {
   EXPECT_FALSE(command.output().has_candidate_window());
 }
 
+// Symbols Palette Odoriji tab sends INSERT_ODORIJI_DEFAULT with |id| so the
+// click works in Direct input (SHOW+SUBMIT no longer arms the palette there).
+TEST_F(SessionTest, InsertOdorijiAtIndexFromSymbolsPaletteInDirect) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToDirect(&session);
+  commands::Command command;
+
+  SetSendCommandCommand(commands::SessionCommand::INSERT_ODORIJI_DEFAULT,
+                        &command);
+  command.mutable_input()->mutable_command()->set_id(1);  // ゝ
+  EXPECT_TRUE(session.SendCommand(&command));
+  EXPECT_TRUE(command.output().consumed());
+  ASSERT_TRUE(command.output().has_result());
+  EXPECT_EQ(command.output().result().value(), "ゝ");
+
+  // That index is now the Ctrl+Shift+1 default.
+  command.Clear();
+  EXPECT_TRUE(SendCommand(commands::SessionCommand::INSERT_ODORIJI_DEFAULT,
+                          &session, &command));
+  ASSERT_TRUE(command.output().has_result());
+  EXPECT_EQ(command.output().result().value(), "ゝ");
+}
+
 TEST_F(SessionTest, MacronDeadKeyProducesUppercaseWithShift) {
   MockEngine engine;
   CreateEngineConverterMock(&engine);

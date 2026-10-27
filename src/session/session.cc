@@ -3222,12 +3222,20 @@ bool Session::ShowOdorijiPalette(commands::Command* command) {
 }
 
 bool Session::InsertOdorijiDefault(commands::Command* command) {
-  command->mutable_output()->set_consumed(true);
-  const size_t idx = static_cast<size_t>(odoriji_default_index_);
-  commands::Result* result = command->mutable_output()->mutable_result();
-  result->set_type(commands::Result::STRING);
-  result->set_value(OdorijiPalette::GetCharacter(idx));
-  OutputFromState(command);
+  // Optional |id|: Symbols Palette Odoriji tab sends the clicked index so the
+  // character is inserted and becomes the new Ctrl+Shift+1 default. Without
+  // |id|, insert the current default (Ctrl+Shift+1). Uses CommitStringDirectly
+  // so this works in Direct input too — the old SHOW+SUBMIT path needed the
+  // odoriji candidate window armed, which Direct no longer does.
+  if (command->input().command().has_id()) {
+    const int id = command->input().command().id();
+    if (id >= 0 && static_cast<size_t>(id) < OdorijiPalette::kCount) {
+      odoriji_default_index_ = id;
+    }
+  }
+  const absl::string_view text = OdorijiPalette::GetCharacter(
+      static_cast<size_t>(odoriji_default_index_));
+  CommitStringDirectly(text, text, command);
   return true;
 }
 

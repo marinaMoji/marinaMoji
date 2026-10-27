@@ -473,6 +473,8 @@ message SessionCommand {
     TOGGLE_FULL_HALF_WIDTH = 30;
 
     // Insert session default odoriji (e.g. 々). Same as Ctrl+Shift+1.
+    // When |id| is set to 0..7, that index is inserted and becomes the new
+    // default (Symbols Palette Odoriji tab); otherwise the current default.
     INSERT_ODORIJI_DEFAULT = 31;
 
     // Insert macron vowel (ā ē ī ō ū). |text| must be one ASCII letter a–u or A–U.

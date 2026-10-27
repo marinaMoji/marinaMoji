@@ -10,6 +10,17 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows / macOS / Linux: Symbols Palette Odoriji tab inserts again
+
+A follow-up to "odoriji palette no longer opens in direct input mode". That
+change made `SHOW_ODORIJI_PALETTE` a no-op in Direct, so the Symbols Palette
+Odoriji tab's old `SHOW` then `SUBMIT_CANDIDATE` pair never armed the list and
+clicks inserted nothing (other tabs still worked via `INSERT_SYMBOL_TEXT`).
+The tab now sends `INSERT_ODORIJI_DEFAULT` with the clicked index: the mark is
+inserted and becomes the Ctrl+Shift+1 default, in any mode including Direct.
+Same path on Windows, macOS, and Linux. Session unit-tested; Windows TIP /
+renderer not built here.
+
 ### macOS: circumflex and trema dead keys compose again in Direct input (#83)
 
 Direct input already returned the key to the app, but only after asking the
