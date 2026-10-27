@@ -37,8 +37,10 @@ FRect ScaleRect(const FRect &frac, double x, double y, double w, double h) {
 void AddLeaf(std::vector<PlacedGlyph> *out, std::string_view ch, const FRect &box) {
   if (ch.empty()) return;
   // Optical baseline for CJK in the cell (not the geometric centre).
+  const double side = std::max(box.w, box.h);
   out->push_back({std::string(ch), box.x + box.w * 0.5, box.y + box.h * 0.78,
-                  std::min(box.w, box.h) * 0.88});
+                  side * 0.88, std::min(1.0, box.w / side),
+                  std::min(1.0, box.h / side)});
 }
 
 void AddSlot(std::vector<PlacedGlyph> *out, const ComposerSlot &slot, const FRect &box);
@@ -84,7 +86,14 @@ std::string RenderComposerSvg(std::string_view op,
 
   std::string body;
   for (const PlacedGlyph &g : ComposerGlyphs(op, parts, view_box)) {
-    absl::StrAppend(&body, "<text x=\"", g.x, "\" y=\"", g.y, "\" font-size=\"",
+    if (g.scale_x != 1 || g.scale_y != 1) {
+      // Squeezed glyph: draw at the origin, then move and scale.
+      absl::StrAppend(&body, "<text transform=\"translate(", g.x, " ", g.y,
+                      ") scale(", g.scale_x, " ", g.scale_y, ")\" x=\"0\" y=\"0\"");
+    } else {
+      absl::StrAppend(&body, "<text x=\"", g.x, "\" y=\"", g.y, "\"");
+    }
+    absl::StrAppend(&body, " font-size=\"",
                     g.font_size,
                     "\" text-anchor=\"middle\" "
                     "font-family=\"Hiragino Mincho ProN, Yu Mincho, Songti SC, "

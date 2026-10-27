@@ -10,6 +10,16 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer: radical forms follow position, as in Grognard
+
+Typing 手 in the left box of ⿰ now shows 扌 (and 言 → 訁, 水 → 氵, 人 → 亻,
+竹 on top of ⿱ → 𥫗 …), the way the Grognard composer does. The 34
+position rules are Grognard's `auto` table, kept as `radical_auto.json` and
+shipped as `@` lines in `radical_forms.tsv`; `IdsTable::AutomaticFormFor`
+reads them. Only typed input is converted: **Next form** still cycles 手 →
+扌 → ⺘, so the base form can be put back. Lookup was already family-based, so
+the found character is unchanged. Not yet checked in the app.
+
 ### Character composer: preview the drawing, and write it before the dialog closes
 
 - For a structure with no Unicode character the preview square was blank;
@@ -21,6 +31,11 @@ changed and, where it isn't obvious, why.
   (LibreOffice's `OnFocus` job) could look before the file existed and never
   insert. They are now written from `OnInsert`, just before `accept()`.
   Not yet verified in the app.
+- A part in a narrow or flat cell (the halves of ⿰ or ⿱) was drawn at half the
+  cell's short side and left unsqueezed, so ⿰木巻 came out as two small full-
+  width glyphs. Each part now takes the cell's long side as its size and is
+  squeezed to fit (`scale_x` / `scale_y` on `PlacedGlyph`, a `transform` in
+  the SVG), like the parts of a composed character.
 
 ### Character composer: hand the drawing to the ONLYOFFICE plugin (macOS)
 

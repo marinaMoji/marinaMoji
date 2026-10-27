@@ -119,7 +119,7 @@ Two channels are published: **stable** (final releases only, recommended) and
 ```bash
 # 1. Install the archive signing key
 curl -fsSL https://marinamoji.github.io/marinaMoji/marinaMoji-release-public-key.asc \
-  | sudo gpg --dearmor -o /usr/share/keyrings/marinamoji-archive-keyring.gpg
+  | sudo gpg --dearmor --yes -o /usr/share/keyrings/marinamoji-archive-keyring.gpg
 
 # 2. Register the repository
 echo "deb [signed-by=/usr/share/keyrings/marinamoji-archive-keyring.gpg] https://marinamoji.github.io/marinaMoji stable main" \

@@ -105,7 +105,11 @@ QPixmap DrawingPreview(const std::vector<PlacedGlyph> &glyphs, const QPalette &p
     p.setFont(f);
     const QString text = QString::fromUtf8(g.text.data(), static_cast<int>(g.text.size()));
     const qreal width = QFontMetricsF(f).horizontalAdvance(text);
-    p.drawText(QPointF(g.x * scale - width / 2, g.y * scale), text);
+    p.save();
+    p.translate(g.x * scale, g.y * scale);
+    p.scale(g.scale_x, g.scale_y);
+    p.drawText(QPointF(-width / 2, 0), text);
+    p.restore();
   }
   p.end();
   return pixmap;
@@ -163,7 +167,18 @@ LayoutView::LayoutView(LayoutEditor *editor, SlotPath path, std::string op,
       auto *edit = new SlotEdit(child_path, this);
       edit->setText(FromUtf8(part.input));
       connect(edit, &QLineEdit::textEdited, this,
-              [this, child_path](const QString &text) {
+              [this, edit, child_path, i](const QString &typed) {
+                QString text = typed;
+                // A base radical typed where it changes shape is shown in that
+                // shape (手 on the left of ⿰ becomes 扌). Cycling forms with the
+                // button is not "typed", so 手 can still be put back there.
+                if (const composer_ids::IdsTable *table = editor_->table()) {
+                  if (const auto form = table->AutomaticFormFor(
+                          ToUtf8(typed), op_, static_cast<int>(i))) {
+                    text = FromUtf8(*form);
+                    edit->setText(text);
+                  }
+                }
                 editor_->SetLeafInput(child_path, text);
               });
       connect(edit, &SlotEdit::gotFocus, this,
@@ -385,6 +400,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
           &CharacterComposerDialog::OnPaletteClicked);
 
   editor_ = new LayoutEditor(this);
+  editor_->set_table(table_.get());
   connect(editor_, &LayoutEditor::changed, this, &CharacterComposerDialog::OnLayoutChanged);
   connect(editor_, &LayoutEditor::selectionChanged, this,
           &CharacterComposerDialog::UpdatePaletteHighlight);

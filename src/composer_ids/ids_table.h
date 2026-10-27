@@ -61,6 +61,13 @@ class IdsTable {
   // |ch| has no other form.
   std::optional<std::string> NextFormOf(std::string_view ch) const;
 
+  // The form a radical takes at a position: 手 is 扌 as part 0 of ⿰, 竹 is 𥫗
+  // as part 0 of ⿱. nullopt when |ch|'s own shape is right there (or nothing is
+  // known about it). Read from the "@" lines of radical_forms.tsv.
+  std::optional<std::string> AutomaticFormFor(std::string_view ch,
+                                              std::string_view op,
+                                              int part_index) const;
+
   size_t size() const { return by_ids_.size(); }
 
  private:
@@ -73,6 +80,8 @@ class IdsTable {
   absl::flat_hash_map<std::string, std::string> by_base_radicals_;
   absl::flat_hash_map<std::string, std::vector<std::string>> by_char_;
   std::vector<std::vector<std::string>> families_;
+  // "<char>\t<op><part index>" -> form drawn there.
+  absl::flat_hash_map<std::string, std::string> automatic_forms_;
   // Any form of a radical -> the base form of its (first) family.
   absl::flat_hash_map<std::string, std::string> base_form_;
 };

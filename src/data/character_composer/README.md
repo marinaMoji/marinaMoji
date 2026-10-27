@@ -8,7 +8,7 @@ The full text is in `LICENSE.GPL-2.0`.
 | File | Contents |
 |------|----------|
 | `ids_table.tsv` | 101,298 `IDS<TAB>character` pairs: an ideographic description sequence and the encoded character it describes (`⿰言某` → 謀). |
-| `radical_forms.tsv` | 25 radical families (人 亻 ⺅ 𠆢, 言 訁 …), tab-separated, base form first. |
+| `radical_forms.tsv` | 25 radical families (人 亻 ⺅ 𠆢, 言 訁 …), tab-separated, base form first, then 34 `@` lines (`@ 手 ⿰0 扌`): the form a radical takes at a position, from `radical_auto.json`. |
 | `cjkvi-ids-README.md` | Upstream README (conventions and licence statement). |
 
 ## Provenance
@@ -46,9 +46,10 @@ form of a duplicate IDS wins. A few Extension G/H lines are kept as upstream
 has them although they are not clean IDS (digits, private-use characters,
 `a / b` alternatives); the composer never matches or offers those.
 
-Not ported from Grognard: its mining of GlyphWiki for "this radical takes this
-form in this position" rules, which choose the glyph it draws. An input method
-only needs the families.
+`radical_auto.json` is Grognard's generated "this radical takes this form in this
+position" table (`auto` in its `radicalForms.json`), copied as it is: 34 rules
+over 25 radicals. The scripts that mine GlyphWiki for it are not ported; the
+composer uses the rules to show 扌 when 手 is typed on the left of ⿰.
 
 ## How marinaMoji uses it
 

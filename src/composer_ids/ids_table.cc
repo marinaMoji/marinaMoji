@@ -41,6 +41,14 @@ absl::StatusOr<IdsTable> IdsTable::FromTsv(std::string_view ids_tsv,
   for (std::string_view line : absl::StrSplit(radical_forms_tsv, '\n')) {
     line = StripCarriageReturn(line);
     if (line.empty()) continue;
+    if (line.front() == '@') {
+      // "@<TAB>char<TAB>position<TAB>form", e.g. "@ 手 ⿰0 扌".
+      const std::vector<std::string_view> f = absl::StrSplit(line, '\t');
+      if (f.size() == 4 && !f[1].empty() && !f[2].empty() && !f[3].empty()) {
+        table.automatic_forms_[absl::StrCat(f[1], "\t", f[2])] = std::string(f[3]);
+      }
+      continue;
+    }
     std::vector<std::string> family;
     for (const std::string_view form : absl::StrSplit(line, '\t')) {
       if (!form.empty()) family.emplace_back(form);
@@ -134,6 +142,14 @@ std::optional<std::string> IdsTable::NextFormOf(std::string_view ch) const {
   if (forms.size() < 2) return std::nullopt;
   const auto it = std::find(forms.begin(), forms.end(), ch);
   return forms[((it - forms.begin()) + 1) % forms.size()];
+}
+
+std::optional<std::string> IdsTable::AutomaticFormFor(
+    std::string_view ch, std::string_view op, int part_index) const {
+  const auto it = automatic_forms_.find(
+      absl::StrCat(ch, "\t", op, part_index));
+  if (it == automatic_forms_.end()) return std::nullopt;
+  return it->second;
 }
 
 std::string IdsTable::WithBaseRadicals(std::string_view ids) const {

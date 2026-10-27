@@ -54,6 +54,21 @@ TEST(IdsTableTest, PrefersExactOverRadicalFormMatch) {
   EXPECT_EQ(table.FindEncodedCharacter("⿰水甲"), "二");
 }
 
+TEST(IdsTableTest, AutomaticFormDependsOnOperatorAndPosition) {
+  const IdsTable table = LoadFixture();
+  EXPECT_EQ(table.AutomaticFormFor("言", "⿰", 0), "訁");
+  EXPECT_EQ(table.AutomaticFormFor("言", "⿰", 1), std::nullopt);  // right side keeps 言
+  EXPECT_EQ(table.AutomaticFormFor("言", "⿱", 0), std::nullopt);
+  EXPECT_EQ(table.AutomaticFormFor("人", "⿱", 0), "𠆢");
+  EXPECT_EQ(table.AutomaticFormFor("人", "⿰", 0), "亻");
+  EXPECT_EQ(table.AutomaticFormFor("木", "⿰", 0), std::nullopt);
+}
+
+TEST(IdsTableTest, AutomaticFormLinesAreNotFamilies) {
+  EXPECT_EQ(LoadFixture().FormsOf("@"), std::vector<std::string>());
+  EXPECT_EQ(LoadFixture().FormsOf("言"), (std::vector<std::string>{"言", "訁"}));
+}
+
 TEST(IdsTableTest, NoAnswerWhenRadicalFormsAreAmbiguous) {
   EXPECT_EQ(LoadFixture().FindEncodedCharacter("⿰⺡甲"), std::nullopt);
 }

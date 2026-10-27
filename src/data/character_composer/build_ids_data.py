@@ -7,7 +7,8 @@ the data can be rebuilt from upstream without Node.
 
 Outputs (both GPL-2.0-or-later, derived from CHISE IDS; see README.md):
   ids_table.tsv      "<IDS>\\t<character>" per line.
-  radical_forms.tsv  one radical family per line, tab-separated, base first.
+  radical_forms.tsv  one radical family per line, tab-separated, base first;
+                     then '@<TAB>char<TAB>position<TAB>form' lines (see --auto).
 
 Inputs:
   --ids FILE...        IDS files in CHISE layout, in priority order: cjkvi-ids'
@@ -119,6 +120,7 @@ def main():
   parser.add_argument('--ids', nargs='+', required=True)
   parser.add_argument('--kage-core', required=True)
   parser.add_argument('--families', required=True)
+  parser.add_argument('--auto', help='radical_auto.json: character -> position -> form')
   parser.add_argument('--out-dir', required=True)
   args = parser.parse_args()
 
@@ -140,6 +142,14 @@ def main():
             encoding='utf-8', newline='\n') as out:
     for family in families:
       out.write('\t'.join(family) + '\n')
+    if args.auto:
+      # "@<TAB>char<TAB>position<TAB>form": the form to draw for `char` at a
+      # position such as "⿰0" (left of a left/right pair).
+      with open(args.auto, encoding='utf-8') as f:
+        auto = json.load(f)
+      for char, rules in auto.items():
+        for position, form in rules.items():
+          out.write(f'@\t{char}\t{position}\t{form}\n')
   print(f'Wrote {len(entries)} IDS entries and {len(families)} radical families')
 
 

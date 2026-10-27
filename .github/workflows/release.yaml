@@ -179,9 +179,8 @@ jobs:
         run: |
           set -euo pipefail
           EXPECTED="${MARINA_PRODUCT_VERSION}"
-          HEADER="$(find -L bazel-bin -name product_version_def.h | head -n1)"
-          [[ -n "$HEADER" ]] || { echo "product_version_def.h not found under bazel-bin"; exit 1; }
-          bash build_tools/verify_product_version.sh --expected "$EXPECTED" --header "$HEADER"
+          bash build_tools/verify_product_version.sh --expected "$EXPECTED" \
+            --search "$(bazelisk info output_path)"
 
       - name: Notarize and staple
         env:
@@ -320,12 +319,11 @@ jobs:
         run: |
           set -euo pipefail
           EXPECTED="${MARINA_PRODUCT_VERSION}"
-          HEADER="$(find -L bazel-bin -name product_version_def.h | head -n1)"
-          TOOL="$(find -L bazel-bin -name marinamoji_tool.exe | head -n1)"
-          [[ -n "$HEADER" ]] || { echo "product_version_def.h not found under bazel-bin"; exit 1; }
-          [[ -n "$TOOL" ]] || { echo "marinamoji_tool.exe not found under bazel-bin"; exit 1; }
+          OUT="$(bazelisk info output_path)"
+          TOOL="$(find -L "$OUT" -name marinamoji_tool.exe -print -quit)"
+          [[ -n "$TOOL" ]] || { echo "marinamoji_tool.exe not found under $OUT"; exit 1; }
           bash build_tools/verify_product_version.sh \
-            --expected "$EXPECTED" --header "$HEADER" --binary "$TOOL"
+            --expected "$EXPECTED" --search "$OUT" --binary "$TOOL"
 
       - name: Rename installer
         shell: bash
@@ -393,12 +391,11 @@ jobs:
         run: |
           set -euo pipefail
           EXPECTED="${MARINA_PRODUCT_VERSION}"
-          HEADER="$(find -L bazel-bin -name product_version_def.h | head -n1)"
-          [[ -n "$HEADER" ]] || { echo "product_version_def.h not found under bazel-bin"; exit 1; }
           TMP="$(mktemp -d)"
           unzip -q -j bazel-bin/unix/mozc.zip 'usr/lib/marinamoji/mozc_tool' -d "$TMP"
           bash build_tools/verify_product_version.sh \
-            --expected "$EXPECTED" --header "$HEADER" --binary "$TMP/mozc_tool"
+            --expected "$EXPECTED" --search "$(bazelisk info output_path)" \
+            --binary "$TMP/mozc_tool"
 
       - name: Package artifacts
         run: |

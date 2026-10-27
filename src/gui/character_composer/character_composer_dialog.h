@@ -92,6 +92,11 @@ class LayoutEditor : public QWidget {
  public:
   explicit LayoutEditor(QWidget *parent = nullptr);
 
+  // The table consulted for positional radical forms (手 -> 扌 on the left of
+  // ⿰). Not owned; may be null.
+  void set_table(const composer_ids::IdsTable *table) { table_ = table; }
+  const composer_ids::IdsTable *table() const { return table_; }
+
   const std::string &op() const { return op_; }
   const std::vector<composer_ids::ComposerSlot> &parts() const { return parts_; }
   const composer_ids::SlotPath &selection() const { return selection_; }
@@ -128,6 +133,7 @@ class LayoutEditor : public QWidget {
   std::vector<composer_ids::ComposerSlot> parts_;
   composer_ids::SlotPath selection_;
   LayoutView *root_view_ = nullptr;
+  const composer_ids::IdsTable *table_ = nullptr;
 };
 
 class CharacterComposerDialog : public QDialog {
