@@ -10,6 +10,14 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Odoriji palette no longer opens in direct input mode
+
+`Session::ShowOdorijiPalette` is a no-op in direct input mode. Nothing consumes
+the palette's selection there, so it used to open and follow the cursor,
+doing nothing, until the mode changed. The macOS shortcut still turns the IME
+on first, so it opens the palette in the current composition mode as before;
+only the toolbar and menu paths are blocked in direct mode.
+
 ### CI: character composer Qt tests only run on Linux
 
 `character_composer_dialog_test` and `character_composer_libmain_test` link
