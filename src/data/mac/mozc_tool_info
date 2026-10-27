@@ -34,6 +34,8 @@
   <string>${GOOGLE_VERSIONINFO_ABOUT}</string>
   <key>CSResourcesFileMapped</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>marinaMoji inserts a composed character into your Word document.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

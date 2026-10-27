@@ -27,6 +27,7 @@
 #include "gui/base/singleton_window_helper.h"
 #include "gui/base/util.h"
 #include "gui/character_composer/character_composer_dialog.h"
+#include "gui/character_composer/word_insert.h"
 
 ABSL_FLAG(std::string, result_file, "",
           "character_composer: write the chosen character to this file "
@@ -187,6 +188,19 @@ int RunCharacterComposer(int argc, char *argv[]) {
       return 2;
     }
   }
+
+#ifdef __APPLE__
+  if (has_svg && mozc::gui::WordWasInFront()) {
+    // Word was in front when the composer opened: put the drawing at its
+    // cursor, so the Word add-in's pane is not needed.
+    if (absl::Status status = mozc::gui::InsertSvgIntoWord(
+            mozc::composer_ids::DefaultSvgResultFilePath(),
+            mozc::gui::IdsFromSvg(dialog.result_svg()));
+        !status.ok()) {
+      LOG(WARNING) << "Cannot insert the drawing into Word: " << status;
+    }
+  }
+#endif  // __APPLE__
 
   if (!has_char) {
     // SVG-only: nothing for the IME to type; office plugins use clipboard/file.
