@@ -96,10 +96,17 @@ Debian/Ubuntu archive source package.
 ## Product version (About / update checks)
 
 `src/marina_product_version.txt` holds the GitHub-facing version string
-(e.g. `0.0.2-rc2`, no leading `v`). The release workflow overwrites it from
-the tag before building so About and Win/mac update checks match the release.
-The Mozc four-part engine version in `version.bzl` stays separate (IPC /
-installer PE metadata).
+(e.g. `0.0.18-rc7`, no leading `v`). You do **not** need to bump this file
+for a tagged release: `.github/workflows/release.yaml` overwrites it from the
+`v*` tag on every macOS / Windows / Linux job before `bazel build`, then runs
+`src/build_tools/verify_product_version.sh` so the generated
+`product_version_def.h` (and `mozc_tool` on Linux/Windows) must contain that
+same string. If the overwrite is skipped or the build still embeds a stale
+value, the job fails instead of shipping a wrong About dialog.
+
+Local / non-tag builds still use whatever is in the tree (useful for
+day-to-day development). The Mozc four-part engine version in `version.bzl`
+stays separate (IPC / installer PE metadata).
 
 ## Apt repository
 

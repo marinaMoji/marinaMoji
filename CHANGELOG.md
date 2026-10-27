@@ -10,6 +10,15 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: circumflex and trema dead keys compose again in Direct input (#83)
+
+Direct input already returned the key to the app, but only after asking the
+event for its character. On the current macOS that question settles the
+keyboard's dead-key state, so ^ and ¨ (Shift+^) never combined with the next
+letter. Those keys, and the letter that follows, are now handed back before
+that read. Ctrl / Option / Command chords are unchanged, and a vowel that
+completes the Right Shift macron still goes to marinaMoji.
+
 ### Odoriji palette no longer opens in direct input mode
 
 `Session::ShowOdorijiPalette` is a no-op in direct input mode. Nothing consumes

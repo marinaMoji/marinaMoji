@@ -815,7 +815,10 @@ mozc_run_build_tool(
 )
 
 # marinaMoji GitHub-facing product version (semver / -rc), separate from the
-# Mozc MAJOR.MINOR.BUILD.REVISION engine string.
+# Mozc MAJOR.MINOR.BUILD.REVISION engine string. Release CI overwrites
+# marina_product_version.txt from the git tag before `bazel build`, then
+# verify_product_version.sh checks this header (and mozc_tool) so About cannot
+# ship a stale string.
 genrule(
     name = "product_version_def_h",
     srcs = ["//:marina_product_version.txt"],
@@ -827,6 +830,7 @@ if [ -z "$$V" ]; then
   echo "error: marina_product_version.txt has no version line" >&2
   exit 1
 fi
+echo "marinaMoji product version: $$V" >&2
 cat > $@ <<EOF
 #ifndef MOZC_BASE_PRODUCT_VERSION_DEF_H_
 #define MOZC_BASE_PRODUCT_VERSION_DEF_H_

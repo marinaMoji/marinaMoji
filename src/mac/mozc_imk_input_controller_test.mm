@@ -820,5 +820,50 @@ TEST_F(MozcImkInputControllerTest, fillSurroundingContext) {
   EXPECT_EQ([mock_client_ getCounter:"markedRange"], 0);
 }
 
+// Direct input must return these keys without talking to the server. Reading
+// the event's characters (which the server path does) clears the macOS dead-key
+// state, so ^ then e would not become ê, and Shift+^ then e would not become ë.
+TEST_F(MozcImkInputControllerTest, DirectInputPassesThroughDeadKeys) {
+  ASSERT_EQ(controller_.mode, commands::DIRECT);
+
+  NSEvent *circumflex = [NSEvent keyEventWithType:NSEventTypeKeyDown
+                                         location:NSZeroPoint
+                                    modifierFlags:0
+                                        timestamp:0
+                                     windowNumber:0
+                                          context:nil
+                                       characters:@"^"
+                      charactersIgnoringModifiers:@"^"
+                                        isARepeat:NO
+                                          keyCode:kVK_ANSI_LeftBracket];
+  EXPECT_FALSE([controller_ handleEvent:circumflex client:mock_client_]);
+
+  NSEvent *trema = [NSEvent keyEventWithType:NSEventTypeKeyDown
+                                    location:NSZeroPoint
+                               modifierFlags:NSEventModifierFlagShift
+                                   timestamp:0
+                                windowNumber:0
+                                     context:nil
+                                  characters:@"¨"
+                 charactersIgnoringModifiers:@"^"
+                                   isARepeat:NO
+                                     keyCode:kVK_ANSI_LeftBracket];
+  EXPECT_FALSE([controller_ handleEvent:trema client:mock_client_]);
+
+  // The letter after the dead key has to pass through the same way.
+  NSEvent *vowel = [NSEvent keyEventWithType:NSEventTypeKeyDown
+                                    location:NSZeroPoint
+                               modifierFlags:0
+                                   timestamp:0
+                                windowNumber:0
+                                     context:nil
+                                  characters:@"e"
+                 charactersIgnoringModifiers:@"e"
+                                   isARepeat:NO
+                                     keyCode:kVK_ANSI_E];
+  EXPECT_FALSE([controller_ handleEvent:vowel client:mock_client_]);
+  EXPECT_EQ([mock_client_ getCounter:"insertText:replacementRange:"], 0);
+}
+
 }  // namespace
 }  // namespace mozc

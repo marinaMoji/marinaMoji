@@ -97,8 +97,9 @@
   std::string lastDisplayModeId_;
 
   /** Mirrors |Session::macron_dead_key_pending_|.  In DIRECT the controller
-   * normally returns NO for ordinary keys without sending them to the server,
-   * so the vowel completing a macron would never arrive.  Set when a Right
+   * returns NO for ordinary keys before anyone reads NSEvent.characters, so
+   * the layout's dead keys (^ circumflex, ¨ trema) still compose.  That also
+   * means the vowel completing a macron would never arrive.  Set when a Right
    * Shift tap is sent in DIRECT, cleared by the next key sent (which the
    * server either consumes as the macron or treats as a cancel). */
   bool macronDeadKeyPending_;

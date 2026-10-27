@@ -19,6 +19,11 @@ name: Release
 # separate stable channel will be added later. See packaging/linux/README.md
 # and SECURITY.md.
 #
+# Product version (About / update checks): each build job overwrites
+# src/marina_product_version.txt from the tag (strip leading "v"), then
+# verifies the baked-in string after bazel build. You do not need to bump
+# that file in git for a release.
+#
 # The Apple secrets live in the "release" GitHub environment; keep that
 # environment restricted to v* tags (and/or required reviewers).
 
@@ -61,8 +66,12 @@ jobs:
         if: github.ref_type == 'tag'
         run: |
           set -euo pipefail
+          # About / update checks read Version::GetProductVersion(), which is
+          # compiled from this file. Overwrite from the tag so the tree's
+          # placeholder (often an older release) never ships in About.
           VERSION="${GITHUB_REF_NAME#v}"
           printf '%s\n' "$VERSION" > src/marina_product_version.txt
+          echo "MARINA_PRODUCT_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "Product version: $VERSION"
           cat src/marina_product_version.txt
 
@@ -164,6 +173,16 @@ jobs:
             --define CODESIGN=release \
             --define CHANNEL=stable
 
+      - name: Verify product version in build
+        if: github.ref_type == 'tag'
+        working-directory: ./src
+        run: |
+          set -euo pipefail
+          EXPECTED="${MARINA_PRODUCT_VERSION}"
+          HEADER="$(find bazel-bin -name product_version_def.h | head -n1)"
+          [[ -n "$HEADER" ]] || { echo "product_version_def.h not found under bazel-bin"; exit 1; }
+          bash build_tools/verify_product_version.sh --expected "$EXPECTED" --header "$HEADER"
+
       - name: Notarize and staple
         env:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
@@ -247,7 +266,9 @@ jobs:
           set -euo pipefail
           VERSION="${GITHUB_REF_NAME#v}"
           printf '%s\n' "$VERSION" > src/marina_product_version.txt
+          echo "MARINA_PRODUCT_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "Product version: $VERSION"
+          cat src/marina_product_version.txt
 
       - name: Try to restore update_deps cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
@@ -292,6 +313,20 @@ jobs:
         run: |
           bazelisk build package --config release_build ${{ matrix.extra_configs }} --define CHANNEL=stable
 
+      - name: Verify product version in build
+        if: github.ref_type == 'tag'
+        shell: bash
+        working-directory: ./src
+        run: |
+          set -euo pipefail
+          EXPECTED="${MARINA_PRODUCT_VERSION}"
+          HEADER="$(find bazel-bin -name product_version_def.h | head -n1)"
+          TOOL="$(find bazel-bin -name marinamoji_tool.exe | head -n1)"
+          [[ -n "$HEADER" ]] || { echo "product_version_def.h not found under bazel-bin"; exit 1; }
+          [[ -n "$TOOL" ]] || { echo "marinamoji_tool.exe not found under bazel-bin"; exit 1; }
+          bash build_tools/verify_product_version.sh \
+            --expected "$EXPECTED" --header "$HEADER" --binary "$TOOL"
+
       - name: Rename installer
         shell: bash
         run: |
@@ -335,7 +370,9 @@ jobs:
           set -euo pipefail
           VERSION="${GITHUB_REF_NAME#v}"
           printf '%s\n' "$VERSION" > src/marina_product_version.txt
+          echo "MARINA_PRODUCT_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "Product version: $VERSION"
+          cat src/marina_product_version.txt
 
       - name: Setup
         run: |
@@ -349,6 +386,19 @@ jobs:
         working-directory: ./src
         run: |
           bazelisk build package --config release_build --define CHANNEL=stable
+
+      - name: Verify product version in build
+        if: github.ref_type == 'tag'
+        working-directory: ./src
+        run: |
+          set -euo pipefail
+          EXPECTED="${MARINA_PRODUCT_VERSION}"
+          HEADER="$(find bazel-bin -name product_version_def.h | head -n1)"
+          [[ -n "$HEADER" ]] || { echo "product_version_def.h not found under bazel-bin"; exit 1; }
+          TMP="$(mktemp -d)"
+          unzip -q -j bazel-bin/unix/mozc.zip 'usr/lib/marinamoji/mozc_tool' -d "$TMP"
+          bash build_tools/verify_product_version.sh \
+            --expected "$EXPECTED" --header "$HEADER" --binary "$TMP/mozc_tool"
 
       - name: Package artifacts
         run: |

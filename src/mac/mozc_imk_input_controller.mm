@@ -2108,6 +2108,30 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     return YES;
   }
 
+  // Layout dead keys (French ^ circumflex and Shift+^ trema ¨, and the vowel
+  // that follows them) only compose if this method returns NO *before* anyone
+  // reads |characters|.  That read settles the dead-key state, so a later NO
+  // inserts a literal accent instead of ê / ë (issue #83).  Ctrl, Option, and
+  // Command still go through the normal path: Option+^ is the macron shortcut,
+  // and Ctrl chords are marina shortcuts.  A pending macron vowel must reach
+  // the server, so it is not passed through here.
+  if (mode_ == mozc::commands::DIRECT && !macronDeadKeyPending_ &&
+      [composedString_ length] == 0 && [event type] == NSEventTypeKeyDown) {
+    const NSUInteger chord = [event modifierFlags] &
+                             (NSEventModifierFlagControl | NSEventModifierFlagOption |
+                              NSEventModifierFlagCommand);
+    if (chord == 0) {
+      // Yen sign special hack: backslash instead of yen for the JIS yen key
+      // with no modifiers, when that is what the config asks for.
+      if ([event keyCode] == kVK_JIS_Yen && [event modifierFlags] == 0 &&
+          yenSignCharacter_ == mozc::config::Config::BACKSLASH) {
+        [self commitText:"\\" client:sender];
+        return YES;
+      }
+      return NO;
+    }
+  }
+
   // Get the Mozc key event
   KeyEvent keyEvent;
   if (![keyCodeMap_ getMozcKeyCodeFromKeyEvent:event toMozcKeyEvent:&keyEvent]) {
