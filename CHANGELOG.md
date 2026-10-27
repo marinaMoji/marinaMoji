@@ -269,12 +269,14 @@ renderer not built here.
 
 ### macOS: circumflex and trema dead keys compose again in Direct input (#83)
 
-Direct input already returned the key to the app, but only after asking the
-event for its character. On the current macOS that question settles the
-keyboard's dead-key state, so ^ and ¨ (Shift+^) never combined with the next
-letter. Those keys, and the letter that follows, are now handed back before
-that read. Ctrl / Option / Command chords are unchanged, and a vowel that
-completes the Right Shift macron still goes to marinaMoji.
+Direct input used to return the key to the app only after asking the event for
+its character; that settles the keyboard's dead-key state, so ^ and ¨
+(Shift+^) never combined with the next letter. Returning NO before that read
+is still not enough while a Japanese IM is selected—many apps never run layout
+composition on unhandled IMK keys. Direct input now composes those sequences
+with `UCKeyTranslate` against the ASCII-capable layout (ABC-AZERTY, French,
+…) and inserts the result itself. Ctrl / Option / Command chords are unchanged,
+and a vowel that completes the Right Shift macron still goes to marinaMoji.
 
 ### Odoriji palette no longer opens in direct input mode
 

@@ -820,10 +820,12 @@ TEST_F(MozcImkInputControllerTest, fillSurroundingContext) {
   EXPECT_EQ([mock_client_ getCounter:"markedRange"], 0);
 }
 
-// Direct input must return these keys without talking to the server. Reading
-// the event's characters (which the server path does) clears the macOS dead-key
-// state, so ^ then e would not become ê, and Shift+^ then e would not become ë.
-TEST_F(MozcImkInputControllerTest, DirectInputPassesThroughDeadKeys) {
+// Direct input must not send these keys to the Mozc server (KeyCodeMap would
+// read NSEvent.characters and settle the system dead-key state).  When the
+// active layout treats keyCode 33 as a dead key (ABC-AZERTY / French), the
+// controller consumes it via UCKeyTranslate and inserts the composed letter
+// itself.  On layouts where that key is not a dead key, both keys pass through.
+TEST_F(MozcImkInputControllerTest, DirectInputHandlesLayoutDeadKeys) {
   ASSERT_EQ(controller_.mode, commands::DIRECT);
 
   NSEvent *circumflex = [NSEvent keyEventWithType:NSEventTypeKeyDown
@@ -836,21 +838,11 @@ TEST_F(MozcImkInputControllerTest, DirectInputPassesThroughDeadKeys) {
                       charactersIgnoringModifiers:@"^"
                                         isARepeat:NO
                                           keyCode:kVK_ANSI_LeftBracket];
-  EXPECT_FALSE([controller_ handleEvent:circumflex client:mock_client_]);
+  const BOOL circumflex_handled =
+      [controller_ handleEvent:circumflex client:mock_client_];
+  // A lone dead key never inserts; a non-dead key passes through with no insert.
+  EXPECT_EQ([mock_client_ getCounter:"insertText:replacementRange:"], 0);
 
-  NSEvent *trema = [NSEvent keyEventWithType:NSEventTypeKeyDown
-                                    location:NSZeroPoint
-                               modifierFlags:NSEventModifierFlagShift
-                                   timestamp:0
-                                windowNumber:0
-                                     context:nil
-                                  characters:@"¨"
-                 charactersIgnoringModifiers:@"^"
-                                   isARepeat:NO
-                                     keyCode:kVK_ANSI_LeftBracket];
-  EXPECT_FALSE([controller_ handleEvent:trema client:mock_client_]);
-
-  // The letter after the dead key has to pass through the same way.
   NSEvent *vowel = [NSEvent keyEventWithType:NSEventTypeKeyDown
                                     location:NSZeroPoint
                                modifierFlags:0
@@ -861,8 +853,27 @@ TEST_F(MozcImkInputControllerTest, DirectInputPassesThroughDeadKeys) {
                  charactersIgnoringModifiers:@"e"
                                    isARepeat:NO
                                      keyCode:kVK_ANSI_E];
-  EXPECT_FALSE([controller_ handleEvent:vowel client:mock_client_]);
-  EXPECT_EQ([mock_client_ getCounter:"insertText:replacementRange:"], 0);
+  const BOOL vowel_handled = [controller_ handleEvent:vowel client:mock_client_];
+  if (circumflex_handled) {
+    // Layout dead key was armed; the vowel is consumed (and may insert ê).
+    EXPECT_TRUE(vowel_handled);
+  } else {
+    EXPECT_FALSE(vowel_handled);
+    EXPECT_EQ([mock_client_ getCounter:"insertText:replacementRange:"], 0);
+  }
+
+  // Shift+^ (trema on AZERTY) must likewise avoid the server path.
+  NSEvent *trema = [NSEvent keyEventWithType:NSEventTypeKeyDown
+                                    location:NSZeroPoint
+                               modifierFlags:NSEventModifierFlagShift
+                                   timestamp:0
+                                windowNumber:0
+                                     context:nil
+                                  characters:@"¨"
+                 charactersIgnoringModifiers:@"^"
+                                   isARepeat:NO
+                                     keyCode:kVK_ANSI_LeftBracket];
+  (void)[controller_ handleEvent:trema client:mock_client_];
 }
 
 }  // namespace

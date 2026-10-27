@@ -97,12 +97,16 @@
   std::string lastDisplayModeId_;
 
   /** Mirrors |Session::macron_dead_key_pending_|.  In DIRECT the controller
-   * returns NO for ordinary keys before anyone reads NSEvent.characters, so
-   * the layout's dead keys (^ circumflex, ¨ trema) still compose.  That also
-   * means the vowel completing a macron would never arrive.  Set when a Right
-   * Shift tap is sent in DIRECT, cleared by the next key sent (which the
-   * server either consumes as the macron or treats as a cancel). */
+   * does not send ordinary keys to the server (layout dead keys are composed
+   * via UCKeyTranslate instead).  That also means the vowel completing a
+   * macron would never arrive.  Set when a Right Shift tap is sent in DIRECT,
+   * cleared by the next key sent (which the server either consumes as the
+   * macron or treats as a cancel). */
   bool macronDeadKeyPending_;
+
+  /** UCKeyTranslate dead-key state for Direct input (AZERTY ^ / ¨, etc.).
+   * Kept separate from |macronDeadKeyPending_| (marina's Right Shift macron). */
+  uint32_t layoutDeadKeyState_;
 
   /** |keyCodeMap_| manages the mapping between Mac key code and mozc key events. */
   KeyCodeMap *keyCodeMap_;

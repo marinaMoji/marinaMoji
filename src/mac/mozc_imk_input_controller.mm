@@ -293,6 +293,63 @@ bool IsPhysicalModifierKeyCode(unsigned short key_code) {
   }
 }
 
+// Carbon modifier bits for UCKeyTranslate (high byte of EventModifiers).
+UInt32 UCModifierKeyStateFromNSEvent(NSEvent *event) {
+  const NSUInteger flags = [event modifierFlags];
+  UInt32 carbon = 0;
+  if (flags & NSEventModifierFlagShift) {
+    carbon |= shiftKey;
+  }
+  if (flags & NSEventModifierFlagCapsLock) {
+    carbon |= alphaLock;
+  }
+  if (flags & NSEventModifierFlagOption) {
+    carbon |= optionKey;
+  }
+  if (flags & NSEventModifierFlagControl) {
+    carbon |= controlKey;
+  }
+  if (flags & NSEventModifierFlagCommand) {
+    carbon |= cmdKey;
+  }
+  return (carbon >> 8) & 0xFF;
+}
+
+// Translate |event| with the active ASCII-capable keyboard layout.  Updates
+// |dead_key_state| across calls so layout dead keys (^ then e → ê) compose
+// without reading NSEvent.characters (which settles the system dead-key state).
+bool TranslateKeyDownWithLayout(NSEvent *event, uint32_t *dead_key_state,
+                                UniChar *buffer, UniCharCount capacity,
+                                UniCharCount *length) {
+  *length = 0;
+  // Japanese IMs sit on top of a layout; prefer the ASCII-capable one so
+  // AZERTY dead keys resolve even when the frontmost "input source" is marina.
+  TISInputSourceRef source = TISCopyCurrentASCIICapableKeyboardLayoutInputSource();
+  if (source == nullptr) {
+    source = TISCopyCurrentKeyboardLayoutInputSource();
+  }
+  if (source == nullptr) {
+    return false;
+  }
+  CFDataRef layout_data = static_cast<CFDataRef>(
+      TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData));
+  if (layout_data == nullptr) {
+    CFRelease(source);
+    return false;
+  }
+  const UCKeyboardLayout *layout =
+      reinterpret_cast<const UCKeyboardLayout *>(CFDataGetBytePtr(layout_data));
+  // UCKeyTranslate wants Carbon's UInt32*; uint32_t is the same width here.
+  UInt32 state = *dead_key_state;
+  const OSStatus err =
+      UCKeyTranslate(layout, [event keyCode], kUCKeyActionDown,
+                     UCModifierKeyStateFromNSEvent(event), LMGetKbdType(),
+                     0 /* allow dead keys */, &state, capacity, length, buffer);
+  *dead_key_state = state;
+  CFRelease(source);
+  return err == noErr;
+}
+
 bool MarinaImkTraceEnabled() {
   static int env_trace = -1;
   if (env_trace < 0) {
@@ -446,6 +503,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   mode_ = mozc::commands::DIRECT;
   suppressSuggestion_ = false;
   macronDeadKeyPending_ = false;
+  layoutDeadKeyState_ = 0;
   spotlightHost_ = false;
   syncingDisplayMode_ = false;
   handlingKeyboardEvent_ = false;
@@ -883,6 +941,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   }
   [self flushCompositionBeforeDeactivate:sender];
   imeServerActive_ = false;
+  layoutDeadKeyState_ = 0;
   mozc::mac::MozcToolbarClearActiveControllerIfMatches((__bridge void *)self);
   spotlightHost_ = false;
   if ([composedString_ length] > 0) {
@@ -1301,6 +1360,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
 // Mode changes to direct and clean up the status.
 - (void)switchModeToDirect:(id)sender {
   mode_ = mozc::commands::DIRECT;
+  layoutDeadKeyState_ = 0;
   PersistLastCompositionMode(mode_);
   DLOG(INFO) << "Mode switch: HIRAGANA, KATAKANA, etc. -> DIRECT";
   KeyEvent keyEvent;
@@ -1336,6 +1396,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
       [self clearCandidates];
     }
     mode_ = mozc::commands::DIRECT;
+    layoutDeadKeyState_ = 0;
     PersistLastCompositionMode(mode_);
     return;
   }
@@ -1343,6 +1404,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   if (mode_ == mozc::commands::DIRECT) {
     // Turn on the IME as the mode is changed from DIRECT to an active mode.
     DLOG(INFO) << "Mode switch: DIRECT -> HIRAGANA, KATAKANA, etc.";
+    layoutDeadKeyState_ = 0;
     KeyEvent keyEvent;
     Output output;
     keyEvent.set_special_key(mozc::commands::KeyEvent::ON);
@@ -2108,26 +2170,73 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     return YES;
   }
 
-  // Layout dead keys (French ^ circumflex and Shift+^ trema ¨, and the vowel
-  // that follows them) only compose if this method returns NO *before* anyone
-  // reads |characters|.  That read settles the dead-key state, so a later NO
-  // inserts a literal accent instead of ê / ë (issue #83).  Ctrl, Option, and
-  // Command still go through the normal path: Option+^ is the macron shortcut,
-  // and Ctrl chords are marina shortcuts.  A pending macron vowel must reach
-  // the server, so it is not passed through here.
+  // Layout dead keys (ABC-AZERTY / French ^ and Shift+^ ¨, then a vowel →
+  // ê / ë).  Reading NSEvent.characters settles the system dead-key state
+  // (issue #83).  Returning NO alone is also not enough while a Japanese IM is
+  // selected: many apps never run layout composition on unhandled IMK keys.
+  // Compose with UCKeyTranslate instead and insert the result ourselves.
+  // Ctrl / Option / Command still take the normal path (Option+^ = macron
+  // shortcut; Ctrl chords = marina shortcuts).  A pending Right Shift macron
+  // vowel must reach the server, so it is not handled here.
   if (mode_ == mozc::commands::DIRECT && !macronDeadKeyPending_ &&
       [composedString_ length] == 0 && [event type] == NSEventTypeKeyDown) {
     const NSUInteger chord = [event modifierFlags] &
                              (NSEventModifierFlagControl | NSEventModifierFlagOption |
                               NSEventModifierFlagCommand);
-    if (chord == 0) {
+    if (chord != 0) {
+      layoutDeadKeyState_ = 0;
+    } else {
       // Yen sign special hack: backslash instead of yen for the JIS yen key
       // with no modifiers, when that is what the config asks for.
       if ([event keyCode] == kVK_JIS_Yen && [event modifierFlags] == 0 &&
           yenSignCharacter_ == mozc::config::Config::BACKSLASH) {
+        layoutDeadKeyState_ = 0;
         [self commitText:"\\" client:sender];
         return YES;
       }
+
+      const UInt32 prior_state = layoutDeadKeyState_;
+      UniChar buffer[8];
+      UniCharCount length = 0;
+      if (!TranslateKeyDownWithLayout(event, &layoutDeadKeyState_, buffer,
+                                      sizeof(buffer) / sizeof(buffer[0]),
+                                      &length)) {
+        layoutDeadKeyState_ = 0;
+        return NO;
+      }
+
+      if (prior_state == 0 && layoutDeadKeyState_ != 0 && length == 0) {
+        // Newly armed layout dead key — consume; do not pass to the app.
+        if (MarinaImkTraceEnabled()) {
+          TISInputSourceRef src =
+              TISCopyCurrentASCIICapableKeyboardLayoutInputSource();
+          CFStringRef sid =
+              src ? static_cast<CFStringRef>(TISGetInputSourceProperty(
+                        src, kTISPropertyInputSourceID))
+                  : nullptr;
+          LOG(INFO) << "[marinaImk] Direct layout dead-key armed state=0x"
+                    << std::hex << layoutDeadKeyState_ << std::dec
+                    << " keyCode=" << [event keyCode] << " layout="
+                    << (sid ? [(__bridge NSString *)sid UTF8String] : "(null)");
+          if (src) {
+            CFRelease(src);
+          }
+        }
+        return YES;
+      }
+      if (prior_state != 0) {
+        // Completing (or cancelling) a dead-key sequence.
+        if (length > 0) {
+          NSString *text = [NSString stringWithCharacters:buffer length:length];
+          if (MarinaImkTraceEnabled()) {
+            LOG(INFO) << "[marinaImk] Direct layout dead-key insert \""
+                      << [text UTF8String] << "\" keyCode=" << [event keyCode];
+          }
+          [self commitText:[text UTF8String] client:sender];
+        }
+        return YES;
+      }
+      // No dead-key involvement: classic Direct passthrough to the app.
       return NO;
     }
   }
