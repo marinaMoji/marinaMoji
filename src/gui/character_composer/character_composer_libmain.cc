@@ -116,15 +116,21 @@ int RunCharacterComposer(int argc, char *argv[]) {
   // their window regaining focus, which can happen before this process
   // returns from exec().
   auto write_svg = [](const std::string &svg) -> absl::Status {
-    std::string svg_path = mozc::composer_ids::DefaultSvgResultFilePath();
-    if (!absl::GetFlag(FLAGS_result_file).empty()) {
-      // Windows temp path: keep the SVG beside the text result file.
-      svg_path = absl::GetFlag(FLAGS_result_file) + ".svg";
-    }
-    if (absl::Status status =
-            mozc::composer_ids::WriteComposerSvgResult(svg_path, svg);
+    // Office plugins read the SVG from the user-profile directory, so it is
+    // always written there, including on Windows where the TIP passes a temp
+    // --result_file (the plugin never looks beside that).
+    if (absl::Status status = mozc::composer_ids::WriteComposerSvgResult(
+            mozc::composer_ids::DefaultSvgResultFilePath(), svg);
         !status.ok()) {
       return status;
+    }
+    if (!absl::GetFlag(FLAGS_result_file).empty()) {
+      // Also keep a copy beside the text result file.
+      if (absl::Status status = mozc::composer_ids::WriteComposerSvgResult(
+              absl::GetFlag(FLAGS_result_file) + ".svg", svg);
+          !status.ok()) {
+        LOG(WARNING) << "Cannot write the SVG beside the result file: " << status;
+      }
     }
     // The marinaMoji ONLYOFFICE plugin picks this up and inserts the drawing.
     const int64_t now_ms =

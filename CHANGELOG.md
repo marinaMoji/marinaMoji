@@ -10,6 +10,14 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows: the composer's drawing reaches office plugins
+
+The Windows IME starts the composer with a temporary `--result_file`, and the
+composer wrote the SVG only beside it, where no plugin looks. It now always
+writes `character_composer_result.svg` in the user-profile directory too (the
+copy beside the result file stays). This is why the LibreOffice extension never
+inserted a drawn character on Windows.
+
 ### Linux: the character composer runs through XWayland on Wayland (#91, #92)
 
 Under a Wayland session the composer used Qt's native Wayland backend, where a
