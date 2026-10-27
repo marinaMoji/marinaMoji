@@ -398,6 +398,7 @@ void MozcEngine::FocusIn(IbusEngineWrapper* engine) {
                       surround_stale_after_echo_back_ ? 1 : 0);
   }
   current_engine_ = engine->GetEngine();
+  engine_focused_ = true;
   property_handler_->Register(engine);
   if (MozcToolbarAvailable()) {
     property_handler_->UpdateToolbarLabel(engine, toolbar_visible_);
@@ -417,6 +418,7 @@ void MozcEngine::FocusIn(IbusEngineWrapper* engine) {
 
 void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
   LogLifecycle("focus_out", engine);
+  engine_focused_ = false;
   // Losing IME focus means the user clicked (or tabbed) into a different
   // text field or application -- treat that as "clicked outside" the
   // palette and close it, the same way Escape does. Left open, an unpinned
@@ -1123,14 +1125,18 @@ void MozcEngine::SendToolbarSessionCommand(
   }
 }
 
-void MozcEngine::CommitToolbarText(absl::string_view text) {
-  if (text.empty() || current_engine_ == nullptr) {
-    return;
+bool MozcEngine::CommitToolbarText(absl::string_view text) {
+  // Require a live FocusIn: after the character composer (or any other
+  // window) steals focus, CommitText on the stale engine is dropped by the
+  // client. Symbols Palette never takes focus, so it still commits here.
+  if (text.empty() || current_engine_ == nullptr || !engine_focused_) {
+    return false;
   }
   commands::Output output;
   output.mutable_result()->set_value(std::string(text));
   IbusEngineWrapper wrapper(current_engine_);
   UpdateAll(&wrapper, output);
+  return true;
 }
 
 void MozcEngine::SetCompositionModeFromToolbar(

@@ -105,8 +105,10 @@ class MozcEngine : public EngineInterface {
   void SendToolbarSessionCommand(commands::SessionCommand::CommandType type,
                                 int32_t candidate_id = -1);
 
-  // Inserts |text| into the focused application via the last focused IBus engine.
-  void CommitToolbarText(absl::string_view text);
+  // Inserts |text| into the focused application via the last focused IBus
+  // engine. Returns false when there is no engine to commit into (e.g. right
+  // after the character composer stole focus); callers can retry.
+  bool CommitToolbarText(absl::string_view text);
 
   // Called by the toolbar when the user picks a composition mode from the
   // mode-indicator menu. Switches mode and updates panel/toolbar.
@@ -224,6 +226,9 @@ class MozcEngine : public EngineInterface {
 
   // Last focused IBus engine; used by toolbar to send commands and update UI.
   IBusEngine *current_engine_ = nullptr;
+  // True between FocusIn and FocusOut. The character composer steals focus, so
+  // CommitToolbarText must wait until this is true again before inserting.
+  bool engine_focused_ = false;
 
   // When true, show toolbar on focus; toggled by IME menu "Hide/Show toolbar".
   // Default true (on) for first install; thereafter loaded/saved via toolbar.conf.

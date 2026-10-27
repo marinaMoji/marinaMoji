@@ -122,9 +122,11 @@ volatile DWORD g_tls_index = TLS_OUT_OF_INDEXES;
 
 constexpr UINT kUpdateUIMessage = WM_USER;
 
-// marinaMoji: timer on the renderer callback window that waits for the
-// character composer to exit.
+// marinaMoji: timers on the renderer callback window for the character
+// composer — wait for the tool to exit, then retry insert until a document
+// context is available again (the tool stole OS focus).
 constexpr UINT_PTR kComposerTimerId = 0x4D43;
+constexpr UINT_PTR kComposerInsertTimerId = 0x4D44;
 constexpr UINT kComposerPollMsec = 250;
 
 #ifdef GOOGLE_JAPANESE_INPUT_BUILD
@@ -1699,6 +1701,10 @@ class TipTextServiceImpl
         self->OnCharacterComposerTimer();
         return 0;
       }
+      if (message == WM_TIMER && wparam == kComposerInsertTimerId) {
+        self->TryInsertPendingComposerText();
+        return 0;
+      }
       if (message == WM_COPYDATA) {
         // marinaMoji: Symbols Palette text commit. See the
         // ChangeMessageFilter(WM_COPYDATA) call in
@@ -1818,6 +1824,8 @@ class TipTextServiceImpl
   }
 
   // Reads the composer's result file, removes it and inserts the character.
+  // The composer's window held OS focus, so right after it exits the document
+  // may not accept an edit session yet — retry like macOS for a few seconds.
   void FinishCharacterComposer() {
     if (::IsWindow(renderer_callback_window_handle_)) {
       ::KillTimer(renderer_callback_window_handle_, kComposerTimerId);
@@ -1832,7 +1840,41 @@ class TipTextServiceImpl
         composer_ids::ReadComposerResult(WideToUtf8(path));
     ::DeleteFileW(path.c_str());
     if (text.has_value()) {
-      OnRendererSymbolTextCallback(*text);
+      pending_composer_text_ = *text;
+      pending_composer_attempts_ = 15;
+      TryInsertPendingComposerText();
+    }
+  }
+
+  void TryInsertPendingComposerText() {
+    if (pending_composer_text_.empty()) {
+      return;
+    }
+    wil::com_ptr_nothrow<ITfContext> context = GetRendererCallbackContext();
+    if (context) {
+      const std::string text = std::move(pending_composer_text_);
+      pending_composer_text_.clear();
+      pending_composer_attempts_ = 0;
+      if (::IsWindow(renderer_callback_window_handle_)) {
+        ::KillTimer(renderer_callback_window_handle_, kComposerInsertTimerId);
+      }
+      TipEditSession::OnRendererSymbolTextCallbackAsync(this, context.get(),
+                                                        text);
+      return;
+    }
+    if (pending_composer_attempts_ <= 0) {
+      LOG(WARNING) << "character composer: no context to insert into; "
+                      "result dropped";
+      pending_composer_text_.clear();
+      if (::IsWindow(renderer_callback_window_handle_)) {
+        ::KillTimer(renderer_callback_window_handle_, kComposerInsertTimerId);
+      }
+      return;
+    }
+    --pending_composer_attempts_;
+    if (::IsWindow(renderer_callback_window_handle_)) {
+      ::SetTimer(renderer_callback_window_handle_, kComposerInsertTimerId,
+                 kComposerPollMsec, nullptr);
     }
   }
 
@@ -1841,9 +1883,13 @@ class TipTextServiceImpl
   void CancelCharacterComposerWatch() {
     if (::IsWindow(renderer_callback_window_handle_)) {
       ::KillTimer(renderer_callback_window_handle_, kComposerTimerId);
+      ::KillTimer(renderer_callback_window_handle_, kComposerInsertTimerId);
     }
     composer_process_.reset();
+    pending_composer_text_.clear();
+    pending_composer_attempts_ = 0;
     if (!composer_result_path_.empty()) {
+
       ::DeleteFileW(composer_result_path_.c_str());
       composer_result_path_.clear();
     }
@@ -1874,6 +1920,9 @@ class TipTextServiceImpl
   // leave its result in. See LaunchCharacterComposer().
   wil::unique_process_handle composer_process_;
   std::wstring composer_result_path_;
+  // Character waiting to be inserted after the composer exits (focus retry).
+  std::string pending_composer_text_;
+  int pending_composer_attempts_ = 0;
 
   // marinaMoji: last non-null focused document manager, used as a fallback
   // target for renderer callbacks when the thread focus is transiently lost

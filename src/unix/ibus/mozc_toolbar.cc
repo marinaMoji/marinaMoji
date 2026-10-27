@@ -948,15 +948,42 @@ struct ComposerChild {
 // UTF-8, so this leaves room for a newline and a combining sequence.
 constexpr size_t kMaxComposerResultBytes = 32;
 
+// The composer's Qt window steals IBus focus. Right after it exits,
+// CommitToolbarText can find no usable engine — retry like macOS until
+// FocusIn restores one (or give up after ~3 s).
+struct PendingComposerCommit {
+  std::string text;
+  int attempts_left = 0;
+};
+
+gboolean OnPendingComposerCommit(gpointer data) {
+  auto* pending = static_cast<PendingComposerCommit*>(data);
+  if (g_engine != nullptr && g_engine->CommitToolbarText(pending->text)) {
+    delete pending;
+    return G_SOURCE_REMOVE;
+  }
+  if (--pending->attempts_left <= 0) {
+    LOG(WARNING) << "character composer: no engine to insert into; "
+                    "result dropped";
+    delete pending;
+    return G_SOURCE_REMOVE;
+  }
+  return G_SOURCE_CONTINUE;
+}
+
 void FinishComposerRead(ComposerChild* child, GIOChannel* source) {
   std::string text = child->output;
   while (!text.empty() && (text.back() == '\n' || text.back() == '\r')) {
     text.pop_back();
   }
   if (!text.empty() && text.size() <= kMaxComposerResultBytes &&
-      g_utf8_validate(text.data(), static_cast<gssize>(text.size()), nullptr) &&
-      g_engine) {
-    g_engine->CommitToolbarText(text);
+      g_utf8_validate(text.data(), static_cast<gssize>(text.size()), nullptr)) {
+    auto* pending = new PendingComposerCommit;
+    pending->text = std::move(text);
+    pending->attempts_left = 15;  // 15 × 200 ms ≈ 3 s
+    if (OnPendingComposerCommit(pending) == G_SOURCE_CONTINUE) {
+      g_timeout_add(200, OnPendingComposerCommit, pending);
+    }
   }
   g_io_channel_shutdown(source, FALSE, nullptr);
   delete child;

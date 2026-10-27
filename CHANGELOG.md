@@ -10,6 +10,24 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Windows / Linux: character composer Insert reaches the document again
+
+Two delivery bugs, one per platform; macOS already retried until a controller
+was active.
+
+- **Windows:** `Process::SpawnProcess` never wrote the new process id into
+  `*pid`. `LaunchCharacterComposer` then called `OpenProcess(0)`, failed, and
+  immediately deleted the empty temp result file — so Insert closed the dialog
+  but the TIP never saw the character. The pid is set from `CreateProcess`
+  now, and insert is retried for a few seconds while the document regains
+  focus.
+- **Linux:** the composer's Qt window steals IBus focus; `CommitToolbarText`
+  ran on FocusOut and the client dropped the text. Commits now wait until
+  `FocusIn` (same ~3 s retry budget as macOS). Symbols Palette is unchanged
+  (it never takes focus).
+
+Not built here (no Windows toolchain; Linux ibus headers missing on this Mac).
+
 ### Windows / macOS / Linux: Symbols Palette Odoriji tab inserts again
 
 A follow-up to "odoriji palette no longer opens in direct input mode". That

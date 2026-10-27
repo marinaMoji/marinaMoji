@@ -156,6 +156,13 @@ bool Process::SpawnProcess(absl::string_view path, absl::string_view arg,
   if (create_process_succeeded) {
     ::CloseHandle(pi.hThread);
     ::CloseHandle(pi.hProcess);
+    // Callers such as the character-composer launcher wait on this PID.
+    // The Unix branch already set *pid; Windows used to leave it untouched
+    // (0), so OpenProcess failed and the TIP gave up before Insert wrote the
+    // result file.
+    if (pid != nullptr) {
+      *pid = static_cast<size_t>(pi.dwProcessId);
+    }
   } else {
     LOG(ERROR) << "Create process failed: " << ::GetLastError();
   }
