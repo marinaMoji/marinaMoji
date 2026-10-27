@@ -10,6 +10,14 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.18-rc8
+
+Rolls up the composer and palette fixes below, plus the CI changes since rc7
+(buildifier ordering of `target_compatible_with` in the composer tests). The
+rc7 Windows MSIs were Authenticode-signed after the CI build with
+`scripts/sign-windows-release.mjs` and replaced on the release (new MSI hashes
+in `SHA256SUMS`); rc8's MSIs are built unsigned by CI and need the same pass.
+
 ### macOS: character composer follows the system's preferred languages
 
 A French-system user got the composer in Japanese while another Mac, set up
