@@ -10,6 +10,16 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Linux: the character composer runs through XWayland on Wayland (#91, #92)
+
+Under a Wayland session the composer used Qt's native Wayland backend, where a
+window has no global position. The IBus candidate window (drawn by the xcb
+renderer) opened far left of the caret, and `WindowStaysOnTopHint` and
+`raise()` are ignored, so the document hid the composer and the toolbar button
+could not bring it back. The composer now sets `QT_QPA_PLATFORM=xcb` when
+`DISPLAY` is available, as the renderer already does; an explicit
+`QT_QPA_PLATFORM` still wins. Not yet tried on a Wayland desktop.
+
 ### Release candidate 0.0.18-rc13
 
 rc12 was tagged but never published: its macOS jobs were cancelled waiting for a
