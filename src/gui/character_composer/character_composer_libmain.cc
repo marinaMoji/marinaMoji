@@ -55,6 +55,42 @@ int RunCharacterComposer(int argc, char *argv[]) {
 
   mozc::gui::CharacterComposerDialog dialog(
       std::move(table), QString::fromStdString(directory));
+
+  // The drawing is written before the dialog closes: office plugins react to
+  // their window regaining focus, which can happen before this process
+  // returns from exec().
+  auto write_svg = [](const std::string &svg) -> absl::Status {
+    std::string svg_path = mozc::composer_ids::DefaultSvgResultFilePath();
+    if (!absl::GetFlag(FLAGS_result_file).empty()) {
+      // Windows temp path: keep the SVG beside the text result file.
+      svg_path = absl::GetFlag(FLAGS_result_file) + ".svg";
+    }
+    if (absl::Status status =
+            mozc::composer_ids::WriteComposerSvgResult(svg_path, svg);
+        !status.ok()) {
+      return status;
+    }
+    // The marinaMoji ONLYOFFICE plugin picks this up and inserts the drawing.
+    const int64_t now_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    if (absl::Status status = mozc::composer_ids::WriteOnlyOfficeHandoff(
+            mozc::composer_ids::OnlyOfficePluginDirectory(), svg, now_ms);
+        !status.ok()) {
+      LOG(WARNING) << "Cannot hand the SVG to the ONLYOFFICE plugin: " << status;
+    }
+    return absl::OkStatus();
+  };
+  bool svg_written = false;
+  dialog.set_svg_inserted_callback([&](const std::string &svg) {
+    if (absl::Status status = write_svg(svg); status.ok()) {
+      svg_written = true;
+    } else {
+      LOG(ERROR) << "Cannot write the SVG: " << status;
+    }
+  });
+
   dialog.show();
   dialog.raise();
   dialog.activateWindow();
@@ -71,28 +107,10 @@ int RunCharacterComposer(int argc, char *argv[]) {
   }
 #endif  // __APPLE__
 
-  if (has_svg) {
-    std::string svg_path = mozc::composer_ids::DefaultSvgResultFilePath();
-    if (!absl::GetFlag(FLAGS_result_file).empty()) {
-      // Windows temp path: keep the SVG beside the text result file.
-      svg_path = absl::GetFlag(FLAGS_result_file) + ".svg";
-    }
-    if (absl::Status status = mozc::composer_ids::WriteComposerSvgResult(
-            svg_path, dialog.result_svg());
-        !status.ok()) {
-      LOG(ERROR) << "Cannot write the SVG to " << svg_path << ": " << status;
+  if (has_svg && !svg_written) {
+    if (absl::Status status = write_svg(dialog.result_svg()); !status.ok()) {
+      LOG(ERROR) << "Cannot write the SVG: " << status;
       return 2;
-    }
-    // The marinaMoji ONLYOFFICE plugin picks this up and inserts the drawing.
-    const int64_t now_ms =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch())
-            .count();
-    if (absl::Status status = mozc::composer_ids::WriteOnlyOfficeHandoff(
-            mozc::composer_ids::OnlyOfficePluginDirectory(), dialog.result_svg(),
-            now_ms);
-        !status.ok()) {
-      LOG(WARNING) << "Cannot hand the SVG to the ONLYOFFICE plugin: " << status;
     }
   }
 

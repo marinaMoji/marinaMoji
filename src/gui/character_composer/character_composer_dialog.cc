@@ -18,6 +18,7 @@
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
+#include <QFontMetricsF>
 #include <QPixmap>
 #include <QPushButton>
 #include <QResizeEvent>
@@ -80,6 +81,34 @@ void DrawGeometry(QPainter *p, const OperatorGeometry &g, const QRectF &box) {
   for (const FRect &frame : g.frames) {
     p->drawRect(Scaled(frame, box));
   }
+}
+
+// The drawing Insert would produce, painted from the same glyph layout as the
+// SVG (the SVG itself needs Qt's SVG module, which is not built here).
+QPixmap DrawingPreview(const std::vector<PlacedGlyph> &glyphs, const QPalette &palette,
+                       qreal device_pixel_ratio) {
+  constexpr int kSize = 96;
+  QPixmap pixmap(static_cast<int>(kSize * device_pixel_ratio),
+                 static_cast<int>(kSize * device_pixel_ratio));
+  pixmap.setDevicePixelRatio(device_pixel_ratio);
+  pixmap.fill(Qt::transparent);
+  QPainter p(&pixmap);
+  p.setRenderHint(QPainter::Antialiasing);
+  p.setRenderHint(QPainter::TextAntialiasing);
+  p.setPen(palette.color(QPalette::Text));
+  const double scale = kSize / 1000.0;  // glyphs are laid out in a 1000-unit square
+  for (const PlacedGlyph &g : glyphs) {
+    QFont f;
+    f.setFamilies({QStringLiteral("Hiragino Mincho ProN"), QStringLiteral("Yu Mincho"),
+                   QStringLiteral("Songti SC"), QStringLiteral("Noto Serif CJK JP")});
+    f.setPixelSize(std::max(1, static_cast<int>(g.font_size * scale)));
+    p.setFont(f);
+    const QString text = QString::fromUtf8(g.text.data(), static_cast<int>(g.text.size()));
+    const qreal width = QFontMetricsF(f).horizontalAdvance(text);
+    p.drawText(QPointF(g.x * scale - width / 2, g.y * scale), text);
+  }
+  p.end();
+  return pixmap;
 }
 
 QIcon OperatorIcon(const std::string &op, const QPalette &palette) {
@@ -518,6 +547,11 @@ void CharacterComposerDialog::UpdateResult() {
 
   if (found_.empty()) {
     char_label_->clear();
+    if (insertable) {
+      char_label_->setPixmap(DrawingPreview(
+          ComposerGlyphs(editor_->op(), editor_->parts()), palette(),
+          devicePixelRatioF()));
+    }
     codepoint_label_->clear();
   } else {
     const QString text = FromUtf8(found_);
@@ -548,6 +582,7 @@ void CharacterComposerDialog::OnInsert() {
                 QByteArray::fromStdString(result_svg_));
   mime->setText(QString::fromStdString(result_svg_));
   QApplication::clipboard()->setMimeData(mime);
+  if (on_svg_inserted_) on_svg_inserted_(result_svg_);
   accept();
 }
 

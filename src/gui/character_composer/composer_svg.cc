@@ -34,42 +34,47 @@ FRect ScaleRect(const FRect &frac, double x, double y, double w, double h) {
   return {x + frac.x * w, y + frac.y * h, frac.w * w, frac.h * h};
 }
 
-void AppendLeaf(std::string *out, std::string_view ch, const FRect &box) {
+void AddLeaf(std::vector<PlacedGlyph> *out, std::string_view ch, const FRect &box) {
   if (ch.empty()) return;
-  const double cx = box.x + box.w * 0.5;
   // Optical baseline for CJK in the cell (not the geometric centre).
-  const double cy = box.y + box.h * 0.78;
-  const double font = std::min(box.w, box.h) * 0.88;
-  absl::StrAppend(out, "<text x=\"", cx, "\" y=\"", cy, "\" font-size=\"", font,
-                  "\" text-anchor=\"middle\" "
-                  "font-family=\"Hiragino Mincho ProN, Yu Mincho, Songti SC, "
-                  "Noto Serif CJK JP, serif\">",
-                  EscapeXml(ch), "</text>");
+  out->push_back({std::string(ch), box.x + box.w * 0.5, box.y + box.h * 0.78,
+                  std::min(box.w, box.h) * 0.88});
 }
 
-void AppendSlot(std::string *out, const ComposerSlot &slot, const FRect &box);
+void AddSlot(std::vector<PlacedGlyph> *out, const ComposerSlot &slot, const FRect &box);
 
-void AppendLayout(std::string *out, std::string_view op,
-                  const std::vector<ComposerSlot> &parts, const FRect &box) {
+void AddLayout(std::vector<PlacedGlyph> *out, std::string_view op,
+               const std::vector<ComposerSlot> &parts, const FRect &box) {
   const OperatorGeometry geo = GeometryFor(op);
   const int n = std::min(geo.count, static_cast<int>(parts.size()));
   for (int i = 0; i < n; ++i) {
     // Leaves use the edit strip (enclosures); nested layouts fill the cell.
     const FRect &frac =
         parts[i].kind == ComposerSlot::Kind::kNested ? geo.cell[i] : geo.edit[i];
-    AppendSlot(out, parts[i], ScaleRect(frac, box.x, box.y, box.w, box.h));
+    AddSlot(out, parts[i], ScaleRect(frac, box.x, box.y, box.w, box.h));
   }
 }
 
-void AppendSlot(std::string *out, const ComposerSlot &slot, const FRect &box) {
+void AddSlot(std::vector<PlacedGlyph> *out, const ComposerSlot &slot, const FRect &box) {
   if (slot.kind == ComposerSlot::Kind::kLeaf) {
-    AppendLeaf(out, slot.input, box);
+    AddLeaf(out, slot.input, box);
     return;
   }
-  AppendLayout(out, slot.op, slot.parts, box);
+  AddLayout(out, slot.op, slot.parts, box);
 }
 
 }  // namespace
+
+std::vector<PlacedGlyph> ComposerGlyphs(std::string_view op,
+                                        const std::vector<ComposerSlot> &parts,
+                                        int view_box) {
+  std::vector<PlacedGlyph> glyphs;
+  if (!composer_ids::ComposeIds(op, parts)) return glyphs;
+  if (view_box < 32) view_box = 32;
+  AddLayout(&glyphs, op, parts, {0, 0, static_cast<double>(view_box),
+                                 static_cast<double>(view_box)});
+  return glyphs;
+}
 
 std::string RenderComposerSvg(std::string_view op,
                               const std::vector<ComposerSlot> &parts,
@@ -78,8 +83,14 @@ std::string RenderComposerSvg(std::string_view op,
   if (view_box < 32) view_box = 32;
 
   std::string body;
-  AppendLayout(&body, op, parts, {0, 0, static_cast<double>(view_box),
-                                  static_cast<double>(view_box)});
+  for (const PlacedGlyph &g : ComposerGlyphs(op, parts, view_box)) {
+    absl::StrAppend(&body, "<text x=\"", g.x, "\" y=\"", g.y, "\" font-size=\"",
+                    g.font_size,
+                    "\" text-anchor=\"middle\" "
+                    "font-family=\"Hiragino Mincho ProN, Yu Mincho, Songti SC, "
+                    "Noto Serif CJK JP, serif\">",
+                    EscapeXml(g.text), "</text>");
+  }
 
   const std::string ids = *composer_ids::ComposeIds(op, parts);
   return absl::StrCat(

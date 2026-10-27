@@ -15,7 +15,9 @@
 #include <QString>
 #include <QWidget>
 #include <memory>
+#include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "composer_ids/ids_table.h"
@@ -143,6 +145,13 @@ class CharacterComposerDialog : public QDialog {
   // or the dialog was cancelled.
   const std::string &result_svg() const { return result_svg_; }
 
+  // Called with the SVG just before the dialog closes on Insert of an
+  // unencoded structure, so the files other programs watch exist before focus
+  // returns to them.
+  void set_svg_inserted_callback(std::function<void(const std::string &)> cb) {
+    on_svg_inserted_ = std::move(cb);
+  }
+
  private slots:
   void OnLayoutChanged();
   void OnPaletteClicked(int index);
@@ -173,6 +182,7 @@ class CharacterComposerDialog : public QDialog {
   QString data_directory_;
   std::string found_;       // the encoded character for the current layout, or ""
   std::string result_;      // Unicode Insert chose, or ""
+  std::function<void(const std::string &)> on_svg_inserted_;
   std::string result_svg_;  // SVG Insert chose for an unencoded layout, or ""
   std::string pending_svg_; // live SVG preview for the current filled layout
 };

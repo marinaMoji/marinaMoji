@@ -10,6 +10,18 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer: preview the drawing, and write it before the dialog closes
+
+- For a structure with no Unicode character the preview square was blank;
+  the SVG was built but never shown. The dialog now paints the same glyph
+  layout (`ComposerGlyphs`, shared with the SVG) with `QPainter`, so Qt's SVG
+  module is not needed.
+- The SVG and the ONLYOFFICE hand-off were written after the dialog had
+  closed, so an office plugin that reacts to its window regaining focus
+  (LibreOffice's `OnFocus` job) could look before the file existed and never
+  insert. They are now written from `OnInsert`, just before `accept()`.
+  Not yet verified in the app.
+
 ### Character composer: hand the drawing to the ONLYOFFICE plugin (macOS)
 
 When Insert produces an SVG drawing, the composer also writes
