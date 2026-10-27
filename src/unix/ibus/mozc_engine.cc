@@ -473,6 +473,12 @@ void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
     odoriji_show_pending_ = false;
     odoriji_menu_saw_focus_out_ = false;
     deferred_candidate_output_.reset();
+    // Drop the previous app's caret. The character composer (Qt) often sends
+    // an empty set_cursor_location first; substituting LibreOffice's last
+    // caret then parks candidates far outside the dialog ("to the left").
+    // Odoriji menu bounce keeps the caret above (suppress path).
+    has_last_usable_cursor_area_ = false;
+    mozc_candidate_window_handler_.ClearCursorPositionCache();
   }
   property_handler_->ResetContentType(engine);
 

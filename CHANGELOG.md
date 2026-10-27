@@ -19,6 +19,17 @@ character was dropped. The text is now kept on the engine and flushed on
 the next `FocusIn` (up to 60 s). Matches the "sometimes works" pattern
 when the user happened to click back into Writer in time.
 
+### Character composer: Enter inserts; Linux candidates stay near the caret
+
+- **Enter / Return** in a filled layout (Unicode or SVG ready) runs Insert —
+  no mouse click on the button. Enter while typing Japanese is still handled
+  by the IME first (confirm candidate into the box).
+- On Linux, switching into the composer cleared focus but kept LibreOffice's
+  last caret for candidate placement. When Qt then reported an empty caret,
+  the candidate window opened at that old spot — far left of the dialog.
+  Genuine `FocusOut` now drops the cached caret (odoriji menu bounce still
+  keeps it). Remaining HiDPI/Wayland Qt+IBus mis-scaling is upstream.
+
 ### Release candidate 0.0.18-rc11
 
 rc10 was tagged but never published: its Windows jobs failed in "Verify product

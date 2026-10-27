@@ -155,6 +155,14 @@ void SlotEdit::focusInEvent(QFocusEvent *event) {
   emit gotFocus(path_);
 }
 
+void SlotEdit::keyPressEvent(QKeyEvent *event) {
+  if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
+    emit submitRequested();
+    return;
+  }
+  QLineEdit::keyPressEvent(event);
+}
+
 // --- LayoutView -------------------------------------------------------------
 
 LayoutView::LayoutView(LayoutEditor *editor, SlotPath path, std::string op,
@@ -183,6 +191,8 @@ LayoutView::LayoutView(LayoutEditor *editor, SlotPath path, std::string op,
               });
       connect(edit, &SlotEdit::gotFocus, this,
               [this](const std::vector<int> &path) { editor_->Select(path); });
+      connect(edit, &SlotEdit::submitRequested, editor_,
+              &LayoutEditor::submitRequested);
       children_.push_back(edit);
     } else {
       children_.push_back(
@@ -408,6 +418,8 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
     note_ = Tr("Clear all but one of the filled boxes before removing this layout.");
     UpdateResult();
   });
+  connect(editor_, &LayoutEditor::submitRequested, this,
+          &CharacterComposerDialog::OnSubmitRequested);
 
   auto *left = new QVBoxLayout;
   auto *layout_hint = new QLabel(
@@ -580,6 +592,21 @@ void CharacterComposerDialog::UpdateResult() {
   status_label_->setText(status);
   insert_button_->setEnabled(insertable);
   copy_button_->setEnabled(!found_.empty() || insertable);
+}
+
+void CharacterComposerDialog::OnSubmitRequested() {
+  if (insert_button_ != nullptr && insert_button_->isEnabled()) {
+    OnInsert();
+  }
+}
+
+void CharacterComposerDialog::keyPressEvent(QKeyEvent *event) {
+  if ((event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) &&
+      insert_button_ != nullptr && insert_button_->isEnabled()) {
+    OnInsert();
+    return;
+  }
+  QDialog::keyPressEvent(event);
 }
 
 void CharacterComposerDialog::OnInsert() {

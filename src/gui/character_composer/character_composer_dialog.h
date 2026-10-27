@@ -11,6 +11,7 @@
 #define MOZC_GUI_CHARACTER_COMPOSER_CHARACTER_COMPOSER_DIALOG_H_
 
 #include <QDialog>
+#include <QKeyEvent>
 #include <QLineEdit>
 #include <QString>
 #include <QWidget>
@@ -46,9 +47,13 @@ class SlotEdit : public QLineEdit {
 
  signals:
   void gotFocus(const std::vector<int> &path);
+  // Enter/Return in a box: dialog inserts when a result is ready (IME Enter
+  // that confirms a candidate is consumed before it reaches here).
+  void submitRequested();
 
  protected:
   void focusInEvent(QFocusEvent *event) override;
+  void keyPressEvent(QKeyEvent *event) override;
 
  private:
   composer_ids::SlotPath path_;
@@ -124,6 +129,7 @@ class LayoutEditor : public QWidget {
   void changed();
   void selectionChanged();
   void flattenRefused();
+  void submitRequested();
 
  private:
   void Rebuild();
@@ -165,6 +171,10 @@ class CharacterComposerDialog : public QDialog {
   void OnCopy();
   void OnBreakApart();
   void OnCycleForm();
+  void OnSubmitRequested();
+
+ protected:
+  void keyPressEvent(QKeyEvent *event) override;
 
  private:
   void BuildUi(const QString &data_directory);

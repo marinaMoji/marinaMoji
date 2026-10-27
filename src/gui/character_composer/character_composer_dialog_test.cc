@@ -9,6 +9,7 @@
 #include <QApplication>
 #include <QCoreApplication>
 #include <QEvent>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QPushButton>
 #include <QString>
@@ -94,6 +95,18 @@ TEST_F(CharacterComposerDialogTest, FillingBothBoxesFindsTheEncodedCharacter) {
   Type(edits[1], QStringLiteral("某"));
   EXPECT_TRUE(Button(dialog.get(), "Insert")->isEnabled());
   Button(dialog.get(), "Insert")->click();
+  EXPECT_EQ(dialog->result(), "謀");
+}
+
+TEST_F(CharacterComposerDialogTest, EnterInABoxInsertsWhenReady) {
+  auto dialog = MakeDialog();
+  auto edits = Edits(dialog.get());
+  Type(edits[0], QStringLiteral("言"));
+  Type(edits[1], QStringLiteral("某"));
+  EXPECT_TRUE(Button(dialog.get(), "Insert")->isEnabled());
+  edits[1]->setFocus();
+  QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+  QCoreApplication::sendEvent(edits[1], &enter);
   EXPECT_EQ(dialog->result(), "謀");
 }
 
