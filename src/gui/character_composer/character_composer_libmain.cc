@@ -4,6 +4,8 @@
 #include <QGuiApplication>
 #include <QString>
 #include <QtGui>
+#include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <memory>
 #include <string>
@@ -80,6 +82,17 @@ int RunCharacterComposer(int argc, char *argv[]) {
         !status.ok()) {
       LOG(ERROR) << "Cannot write the SVG to " << svg_path << ": " << status;
       return 2;
+    }
+    // The marinaMoji ONLYOFFICE plugin picks this up and inserts the drawing.
+    const int64_t now_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    if (absl::Status status = mozc::composer_ids::WriteOnlyOfficeHandoff(
+            mozc::composer_ids::OnlyOfficePluginDirectory(), dialog.result_svg(),
+            now_ms);
+        !status.ok()) {
+      LOG(WARNING) << "Cannot hand the SVG to the ONLYOFFICE plugin: " << status;
     }
   }
 

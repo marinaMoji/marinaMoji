@@ -59,6 +59,36 @@ TEST_F(ComposerResultTest, DefaultPathIsInTheUserProfile) {
   EXPECT_EQ(DefaultResultFilePath(), Path("character_composer_result.txt"));
 }
 
+TEST_F(ComposerResultTest, OnlyOfficeScriptEscapesTheSvg) {
+  EXPECT_EQ(OnlyOfficeHandoffScript("<svg a=\"1\">\n\\</svg>", 1234),
+            "window.marinaMojiComposerResult={id:1234,"
+            "svg:\"<svg a=\\\"1\\\">\\n\\\\</svg>\"};\n");
+  // Non-ASCII text passes through; line separators and control characters are
+  // escaped so the literal stays valid JavaScript.
+  EXPECT_EQ(OnlyOfficeHandoffScript("字\xE2\x80\xA8\x01", 5),
+            "window.marinaMojiComposerResult={id:5,"
+            "svg:\"字\\u2028\\u0001\"};\n");
+}
+
+TEST_F(ComposerResultTest, OnlyOfficeHandoffNeedsTheInstalledPlugin) {
+  const std::string missing = Path("no_such_plugin_dir");
+  EXPECT_TRUE(WriteOnlyOfficeHandoff(missing, "<svg/>", 1).ok());
+  EXPECT_FALSE(FileUtil::FileExists(
+                   FileUtil::JoinPath(missing, "composer_result.js")).ok());
+  EXPECT_TRUE(WriteOnlyOfficeHandoff("", "<svg/>", 1).ok());
+}
+
+TEST_F(ComposerResultTest, OnlyOfficeHandoffWritesNextToThePlugin) {
+  const std::string dir = Path("plugin");
+  ASSERT_TRUE(FileUtil::CreateDirectory(dir).ok());
+  ASSERT_TRUE(WriteOnlyOfficeHandoff(dir, "<svg/>", 42).ok());
+  const auto contents =
+      FileUtil::GetContents(FileUtil::JoinPath(dir, "composer_result.js"));
+  ASSERT_TRUE(contents.ok());
+  EXPECT_EQ(*contents,
+            "window.marinaMojiComposerResult={id:42,svg:\"<svg/>\"};\n");
+}
+
 }  // namespace
 }  // namespace composer_ids
 }  // namespace mozc

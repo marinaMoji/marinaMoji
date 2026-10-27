@@ -12,6 +12,7 @@
 #ifndef MOZC_COMPOSER_IDS_COMPOSER_RESULT_H_
 #define MOZC_COMPOSER_IDS_COMPOSER_RESULT_H_
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -39,6 +40,25 @@ absl::Status WriteComposerResult(std::string_view path, std::string_view text);
 
 // Writes an SVG document (UTF-8) for a composed-but-unencoded character.
 absl::Status WriteComposerSvgResult(std::string_view path, std::string_view svg);
+
+// ONLYOFFICE has no input-method channel for a drawing, so the marinaMoji
+// ONLYOFFICE plugin polls a script file next to its own index.html and inserts
+// a fresh result at the cursor.
+//
+// The JavaScript the plugin loads: assigns window.marinaMojiComposerResult =
+// {id, svg}. |id| is the creation time in milliseconds since the Unix epoch;
+// the plugin uses it both to skip results it has seen and to ignore stale ones.
+std::string OnlyOfficeHandoffScript(std::string_view svg, int64_t id_ms);
+
+// The macOS ONLYOFFICE Desktop Editors folder the marinaMoji plugin is
+// installed in, or an empty string on other platforms.
+std::string OnlyOfficePluginDirectory();
+
+// Writes composer_result.js (see OnlyOfficeHandoffScript) into |directory|.
+// Does nothing and returns OK when |directory| is empty or does not exist, i.e.
+// the plugin is not installed.
+absl::Status WriteOnlyOfficeHandoff(std::string_view directory,
+                                    std::string_view svg, int64_t id_ms);
 
 // The result stored in |path|: surrounding whitespace removed, and nullopt if
 // the file is missing, empty, longer than kMaxComposerResultBytes, or not valid

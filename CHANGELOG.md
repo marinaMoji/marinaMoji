@@ -10,6 +10,18 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer: hand the drawing to the ONLYOFFICE plugin (macOS)
+
+When Insert produces an SVG drawing, the composer also writes
+`composer_result.js` (`window.marinaMojiComposerResult = {id, svg}`) into the
+marinaMoji ONLYOFFICE plugin's folder under
+`~/Library/Application Support/asc.onlyoffice.ONLYOFFICE/data/sdkjs-plugins/`,
+if the plugin is installed. The plugin's panel polls that file and inserts the
+drawing at the cursor, so no button or clipboard step is needed. Only macOS so
+far; unit-tested (`composer_result_test`), not yet verified inside ONLYOFFICE.
+A result is picked up by any ONLYOFFICE document whose marinaMoji panel is
+open, even if the composer was started from another application.
+
 ### Character composer: SVG status messages are translated
 
 Three strings added with the SVG export ("No encoded character has this
