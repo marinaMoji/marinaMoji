@@ -79,6 +79,12 @@ std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &
         if (e != nullptr && !nested->Search(e->variant).empty()) {
           name = e->variant;
           box = {e->left, e->top, e->right, e->bottom};
+        } else if (const ComposerLayout::Entry *d =
+                       e == nullptr ? layout->DefaultFor(op, static_cast<int>(i))
+                                    : nullptr) {
+          // Not in the table: GlyphWiki's usual box for this position, with
+          // the component's own glyph.
+          box = {d->left, d->top, d->right, d->bottom};
         }
       }
     } else {
@@ -99,6 +105,8 @@ std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &
 
 ComposerLayout ComposerLayout::Parse(std::string_view contents) {
   ComposerLayout layout;
+  // (box, count) of every entry, by operator and position.
+  std::map<std::string, std::vector<std::pair<Box, int>>> by_position;
   for (std::string_view line : absl::StrSplit(contents, '\n')) {
     if (line.empty() || line.front() == '#') continue;
     const std::vector<std::string_view> f = absl::StrSplit(line, '\t');
@@ -112,7 +120,39 @@ ComposerLayout ComposerLayout::Parse(std::string_view contents) {
       continue;
     }
     e.variant = std::string(f[3]);
+    int count = 1;
+    if (f.size() > 5 && !absl::SimpleAtoi(f[5], &count)) count = 1;
+    by_position[absl::StrCat(f[0], position)].push_back(
+        {{e.left, e.top, e.right, e.bottom}, std::max(count, 1)});
     layout.entries_[absl::StrCat(f[0], position, f[2])] = std::move(e);
+  }
+  // A few very common components must not decide it alone: cap each at 20.
+  for (const auto &[key, boxes] : by_position) {
+    int edge[4];
+    for (int k = 0; k < 4; ++k) {
+      std::vector<std::pair<int, int>> values;  // (coordinate, weight)
+      long total = 0;
+      for (const auto &[box, count] : boxes) {
+        const int coordinate = k == 0 ? box.left : k == 1 ? box.top
+                               : k == 2 ? box.right : box.bottom;
+        const int weight = std::min(count, 20);
+        values.push_back({coordinate, weight});
+        total += weight;
+      }
+      std::sort(values.begin(), values.end());
+      long seen = 0;
+      edge[k] = values.back().first;
+      for (const auto &[coordinate, weight] : values) {
+        seen += weight;
+        if (2 * seen >= total) {
+          edge[k] = coordinate;
+          break;
+        }
+      }
+    }
+    Entry d;
+    d.left = edge[0], d.top = edge[1], d.right = edge[2], d.bottom = edge[3];
+    layout.defaults_[key] = std::move(d);
   }
   return layout;
 }
@@ -121,6 +161,12 @@ const ComposerLayout::Entry *ComposerLayout::Find(std::string_view op, int posit
                                                   std::string_view component) const {
   const auto it = entries_.find(absl::StrCat(op, position, component));
   return it == entries_.end() ? nullptr : &it->second;
+}
+
+const ComposerLayout::Entry *ComposerLayout::DefaultFor(std::string_view op,
+                                                        int position) const {
+  const auto it = defaults_.find(absl::StrCat(op, position));
+  return it == defaults_.end() ? nullptr : &it->second;
 }
 
 std::optional<KageResources> KageResources::LoadFromDirectory(

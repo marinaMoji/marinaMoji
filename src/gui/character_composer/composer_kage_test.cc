@@ -66,6 +66,17 @@ TEST(ComposerKageTest, UsesTheVariantAndBoxGlyphWikiUses) {
             "99:0:0:2:0:165:200:u6728-01:0:0:0$99:0:0:92:0:200:200:u5dfb:0:0:0");
 }
 
+TEST(ComposerKageTest, UnknownComponentTakesTheUsualBoxOfItsPosition) {
+  KageResources r = LoadGlyphs();
+  r.layout = ComposerLayout::Parse(
+      "⿰\t1\t日\tu65e5\t40 0 200 200\t10\n"
+      "⿰\t1\t月\tu6708\t60 0 198 200\t10\n"
+      "⿰\t1\t山\tu5c71\t50 0 196 200\t10\n");
+  kage::Buhin nested(&r.glyphs);
+  EXPECT_EQ(ComposeKageData("⿰", Parts("木", "巻"), &nested, &r.layout),
+            "99:0:0:0:0:108:200:u6728:0:0:0$99:0:0:50:0:198:200:u5dfb:0:0:0");
+}
+
 TEST(ComposerKageTest, IgnoresAVariantThatHasNoStrokes) {
   KageResources r = LoadGlyphs();  // has no u6728-01
   r.layout = ComposerLayout::Parse("⿰\t0\t木\tu6728-01\t2 0 165 200\t442\n");

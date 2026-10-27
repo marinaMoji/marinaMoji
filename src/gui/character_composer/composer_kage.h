@@ -44,8 +44,14 @@ class ComposerLayout {
                     std::string_view component) const;
   size_t size() const { return entries_.size(); }
 
+  // The box GlyphWiki most often gives whatever stands at |position| of |op|
+  // (the count-weighted median over the table), for a component the table does
+  // not know; nullptr if |op| has no such position in it.
+  const Entry *DefaultFor(std::string_view op, int position) const;
+
  private:
   std::map<std::string, Entry> entries_;
+  std::map<std::string, Entry> defaults_;
 };
 
 // What the composer needs to draw a glyph: GlyphWiki's strokes and its layouts.
