@@ -10,6 +10,17 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### macOS: character composer follows the system's preferred languages
+
+A French-system user got the composer in Japanese while another Mac, set up
+the same way, showed French. The Qt tools' bundle declared only a Japanese
+development region and no localizations, and Qt's locale list can be narrowed
+to what the bundle declares. `GuiUtil::InstallTranslator` now tries the
+preferred languages from `CFLocaleCopyPreferredLanguages` in order before
+falling back to `QLocale::system()`, and `mozc_tool_info` declares
+`CFBundleLocalizations` (en, fr, ja). This applies to every Qt tool, not just
+the composer. Not yet confirmed on the affected Mac.
+
 ### Windows / Linux: character composer Insert reaches the document again
 
 Two delivery bugs, one per platform; macOS already retried until a controller
