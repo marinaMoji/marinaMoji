@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "composer_ids/ids_tree.h"
+#include "kage/kage_engine.h"
 
 namespace mozc {
 namespace gui {
@@ -37,9 +38,15 @@ std::vector<PlacedGlyph> ComposerGlyphs(
 
 // SVG for a complete layout (every leaf filled). |view_box| is the square size
 // in user units (default 1000). Empty string if the layout is incomplete.
+//
+// With |glyphs| (GlyphWiki's KAGE data) the layout is drawn as one new glyph,
+// an outline built from the components' strokes. Without it, or when a
+// component is not in |glyphs|, the components are drawn as text side by side
+// in their cells.
 std::string RenderComposerSvg(std::string_view op,
                               const std::vector<composer_ids::ComposerSlot> &parts,
-                              int view_box = 1000);
+                              int view_box = 1000,
+                              const kage::Buhin *glyphs = nullptr);
 
 }  // namespace gui
 }  // namespace mozc

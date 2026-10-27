@@ -204,6 +204,9 @@
       <ComponentRef Id="MarinaMojiComposerForms" />
       <ComponentRef Id="MarinaMojiComposerLicense" />
       <ComponentRef Id="MarinaMojiComposerReadme" />
+      <ComponentRef Id="MarinaMojiKageGlyphs" />
+      <ComponentRef Id="MarinaMojiKageLicense" />
+      <ComponentRef Id="MarinaMojiKageReadme" />
       <ComponentRef Id="MarinaMojiSync" />
       <ComponentRef Id="MMToolbarIcon_logo_long_dark_24" />
       <ComponentRef Id="MMToolbarIcon_logo_long_dark_36" />
@@ -591,6 +594,19 @@
           </Component>
           <Component Id="MarinaMojiComposerReadme">
             <File Id="composer_README.md" Name="README.md" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ComposerReadmePath)" />
+          </Component>
+          <!--
+            GlyphWiki stroke data (free licence) that draws a composed glyph as
+            one character; read by marinamoji_tool.exe like the files above.
+          -->
+          <Component Id="MarinaMojiKageGlyphs">
+            <File Id="kage_glyphs.tsv" Name="kage_glyphs.tsv" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.KageGlyphsPath)" />
+          </Component>
+          <Component Id="MarinaMojiKageLicense">
+            <File Id="kage_LICENSE.GlyphWiki" Name="LICENSE.GlyphWiki" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.KageLicensePath)" />
+          </Component>
+          <Component Id="MarinaMojiKageReadme">
+            <File Id="kage_README.kage.md" Name="README.kage.md" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.KageReadmePath)" />
           </Component>
         </Directory>
         <!--

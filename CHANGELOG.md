@@ -10,6 +10,30 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer: a structure with no Unicode character is drawn as one new glyph
+
+Insert on a layout like ⿰木巻 used to place the two components side by side as
+text, squeezed into their cells: two small characters, not a new one. It now
+draws one glyph from GlyphWiki's KAGE stroke data, the way the Grognard editor
+does: the components' strokes are placed in the layout's cells and a port of the
+KAGE engine turns them into a single outline, so the result is a character, drawn
+as an SVG `<path>` (no fonts needed, in the dialog preview, on the clipboard and
+in the office plugins). A component with no stroke data still falls back to the
+old text drawing.
+
+- **`src/kage/`**: C++ port of kurgm's KAGE engine (Mincho). It reproduces the
+  JavaScript engine's polygons point for point on real glyphs and composed
+  layouts (`kage_engine_test`).
+- **`src/data/kage/kage_glyphs.tsv`**: 57,161 GlyphWiki glyphs (radicals, kana,
+  Extension A, Unified Ideographs, and what they place), 3.7 MB, installed with
+  the other composer data on macOS, Windows and Linux; rebuilt by
+  `build_kage_data.py`.
+- **Licence: `mozc_tool` and the standalone composer become GPL-3.0 as
+  distributed.** KAGE is GPL-3.0, so the code and every program that links it
+  are. The input method (server, renderer, TIP, engine) does not link it.
+  `src/kage/` has its own `LICENSE`; the root README lists it. Not yet checked on
+  CI or in the installers (Windows installer wiring is untested here).
+
 ### Linux: character composer Insert into LibreOffice is less flaky
 
 The composer's Qt window steals IBus focus. Insert already retried

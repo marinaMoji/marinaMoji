@@ -194,6 +194,20 @@ See [src/data/dictionary_oss/README.txt](src/data/dictionary_oss/README.txt)
 Public Domain.  See the comment in
 [src/data/test/stress_test/sentences.txt](src/data/test/stress_test/sentences.txt)
 
+### [src/kage/](src/kage)
+
+GPL-3.0-or-later. A C++ port of the KAGE glyph engine; the character composer
+links it to draw a structure with no Unicode character as one glyph. A program
+that links it is distributed under the GPL, which here means `mozc_tool` (and
+the standalone character composer): the input method itself does not use it.
+See [src/kage/README.md](src/kage/README.md).
+
+### [src/data/character_composer/](src/data/character_composer) and [src/data/kage/](src/data/kage)
+
+Data read by the character composer at run time, never linked: the IDS tables
+(GPL-2.0-or-later, from CHISE) and GlyphWiki's stroke data (a free licence, no
+attribution required). See the README in each directory.
+
 ## Notes
 
 - Release verification instructions are available in [SECURITY.md](SECURITY.md).

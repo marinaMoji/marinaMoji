@@ -54,6 +54,10 @@ CHARACTER_COMPOSER_FILES = (
     'radical_forms.tsv',
     'LICENSE.GPL-2.0',
     'README.md',
+    # GlyphWiki stroke data for drawing composed glyphs (data/kage).
+    'kage_glyphs.tsv',
+    'LICENSE.GlyphWiki',
+    'README.kage.md',
 )
 
 

@@ -59,14 +59,46 @@ mozc_cc_test(
     ],
 )
 
+# Draws a layout as one glyph from GlyphWiki's KAGE strokes. //kage is
+# GPL-3.0-or-later, so whatever links this library is GPL-3.0 as distributed.
+mozc_cc_library(
+    name = "composer_kage",
+    srcs = ["composer_kage.cc"],
+    hdrs = ["composer_kage.h"],
+    deps = [
+        "//base/strings:unicode",
+        "//composer_ids:ids_tree",
+        "//kage",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 mozc_cc_library(
     name = "composer_svg",
     srcs = ["composer_svg.cc"],
     hdrs = ["composer_svg.h"],
     deps = [
+        ":composer_kage",
         ":layout_geometry",
         "//composer_ids:ids_tree",
+        "//kage",
         "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_test(
+    name = "composer_kage_test",
+    size = "small",
+    srcs = ["composer_kage_test.cc"],
+    data = ["//kage:testdata/kage_test_data.tsv"],
+    deps = [
+        ":composer_kage",
+        ":composer_svg",
+        "//base:file_util",
+        "//composer_ids:ids_tree",
+        "//kage",
+        "//testing:gunit_main",
+        "//testing:mozctest",
     ],
 )
 
@@ -92,6 +124,7 @@ mozc_cc_qt_library(
     hdrs = ["character_composer_dialog.h"],
     local_defines = ["MARINAMOJI"],
     deps = [
+        ":composer_kage",
         ":composer_svg",
         ":layout_geometry",
         "//base:system_util",
@@ -101,6 +134,7 @@ mozc_cc_qt_library(
         "//composer_ids:ids_tree",
         "//gui/base:gui_base",
         "//gui/base:singleton_window_helper",
+        "//kage",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
     ],
