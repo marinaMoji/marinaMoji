@@ -171,7 +171,7 @@ cat >"$OUTDIR/index.html" <<EOF
   <strong>unstable</strong> (every release, including release candidates).</p>
   <h2>Install</h2>
   <pre>curl -fsSL ${PAGES_URL_HINT}/marinaMoji-release-public-key.asc \\
-  | sudo gpg --dearmor -o /usr/share/keyrings/marinamoji-archive-keyring.gpg
+  | sudo gpg --dearmor --yes -o /usr/share/keyrings/marinamoji-archive-keyring.gpg
 
 echo "deb [signed-by=/usr/share/keyrings/marinamoji-archive-keyring.gpg] ${PAGES_URL_HINT} stable main" \\
   | sudo tee /etc/apt/sources.list.d/marinamoji.list
