@@ -10,6 +10,17 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release CI: Windows version check finds the tool by its marker, not its name
+
+rc10, rc11 and rc12 all failed on Windows in "Verify product version in build"
+(the build and the MSI were fine): the step looked for `mozc_tool.exe` /
+`marinamoji_tool.exe` under `bazel-out`, and neither name is what Bazel leaves
+there (the final file is a symlink named after the target, under another
+configuration). The step now checks every `.exe` built in `gui/tool` and passes
+when one carries the `marinaMoji-product-version=<version>` line from
+`version.cc`; on failure it lists what is there. Checked against a simulated
+output tree only: it can run for real only on a tag.
+
 ### Release candidate 0.0.18-rc12
 
 rc11 plus everything below down to the rc11 entry: the character composer draws
