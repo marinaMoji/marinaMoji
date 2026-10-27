@@ -132,6 +132,9 @@ def run_wix4(args) -> None:
   composer_forms = pathlib.Path(args.composer_forms).resolve()
   composer_license = pathlib.Path(args.composer_license).resolve()
   composer_readme = pathlib.Path(args.composer_readme).resolve()
+  kage_glyphs = pathlib.Path(args.kage_glyphs).resolve()
+  kage_license = pathlib.Path(args.kage_license).resolve()
+  kage_readme = pathlib.Path(args.kage_readme).resolve()
   # All toolbar_icons/*.png live alongside this one sample file (see
   # data/images/win/generate_toolbar_icons.py); only its parent directory is
   # needed since installer_marinamoji_64bit.wxs references each file by its
@@ -221,6 +224,9 @@ def run_wix4(args) -> None:
       '-define', f'ComposerFormsPath={composer_forms}',
       '-define', f'ComposerLicensePath={composer_license}',
       '-define', f'ComposerReadmePath={composer_readme}',
+      '-define', f'KageGlyphsPath={kage_glyphs}',
+      '-define', f'KageLicensePath={kage_license}',
+      '-define', f'KageReadmePath={kage_readme}',
       '-define', f'ToolbarIconsDir={toolbar_icons_dir}',
       '-define', f'DocumentsDir={document_dir}',
       '-define', f'QtDir={qt_dir}',
@@ -279,6 +285,9 @@ def main():
   parser.add_argument('--composer_forms', type=str)
   parser.add_argument('--composer_license', type=str)
   parser.add_argument('--composer_readme', type=str)
+  parser.add_argument('--kage_glyphs', type=str)
+  parser.add_argument('--kage_license', type=str)
+  parser.add_argument('--kage_readme', type=str)
   parser.add_argument('--toolbar_icons_sample', type=str)
   parser.add_argument('--icon_path', type=str)
   parser.add_argument('--credit_file', type=str)

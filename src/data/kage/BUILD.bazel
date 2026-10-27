@@ -1,0 +1,23 @@
+# Copyright 2026 marinaMoji contributors.
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# GlyphWiki's KAGE glyph data (free licence, see LICENSE.GlyphWiki) that the
+# character composer reads at run time. Installed as plain files beside
+# mozc_server, in the same character_composer/ directory as the IDS tables.
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "LICENSE.GlyphWiki",
+    "README.kage.md",
+    "kage_glyphs.tsv",
+])
+
+filegroup(
+    name = "kage_data",
+    srcs = [
+        "LICENSE.GlyphWiki",
+        "README.kage.md",
+        "kage_glyphs.tsv",
+    ],
+)

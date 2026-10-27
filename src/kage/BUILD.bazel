@@ -1,0 +1,58 @@
+# Copyright 2026 marinaMoji contributors.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# A C++ port of the KAGE engine (Mincho only). Unlike the rest of the tree
+# (BSD-3-Clause), everything in this directory is GPL-3.0-or-later; see LICENSE
+# and README.md. Whatever links //kage is therefore distributed under the GPL.
+
+load(
+    "//:build_defs.bzl",
+    "mozc_cc_library",
+    "mozc_cc_test",
+)
+
+package(default_visibility = ["//visibility:private"])
+
+exports_files([
+    "LICENSE",
+    "testdata/kage_test_data.tsv",
+])
+
+mozc_cc_library(
+    name = "kage",
+    srcs = [
+        "kage_data.cc",
+        "kage_engine.cc",
+        "kage_polygon.cc",
+    ],
+    hdrs = [
+        "kage_data.h",
+        "kage_engine.h",
+        "kage_polygon.h",
+    ],
+    visibility = ["//gui/character_composer:__pkg__"],
+    deps = [
+        "//base:file_util",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_test(
+    name = "kage_engine_test",
+    size = "small",
+    srcs = ["kage_engine_test.cc"],
+    data = [
+        "testdata/kage_reference.tsv",
+        "testdata/kage_test_data.tsv",
+    ],
+    deps = [
+        ":kage",
+        "//base:file_util",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+        "@com_google_absl//absl/strings",
+    ],
+)

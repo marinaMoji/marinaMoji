@@ -111,6 +111,9 @@ mozc_macos_application(
             # GPL-2.0-or-later data read by CharacterComposer.app at run time;
             # see data/character_composer/README.md.
             "//data/character_composer:character_composer_data": "Resources/character_composer",
+            # GlyphWiki stroke data (free licence) for drawing composed glyphs;
+            # same directory, see data/kage/README.kage.md.
+            "//data/kage:kage_data": "Resources/character_composer",
             "//unix/ibus:toolbar_icons": "Resources",
             "//data/keymap:keymap_files": "Resources/keymap",
             "//data/preedit:kaeriten.tsv": "Resources/keymap",

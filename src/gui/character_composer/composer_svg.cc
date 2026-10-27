@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -12,7 +13,9 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_replace.h"
 #include "composer_ids/ids_tree.h"
+#include "gui/character_composer/composer_kage.h"
 #include "gui/character_composer/layout_geometry.h"
+#include "kage/kage_engine.h"
 
 namespace mozc {
 namespace gui {
@@ -80,12 +83,19 @@ std::vector<PlacedGlyph> ComposerGlyphs(std::string_view op,
 
 std::string RenderComposerSvg(std::string_view op,
                               const std::vector<ComposerSlot> &parts,
-                              int view_box) {
+                              int view_box, const kage::Buhin *glyphs) {
   if (!composer_ids::ComposeIds(op, parts)) return {};
   if (view_box < 32) view_box = 32;
 
   std::string body;
-  for (const PlacedGlyph &g : ComposerGlyphs(op, parts, view_box)) {
+  std::optional<std::vector<Contour>> outlines;
+  if (glyphs != nullptr) outlines = ComposerOutlines(op, parts, *glyphs, view_box);
+  if (outlines) {
+    absl::StrAppend(&body, "<path fill=\"#000\" d=\"",
+                    OutlinesToPathData(*outlines), "\"/>");
+  }
+  for (const PlacedGlyph &g : outlines ? std::vector<PlacedGlyph>()
+                                       : ComposerGlyphs(op, parts, view_box)) {
     if (g.scale_x != 1 || g.scale_y != 1) {
       // Squeezed glyph: draw at the origin, then move and scale.
       absl::StrAppend(&body, "<text transform=\"translate(", g.x, " ", g.y,

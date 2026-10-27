@@ -18,6 +18,7 @@
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QFontMetricsF>
 #include <QPixmap>
 #include <QPushButton>
@@ -27,6 +28,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -34,7 +36,9 @@
 #include "composer_ids/ids_operator.h"
 #include "composer_ids/ids_table.h"
 #include "composer_ids/ids_tree.h"
+#include "gui/character_composer/composer_kage.h"
 #include "gui/character_composer/composer_svg.h"
+#include "kage/kage_data.h"
 #include "gui/character_composer/layout_geometry.h"
 
 #include <QMimeData>
@@ -111,6 +115,34 @@ QPixmap DrawingPreview(const std::vector<PlacedGlyph> &glyphs, const QPalette &p
     p.drawText(QPointF(-width / 2, 0), text);
     p.restore();
   }
+  p.end();
+  return pixmap;
+}
+
+// The same, for a glyph drawn from KAGE strokes: filled outlines, no fonts.
+QPixmap OutlinePreview(const std::vector<Contour> &outlines, const QPalette &palette,
+                       qreal device_pixel_ratio) {
+  constexpr int kSize = 96;
+  QPixmap pixmap(static_cast<int>(kSize * device_pixel_ratio),
+                 static_cast<int>(kSize * device_pixel_ratio));
+  pixmap.setDevicePixelRatio(device_pixel_ratio);
+  pixmap.fill(Qt::transparent);
+  QPainterPath path;
+  path.setFillRule(Qt::WindingFill);
+  const double scale = kSize / 1000.0;  // outlines are in a 1000-unit square
+  for (const Contour &contour : outlines) {
+    if (contour.empty()) continue;
+    path.moveTo(contour[0].first * scale, contour[0].second * scale);
+    for (size_t i = 1; i < contour.size(); ++i) {
+      path.lineTo(contour[i].first * scale, contour[i].second * scale);
+    }
+    path.closeSubpath();
+  }
+  QPainter p(&pixmap);
+  p.setRenderHint(QPainter::Antialiasing);
+  p.setPen(Qt::NoPen);
+  p.setBrush(palette.color(QPalette::Text));
+  p.drawPath(path);
   p.end();
   return pixmap;
 }
@@ -377,6 +409,13 @@ CharacterComposerDialog::CharacterComposerDialog(
     std::unique_ptr<composer_ids::IdsTable> table, const QString &data_directory,
     QWidget *parent)
     : QDialog(parent), table_(std::move(table)), data_directory_(data_directory) {
+  // GlyphWiki's strokes, to draw a structure with no Unicode character as one
+  // glyph. Missing is fine: the drawing falls back to the components as text.
+  if (auto glyphs = kage::LoadBuhinFromFile(
+          data_directory_.toStdString() + "/kage_glyphs.tsv");
+      glyphs.ok()) {
+    kage_glyphs_ = std::make_unique<kage::Buhin>(*std::move(glyphs));
+  }
   BuildUi(data_directory);
   OnLayoutChanged();
 }
@@ -555,7 +594,8 @@ void CharacterComposerDialog::UpdateResult() {
                  .arg(data_directory_);
   }
   if (const auto ids = composer_ids::ComposeIds(editor_->op(), editor_->parts())) {
-    pending_svg_ = RenderComposerSvg(editor_->op(), editor_->parts());
+    pending_svg_ = RenderComposerSvg(editor_->op(), editor_->parts(), 1000,
+                                     kage_glyphs_.get());
     insertable = !pending_svg_.empty();
     if (table_ != nullptr) {
       if (const auto found = table_->FindEncodedCharacter(*ids)) {
@@ -576,9 +616,14 @@ void CharacterComposerDialog::UpdateResult() {
   if (found_.empty()) {
     char_label_->clear();
     if (insertable) {
-      char_label_->setPixmap(DrawingPreview(
-          ComposerGlyphs(editor_->op(), editor_->parts()), palette(),
-          devicePixelRatioF()));
+      std::optional<std::vector<Contour>> outlines;
+      if (kage_glyphs_ != nullptr) {
+        outlines = ComposerOutlines(editor_->op(), editor_->parts(), *kage_glyphs_);
+      }
+      char_label_->setPixmap(
+          outlines ? OutlinePreview(*outlines, palette(), devicePixelRatioF())
+                   : DrawingPreview(ComposerGlyphs(editor_->op(), editor_->parts()),
+                                    palette(), devicePixelRatioF()));
     }
     codepoint_label_->clear();
   } else {
