@@ -665,12 +665,27 @@ class TipTextServiceImpl
       LOG(WARNING) << "WriteActiveUsageInfo failed";
     }
 
-    // Copy the initial mode.
+    // marinaMoji: a thread that has never used the IME starts closed (direct
+    // input), e.g. the character composer's own process. Start in hiragana
+    // instead. Only a fresh thread is touched: a thread with a saved open
+    // state keeps it.
+    bool is_open = TipStatus::IsOpen(thread_mgr);
     DWORD native_mode = 0;
-    if (TipStatus::GetInputModeConversion(thread_mgr, client_id,
-                                          &native_mode)) {
-      GetThreadContext()->GetInputModeManager()->OnInitialize(
-          TipStatus::IsOpen(thread_mgr), native_mode);
+    const bool has_mode = TipStatus::GetInputModeConversion(
+        thread_mgr, client_id, &native_mode);
+    if (!is_open && (!has_mode || native_mode == IME_CMODE_ALPHANUMERIC)) {
+      native_mode = IME_CMODE_NATIVE | IME_CMODE_FULLSHAPE;
+      if (TipStatus::SetInputModeConversion(thread_mgr, client_id,
+                                            native_mode) &&
+          TipStatus::SetIMEOpen(thread_mgr, client_id, true)) {
+        is_open = true;
+      }
+    }
+
+    // Copy the initial mode.
+    if (has_mode || is_open) {
+      GetThreadContext()->GetInputModeManager()->OnInitialize(is_open,
+                                                              native_mode);
     }
 
     // Emulate document changed event against the current document manager.
