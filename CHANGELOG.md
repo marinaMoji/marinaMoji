@@ -10,7 +10,17 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
-### Release candidate 0.0.18-rc10
+### Release candidate 0.0.18-rc11
+
+rc10 was tagged but never published: its Windows jobs failed in "Verify product
+version in build". On Windows `bazelisk info output_path` prints `BAZEL_*`
+lines before the path, so `find` was handed all of them; the step now takes only
+the last line (`aba6c4665`). The macOS and Linux jobs passed in rc10 (the macOS
+packages were signed, notarized and stapled). rc11 is rc10 with that fixed.
+The Windows MSIs are built unsigned by CI and need
+`scripts/sign-windows-release.mjs`.
+
+### Release candidate 0.0.18-rc10 (not published)
 
 rc8 and rc9 were tagged but never published: the new "Verify product version
 in build" step failed every build job (it could not find the generated header
