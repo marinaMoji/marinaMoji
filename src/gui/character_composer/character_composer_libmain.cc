@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <memory>
 #include <string>
 #include <utility>
@@ -65,6 +66,16 @@ void InstallWakeSignal() {
 // was used; 1 means the dialog was closed without inserting.
 int RunCharacterComposer(int argc, char *argv[]) {
   Q_INIT_RESOURCE(qrc_character_composer);
+#if defined(__linux__) && !defined(__ANDROID__)
+  // On a Wayland session Qt would pick its native Wayland backend, where a
+  // window knows no global position: the IBus candidate window (drawn by the
+  // xcb renderer) opened far left of the caret, and "stay on top" and raise()
+  // are ignored, so the document hid the composer. Run through XWayland like
+  // the renderer does. An explicit QT_QPA_PLATFORM still wins.
+  if (std::getenv("DISPLAY") != nullptr && std::getenv("DISPLAY")[0] != '\0') {
+    ::setenv("QT_QPA_PLATFORM", "xcb", /*overwrite=*/0);
+  }
+#endif  // __linux__ && !__ANDROID__
   auto app = mozc::gui::GuiUtil::InitQt(argc, argv);
 #ifndef _WIN32
   InstallWakeSignal();
