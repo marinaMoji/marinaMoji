@@ -248,6 +248,7 @@ class EngineConverter : public EngineConverterInterface {
 
   // Operation for the candidate list.
   void SetCandidateListVisible(bool visible) override;
+  bool IsCandidateListVisible() const override;
 
   // Fills protocol buffers and update the internal status.
   void PopOutput(const composer::Composer& composer,

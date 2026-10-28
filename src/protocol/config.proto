@@ -464,6 +464,14 @@ message Config {
   // suggestion list.
   optional bool use_live_conversion = 103 [default = false];
 
+  // marinaMoji: macOS Japanese two-step Enter. When the candidate window is
+  // open, the first Enter accepts the highlighted candidate and leaves it
+  // underlined; the second Enter inserts it. A reading with no candidate
+  // window (plain kana, or live conversion before the list is opened) still
+  // inserts on one Enter. Default off, so existing one-Enter commit is kept
+  // on every platform. Preferences -> Misc.
+  optional bool use_two_step_commit = 104 [default = false];
+
   // Size of suggestions.
   optional uint32 suggestions_size = 110 [default = 3];
 

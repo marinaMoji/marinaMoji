@@ -1042,6 +1042,126 @@ TEST_F(SessionTest, ToggleLiveConversion) {
   config::ConfigHandler::SetConfig(original);
 }
 
+TEST_F(SessionTest, TwoStepCommit) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  config::Config cfg;
+  config::ConfigHandler::GetDefaultConfig(&cfg);
+  cfg.set_use_two_step_commit(true);
+  session.SetConfig(cfg);
+
+  commands::Command command;
+  const ConversionRequest request = CreateConversionRequest(session);
+  Segments segments;
+  SetAiueo(&segments);
+  FillT13Ns(request, &segments);
+
+  EXPECT_CALL(*converter, StartConversion(_, _))
+      .WillRepeatedly(DoAll(SetArgPointee<1>(segments), Return(true)));
+  EXPECT_CALL(*converter, FocusSegmentValue(_, _, _))
+      .WillRepeatedly(Return(true));
+
+  // Open the candidate window, then Enter only hides it.
+  InsertCharacterChars("aiueo", &session, &command);
+  EXPECT_CALL(*converter, StartConversion(_, _))
+      .WillRepeatedly(DoAll(SetArgPointee<1>(segments), Return(true)));
+  command.Clear();
+  EXPECT_TRUE(session.Convert(&command));
+  command.Clear();
+  EXPECT_TRUE(session.ConvertNext(&command));
+  EXPECT_TRUE(command.output().has_candidate_window());
+  EXPECT_SINGLE_SEGMENT("アイウエオ", command);
+
+  EXPECT_CALL(*converter, CommitSegmentValue(_, _, _)).Times(0);
+  command.Clear();
+  EXPECT_TRUE(SendKey("Enter", &session, &command));
+  EXPECT_FALSE(command.output().has_result());
+  EXPECT_FALSE(command.output().has_candidate_window());
+  EXPECT_SINGLE_SEGMENT("アイウエオ", command);
+  EXPECT_EQ(session.context().state(), ImeContext::CONVERSION);
+  Mock::VerifyAndClearExpectations(converter.get());
+
+  // Space reopens the same candidate, without moving to the next one.
+  command.Clear();
+  EXPECT_TRUE(SendKey("Space", &session, &command));
+  EXPECT_FALSE(command.output().has_result());
+  EXPECT_TRUE(command.output().has_candidate_window());
+  EXPECT_SINGLE_SEGMENT("アイウエオ", command);
+
+  // First Enter hides the list again. Second Enter inserts it.
+  command.Clear();
+  EXPECT_TRUE(SendKey("Enter", &session, &command));
+  EXPECT_FALSE(command.output().has_result());
+  EXPECT_CALL(*converter, CommitSegmentValue(_, _, _))
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(*converter, FinishConversion(_, _)).Times(1);
+  command.Clear();
+  EXPECT_TRUE(SendKey("Enter", &session, &command));
+  EXPECT_RESULT("アイウエオ", command);
+  EXPECT_EQ(session.context().state(), ImeContext::PRECOMPOSITION);
+
+  // With the preference off, one Enter inserts even while the window is open.
+  cfg.set_use_two_step_commit(false);
+  session.SetConfig(cfg);
+  InsertCharacterChars("aiueo", &session, &command);
+  EXPECT_CALL(*converter, StartConversion(_, _))
+      .WillRepeatedly(DoAll(SetArgPointee<1>(segments), Return(true)));
+  command.Clear();
+  EXPECT_TRUE(session.Convert(&command));
+  command.Clear();
+  EXPECT_TRUE(session.ConvertNext(&command));
+  EXPECT_TRUE(command.output().has_candidate_window());
+  EXPECT_CALL(*converter, CommitSegmentValue(_, _, _))
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(*converter, FinishConversion(_, _)).Times(1);
+  command.Clear();
+  EXPECT_TRUE(SendKey("Enter", &session, &command));
+  EXPECT_RESULT("アイウエオ", command);
+}
+
+TEST_F(SessionTest, TwoStepCommitTypingReturnsToReading) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  config::Config cfg;
+  config::ConfigHandler::GetDefaultConfig(&cfg);
+  cfg.set_use_two_step_commit(true);
+  session.SetConfig(cfg);
+
+  commands::Command command;
+  InsertCharacterChars("aiueo", &session, &command);
+  const ConversionRequest request = CreateConversionRequest(session);
+  Segments segments;
+  SetAiueo(&segments);
+  FillT13Ns(request, &segments);
+  EXPECT_CALL(*converter, StartConversion(_, _))
+      .WillRepeatedly(DoAll(SetArgPointee<1>(segments), Return(true)));
+  command.Clear();
+  EXPECT_TRUE(session.Convert(&command));
+  command.Clear();
+  EXPECT_TRUE(session.ConvertNext(&command));
+
+  command.Clear();
+  EXPECT_TRUE(SendKey("Enter", &session, &command));
+  EXPECT_FALSE(command.output().has_result());
+
+  // A letter after the first Enter does not insert the kanji. The reading
+  // comes back, with the new kana appended.
+  EXPECT_CALL(*converter, CancelConversion(_)).Times(::testing::AtLeast(1));
+  command.Clear();
+  EXPECT_TRUE(SendKey("a", &session, &command));
+  EXPECT_FALSE(command.output().has_result());
+  EXPECT_EQ(session.context().state(), ImeContext::COMPOSITION);
+  EXPECT_PREEDIT("あいうえおあ", command);
+}
+
 TEST_F(SessionTest, LeftShiftTogglesManyoshuAndDirect) {
   MockEngine engine;
   CreateEngineConverterMock(&engine);

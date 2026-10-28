@@ -1735,6 +1735,16 @@
           </widget>
          </item>
          <item>
+          <widget class="QCheckBox" name="twoStepCommitCheckBox">
+           <property name="text">
+            <string>Two-step Enter when the candidate window is open</string>
+           </property>
+           <property name="toolTip">
+            <string>The first Enter accepts the highlighted candidate and leaves it underlined. The second Enter inserts it into the document. A reading with no candidate window still inserts on one Enter.</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QWidget" name="miscDefaultIMEWidget" native="true">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">

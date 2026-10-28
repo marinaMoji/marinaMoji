@@ -459,6 +459,14 @@
         <translation>Manuel (Espace pour convertir)</translation>
     </message>
     <message>
+        <source>Two-step Enter when the candidate window is open</source>
+        <translation>Entrée en deux temps quand la fenêtre des candidats est ouverte</translation>
+    </message>
+    <message>
+        <source>The first Enter accepts the highlighted candidate and leaves it underlined. The second Enter inserts it into the document. A reading with no candidate window still inserts on one Enter.</source>
+        <translation>La première Entrée accepte le candidat surligné et le laisse souligné. La seconde l'insère dans le document. Une lecture sans fenêtre de candidats s'insère toujours avec une seule Entrée.</translation>
+    </message>
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1564" />
         <source>Help make [ProductName] better by automatically sending usage statistics and crash reports to Google (changes will take effect after you log out and log back in)</source>
         <translation>Aidez à faire de [ProductName] meilleur en envoyant automatiquement les statistiques d'utilisation et les rapports de plantage à Google (les changements prendront effet après vous vous déconnecter et vous reconnecter)</translation>

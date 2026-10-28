@@ -1324,6 +1324,14 @@ bool Session::SendKeyConversionState(commands::Command* command) {
     return DoNothing(command);
   }
 
+  // Two-step commit's "list was just closed" flag only changes what the next
+  // Enter, Space, or typed character does. Any other conversion key drops it.
+  if (key_command != keymap::ConversionState::COMMIT &&
+      key_command != keymap::ConversionState::CONVERT_NEXT &&
+      key_command != keymap::ConversionState::INSERT_CHARACTER) {
+    two_step_candidate_dismissed_ = false;
+  }
+
   switch (key_command) {
     case keymap::ConversionState::INSERT_CHARACTER:
       return InsertCharacter(command);
@@ -1341,6 +1349,9 @@ bool Session::SendKeyConversionState(commands::Command* command) {
       return InsertSpaceFullWidth(command);
 
     case keymap::ConversionState::COMMIT:
+      if (ConfirmConversionSelection(command)) {
+        return true;
+      }
       return Commit(command);
 
     case keymap::ConversionState::COMMIT_SEGMENT:
@@ -2091,6 +2102,16 @@ bool Session::InsertCharacter(commands::Command* command) {
     return true;
   }
 
+  // Two-step commit accepted a candidate without inserting it. A following
+  // character goes back to the reading, the way macOS Japanese does, instead
+  // of inserting the conversion into the application.
+  if (two_step_candidate_dismissed_ &&
+      context_->state() == ImeContext::CONVERSION) {
+    two_step_candidate_dismissed_ = false;
+    context_->mutable_converter()->Cancel();
+    SetSessionState(ImeContext::COMPOSITION, context_.get());
+  }
+
   const std::string composition = context_->composer().GetQueryForConversion();
   bool should_commit = (context_->state() == ImeContext::CONVERSION);
 
@@ -2340,8 +2361,26 @@ bool Session::EditCancelAndIMEOff(commands::Command* command) {
   return true;
 }
 
+bool Session::ConfirmConversionSelection(commands::Command* command) {
+  if (!context_->GetConfig().use_two_step_commit()) {
+    return false;
+  }
+  if (context_->state() != ImeContext::CONVERSION) {
+    return false;
+  }
+  if (!context_->converter().IsCandidateListVisible()) {
+    return false;
+  }
+  command->mutable_output()->set_consumed(true);
+  context_->mutable_converter()->SetCandidateListVisible(false);
+  two_step_candidate_dismissed_ = true;
+  Output(command);
+  return true;
+}
+
 bool Session::CommitInternal(commands::Command* command,
                              bool trigger_zero_query_suggest) {
+  two_step_candidate_dismissed_ = false;
   if (!(context_->state() &
         (ImeContext::COMPOSITION | ImeContext::CONVERSION))) {
     return DoNothing(command);
@@ -3692,6 +3731,16 @@ bool Session::ReportBug(commands::Command* command) {
 
 bool Session::ConvertNext(commands::Command* command) {
   command->mutable_output()->set_consumed(true);
+  // The first Enter of two-step commit closed the list without changing the
+  // candidate. Space opens that same list again. The Space after that moves
+  // to the next candidate, as it does when two-step commit is off.
+  if (two_step_candidate_dismissed_ &&
+      context_->state() == ImeContext::CONVERSION) {
+    two_step_candidate_dismissed_ = false;
+    context_->mutable_converter()->SetCandidateListVisible(true);
+    Output(command);
+    return true;
+  }
   if (manyoshu_mode_) {
     ManyoshuCandidateNext(context_->mutable_converter(), context_->composer());
   } else {

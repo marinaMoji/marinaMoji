@@ -1108,6 +1108,7 @@ void ConfigDialog::ConvertFromProto(const config::Config& config) {
   startKanjiModeComboBox->setCurrentIndex(config.use_traditional_kanji() ? 1 : 0);
   startLiveModeComboBox->setCurrentIndex(config.use_live_conversion() ? 0 : 1);
 #endif
+  SET_CHECKBOX(twoStepCommitCheckBox, use_two_step_commit);
   if (include_unstable_updates_checkbox_ != nullptr) {
     include_unstable_updates_checkbox_->setChecked(
         config.include_unstable_updates());
@@ -1272,6 +1273,7 @@ void ConfigDialog::ConvertToProto(config::Config* config) const {
   config->set_use_traditional_kanji(startKanjiModeComboBox->currentIndex() == 1);
   config->set_use_live_conversion(startLiveModeComboBox->currentIndex() == 0);
 #endif
+  GET_CHECKBOX(twoStepCommitCheckBox, use_two_step_commit);
   if (include_unstable_updates_checkbox_ != nullptr) {
     config->set_include_unstable_updates(
         include_unstable_updates_checkbox_->isChecked());

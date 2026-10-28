@@ -252,6 +252,7 @@ class EngineConverterInterface {
 
   // Operation for the candidate list.
   virtual void SetCandidateListVisible(bool visible) = 0;
+  virtual bool IsCandidateListVisible() const = 0;
 
   // Fill protocol buffers and update internal status.
   virtual void PopOutput(const composer::Composer& composer,

@@ -368,6 +368,14 @@
         <translation></translation>
     </message>
     <message>
+        <source>Two-step Enter when the candidate window is open</source>
+        <translation></translation>
+    </message>
+    <message>
+        <source>The first Enter accepts the highlighted candidate and leaves it underlined. The second Enter inserts it into the document. A reading with no candidate window still inserts on one Enter.</source>
+        <translation></translation>
+    </message>
+    <message>
         <location filename="config_dialog.ui" line="1032"/>
         <source>Help make [ProductName] better by automatically sending usage statistics and crash reports to Google (changes will take effect after you log out and log back in)</source>
         <translation></translation>

@@ -1386,6 +1386,10 @@ void EngineConverter::SetCandidateListVisible(bool visible) {
   candidate_list_visible_ = visible;
 }
 
+bool EngineConverter::IsCandidateListVisible() const {
+  return candidate_list_visible_;
+}
+
 void EngineConverter::PopOutput(const composer::Composer& composer,
                                 commands::Output* output) {
   FillOutput(composer, output);
