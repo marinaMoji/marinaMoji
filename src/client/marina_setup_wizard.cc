@@ -30,82 +30,121 @@
 #include "client/marina_setup_wizard.h"
 
 #include <atomic>
+#include <filesystem>  // NOLINT(build/c++17)
 #include <string>
+#include <system_error>  // NOLINT(build/c++11)
 
 #include "absl/log/log.h"
 #include "base/config_file_stream.h"
-#include "base/file_util.h"
 #include "base/system_util.h"
 #include "client/client_interface.h"
 
 namespace mozc::client {
 namespace {
 
-constexpr char kShownMarkerFileName[] = "setup_wizard_shown";
-constexpr char kConfigFileUri[] = "user://config1.db";
+// The marker is a directory, not a file: creating a directory is an atomic
+// "create if absent" on every platform, so exactly one process (the IME is
+// loaded into many processes at once on Windows) wins the right to show the
+// wizard.
+constexpr char kShownMarkerName[] = "setup_wizard_shown";
 
-std::atomic<bool> g_launch_in_flight{false};
+// Files that only exist once the IME has actually been used. Any of them marks
+// a profile that predates the wizard. config1.db alone is not enough: it is
+// written only when Preferences are saved.
+constexpr const char* kExistingProfileFiles[] = {
+    "user://config1.db",
+    "user://user_dictionary.db",
+    "user://history.db",
+    "user://cform.db",
+};
 
-std::string ShownMarkerPath() {
-  return FileUtil::JoinPath(SystemUtil::GetUserProfileDirectory(),
-                            kShownMarkerFileName);
+// True once this process knows the wizard is decided (shown, grandfathered or
+// claimed by another process), so later activations do no file I/O.
+std::atomic<bool> g_decided{false};
+
+std::filesystem::path Utf8Path(const std::string& s) {
+  return std::filesystem::path(std::u8string(s.begin(), s.end()));
 }
 
-bool MarkerPresent() { return FileUtil::FileExists(ShownMarkerPath()).ok(); }
-
-void WriteMarker() {
-  FileUtil::SetContents(ShownMarkerPath(), "1").IgnoreError();
+std::filesystem::path MarkerPath() {
+  return Utf8Path(SystemUtil::GetUserProfileDirectory()) / kShownMarkerName;
 }
 
-bool ConfigFilePresent() {
-  const std::string path = ConfigFileStream::GetFileName(kConfigFileUri);
-  if (path.empty()) {
-    return false;
+bool MarkerPresent() {
+  std::error_code ec;
+  return std::filesystem::exists(MarkerPath(), ec);
+}
+
+bool ExistingProfile() {
+  for (const char* uri : kExistingProfileFiles) {
+    const std::string path = ConfigFileStream::GetFileName(uri);
+    if (path.empty()) continue;
+    std::error_code ec;
+    if (std::filesystem::exists(Utf8Path(path), ec)) return true;
   }
-  return FileUtil::FileExists(path).ok();
+  return false;
+}
+
+enum class Claim { kWon, kLost, kError };
+
+Claim ClaimMarker() {
+  std::error_code ec;
+  const bool created = std::filesystem::create_directory(MarkerPath(), ec);
+  if (ec) return Claim::kError;
+  return created ? Claim::kWon : Claim::kLost;
+}
+
+void ReleaseMarker() {
+  std::error_code ec;
+  std::filesystem::remove(MarkerPath(), ec);
 }
 
 }  // namespace
 
+bool IsSetupWizardPending() {
+  if (g_decided.load(std::memory_order_relaxed)) {
+    return false;
+  }
+  if (MarkerPresent()) {
+    g_decided.store(true, std::memory_order_relaxed);
+    return false;
+  }
+  return true;
+}
+
 void MaybeLaunchSetupWizard(ClientInterface* client) {
-  if (client == nullptr) {
+  if (client == nullptr || !IsSetupWizardPending()) {
     return;
   }
-  if (MarkerPresent()) {
-    return;
+
+  const bool existing_profile = ExistingProfile();
+  switch (ClaimMarker()) {
+    case Claim::kLost:
+      g_decided.store(true, std::memory_order_relaxed);
+      return;
+    case Claim::kError:
+      // Cannot record the decision, so never show the wizard: better to skip
+      // it than to show it on every activation.
+      return;
+    case Claim::kWon:
+      break;
   }
-  if (ConfigFilePresent()) {
+  g_decided.store(true, std::memory_order_relaxed);
+
+  if (existing_profile) {
     // Existing install / profile: never show the first-run wizard.
-    WriteMarker();
     return;
   }
-
-  // One attempt at a time in this process so rapid activate/Enable storms do
-  // not spawn multiple wizards before the marker is written.
-  bool expected = false;
-  if (!g_launch_in_flight.compare_exchange_strong(expected, true)) {
-    return;
-  }
-
-  if (MarkerPresent()) {
-    g_launch_in_flight.store(false);
-    return;
-  }
-
   if (!client->LaunchTool("setup_wizard", "")) {
     LOG(WARNING) << "Failed to launch setup_wizard; will retry later";
-    g_launch_in_flight.store(false);
-    return;
+    ReleaseMarker();
+    g_decided.store(false, std::memory_order_relaxed);
   }
-
-  WriteMarker();
-  // Leave g_launch_in_flight set: marker is the durable guard; this stops
-  // another LaunchTool before the filesystem write is visible.
 }
 
 void ResetSetupWizardLaunchStateForTesting() {
-  g_launch_in_flight.store(false);
-  FileUtil::UnlinkIfExists(ShownMarkerPath()).IgnoreError();
+  g_decided.store(false, std::memory_order_relaxed);
+  ReleaseMarker();
 }
 
 bool IsSetupWizardShownMarkerPresentForTesting() { return MarkerPresent(); }

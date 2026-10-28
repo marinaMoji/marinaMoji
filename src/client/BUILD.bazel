@@ -143,13 +143,11 @@ mozc_cc_library(
     visibility = [
         "//mac:__pkg__",
         "//unix:__subpackages__",
-        "//visibility:public",
         "//win32:__subpackages__",
     ],
     deps = [
         ":client_interface",
         "//base:config_file_stream",
-        "//base:file_util",
         "//base:system_util",
         "@com_google_absl//absl/log",
     ],

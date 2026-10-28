@@ -45,11 +45,11 @@
 #include "base/const.h"
 #include "base/file_util.h"
 #include "base/system_util.h"
-#include "client/client.h"
-#include "client/marina_setup_wizard.h"
 #include "base/win32/com.h"
 #include "base/win32/wide_char.h"
 #include "base/win32/win_util.h"
+#include "client/client.h"
+#include "client/marina_setup_wizard.h"
 #include "composer/kaeriten_table_util.h"
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
@@ -625,7 +625,7 @@ class UpdateUiEditSessionImpl final : public TipComImplements<ITfEditSession> {
 }  // namespace
 
 void TipUiHandlerConventional::OnActivate(TipTextService* text_service) {
-  {
+  if (client::IsSetupWizardPending()) {
     std::unique_ptr<client::ClientInterface> client =
         client::ClientFactory::NewClient();
     client::MaybeLaunchSetupWizard(client.get());

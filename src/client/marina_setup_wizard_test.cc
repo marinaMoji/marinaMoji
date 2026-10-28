@@ -19,12 +19,12 @@ class MarinaSetupWizardTest : public testing::TestWithTempUserProfile {
   void SetUp() override { ResetSetupWizardLaunchStateForTesting(); }
   void TearDown() override { ResetSetupWizardLaunchStateForTesting(); }
 
-  static void WriteEmptyConfigFile() {
-    const std::string path =
-        ConfigFileStream::GetFileName("user://config1.db");
+  static void WriteProfileFile(const char* uri) {
+    const std::string path = ConfigFileStream::GetFileName(uri);
     ASSERT_FALSE(path.empty());
     ASSERT_OK(FileUtil::SetContents(path, "x"));
   }
+  static void WriteEmptyConfigFile() { WriteProfileFile("user://config1.db"); }
 };
 
 TEST_F(MarinaSetupWizardTest, LaunchesWhenNoConfigAndNoMarker) {
@@ -43,24 +43,38 @@ TEST_F(MarinaSetupWizardTest, SkipsWhenConfigExistsAndWritesMarker) {
 }
 
 TEST_F(MarinaSetupWizardTest, SkipsWhenMarkerAlreadyPresent) {
-  ASSERT_OK(FileUtil::SetContents(
+  ASSERT_OK(FileUtil::CreateDirectory(
       FileUtil::JoinPath(SystemUtil::GetUserProfileDirectory(),
-                         "setup_wizard_shown"),
-      "1"));
+                         "setup_wizard_shown")));
   ClientMock mock;
   EXPECT_CALL(mock, LaunchTool(_, _)).Times(0);
+  EXPECT_FALSE(IsSetupWizardPending());
   MaybeLaunchSetupWizard(&mock);
 }
 
-TEST_F(MarinaSetupWizardTest, FailedLaunchDoesNotWriteMarkerAndAllowsRetry) {
+TEST_F(MarinaSetupWizardTest, UsedProfileWithoutConfigIsGrandfathered) {
+  for (const char* uri : {"user://user_dictionary.db", "user://history.db"}) {
+    ResetSetupWizardLaunchStateForTesting();
+    WriteProfileFile(uri);
+    ClientMock mock;
+    EXPECT_CALL(mock, LaunchTool(_, _)).Times(0);
+    MaybeLaunchSetupWizard(&mock);
+    EXPECT_TRUE(IsSetupWizardShownMarkerPresentForTesting()) << uri;
+    ASSERT_OK(FileUtil::UnlinkIfExists(ConfigFileStream::GetFileName(uri)));
+  }
+}
+
+TEST_F(MarinaSetupWizardTest, FailedLaunchReleasesMarkerAndAllowsRetry) {
   ClientMock mock;
   EXPECT_CALL(mock, LaunchTool("setup_wizard", ""))
       .WillOnce(Return(false))
       .WillOnce(Return(true));
   MaybeLaunchSetupWizard(&mock);
   EXPECT_FALSE(IsSetupWizardShownMarkerPresentForTesting());
+  EXPECT_TRUE(IsSetupWizardPending());
   MaybeLaunchSetupWizard(&mock);
   EXPECT_TRUE(IsSetupWizardShownMarkerPresentForTesting());
+  EXPECT_FALSE(IsSetupWizardPending());
 }
 
 TEST_F(MarinaSetupWizardTest, SecondCallAfterSuccessDoesNotRelaunch) {

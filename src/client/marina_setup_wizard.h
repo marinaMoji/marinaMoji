@@ -34,10 +34,17 @@ namespace mozc::client {
 
 class ClientInterface;
 
-// On first IME activation for a brand-new profile (no config1.db yet), launches
-// the setup wizard once. Existing profiles are grandfathered. A successful
-// launch (or grandfathering) writes a sentinel so the wizard is not shown
-// again, even if the user closes it without saving.
+// Cheap check (no I/O after the first decision in this process) for whether
+// MaybeLaunchSetupWizard() could still do anything. Callers that must build a
+// client first, such as the Windows TIP, test this before paying for one.
+bool IsSetupWizardPending();
+
+// On first IME activation for a brand-new profile (no config, user dictionary
+// or history yet), launches the setup wizard once. Existing profiles are
+// grandfathered. The decision is recorded by atomically creating a marker
+// directory in the profile, so concurrent processes cannot both show the
+// wizard, and it is not shown again even if the user closes it without saving.
+// A failed launch releases the marker so a later activation retries.
 void MaybeLaunchSetupWizard(ClientInterface* client);
 
 // Test helpers.
