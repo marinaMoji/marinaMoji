@@ -169,6 +169,17 @@ class AsyncSetFocusEditSessionImpl final
 
 bool OnUpdateOnOffModeAsync(TipTextService* text_service, ITfContext* context,
                             bool open) {
+  // marinaMoji: ignore transient IME-off while the Symbols Palette (character
+  // composer) is open. Palette UI can briefly report open/close=false without
+  // the user choosing Direct; honouring it snaps the toolbar to Direct.
+  if (!open) {
+    TipPrivateContext* private_context =
+        text_service->GetPrivateContext(context);
+    if (private_context != nullptr &&
+        private_context->symbols_palette_visible()) {
+      return true;
+    }
+  }
   const auto action = text_service->GetThreadContext()
                           ->GetInputModeManager()
                           ->OnChangeOpenClose(open);

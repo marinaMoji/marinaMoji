@@ -620,13 +620,17 @@ class TipTextServiceImpl
       LOG(WARNING) << "WriteActiveUsageInfo failed";
     }
 
-    // Copy the initial mode.
-    DWORD native_mode = 0;
-    if (TipStatus::GetInputModeConversion(thread_mgr, client_id,
-                                          &native_mode)) {
-      GetThreadContext()->GetInputModeManager()->OnInitialize(
-          TipStatus::IsOpen(thread_mgr), native_mode);
-    }
+    // marinaMoji: always start in Hiragana (IME on), matching Linux
+    // IbusConfig::IsActiveOnLaunch() and Mac's default composition mode.
+    // Stock Mozc copied the TSF open/close compartment as-is, which is
+    // usually closed on first activation → Direct in the toolbar/langbar.
+    constexpr DWORD kHiraganaNativeMode =
+        TF_CONVERSIONMODE_NATIVE | TF_CONVERSIONMODE_FULLSHAPE;
+    TipStatus::SetIMEOpen(thread_mgr, client_id, true);
+    TipStatus::SetInputModeConversion(thread_mgr, client_id,
+                                      kHiraganaNativeMode);
+    GetThreadContext()->GetInputModeManager()->OnInitialize(
+        true, kHiraganaNativeMode);
 
     // Emulate document changed event against the current document manager.
     {
@@ -640,6 +644,9 @@ class TipTextServiceImpl
         result = document_mgr->GetBase(&context);
         if (SUCCEEDED(result)) {
           EnsurePrivateContextExists(context.get());
+          // Sync the session converter to Hiragana (TURN_ON_IME). Tip status
+          // is already open above; this keeps session state aligned.
+          TipEditSession::SwitchInputModeAsync(this, commands::HIRAGANA);
         }
       }
 
@@ -727,6 +734,11 @@ class TipTextServiceImpl
     // (e.g. the toolbar's mode popup menu) and GetFocus() returns null.
     if (focused != nullptr) {
       last_focused_document_manager_ = focused;
+    } else if (IsSymbolsPaletteVisibleOnLastFocus()) {
+      // Palette interaction can report a null document focus without a real
+      // app switch. Skip OnDocumentMgrChanged(nullptr) so we do not hide the
+      // toolbar or snap the mode indicator to Direct.
+      return S_OK;
     }
     OnDocumentMgrChanged(focused);
     return S_OK;
@@ -771,6 +783,14 @@ class TipTextServiceImpl
   }
   STDMETHODIMP OnKillThreadFocus() override {
     // See the comment in OnSetThreadFocus().
+    // marinaMoji: opening or clicking the Symbols Palette (character
+    // composer) can transiently clear TSF thread focus even though the
+    // palette uses WS_EX_NOACTIVATE. Blanking the UI then makes the
+    // toolbar fall back to Direct. Keep UI while the palette is open
+    // (mirrors mac MozcImkShouldSuppressSetValueDirect / palette-aware hide).
+    if (IsSymbolsPaletteVisibleOnLastFocus()) {
+      return S_OK;
+    }
     TipUiHandler::OnFocusChange(this, nullptr);
     return S_OK;
   }
@@ -1075,6 +1095,23 @@ class TipTextServiceImpl
       return nullptr;
     }
     return static_cast<TipTextServiceImpl*>(::TlsGetValue(g_tls_index));
+  }
+
+  // marinaMoji: true when the Symbols Palette is open on the last focused
+  // document. Used to ignore transient TSF focus-loss events that would
+  // otherwise hide the toolbar and snap the mode to Direct.
+  bool IsSymbolsPaletteVisibleOnLastFocus() {
+    if (last_focused_document_manager_ == nullptr) {
+      return false;
+    }
+    wil::com_ptr_nothrow<ITfContext> context;
+    if (FAILED(last_focused_document_manager_->GetTop(&context)) ||
+        context == nullptr) {
+      return false;
+    }
+    TipPrivateContext* private_context = GetPrivateContext(context.get());
+    return private_context != nullptr &&
+           private_context->symbols_palette_visible();
   }
 
   HRESULT OnDocumentMgrChanged(ITfDocumentMgr* document_mgr) {
