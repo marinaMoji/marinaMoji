@@ -28,6 +28,7 @@
 #include <librsvg/rsvg.h>
 #include <cstdlib>
 #include <cstdio>
+#include <dlfcn.h>
 #include <map>
 #include <set>
 #include <cstring>
@@ -953,6 +954,35 @@ struct ComposerChild {
 // UTF-8, so this leaves room for a newline and a combining sequence.
 constexpr size_t kMaxComposerResultBytes = 32;
 
+// After queueing, FocusIn may already have happened (before stdout was read).
+// Retry a flush for ~3 s while the engine is focused; FocusIn also flushes.
+struct PendingComposerFlush {
+  int attempts_left = 0;
+};
+
+// Toolbar was hidden for the composer so it does not steal focus when the
+// (XWayland) composer closes; put it back when Insert is done or cancelled.
+void ReshowToolbarAfterComposer() {
+  if (g_engine == nullptr) return;
+  g_idle_add(ShowIdleCb, g_engine);
+}
+
+gboolean OnPendingComposerFlush(gpointer data) {
+  auto* pending = static_cast<PendingComposerFlush*>(data);
+  if (g_engine != nullptr && g_engine->TryFlushPendingToolbarCommit()) {
+    ReshowToolbarAfterComposer();
+    delete pending;
+    return G_SOURCE_REMOVE;
+  }
+  if (--pending->attempts_left <= 0) {
+    LOG(INFO) << "character composer: still waiting for document FocusIn";
+    ReshowToolbarAfterComposer();
+    delete pending;
+    return G_SOURCE_REMOVE;
+  }
+  return G_SOURCE_CONTINUE;
+}
+
 void FinishComposerRead(ComposerChild* child, GIOChannel* source) {
   std::string text = child->output;
   while (!text.empty() && (text.back() == '\n' || text.back() == '\r')) {
@@ -961,12 +991,23 @@ void FinishComposerRead(ComposerChild* child, GIOChannel* source) {
   if (!text.empty() && text.size() <= kMaxComposerResultBytes &&
       g_utf8_validate(text.data(), static_cast<gssize>(text.size()), nullptr) &&
       g_engine != nullptr) {
-    // Always wait for FocusIn. Retrying CommitToolbarText while
-    // engine_focused_ looks true (teardown races, X11 focus on the wrong
-    // window) can "succeed", clear the queue, and lose the character.
+    // Raise the document app (e.g. gedit) before flushing: Wayland-native
+    // editors do not get focus back when the XWayland composer exits; Cursor
+    // (XWayland) usually does without this.
+    MozcToolbarActivateRememberedFocusApp();
+    // Queue first (never commit in a way that clears on a false "success"),
+    // then retry flush while focused — covers FocusIn-before-stdout.
+    // Keep the toolbar hidden during retries so gedit can regain IME focus.
     g_engine->QueueToolbarTextUntilFocusIn(text);
-    LOG(INFO) << "character composer: queued until the document regains "
-                 "IME focus";
+    auto* pending = new PendingComposerFlush;
+    pending->attempts_left = 15;  // 15 × 200 ms ≈ 3 s
+    if (OnPendingComposerFlush(pending) == G_SOURCE_CONTINUE) {
+      g_timeout_add(200, OnPendingComposerFlush, pending);
+    }
+    LOG(INFO) << "character composer: queued; retrying flush while focused";
+  } else {
+    // Cancelled / no character: put the toolbar back.
+    ReshowToolbarAfterComposer();
   }
   g_io_channel_shutdown(source, FALSE, nullptr);
   delete child;
@@ -1002,6 +1043,14 @@ void OnComposerClicked(GtkWidget* /*widget*/, gpointer /*data*/) {
     g_app_info_launch_default_for_uri("https://zi.tools/", nullptr, nullptr);
     return;
   }
+  // Hide before spawning: composer and toolbar are both XWayland on GNOME.
+  // If the toolbar stays up, focus returns to it when the composer closes and
+  // Wayland-native gedit never gets IBus FocusIn — Unicode Insert is dropped.
+  MozcToolbarHideSymbolsPalette(/*force=*/true);
+  if (g_toolbar_window != nullptr) {
+    ClearRaiseSource();
+    gtk_widget_hide(g_toolbar_window);
+  }
   const std::string mode_arg = "--mode=character_composer";
   gchar* argv[] = {const_cast<gchar*>(tool.c_str()),
                    const_cast<gchar*>(mode_arg.c_str()), nullptr};
@@ -1014,6 +1063,7 @@ void OnComposerClicked(GtkWidget* /*widget*/, gpointer /*data*/) {
     LOG(ERROR) << "cannot start the character composer: "
                << (error ? error->message : "unknown error");
     if (error) g_error_free(error);
+    ReshowToolbarAfterComposer();
     return;
   }
   g_child_watch_add(pid, OnComposerChildExited, nullptr);
@@ -2273,6 +2323,187 @@ void MozcToolbarSaveVisiblePreference(bool visible) {
   g_key_file_free(keyfile);
 }
 
+namespace {
+
+// AT-SPI application name of the last document that had IME FocusIn (e.g. "gedit").
+std::string g_remembered_focus_app;
+
+bool SkipFocusAppName(const char* name) {
+  if (name == nullptr || name[0] == '\0') return true;
+  static const char* kSkip[] = {
+      "gnome-shell", "gjs", "ibus-", "mutter", "xdg-", "evolution-alarm",
+      "update-notifier", "marinamoji", "ibus-engine", "ibus-ui", "ibus-extension",
+      nullptr};
+  for (int i = 0; kSkip[i] != nullptr; ++i) {
+    if (g_str_has_prefix(name, kSkip[i]) || g_strstr_len(name, -1, kSkip[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Map AT-SPI app names to well-known D-Bus desktop application ids.
+const char* DbusNameForFocusApp(const std::string& app) {
+  if (app == "gedit") return "org.gnome.gedit";
+  if (app == "gnome-text-editor") return "org.gnome.TextEditor";
+  if (app == "libreoffice" || g_str_has_prefix(app.c_str(), "libreoffice-")) {
+    return "org.libreoffice.LibreOffice";
+  }
+  if (app == "soffice") return "org.libreoffice.LibreOffice";
+  return nullptr;
+}
+
+std::string DbusObjectPath(const char* dbus_name) {
+  std::string path = "/";
+  for (const char* p = dbus_name; *p; ++p) {
+    path += (*p == '.') ? '/' : *p;
+  }
+  return path;
+}
+
+void ActivateDbusApplication(const char* dbus_name) {
+  if (dbus_name == nullptr || dbus_name[0] == '\0') return;
+  const std::string path = DbusObjectPath(dbus_name);
+  gchar* argv[] = {
+      const_cast<gchar*>("gdbus"),
+      const_cast<gchar*>("call"),
+      const_cast<gchar*>("--session"),
+      const_cast<gchar*>("--dest"),
+      const_cast<gchar*>(dbus_name),
+      const_cast<gchar*>("--object-path"),
+      const_cast<gchar*>(path.c_str()),
+      const_cast<gchar*>("--method"),
+      const_cast<gchar*>("org.freedesktop.Application.Activate"),
+      const_cast<gchar*>("{}"),
+      nullptr};
+  GError* error = nullptr;
+  if (!g_spawn_async(nullptr, argv, nullptr,
+                     static_cast<GSpawnFlags>(G_SPAWN_SEARCH_PATH |
+                                              G_SPAWN_STDOUT_TO_DEV_NULL |
+                                              G_SPAWN_STDERR_TO_DEV_NULL),
+                     nullptr, nullptr, nullptr, &error)) {
+    if (error) g_error_free(error);
+  }
+}
+
+bool AtspiAppHasActiveFrame(void* app_accessible,
+                            char* (*get_role_name)(void*, void*),
+                            int (*get_child_count)(void*, void*),
+                            void* (*get_child)(void*, int, void*),
+                            void* (*get_state_set)(void*),
+                            int (*state_contains)(void*, int),
+                            void (*g_object_unref)(void*), int depth) {
+  if (app_accessible == nullptr || depth > 4) return false;
+  void* err = nullptr;
+  char* role = get_role_name(app_accessible, &err);
+  const char* role_c = role ? role : "";
+  // AtspiStateType ACTIVE is typically 1 in atspi-enumtypes; FOCUSED is 12.
+  // Use numeric values from atspi-enum.h: ATSPI_STATE_ACTIVE = 1.
+  constexpr int kStateActive = 1;
+  if (role_c && (g_strcmp0(role_c, "frame") == 0 ||
+                 g_strcmp0(role_c, "window") == 0)) {
+    void* states = get_state_set(app_accessible);
+    if (states && state_contains(states, kStateActive)) {
+      g_free(role);
+      if (g_object_unref) g_object_unref(states);
+      return true;
+    }
+    if (states && g_object_unref) g_object_unref(states);
+  }
+  g_free(role);
+  err = nullptr;
+  const int n = get_child_count(app_accessible, &err);
+  for (int i = 0; i < n && i < 20; ++i) {
+    err = nullptr;
+    void* child = get_child(app_accessible, i, &err);
+    if (child == nullptr) continue;
+    if (AtspiAppHasActiveFrame(child, get_role_name, get_child_count, get_child,
+                               get_state_set, state_contains, g_object_unref,
+                               depth + 1)) {
+      if (g_object_unref) g_object_unref(child);
+      return true;
+    }
+    if (g_object_unref) g_object_unref(child);
+  }
+  return false;
+}
+
+}  // namespace
+
+void MozcToolbarRememberFocusApp() {
+  // Optional AT-SPI: no hard link dependency.
+  void* lib = dlopen("libatspi.so.0", RTLD_LAZY);
+  if (lib == nullptr) return;
+  auto atspi_init = reinterpret_cast<int (*)()>(dlsym(lib, "atspi_init"));
+  auto get_desktop =
+      reinterpret_cast<void* (*)(int)>(dlsym(lib, "atspi_get_desktop"));
+  auto get_name = reinterpret_cast<char* (*)(void*, void*)>(
+      dlsym(lib, "atspi_accessible_get_name"));
+  auto get_child_count = reinterpret_cast<int (*)(void*, void*)>(
+      dlsym(lib, "atspi_accessible_get_child_count"));
+  auto get_child = reinterpret_cast<void* (*)(void*, int, void*)>(
+      dlsym(lib, "atspi_accessible_get_child_at_index"));
+  auto get_role_name = reinterpret_cast<char* (*)(void*, void*)>(
+      dlsym(lib, "atspi_accessible_get_role_name"));
+  auto get_state_set = reinterpret_cast<void* (*)(void*)>(
+      dlsym(lib, "atspi_accessible_get_state_set"));
+  auto state_contains = reinterpret_cast<int (*)(void*, int)>(
+      dlsym(lib, "atspi_state_set_contains"));
+  auto gobj_unref =
+      reinterpret_cast<void (*)(void*)>(dlsym(lib, "g_object_unref"));
+  if (!get_desktop || !get_name || !get_child_count || !get_child ||
+      !get_role_name || !get_state_set || !state_contains) {
+    dlclose(lib);
+    return;
+  }
+  if (atspi_init) atspi_init();
+  void* desktop = get_desktop(0);
+  if (desktop == nullptr) {
+    dlclose(lib);
+    return;
+  }
+  void* err = nullptr;
+  const int n = get_child_count(desktop, &err);
+  for (int i = 0; i < n; ++i) {
+    err = nullptr;
+    void* app = get_child(desktop, i, &err);
+    if (app == nullptr) continue;
+    err = nullptr;
+    char* name = get_name(app, &err);
+    if (name && !SkipFocusAppName(name) &&
+        AtspiAppHasActiveFrame(app, get_role_name, get_child_count, get_child,
+                               get_state_set, state_contains, gobj_unref, 0)) {
+      g_remembered_focus_app = name;
+      LOG(INFO) << "character composer: remembered focus app=" << name;
+      g_free(name);
+      if (gobj_unref) gobj_unref(app);
+      break;
+    }
+    g_free(name);
+    if (gobj_unref) gobj_unref(app);
+  }
+  dlclose(lib);
+}
+
+void MozcToolbarActivateRememberedFocusApp() {
+  if (g_remembered_focus_app.empty()) return;
+  const char* dbus_name = DbusNameForFocusApp(g_remembered_focus_app);
+  if (dbus_name != nullptr) {
+    LOG(INFO) << "character composer: activating " << dbus_name
+              << " (app=" << g_remembered_focus_app << ")";
+    ActivateDbusApplication(dbus_name);
+    return;
+  }
+  // Fallback: org.gnome.<App> with first letter capitalized — rarely works;
+  // try a few conventions for GTK apps.
+  std::string guess = "org.gnome.";
+  if (!g_remembered_focus_app.empty()) {
+    guess += static_cast<char>(g_ascii_toupper(g_remembered_focus_app[0]));
+    guess += g_remembered_focus_app.substr(1);
+    ActivateDbusApplication(guess.c_str());
+  }
+}
+
 #else
 
 void MozcToolbarShow(MozcEngine* /*engine*/) {}
@@ -2286,6 +2517,8 @@ void MozcShortcutsWindowShow() {}
 bool MozcToolbarAvailable() { return false; }
 bool MozcToolbarLoadVisiblePreference() { return true; }
 void MozcToolbarSaveVisiblePreference(bool /*visible*/) {}
+void MozcToolbarRememberFocusApp() {}
+void MozcToolbarActivateRememberedFocusApp() {}
 
 #endif  // MOZC_HAVE_GTK_TOOLBAR
 

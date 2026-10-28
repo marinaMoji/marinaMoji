@@ -75,9 +75,17 @@ std::string JsString(std::string_view s) {
 
 }  // namespace
 
-std::string OnlyOfficeHandoffScript(std::string_view svg, int64_t id_ms) {
-  return absl::StrCat("window.marinaMojiComposerResult={id:", id_ms,
-                      ",svg:", JsString(svg), "};\n");
+std::string OnlyOfficeHandoffScript(std::string_view svg, int64_t id_ms,
+                                    std::string_view text) {
+  std::string body = absl::StrCat("window.marinaMojiComposerResult={id:", id_ms);
+  if (!svg.empty()) {
+    absl::StrAppend(&body, ",svg:", JsString(svg));
+  }
+  if (!text.empty()) {
+    absl::StrAppend(&body, ",text:", JsString(text));
+  }
+  absl::StrAppend(&body, "};\n");
+  return body;
 }
 
 std::string OnlyOfficePluginDirectory() {
@@ -129,7 +137,8 @@ void AppendOnlyOfficeHandoffLog(std::string_view line) {
 }  // namespace
 
 absl::Status WriteOnlyOfficeHandoff(std::string_view directory,
-                                    std::string_view svg, int64_t id_ms) {
+                                    std::string_view svg, int64_t id_ms,
+                                    std::string_view text) {
   if (directory.empty()) {
     AppendOnlyOfficeHandoffLog(
         absl::StrCat("skip id=", id_ms, " reason=empty_plugin_directory"));
@@ -140,13 +149,19 @@ absl::Status WriteOnlyOfficeHandoff(std::string_view directory,
         "skip id=", id_ms, " reason=missing_plugin_directory path=", directory));
     return absl::OkStatus();
   }
+  if (svg.empty() && text.empty()) {
+    AppendOnlyOfficeHandoffLog(
+        absl::StrCat("skip id=", id_ms, " reason=empty_svg_and_text"));
+    return absl::OkStatus();
+  }
   const std::string out =
       FileUtil::JoinPath(directory, "composer_result.js");
   const absl::Status status =
-      FileUtil::SetContents(out, OnlyOfficeHandoffScript(svg, id_ms));
+      FileUtil::SetContents(out, OnlyOfficeHandoffScript(svg, id_ms, text));
   if (status.ok()) {
-    const std::string line =
-        absl::StrCat("wrote id=", id_ms, " bytes=", svg.size(), " path=", out);
+    const std::string line = absl::StrCat(
+        "wrote id=", id_ms, " svg_bytes=", svg.size(),
+        " text_bytes=", text.size(), " path=", out);
     AppendOnlyOfficeHandoffLog(line);
     // Also drop a one-line sidecar next to the plugin so Desktop debugging
     // does not depend on the IME profile directory.

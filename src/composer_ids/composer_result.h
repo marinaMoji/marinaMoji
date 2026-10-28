@@ -46,9 +46,11 @@ absl::Status WriteComposerSvgResult(std::string_view path, std::string_view svg)
 // a fresh result at the cursor.
 //
 // The JavaScript the plugin loads: assigns window.marinaMojiComposerResult =
-// {id, svg}. |id| is the creation time in milliseconds since the Unix epoch;
-// the plugin uses it both to skip results it has seen and to ignore stale ones.
-std::string OnlyOfficeHandoffScript(std::string_view svg, int64_t id_ms);
+// {id, svg?, text?}. |id| is the creation time in milliseconds since the Unix
+// epoch; the plugin uses it both to skip results it has seen and to ignore
+// stale ones. Pass an empty |svg| or |text| to omit that field.
+std::string OnlyOfficeHandoffScript(std::string_view svg, int64_t id_ms,
+                                    std::string_view text = "");
 
 // The ONLYOFFICE Desktop Editors folder the marinaMoji plugin is installed in
 // (macOS Application Support, or Linux XDG data), or an empty string when that
@@ -57,9 +59,11 @@ std::string OnlyOfficePluginDirectory();
 
 // Writes composer_result.js (see OnlyOfficeHandoffScript) into |directory|.
 // Does nothing and returns OK when |directory| is empty or does not exist, i.e.
-// the plugin is not installed.
+// the plugin is not installed. |svg| and/or |text| may be set (Unicode Insert
+// uses text only; unencoded drawings use svg only).
 absl::Status WriteOnlyOfficeHandoff(std::string_view directory,
-                                    std::string_view svg, int64_t id_ms);
+                                    std::string_view svg, int64_t id_ms,
+                                    std::string_view text = "");
 
 // The result stored in |path|: surrounding whitespace removed, and nullopt if
 // the file is missing, empty, longer than kMaxComposerResultBytes, or not valid

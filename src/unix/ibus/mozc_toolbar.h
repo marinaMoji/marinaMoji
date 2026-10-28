@@ -54,6 +54,16 @@ void MozcToolbarHideSymbolsPalette(bool force = false);
 // for it any more; the engine's panel menu calls this.
 void MozcShortcutsWindowShow();
 
+// Call from FocusIn: remember which GUI app currently has an active window
+// (AT-SPI), so after the character composer closes we can raise it again.
+// Wayland-native editors (gedit) do not regain IBus focus by themselves when
+// an XWayland composer exits.
+void MozcToolbarRememberFocusApp();
+
+// Raise the app remembered above (D-Bus Application.Activate) so FocusIn can
+// flush a queued composer character. No-op if nothing was remembered.
+void MozcToolbarActivateRememberedFocusApp();
+
 }  // namespace ibus
 }  // namespace mozc
 

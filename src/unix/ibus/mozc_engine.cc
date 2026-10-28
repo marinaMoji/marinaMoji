@@ -412,6 +412,9 @@ void MozcEngine::FocusIn(IbusEngineWrapper* engine) {
   property_handler_->Register(engine);
   if (MozcToolbarAvailable()) {
     property_handler_->UpdateToolbarLabel(engine, toolbar_visible_);
+    // Remember which document app is active so composer Insert can raise it
+    // again on Wayland (gedit) after the XWayland composer closes.
+    MozcToolbarRememberFocusApp();
   }
   UpdatePreeditMethod();
   if (MozcToolbarAvailable() && toolbar_visible_) {
@@ -1174,6 +1177,18 @@ void MozcEngine::QueueToolbarTextUntilFocusIn(absl::string_view text) {
   pending_toolbar_commit_ = std::string(text);
   pending_toolbar_commit_time_ = Clock::GetAbslTime();
   MaybeLogIbusDebug("engine.toolbar", "composer_queued_until_focus_in");
+}
+
+bool MozcEngine::TryFlushPendingToolbarCommit() {
+  if (pending_toolbar_commit_.empty()) {
+    return true;
+  }
+  if (current_engine_ == nullptr || !engine_focused_) {
+    return false;
+  }
+  IbusEngineWrapper wrapper(current_engine_);
+  MaybeFlushPendingToolbarCommit(&wrapper);
+  return pending_toolbar_commit_.empty();
 }
 
 void MozcEngine::MaybeFlushPendingToolbarCommit(IbusEngineWrapper* engine) {

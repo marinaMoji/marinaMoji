@@ -117,6 +117,11 @@ class MozcEngine : public EngineInterface {
   // lose the character.
   void QueueToolbarTextUntilFocusIn(absl::string_view text);
 
+  // If a composer character is queued and the engine is focused, commit it.
+  // Returns true when nothing is left pending (flushed, empty, or expired).
+  // Used to retry after queue when FocusIn arrived before stdout was read.
+  bool TryFlushPendingToolbarCommit();
+
   // Called by the toolbar when the user picks a composition mode from the
   // mode-indicator menu. Switches mode and updates panel/toolbar.
   void SetCompositionModeFromToolbar(commands::CompositionMode mode);

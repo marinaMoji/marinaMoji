@@ -280,6 +280,28 @@ int RunCharacterComposer(int argc, char *argv[]) {
     return 0;
   }
 
+  // Profile .txt: LibreOffice extension can insert when IBus FocusIn is late.
+  // ONLYOFFICE plugin: same idea as SVG handoff (text field in composer_result.js).
+  // IBus (stdout below) remains the primary path for apps without a plugin.
+  if (absl::Status status = mozc::composer_ids::WriteComposerResult(
+          mozc::composer_ids::DefaultResultFilePath(), dialog.result());
+      !status.ok()) {
+    LOG(WARNING) << "Cannot write the profile composer result: " << status;
+  }
+  {
+    const int64_t now_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    if (absl::Status status = mozc::composer_ids::WriteOnlyOfficeHandoff(
+            mozc::composer_ids::OnlyOfficePluginDirectory(), /*svg=*/"", now_ms,
+            dialog.result());
+        !status.ok()) {
+      LOG(WARNING) << "Cannot hand Unicode to the ONLYOFFICE plugin: "
+                   << status;
+    }
+  }
+
   if (!result_file.empty()) {
     if (absl::Status status = mozc::composer_ids::WriteComposerResult(
             result_file, dialog.result());

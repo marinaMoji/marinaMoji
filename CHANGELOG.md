@@ -10,6 +10,28 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Linux: hide the toolbar while the character composer is open
+
+On GNOME the composer and toolbar both run as XWayland. When Insert closed the
+composer, focus often returned to the toolbar instead of Wayland-native gedit,
+so IBus never saw `FocusIn` and Unicode Insert was dropped. Opening the
+composer now hides the toolbar (and symbols palette); it is shown again after
+a successful flush, when retries end, or if the composer is cancelled.
+
+After Insert, also raise the app that last had IME focus (AT-SPI name → D-Bus
+`Application.Activate`, e.g. gedit → `org.gnome.gedit`). That restores FocusIn
+for Wayland-native editors; XWayland apps like Cursor already got focus back
+once the toolbar was hidden.
+
+### Linux: composer Unicode Insert retries IBus flush; office plugins as backup
+
+After queueing a Unicode character for `FocusIn`, the toolbar retries a flush
+for ~3 s while the engine is focused (covers FocusIn that arrived before
+stdout was read). The composer also writes the character to the profile
+`.txt` and to ONLYOFFICE `composer_result.js` (`text` field) so LibreOffice /
+ONLYOFFICE plugins can insert when IBus is late — IBus remains the path for
+apps without a plugin.
+
 ### Linux: toolbar on GNOME Wayland uses XWayland even if GDK_BACKEND is set
 
 Ubuntu exports `GDK_BACKEND=wayland`. The toolbar’s “prefer X11” helper used to

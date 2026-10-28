@@ -70,6 +70,13 @@ TEST_F(ComposerResultTest, OnlyOfficeScriptEscapesTheSvg) {
             "svg:\"字\\u2028\\u0001\"};\n");
 }
 
+TEST_F(ComposerResultTest, OnlyOfficeScriptCanCarryUnicodeText) {
+  EXPECT_EQ(OnlyOfficeHandoffScript("", 9, "謀"),
+            "window.marinaMojiComposerResult={id:9,text:\"謀\"};\n");
+  EXPECT_EQ(OnlyOfficeHandoffScript("<svg/>", 9, "謀"),
+            "window.marinaMojiComposerResult={id:9,svg:\"<svg/>\",text:\"謀\"};\n");
+}
+
 TEST_F(ComposerResultTest, OnlyOfficeHandoffNeedsTheInstalledPlugin) {
   const std::string missing = Path("no_such_plugin_dir");
   EXPECT_TRUE(WriteOnlyOfficeHandoff(missing, "<svg/>", 1).ok());
