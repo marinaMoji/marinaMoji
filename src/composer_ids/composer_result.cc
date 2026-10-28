@@ -111,16 +111,47 @@ std::string OnlyOfficePluginDirectory() {
           "sdkjs-plugins",
           kPluginGuid));
 #elif defined(__linux__)
-  // Desktop Editors stores user plugins under XDG data (default ~/.local/share).
+  // Deb/RPM: ~/.local/share/onlyoffice/desktopeditors/sdkjs-plugins/{GUID}
+  // Flatpak (newer): ~/.var/app/org.onlyoffice.desktopeditors/data/onlyoffice/
+  //   desktopeditors/data/sdkjs-plugins/{GUID}
+  // Flatpak (older): …/desktopeditors/sdkjs-plugins/{GUID}
+  // Ubuntu ARM often ships Flatpak/Snap rather than the .deb; write into an
+  // installed plugin folder if we can find one.
   const char *xdg_data = std::getenv("XDG_DATA_HOME");
   const std::string data_home =
       (xdg_data != nullptr && *xdg_data != '\0')
           ? std::string(xdg_data)
           : FileUtil::JoinPath(home, ".local/share");
-  return FileUtil::JoinPath(
-      data_home,
+  const std::string candidates[] = {
       FileUtil::JoinPath(
-          "onlyoffice/desktopeditors/sdkjs-plugins", kPluginGuid));
+          data_home,
+          FileUtil::JoinPath("onlyoffice/desktopeditors/sdkjs-plugins",
+                             kPluginGuid)),
+      FileUtil::JoinPath(
+          home,
+          FileUtil::JoinPath(
+              ".var/app/org.onlyoffice.desktopeditors/data/onlyoffice/"
+              "desktopeditors/data/sdkjs-plugins",
+              kPluginGuid)),
+      FileUtil::JoinPath(
+          home,
+          FileUtil::JoinPath(
+              ".var/app/org.onlyoffice.desktopeditors/data/onlyoffice/"
+              "desktopeditors/sdkjs-plugins",
+              kPluginGuid)),
+  };
+  std::string fallback;
+  for (const std::string &candidate : candidates) {
+    if (!FileUtil::DirectoryExists(candidate).ok()) continue;
+    if (FileUtil::FileExists(FileUtil::JoinPath(candidate, "config.json"))
+            .ok() ||
+        FileUtil::FileExists(FileUtil::JoinPath(candidate, "index.html"))
+            .ok()) {
+      return candidate;
+    }
+    if (fallback.empty()) fallback = candidate;
+  }
+  return fallback.empty() ? candidates[0] : fallback;
 #else
   return "";
 #endif

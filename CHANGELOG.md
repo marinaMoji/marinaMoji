@@ -21,6 +21,17 @@ reason composed-character images never appeared in ONLYOFFICE on Win11 (x64 or
 ARM); the office plugin package alone could not fix it. Not yet verified in a
 Windows VM.
 
+### Character composer: ONLYOFFICE hand-off finds Flatpak on Linux
+
+On Linux, Insert still prefers
+`~/.local/share/onlyoffice/desktopeditors/sdkjs-plugins/{GUID}/`, but if that
+folder is missing it also looks under the Flatpak data dirs
+(`~/.var/app/org.onlyoffice.desktopeditors/.../sdkjs-plugins/{GUID}/`, with and
+without the extra `data/` segment). Ubuntu ARM often runs Desktop Editors from
+Flatpak; writing only the .deb path left `composer_result.js` where the open
+panel never saw it. Prefers a folder that already has `config.json` /
+`index.html`. Not yet verified on an Ubuntu ARM VM.
+
 ### Release candidate 0.0.19-rc1
 
 0.0.18-rc15 was tagged but never published: the Windows file-version scheme
@@ -288,7 +299,7 @@ When Insert produces an SVG drawing, the composer also writes
 marinaMoji ONLYOFFICE plugin's folder, if the plugin is installed:
 
 - macOS: `~/Library/Application Support/asc.onlyoffice.ONLYOFFICE/data/sdkjs-plugins/{GUID}/`
-- Linux: `~/.local/share/onlyoffice/desktopeditors/sdkjs-plugins/{GUID}/` (or `$XDG_DATA_HOME/...`)
+- Linux: `~/.local/share/onlyoffice/desktopeditors/sdkjs-plugins/{GUID}/` (or `$XDG_DATA_HOME/...`), or the Flatpak data dir when that is where the plugin lives
 - Windows: `%LOCALAPPDATA%\ONLYOFFICE\DesktopEditors\data\sdkjs-plugins\{GUID}\`
 
 The plugin's panel polls that file and inserts the drawing at the cursor, so no
