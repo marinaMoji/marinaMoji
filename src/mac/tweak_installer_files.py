@@ -140,6 +140,7 @@ def TweakQtApps(top_dir: str, oss: bool, branding: str) -> None:
       'DictionaryTool',
       'ErrorMessageDialog',
       f'{name}Prelauncher',
+      'SetupWizard',
       'WordRegisterDialog',
   ]
   for app in sub_qt_apps:
