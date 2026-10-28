@@ -497,14 +497,26 @@ void UpdateCommand(TipTextService* text_service, ITfContext* context,
   if (private_context != nullptr) {
     const TipInputModeManager* input_mode_manager =
         text_service->GetThreadContext()->GetInputModeManager();
-    if (private_context->input_behavior().use_mode_indicator &&
-        input_mode_manager->IsIndicatorVisible()) {
-      command->set_visible(true);
+    const bool show_toolbar =
+        (app_info->ui_visibilities() & ApplicationInfo::ShowToolbar) != 0;
+    const bool show_mode_indicator =
+        private_context->input_behavior().use_mode_indicator &&
+        input_mode_manager->IsIndicatorVisible();
+    // marinaMoji: always emit TipInputModeManager status for the floating
+    // toolbar. Gating on IsIndicatorVisible() alone meant palette-open
+    // refreshes (indicator often hidden) fell back to stale last_output and
+    // snapped the toolbar to Direct. TipInputModeManager is authoritative
+    // (see toolbar_window.cc).
+    if (show_toolbar || show_mode_indicator) {
+      if (show_mode_indicator) {
+        command->set_visible(true);
+      }
       IndicatorInfo* info = app_info->mutable_indicator_info();
-      info->mutable_status()->set_activated(
-          input_mode_manager->GetEffectiveOpenClose());
+      const bool activated = input_mode_manager->GetEffectiveOpenClose();
+      info->mutable_status()->set_activated(activated);
       info->mutable_status()->set_mode(
-          input_mode_manager->GetEffectiveConversionMode());
+          activated ? input_mode_manager->GetEffectiveConversionMode()
+                    : commands::DIRECT);
       // marinaMoji: TipInputModeManager tracks open/close and conversion mode
       // only, so carry the session's Left Shift lock flag over from the last
       // output. Without it this Status reports the field's default false, and
@@ -541,6 +553,14 @@ void UpdateCommand(TipTextService* text_service, ITfContext* context,
       text_service->GetThreadManager()->IsThreadFocus(&thread_focus);
   if (SUCCEEDED(hr) && (thread_focus == FALSE) &&
       !IsMarinaRendererUiForeground()) {
+    // marinaMoji: keep toolbar + Symbols Palette when the character composer
+    // is open. Palette show/click can report IsThreadFocus==FALSE without a
+    // real app focus change; clearing here flipped the mode indicator to
+    // Direct and closed the palette.
+    if (private_context != nullptr &&
+        private_context->symbols_palette_visible()) {
+      return;
+    }
     command->set_visible(false);
     // marinaMoji: also hide the floating toolbar, which is otherwise gated
     // by |ShowToolbar| independent of |command->visible()|.

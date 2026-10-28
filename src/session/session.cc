@@ -383,13 +383,11 @@ std::unique_ptr<ImeContext> Session::CreateContext(
   auto context = std::make_unique<ImeContext>(engine.CreateEngineConverter());
   context->set_create_time(Clock::GetAbslTime());
 
-#ifdef _WIN32
-  // On Windows session is started with direct mode.
-  // FIXME(toshiyuki): Ditto for Mac after verifying on Mac.
-  context->set_state(ImeContext::DIRECT);
-#else   // _WIN32
+  // marinaMoji: start in Hiragana (precomposition) on all platforms,
+  // matching Linux IbusConfig::IsActiveOnLaunch() and Mac's default.
+  // Stock Mozc used DIRECT on Windows; the TIP also forces IME-on at
+  // Activate (tip_text_service.cc) so TSF open/close stays consistent.
   context->set_state(ImeContext::PRECOMPOSITION);
-#endif  // _WIN32
 
   // TODO(team): Remove #if based behavior change for cascading window.
   // Tests for session layer (session_handler_scenario_test, etc) can be

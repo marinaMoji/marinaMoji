@@ -665,28 +665,17 @@ class TipTextServiceImpl
       LOG(WARNING) << "WriteActiveUsageInfo failed";
     }
 
-    // marinaMoji: a thread that has never used the IME starts closed (direct
-    // input), e.g. the character composer's own process. Start in hiragana
-    // instead. Only a fresh thread is touched: a thread with a saved open
-    // state keeps it.
-    bool is_open = TipStatus::IsOpen(thread_mgr);
-    DWORD native_mode = 0;
-    const bool has_mode = TipStatus::GetInputModeConversion(
-        thread_mgr, client_id, &native_mode);
-    if (!is_open && (!has_mode || native_mode == IME_CMODE_ALPHANUMERIC)) {
-      native_mode = IME_CMODE_NATIVE | IME_CMODE_FULLSHAPE;
-      if (TipStatus::SetInputModeConversion(thread_mgr, client_id,
-                                            native_mode) &&
-          TipStatus::SetIMEOpen(thread_mgr, client_id, true)) {
-        is_open = true;
-      }
-    }
-
-    // Copy the initial mode.
-    if (has_mode || is_open) {
-      GetThreadContext()->GetInputModeManager()->OnInitialize(is_open,
-                                                              native_mode);
-    }
+    // marinaMoji: always start in Hiragana (IME on), matching Linux
+    // IbusConfig::IsActiveOnLaunch() and Mac's default composition mode.
+    // Stock Mozc copied the TSF open/close compartment as-is, which is
+    // usually closed on first activation → Direct in the toolbar/langbar.
+    constexpr DWORD kHiraganaNativeMode =
+        TF_CONVERSIONMODE_NATIVE | TF_CONVERSIONMODE_FULLSHAPE;
+    TipStatus::SetIMEOpen(thread_mgr, client_id, true);
+    TipStatus::SetInputModeConversion(thread_mgr, client_id,
+                                      kHiraganaNativeMode);
+    GetThreadContext()->GetInputModeManager()->OnInitialize(
+        true, kHiraganaNativeMode);
 
     // Emulate document changed event against the current document manager.
     {
@@ -700,6 +689,9 @@ class TipTextServiceImpl
         result = document_mgr->GetBase(&context);
         if (SUCCEEDED(result)) {
           EnsurePrivateContextExists(context.get());
+          // Sync the session converter to Hiragana (TURN_ON_IME). Tip status
+          // is already open above; this keeps session state aligned.
+          TipEditSession::SwitchInputModeAsync(this, commands::HIRAGANA);
         }
       }
 
@@ -787,6 +779,11 @@ class TipTextServiceImpl
     // (e.g. the toolbar's mode popup menu) and GetFocus() returns null.
     if (focused != nullptr) {
       last_focused_document_manager_ = focused;
+    } else if (IsSymbolsPaletteVisibleOnLastFocus()) {
+      // Palette interaction can report a null document focus without a real
+      // app switch. Skip OnDocumentMgrChanged(nullptr) so we do not hide the
+      // toolbar or snap the mode indicator to Direct.
+      return S_OK;
     }
     // marinaMoji: pick up a keyboard-layout change made in Preferences while
     // this application was running. ConfigSnapshot::Get is mtime-checked and
@@ -836,6 +833,14 @@ class TipTextServiceImpl
   }
   STDMETHODIMP OnKillThreadFocus() override {
     // See the comment in OnSetThreadFocus().
+    // marinaMoji: opening or clicking the Symbols Palette (character
+    // composer) can transiently clear TSF thread focus even though the
+    // palette uses WS_EX_NOACTIVATE. Blanking the UI then makes the
+    // toolbar fall back to Direct. Keep UI while the palette is open
+    // (mirrors mac MozcImkShouldSuppressSetValueDirect / palette-aware hide).
+    if (IsSymbolsPaletteVisibleOnLastFocus()) {
+      return S_OK;
+    }
     TipUiHandler::OnFocusChange(this, nullptr);
     return S_OK;
   }
@@ -1143,6 +1148,23 @@ class TipTextServiceImpl
       return nullptr;
     }
     return static_cast<TipTextServiceImpl*>(::TlsGetValue(g_tls_index));
+  }
+
+  // marinaMoji: true when the Symbols Palette is open on the last focused
+  // document. Used to ignore transient TSF focus-loss events that would
+  // otherwise hide the toolbar and snap the mode to Direct.
+  bool IsSymbolsPaletteVisibleOnLastFocus() {
+    if (last_focused_document_manager_ == nullptr) {
+      return false;
+    }
+    wil::com_ptr_nothrow<ITfContext> context;
+    if (FAILED(last_focused_document_manager_->GetTop(&context)) ||
+        context == nullptr) {
+      return false;
+    }
+    TipPrivateContext* private_context = GetPrivateContext(context.get());
+    return private_context != nullptr &&
+           private_context->symbols_palette_visible();
   }
 
   HRESULT OnDocumentMgrChanged(ITfDocumentMgr* document_mgr) {
