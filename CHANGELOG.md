@@ -21,7 +21,15 @@ and Symbols Palette are kept up, and an IME-off ignored, while the palette is
 open so opening it no longer snaps the mode indicator to Direct. If TSF refuses
 the open or mode change, the input mode manager follows what TSF holds. Not yet
 verified on Windows: that the palette's "open" flag always clears when it
-closes (#93). The Windows MSIs are built unsigned by CI and need
+closes (#93).
+
+Also in rc15: the missing odoriji 〻〱〲〳〴〵 (including the vertical 〳〴〵) are
+in the palette and Symbols tab and offered when converting おどりじ, and an
+optional two-step Enter when the candidate window is open (a new setting in the
+configuration dialog, with English, French and Japanese labels). Neither has
+been verified in a real host yet.
+
+The Windows MSIs are built unsigned by CI and need
 `scripts/sign-windows-release.mjs`.
 
 ### Linux: hide the toolbar while the character composer is open
