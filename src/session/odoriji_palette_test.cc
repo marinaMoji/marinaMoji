@@ -97,6 +97,32 @@ TEST(OdorijiPaletteTest, TryHighlightCandidateUpdatesFocus) {
   EXPECT_EQ(focused_index, 5);
 }
 
+TEST(OdorijiPaletteTest, BrokenVerticalMarksAreIncluded) {
+  EXPECT_EQ(OdorijiPalette::kCount, 11);
+  // 〳〴〵 follow the solid long marks 〱〲.
+  EXPECT_EQ(OdorijiPalette::GetCharacter(8),
+            std::string("\xe3\x80\xb3"));  // 〳
+  EXPECT_EQ(OdorijiPalette::GetCharacter(9),
+            std::string("\xe3\x80\xb4"));  // 〴
+  EXPECT_EQ(OdorijiPalette::GetCharacter(10),
+            std::string("\xe3\x80\xb5"));  // 〵
+}
+
+TEST(OdorijiPaletteTest, NumberNineCommitsNinthCandidate) {
+  commands::Command command;
+  bool visible = true;
+  int focused_index = 0;
+  std::string commit_result;
+
+  const commands::KeyEvent key = KeyWithCode('9');
+  EXPECT_TRUE(OdorijiPalette::WouldConsumeKey(key));
+  EXPECT_TRUE(OdorijiPalette::HandleKey(key, &command, &visible,
+                                       &focused_index, nullptr,
+                                       &commit_result));
+  EXPECT_FALSE(visible);
+  EXPECT_EQ(commit_result, OdorijiPalette::GetCharacter(8));  // 〳
+}
+
 }  // namespace
 }  // namespace session
 }  // namespace mozc

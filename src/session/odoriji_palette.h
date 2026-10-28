@@ -2,7 +2,7 @@
 // All rights reserved.
 //
 // Odoriji (iteration marks) palette: candidate-window UI for selecting
-// 々ゝゞヽヾ〻〱〲. Isolated module to keep Session changes minimal.
+// 々ゝゞヽヾ〻〱〲〳〴〵. Isolated module to keep Session changes minimal.
 
 #ifndef MOZC_SESSION_ODORIJI_PALETTE_H_
 #define MOZC_SESSION_ODORIJI_PALETTE_H_
@@ -16,8 +16,8 @@ namespace session {
 
 class OdorijiPalette {
  public:
-  // Number of odoriji entries (0..7).
-  static constexpr size_t kCount = 8;
+  // Number of odoriji entries (0..10).
+  static constexpr size_t kCount = 11;
 
   // Return UTF-8 string for odoriji at index [0, kCount-1]. Returns first
   // character (々) if index out of range.
@@ -28,10 +28,11 @@ class OdorijiPalette {
 
   // Handle key when palette is visible. Updates *visible and *focused_index
   // as needed. If session_default_index is non-null, sets it to the chosen
-  // index when committing (Enter or 1-8). If commit_result is non-null and the
-  // user commits (Enter or 1-8), sets *commit_result to the chosen character
-  // (caller must set it on output after Output() since PopOutput overwrites).
-  // Returns true if the key was consumed (caller should Output and return).
+  // index when committing (Enter or 1-9 for the first nine). If commit_result
+  // is non-null and the user commits (Enter or 1-9), sets *commit_result to
+  // the chosen character (caller must set it on output after Output() since
+  // PopOutput overwrites). Returns true if the key was consumed (caller should
+  // Output and return).
   static bool HandleKey(const commands::KeyEvent& key,
                         commands::Command* command,
                         bool* visible,
@@ -48,7 +49,7 @@ class OdorijiPalette {
   // If palette is visible, overwrite output preedit and candidate_window.
   static void OverlayOutput(commands::Output* output, int focused_index);
 
-  // If palette is visible and command carries a candidate id in [0,7]
+  // If palette is visible and command carries a candidate id in [0, kCount)
   // (SUBMIT_CANDIDATE or SELECT_CANDIDATE from a click), set *commit_result to
   // the chosen character, *visible = false; if session_default_index non-null
   // set it to id. Caller must set commit_result on output after Output() since
@@ -57,7 +58,7 @@ class OdorijiPalette {
                                   int* session_default_index = nullptr,
                                   std::string* commit_result = nullptr);
 
-  // If palette is visible and command carries a candidate id in [0,7]
+  // If palette is visible and command carries a candidate id in [0, kCount)
   // (HIGHLIGHT_CANDIDATE from mouse move), set *focused_index to that id and
   // return true. Does not close the palette or commit. Otherwise return false.
   static bool TryHighlightCandidate(const commands::Command* command,

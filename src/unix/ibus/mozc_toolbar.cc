@@ -1272,7 +1272,7 @@ static void LoadKaeritenEntries(const config::Config* config,
 }
 
 static std::vector<std::string> BuildDefaultOdorijiSymbols() {
-  return {"々", "ゝ", "ゞ", "ヽ", "ヾ", "〻", "〱", "〲"};
+  return {"々", "ゝ", "ゞ", "ヽ", "ヾ", "〻", "〱", "〲", "〳", "〴", "〵"};
 }
 
 static std::vector<std::string> BuildDefaultKaeritenSymbols() {

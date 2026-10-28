@@ -9,17 +9,18 @@ To keep **upstream merges** easy, odoriji logic is isolated in a single module; 
 - **Ctrl+Shift+1** (command `InsertOdorijiDefault`): Inserts the **session default** odoriji (e.g. 々) without opening the palette. Available in Precomposition, Composition, and Conversion. The default is index 0 (々) until the user selects from the palette.
 - **Ctrl+Shift+2** (command `ShowOdorijiPalette`): Opens the odoriji palette. Available in Precomposition, Composition, and Conversion.
 - **Odoriji (iteration marks) property:** In the engine’s property menu (IBus language bar / toolbar), an **“Odoriji (iteration marks)”** button opens the same palette as Ctrl+Shift+2.
-- **UI:** The normal candidate window is replaced by a fixed list of 8 odoriji:
+- **UI:** The normal candidate window is replaced by a fixed list of 11 odoriji:
   - 々 (ideographic iteration)
   - ゝ ゞ (hiragana iteration, voiced)
   - ヽ ヾ (katakana iteration, voiced)
   - 〻 〱 〲 (vertical iteration marks)
-- **Selection:** When the user selects an odoriji (by **1–8**, **Enter**, or **click**), that choice is saved as the **session default** for Ctrl+Shift+1.
-  - **1–8:** Insert the corresponding odoriji, set it as session default, and close the palette.
+  - 〳 〴 〵 (broken / two-part vertical kana repeat marks)
+- **Selection:** When the user selects an odoriji (by **1–9**, **Enter**, or **click**), that choice is saved as the **session default** for Ctrl+Shift+1.
+  - **1–9:** Insert the corresponding odoriji among the first nine, set it as session default, and close the palette. The last two (〴〵) are reached with arrows / Space / click / Enter.
   - **Enter:** Insert the focused odoriji, set it as session default, and close the palette.
   - **Navigation (same as conversion candidate window):** **Up**, **Down**, **Left**, **Right** (and Virtual variants) move the focus. **Space** = next candidate, **Shift+Space** = previous candidate.
   - **Escape:** Close the palette without inserting (default for Ctrl+Shift+1 is unchanged).
-  - **Click:** The client can send `SUBMIT_CANDIDATE` or `SELECT_CANDIDATE` with the chosen candidate `id` (0–7); the session commits that odoriji, sets it as session default, and closes the palette. (Windows candidate windows use `SELECT_CANDIDATE` on click; `HIGHLIGHT_CANDIDATE` moves focus without committing.)
+  - **Click:** The client can send `SUBMIT_CANDIDATE` or `SELECT_CANDIDATE` with the chosen candidate `id` (0–10); the session commits that odoriji, sets it as session default, and closes the palette. (Windows candidate windows use `SELECT_CANDIDATE` on click; `HIGHLIGHT_CANDIDATE` moves focus without committing.)
 - All navigation and selection keys are consumed by the palette (no space or other character is inserted; the palette stays open until commit or Escape).
 
 ## Implementation (less invasive)

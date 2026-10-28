@@ -17,7 +17,8 @@ namespace session {
 
 namespace {
 
-// Odoriji (iteration marks) for the palette: 々ゝゞヽヾ〻〱〲 (UTF-8)
+// Odoriji (iteration marks) for the palette: 々ゝゞヽヾ〻〱〲〳〴〵 (UTF-8)
+// 〳〴〵 are the "broken" (two-part) vertical kana repeat marks.
 constexpr const char* kOdorijiChars[] = {
     "\xe3\x80\x85",  // 々 U+3005
     "\xe3\x82\x9d",  // ゝ U+309D
@@ -27,6 +28,9 @@ constexpr const char* kOdorijiChars[] = {
     "\xe3\x80\xbb",  // 〻 U+303B
     "\xe3\x80\xb1",  // 〱 U+3031
     "\xe3\x80\xb2",  // 〲 U+3032
+    "\xe3\x80\xb3",  // 〳 U+3033 (upper half)
+    "\xe3\x80\xb4",  // 〴 U+3034 (upper half, voiced)
+    "\xe3\x80\xb5",  // 〵 U+3035 (lower half)
 };
 
 void FillCandidateWindow(commands::CandidateWindow* candidate_window,
@@ -42,8 +46,12 @@ void FillCandidateWindow(commands::CandidateWindow* candidate_window,
     c->set_index(static_cast<uint32_t>(i));
     c->set_value(kOdorijiChars[i]);
     c->set_id(static_cast<int32_t>(i));
-    commands::Annotation* ann = c->mutable_annotation();
-    ann->set_shortcut(std::to_string(i + 1));
+    // Number-row shortcuts only cover 1-9; remaining entries use arrows /
+    // Space / click.
+    if (i < 9) {
+      commands::Annotation* ann = c->mutable_annotation();
+      ann->set_shortcut(std::to_string(i + 1));
+    }
   }
 }
 
@@ -65,8 +73,10 @@ bool IsSpaceKey(const commands::KeyEvent& key) {
 }
 
 bool IsNumberKey(const commands::KeyEvent& key) {
+  // Keys '1'..'9' commit the first nine odoriji; later entries need
+  // arrows / Space / Enter / click.
   return key.has_key_code() && key.key_code() >= 0x31 &&
-         key.key_code() <= 0x38;
+         key.key_code() <= 0x39;
 }
 
 // Ctrl+Shift+2 leaves a Shift/Ctrl key-up with only modifier_keys set. If

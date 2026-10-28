@@ -57,6 +57,7 @@ constexpr int kMaxVisibleRows = 4;
 const wchar_t* const kOdorijiSymbols[] = {
     L"\x3005", L"\x309D", L"\x309E", L"\x30FD",
     L"\x30FE", L"\x303B", L"\x3031", L"\x3032",
+    L"\x3033", L"\x3034", L"\x3035",  // broken vertical: 〳〴〵
 };
 
 const wchar_t* const kGeneralSymbols[] = {

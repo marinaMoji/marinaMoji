@@ -272,7 +272,7 @@ void LoadKaeritenEntries(const mozc::config::Config *config,
 std::string GetKeymapPath(const std::string &filename);
 
 std::vector<std::string> BuildDefaultOdorijiSymbols() {
-  return {"々", "ゝ", "ゞ", "ヽ", "ヾ", "〻", "〱", "〲"};
+  return {"々", "ゝ", "ゞ", "ヽ", "ヾ", "〻", "〱", "〲", "〳", "〴", "〵"};
 }
 
 std::vector<std::string> BuildKaeritenSymbols(
