@@ -4,6 +4,10 @@
 namespace mozc {
 namespace ibus {
 
+// Call before any GTK init. On GNOME/Ubuntu Wayland, forces GDK_BACKEND=x11
+// (XWayland) so the toolbar and sync overlay do not take focus and can move.
+void ForceGdkBackendX11OnGnomeWayland();
+
 // Center-screen "marinaMoji synchronising" overlay (shown during sync).
 void SyncOverlaySetVisible(bool visible);
 

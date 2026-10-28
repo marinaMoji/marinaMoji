@@ -111,6 +111,12 @@ class MozcEngine : public EngineInterface {
   // next FocusIn, and callers may also retry.
   bool CommitToolbarText(absl::string_view text);
 
+  // Character composer only: always queue |text| for the next FocusIn. Never
+  // commits immediately — after the composer closes, engine_focused_ can look
+  // true while CommitText is still dropped, which would clear the queue and
+  // lose the character.
+  void QueueToolbarTextUntilFocusIn(absl::string_view text);
+
   // Called by the toolbar when the user picks a composition mode from the
   // mode-indicator menu. Switches mode and updates panel/toolbar.
   void SetCompositionModeFromToolbar(commands::CompositionMode mode);

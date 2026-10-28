@@ -105,8 +105,12 @@ static GSettings* g_theme_settings = nullptr;
 static gulong g_theme_signal_id_color = 0;
 static gulong g_theme_signal_id_gtk = 0;
 
-// Force toolbar to use X11/XWayland on GNOME Wayland so positioning and skip-taskbar work.
-// Call only before any GDK/GTK init; uses env only (no gdk_display_*).
+// Force toolbar to use X11/XWayland on GNOME Wayland so positioning, drag,
+// skip-taskbar, and "do not take focus" work. Native Wayland on GNOME ignores
+// those hints. Call only before any GDK/GTK init; uses env only.
+//
+// Ubuntu often exports GDK_BACKEND=wayland already; the old "only set if unset"
+// check left the toolbar on Wayland and it started stealing IME focus.
 static void MaybeForceX11OnGnomeWayland() {
   const char* session = g_getenv("XDG_SESSION_TYPE");
   if (!session || g_ascii_strcasecmp(session, "wayland") != 0) return;
@@ -114,31 +118,32 @@ static void MaybeForceX11OnGnomeWayland() {
   const bool gnome_like =
       desktop &&
       (g_strrstr(desktop, "GNOME") || g_strrstr(desktop, "ubuntu"));
-  if (!gnome_like || g_getenv("GDK_BACKEND")) return;
+  if (!gnome_like) return;
+  const char* display = g_getenv("DISPLAY");
+  if (display == nullptr || display[0] == '\0') return;
+  const char* backend = g_getenv("GDK_BACKEND");
+  if (backend != nullptr && g_ascii_strcasecmp(backend, "x11") == 0) return;
   g_setenv("GDK_BACKEND", "x11", TRUE);
 }
 
 // Runtime detection: Wayland vs X11 (for dual-backend toolbar behaviour).
-// marinaMoji uses #ifdef GDK_WINDOWING_* and GDK_IS_*_DISPLAY() plus XDG_SESSION_TYPE
-// fallback; that requires GDK built with both backends. This code uses display name and
-// XDG_SESSION_TYPE only so it compiles on any GDK build (e.g. X11-only in Bazel env).
+// Prefer GDK_BACKEND / the opened display over XDG_SESSION_TYPE: on GNOME we
+// force x11 while the session type stays "wayland".
 static bool IsWayland() {
-  const char* session = g_getenv("XDG_SESSION_TYPE");
-  if (session && g_ascii_strcasecmp(session, "wayland") == 0) return true;
+  const char* backend = g_getenv("GDK_BACKEND");
+  if (backend && g_ascii_strcasecmp(backend, "x11") == 0) return false;
+  if (backend && g_ascii_strcasecmp(backend, "wayland") == 0) return true;
   GdkDisplay* d = gdk_display_get_default();
-  if (!d) return false;
-  const char* n = gdk_display_get_name(d);
-  return n && g_str_has_prefix(n, "wayland");
+  if (d) {
+    const char* n = gdk_display_get_name(d);
+    if (n && g_str_has_prefix(n, "wayland")) return true;
+    if (n && n[0] == ':') return false;
+  }
+  const char* session = g_getenv("XDG_SESSION_TYPE");
+  return session && g_ascii_strcasecmp(session, "wayland") == 0;
 }
 
-static bool IsX11() {
-  const char* session = g_getenv("XDG_SESSION_TYPE");
-  if (session && g_ascii_strcasecmp(session, "x11") == 0) return true;
-  GdkDisplay* d = gdk_display_get_default();
-  if (!d) return false;
-  const char* n = gdk_display_get_name(d);
-  return n && n[0] == ':';
-}
+static bool IsX11() { return !IsWayland(); }
 
 // Drop shadow uses CSS margin for fade-out room. That margin inflates the toplevel
 // with a transparent halo; useful on native Wayland, wasteful on X11/XWayland.
@@ -948,44 +953,20 @@ struct ComposerChild {
 // UTF-8, so this leaves room for a newline and a combining sequence.
 constexpr size_t kMaxComposerResultBytes = 32;
 
-// The composer's Qt window steals IBus focus. Right after it exits,
-// CommitToolbarText can find no usable engine — retry like macOS until
-// FocusIn restores one (or give up after ~3 s).
-struct PendingComposerCommit {
-  std::string text;
-  int attempts_left = 0;
-};
-
-gboolean OnPendingComposerCommit(gpointer data) {
-  auto* pending = static_cast<PendingComposerCommit*>(data);
-  if (g_engine != nullptr && g_engine->CommitToolbarText(pending->text)) {
-    delete pending;
-    return G_SOURCE_REMOVE;
-  }
-  if (--pending->attempts_left <= 0) {
-    // CommitToolbarText already queued the text for the next FocusIn (up to
-    // ~60 s). LibreOffice often restores IBus focus after this short loop.
-    LOG(WARNING) << "character composer: no FocusIn yet; "
-                    "queued until the document regains IME focus";
-    delete pending;
-    return G_SOURCE_REMOVE;
-  }
-  return G_SOURCE_CONTINUE;
-}
-
 void FinishComposerRead(ComposerChild* child, GIOChannel* source) {
   std::string text = child->output;
   while (!text.empty() && (text.back() == '\n' || text.back() == '\r')) {
     text.pop_back();
   }
   if (!text.empty() && text.size() <= kMaxComposerResultBytes &&
-      g_utf8_validate(text.data(), static_cast<gssize>(text.size()), nullptr)) {
-    auto* pending = new PendingComposerCommit;
-    pending->text = std::move(text);
-    pending->attempts_left = 15;  // 15 × 200 ms ≈ 3 s
-    if (OnPendingComposerCommit(pending) == G_SOURCE_CONTINUE) {
-      g_timeout_add(200, OnPendingComposerCommit, pending);
-    }
+      g_utf8_validate(text.data(), static_cast<gssize>(text.size()), nullptr) &&
+      g_engine != nullptr) {
+    // Always wait for FocusIn. Retrying CommitToolbarText while
+    // engine_focused_ looks true (teardown races, X11 focus on the wrong
+    // window) can "succeed", clear the queue, and lose the character.
+    g_engine->QueueToolbarTextUntilFocusIn(text);
+    LOG(INFO) << "character composer: queued until the document regains "
+                 "IME focus";
   }
   g_io_channel_shutdown(source, FALSE, nullptr);
   delete child;

@@ -109,6 +109,8 @@ void OutputXml() {
 }
 
 void RunIbus() {
+  // Before any GTK init in the sync overlay or toolbar.
+  ForceGdkBackendX11OnGnomeWayland();
   IbusWrapper::Init();
   SyncOverlayStartWatcher();
   IbusBusWrapper bus;

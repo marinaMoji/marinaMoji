@@ -10,15 +10,8 @@
 
 namespace mozc {
 namespace ibus {
-namespace {
 
-GtkWidget* g_sync_window = nullptr;
-GtkWidget* g_sync_label = nullptr;
-bool g_sync_active = false;
-guint g_status_timer_id = 0;
-guint64 g_last_flash_ms = 0;
-
-void MaybeForceX11OnGnomeWayland() {
+void ForceGdkBackendX11OnGnomeWayland() {
   const char* session = g_getenv("XDG_SESSION_TYPE");
   if (!session || g_ascii_strcasecmp(session, "wayland") != 0) {
     return;
@@ -27,14 +20,32 @@ void MaybeForceX11OnGnomeWayland() {
   const bool gnome_like =
       desktop &&
       (g_strrstr(desktop, "GNOME") || g_strrstr(desktop, "ubuntu"));
-  if (!gnome_like || g_getenv("GDK_BACKEND")) {
+  if (!gnome_like) {
+    return;
+  }
+  const char* display = g_getenv("DISPLAY");
+  if (display == nullptr || display[0] == '\0') {
+    return;
+  }
+  // Overwrite a pre-set GDK_BACKEND=wayland (common on Ubuntu); otherwise the
+  // overlay/toolbar stay on native Wayland and can take focus.
+  const char* backend = g_getenv("GDK_BACKEND");
+  if (backend != nullptr && g_ascii_strcasecmp(backend, "x11") == 0) {
     return;
   }
   g_setenv("GDK_BACKEND", "x11", TRUE);
 }
 
+namespace {
+
+GtkWidget* g_sync_window = nullptr;
+GtkWidget* g_sync_label = nullptr;
+bool g_sync_active = false;
+guint g_status_timer_id = 0;
+guint64 g_last_flash_ms = 0;
+
 bool EnsureGtkReady() {
-  MaybeForceX11OnGnomeWayland();
+  ForceGdkBackendX11OnGnomeWayland();
   static bool gtk_ready = gtk_init_check(nullptr, nullptr);
   return gtk_ready;
 }
@@ -42,13 +53,19 @@ bool EnsureGtkReady() {
 void OnOverlayRealize(GtkWidget* w, gpointer /*data*/) {
   GdkWindow* gw = gtk_widget_get_window(w);
   if (!gw) return;
-  const char* session = g_getenv("XDG_SESSION_TYPE");
-  if (session && g_ascii_strcasecmp(session, "x11") == 0) {
+  // After ForceGdkBackendX11OnGnomeWayland the session type is still
+  // "wayland", but the display is X11/XWayland (:0).
+  const char* backend = g_getenv("GDK_BACKEND");
+  GdkDisplay* display = gdk_window_get_display(gw);
+  const char* name = display ? gdk_display_get_name(display) : nullptr;
+  const bool x11 = (backend && g_ascii_strcasecmp(backend, "x11") == 0) ||
+                   (name && name[0] == ':');
+  if (x11) {
     gdk_window_set_override_redirect(gw, TRUE);
     return;
   }
 #if defined(GDK_WINDOWING_WAYLAND)
-  if (GDK_IS_WAYLAND_DISPLAY(gdk_window_get_display(gw))) {
+  if (GDK_IS_WAYLAND_DISPLAY(display)) {
     gdk_wayland_window_set_application_id(gw, "io.marinamoji.toolbar");
   }
 #endif

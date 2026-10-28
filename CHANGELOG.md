@@ -10,6 +10,24 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Linux: toolbar on GNOME Wayland uses XWayland even if GDK_BACKEND is set
+
+Ubuntu exports `GDK_BACKEND=wayland`. The toolbar’s “prefer X11” helper used to
+skip when that variable was already set, so the bar stayed on native Wayland:
+it could take IME focus, would not stay a floating dock, and drag failed.
+It now overwrites `GDK_BACKEND=x11` when `DISPLAY` is available (same idea as
+the character composer’s `QT_QPA_PLATFORM=xcb`), and `IsWayland()` / `IsX11()`
+follow the real GDK backend instead of only `XDG_SESSION_TYPE`.
+
+### Linux: character composer Unicode Insert waits for a real FocusIn (#92)
+
+Stay-on-top via XWayland fixed the buried window. An attempt to also
+`XSetInputFocus` the previous window on Unicode Insert broke Insert entirely on
+Wayland-native editors (gnome-text-editor): focus hit an XWayland window, IBus
+treated the commit as done, and the character was dropped. Unicode Insert now
+only queues until the document’s real `FocusIn` (click the editor if needed);
+SVG Insert still restores X11 focus for Writer / ONLYOFFICE.
+
 ### Release candidate 0.0.18-rc14
 
 rc13 plus two character composer fixes, described below: on Wayland the composer

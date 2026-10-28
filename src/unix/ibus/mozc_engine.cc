@@ -1167,6 +1167,15 @@ bool MozcEngine::CommitToolbarText(absl::string_view text) {
   return true;
 }
 
+void MozcEngine::QueueToolbarTextUntilFocusIn(absl::string_view text) {
+  if (text.empty()) {
+    return;
+  }
+  pending_toolbar_commit_ = std::string(text);
+  pending_toolbar_commit_time_ = Clock::GetAbslTime();
+  MaybeLogIbusDebug("engine.toolbar", "composer_queued_until_focus_in");
+}
+
 void MozcEngine::MaybeFlushPendingToolbarCommit(IbusEngineWrapper* engine) {
   if (pending_toolbar_commit_.empty() || engine == nullptr) {
     return;

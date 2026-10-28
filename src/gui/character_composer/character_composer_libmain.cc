@@ -67,9 +67,12 @@ void InstallWakeSignal() {
 #if defined(__linux__) && !defined(__ANDROID__)
 namespace {
 // The composer uses WindowStaysOnTopHint so Writer does not cover it. After
-// Insert, give the previous X11 window (usually Writer / ONLYOFFICE) focus
-// again so the office plugin can insert without a manual click. Loaded with
-// dlopen so we do not add an X11 link dependency for macOS/Windows builds.
+// SVG Insert, give the previous X11 window (usually Writer / ONLYOFFICE) focus
+// again so the office plugin can insert without a manual click. Not used for
+// Unicode Insert: IBus commits on FocusIn, and an X11 focus restore on a
+// Wayland-native editor (e.g. gnome-text-editor) hits the wrong window and
+// can drop the queued character. Loaded with dlopen so we do not add an X11
+// link dependency for macOS/Windows builds.
 unsigned long g_previous_x_focus = 0;
 
 void *X11Display() {
