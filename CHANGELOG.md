@@ -10,6 +10,20 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.18-rc15
+
+rc14 plus the Linux composer Insert fixes below (toolbar kept off native Wayland,
+Unicode Insert waits for `FocusIn`, no new gedit tab) and the macOS AZERTY
+dead-key fix (#83), with the Windows TIP now starting every thread in Hiragana:
+`Activate` turns the IME on in Hiragana (and the session starts in
+precomposition) instead of copying TSF's usually closed state, and the toolbar
+and Symbols Palette are kept up, and an IME-off ignored, while the palette is
+open so opening it no longer snaps the mode indicator to Direct. If TSF refuses
+the open or mode change, the input mode manager follows what TSF holds. Not yet
+verified on Windows: that the palette's "open" flag always clears when it
+closes (#93). The Windows MSIs are built unsigned by CI and need
+`scripts/sign-windows-release.mjs`.
+
 ### Linux: hide the toolbar while the character composer is open
 
 On GNOME the composer and toolbar both run as XWayland. When Insert closed the
