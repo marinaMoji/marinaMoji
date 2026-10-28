@@ -17,8 +17,36 @@
 #include "base/strings/unicode.h"
 #include "base/system_util.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#include <knownfolders.h>
+#include <shlobj.h>
+
+#include "base/win32/wide_char.h"
+#endif  // _WIN32
+
 namespace mozc {
 namespace composer_ids {
+
+#ifdef _WIN32
+namespace {
+// %LOCALAPPDATA%, or the shell's answer when the variable is not inherited
+// (e.g. under a test runner that scrubs the environment).
+std::string LocalAppDataDirectory() {
+  const char *env = std::getenv("LOCALAPPDATA");
+  if (env != nullptr && *env != '\0') return env;
+  wchar_t *buffer = nullptr;
+  const HRESULT hr =
+      ::SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &buffer);
+  std::string result;
+  if (SUCCEEDED(hr) && buffer != nullptr) {
+    result = win32::WideToUtf8(buffer);
+  }
+  if (buffer != nullptr) ::CoTaskMemFree(buffer);
+  return result;
+}
+}  // namespace
+#endif  // _WIN32
 
 std::string DefaultResultFilePath() {
   return FileUtil::JoinPath(SystemUtil::GetUserProfileDirectory(),
@@ -95,8 +123,8 @@ std::string OnlyOfficePluginDirectory() {
 #if defined(_WIN32)
   // Official Desktop Editors path:
   // %LOCALAPPDATA%\ONLYOFFICE\DesktopEditors\data\sdkjs-plugins\{GUID}
-  const char *local_app_data = std::getenv("LOCALAPPDATA");
-  if (local_app_data == nullptr || *local_app_data == '\0') return "";
+  const std::string local_app_data = LocalAppDataDirectory();
+  if (local_app_data.empty()) return "";
   return FileUtil::JoinPath(
       {local_app_data, "ONLYOFFICE", "DesktopEditors", "data", "sdkjs-plugins",
        kPluginGuid});
