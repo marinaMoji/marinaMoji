@@ -39,7 +39,7 @@ TEST(WordInsertTest, ScriptInsertsSizesAndTags) {
   EXPECT_NE(script.find("make new inline picture at r"), std::string::npos);
   EXPECT_NE(script.find("file name:\"/Users/a b/\\\"x\\\".svg\""), std::string::npos);
   EXPECT_NE(script.find("MARINAMOJI:ids=⿰木巻"), std::string::npos);
-  EXPECT_NE(script.find("pt * 0.94"), std::string::npos);
+  EXPECT_NE(script.find("pt * 1\n"), std::string::npos);
   EXPECT_NE(script.find("(round (pt * 0.19))"), std::string::npos);
   EXPECT_NE(script.find("set font position"), std::string::npos);
 }

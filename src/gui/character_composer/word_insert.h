@@ -21,7 +21,7 @@ namespace gui {
 // The picture is this fraction of the font size, lowered by this fraction of it
 // (a drawing fills its square; a font's ink is smaller and hangs below the
 // baseline). Same values as the ONLYOFFICE and Word plugins.
-inline constexpr double kWordInkScale = 0.94;
+inline constexpr double kWordInkScale = 1.0;
 inline constexpr double kWordDropEm = 0.19;
 
 // The AppleScript that inserts the SVG file |svg_path| at Word's cursor and
