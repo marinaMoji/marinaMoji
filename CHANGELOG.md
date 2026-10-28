@@ -10,9 +10,13 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
-### Release candidate 0.0.18-rc15
+### Release candidate 0.0.19-rc1
 
-rc14 plus the Linux composer Insert fixes below (toolbar kept off native Wayland,
+0.0.18-rc15 was tagged but never published: the Windows file-version scheme
+(`_MarinaWindowsRevisionFromVersion`) has 14 rc slots per patch version, so
+`0.0.18-rc15` failed both Windows builds with "rc number must be 1..14". The
+next patch version starts the slots again, hence 0.0.19-rc1 (revision 305,
+above rc14's 302). Everything below is rc14 plus the Linux composer Insert fixes (toolbar kept off native Wayland,
 Unicode Insert waits for `FocusIn`, no new gedit tab) and the macOS AZERTY
 dead-key fix (#83), with the Windows TIP now starting every thread in Hiragana:
 `Activate` turns the IME on in Hiragana (and the session starts in
@@ -23,7 +27,7 @@ the open or mode change, the input mode manager follows what TSF holds. Not yet
 verified on Windows: that the palette's "open" flag always clears when it
 closes (#93).
 
-Also in rc15: the missing odoriji 〻〱〲〳〴〵 (including the vertical 〳〴〵) are
+Also in this release: the missing odoriji 〻〱〲〳〴〵 (including the vertical 〳〴〵) are
 in the palette and Symbols tab and offered when converting おどりじ, and an
 optional two-step Enter when the candidate window is open (a new setting in the
 configuration dialog, with English, French and Japanese labels). Neither has
