@@ -537,6 +537,22 @@ void PostShiftKeyUp(CGKeyCode keyCode) {
   return YES;
 }
 
+- (void)noteTypedKey:(NSEvent *)event {
+  if ([event type] != NSEventTypeKeyDown) {
+    return;
+  }
+  if (rightShiftDown_) {
+    typedWhileRightShiftDown_ = YES;
+  }
+  if (leftShiftDown_) {
+    typedWhileLeftShiftDown_ = YES;
+  }
+  if (leftShiftPhysicallyDown_ && ctrlPhysicallyDown_) {
+    typedDuringCtrlLeftShiftChord_ = YES;
+    ctrlLeftShiftChordArmed_ = NO;
+  }
+}
+
 - (NSArray<NSNumber *> *)trackedShiftKeyCodes {
   NSMutableArray<NSNumber *> *codes = [NSMutableArray array];
   if (rightShiftDown_) {

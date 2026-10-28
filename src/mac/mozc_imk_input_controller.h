@@ -108,6 +108,10 @@
    * Kept separate from |macronDeadKeyPending_| (marina's Right Shift macron). */
   uint32_t layoutDeadKeyState_;
 
+  /** Input-source id that produced |layoutDeadKeyState_|, so the vowel is
+   * translated with the same layout that armed the dead key. */
+  std::string layoutDeadKeyLayoutId_;
+
   /** |keyCodeMap_| manages the mapping between Mac key code and mozc key events. */
   KeyCodeMap *keyCodeMap_;
 

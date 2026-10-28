@@ -81,6 +81,11 @@ enum InputMode { ASCII, KANA };
 - (BOOL)tryCtrlLeftShiftModeLockFromEvent:(NSEvent *)event
                            toMozcKeyEvent:(mozc::commands::KeyEvent *)keyEvent;
 
+// A real key was typed while Shift was held. Shift-release must not be treated
+// as Shift alone (that toggles mode or arms the macron). Direct-mode dead keys
+// never reach |-getMozcKeyCodeFromKeyEvent:|, which is otherwise what sets this.
+- (void)noteTypedKey:(NSEvent *)event;
+
 // Posts synthetic Shift key-ups for shifts tracked as down (Linux IBus parity on
 // IME deactivation), then clears shift tracking state.
 - (void)releaseTrackedShiftKeys;

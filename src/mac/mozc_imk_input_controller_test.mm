@@ -821,10 +821,10 @@ TEST_F(MozcImkInputControllerTest, fillSurroundingContext) {
 }
 
 // Direct input must not send these keys to the Mozc server (KeyCodeMap would
-// read NSEvent.characters and settle the system dead-key state).  When the
-// active layout treats keyCode 33 as a dead key (ABC-AZERTY / French), the
-// controller consumes it via UCKeyTranslate and inserts the composed letter
-// itself.  On layouts where that key is not a dead key, both keys pass through.
+// read NSEvent.characters and settle the system dead-key state).  When keyCode
+// 33 is a dead key on the layout in use, or the event's "^" matches an enabled
+// layout such as ABC-AZERTY, the controller consumes it and inserts the
+// composed letter.  Otherwise both keys pass through.
 TEST_F(MozcImkInputControllerTest, DirectInputHandlesLayoutDeadKeys) {
   ASSERT_EQ(controller_.mode, commands::DIRECT);
 
