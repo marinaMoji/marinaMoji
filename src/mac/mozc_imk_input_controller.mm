@@ -64,6 +64,7 @@
 #include "base/process.h"
 #include "base/util.h"
 #include "client/client.h"
+#include "client/marina_setup_wizard.h"
 #include "ipc/ipc.h"
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
@@ -1067,6 +1068,10 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
           update_config.include_unstable_updates(),
           update_config.auto_check_for_updates());
     }
+  }
+
+  if (mozcClient_) {
+    mozc::client::MaybeLaunchSetupWizard(mozcClient_.get());
   }
 
   DLOG(INFO) << kProductNameInEnglish << " client (" << self << "): activated for " << sender;

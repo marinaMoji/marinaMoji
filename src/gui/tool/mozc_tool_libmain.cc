@@ -63,6 +63,7 @@ ABSL_DECLARE_FLAG(std::string, error_type);
 int RunAboutDialog(int argc, char *argv[]);
 int RunCharacterComposer(int argc, char *argv[]);
 int RunConfigDialog(int argc, char *argv[]);
+int RunSetupWizard(int argc, char *argv[]);
 int RunDictionaryTool(int argc, char *argv[]);
 int RunWordRegisterDialog(int argc, char *argv[]);
 int RunErrorMessageDialog(int argc, char *argv[]);
@@ -111,6 +112,8 @@ int RunMozcTool(int argc, char *argv[]) {
     absl::SetFlag(&FLAGS_mode, "about_dialog");
   } else if (binary_name == "ConfigDialog") {
     absl::SetFlag(&FLAGS_mode, "config_dialog");
+  } else if (binary_name == "SetupWizard") {
+    absl::SetFlag(&FLAGS_mode, "setup_wizard");
   } else if (binary_name == "DictionaryTool") {
     absl::SetFlag(&FLAGS_mode, "dictionary_tool");
   } else if (binary_name == "ErrorMessageDialog") {
@@ -140,6 +143,8 @@ int RunMozcTool(int argc, char *argv[]) {
 
   if (absl::GetFlag(FLAGS_mode) == "config_dialog") {
     return RunConfigDialog(argc, argv);
+  } else if (absl::GetFlag(FLAGS_mode) == "setup_wizard") {
+    return RunSetupWizard(argc, argv);
   } else if (absl::GetFlag(FLAGS_mode) == "dictionary_tool") {
     return RunDictionaryTool(argc, argv);
   } else if (absl::GetFlag(FLAGS_mode) == "word_register_dialog") {

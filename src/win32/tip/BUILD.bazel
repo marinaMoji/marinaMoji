@@ -730,6 +730,8 @@ mozc_cc_library(
         "//base:system_util",
         "//base/win32:com",
         "//base/win32:wide_char",
+        "//client",
+        "//client:marina_setup_wizard",
         "//composer:kaeriten_table_util",
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",

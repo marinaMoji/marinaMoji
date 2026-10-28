@@ -95,6 +95,8 @@ bool LaunchMozcToolInternal(absl::string_view tool_name, absl::string_view error
     appName = @"ErrorMessageDialog.app";
   } else if (tool_name == "hand_writing") {
     appName = @"HandWriting.app";
+  } else if (tool_name == "setup_wizard") {
+    appName = @"SetupWizard.app";
   } else if (tool_name == "word_register_dialog") {
     appName = @"WordRegisterDialog.app";
   }

@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.0">
+<context>
+    <name>SetupWizard</name>
+    <message>
+        <source>%1 setup</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>←  Back</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Get started  →</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Custom (leave unchanged)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Welcome to</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Make room for character</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard layout</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose how Japanese input follows your keyboard.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Follow my current keyboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use your normal keyboard layout. Recommended.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use QWERTY positions</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use QWERTY key positions when typing Japanese.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>QWERTY positions also apply during direct input, for as long as %1 is selected.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>System default (current OS layout)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>US QWERTY</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>UK QWERTY</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>French AZERTY</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>German QWERTZ</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Spanish</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Italian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Dutch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Dvorak</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>BÉPO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Japanese JIS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 follows the keyboard layout you already chose in the system. AZERTY stays AZERTY. To type in QWERTY positions, add a second layout in your system settings and switch to it while typing Japanese.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Typing conventions</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose the typing conventions you're familiar with.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>I don't know (Kotoeri)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>I don't know (MS-IME)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Kotoeri</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>MS-IME</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>ATOK</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New to Japanese input? Keep the recommended setting.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Conversion</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Automatic conversion</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose when to convert hiragana into kanji.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Off — convert with Space</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Press Space when you're ready to convert. Recommended.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>On — convert as I type</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Kanji suggestions appear automatically.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Two-step Enter</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose how Enter behaves when selecting a conversion candidate.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Insert the selected candidate with one Enter. Recommended.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>On</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Press Enter once to confirm the candidate, then again to insert it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unconverted kana still inserts with one Enter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Start at login</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keep %1 ready when you start your Mac.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Start the conversion engine when I log in</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Recommended. This does not turn Japanese input on.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Recommended. macOS may still ask you to allow this under Login Items. It does not turn Japanese input on.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A few useful shortcuts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>These already work, and can be changed later in Properties.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Left Shift</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Japanese  ↔  Direct input</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Right Shift</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hiragana  ↔  Man'yōshū</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>You're ready to write.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select %1 from your Mac's input menu to begin typing Japanese.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Turn on %1 from the language indicator in the taskbar to begin typing Japanese.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select %1 in your input menu to begin typing Japanese.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Settings can be changed later in Properties.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Start using %1  →</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Continue  →</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1  /  03</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Nothing was saved. %1's conversion engine could not be reached, so these choices are still only in this window. Start %1, then press the button again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Nothing was saved. %1's conversion engine did not accept the settings. The window will stay open so you can try again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+</TS>

@@ -55,6 +55,7 @@
 #include "base/util.h"
 #include "base/vlog.h"
 #include "client/client.h"
+#include "client/marina_setup_wizard.h"
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
 #include "protocol/config.pb.h"
@@ -363,6 +364,7 @@ void MozcEngine::Enable(IbusEngineWrapper* engine) {
   LogLifecycle("enable", engine);
   // Launch mozc_server
   client_->EnsureConnection();
+  mozc::client::MaybeLaunchSetupWizard(client_.get());
   UpdatePreeditMethod();
 
   // When ibus-mozc is disabled by the "next input method" hot key, ibus-daemon

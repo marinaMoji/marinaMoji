@@ -158,6 +158,10 @@ fix_config_dialog_app() {
 fix_nested_qt_app() {
   local qt_app="$1"
   local host_fw="$2"
+  if [[ ! -d "$qt_app" ]]; then
+    echo "Skipping missing ${qt_app}"
+    return 0
+  fi
   local app_name
   app_name="$(basename "$qt_app" .app)"
   local bin="${qt_app}/Contents/MacOS/${app_name}"
@@ -245,7 +249,7 @@ fi
 fix_config_dialog_app "$CONFIG_APP"
 
 HOST_FW="../../../ConfigDialog.app/Contents/Frameworks"
-for app in AboutDialog CharacterComposer DictionaryTool ErrorMessageDialog WordRegisterDialog; do
+for app in AboutDialog CharacterComposer DictionaryTool ErrorMessageDialog SetupWizard WordRegisterDialog; do
   fix_nested_qt_app "${APP}/Contents/Resources/${app}.app" "$HOST_FW"
 done
 

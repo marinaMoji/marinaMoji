@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.0" language="ja_JP">
+<context>
+    <name>SetupWizard</name>
+    <message>
+        <source>%1 setup</source>
+        <translation>%1 の初期設定</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>閉じる</translation>
+    </message>
+    <message>
+        <source>←  Back</source>
+        <translation>←  戻る</translation>
+    </message>
+    <message>
+        <source>Get started  →</source>
+        <translation>始める  →</translation>
+    </message>
+    <message>
+        <source>Custom (leave unchanged)</source>
+        <translation>カスタム（変更しない）</translation>
+    </message>
+    <message>
+        <source>Welcome to</source>
+        <translation>ようこそ</translation>
+    </message>
+    <message>
+        <source>Make room for character</source>
+        <translation>文字に余白を</translation>
+    </message>
+    <message>
+        <source>Keyboard</source>
+        <translation>キーボード</translation>
+    </message>
+    <message>
+        <source>Keyboard layout</source>
+        <translation>キーボード配列</translation>
+    </message>
+    <message>
+        <source>Choose how Japanese input follows your keyboard.</source>
+        <translation>日本語入力がキーボードにどう従うかを選びます。</translation>
+    </message>
+    <message>
+        <source>Follow my current keyboard</source>
+        <translation>現在のキーボードに従う</translation>
+    </message>
+    <message>
+        <source>Use your normal keyboard layout. Recommended.</source>
+        <translation>普段使っている配列を使います。推奨。</translation>
+    </message>
+    <message>
+        <source>Use QWERTY positions</source>
+        <translation>QWERTY の位置を使う</translation>
+    </message>
+    <message>
+        <source>Use QWERTY key positions when typing Japanese.</source>
+        <translation>日本語入力では常に QWERTY のキー位置を使います。</translation>
+    </message>
+    <message>
+        <source>QWERTY positions also apply during direct input, for as long as %1 is selected.</source>
+        <translation>QWERTY の位置は、%1 が選択されている間の直接入力にも適用されます。</translation>
+    </message>
+    <message>
+        <source>System default (current OS layout)</source>
+        <translation>システムの既定（現在の OS 配列）</translation>
+    </message>
+    <message>
+        <source>US QWERTY</source>
+        <translation>米国 QWERTY</translation>
+    </message>
+    <message>
+        <source>UK QWERTY</source>
+        <translation>英国 QWERTY</translation>
+    </message>
+    <message>
+        <source>French AZERTY</source>
+        <translation>フランス語 AZERTY</translation>
+    </message>
+    <message>
+        <source>German QWERTZ</source>
+        <translation>ドイツ語 QWERTZ</translation>
+    </message>
+    <message>
+        <source>Spanish</source>
+        <translation>スペイン語</translation>
+    </message>
+    <message>
+        <source>Italian</source>
+        <translation>イタリア語</translation>
+    </message>
+    <message>
+        <source>Dutch</source>
+        <translation>オランダ語</translation>
+    </message>
+    <message>
+        <source>Dvorak</source>
+        <translation>Dvorak</translation>
+    </message>
+    <message>
+        <source>BÉPO</source>
+        <translation>BÉPO</translation>
+    </message>
+    <message>
+        <source>Japanese JIS</source>
+        <translation>日本語 JIS</translation>
+    </message>
+    <message>
+        <source>%1 follows the keyboard layout you already chose in the system. AZERTY stays AZERTY. To type in QWERTY positions, add a second layout in your system settings and switch to it while typing Japanese.</source>
+        <translation>%1 は、すでにシステムで選んだキーボード配列に従います。AZERTY は AZERTY のままです。QWERTY の位置で入力するには、システム設定に別の配列を追加し、日本語入力中に切り替えてください。</translation>
+    </message>
+    <message>
+        <source>Typing conventions</source>
+        <translation>入力の慣習</translation>
+    </message>
+    <message>
+        <source>Choose the typing conventions you're familiar with.</source>
+        <translation>慣れ親しんだ入力の慣習を選びます。</translation>
+    </message>
+    <message>
+        <source>I don't know (Kotoeri)</source>
+        <translation>わからない（ことえり）</translation>
+    </message>
+    <message>
+        <source>I don't know (MS-IME)</source>
+        <translation>わからない（MS-IME）</translation>
+    </message>
+    <message>
+        <source>Kotoeri</source>
+        <translation>ことえり</translation>
+    </message>
+    <message>
+        <source>MS-IME</source>
+        <translation>MS-IME</translation>
+    </message>
+    <message>
+        <source>ATOK</source>
+        <translation>ATOK</translation>
+    </message>
+    <message>
+        <source>New to Japanese input? Keep the recommended setting.</source>
+        <translation>日本語入力が初めてなら、推奨の設定のままにしてください。</translation>
+    </message>
+    <message>
+        <source>Conversion</source>
+        <translation>変換</translation>
+    </message>
+    <message>
+        <source>Automatic conversion</source>
+        <translation>自動変換</translation>
+    </message>
+    <message>
+        <source>Choose when to convert hiragana into kanji.</source>
+        <translation>ひらがなを漢字に変換するタイミングを選びます。</translation>
+    </message>
+    <message>
+        <source>Off — convert with Space</source>
+        <translation>オフ — スペースで変換</translation>
+    </message>
+    <message>
+        <source>Press Space when you're ready to convert. Recommended.</source>
+        <translation>変換する準備ができたらスペースを押します。推奨。</translation>
+    </message>
+    <message>
+        <source>On — convert as I type</source>
+        <translation>オン — 入力しながら変換</translation>
+    </message>
+    <message>
+        <source>Kanji suggestions appear automatically.</source>
+        <translation>漢字の候補が自動的に表示されます。</translation>
+    </message>
+    <message>
+        <source>Two-step Enter</source>
+        <translation>二段階の Enter</translation>
+    </message>
+    <message>
+        <source>Choose how Enter behaves when selecting a conversion candidate.</source>
+        <translation>変換候補を選ぶときの Enter の動きを選びます。</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>オフ</translation>
+    </message>
+    <message>
+        <source>Insert the selected candidate with one Enter. Recommended.</source>
+        <translation>Enter 一回で選択中の候補を確定します。推奨。</translation>
+    </message>
+    <message>
+        <source>On</source>
+        <translation>オン</translation>
+    </message>
+    <message>
+        <source>Press Enter once to confirm the candidate, then again to insert it.</source>
+        <translation>Enter を一度押して候補を確定し、もう一度押して挿入します。</translation>
+    </message>
+    <message>
+        <source>Unconverted kana still inserts with one Enter.</source>
+        <translation>未変換のかなは、これまでどおり Enter 一回で挿入されます。</translation>
+    </message>
+    <message>
+        <source>Preferences</source>
+        <translation>環境設定</translation>
+    </message>
+    <message>
+        <source>Start at login</source>
+        <translation>ログイン時に起動</translation>
+    </message>
+    <message>
+        <source>Keep %1 ready when you start your Mac.</source>
+        <translation>Mac の起動時から %1 を使えるようにします。</translation>
+    </message>
+    <message>
+        <source>Start the conversion engine when I log in</source>
+        <translation>ログイン時に変換エンジンを起動する</translation>
+    </message>
+    <message>
+        <source>Recommended. This does not turn Japanese input on.</source>
+        <translation>推奨。これだけでは日本語入力はオンになりません。</translation>
+    </message>
+    <message>
+        <source>Recommended. macOS may still ask you to allow this under Login Items. It does not turn Japanese input on.</source>
+        <translation>推奨。macOS はログイン項目で許可を求めることがあります。これだけでは日本語入力はオンになりません。</translation>
+    </message>
+    <message>
+        <source>A few useful shortcuts</source>
+        <translation>便利なショートカット</translation>
+    </message>
+    <message>
+        <source>These already work, and can be changed later in Properties.</source>
+        <translation>すでに使えます。あとからプロパティで変更できます。</translation>
+    </message>
+    <message>
+        <source>Left Shift</source>
+        <translation>左 Shift</translation>
+    </message>
+    <message>
+        <source>Japanese  ↔  Direct input</source>
+        <translation>日本語  ↔  直接入力</translation>
+    </message>
+    <message>
+        <source>Right Shift</source>
+        <translation>右 Shift</translation>
+    </message>
+    <message>
+        <source>Hiragana  ↔  Man'yōshū</source>
+        <translation>ひらがな  ↔  万葉集</translation>
+    </message>
+    <message>
+        <source>You're ready to write.</source>
+        <translation>書く準備ができました。</translation>
+    </message>
+    <message>
+        <source>Select %1 from your Mac's input menu to begin typing Japanese.</source>
+        <translation>Mac の入力メニューから %1 を選んで、日本語の入力を始めてください。</translation>
+    </message>
+    <message>
+        <source>Turn on %1 from the language indicator in the taskbar to begin typing Japanese.</source>
+        <translation>タスクバーの言語インジケーターから %1 をオンにして、日本語の入力を始めてください。</translation>
+    </message>
+    <message>
+        <source>Select %1 in your input menu to begin typing Japanese.</source>
+        <translation>入力メニューから %1 を選んで、日本語の入力を始めてください。</translation>
+    </message>
+    <message>
+        <source>Settings can be changed later in Properties.</source>
+        <translation>設定はあとからプロパティで変更できます。</translation>
+    </message>
+    <message>
+        <source>Start using %1  →</source>
+        <translation>%1 を使い始める  →</translation>
+    </message>
+    <message>
+        <source>Continue  →</source>
+        <translation>続ける  →</translation>
+    </message>
+    <message>
+        <source>%1  /  03</source>
+        <translation>%1  /  03</translation>
+    </message>
+    <message>
+        <source>Nothing was saved. %1's conversion engine could not be reached, so these choices are still only in this window. Start %1, then press the button again.</source>
+        <translation>保存されていません。%1 の変換エンジンに接続できなかったため、これらの選択はこのウィンドウ内だけにあります。%1 を起動してから、もう一度ボタンを押してください。</translation>
+    </message>
+    <message>
+        <source>Nothing was saved. %1's conversion engine did not accept the settings. The window will stay open so you can try again.</source>
+        <translation>保存されていません。%1 の変換エンジンが設定を受け付けませんでした。ウィンドウは開いたままなので、もう一度試せます。</translation>
+    </message>
+</context>
+</TS>

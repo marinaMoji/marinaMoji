@@ -353,6 +353,7 @@ mozc_cc_library(
         "//base:vlog",
         "//base/container:flat_map",
         "//client",
+        "//client:marina_setup_wizard",
         "//composer:kaeriten_table_util",
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",

@@ -137,6 +137,40 @@ mozc_cc_test(
 )
 
 mozc_cc_library(
+    name = "marina_setup_wizard",
+    srcs = ["marina_setup_wizard.cc"],
+    hdrs = ["marina_setup_wizard.h"],
+    visibility = [
+        "//mac:__pkg__",
+        "//unix:__subpackages__",
+        "//visibility:public",
+        "//win32:__subpackages__",
+    ],
+    deps = [
+        ":client_interface",
+        "//base:config_file_stream",
+        "//base:file_util",
+        "//base:system_util",
+        "@com_google_absl//absl/log",
+    ],
+)
+
+mozc_cc_test(
+    name = "marina_setup_wizard_test",
+    size = "small",
+    srcs = ["marina_setup_wizard_test.cc"],
+    deps = [
+        ":client_mock",
+        ":marina_setup_wizard",
+        "//base:config_file_stream",
+        "//base:file_util",
+        "//base:system_util",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+    ],
+)
+
+mozc_cc_library(
     name = "client_mock",
     testonly = True,
     hdrs = ["client_mock.h"],

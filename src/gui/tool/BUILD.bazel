@@ -78,6 +78,7 @@ mozc_cc_qt_library(
         "//gui/base:singleton_window_helper",
         "//gui/character_composer",
         "//gui/config_dialog",
+        "//gui/setup_wizard",
         "//gui/dictionary_tool",
         "//gui/error_message_dialog",
         "//gui/post_install_dialog",
