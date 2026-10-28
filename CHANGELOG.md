@@ -50,6 +50,18 @@ treated the commit as done, and the character was dropped. Unicode Insert now
 only queues until the document’s real `FocusIn` (click the editor if needed);
 SVG Insert still restores X11 focus for Writer / ONLYOFFICE.
 
+### macOS: circumflex and trema dead keys compose again in Direct input (#83)
+
+Switching from AZERTY to marinaMoji keeps the AZERTY layout, but macOS still
+holds the dead key after the input method has seen ^. The vowel is swallowed
+by that pending accent, so ê and ë never appear. Direct input now composes the
+accent itself and, once that is stored, reads the key's character to clear
+macOS's copy of the dead key so the vowel arrives. Shift+¨ is no longer
+treated as Shift pressed alone, which was leaving Direct before the vowel.
+Ctrl / Option / Command chords are unchanged, and a vowel that completes the
+Right Shift macron still goes to marinaMoji. Verified locally with ABC-AZERTY
+in Direct (`^`+`e` → ê, Shift+`^`+`e` → ë).
+
 ### Release candidate 0.0.18-rc14
 
 rc13 plus two character composer fixes, described below: on Wayland the composer
@@ -309,17 +321,6 @@ The tab now sends `INSERT_ODORIJI_DEFAULT` with the clicked index: the mark is
 inserted and becomes the Ctrl+Shift+1 default, in any mode including Direct.
 Same path on Windows, macOS, and Linux. Session unit-tested; Windows TIP /
 renderer not built here.
-
-### macOS: circumflex and trema dead keys compose again in Direct input (#83)
-
-Switching from AZERTY to marinaMoji keeps the AZERTY layout, but macOS still
-holds the dead key after the input method has seen ^. The vowel is swallowed
-by that pending accent, so ê and ë never appear. Direct input now composes the
-accent itself and, once that is stored, reads the key's character to clear
-macOS's copy of the dead key so the vowel arrives. Shift+¨ is no longer
-treated as Shift pressed alone, which was leaving Direct before the vowel.
-Ctrl / Option / Command chords are unchanged, and a vowel that completes the
-Right Shift macron still goes to marinaMoji.
 
 ### Odoriji palette no longer opens in direct input mode
 
