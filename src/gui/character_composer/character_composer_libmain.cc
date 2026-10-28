@@ -19,6 +19,10 @@
 #include <unistd.h>
 #endif  // !_WIN32
 
+#if defined(__linux__) && !defined(__ANDROID__)
+#include <dlfcn.h>
+#endif  // __linux__ && !__ANDROID__
+
 #include "absl/flags/flag.h"
 #include "absl/log/log.h"
 #include "base/system_util.h"
@@ -59,6 +63,60 @@ void InstallWakeSignal() {
 }
 }  // namespace
 #endif  // !_WIN32
+
+#if defined(__linux__) && !defined(__ANDROID__)
+namespace {
+// The composer uses WindowStaysOnTopHint so Writer does not cover it. After
+// Insert, give the previous X11 window (usually Writer / ONLYOFFICE) focus
+// again so the office plugin can insert without a manual click. Loaded with
+// dlopen so we do not add an X11 link dependency for macOS/Windows builds.
+unsigned long g_previous_x_focus = 0;
+
+void *X11Display() {
+  auto *x11 = qGuiApp->nativeInterface<QNativeInterface::QX11Application>();
+  return x11 ? x11->display() : nullptr;
+}
+
+void RememberPreviousXFocus() {
+  void *dpy = X11Display();
+  if (dpy == nullptr) return;
+  void *x11lib = dlopen("libX11.so.6", RTLD_LAZY | RTLD_NOLOAD);
+  if (x11lib == nullptr) x11lib = dlopen("libX11.so.6", RTLD_LAZY);
+  if (x11lib == nullptr) return;
+  using XGetInputFocusFn = int (*)(void *, unsigned long *, int *);
+  auto get_focus =
+      reinterpret_cast<XGetInputFocusFn>(dlsym(x11lib, "XGetInputFocus"));
+  if (get_focus == nullptr) return;
+  unsigned long focused = 0;
+  int revert = 0;
+  if (get_focus(dpy, &focused, &revert) == 1 && focused != 0 &&
+      focused != 1 /* PointerRoot */) {
+    g_previous_x_focus = focused;
+  }
+}
+
+void RestorePreviousXFocus() {
+  if (g_previous_x_focus == 0) return;
+  void *dpy = X11Display();
+  if (dpy == nullptr) return;
+  void *x11lib = dlopen("libX11.so.6", RTLD_LAZY | RTLD_NOLOAD);
+  if (x11lib == nullptr) x11lib = dlopen("libX11.so.6", RTLD_LAZY);
+  if (x11lib == nullptr) return;
+  using XRaiseWindowFn = int (*)(void *, unsigned long);
+  using XSetInputFocusFn = int (*)(void *, unsigned long, int, unsigned long);
+  using XFlushFn = int (*)(void *);
+  auto raise =
+      reinterpret_cast<XRaiseWindowFn>(dlsym(x11lib, "XRaiseWindow"));
+  auto set_focus =
+      reinterpret_cast<XSetInputFocusFn>(dlsym(x11lib, "XSetInputFocus"));
+  auto flush = reinterpret_cast<XFlushFn>(dlsym(x11lib, "XFlush"));
+  // RevertToParent = 2, CurrentTime = 0 in X11.
+  if (raise) raise(dpy, g_previous_x_focus);
+  if (set_focus) set_focus(dpy, g_previous_x_focus, 2, 0);
+  if (flush) flush(dpy);
+}
+}  // namespace
+#endif  // __linux__ && !__ANDROID__
 
 // Runs the character composer. A Unicode character is passed to the input
 // method as UTF-8 (Linux stdout, --result_file on Windows, default path on
@@ -149,6 +207,11 @@ int RunCharacterComposer(int argc, char *argv[]) {
   dialog.set_svg_inserted_callback([&](const std::string &svg) {
     if (absl::Status status = write_svg(svg); status.ok()) {
       svg_written = true;
+#if defined(__linux__) && !defined(__ANDROID__)
+      // Hand focus back before the dialog finishes closing so Writer /
+      // ONLYOFFICE can insert the drawing without a click.
+      RestorePreviousXFocus();
+#endif  // __linux__ && !__ANDROID__
     } else {
       LOG(ERROR) << "Cannot write the SVG: " << status;
     }
@@ -166,10 +229,17 @@ int RunCharacterComposer(int argc, char *argv[]) {
   });
 #endif  // !_WIN32
 
+#if defined(__linux__) && !defined(__ANDROID__)
+  RememberPreviousXFocus();
+#endif  // __linux__ && !__ANDROID__
   dialog.show();
   dialog.raise();
   dialog.activateWindow();
   app->exec();
+
+#if defined(__linux__) && !defined(__ANDROID__)
+  if (svg_written) RestorePreviousXFocus();
+#endif  // __linux__ && !__ANDROID__
 
   const bool has_char = !dialog.result().empty();
   const bool has_svg = !dialog.result_svg().empty();

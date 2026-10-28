@@ -192,17 +192,20 @@ the found character is unchanged. Not yet checked in the app.
   squeezed to fit (`scale_x` / `scale_y` on `PlacedGlyph`, a `transform` in
   the SVG), like the parts of a composed character.
 
-### Character composer: hand the drawing to the ONLYOFFICE plugin (macOS)
+### Character composer: hand the drawing to the ONLYOFFICE plugin (macOS, Linux)
 
 When Insert produces an SVG drawing, the composer also writes
 `composer_result.js` (`window.marinaMojiComposerResult = {id, svg}`) into the
-marinaMoji ONLYOFFICE plugin's folder under
-`~/Library/Application Support/asc.onlyoffice.ONLYOFFICE/data/sdkjs-plugins/`,
-if the plugin is installed. The plugin's panel polls that file and inserts the
-drawing at the cursor, so no button or clipboard step is needed. Only macOS so
-far; unit-tested (`composer_result_test`), not yet verified inside ONLYOFFICE.
-A result is picked up by any ONLYOFFICE document whose marinaMoji panel is
-open, even if the composer was started from another application.
+marinaMoji ONLYOFFICE plugin's folder, if the plugin is installed:
+
+- macOS: `~/Library/Application Support/asc.onlyoffice.ONLYOFFICE/data/sdkjs-plugins/{GUID}/`
+- Linux: `~/.local/share/onlyoffice/desktopeditors/sdkjs-plugins/{GUID}/` (or `$XDG_DATA_HOME/...`)
+
+The plugin's panel polls that file and inserts the drawing at the cursor, so no
+button or clipboard step is needed. Unit-tested (`composer_result_test`); not
+yet verified inside ONLYOFFICE Desktop on Linux. A result is picked up by any
+ONLYOFFICE document whose marinaMoji panel is open, even if the composer was
+started from another application. Windows is not wired yet.
 
 ### Character composer: SVG status messages are translated
 

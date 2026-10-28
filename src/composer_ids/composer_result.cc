@@ -81,16 +81,32 @@ std::string OnlyOfficeHandoffScript(std::string_view svg, int64_t id_ms) {
 }
 
 std::string OnlyOfficePluginDirectory() {
-#ifdef __APPLE__
+  // Folder name matches onlyoffice/config.json guid without the "asc." prefix.
+  static constexpr char kPluginGuid[] =
+      "{7A9E3B2C-4D5F-6E8A-1B0C-9D3E5F7A2B1C}";
   const char *home = std::getenv("HOME");
   if (home == nullptr || *home == '\0') return "";
+#ifdef __APPLE__
   return FileUtil::JoinPath(
       home,
-      "Library/Application Support/asc.onlyoffice.ONLYOFFICE/data/sdkjs-plugins/"
-      "{7A9E3B2C-4D5F-6E8A-1B0C-9D3E5F7A2B1C}");
+      FileUtil::JoinPath(
+          "Library/Application Support/asc.onlyoffice.ONLYOFFICE/data/"
+          "sdkjs-plugins",
+          kPluginGuid));
+#elif defined(__linux__)
+  // Desktop Editors stores user plugins under XDG data (default ~/.local/share).
+  const char *xdg_data = std::getenv("XDG_DATA_HOME");
+  const std::string data_home =
+      (xdg_data != nullptr && *xdg_data != '\0')
+          ? std::string(xdg_data)
+          : FileUtil::JoinPath(home, ".local/share");
+  return FileUtil::JoinPath(
+      data_home,
+      FileUtil::JoinPath(
+          "onlyoffice/desktopeditors/sdkjs-plugins", kPluginGuid));
 #else
   return "";
-#endif  // __APPLE__
+#endif
 }
 
 absl::Status WriteOnlyOfficeHandoff(std::string_view directory,

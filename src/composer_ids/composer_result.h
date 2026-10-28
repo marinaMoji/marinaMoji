@@ -50,8 +50,9 @@ absl::Status WriteComposerSvgResult(std::string_view path, std::string_view svg)
 // the plugin uses it both to skip results it has seen and to ignore stale ones.
 std::string OnlyOfficeHandoffScript(std::string_view svg, int64_t id_ms);
 
-// The macOS ONLYOFFICE Desktop Editors folder the marinaMoji plugin is
-// installed in, or an empty string on other platforms.
+// The ONLYOFFICE Desktop Editors folder the marinaMoji plugin is installed in
+// (macOS Application Support, or Linux XDG data), or an empty string when that
+// host is not wired up yet (e.g. Windows).
 std::string OnlyOfficePluginDirectory();
 
 // Writes composer_result.js (see OnlyOfficeHandoffScript) into |directory|.
