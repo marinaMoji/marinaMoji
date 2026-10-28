@@ -10,6 +10,24 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.19-rc2
+
+Everything in 0.0.19-rc1 plus the entries below, and:
+
+- First-run setup wizard (EN/FR/JA) shown once for brand-new profiles. A
+  profile with `config1.db`, `user_dictionary.db`, `history.db` or `cform.db`
+  is treated as existing and never sees it; an atomically created marker
+  directory keeps concurrent IME processes from each launching it. Not yet
+  verified on any platform; the macOS build had not compiled in CI when this
+  was tagged.
+- Two-step Enter now applies after any conversion, not only when the candidate
+  window is open (unverified; see #95).
+- ONLYOFFICE composer hand-off on Windows (LocalAppData resolved via the shell)
+  and Linux Flatpak, below. Unverified.
+
+As with rc1, CI leaves the Windows MSIs unsigned; they need
+`scripts/sign-windows-release.mjs`.
+
 ### Character composer: ONLYOFFICE hand-off on Windows
 
 `OnlyOfficePluginDirectory()` no longer returns empty on Windows. Insert now
