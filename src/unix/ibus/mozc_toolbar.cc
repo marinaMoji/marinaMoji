@@ -2343,8 +2343,9 @@ bool SkipFocusAppName(const char* name) {
 }
 
 // Map AT-SPI app names to well-known D-Bus desktop application ids.
+// Never map classic "gedit" here: org.gnome.gedit Application.Activate opens a
+// new empty tab/window instead of raising the existing one.
 const char* DbusNameForFocusApp(const std::string& app) {
-  if (app == "gedit") return "org.gnome.gedit";
   if (app == "gnome-text-editor") return "org.gnome.TextEditor";
   if (app == "libreoffice" || g_str_has_prefix(app.c_str(), "libreoffice-")) {
     return "org.libreoffice.LibreOffice";
@@ -2428,6 +2429,92 @@ bool AtspiAppHasActiveFrame(void* app_accessible,
   return false;
 }
 
+// Raise an existing window of |app_name| without Application.Activate (which
+// for classic gedit opens a new tab). Returns true if grab_focus succeeded.
+bool AtspiGrabFocusOnApp(const std::string& app_name) {
+  if (app_name.empty()) return false;
+  void* lib = dlopen("libatspi.so.0", RTLD_LAZY);
+  if (lib == nullptr) return false;
+  auto atspi_init = reinterpret_cast<int (*)()>(dlsym(lib, "atspi_init"));
+  auto get_desktop =
+      reinterpret_cast<void* (*)(int)>(dlsym(lib, "atspi_get_desktop"));
+  auto get_name = reinterpret_cast<char* (*)(void*, void*)>(
+      dlsym(lib, "atspi_accessible_get_name"));
+  auto get_child_count = reinterpret_cast<int (*)(void*, void*)>(
+      dlsym(lib, "atspi_accessible_get_child_count"));
+  auto get_child = reinterpret_cast<void* (*)(void*, int, void*)>(
+      dlsym(lib, "atspi_accessible_get_child_at_index"));
+  auto get_role_name = reinterpret_cast<char* (*)(void*, void*)>(
+      dlsym(lib, "atspi_accessible_get_role_name"));
+  auto get_component = reinterpret_cast<void* (*)(void*)>(
+      dlsym(lib, "atspi_accessible_get_component"));
+  // Older name used by some builds:
+  if (get_component == nullptr) {
+    get_component = reinterpret_cast<void* (*)(void*)>(
+        dlsym(lib, "atspi_accessible_get_component_iface"));
+  }
+  auto grab_focus = reinterpret_cast<int (*)(void*, void*)>(
+      dlsym(lib, "atspi_component_grab_focus"));
+  auto gobj_unref =
+      reinterpret_cast<void (*)(void*)>(dlsym(lib, "g_object_unref"));
+  if (!get_desktop || !get_name || !get_child_count || !get_child ||
+      !get_role_name || !get_component || !grab_focus) {
+    dlclose(lib);
+    return false;
+  }
+  if (atspi_init) atspi_init();
+  void* desktop = get_desktop(0);
+  if (desktop == nullptr) {
+    dlclose(lib);
+    return false;
+  }
+  bool ok = false;
+  void* err = nullptr;
+  const int n = get_child_count(desktop, &err);
+  for (int i = 0; i < n && !ok; ++i) {
+    err = nullptr;
+    void* app = get_child(desktop, i, &err);
+    if (app == nullptr) continue;
+    err = nullptr;
+    char* name = get_name(app, &err);
+    if (name && app_name == name) {
+      // Prefer a top-level frame; grab each until one accepts focus.
+      std::vector<void*> stack = {app};
+      // BFS of modest depth for frames.
+      for (size_t qi = 0; qi < stack.size() && stack.size() < 80 && !ok; ++qi) {
+        void* node = stack[qi];
+        err = nullptr;
+        char* role = get_role_name(node, &err);
+        if (role && (g_strcmp0(role, "frame") == 0 ||
+                     g_strcmp0(role, "window") == 0)) {
+          void* comp = get_component(node);
+          if (comp != nullptr) {
+            void* gerr = nullptr;
+            if (grab_focus(comp, &gerr)) ok = true;
+            if (gobj_unref) gobj_unref(comp);
+          }
+        }
+        g_free(role);
+        err = nullptr;
+        const int cn = get_child_count(node, &err);
+        for (int j = 0; j < cn && j < 25; ++j) {
+          err = nullptr;
+          void* ch = get_child(node, j, &err);
+          if (ch) stack.push_back(ch);
+        }
+      }
+      // Unref children we pushed (skip app itself at [0]).
+      if (gobj_unref) {
+        for (size_t qi = 1; qi < stack.size(); ++qi) gobj_unref(stack[qi]);
+      }
+    }
+    g_free(name);
+    if (gobj_unref) gobj_unref(app);
+  }
+  dlclose(lib);
+  return ok;
+}
+
 }  // namespace
 
 void MozcToolbarRememberFocusApp() {
@@ -2487,21 +2574,23 @@ void MozcToolbarRememberFocusApp() {
 
 void MozcToolbarActivateRememberedFocusApp() {
   if (g_remembered_focus_app.empty()) return;
-  const char* dbus_name = DbusNameForFocusApp(g_remembered_focus_app);
-  if (dbus_name != nullptr) {
-    LOG(INFO) << "character composer: activating " << dbus_name
-              << " (app=" << g_remembered_focus_app << ")";
-    ActivateDbusApplication(dbus_name);
+  // Classic gedit: never use D-Bus Application.Activate — it opens a new tab.
+  // Prefer AT-SPI grab_focus on an existing frame; same for any unmapped app.
+  if (g_remembered_focus_app == "gedit" ||
+      DbusNameForFocusApp(g_remembered_focus_app) == nullptr) {
+    if (AtspiGrabFocusOnApp(g_remembered_focus_app)) {
+      LOG(INFO) << "character composer: AT-SPI grab_focus app="
+                << g_remembered_focus_app;
+      return;
+    }
+    LOG(INFO) << "character composer: no D-Bus activate for app="
+              << g_remembered_focus_app << " (avoids new gedit tabs)";
     return;
   }
-  // Fallback: org.gnome.<App> with first letter capitalized — rarely works;
-  // try a few conventions for GTK apps.
-  std::string guess = "org.gnome.";
-  if (!g_remembered_focus_app.empty()) {
-    guess += static_cast<char>(g_ascii_toupper(g_remembered_focus_app[0]));
-    guess += g_remembered_focus_app.substr(1);
-    ActivateDbusApplication(guess.c_str());
-  }
+  const char* dbus_name = DbusNameForFocusApp(g_remembered_focus_app);
+  LOG(INFO) << "character composer: activating " << dbus_name
+            << " (app=" << g_remembered_focus_app << ")";
+  ActivateDbusApplication(dbus_name);
 }
 
 #else

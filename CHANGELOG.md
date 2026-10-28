@@ -18,10 +18,10 @@ so IBus never saw `FocusIn` and Unicode Insert was dropped. Opening the
 composer now hides the toolbar (and symbols palette); it is shown again after
 a successful flush, when retries end, or if the composer is cancelled.
 
-After Insert, also raise the app that last had IME focus (AT-SPI name → D-Bus
-`Application.Activate`, e.g. gedit → `org.gnome.gedit`). That restores FocusIn
-for Wayland-native editors; XWayland apps like Cursor already got focus back
-once the toolbar was hidden.
+After Insert, raise the app that last had IME focus. Ubuntu Text Editor uses
+D-Bus `Application.Activate`; classic gedit must not (that opens a new empty
+tab) — it gets AT-SPI `grab_focus` on an existing window instead. XWayland
+apps like Cursor already regain focus once the toolbar is hidden.
 
 ### Linux: composer Unicode Insert retries IBus flush; office plugins as backup
 
