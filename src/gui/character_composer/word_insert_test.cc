@@ -44,6 +44,24 @@ TEST(WordInsertTest, ScriptInsertsSizesAndTags) {
   EXPECT_NE(script.find("set font position"), std::string::npos);
 }
 
+TEST(WordInsertTest, PowerShellInsertsSizesAndTags) {
+  const std::string script =
+      WordInsertPowerShell("C:\\Users\\o'neil\\a.svg", "⿰木巻");
+  EXPECT_NE(script.find("GetActiveObject('Word.Application')"), std::string::npos);
+  EXPECT_NE(script.find("AddPicture('C:\\Users\\o''neil\\a.svg', $false, $true"),
+            std::string::npos);
+  EXPECT_NE(script.find("'MARINAMOJI:ids=⿰木巻'"), std::string::npos);
+  EXPECT_NE(script.find("$newH = $pt * 1\n"), std::string::npos);
+  EXPECT_NE(script.find("[Math]::Round($pt * 0.19)"), std::string::npos);
+}
+
+TEST(WordInsertTest, EncodesPowerShellCommandsAsBase64Utf16) {
+  EXPECT_EQ(PowerShellEncodedCommand("A"), "QQA=");
+  EXPECT_EQ(PowerShellEncodedCommand("木"), "KGc=");           // U+6728
+  EXPECT_EQ(PowerShellEncodedCommand("\xF0\x9F\x88\x80"), "PNgA3g==");  // U+1F200
+  EXPECT_EQ(PowerShellEncodedCommand(""), "");
+}
+
 }  // namespace
 }  // namespace gui
 }  // namespace mozc

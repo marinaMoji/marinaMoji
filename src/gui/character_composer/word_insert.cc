@@ -9,8 +9,15 @@
 #include <vector>
 
 #include "absl/status/status.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_replace.h"
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#endif  // _WIN32
 
 namespace mozc {
 namespace gui {
@@ -74,6 +81,96 @@ std::string WordInsertScript(std::string_view svg_path, std::string_view ids) {
       "end tell\n");
 }
 
+std::string WordInsertPowerShell(std::string_view svg_path, std::string_view ids) {
+  // PowerShell single-quoted strings only need ' doubled.
+  auto quote = [](std::string_view text) {
+    return absl::StrCat("'", absl::StrReplaceAll(text, {{"'", "''"}}), "'");
+  };
+  return absl::StrCat(
+      "$ErrorActionPreference = 'Stop'\n"
+      "$word = [Runtime.InteropServices.Marshal]::GetActiveObject('Word.Application')\n"
+      "if ($word.Documents.Count -eq 0) { throw 'no document is open' }\n"
+      "$doc = $word.ActiveDocument\n"
+      "$sel = $word.Selection\n"
+      "$pt = [double]$sel.Font.Size\n"
+      "if ($pt -lt 1 -or $pt -gt 400) { $pt = 12 }\n"
+      "$start = $sel.Start\n"
+      "$range = $doc.Range($start, $start)\n"
+      "$pic = $doc.InlineShapes.AddPicture(", quote(svg_path),
+      ", $false, $true, $range)\n"
+      "$w0 = $pic.Width\n"
+      "$h0 = $pic.Height\n"
+      "$newH = $pt * ", kWordInkScale, "\n"
+      "$pic.LockAspectRatio = 0\n"
+      "$pic.Height = $newH\n"
+      "if ($h0 -gt 0) { $pic.Width = $newH * $w0 / $h0 } else { $pic.Width = $newH }\n"
+      "$pic.AlternativeText = ", quote(absl::StrCat("MARINAMOJI:ids=", ids)), "\n"
+      "$pic.Range.Font.Position = -[Math]::Round($pt * ", kWordDropEm, ")\n"
+      "$sel.SetRange($start + 1, $start + 1)\n");
+}
+
+std::string PowerShellEncodedCommand(std::string_view text) {
+  std::string utf16;
+  auto put = [&utf16](unsigned unit) {
+    utf16.push_back(static_cast<char>(unit & 0xff));
+    utf16.push_back(static_cast<char>((unit >> 8) & 0xff));
+  };
+  for (size_t i = 0; i < text.size();) {
+    const unsigned char lead = static_cast<unsigned char>(text[i]);
+    unsigned long cp = 0xFFFD;
+    size_t len = 1;
+    if (lead < 0x80) {
+      cp = lead;
+    } else if ((lead & 0xE0) == 0xC0) {
+      len = 2;
+      cp = lead & 0x1F;
+    } else if ((lead & 0xF0) == 0xE0) {
+      len = 3;
+      cp = lead & 0x0F;
+    } else if ((lead & 0xF8) == 0xF0) {
+      len = 4;
+      cp = lead & 0x07;
+    }
+    if (len > 1) {
+      if (i + len > text.size()) {
+        cp = 0xFFFD;
+        len = text.size() - i;
+      } else {
+        for (size_t k = 1; k < len; ++k) {
+          cp = (cp << 6) | (static_cast<unsigned char>(text[i + k]) & 0x3F);
+        }
+      }
+    }
+    i += len;
+    if (cp >= 0x10000 && cp <= 0x10FFFF) {
+      cp -= 0x10000;
+      put(0xD800 + static_cast<unsigned>(cp >> 10));
+      put(0xDC00 + static_cast<unsigned>(cp & 0x3FF));
+    } else {
+      put(static_cast<unsigned>(cp > 0xFFFF ? 0xFFFD : cp));
+    }
+  }
+  return absl::Base64Escape(utf16);
+}
+
+#ifdef _WIN32
+namespace {
+bool g_word_was_foreground = false;
+}  // namespace
+#endif  // _WIN32
+
+void NoteForegroundApp() {
+#ifdef _WIN32
+  g_word_was_foreground = false;
+  const HWND window = ::GetForegroundWindow();
+  if (window == nullptr) return;
+  wchar_t class_name[64] = {};
+  if (::GetClassNameW(window, class_name, 64) == 0) return;
+  // Word's main (and document) windows.
+  g_word_was_foreground = (std::wstring_view(class_name) == L"OpusApp");
+#endif  // _WIN32
+}
+
 std::string ParseBundleId(std::string_view output) {
   // "bundleid"="com.microsoft.Word"
   const size_t eq = output.find('=');
@@ -130,7 +227,11 @@ bool WordWasInFront() {
     return id == "com.microsoft.Word";
   }
 #endif  // __APPLE__
+#ifdef _WIN32
+  return g_word_was_foreground;
+#else
   return false;
+#endif  // _WIN32
 }
 
 absl::Status InsertSvgIntoWord(std::string_view svg_path, std::string_view ids) {
@@ -146,8 +247,50 @@ absl::Status InsertSvgIntoWord(std::string_view svg_path, std::string_view ids) 
                      "); Word may need automation permission"));
   }
   return absl::OkStatus();
+#elif defined(_WIN32)
+  const std::string encoded =
+      PowerShellEncodedCommand(WordInsertPowerShell(svg_path, ids));
+  wchar_t system_dir[MAX_PATH] = {};
+  if (::GetSystemDirectoryW(system_dir, MAX_PATH) == 0) {
+    return absl::InternalError("cannot find the Windows system directory");
+  }
+  std::wstring command =
+      std::wstring(system_dir) +
+      L"\\WindowsPowerShell\\v1.0\\powershell.exe";
+  std::wstring command_line =
+      L"\"" + command +
+      L"\" -NoProfile -NonInteractive -ExecutionPolicy Bypass "
+      L"-WindowStyle Hidden -EncodedCommand " +
+      std::wstring(encoded.begin(), encoded.end());  // base64 is ASCII
+  STARTUPINFOW startup = {};
+  startup.cb = sizeof(startup);
+  PROCESS_INFORMATION process = {};
+  if (!::CreateProcessW(command.c_str(), command_line.data(), nullptr, nullptr,
+                        FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &startup,
+                        &process)) {
+    return absl::InternalError("cannot start powershell");
+  }
+  const DWORD waited = ::WaitForSingleObject(process.hProcess, 30000);
+  DWORD exit_code = 1;
+  if (waited == WAIT_OBJECT_0) {
+    ::GetExitCodeProcess(process.hProcess, &exit_code);
+  } else {
+    ::TerminateProcess(process.hProcess, 1);
+  }
+  ::CloseHandle(process.hThread);
+  ::CloseHandle(process.hProcess);
+  if (waited != WAIT_OBJECT_0) {
+    return absl::DeadlineExceededError("Word did not answer in 30 seconds");
+  }
+  if (exit_code != 0) {
+    return absl::InternalError(absl::StrCat(
+        "powershell failed (exit ", exit_code,
+        "); is a document open in Word, and not in Protected View?"));
+  }
+  return absl::OkStatus();
 #else
-  return absl::UnimplementedError("direct insert into Word is macOS only");
+  return absl::UnimplementedError(
+      "direct insert into Word is macOS and Windows only");
 #endif  // __APPLE__
 }
 

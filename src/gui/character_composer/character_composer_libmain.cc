@@ -235,6 +235,8 @@ int RunCharacterComposer(int argc, char *argv[]) {
 #if defined(__linux__) && !defined(__ANDROID__)
   RememberPreviousXFocus();
 #endif  // __linux__ && !__ANDROID__
+  // Before our window takes the foreground: was the user in Word?
+  mozc::gui::NoteForegroundApp();
   dialog.show();
   dialog.raise();
   dialog.activateWindow();
@@ -262,7 +264,7 @@ int RunCharacterComposer(int argc, char *argv[]) {
     }
   }
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(_WIN32)
   if (has_svg && mozc::gui::WordWasInFront()) {
     // Word was in front when the composer opened: put the drawing at its
     // cursor, so the Word add-in's pane is not needed.
@@ -273,7 +275,7 @@ int RunCharacterComposer(int argc, char *argv[]) {
       LOG(WARNING) << "Cannot insert the drawing into Word: " << status;
     }
   }
-#endif  // __APPLE__
+#endif  // __APPLE__ || _WIN32
 
   if (!has_char) {
     // SVG-only: nothing for the IME to type; office plugins use clipboard/file.
