@@ -10,9 +10,18 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
-### Release candidate 0.0.19-rc2
+### Release candidate 0.0.19-rc3
 
-Everything in 0.0.19-rc1 plus the entries below, and:
+0.0.19-rc2 was tagged but never published (its first macOS build failed on the
+nested SetupWizard.app, and the retry sat in the runner queue), so rc3 carries
+everything in 0.0.19-rc1 plus the entries below, and:
+
+- Character composer: Insert now puts the drawing straight into Word on
+  Windows too (Word COM through PowerShell, tagged `MARINAMOJI:ids=...` so the
+  add-in's Render can resize it), when Word was the foreground window as the
+  composer opened. macOS and Windows both draw it at 1.0 x the font size,
+  lowered 0.19 em (it was 0.94 and looked small beside the text). The Windows
+  half compiled in CI but has not been run against Word. See marinaMoji/plugin#12.
 
 - First-run setup wizard (EN/FR/JA) shown once for brand-new profiles. A
   profile with `config1.db`, `user_dictionary.db`, `history.db` or `cform.db`
