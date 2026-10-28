@@ -671,11 +671,24 @@ class TipTextServiceImpl
     // usually closed on first activation → Direct in the toolbar/langbar.
     constexpr DWORD kHiraganaNativeMode =
         TF_CONVERSIONMODE_NATIVE | TF_CONVERSIONMODE_FULLSHAPE;
-    TipStatus::SetIMEOpen(thread_mgr, client_id, true);
-    TipStatus::SetInputModeConversion(thread_mgr, client_id,
-                                      kHiraganaNativeMode);
-    GetThreadContext()->GetInputModeManager()->OnInitialize(
-        true, kHiraganaNativeMode);
+    const bool is_open_set = TipStatus::SetIMEOpen(thread_mgr, client_id, true);
+    const bool mode_set = TipStatus::SetInputModeConversion(
+        thread_mgr, client_id, kHiraganaNativeMode);
+    if (is_open_set && mode_set) {
+      GetThreadContext()->GetInputModeManager()->OnInitialize(
+          true, kHiraganaNativeMode);
+    } else {
+      // TSF refused: mirror what it actually holds instead of claiming the
+      // IME is on, so the input mode manager and TSF do not disagree.
+      const bool is_open = TipStatus::IsOpen(thread_mgr);
+      DWORD native_mode = 0;
+      const bool has_mode = TipStatus::GetInputModeConversion(
+          thread_mgr, client_id, &native_mode);
+      if (has_mode || is_open) {
+        GetThreadContext()->GetInputModeManager()->OnInitialize(is_open,
+                                                                native_mode);
+      }
+    }
 
     // Emulate document changed event against the current document manager.
     {
