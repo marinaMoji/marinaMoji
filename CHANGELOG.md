@@ -10,6 +10,17 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer: ONLYOFFICE hand-off on Windows
+
+`OnlyOfficePluginDirectory()` no longer returns empty on Windows. Insert now
+writes `composer_result.js` into
+`%LOCALAPPDATA%\ONLYOFFICE\DesktopEditors\data\sdkjs-plugins\{GUID}\` when the
+plugin is installed (Plugin Manager or manual copy). Keep the marinaMoji panel
+open, then Insert from the composer — same flow as macOS / Linux. This was the
+reason composed-character images never appeared in ONLYOFFICE on Win11 (x64 or
+ARM); the office plugin package alone could not fix it. Not yet verified in a
+Windows VM.
+
 ### Release candidate 0.0.19-rc1
 
 0.0.18-rc15 was tagged but never published: the Windows file-version scheme
@@ -278,12 +289,13 @@ marinaMoji ONLYOFFICE plugin's folder, if the plugin is installed:
 
 - macOS: `~/Library/Application Support/asc.onlyoffice.ONLYOFFICE/data/sdkjs-plugins/{GUID}/`
 - Linux: `~/.local/share/onlyoffice/desktopeditors/sdkjs-plugins/{GUID}/` (or `$XDG_DATA_HOME/...`)
+- Windows: `%LOCALAPPDATA%\ONLYOFFICE\DesktopEditors\data\sdkjs-plugins\{GUID}\`
 
 The plugin's panel polls that file and inserts the drawing at the cursor, so no
 button or clipboard step is needed. Unit-tested (`composer_result_test`); not
 yet verified inside ONLYOFFICE Desktop on Linux. A result is picked up by any
 ONLYOFFICE document whose marinaMoji panel is open, even if the composer was
-started from another application. Windows is not wired yet.
+started from another application.
 
 ### Character composer: SVG status messages are translated
 

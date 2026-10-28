@@ -92,6 +92,15 @@ std::string OnlyOfficePluginDirectory() {
   // Folder name matches onlyoffice/config.json guid without the "asc." prefix.
   static constexpr char kPluginGuid[] =
       "{7A9E3B2C-4D5F-6E8A-1B0C-9D3E5F7A2B1C}";
+#if defined(_WIN32)
+  // Official Desktop Editors path:
+  // %LOCALAPPDATA%\ONLYOFFICE\DesktopEditors\data\sdkjs-plugins\{GUID}
+  const char *local_app_data = std::getenv("LOCALAPPDATA");
+  if (local_app_data == nullptr || *local_app_data == '\0') return "";
+  return FileUtil::JoinPath(
+      {local_app_data, "ONLYOFFICE", "DesktopEditors", "data", "sdkjs-plugins",
+       kPluginGuid});
+#else
   const char *home = std::getenv("HOME");
   if (home == nullptr || *home == '\0') return "";
 #ifdef __APPLE__
@@ -115,6 +124,7 @@ std::string OnlyOfficePluginDirectory() {
 #else
   return "";
 #endif
+#endif  // _WIN32
 }
 
 namespace {

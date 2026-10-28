@@ -813,11 +813,12 @@ bool TipEditSession::OnRendererCallbackAsync(TipTextService* text_service,
     case SessionCommand::TURN_OFF_IME:
     case SessionCommand::TOGGLE_TRADITIONAL_KANJI:
     case SessionCommand::TOGGLE_LIVE_CONVERSION:
-    case SessionCommand::LAUNCH_WORD_REGISTER_DIALOG:
-    case SessionCommand::LAUNCH_CONFIG_DIALOG:
-    case SessionCommand::LAUNCH_DICTIONARY_TOOL: {
+    case SessionCommand::LAUNCH_WORD_REGISTER_DIALOG: {
       // marinaMoji: floating toolbar direct-mode / shin-kyu toggle / add word
-      // / dictionary tool / settings clicks. None of these need extra fields.
+      // clicks. None of these need extra fields. Settings and the dictionary
+      // tool are spawned from TipTextServiceImpl::OnRendererCallback before
+      // this switch (same as language-bar Properties / SpawnTool), so they
+      // no longer pass through the session.
       SessionCommand command;
       command.set_type(type);
       return OnSessionCommandAsync(text_service, context, command);

@@ -368,11 +368,11 @@
         <translation></translation>
     </message>
     <message>
-        <source>Two-step Enter when the candidate window is open</source>
+        <source>Two-step Enter after conversion</source>
         <translation></translation>
     </message>
     <message>
-        <source>The first Enter accepts the highlighted candidate and leaves it underlined. The second Enter inserts it into the document. A reading with no candidate window still inserts on one Enter.</source>
+        <source>After a reading is converted, the first Enter accepts it and leaves it underlined. The second Enter inserts it. Unconverted hiragana still inserts on one Enter. If the candidate window is open, the first Enter also closes it.</source>
         <translation></translation>
     </message>
     <message>

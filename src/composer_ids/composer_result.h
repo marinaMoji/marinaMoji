@@ -53,8 +53,8 @@ std::string OnlyOfficeHandoffScript(std::string_view svg, int64_t id_ms,
                                     std::string_view text = "");
 
 // The ONLYOFFICE Desktop Editors folder the marinaMoji plugin is installed in
-// (macOS Application Support, or Linux XDG data), or an empty string when that
-// host is not wired up yet (e.g. Windows).
+// (macOS Application Support, Linux XDG data, or Windows %LOCALAPPDATA%), or an
+// empty string when that host is not wired up yet.
 std::string OnlyOfficePluginDirectory();
 
 // Writes composer_result.js (see OnlyOfficeHandoffScript) into |directory|.

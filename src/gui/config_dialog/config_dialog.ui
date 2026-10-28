@@ -1737,10 +1737,10 @@
          <item>
           <widget class="QCheckBox" name="twoStepCommitCheckBox">
            <property name="text">
-            <string>Two-step Enter when the candidate window is open</string>
+            <string>Two-step Enter after conversion</string>
            </property>
            <property name="toolTip">
-            <string>The first Enter accepts the highlighted candidate and leaves it underlined. The second Enter inserts it into the document. A reading with no candidate window still inserts on one Enter.</string>
+            <string>After a reading is converted, the first Enter accepts it and leaves it underlined. The second Enter inserts it. Unconverted hiragana still inserts on one Enter. If the candidate window is open, the first Enter also closes it.</string>
            </property>
           </widget>
          </item>

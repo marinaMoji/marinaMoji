@@ -87,13 +87,17 @@ TEST_F(ComposerResultTest, OnlyOfficeHandoffNeedsTheInstalledPlugin) {
 
 TEST_F(ComposerResultTest, OnlyOfficePluginDirectoryPointsAtTheGuidFolder) {
   const std::string dir = OnlyOfficePluginDirectory();
-#if defined(__APPLE__) || defined(__linux__)
+#if defined(__APPLE__) || defined(__linux__) || defined(_WIN32)
   EXPECT_FALSE(dir.empty());
   EXPECT_NE(dir.find("{7A9E3B2C-4D5F-6E8A-1B0C-9D3E5F7A2B1C}"),
             std::string::npos);
 #if defined(__linux__)
   EXPECT_NE(dir.find("onlyoffice/desktopeditors/sdkjs-plugins"),
             std::string::npos);
+#elif defined(_WIN32)
+  EXPECT_NE(dir.find("ONLYOFFICE"), std::string::npos);
+  EXPECT_NE(dir.find("DesktopEditors"), std::string::npos);
+  EXPECT_NE(dir.find("sdkjs-plugins"), std::string::npos);
 #endif
 #else
   EXPECT_TRUE(dir.empty());
@@ -102,13 +106,17 @@ TEST_F(ComposerResultTest, OnlyOfficePluginDirectoryPointsAtTheGuidFolder) {
 
 TEST_F(ComposerResultTest, OnlyOfficePluginDirectoryMatchesDesktopEditors) {
   const std::string dir = OnlyOfficePluginDirectory();
-#if defined(__APPLE__) || defined(__linux__)
+#if defined(__APPLE__) || defined(__linux__) || defined(_WIN32)
   EXPECT_FALSE(dir.empty());
   EXPECT_NE(dir.find("{7A9E3B2C-4D5F-6E8A-1B0C-9D3E5F7A2B1C}"),
             std::string::npos);
 #if defined(__linux__)
   EXPECT_NE(dir.find("onlyoffice/desktopeditors/sdkjs-plugins"),
             std::string::npos);
+#elif defined(_WIN32)
+  EXPECT_NE(dir.find("ONLYOFFICE"), std::string::npos);
+  EXPECT_NE(dir.find("DesktopEditors"), std::string::npos);
+  EXPECT_NE(dir.find("sdkjs-plugins"), std::string::npos);
 #endif
 #else
   EXPECT_TRUE(dir.empty());

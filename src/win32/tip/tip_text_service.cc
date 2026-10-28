@@ -1955,6 +1955,22 @@ class TipTextServiceImpl
   }
 
   void OnRendererCallback(WPARAM wparam, LPARAM lparam) {
+    using commands::SessionCommand;
+    const auto type = static_cast<SessionCommand::CommandType>(wparam);
+    // Tool launches are global: they must not depend on a focused TSF
+    // context. The session+MaybeSpawnTool path used to drop Settings when
+    // GetRendererCallbackContext() was null (same class of bug as Hide
+    // toolbar / GitHub #30) or when Client::LaunchTool's run-level check
+    // refused the host process. Language-bar Properties already uses
+    // SpawnTool directly; keep the floating-toolbar path equivalent.
+    if (type == SessionCommand::LAUNCH_CONFIG_DIALOG) {
+      SpawnTool("config_dialog");
+      return;
+    }
+    if (type == SessionCommand::LAUNCH_DICTIONARY_TOOL) {
+      SpawnTool("dictionary_tool");
+      return;
+    }
     wil::com_ptr_nothrow<ITfContext> context = GetRendererCallbackContext();
     if (!context) {
       return;

@@ -332,9 +332,10 @@ class Session {
   // on non-vowel / ResetContext.
   bool macron_dead_key_pending_ = false;
 
-  // True after two-step commit's first Enter hid the candidate window.
-  // The chosen text is still the preedit. Space reopens that same list;
-  // another Enter inserts it. Typing returns to the reading.
+  // True after two-step commit's first Enter accepted the conversion.
+  // The text is still the preedit, whether or not a candidate window was
+  // open. Space reopens that list; another Enter inserts it. Typing
+  // returns to the reading.
   bool two_step_candidate_dismissed_ = false;
 
   // Left Shift alone: Japanese ↔ direct input (restores saved_japanese_mode_).
@@ -390,9 +391,10 @@ class Session {
   bool CommitInternal(commands::Command* command,
                       bool trigger_zero_query_suggest);
 
-  // macOS-Japanese two-step commit. When the preference is on and the
-  // candidate window is open, the first Enter hides that window and keeps
-  // the preedit. Returns true if this Enter was that first step.
+  // macOS-Japanese two-step commit. When the preference is on and the text
+  // has been converted, the first Enter keeps the preedit and, if the
+  // candidate window is open, closes it. Returns true if this Enter was
+  // that first step.
   bool ConfirmConversionSelection(commands::Command* command);
 
   // Calls EngineConverter::Suggest if the condition is applicable to

@@ -1162,6 +1162,68 @@ TEST_F(SessionTest, TwoStepCommitTypingReturnsToReading) {
   EXPECT_PREEDIT("あいうえおあ", command);
 }
 
+TEST_F(SessionTest, TwoStepCommitWithoutCandidateWindow) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  config::Config cfg;
+  config::ConfigHandler::GetDefaultConfig(&cfg);
+  cfg.set_use_two_step_commit(true);
+  session.SetConfig(cfg);
+
+  commands::Command command;
+  InsertCharacterChars("aiueo", &session, &command);
+  const ConversionRequest request = CreateConversionRequest(session);
+  Segments segments;
+  SetAiueo(&segments);
+  FillT13Ns(request, &segments);
+  EXPECT_CALL(*converter, StartConversion(_, _))
+      .WillRepeatedly(DoAll(SetArgPointee<1>(segments), Return(true)));
+  EXPECT_CALL(*converter, FocusSegmentValue(_, _, _))
+      .WillRepeatedly(Return(true));
+
+  // Unconverted hiragana still inserts on one Enter.
+  EXPECT_CALL(*converter, FinishConversion(_, _)).Times(1);
+  command.Clear();
+  EXPECT_TRUE(SendKey("Enter", &session, &command));
+  EXPECT_RESULT("あいうえお", command);
+  EXPECT_EQ(session.context().state(), ImeContext::PRECOMPOSITION);
+  Mock::VerifyAndClearExpectations(converter.get());
+
+  // First Space converts in place and does not open the candidate window.
+  InsertCharacterChars("aiueo", &session, &command);
+  EXPECT_CALL(*converter, StartConversion(_, _))
+      .WillRepeatedly(DoAll(SetArgPointee<1>(segments), Return(true)));
+  EXPECT_CALL(*converter, FocusSegmentValue(_, _, _))
+      .WillRepeatedly(Return(true));
+  command.Clear();
+  EXPECT_TRUE(session.Convert(&command));
+  EXPECT_FALSE(command.output().has_candidate_window());
+  EXPECT_FALSE(command.output().has_result());
+  EXPECT_SINGLE_SEGMENT("あいうえお", command);
+  EXPECT_EQ(session.context().state(), ImeContext::CONVERSION);
+
+  EXPECT_CALL(*converter, CommitSegmentValue(_, _, _)).Times(0);
+  command.Clear();
+  EXPECT_TRUE(SendKey("Enter", &session, &command));
+  EXPECT_FALSE(command.output().has_result());
+  EXPECT_FALSE(command.output().has_candidate_window());
+  EXPECT_SINGLE_SEGMENT("あいうえお", command);
+  EXPECT_EQ(session.context().state(), ImeContext::CONVERSION);
+  Mock::VerifyAndClearExpectations(converter.get());
+
+  EXPECT_CALL(*converter, CommitSegmentValue(_, _, _))
+      .WillRepeatedly(Return(true));
+  EXPECT_CALL(*converter, FinishConversion(_, _)).Times(1);
+  command.Clear();
+  EXPECT_TRUE(SendKey("Enter", &session, &command));
+  EXPECT_RESULT("あいうえお", command);
+  EXPECT_EQ(session.context().state(), ImeContext::PRECOMPOSITION);
+}
+
 TEST_F(SessionTest, LeftShiftTogglesManyoshuAndDirect) {
   MockEngine engine;
   CreateEngineConverterMock(&engine);

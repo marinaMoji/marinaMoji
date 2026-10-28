@@ -1324,8 +1324,9 @@ bool Session::SendKeyConversionState(commands::Command* command) {
     return DoNothing(command);
   }
 
-  // Two-step commit's "list was just closed" flag only changes what the next
-  // Enter, Space, or typed character does. Any other conversion key drops it.
+  // Two-step commit's "conversion was just accepted" flag only changes what
+  // the next Enter, Space, or typed character does. Any other conversion key
+  // drops it.
   if (key_command != keymap::ConversionState::COMMIT &&
       key_command != keymap::ConversionState::CONVERT_NEXT &&
       key_command != keymap::ConversionState::INSERT_CHARACTER) {
@@ -2368,7 +2369,12 @@ bool Session::ConfirmConversionSelection(commands::Command* command) {
   if (context_->state() != ImeContext::CONVERSION) {
     return false;
   }
-  if (!context_->converter().IsCandidateListVisible()) {
+  // The first Enter accepts the conversion and leaves it underlined. The
+  // candidate window, when it is open, closes here. The second Enter falls
+  // through to Commit and inserts the text. A reading that was never
+  // converted stays in COMPOSITION, so this method does not see it and one
+  // Enter still inserts that hiragana.
+  if (two_step_candidate_dismissed_) {
     return false;
   }
   command->mutable_output()->set_consumed(true);
@@ -2956,9 +2962,15 @@ bool Session::TranslateHalfWidth(commands::Command* command) {
 }
 
 bool Session::LaunchConfigDialog(commands::Command* command) {
+  // Do not use DoNothing here: when it calls Output() (composition,
+  // conversion, zero-query suggestion, odoriji palette) the launch flag
+  // still survives FillOutput, but matching LaunchDictionaryTool keeps the
+  // keymap / MaybeSpawnTool path simple and avoids surprising side effects.
   command->mutable_output()->set_launch_tool_mode(
       commands::Output::CONFIG_DIALOG);
-  return DoNothing(command);
+  command->mutable_output()->set_consumed(true);
+  OutputMode(command);
+  return true;
 }
 
 bool Session::LaunchDictionaryTool(commands::Command* command) {

@@ -397,12 +397,12 @@
         <translation>手動（スペースで変換）</translation>
     </message>
     <message>
-        <source>Two-step Enter when the candidate window is open</source>
-        <translation>候補ウィンドウ表示中は Enter を二回で確定</translation>
+        <source>Two-step Enter after conversion</source>
+        <translation>変換したあとは Enter を二回で確定</translation>
     </message>
     <message>
-        <source>The first Enter accepts the highlighted candidate and leaves it underlined. The second Enter inserts it into the document. A reading with no candidate window still inserts on one Enter.</source>
-        <translation>一回目の Enter は選んだ候補を下線のまま残します。二回目の Enter で文書に入力します。候補ウィンドウを開いていない読みは、これまでどおり一回の Enter で入力します。</translation>
+        <source>After a reading is converted, the first Enter accepts it and leaves it underlined. The second Enter inserts it. Unconverted hiragana still inserts on one Enter. If the candidate window is open, the first Enter also closes it.</source>
+        <translation>変換したあと、一回目の Enter は結果を下線のまま残します。二回目の Enter で文書に入力します。変換していないひらがなは、これまでどおり一回の Enter で入力します。候補ウィンドウが開いているときは、一回目の Enter でそのウィンドウも閉じます。</translation>
     </message>
     <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.ui" line="1350" />
