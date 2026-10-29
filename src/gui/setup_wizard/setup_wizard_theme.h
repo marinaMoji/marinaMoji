@@ -54,6 +54,18 @@ inline constexpr int kCornerRadius = 10;
 inline constexpr int kSectionGap = 16;
 inline constexpr int kChoiceIndent = 30;
 
+// The point sizes below were chosen on macOS, where a point is one pixel. Qt
+// treats a point as 1/72 inch of a 96 dpi screen on Windows and Linux, which
+// draws the same numbers a third larger and pushed the pages past the window.
+// Scale them so the text is the same pixel size everywhere.
+inline qreal PlatformPointSize(int mac_point_size) {
+#ifdef __APPLE__
+  return mac_point_size;
+#else
+  return mac_point_size * 0.75;
+#endif  // __APPLE__
+}
+
 // Website headings (site/user/themes/marinaquark/css/custom.css):
 // Hiragino Mincho ProN, then Yu Mincho, Noto Serif JP, Georgia.
 // Body text on the site is the system sans-serif. These faces ship with
@@ -66,7 +78,7 @@ inline QFont DisplayFont(int point_size) {
                     QStringLiteral("Noto Serif CJK JP"),
                     QStringLiteral("Georgia"),
                     QStringLiteral("serif")});
-  font.setPointSize(point_size);
+  font.setPointSizeF(PlatformPointSize(point_size));
   font.setWeight(QFont::Medium);
   font.setLetterSpacing(QFont::AbsoluteSpacing, -0.3);
   return font;
@@ -77,7 +89,7 @@ inline QFont FontAt(int point_size, QFont::Weight weight = QFont::Normal) {
   // which is what the website's "-apple-system" stack resolves to. Qt does
   // not understand that CSS name.
   QFont font;
-  font.setPointSize(point_size);
+  font.setPointSizeF(PlatformPointSize(point_size));
   font.setWeight(weight);
   return font;
 }
@@ -96,7 +108,7 @@ inline QFont SloganFont() {
                     QStringLiteral("Georgia"),
                     QStringLiteral("serif")});
   // AbsoluteSpacing follows the SVG's ~0.056em tracking (0.056 × 13 ≈ 0.7).
-  font.setPointSize(13);
+  font.setPointSizeF(PlatformPointSize(13));
   font.setWeight(QFont::Light);
   font.setItalic(true);
   font.setLetterSpacing(QFont::AbsoluteSpacing, 0.7);
