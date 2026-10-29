@@ -6,6 +6,12 @@
 `bazelisk build package` into `marinamoji_<version>_<arch>.deb`. The release
 workflow runs it for amd64 and arm64.
 
+GitHub tags and the About dialog keep SemVer prereleases (`0.0.19-rc3`). The
+`.deb` **Version** uses Debian’s tilde form (`0.0.19~rc3`) via
+`debian_version.sh`, so apt treats the final `0.0.19` as newer than its
+release candidates. Plain `-rcN` in the package Version would sort *after* the
+final and block upgrades for unstable-channel testers.
+
 ### Installing a local `.deb`
 
 `dpkg -i` never fetches dependencies; it only unpacks and then fails
@@ -122,6 +128,23 @@ Two suites are published from one shared pool, each with its own signed
 - **`stable`** — final releases only. A package whose Version ends in `-rcN` or
   `~rcN` is excluded.
 - **`unstable`** — everything, including release candidates.
+
+On each rebuild, `.deb` assets still tagged with SemVer `-rcN` in their
+control Version are rewritten to `~rcN` in the published pool. If a final
+`X.Y.Z` shares the pool with those historical hyphen-form RCs, it is
+published as `X.Y.Z+1` so machines that already installed `X.Y.Z-rcN` can
+`apt upgrade` onto the final (hyphen-rc sorts newer than a plain final). New
+builds from `build_deb.sh` already emit `~rcN` and need no bump.
+
+Consequences of that migration:
+
+- A machine that installed a hyphen-form RC (`0.0.19-rc1`) will not be offered
+  later tilde-form RCs through apt: `0.0.19~rc3` sorts *older* than the
+  installed `0.0.19-rc1`. It moves forward only when the final is published.
+- While any hyphen-form RC of `X.Y.Z` is still attached to a GitHub release,
+  the final is always published as `X.Y.Z+1`. Someone who installed the plain
+  `X.Y.Z` from apt before this change gets a no-op upgrade to the same
+  contents.
 
 Both are built in a single run (the `gh-pages` deploy uses `force_orphan`, so
 they must be), and the build fails if a suite would be empty.

@@ -28,6 +28,13 @@ done
 [[ -n "$ZIP" && -n "$VERSION" && -n "$ARCH" && -n "$OUTDIR" ]] || usage
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=debian_version.sh
+source "$HERE/debian_version.sh"
+
+# GitHub / About dialog keep SemVer "-rcN"; the .deb Version must use "~rcN"
+# so apt ranks the final release newer than its release candidates.
+PRODUCT_VERSION="$VERSION"
+DEB_VERSION="$(debian_package_version "$PRODUCT_VERSION")"
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -38,8 +45,9 @@ unzip -q "$ZIP" -d "$ROOT"
 rm -rf "$ROOT/tmp"
 
 # Desktop entries, hicolor icons and AppStream metadata (shared with the Arch
-# packages), plus the Debian copyright file and man page.
-bash "$HERE/install_desktop_metadata.sh" --root "$ROOT" --version "$VERSION"
+# packages), plus the Debian copyright file and man page. Metainfo keeps the
+# product/tag version users recognize (0.0.19-rc3), not the apt form.
+bash "$HERE/install_desktop_metadata.sh" --root "$ROOT" --version "$PRODUCT_VERSION"
 install -d "$ROOT/usr/share/doc/marinamoji"
 install -m 644 "$HERE/data/copyright" "$ROOT/usr/share/doc/marinamoji/copyright"
 install -d "$ROOT/usr/share/man/man1"
@@ -51,9 +59,9 @@ gzip -9n < "$HERE/data/mozc_emacs_helper.1" \
 # reproducible (no embedded name or timestamp).
 CHANGELOG_DATE="$(date -R ${SOURCE_DATE_EPOCH:+-d "@$SOURCE_DATE_EPOCH"})"
 cat <<EOF | gzip -9n > "$ROOT/usr/share/doc/marinamoji/changelog.gz"
-marinamoji ($VERSION) unstable; urgency=medium
+marinamoji ($DEB_VERSION) unstable; urgency=medium
 
-  * Release $VERSION. See CHANGELOG.md in the source tree:
+  * Release $PRODUCT_VERSION. See CHANGELOG.md in the source tree:
     https://github.com/marinaMoji/marinaMoji/blob/master/CHANGELOG.md
 
  -- Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>  $CHANGELOG_DATE
@@ -121,7 +129,7 @@ INSTALLED_SIZE="$(du -sk "$ROOT" | cut -f1)"
 mkdir -p "$ROOT/DEBIAN"
 cat > "$ROOT/DEBIAN/control" <<EOF
 Package: marinamoji
-Version: $VERSION
+Version: $DEB_VERSION
 Section: utils
 Priority: optional
 Architecture: $ARCH
@@ -149,4 +157,7 @@ chmod 644 "$ROOT/DEBIAN/md5sums"
 
 mkdir -p "$OUTDIR"
 dpkg-deb --build --root-owner-group -Zxz "$ROOT" \
-  "$OUTDIR/marinamoji_${VERSION}_${ARCH}.deb"
+  "$OUTDIR/marinamoji_${DEB_VERSION}_${ARCH}.deb"
+if [[ "$DEB_VERSION" != "$PRODUCT_VERSION" ]]; then
+  echo "Debian Version $DEB_VERSION (product $PRODUCT_VERSION)"
+fi

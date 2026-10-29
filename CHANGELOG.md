@@ -10,6 +10,22 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Linux apt: RC packages sort before the final release
+
+Debian treats a hyphen in the package Version as starting the debian
+revision, so `0.0.19-rc3` sorted *newer* than final `0.0.19` and
+`apt upgrade` on the unstable channel would not move RC testers onto the
+release. `.deb` builds now use `0.0.19~rc3` (tilde), and the apt publisher
+rewrites historical hyphen-form RCs the same way, bumping matching finals
+to `X.Y.Z+1` so already-installed `-rc` packages can upgrade.
+
+Caveats: a machine already on `0.0.19-rcN` gets no further RCs through apt
+(`0.0.19~rc3` sorts older than the installed `-rc1`) and only moves on when
+the final is published, as `0.0.19+1`. Anyone who installed plain `0.0.19`
+from apt earlier gets a same-contents upgrade to `0.0.19+1`. The `~` in new
+`.deb` file names has not been checked against GitHub's release-asset naming
+or `SHA256SUMS`; verify on the next tag build.
+
 ## v0.0.19 (2026-10-29)
 
 The first stable release since v0.0.17. There was never a stable 0.0.18: its release

@@ -15,8 +15,18 @@
 # ending in -rcN or ~rcN) is left out. Every other suite, "unstable" included,
 # lists all packages.
 #
+# Incoming .deb assets from GitHub Releases may still use SemVer "-rcN" in
+# Version. Those are rewritten to Debian "~rcN" (and matching finals get a
+# one-shot "+1" bump) so apt ranks the final newer than its candidates —
+# including for users who already installed a hyphen-form RC. See
+# debian_version.sh.
+#
 # Requires: dpkg-dev, apt-utils (apt-ftparchive), gzip; gnupg when signing.
 set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=debian_version.sh
+source "$HERE/debian_version.sh"
 
 usage() {
   cat >&2 <<'EOF'
@@ -67,6 +77,63 @@ cp -f "${DEBS[@]}" "$POOL/"
 # Classify each package: a release candidate has a Version ending in
 # -rcN / ~rcN. The "stable" suite excludes them; every other suite takes all.
 is_rc() { [[ "$(dpkg-deb -f "$1" Version)" =~ [-~+.]rc[0-9]*$ ]]; }
+
+# Repack a .deb with a new Version (control only; payload md5sums unchanged).
+repack_deb_version() {
+  local deb="$1" newver="$2"
+  local arch tmp out
+  arch="$(dpkg-deb -f "$deb" Architecture)"
+  tmp="$(mktemp -d)"
+  dpkg-deb -R "$deb" "$tmp/root"
+  # GNU sed (Ubuntu CI). Rewrites only the control Version field.
+  sed -i "s/^Version: .*/Version: $newver/" "$tmp/root/DEBIAN/control"
+  out="$tmp/marinamoji_${newver}_${arch}.deb"
+  dpkg-deb --build --root-owner-group -Zxz "$tmp/root" "$out" >/dev/null
+  rm -f "$deb"
+  mv "$out" "$POOL/marinamoji_${newver}_${arch}.deb"
+  rm -rf "$tmp"
+}
+
+# Normalize SemVer "-rcN" Versions onto Debian "~rcN". When a final release
+# X.Y.Z shares the pool with historical hyphen-form RCs of the same base,
+# publish that final as X.Y.Z+1 so machines still holding X.Y.Z-rcN can
+# apt-upgrade (hyphen-rc sorts newer than a plain final).
+HYPHEN_RC_BASES=''
+for deb in "$POOL"/*.deb; do
+  ver="$(dpkg-deb -f "$deb" Version)"
+  if debian_is_hyphen_prerelease "$ver"; then
+    base="$(debian_upstream_base "$ver")"
+    case " $HYPHEN_RC_BASES " in
+      *" $base "*) ;;
+      *) HYPHEN_RC_BASES="${HYPHEN_RC_BASES:+$HYPHEN_RC_BASES }$base" ;;
+    esac
+  fi
+done
+
+for deb in "$POOL"/*.deb; do
+  [[ -f "$deb" ]] || continue
+  ver="$(dpkg-deb -f "$deb" Version)"
+  if debian_is_hyphen_prerelease "$ver"; then
+    newver="$(debian_package_version "$ver")"
+    echo "Normalize $(basename "$deb"): $ver -> $newver"
+    repack_deb_version "$deb" "$newver"
+  fi
+done
+
+for deb in "$POOL"/*.deb; do
+  [[ -f "$deb" ]] || continue
+  ver="$(dpkg-deb -f "$deb" Version)"
+  base="$(debian_upstream_base "$ver" || true)"
+  if [[ -n "$base" && "$ver" == "$base" ]]; then
+    case " $HYPHEN_RC_BASES " in
+      *" $base "*)
+        newver="${base}+1"
+        echo "Migration bump $(basename "$deb"): $ver -> $newver (so apt upgrades past ${base}-rc*)"
+        repack_deb_version "$deb" "$newver"
+        ;;
+    esac
+  fi
+done
 
 for deb in "$POOL"/*.deb; do
   arch="$(dpkg-deb -f "$deb" Architecture)"
