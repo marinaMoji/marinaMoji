@@ -10,34 +10,44 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
-### Release candidate 0.0.19-rc3
+## v0.0.19 (2026-10-29)
 
-0.0.19-rc2 was tagged but never published (its first macOS build failed on the
-nested SetupWizard.app, and the retry sat in the runner queue), so rc3 carries
-everything in 0.0.19-rc1 plus the entries below, and:
+The first stable release since v0.0.17. There was never a stable 0.0.18: its release
+candidates (rc1 to rc14) were rolled into 0.0.19, so this section is everything since
+v0.0.17, grouped by platform.
 
-- Character composer: Insert now puts the drawing straight into Word on
-  Windows too (Word COM through PowerShell, tagged `MARINAMOJI:ids=...` so the
-  add-in's Render can resize it), when Word was the foreground window as the
-  composer opened. macOS and Windows both draw it at 1.0 x the font size,
-  lowered 0.19 em (it was 0.94 and looked small beside the text). The Windows
-  half compiled in CI but has not been run against Word. See marinaMoji/plugin#12.
+Main changes: the character composer (build a character from its parts, find characters
+by component, draw a structure with no Unicode character as one KAGE glyph, hand the
+drawing to the LibreOffice, ONLYOFFICE and Word plugins); a first-run setup wizard;
+an experimental two-step Enter; Linux and Windows composer and palette fixes; macOS
+AZERTY dead keys.
 
-- First-run setup wizard (EN/FR/JA) shown once for brand-new profiles. A
-  profile with `config1.db`, `user_dictionary.db`, `history.db` or `cform.db`
-  is treated as existing and never sees it; an atomically created marker
-  directory keeps concurrent IME processes from each launching it. Not yet
-  verified on any platform; the macOS build had not compiled in CI when this
-  was tagged.
-- Two-step Enter now applies after any conversion, not only when the candidate
-  window is open (unverified; see #95).
-- ONLYOFFICE composer hand-off on Windows (LocalAppData resolved via the shell)
-  and Linux Flatpak, below. Unverified.
+**Licence change to know about:** `mozc_tool` and the standalone composer link the
+GPL-3.0 KAGE port (`src/kage`) and are GPL-3.0 as distributed; the input method itself is
+unchanged (BSD-3-Clause).
 
-As with rc1, CI leaves the Windows MSIs unsigned; they need
+Pair it with the office plugins from marinaMoji/plugin: LibreOffice extension 0.3.14 and
+ONLYOFFICE 0.1.18, the first to insert the composer's drawings sized and aligned to the
+text; the Word add-in is covered by marinaMoji/plugin#11 and #12.
+
+**Not yet verified in a real host:** the setup wizard, two-step Enter, the Word direct
+insert on both platforms, the ONLYOFFICE hand-off on Windows and Linux Flatpak, and the
+odoriji additions. The Windows MSIs are built unsigned by CI and are signed afterwards with
 `scripts/sign-windows-release.mjs`.
 
-### Character composer: ONLYOFFICE hand-off on Windows
+### Character composer
+
+#### Character composer: Insert puts the drawing straight into Word (macOS and Windows)
+
+When Word was the foreground app as the composer opened, Insert places the drawing at
+Word's cursor without going through the add-in's pane: AppleScript on macOS, Word COM
+through PowerShell on Windows. The picture is 1.0 x the font size, lowered 0.19 em, and
+tagged `MARINAMOJI:ids=...` so the Word add-in's Render can resize it after a font change.
+The same rule is used by the LibreOffice and ONLYOFFICE plugins. The macOS path needs the
+Automation permission for Word. The Windows half compiles in CI but has not been run
+against Word (marinaMoji/plugin#12); the macOS half is awaiting a full test (#11).
+
+#### Character composer: ONLYOFFICE hand-off on Windows
 
 `OnlyOfficePluginDirectory()` no longer returns empty on Windows. Insert now
 writes `composer_result.js` into
@@ -48,7 +58,7 @@ reason composed-character images never appeared in ONLYOFFICE on Win11 (x64 or
 ARM); the office plugin package alone could not fix it. Not yet verified in a
 Windows VM.
 
-### Character composer: ONLYOFFICE hand-off finds Flatpak on Linux
+#### Character composer: ONLYOFFICE hand-off finds Flatpak on Linux
 
 On Linux, Insert still prefers
 `~/.local/share/onlyoffice/desktopeditors/sdkjs-plugins/{GUID}/`, but if that
@@ -59,141 +69,7 @@ Flatpak; writing only the .deb path left `composer_result.js` where the open
 panel never saw it. Prefers a folder that already has `config.json` /
 `index.html`. Not yet verified on an Ubuntu ARM VM.
 
-### Release candidate 0.0.19-rc1
-
-0.0.18-rc15 was tagged but never published: the Windows file-version scheme
-(`_MarinaWindowsRevisionFromVersion`) has 14 rc slots per patch version, so
-`0.0.18-rc15` failed both Windows builds with "rc number must be 1..14". The
-next patch version starts the slots again, hence 0.0.19-rc1 (revision 305,
-above rc14's 302). Everything below is rc14 plus the Linux composer Insert fixes (toolbar kept off native Wayland,
-Unicode Insert waits for `FocusIn`, no new gedit tab) and the macOS AZERTY
-dead-key fix (#83), with the Windows TIP now starting every thread in Hiragana:
-`Activate` turns the IME on in Hiragana (and the session starts in
-precomposition) instead of copying TSF's usually closed state, and the toolbar
-and Symbols Palette are kept up, and an IME-off ignored, while the palette is
-open so opening it no longer snaps the mode indicator to Direct. If TSF refuses
-the open or mode change, the input mode manager follows what TSF holds. Not yet
-verified on Windows: that the palette's "open" flag always clears when it
-closes (#93).
-
-Also in this release: the missing odoriji 〻〱〲〳〴〵 (including the vertical 〳〴〵) are
-in the palette and Symbols tab and offered when converting おどりじ, and an
-optional two-step Enter when the candidate window is open (a new setting in the
-configuration dialog, with English, French and Japanese labels). Neither has
-been verified in a real host yet.
-
-The Windows MSIs are built unsigned by CI and need
-`scripts/sign-windows-release.mjs`.
-
-### Linux: hide the toolbar while the character composer is open
-
-On GNOME the composer and toolbar both run as XWayland. When Insert closed the
-composer, focus often returned to the toolbar instead of Wayland-native gedit,
-so IBus never saw `FocusIn` and Unicode Insert was dropped. Opening the
-composer now hides the toolbar (and symbols palette); it is shown again after
-a successful flush, when retries end, or if the composer is cancelled.
-
-After Insert, raise the app that last had IME focus. Ubuntu Text Editor uses
-D-Bus `Application.Activate`; classic gedit must not (that opens a new empty
-tab) — it gets AT-SPI `grab_focus` on an existing window instead. XWayland
-apps like Cursor already regain focus once the toolbar is hidden.
-
-### Linux: composer Unicode Insert retries IBus flush; office plugins as backup
-
-After queueing a Unicode character for `FocusIn`, the toolbar retries a flush
-for ~3 s while the engine is focused (covers FocusIn that arrived before
-stdout was read). The composer also writes the character to the profile
-`.txt` and to ONLYOFFICE `composer_result.js` (`text` field) so LibreOffice /
-ONLYOFFICE plugins can insert when IBus is late — IBus remains the path for
-apps without a plugin.
-
-### Linux: toolbar on GNOME Wayland uses XWayland even if GDK_BACKEND is set
-
-Ubuntu exports `GDK_BACKEND=wayland`. The toolbar’s “prefer X11” helper used to
-skip when that variable was already set, so the bar stayed on native Wayland:
-it could take IME focus, would not stay a floating dock, and drag failed.
-It now overwrites `GDK_BACKEND=x11` when `DISPLAY` is available (same idea as
-the character composer’s `QT_QPA_PLATFORM=xcb`), and `IsWayland()` / `IsX11()`
-follow the real GDK backend instead of only `XDG_SESSION_TYPE`.
-
-### Linux: character composer Unicode Insert waits for a real FocusIn (#92)
-
-Stay-on-top via XWayland fixed the buried window. An attempt to also
-`XSetInputFocus` the previous window on Unicode Insert broke Insert entirely on
-Wayland-native editors (gnome-text-editor): focus hit an XWayland window, IBus
-treated the commit as done, and the character was dropped. Unicode Insert now
-only queues until the document’s real `FocusIn` (click the editor if needed);
-SVG Insert still restores X11 focus for Writer / ONLYOFFICE.
-
-### macOS: circumflex and trema dead keys compose again in Direct input (#83)
-
-Switching from AZERTY to marinaMoji keeps the AZERTY layout, but macOS still
-holds the dead key after the input method has seen ^. The vowel is swallowed
-by that pending accent, so ê and ë never appear. Direct input now composes the
-accent itself and, once that is stored, reads the key's character to clear
-macOS's copy of the dead key so the vowel arrives. Shift+¨ is no longer
-treated as Shift pressed alone, which was leaving Direct before the vowel.
-Ctrl / Option / Command chords are unchanged, and a vowel that completes the
-Right Shift macron still goes to marinaMoji. Verified locally with ABC-AZERTY
-in Direct (`^`+`e` → ê, Shift+`^`+`e` → ë).
-
-### Release candidate 0.0.18-rc14
-
-rc13 plus two character composer fixes, described below: on Wayland the composer
-runs through XWayland (#91, #92), and on Windows the drawing is written where
-the office plugins look. Pair it with the LibreOffice extension 0.3.12, the first
-to insert the composer's drawings.
-
-### Windows: the composer's drawing reaches office plugins
-
-The Windows IME starts the composer with a temporary `--result_file`, and the
-composer wrote the SVG only beside it, where no plugin looks. It now always
-writes `character_composer_result.svg` in the user-profile directory too (the
-copy beside the result file stays). This is why the LibreOffice extension never
-inserted a drawn character on Windows.
-
-### Linux: the character composer runs through XWayland on Wayland (#91, #92)
-
-Under a Wayland session the composer used Qt's native Wayland backend, where a
-window has no global position. The IBus candidate window (drawn by the xcb
-renderer) opened far left of the caret, and `WindowStaysOnTopHint` and
-`raise()` are ignored, so the document hid the composer and the toolbar button
-could not bring it back. The composer now sets `QT_QPA_PLATFORM=xcb` when
-`DISPLAY` is available, as the renderer already does; an explicit
-`QT_QPA_PLATFORM` still wins. Not yet tried on a Wayland desktop.
-
-### Release candidate 0.0.18-rc13
-
-rc12 was tagged but never published: its macOS jobs were cancelled waiting for a
-hosted runner, and its Windows jobs failed in "Verify product version in build"
-as rc10 and rc11 had (the build and the MSI were fine; the step could not find
-the tool by file name). rc13 is rc12 with that step fixed (see the entry below);
-the character composer drawing and the licence note in the rc12 entry apply
-unchanged.
-
-### Release CI: Windows version check finds the tool by its marker, not its name
-
-rc10, rc11 and rc12 all failed on Windows in "Verify product version in build"
-(the build and the MSI were fine): the step looked for `mozc_tool.exe` /
-`marinamoji_tool.exe` under `bazel-out`, and neither name is what Bazel leaves
-there (the final file is a symlink named after the target, under another
-configuration). The step now checks every `.exe` built in `gui/tool` and passes
-when one carries the `marinaMoji-product-version=<version>` line from
-`version.cc`; on failure it lists what is there. Checked against a simulated
-output tree only: it can run for real only on a tag.
-
-### Release candidate 0.0.18-rc12
-
-rc11 plus everything below down to the rc11 entry: the character composer draws
-a structure with no Unicode character as one glyph (KAGE), laid out as GlyphWiki
-lays it out, and finds characters by components. **Licence change to know
-about:** `mozc_tool` and the standalone composer link the GPL-3.0 KAGE port
-(`src/kage`) and are GPL-3.0 as distributed; the input method itself is
-unchanged (BSD-3-Clause). macOS CI's test job never got a runner on this
-commit (a hosted-runner capacity failure); both macOS builds and all Linux and
-Windows jobs passed.
-
-### Character composer: stays visible, Insert after IME input, candidate position
+#### Character composer: stays visible, Insert after IME input, candidate position
 
 - The window now stays on top of the document (`WindowStaysOnTopHint`; X11 and
   macOS — Wayland compositors may ignore it). Pressing the toolbar button
@@ -208,7 +84,7 @@ Windows jobs passed.
   FocusIn. Moving between boxes on the same row no longer drags the list back
   to an earlier box's left edge.
 
-### Character composer: find characters containing components
+#### Character composer: find characters containing components
 
 New "Find characters containing…" group under "Break apart a character".
 Type one or more components; the list shows only characters whose
@@ -218,7 +94,7 @@ what 手 builds). Click a result to load its parts into the editor. Backed by
 `IdsTable::FindContaining`, whose inverted index is built on first search.
 Results beyond 500 are not listed; add components to narrow.
 
-### Character composer: a structure with no Unicode character is drawn as one new glyph
+#### Character composer: a structure with no Unicode character is drawn as one new glyph
 
 Insert on a layout like ⿰木巻 used to place the two components side by side as
 text, squeezed into their cells: two small characters, not a new one. It now
@@ -251,16 +127,7 @@ old text drawing.
   `src/kage/` has its own `LICENSE`; the root README lists it. Not yet checked on
   CI or in the installers (Windows installer wiring is untested here).
 
-### Linux: character composer Insert into LibreOffice is less flaky
-
-The composer's Qt window steals IBus focus. Insert already retried
-`CommitToolbarText` for ~3 s waiting for `FocusIn`, but LibreOffice often
-hands focus back later (or only after a click in the document), so the
-character was dropped. The text is now kept on the engine and flushed on
-the next `FocusIn` (up to 60 s). Matches the "sometimes works" pattern
-when the user happened to click back into Writer in time.
-
-### Character composer: Enter inserts; Linux candidates stay near the caret
+#### Character composer: Enter inserts; Linux candidates stay near the caret
 
 - **Enter / Return** in a filled layout (Unicode or SVG ready) runs Insert —
   no mouse click on the button. Enter while typing Japanese is still handled
@@ -271,28 +138,7 @@ when the user happened to click back into Writer in time.
   Genuine `FocusOut` now drops the cached caret (odoriji menu bounce still
   keeps it). Remaining HiDPI/Wayland Qt+IBus mis-scaling is upstream.
 
-### Release candidate 0.0.18-rc11
-
-rc10 was tagged but never published: its Windows jobs failed in "Verify product
-version in build". On Windows `bazelisk info output_path` prints `BAZEL_*`
-lines before the path, so `find` was handed all of them; the step now takes only
-the last line (`aba6c4665`). The macOS and Linux jobs passed in rc10 (the macOS
-packages were signed, notarized and stapled). rc11 is rc10 with that fixed.
-The Windows MSIs are built unsigned by CI and need
-`scripts/sign-windows-release.mjs`.
-
-### Release candidate 0.0.18-rc10 (not published)
-
-rc8 and rc9 were tagged but never published: the new "Verify product version
-in build" step failed every build job (it could not find the generated header
-under `bazel-bin`, and on x86_64 `strings` cannot see a version string the
-compiler folds into instructions; fixed in `159c8fd52`). rc10 is everything
-since rc7 with that check working. Not yet verified in real hosts: the
-character composer's hand-off to LibreOffice and ONLYOFFICE, the radical-form
-rules and the drawing preview. As with rc7, the Windows MSIs are built unsigned
-by CI and need `scripts/sign-windows-release.mjs`.
-
-### Character composer: radical forms follow position, as in Grognard
+#### Character composer: radical forms follow position, as in Grognard
 
 Typing 手 in the left box of ⿰ now shows 扌 (and 言 → 訁, 水 → 氵, 人 → 亻,
 竹 on top of ⿱ → 𥫗 …), the way the Grognard composer does. The 34
@@ -302,7 +148,7 @@ reads them. Only typed input is converted: **Next form** still cycles 手 →
 扌 → ⺘, so the base form can be put back. Lookup was already family-based, so
 the found character is unchanged. Not yet checked in the app.
 
-### Character composer: preview the drawing, and write it before the dialog closes
+#### Character composer: preview the drawing, and write it before the dialog closes
 
 - For a structure with no Unicode character the preview square was blank;
   the SVG was built but never shown. The dialog now paints the same glyph
@@ -319,7 +165,7 @@ the found character is unchanged. Not yet checked in the app.
   squeezed to fit (`scale_x` / `scale_y` on `PlacedGlyph`, a `transform` in
   the SVG), like the parts of a composed character.
 
-### Character composer: hand the drawing to the ONLYOFFICE plugin (macOS, Linux)
+#### Character composer: hand the drawing to the ONLYOFFICE plugin (macOS, Linux)
 
 When Insert produces an SVG drawing, the composer also writes
 `composer_result.js` (`window.marinaMojiComposerResult = {id, svg}`) into the
@@ -335,7 +181,7 @@ yet verified inside ONLYOFFICE Desktop on Linux. A result is picked up by any
 ONLYOFFICE document whose marinaMoji panel is open, even if the composer was
 started from another application.
 
-### Character composer: SVG status messages are translated
+#### Character composer: SVG status messages are translated
 
 Three strings added with the SVG export ("No encoded character has this
 structure. Insert places a drawing…", the lookup-data-missing variant, and
@@ -343,81 +189,7 @@ structure. Insert places a drawing…", the lookup-data-missing variant, and
 translation files, so they showed in English in the French and Japanese
 dialogs. The `.qtts` files are updated and the `.qm` files regenerated.
 
-### Release candidate 0.0.18-rc9 (not published)
-
-rc8 was tagged but never published: its new "Verify product version in build"
-step used `find bazel-bin`, which does not follow the `bazel-bin` symlink, so
-every Linux and macOS build job failed. `release.yaml` now uses `find -L`. rc9
-is rc8's content with that fix.
-
-### Release candidate 0.0.18-rc8 (not published)
-
-Rolls up the composer and palette fixes below, plus the CI changes since rc7
-(buildifier ordering of `target_compatible_with` in the composer tests). The
-rc7 Windows MSIs were Authenticode-signed after the CI build with
-`scripts/sign-windows-release.mjs` and replaced on the release (new MSI hashes
-in `SHA256SUMS`); rc8's MSIs are built unsigned by CI and need the same pass.
-
-### macOS: character composer follows the system's preferred languages
-
-A French-system user got the composer in Japanese while another Mac, set up
-the same way, showed French. The Qt tools' bundle declared only a Japanese
-development region and no localizations, and Qt's locale list can be narrowed
-to what the bundle declares. `GuiUtil::InstallTranslator` now tries the
-preferred languages from `CFLocaleCopyPreferredLanguages` in order before
-falling back to `QLocale::system()`, and `mozc_tool_info` declares
-`CFBundleLocalizations` (en, fr, ja). This applies to every Qt tool, not just
-the composer. Not yet confirmed on the affected Mac.
-
-### Windows / Linux: character composer Insert reaches the document again
-
-Two delivery bugs, one per platform; macOS already retried until a controller
-was active.
-
-- **Windows:** `Process::SpawnProcess` never wrote the new process id into
-  `*pid`. `LaunchCharacterComposer` then called `OpenProcess(0)`, failed, and
-  immediately deleted the empty temp result file — so Insert closed the dialog
-  but the TIP never saw the character. The pid is set from `CreateProcess`
-  now, and insert is retried for a few seconds while the document regains
-  focus.
-- **Linux:** the composer's Qt window steals IBus focus; `CommitToolbarText`
-  ran on FocusOut and the client dropped the text. Commits now wait until
-  `FocusIn` (same ~3 s retry budget as macOS). Symbols Palette is unchanged
-  (it never takes focus).
-
-Not built here (no Windows toolchain; Linux ibus headers missing on this Mac).
-
-### Windows / macOS / Linux: Symbols Palette Odoriji tab inserts again
-
-A follow-up to "odoriji palette no longer opens in direct input mode". That
-change made `SHOW_ODORIJI_PALETTE` a no-op in Direct, so the Symbols Palette
-Odoriji tab's old `SHOW` then `SUBMIT_CANDIDATE` pair never armed the list and
-clicks inserted nothing (other tabs still worked via `INSERT_SYMBOL_TEXT`).
-The tab now sends `INSERT_ODORIJI_DEFAULT` with the clicked index: the mark is
-inserted and becomes the Ctrl+Shift+1 default, in any mode including Direct.
-Same path on Windows, macOS, and Linux. Session unit-tested; Windows TIP /
-renderer not built here.
-
-### Odoriji palette no longer opens in direct input mode
-
-`Session::ShowOdorijiPalette` is a no-op in direct input mode. Nothing consumes
-the palette's selection there, so it used to open and follow the cursor,
-doing nothing, until the mode changed. The macOS shortcut still turns the IME
-on first, so it opens the palette in the current composition mode as before;
-only the toolbar and menu paths are blocked in direct mode.
-
-### CI: character composer Qt tests only run on Linux
-
-`character_composer_dialog_test` and `character_composer_libmain_test` link
-Qt, which only the Linux test job provides (on macOS the Qt frameworks are
-linked by the app bundle, so a plain `cc_test` failed with undefined `QWidget`
-symbols; the Windows x64 job builds no Qt). Both are now
-`target_compatible_with = linux`, like `github_update_checker_test`, and the
-Windows x64 test job skips `//gui/character_composer/...` as arm64 already
-did. `WorksWithoutDataFiles` now expects Insert to be enabled (SVG drawing)
-when no data files are found, matching the SVG-export change below.
-
-### Character composer: unencoded structures produce an SVG drawing
+#### Character composer: unencoded structures produce an SVG drawing
 
 When every box is filled but no Unicode character matches, Insert is still
 enabled. The composer draws the IDS layout as SVG (`composer_svg`), writes
@@ -428,32 +200,7 @@ the clipboard drawing; LibreOffice / ONLYOFFICE wiring comes next.
 
 Unit-tested (`composer_svg_test`); dialog Qt tests not linked on this Mac.
 
-### Linux: Symbols Palette can be dragged and no longer looks permanently grey
-
-The palette reused the toolbar's "no dock" hints, including X11
-`override_redirect` (unmanaged → titlebar drag does nothing) and
-`accept_focus=false` (themes paint `:backdrop`, so it looked deselected). It
-is now a keep-above utility that still refuses keyboard focus, with its own
-header-bar drag (manual move, same idea as the toolbar) and CSS so `:backdrop`
-keeps the active colours. Not built or run.
-
-### Live conversion off by default at install
-
-`use_live_conversion` now defaults to false (kana until Space). New installs
-and profiles that never saved the option start in Manual mode; Preferences →
-Misc → Initial conversion mode, the toolbar button, and Ctrl+Shift+6 still
-turn it on. Profiles that already saved Automatic keep that setting.
-
-### macOS: a pinned Symbols Palette stays open when you click away
-
-`windowDidResignKey:` always called `dismissPalette`, so "Pin palette" only
-kept the window open after inserting a symbol — clicking the document (or
-another app) still closed it. Same idea as the earlier Linux FocusOut fix:
-when Pin is checked, ignore focus loss; Escape still closes. Symbol clicks
-now prefer `g_active_controller` so inserts go to the field that currently
-has focus after you click away. Not built or run.
-
-### Character composer: Overlap (⿻) now looks like an overlap
+#### Character composer: Overlap (⿻) now looks like an overlap
 
 The twelfth layout drew as a plain square and opened two fields stacked as
 top/bottom halves, which looked like Above / below. It now draws two dashed
@@ -466,74 +213,7 @@ says that the parts overlap but not where, so the drawing is schematic. About
 Built and unit-tested on Linux (`layout_geometry_test`); not viewed in the
 running dialog.
 
-### Composer toolbar icon: back to white 日 strokes on navy
-
-The previous macOS fix split the artwork so the 日 counters became white boxes,
-which changed the look (navy lines on white). Restored the original single-path
-artwork with `fill-rule:evenodd` instead: the half-fill is navy, the 日 strokes
-are knocked out to white, and the counters stay navy; 月 is unchanged. Windows
-PNGs restored to the original renders. Checked with an NSImage render.
-
-### Linux: Backspace after kana commit still crashed some terminals (#36)
-
-Follow-up: the earlier “only delete when preceding text is non-empty” gate
-still crashed. Wayland can report preceding text while GTK has no real
-surrounding buffer, and `delete_surrounding_text` then SIGSEGVs gnome-terminal
-(LP#2051381 / mutter#3102); synthetic `forward_key` is the other killer (key
-loop). Echo-back Backspace now matches upstream Mozc by default: decline the
-key and let IBus deliver the real Backspace — no delete, no synthetic forward.
-The SendKey-failure fallback and the stale-surround Left injection follow the
-same rule. `MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1` restores the old
-delete-or-forward behaviour for A/B testing only.
-
-Linux-only; not compiled locally (macOS has no ibus headers). Re-test: in
-gnome-terminal, かねとも → 兼倶 → Enter → Backspace (terminal stays up; the
-character deletes). Debug log should show `engine.echoback decline_passthrough`.
-
-### Linux: defer the odoriji candidate window until it can be placed (#25)
-
-Opening Odoriji from the IME menu (and typed odoriji / Ctrl+Shift+2 with no
-caret yet) used to paint the candidate window at a zero or stale rect and then
-move it — a quick corner flash, or a jump after FocusIn.
-
-- **IME menu:** never paint in `PropertyActivate`. Stash the Output in
-  `deferred_candidate_output_` and show it once on FocusIn or a usable
-  `set_cursor_location`. An 80ms timeout covers apps that do not bounce focus;
-  it is skipped if FocusOut already ran, so we do not paint while the panel may
-  own the caret. The old re-SHOW round-trip is removed.
-- **Typed / Ctrl+Shift+2:** `UpdateAll` defers the same way when
-  `EnsureUsableCursorArea` fails; `MaybeFlushDeferredCandidateWindow` paints
-  on the first usable caret report.
-
-Linux-only; not compiled locally (macOS has no ibus headers). Re-test: IME-menu
-Odoriji on gedit (no corner flash); Ctrl+Shift+2 as first key in a fresh
-Firefox/LibreOffice window (appears at caret once, not in the corner first).
-
-### Windows: odoriji candidate list and Symbols Palette odoriji insert (#80)
-
-Ctrl+Shift+2 opened the odoriji candidate list, but arrows, Space, and clicks
-did nothing; the Symbols Palette opened but its Odoriji tab also failed to
-insert. Two Windows/session gaps:
-
-- **Candidate window click/hover.** The renderer sends `SELECT_CANDIDATE` /
-  `HIGHLIGHT_CANDIDATE`. Odoriji commit lived only under `SUBMIT_CANDIDATE`,
-  and highlight went through the converter path (inactive for this list), so
-  clicks and mouse-move were no-ops. `SelectCandidate` / `HighlightCandidate`
-  now call `OdorijiPalette::TryCommitCandidate` /
-  `TryHighlightCandidate` when the palette is open. `DoNothing` also keeps
-  overlaying the list while it is visible so TestSendKey / no-op paths do not
-  wipe `last_output` on Windows.
-- **Symbols Palette Odoriji tab.** `SendShowOdorijiPaletteAndSubmit` sends
-  `SHOW_ODORIJI_PALETTE` then `SUBMIT_CANDIDATE`, but the Windows
-  renderer→TIP allowlist rejected both. They are allowlisted, handled in
-  `OnRendererCallbackAsync`, and applied with a **synchronous** edit session
-  so SHOW finishes before SUBMIT (SUBMIT needs the palette already visible).
-
-Not built on this machine (no Windows toolchain here). Re-test on Windows:
-Ctrl+Shift+2 → Space/arrows move highlight, Enter/1–8/click insert; Symbols
-Palette → Odoriji tab click inserts and sets the Ctrl+Shift+1 default.
-
-### Character composer (Linux): build a character from its parts and insert it
+#### Character composer (Linux): build a character from its parts and insert it
 
 The toolbar's character-composer button used to open zi.tools. On Linux it now
 runs `mozc_tool --mode=character_composer`, a Qt dialog modelled on the composer
@@ -600,22 +280,68 @@ in the Grognard editor, limited to producing an encoded Unicode character.
     open only raises the window; the data directory is present in the installed
     product.
 
-### Linux: a pinned symbols palette stays open when focus moves to another window
+#### Character composer toolbar button (placeholder)
 
-`MozcEngine::FocusOut` closed the symbols palette unconditionally, so the
-"Pin palette" checkbox only took effect after clicking a symbol
-(`OnSymbolButtonClicked`) and the palette still vanished whenever you clicked
-into another window.
+New toolbar button right after the dictionary one, on macOS, Linux, and
+Windows. For now it only opens <https://zi.tools/> in the default browser; a
+real character composer comes later.
 
-- `MozcToolbarHideSymbolsPalette(bool force = false)` now does nothing while
-  the palette is pinned unless `force` is true. Focus-out uses the default, so
-  a pinned palette stays; the toolbar's delayed hide is skipped with it, as it
-  already was for any visible palette.
-- Escape passes `force=true`, so it still closes a pinned palette (the palette
-  never takes keyboard focus, so Escape is the only keyboard way to close it).
-- Not built or run.
+- Icons: `toolbar_composer_{light,dark}` (SVG for mac/Linux, pre-rendered PNGs
+  at 24/36/48 px for Windows, listed in the WiX manifest).
+- Windows: the renderer is locked down and cannot open a browser, so the click
+  sends `OPEN_CHARACTER_COMPOSER` to the TIP, which opens the URL itself.
+  macOS and Linux open it directly from the toolbar.
 
-### Keyboard Shortcuts moved from the toolbar into menus
+### Setup wizard, settings and palette
+
+#### First-run setup wizard (EN/FR/JA)
+
+Shown once for a brand-new profile: keyboard layout, conversion and live-conversion
+choices, the two-step Enter option and a few preferences, then it writes the
+configuration. A profile that already has `config1.db`, `user_dictionary.db`,
+`history.db` or `cform.db` counts as existing and never sees it; an atomically created
+`setup_wizard_shown` directory in the profile keeps concurrent IME processes from each
+launching it (delete the profile or that directory to see it again). The font sizes are
+scaled on Windows and Linux so the pages fit without scrolling. Not yet verified on any
+platform beyond compiling in CI.
+
+#### Two-step Enter (experimental)
+
+An optional setting, off by default, in the setup wizard and the configuration dialog:
+after a reading is converted the first Enter accepts it and leaves it underlined, the
+second inserts it. It now applies after any conversion, not only when the candidate window
+is open. Unconverted kana still inserts on one Enter. Labelled experimental in the wizard
+and the settings panel (English, French, Japanese). Not verified in a real host; see #95.
+
+#### Odoriji: the missing 〻〱〲〳〴〵
+
+〻〱〲〳〴〵 (including the vertical 〳〴〵) are in the palette and the Symbols tab, and are
+offered when converting おどりじ. Not verified in a real host.
+
+#### Odoriji palette no longer opens in direct input mode
+
+`Session::ShowOdorijiPalette` is a no-op in direct input mode. Nothing consumes
+the palette's selection there, so it used to open and follow the cursor,
+doing nothing, until the mode changed. The macOS shortcut still turns the IME
+on first, so it opens the palette in the current composition mode as before;
+only the toolbar and menu paths are blocked in direct mode.
+
+#### Live conversion off by default at install
+
+`use_live_conversion` now defaults to false (kana until Space). New installs
+and profiles that never saved the option start in Manual mode; Preferences →
+Misc → Initial conversion mode, the toolbar button, and Ctrl+Shift+6 still
+turn it on. Profiles that already saved Automatic keep that setting.
+
+#### Composer toolbar icon: back to white 日 strokes on navy
+
+The previous macOS fix split the artwork so the 日 counters became white boxes,
+which changed the look (navy lines on white). Restored the original single-path
+artwork with `fill-rule:evenodd` instead: the half-fill is navy, the 日 strokes
+are knocked out to white, and the counters stay navy; 月 is unchanged. Windows
+PNGs restored to the original renders. Checked with an NSImage render.
+
+#### Keyboard Shortcuts moved from the toolbar into menus
 
 The toolbar had too many buttons, so the Keyboard Shortcuts button is gone on
 every platform; the window itself is unchanged.
@@ -635,37 +361,7 @@ every platform; the window itself is unchanged.
   still shipped. Not built or run; whether the Windows window opens when the
   toolbar is hidden needs checking on a real machine.
 
-### Windows file versions now rise between release candidates
-
-The Windows MSI replaces an installed `.exe`/`.dll` only if the new file has a
-higher file version. The fourth version field ignored the `-rcN` suffix, so
-`0.0.18-rc1` and `-rc2` (and the final) had identical binary versions:
-upgrading rc1 to rc2 refreshed the unversioned files (icons) but left the old
-program files running — the Windows toolbar showed the new live-conversion icon
-next to the old Settings button.
-
-`build_tools/mozc_version.py` now maps `X.Y.Z[-rcN]` to
-`(major*10000 + minor*100 + patch) * 16 + slot`, with slot = rc number (1-14) for
-an rc and 15 for the final: `0.0.18-rc1` -> 289, `-rc2` -> 290, `0.0.18` -> 303.
-Always rising, rc below its final, and above every value the old scheme gave
-(0.0.17 -> 17, 0.0.18-rc1/-rc2 -> 18), so existing installs upgrade normally.
-Limit: X.Y.Z below 0.41.0 (16-bit field); other suffixes, rc0 and rc15+ fail the
-build. Installs of rc1/rc2 stay on stale binaries until they move to the next
-release built with this change. Tests added; not built on Windows.
-
-### Character composer toolbar button (placeholder)
-
-New toolbar button right after the dictionary one, on macOS, Linux, and
-Windows. For now it only opens <https://zi.tools/> in the default browser; a
-real character composer comes later.
-
-- Icons: `toolbar_composer_{light,dark}` (SVG for mac/Linux, pre-rendered PNGs
-  at 24/36/48 px for Windows, listed in the WiX manifest).
-- Windows: the renderer is locked down and cannot open a browser, so the click
-  sends `OPEN_CHARACTER_COMPOSER` to the TIP, which opens the URL itself.
-  macOS and Linux open it directly from the toolbar.
-
-### Live conversion toolbar toggle (Apple-like preedit)
+#### Live conversion toolbar toggle (Apple-like preedit)
 
 Optional **live conversion** (automatic conversion): while composing, the top
 realtime conversion (REALTIME_TOP) is shown in the underline instead of raw
@@ -690,6 +386,286 @@ style); switch it off for kana-until-Space typing.
   cycles candidates; multi-segment runs full Convert for segment focus).
 - Distinct from **Use realtime conversion**, which only fills the suggestion
   list.
+
+### Windows
+
+#### Windows: the TIP starts every thread in Hiragana
+
+`Activate` turns the IME on in Hiragana (and the session starts in precomposition)
+instead of copying TSF's usually closed state. The toolbar and Symbols Palette are kept
+up, and an IME-off is ignored, while the palette is open, so opening it no longer snaps
+the mode indicator to Direct. If TSF refuses the open or mode change, the input mode
+manager follows what TSF holds. Not yet verified on Windows: that the palette's "open"
+flag always clears when it closes (#93).
+
+#### Windows: the composer's drawing reaches office plugins
+
+The Windows IME starts the composer with a temporary `--result_file`, and the
+composer wrote the SVG only beside it, where no plugin looks. It now always
+writes `character_composer_result.svg` in the user-profile directory too (the
+copy beside the result file stays). This is why the LibreOffice extension never
+inserted a drawn character on Windows.
+
+#### Windows / Linux: character composer Insert reaches the document again
+
+Two delivery bugs, one per platform; macOS already retried until a controller
+was active.
+
+- **Windows:** `Process::SpawnProcess` never wrote the new process id into
+  `*pid`. `LaunchCharacterComposer` then called `OpenProcess(0)`, failed, and
+  immediately deleted the empty temp result file — so Insert closed the dialog
+  but the TIP never saw the character. The pid is set from `CreateProcess`
+  now, and insert is retried for a few seconds while the document regains
+  focus.
+- **Linux:** the composer's Qt window steals IBus focus; `CommitToolbarText`
+  ran on FocusOut and the client dropped the text. Commits now wait until
+  `FocusIn` (same ~3 s retry budget as macOS). Symbols Palette is unchanged
+  (it never takes focus).
+
+Not built here (no Windows toolchain; Linux ibus headers missing on this Mac).
+
+#### Windows / macOS / Linux: Symbols Palette Odoriji tab inserts again
+
+A follow-up to "odoriji palette no longer opens in direct input mode". That
+change made `SHOW_ODORIJI_PALETTE` a no-op in Direct, so the Symbols Palette
+Odoriji tab's old `SHOW` then `SUBMIT_CANDIDATE` pair never armed the list and
+clicks inserted nothing (other tabs still worked via `INSERT_SYMBOL_TEXT`).
+The tab now sends `INSERT_ODORIJI_DEFAULT` with the clicked index: the mark is
+inserted and becomes the Ctrl+Shift+1 default, in any mode including Direct.
+Same path on Windows, macOS, and Linux. Session unit-tested; Windows TIP /
+renderer not built here.
+
+#### Windows: odoriji candidate list and Symbols Palette odoriji insert (#80)
+
+Ctrl+Shift+2 opened the odoriji candidate list, but arrows, Space, and clicks
+did nothing; the Symbols Palette opened but its Odoriji tab also failed to
+insert. Two Windows/session gaps:
+
+- **Candidate window click/hover.** The renderer sends `SELECT_CANDIDATE` /
+  `HIGHLIGHT_CANDIDATE`. Odoriji commit lived only under `SUBMIT_CANDIDATE`,
+  and highlight went through the converter path (inactive for this list), so
+  clicks and mouse-move were no-ops. `SelectCandidate` / `HighlightCandidate`
+  now call `OdorijiPalette::TryCommitCandidate` /
+  `TryHighlightCandidate` when the palette is open. `DoNothing` also keeps
+  overlaying the list while it is visible so TestSendKey / no-op paths do not
+  wipe `last_output` on Windows.
+- **Symbols Palette Odoriji tab.** `SendShowOdorijiPaletteAndSubmit` sends
+  `SHOW_ODORIJI_PALETTE` then `SUBMIT_CANDIDATE`, but the Windows
+  renderer→TIP allowlist rejected both. They are allowlisted, handled in
+  `OnRendererCallbackAsync`, and applied with a **synchronous** edit session
+  so SHOW finishes before SUBMIT (SUBMIT needs the palette already visible).
+
+Not built on this machine (no Windows toolchain here). Re-test on Windows:
+Ctrl+Shift+2 → Space/arrows move highlight, Enter/1–8/click insert; Symbols
+Palette → Odoriji tab click inserts and sets the Ctrl+Shift+1 default.
+
+#### Windows file versions now rise between release candidates
+
+The Windows MSI replaces an installed `.exe`/`.dll` only if the new file has a
+higher file version. The fourth version field ignored the `-rcN` suffix, so
+`0.0.18-rc1` and `-rc2` (and the final) had identical binary versions:
+upgrading rc1 to rc2 refreshed the unversioned files (icons) but left the old
+program files running — the Windows toolbar showed the new live-conversion icon
+next to the old Settings button.
+
+`build_tools/mozc_version.py` now maps `X.Y.Z[-rcN]` to
+`(major*10000 + minor*100 + patch) * 16 + slot`, with slot = rc number (1-14) for
+an rc and 15 for the final: `0.0.18-rc1` -> 289, `-rc2` -> 290, `0.0.18` -> 303.
+Always rising, rc below its final, and above every value the old scheme gave
+(0.0.17 -> 17, 0.0.18-rc1/-rc2 -> 18), so existing installs upgrade normally.
+Limit: X.Y.Z below 0.41.0 (16-bit field); other suffixes, rc0 and rc15+ fail the
+build. Installs of rc1/rc2 stay on stale binaries until they move to the next
+release built with this change. Tests added; not built on Windows.
+
+### macOS
+
+#### macOS: circumflex and trema dead keys compose again in Direct input (#83)
+
+Switching from AZERTY to marinaMoji keeps the AZERTY layout, but macOS still
+holds the dead key after the input method has seen ^. The vowel is swallowed
+by that pending accent, so ê and ë never appear. Direct input now composes the
+accent itself and, once that is stored, reads the key's character to clear
+macOS's copy of the dead key so the vowel arrives. Shift+¨ is no longer
+treated as Shift pressed alone, which was leaving Direct before the vowel.
+Ctrl / Option / Command chords are unchanged, and a vowel that completes the
+Right Shift macron still goes to marinaMoji. Verified locally with ABC-AZERTY
+in Direct (`^`+`e` → ê, Shift+`^`+`e` → ë).
+
+#### macOS: character composer follows the system's preferred languages
+
+A French-system user got the composer in Japanese while another Mac, set up
+the same way, showed French. The Qt tools' bundle declared only a Japanese
+development region and no localizations, and Qt's locale list can be narrowed
+to what the bundle declares. `GuiUtil::InstallTranslator` now tries the
+preferred languages from `CFLocaleCopyPreferredLanguages` in order before
+falling back to `QLocale::system()`, and `mozc_tool_info` declares
+`CFBundleLocalizations` (en, fr, ja). This applies to every Qt tool, not just
+the composer. Not yet confirmed on the affected Mac.
+
+#### macOS: a pinned Symbols Palette stays open when you click away
+
+`windowDidResignKey:` always called `dismissPalette`, so "Pin palette" only
+kept the window open after inserting a symbol — clicking the document (or
+another app) still closed it. Same idea as the earlier Linux FocusOut fix:
+when Pin is checked, ignore focus loss; Escape still closes. Symbol clicks
+now prefer `g_active_controller` so inserts go to the field that currently
+has focus after you click away. Not built or run.
+
+### Linux
+
+#### Linux: hide the toolbar while the character composer is open
+
+On GNOME the composer and toolbar both run as XWayland. When Insert closed the
+composer, focus often returned to the toolbar instead of Wayland-native gedit,
+so IBus never saw `FocusIn` and Unicode Insert was dropped. Opening the
+composer now hides the toolbar (and symbols palette); it is shown again after
+a successful flush, when retries end, or if the composer is cancelled.
+
+After Insert, raise the app that last had IME focus. Ubuntu Text Editor uses
+D-Bus `Application.Activate`; classic gedit must not (that opens a new empty
+tab) — it gets AT-SPI `grab_focus` on an existing window instead. XWayland
+apps like Cursor already regain focus once the toolbar is hidden.
+
+#### Linux: composer Unicode Insert retries IBus flush; office plugins as backup
+
+After queueing a Unicode character for `FocusIn`, the toolbar retries a flush
+for ~3 s while the engine is focused (covers FocusIn that arrived before
+stdout was read). The composer also writes the character to the profile
+`.txt` and to ONLYOFFICE `composer_result.js` (`text` field) so LibreOffice /
+ONLYOFFICE plugins can insert when IBus is late — IBus remains the path for
+apps without a plugin.
+
+#### Linux: toolbar on GNOME Wayland uses XWayland even if GDK_BACKEND is set
+
+Ubuntu exports `GDK_BACKEND=wayland`. The toolbar’s “prefer X11” helper used to
+skip when that variable was already set, so the bar stayed on native Wayland:
+it could take IME focus, would not stay a floating dock, and drag failed.
+It now overwrites `GDK_BACKEND=x11` when `DISPLAY` is available (same idea as
+the character composer’s `QT_QPA_PLATFORM=xcb`), and `IsWayland()` / `IsX11()`
+follow the real GDK backend instead of only `XDG_SESSION_TYPE`.
+
+#### Linux: character composer Unicode Insert waits for a real FocusIn (#92)
+
+Stay-on-top via XWayland fixed the buried window. An attempt to also
+`XSetInputFocus` the previous window on Unicode Insert broke Insert entirely on
+Wayland-native editors (gnome-text-editor): focus hit an XWayland window, IBus
+treated the commit as done, and the character was dropped. Unicode Insert now
+only queues until the document’s real `FocusIn` (click the editor if needed);
+SVG Insert still restores X11 focus for Writer / ONLYOFFICE.
+
+#### Linux: the character composer runs through XWayland on Wayland (#91, #92)
+
+Under a Wayland session the composer used Qt's native Wayland backend, where a
+window has no global position. The IBus candidate window (drawn by the xcb
+renderer) opened far left of the caret, and `WindowStaysOnTopHint` and
+`raise()` are ignored, so the document hid the composer and the toolbar button
+could not bring it back. The composer now sets `QT_QPA_PLATFORM=xcb` when
+`DISPLAY` is available, as the renderer already does; an explicit
+`QT_QPA_PLATFORM` still wins. Not yet tried on a Wayland desktop.
+
+#### Linux: character composer Insert into LibreOffice is less flaky
+
+The composer's Qt window steals IBus focus. Insert already retried
+`CommitToolbarText` for ~3 s waiting for `FocusIn`, but LibreOffice often
+hands focus back later (or only after a click in the document), so the
+character was dropped. The text is now kept on the engine and flushed on
+the next `FocusIn` (up to 60 s). Matches the "sometimes works" pattern
+when the user happened to click back into Writer in time.
+
+#### Linux: Symbols Palette can be dragged and no longer looks permanently grey
+
+The palette reused the toolbar's "no dock" hints, including X11
+`override_redirect` (unmanaged → titlebar drag does nothing) and
+`accept_focus=false` (themes paint `:backdrop`, so it looked deselected). It
+is now a keep-above utility that still refuses keyboard focus, with its own
+header-bar drag (manual move, same idea as the toolbar) and CSS so `:backdrop`
+keeps the active colours. Not built or run.
+
+#### Linux: Backspace after kana commit still crashed some terminals (#36)
+
+Follow-up: the earlier “only delete when preceding text is non-empty” gate
+still crashed. Wayland can report preceding text while GTK has no real
+surrounding buffer, and `delete_surrounding_text` then SIGSEGVs gnome-terminal
+(LP#2051381 / mutter#3102); synthetic `forward_key` is the other killer (key
+loop). Echo-back Backspace now matches upstream Mozc by default: decline the
+key and let IBus deliver the real Backspace — no delete, no synthetic forward.
+The SendKey-failure fallback and the stale-surround Left injection follow the
+same rule. `MARINAMOJI_IBUS_ECHO_BACK_FORWARD=1` restores the old
+delete-or-forward behaviour for A/B testing only.
+
+Linux-only; not compiled locally (macOS has no ibus headers). Re-test: in
+gnome-terminal, かねとも → 兼倶 → Enter → Backspace (terminal stays up; the
+character deletes). Debug log should show `engine.echoback decline_passthrough`.
+
+#### Linux: defer the odoriji candidate window until it can be placed (#25)
+
+Opening Odoriji from the IME menu (and typed odoriji / Ctrl+Shift+2 with no
+caret yet) used to paint the candidate window at a zero or stale rect and then
+move it — a quick corner flash, or a jump after FocusIn.
+
+- **IME menu:** never paint in `PropertyActivate`. Stash the Output in
+  `deferred_candidate_output_` and show it once on FocusIn or a usable
+  `set_cursor_location`. An 80ms timeout covers apps that do not bounce focus;
+  it is skipped if FocusOut already ran, so we do not paint while the panel may
+  own the caret. The old re-SHOW round-trip is removed.
+- **Typed / Ctrl+Shift+2:** `UpdateAll` defers the same way when
+  `EnsureUsableCursorArea` fails; `MaybeFlushDeferredCandidateWindow` paints
+  on the first usable caret report.
+
+Linux-only; not compiled locally (macOS has no ibus headers). Re-test: IME-menu
+Odoriji on gedit (no corner flash); Ctrl+Shift+2 as first key in a fresh
+Firefox/LibreOffice window (appears at caret once, not in the corner first).
+
+#### Linux: a pinned symbols palette stays open when focus moves to another window
+
+`MozcEngine::FocusOut` closed the symbols palette unconditionally, so the
+"Pin palette" checkbox only took effect after clicking a symbol
+(`OnSymbolButtonClicked`) and the palette still vanished whenever you clicked
+into another window.
+
+- `MozcToolbarHideSymbolsPalette(bool force = false)` now does nothing while
+  the palette is pinned unless `force` is true. Focus-out uses the default, so
+  a pinned palette stays; the toolbar's delayed hide is skipped with it, as it
+  already was for any visible palette.
+- Escape passes `force=true`, so it still closes a pinned palette (the palette
+  never takes keyboard focus, so Escape is the only keyboard way to close it).
+- Not built or run.
+
+### Release process and CI
+
+#### Release CI: Windows version check finds the tool by its marker, not its name
+
+rc10, rc11 and rc12 all failed on Windows in "Verify product version in build"
+(the build and the MSI were fine): the step looked for `mozc_tool.exe` /
+`marinamoji_tool.exe` under `bazel-out`, and neither name is what Bazel leaves
+there (the final file is a symlink named after the target, under another
+configuration). The step now checks every `.exe` built in `gui/tool` and passes
+when one carries the `marinaMoji-product-version=<version>` line from
+`version.cc`; on failure it lists what is there. Checked against a simulated
+output tree only: it can run for real only on a tag.
+
+#### CI: character composer Qt tests only run on Linux
+
+`character_composer_dialog_test` and `character_composer_libmain_test` link
+Qt, which only the Linux test job provides (on macOS the Qt frameworks are
+linked by the app bundle, so a plain `cc_test` failed with undefined `QWidget`
+symbols; the Windows x64 job builds no Qt). Both are now
+`target_compatible_with = linux`, like `github_update_checker_test`, and the
+Windows x64 test job skips `//gui/character_composer/...` as arm64 already
+did. `WorksWithoutDataFiles` now expects Insert to be enabled (SVG drawing)
+when no data files are found, matching the SVG-export change below.
+
+### Release candidate history
+
+- 0.0.18-rc1 to rc7, rc13 and rc14 were published; rc8 to rc12 were tagged but never
+  published (the new "Verify product version in build" step failed every build job, then
+  on Windows; rc12's macOS jobs were also cancelled waiting for a hosted runner).
+- 0.0.18-rc15 was tagged but never published: the Windows file-version scheme
+  (`_MarinaWindowsRevisionFromVersion`) has 14 rc slots per patch version, so it failed
+  both Windows builds. The slots start again at the next patch version, hence
+  0.0.19-rc1 (revision 305, above rc14's 302).
+- 0.0.19-rc1 and rc3 were published. rc2 was never published (its first macOS build
+  failed on the nested `SetupWizard.app`, and the retry sat in the runner queue).
 
 ## v0.0.17 (2026-10-16)
 
