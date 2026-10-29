@@ -37,6 +37,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
+#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
@@ -53,8 +54,18 @@ namespace mozc {
 constexpr absl::string_view kIbusConfigFile = "ibus_config.textproto";
 
 namespace {
-// Defines absl::string_view kIbusConfigTextProto.
-#include "unix/ibus/ibus_config_textproto.inc"
+// Default engines / longnames come from unix/ibus/main.h (gen_mozc_xml.py
+// --branding=marinaMoji): engine id marinamoji-jp, longname marinaMoji.
+// Do not embed unix/ibus/ibus_config.textproto here — that file is still the
+// upstream Mozc template (mozc-jp / "Mozc") and used to seed a colliding IME.
+
+// Older installs wrote Mozc's engine ids into ~/.config/marinamoji/, which
+// collide with Ubuntu's ibus-mozc. Rewrite those to the branded default once.
+bool NeedsMozcEngineIdMigration(absl::string_view config) {
+  return absl::StrContains(config, "mozc-jp") ||
+         absl::StrContains(config, "mozc-on") ||
+         absl::StrContains(config, "mozc-off");
+}
 
 std::string UpdateConfigFile() {
   const std::string engines_file = FileUtil::JoinPath(
@@ -63,6 +74,16 @@ std::string UpdateConfigFile() {
   if (s.ok()) {
     absl::StatusOr<std::string> config = FileUtil::GetContents(engines_file);
     if (config.ok()) {
+      if (NeedsMozcEngineIdMigration(*config)) {
+        LOG(WARNING) << "Replacing Mozc-colliding IBus engine ids in "
+                     << engines_file << " with marinaMoji defaults";
+        s = FileUtil::SetContents(engines_file, kIbusConfigTextProto);
+        if (!s.ok()) {
+          LOG(ERROR) << "Failed to migrate " << engines_file << ": " << s;
+          return *std::move(config);
+        }
+        return std::string(kIbusConfigTextProto);
+      }
       return *std::move(config);
     }
 

@@ -223,7 +223,7 @@ If it does not appear, make sure `ibus-daemon` is running and check for errors w
 
 By default, marinaMoji uses the **IBus** candidate window (equivalent to `MOZC_IBUS_CANDIDATE_WINDOW=ibus`). The Mozc candidate window offers more detail but can have positioning issues on some setups.
 
-You can change this in **Properties → Misc → Candidate window** (dropdown: IBus / Mozc). The choice is stored in `~/.config/mozc/ibus_config.textproto` and applies after switching input method away and back, or restarting IBus.
+You can change this in **Properties → Misc → Candidate window** (dropdown: IBus / Mozc). The choice is stored in `~/.config/marinamoji/ibus_config.textproto` and applies after switching input method away and back, or restarting IBus. marinaMoji’s IBus engine id is `marinamoji-jp` (not `mozc-jp`), so it can coexist with Ubuntu’s stock Mozc.
 
 To force IBus from the command line when starting the daemon:
 

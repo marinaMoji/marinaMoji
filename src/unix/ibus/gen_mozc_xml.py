@@ -154,10 +154,9 @@ def OutputXml(component, ibus_mozc_path):
 
   print("""
 <!-- Settings of <engines> and <layout> are stored in ibus_config.textproto -->
-<!-- under the user configuration directory, which is either of: -->
-<!-- * $XDG_CONFIG_HOME/mozc/ibus_config.textproto -->
-<!-- * $HOME/.config/mozc/ibus_config.textproto -->
-<!-- * $HOME/.mozc/ibus_config.textproto -->
+<!-- under the user configuration directory: -->
+<!-- * marinaMoji: $XDG_CONFIG_HOME/marinamoji/ or ~/.config/marinamoji/ -->
+<!-- * stock Mozc: ~/.config/mozc/ or ~/.mozc/ -->
 <!-- `ibus write-cache; ibus restart` might be necessary to apply changes. -->
 """)
 
@@ -270,15 +269,17 @@ def main():
       'setup': setup_path + ' --mode=config_dialog',
   }
 
-  # DO NOT change the engine name 'mozc-jp'. The name is referenced by
-  # unix/ibus/mozc_engine.cc.
-  # marinaMoji: register only the main engine so one entry appears in the
-  # input method list (Japonais (marinaMoji)). Stock Mozc may show three
-  # (mozc-jp, mozc-on, mozc-off) on some setups.
+  # marinaMoji must NOT reuse Mozc's IBus engine ids (mozc-jp / mozc-on /
+  # mozc-off). GNOME and IBus key the input source on that id, so sharing it
+  # with Ubuntu's ibus-mozc makes the two IMEs look like one "Japanese (Mozc)"
+  # entry and language setup can replace marinaMoji with stock Mozc.
+  # Engine ids are read from ibus_config.textproto at runtime (see
+  # unix/ibus/main.cc); mozc_engine.cc does not hard-code mozc-jp.
+  # Register a single engine so one entry appears: Japanese (marinaMoji).
   if options.branding == 'marinaMoji':
     engines = [
         {
-            'name': 'mozc-jp',
+            'name': 'marinamoji-jp',
             'longname': product_name,
             'layout': 'default',
             'layout_variant': '',

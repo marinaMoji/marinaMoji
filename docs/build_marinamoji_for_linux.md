@@ -221,7 +221,9 @@ After building, install the package and make marinaMoji appear in your input met
 
 If it still does not appear, confirm that `ibus-daemon` is running and that no errors show when running `ibus engine` or when opening the input method configuration.
 
-**Display name:** marinaMoji uses its own config directory (`~/.config/marinamoji/`), so it appears as **Japanese (marinaMoji)** and does not share settings with stock Mozc. After reinstalling, run `ibus write-cache && ibus restart` and add the input source again; the new config will show "marinaMoji" in the list.
+**Display name / coexistence with Mozc:** marinaMoji uses its own config directory (`~/.config/marinamoji/`) and a unique IBus engine id (`marinamoji-jp`), so it appears as **Japanese (marinaMoji)** next to Ubuntu’s stock **Japanese (Mozc)** (`mozc-jp`). Older installs accidentally reused `mozc-jp` and the label “Mozc”; upgrading rewrites that config once. After install or upgrade, run `ibus write-cache && ibus restart`, remove any stale Mozc-looking marinaMoji entry if needed, and add **Japanese → marinaMoji** again.
+
+If marinaMoji vanished after you switched the system language to Japanese, GNOME likely auto-added stock Mozc into the shared `mozc-jp` slot. With a current build the two IMEs stay separate: keep Mozc if you want it, and add marinaMoji as its own source.
 
 ### Usage and known behavior
 
