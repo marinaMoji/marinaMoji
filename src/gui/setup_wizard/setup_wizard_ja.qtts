@@ -172,8 +172,8 @@
         <translation>漢字の候補が自動的に表示されます。</translation>
     </message>
     <message>
-        <source>Two-step Enter</source>
-        <translation>二段階の Enter</translation>
+        <source>Two-step Enter (experimental)</source>
+        <translation>二段階の Enter（実験的）</translation>
     </message>
     <message>
         <source>Choose how Enter behaves when selecting a conversion candidate.</source>

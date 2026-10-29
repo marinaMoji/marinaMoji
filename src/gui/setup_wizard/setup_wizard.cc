@@ -505,7 +505,7 @@ QWidget* SetupWizard::MakeConversionPage() {
   live_on_ = AddChoice(layout, inner, live_group, tr("On — convert as I type"),
                        tr("Kanji suggestions appear automatically."));
 
-  AddSection(layout, inner, tr("Two-step Enter"),
+  AddSection(layout, inner, tr("Two-step Enter (experimental)"),
              tr("Choose how Enter behaves when selecting a conversion candidate."));
   auto* enter_group = new QButtonGroup(inner);
   two_step_off_ = AddChoice(

@@ -172,8 +172,8 @@
         <translation>Les suggestions de kanji apparaissent automatiquement.</translation>
     </message>
     <message>
-        <source>Two-step Enter</source>
-        <translation>Entrée en deux temps</translation>
+        <source>Two-step Enter (experimental)</source>
+        <translation>Entrée en deux temps (expérimental)</translation>
     </message>
     <message>
         <source>Choose how Enter behaves when selecting a conversion candidate.</source>

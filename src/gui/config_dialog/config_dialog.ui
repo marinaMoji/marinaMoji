@@ -1737,7 +1737,7 @@
          <item>
           <widget class="QCheckBox" name="twoStepCommitCheckBox">
            <property name="text">
-            <string>Two-step Enter after conversion</string>
+            <string>Two-step Enter after conversion (experimental)</string>
            </property>
            <property name="toolTip">
             <string>After a reading is converted, the first Enter accepts it and leaves it underlined. The second Enter inserts it. Unconverted hiragana still inserts on one Enter. If the candidate window is open, the first Enter also closes it.</string>

@@ -459,8 +459,8 @@
         <translation>Manuel (Espace pour convertir)</translation>
     </message>
     <message>
-        <source>Two-step Enter after conversion</source>
-        <translation>Entrée en deux temps après la conversion</translation>
+        <source>Two-step Enter after conversion (experimental)</source>
+        <translation>Entrée en deux temps après la conversion (expérimental)</translation>
     </message>
     <message>
         <source>After a reading is converted, the first Enter accepts it and leaves it underlined. The second Enter inserts it. Unconverted hiragana still inserts on one Enter. If the candidate window is open, the first Enter also closes it.</source>

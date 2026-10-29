@@ -397,8 +397,8 @@
         <translation>手動（スペースで変換）</translation>
     </message>
     <message>
-        <source>Two-step Enter after conversion</source>
-        <translation>変換したあとは Enter を二回で確定</translation>
+        <source>Two-step Enter after conversion (experimental)</source>
+        <translation>変換したあとは Enter を二回で確定（実験的）</translation>
     </message>
     <message>
         <source>After a reading is converted, the first Enter accepts it and leaves it underlined. The second Enter inserts it. Unconverted hiragana still inserts on one Enter. If the candidate window is open, the first Enter also closes it.</source>
