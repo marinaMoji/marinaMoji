@@ -13,9 +13,10 @@ Input is either GlyphWiki's `dump_newest_only.txt` (lines "name | related | KAGE
 data", fields space-padded) or a JSON object {name: KAGE data} such as the
 Grognard editor's `kageCore.json`. Output is "name<TAB>KAGE data" per line.
 
-It keeps the canonical Unicode glyphs `u<hex>` for the blocks below plus every
-glyph they place (recursively), and drops the "@N" render parameter from the
-references (the engine draws the default form).
+It keeps every GlyphWiki name whose base code point is in the blocks below
+(canonical `u<hex>` and variants such as `u6728-01`) plus every glyph they
+place (recursively), and drops the "@N" render parameter from the references
+(the engine draws the default form).
 
     python3 build_kage_data.py --glyphs kageCore.json --out kage_glyphs.tsv \\
         --layout-out kage_layout.tsv --ids ../character_composer/ids_table.tsv
@@ -74,6 +75,8 @@ def strip_parameters(data):
 
 
 NAME = re.compile(r'^u[0-9a-f]{4,6}(-[0-9a-z]+)*$')
+# Bare Unicode glyph or any of its GlyphWiki variants (u6728, u6728-01, …).
+NAMED_IN_BLOCKS = re.compile(r'^u([0-9a-f]{4,6})(?:-.*)?$')
 OPERATORS = {c: (2 if c not in '\u2ff2\u2ff3' else 3) for c in map(chr, range(0x2FF0, 0x2FFC))}
 
 
@@ -173,9 +176,13 @@ def main():
     args = ap.parse_args()
 
     glyphs = read_glyphs(args.glyphs)
+    # Seed with every GlyphWiki name whose base code point is in the composer
+    # blocks, including positional variants (u6728-01, u5fc3-04, …). The older
+    # canonical-only seed left most -01/-02 forms out unless some other glyph
+    # referenced them, so left-side 木 often stayed full-width.
     wanted = set()
     for name in glyphs:
-        m = CANONICAL.match(name)
+        m = NAMED_IN_BLOCKS.match(name)
         if m and any(lo <= int(m.group(1), 16) <= hi for lo, hi in BLOCKS):
             wanted.add(name)
 

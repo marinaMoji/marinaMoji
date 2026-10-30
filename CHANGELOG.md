@@ -162,6 +162,15 @@ old text drawing.
   Genuine `FocusOut` now drops the cached caret (odoriji menu bounce still
   keeps it). Remaining HiDPI/Wayland Qt+IBus mis-scaling is upstream.
 
+#### Character composer: wider GlyphWiki variants for clearer drawings
+
+`kage_glyphs.tsv` now keeps positional GlyphWiki forms (`u6728-01`, `u5fc3-04`,
+…) for every character in the composer’s blocks, not only the bare `uXXXX` and
+what those happen to reference (~62k glyphs, ~4.1 MB). When composing, a bare
+table entry still upgrades to the usual form for that seat (`-01` on the left
+of ⿰, `-03` on top of ⿱, `-05` for many frames, …) if the dump has it. Rebuild
+from the same Grognard `kageCore.json`. Not yet checked in the app.
+
 #### Character composer: Unihan info under the preview
 
 When the layout finds an encoded character, the panel under the preview shows

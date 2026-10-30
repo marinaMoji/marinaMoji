@@ -66,6 +66,17 @@ TEST(ComposerKageTest, UsesTheVariantAndBoxGlyphWikiUses) {
             "99:0:0:2:0:165:200:u6728-01:0:0:0$99:0:0:92:0:200:200:u5dfb:0:0:0");
 }
 
+TEST(ComposerKageTest, PrefersAPositionalVariantWhenTheTableNamesTheBareGlyph) {
+  // GlyphWiki's layout table often records the bare uXXXX even when a -01
+  // form exists; the composer should still draw the narrowed left form.
+  KageResources r = LoadGlyphs();
+  r.glyphs.Set("u6728-01", std::string(r.glyphs.Search("u6728")));
+  r.layout = ComposerLayout::Parse("⿰\t0\t木\tu6728\t5 0 115 200\t5\n");
+  kage::Buhin nested(&r.glyphs);
+  EXPECT_EQ(ComposeKageData("⿰", Parts("木", "巻"), &nested, &r.layout),
+            "99:0:0:5:0:115:200:u6728-01:0:0:0$99:0:0:92:0:200:200:u5dfb:0:0:0");
+}
+
 TEST(ComposerKageTest, UnknownComponentTakesTheUsualBoxOfItsPosition) {
   KageResources r = LoadGlyphs();
   r.layout = ComposerLayout::Parse(

@@ -26,12 +26,13 @@ The code that reads it, `src/kage`, is a different matter: it is GPL-3.0-or-late
 
 ## What is in it
 
-The canonical Unicode glyphs (`u<hex>`) of the Kangxi and CJK radicals, hiragana,
-katakana, CJK Extension A, the Unified Ideographs and the compatibility
-ideographs, plus every glyph those place, recursively. A leaf outside these
-blocks has no strokes here, and the composer draws that structure from the
-components as text instead. The `@N` render parameter on a reference is dropped:
-the default form is drawn.
+The GlyphWiki glyphs whose base code point is in the Kangxi and CJK radicals,
+hiragana, katakana, CJK Extension A, the Unified Ideographs or the compatibility
+ideographs — including positional variants such as `u6728-01` (木 on the left)
+and `u5fc3-04` (心 at the bottom) — plus every glyph those place, recursively.
+A leaf outside these blocks has no strokes here, and the composer draws that
+structure from the components as text instead. The `@N` render parameter on a
+reference is dropped: the default form is drawn.
 
 ## Rebuild
 

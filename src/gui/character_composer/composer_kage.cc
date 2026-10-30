@@ -64,6 +64,65 @@ std::string GlyphName(std::string_view ch) {
   return buf;
 }
 
+// Bare "uXXXX" from a GlyphWiki name that may already carry a suffix.
+std::string CanonicalGlyphBase(std::string_view name) {
+  if (name.size() < 5 || name[0] != 'u') return {};
+  size_t i = 1;
+  while (i < name.size() &&
+         ((name[i] >= '0' && name[i] <= '9') ||
+          (name[i] >= 'a' && name[i] <= 'f'))) {
+    ++i;
+  }
+  if (i < 5) return {};
+  return std::string(name.substr(0, i));
+}
+
+// Preferred GlyphWiki *positional* suffixes for a part of an IDS operator
+// (from kage_layout.tsv: ⿰ left -01, right -02, ⿱ top -03, bottom -04,
+// enclosing frames often -05). Region tags like -j are not listed: bare
+// uXXXX already points at them, and substituting -j only renames the glyph.
+std::vector<std::string_view> PreferredSuffixes(std::string_view op, int position) {
+  if (op == "⿰") {
+    if (position == 0) return {"01"};
+    return {"02"};
+  }
+  if (op == "⿱") {
+    if (position == 0) return {"03"};
+    return {"04"};
+  }
+  if (op == "⿲") {
+    if (position <= 1) return {"01"};
+    return {"02"};
+  }
+  if (op == "⿳") {
+    if (position <= 1) return {"03"};
+    return {"04"};
+  }
+  if (op == "⿴" || op == "⿵" || op == "⿶" || op == "⿷" || op == "⿸" ||
+      op == "⿹" || op == "⿺") {
+    if (position == 0) return {"05"};
+    return {};
+  }
+  return {};
+}
+
+// Pick a positional form when the dump has one (u6728 -> u6728-01 on the left
+// of ⿰). Leaves |name| alone when nothing better is registered.
+std::string PreferPositionalVariant(std::string_view op, int position,
+                                    std::string name, const kage::Buhin &glyphs) {
+  const std::string base = CanonicalGlyphBase(name);
+  if (base.empty()) return name;
+  for (std::string_view suffix : PreferredSuffixes(op, position)) {
+    const std::string candidate = absl::StrCat(base, "-", suffix);
+    if (!glyphs.Search(candidate).empty()) return candidate;
+  }
+  return name;
+}
+
+bool HasGlyph(const kage::Buhin &glyphs, std::string_view name) {
+  return !glyphs.Search(name).empty();
+}
+
 std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &parts,
                           kage::Buhin *nested, const ComposerLayout *layout) {
   const std::vector<Box> boxes = BoxesFor(op);
@@ -76,7 +135,7 @@ std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &
       if (layout != nullptr) {
         const ComposerLayout::Entry *e =
             layout->Find(op, static_cast<int>(i), parts[i].input);
-        if (e != nullptr && !nested->Search(e->variant).empty()) {
+        if (e != nullptr && HasGlyph(*nested, e->variant)) {
           name = e->variant;
           box = {e->left, e->top, e->right, e->bottom};
         } else if (const ComposerLayout::Entry *d =
@@ -87,6 +146,10 @@ std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &
           box = {d->left, d->top, d->right, d->bottom};
         }
       }
+      // Even when the layout table names a bare uXXXX (or we fell back), prefer
+      // a positional form if the dump has one.
+      name = PreferPositionalVariant(op, static_cast<int>(i), std::move(name),
+                                     *nested);
     } else {
       const std::string inner =
           ComposeLayout(parts[i].op, parts[i].parts, nested, layout);
