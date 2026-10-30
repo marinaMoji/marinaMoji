@@ -65,6 +65,30 @@ mozc_cc_library(
 )
 
 mozc_cc_library(
+    name = "char_info",
+    srcs = ["char_info.cc"],
+    hdrs = ["char_info.h"],
+    visibility = ["//gui/character_composer:__pkg__"],
+    deps = [
+        "//base:file_util",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_test(
+    name = "char_info_test",
+    size = "small",
+    srcs = ["char_info_test.cc"],
+    deps = [
+        ":char_info",
+        "//testing:gunit_main",
+    ],
+)
+
+mozc_cc_library(
     name = "composer_result",
     srcs = ["composer_result.cc"],
     hdrs = ["composer_result.h"],

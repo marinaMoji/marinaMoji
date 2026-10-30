@@ -208,6 +208,8 @@
       <ComponentRef Id="MarinaMojiKageLayout" />
       <ComponentRef Id="MarinaMojiKageLicense" />
       <ComponentRef Id="MarinaMojiKageReadme" />
+      <ComponentRef Id="MarinaMojiCharInfo" />
+      <ComponentRef Id="MarinaMojiCharInfoNotice" />
       <ComponentRef Id="MarinaMojiSync" />
       <ComponentRef Id="MMToolbarIcon_logo_long_dark_24" />
       <ComponentRef Id="MMToolbarIcon_logo_long_dark_36" />
@@ -611,6 +613,16 @@
           </Component>
           <Component Id="MarinaMojiKageReadme">
             <File Id="kage_README.kage.md" Name="README.kage.md" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.KageReadmePath)" />
+          </Component>
+          <!--
+            Unihan display metadata (readings, strokes, variants) for the
+            character composer info panel; see data/character_info/README.md.
+          -->
+          <Component Id="MarinaMojiCharInfo">
+            <File Id="char_info.tsv" Name="char_info.tsv" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.CharInfoPath)" />
+          </Component>
+          <Component Id="MarinaMojiCharInfoNotice">
+            <File Id="UNICODE_NOTICE.txt" Name="UNICODE_NOTICE.txt" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.CharInfoNoticePath)" />
           </Component>
         </Directory>
         <!--

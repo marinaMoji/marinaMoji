@@ -1,0 +1,25 @@
+# Copyright 2026 marinaMoji contributors.
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Unihan-derived display metadata for the character composer. Installed as
+# plain files beside mozc_server (same character_composer/ folder as the IDS
+# and KAGE tables). See README.md.
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "README.md",
+    "UNICODE_NOTICE.txt",
+    "char_info.tsv",
+    "build_char_info.py",
+])
+
+# Installed next to ids_table.tsv. Do not include README.md here: that name is
+# already used by data/character_composer in the same install directory.
+filegroup(
+    name = "character_info_data",
+    srcs = [
+        "UNICODE_NOTICE.txt",
+        "char_info.tsv",
+    ],
+)

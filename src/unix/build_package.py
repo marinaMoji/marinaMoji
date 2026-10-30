@@ -59,6 +59,9 @@ CHARACTER_COMPOSER_FILES = (
     'kage_layout.tsv',
     'LICENSE.GlyphWiki',
     'README.kage.md',
+    # Unihan display metadata (data/character_info).
+    'char_info.tsv',
+    'UNICODE_NOTICE.txt',
 )
 
 

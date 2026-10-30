@@ -152,6 +152,7 @@ mozc_cc_qt_library(
         ":layout_geometry",
         ":word_insert",
         "//base:system_util",
+        "//composer_ids:char_info",
         "//composer_ids:composer_result",
         "//composer_ids:ids_operator",
         "//composer_ids:ids_table",

@@ -45,3 +45,10 @@ python3 build_kage_data.py --glyphs dump_newest_only.txt --out kage_glyphs.tsv \
 
 The checked-in file was built from the 2026-09-23 dump through the Grognard
 editor's `kageCore.json`, which is the same data in JSON.
+
+## Related data
+
+- **IDS ↔ character** (lookup, break-apart): `../character_composer/` (CHISE /
+  cjkvi, GPL-2).
+- **Readings, stroke count, Unihan variants, gloss** (UI only):
+  `../character_info/` (Unihan). Do not fold that into these KAGE files.

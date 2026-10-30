@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "composer_ids/char_info.h"
 #include "composer_ids/ids_table.h"
 #include "composer_ids/ids_tree.h"
 #include "gui/character_composer/composer_kage.h"
@@ -180,7 +181,9 @@ class CharacterComposerDialog : public QDialog {
   // |table| may be null (data files missing): the dialog still builds IDS
   // strings, only the character lookup is unavailable.
   CharacterComposerDialog(std::unique_ptr<composer_ids::IdsTable> table,
-                          const QString &data_directory, QWidget *parent = nullptr);
+                          const QString &data_directory, QWidget *parent = nullptr,
+                          std::unique_ptr<composer_ids::CharInfoTable> char_info =
+                              nullptr);
 
   // The character the user chose to insert, UTF-8; empty if none (or SVG-only).
   const std::string &result() const { return result_; }
@@ -221,6 +224,7 @@ class CharacterComposerDialog : public QDialog {
   void SyncIdsEditFromEditor(bool force = false);
 
   std::unique_ptr<composer_ids::IdsTable> table_;
+  std::unique_ptr<composer_ids::CharInfoTable> char_info_;  // Unihan display; may be null
   std::unique_ptr<KageResources> kage_;  // GlyphWiki strokes; may be null
   LayoutEditor *editor_ = nullptr;
   QButtonGroup *palette_ = nullptr;
@@ -229,6 +233,7 @@ class CharacterComposerDialog : public QDialog {
   QLabel *ids_info_panel_ = nullptr;
   QLabel *char_label_ = nullptr;
   QLabel *codepoint_label_ = nullptr;
+  QLabel *info_label_ = nullptr;  // readings / strokes under the preview
   QLabel *status_label_ = nullptr;
   QLineEdit *break_apart_edit_ = nullptr;
   QComboBox *decomposition_combo_ = nullptr;

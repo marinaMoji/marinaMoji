@@ -162,6 +162,15 @@ old text drawing.
   Genuine `FocusOut` now drops the cached caret (odoriji menu bounce still
   keeps it). Remaining HiDPI/Wayland Qt+IBus mis-scaling is upstream.
 
+#### Character composer: Unihan info under the preview
+
+When the layout finds an encoded character, the panel under the preview shows
+stroke count, radical–stroke, pinyin, Japanese on/kun, a short gloss, and
+Unihan variants. Data is `char_info.tsv` (about 28k characters in the
+composer’s blocks), built offline from Unihan by
+`data/character_info/build_char_info.py` and installed beside the IDS/KAGE
+tables. Missing file is fine. Not yet checked in the app.
+
 #### Character composer: editable IDS box with zi.tools layout codes
 
 The draft IDS under the square is now a text field: editing the boxes updates

@@ -38,6 +38,7 @@
 #include <utility>
 #include <vector>
 
+#include "composer_ids/char_info.h"
 #include "composer_ids/ids_operator.h"
 #include "composer_ids/ids_table.h"
 #include "composer_ids/ids_tree.h"
@@ -491,8 +492,11 @@ std::string LayoutEditor::SelectedLayoutOp() const {
 
 CharacterComposerDialog::CharacterComposerDialog(
     std::unique_ptr<composer_ids::IdsTable> table, const QString &data_directory,
-    QWidget *parent)
-    : QDialog(parent), table_(std::move(table)), data_directory_(data_directory) {
+    QWidget *parent, std::unique_ptr<composer_ids::CharInfoTable> char_info)
+    : QDialog(parent),
+      table_(std::move(table)),
+      char_info_(std::move(char_info)),
+      data_directory_(data_directory) {
   // GlyphWiki's strokes, to draw a structure with no Unicode character as one
   // glyph. Missing is fine: the drawing falls back to the components as text.
   if (auto resources = KageResources::LoadFromDirectory(data_directory_.toStdString())) {
@@ -610,6 +614,14 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   codepoint_label_ = new QLabel(this);
   codepoint_label_->setAlignment(Qt::AlignCenter);
 
+  info_label_ = new QLabel(this);
+  info_label_->setAlignment(Qt::AlignCenter);
+  info_label_->setWordWrap(true);
+  info_label_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+  QFont info_font = info_label_->font();
+  info_font.setPointSize(std::max(10, info_font.pointSize() - 1));
+  info_label_->setFont(info_font);
+
   status_label_ = new QLabel(this);
   status_label_->setWordWrap(true);
   status_label_->setMinimumHeight(40);
@@ -692,6 +704,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   auto *right = new QVBoxLayout;
   right->addWidget(char_label_, 0, Qt::AlignHCenter);
   right->addWidget(codepoint_label_);
+  right->addWidget(info_label_);
   right->addWidget(status_label_);
   right->addStretch(1);
   right->addWidget(break_group);
@@ -797,6 +810,7 @@ void CharacterComposerDialog::UpdateResult() {
   }
   if (!note_.isEmpty()) status = note_;
 
+  info_label_->clear();
   if (!found_.empty()) {
     QFont char_font = font();
     char_font.setPointSize(48);
@@ -807,6 +821,27 @@ void CharacterComposerDialog::UpdateResult() {
     codepoint_label_->setText(
         cps.isEmpty() ? QString()
                       : QStringLiteral("U+%1").arg(cps.first(), 4, 16, QLatin1Char('0')).toUpper());
+    if (char_info_ != nullptr) {
+      if (const composer_ids::CharInfo *info = char_info_->Find(found_)) {
+        QStringList lines;
+        QStringList meta;
+        if (!info->strokes.empty()) {
+          meta << Tr("%1 strokes").arg(FromUtf8(info->strokes));
+        }
+        if (!info->rs.empty()) meta << FromUtf8(info->rs);
+        if (!meta.isEmpty()) lines << meta.join(QStringLiteral(" · "));
+        QStringList readings;
+        if (!info->pinyin.empty()) readings << FromUtf8(info->pinyin);
+        if (!info->ja_on.empty()) readings << FromUtf8(info->ja_on);
+        if (!info->ja_kun.empty()) readings << FromUtf8(info->ja_kun);
+        if (!readings.isEmpty()) lines << readings.join(QStringLiteral(" · "));
+        if (!info->definition.empty()) lines << FromUtf8(info->definition);
+        if (!info->variants.empty()) {
+          lines << Tr("variants: %1").arg(FromUtf8(info->variants));
+        }
+        info_label_->setText(lines.join(QLatin1Char('\n')));
+      }
+    }
   } else if (insertable) {
     char_label_->setFont(font());
     std::optional<std::vector<Contour>> outlines;

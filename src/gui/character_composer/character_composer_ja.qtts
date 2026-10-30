@@ -32,6 +32,14 @@
         <translation>疑問符（?）は空の欄を表します。</translation>
     </message>
     <message>
+        <source>%1 strokes</source>
+        <translation>%1画</translation>
+    </message>
+    <message>
+        <source>variants: %1</source>
+        <translation>異体字: %1</translation>
+    </message>
+    <message>
         <source>Use this form of the radical</source>
         <translation>この部首の字形を使う</translation>
     </message>

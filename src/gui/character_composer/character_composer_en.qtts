@@ -32,6 +32,14 @@
         <translation>A question mark (?) stands for an empty box.</translation>
     </message>
     <message>
+        <source>%1 strokes</source>
+        <translation>%1 strokes</translation>
+    </message>
+    <message>
+        <source>variants: %1</source>
+        <translation>variants: %1</translation>
+    </message>
+    <message>
         <source>Use this form of the radical</source>
         <translation>Use this form of the radical</translation>
     </message>

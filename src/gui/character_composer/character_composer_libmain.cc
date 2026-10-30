@@ -26,6 +26,7 @@
 #include "absl/flags/flag.h"
 #include "absl/log/log.h"
 #include "base/system_util.h"
+#include "composer_ids/char_info.h"
 #include "composer_ids/composer_result.h"
 #include "composer_ids/ids_table.h"
 #include "gui/base/singleton_window_helper.h"
@@ -170,9 +171,20 @@ int RunCharacterComposer(int argc, char *argv[]) {
     LOG(ERROR) << "Cannot load the character composer data from " << directory
                << ": " << loaded.status();
   }
+  std::unique_ptr<mozc::composer_ids::CharInfoTable> char_info;
+  if (auto loaded =
+          mozc::composer_ids::CharInfoTable::LoadFromDirectory(directory);
+      loaded.ok()) {
+    char_info =
+        std::make_unique<mozc::composer_ids::CharInfoTable>(*std::move(loaded));
+  } else {
+    LOG(WARNING) << "No Unihan character info in " << directory << ": "
+                 << loaded.status();
+  }
 
   mozc::gui::CharacterComposerDialog dialog(
-      std::move(table), QString::fromStdString(directory));
+      std::move(table), QString::fromStdString(directory), nullptr,
+      std::move(char_info));
 
   // The drawing is written before the dialog closes: office plugins react to
   // their window regaining focus, which can happen before this process

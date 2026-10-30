@@ -136,6 +136,8 @@ def run_wix4(args) -> None:
   kage_layout = pathlib.Path(args.kage_layout).resolve()
   kage_license = pathlib.Path(args.kage_license).resolve()
   kage_readme = pathlib.Path(args.kage_readme).resolve()
+  char_info = pathlib.Path(args.char_info).resolve()
+  char_info_notice = pathlib.Path(args.char_info_notice).resolve()
   # All toolbar_icons/*.png live alongside this one sample file (see
   # data/images/win/generate_toolbar_icons.py); only its parent directory is
   # needed since installer_marinamoji_64bit.wxs references each file by its
@@ -229,6 +231,8 @@ def run_wix4(args) -> None:
       '-define', f'KageLayoutPath={kage_layout}',
       '-define', f'KageLicensePath={kage_license}',
       '-define', f'KageReadmePath={kage_readme}',
+      '-define', f'CharInfoPath={char_info}',
+      '-define', f'CharInfoNoticePath={char_info_notice}',
       '-define', f'ToolbarIconsDir={toolbar_icons_dir}',
       '-define', f'DocumentsDir={document_dir}',
       '-define', f'QtDir={qt_dir}',
@@ -291,6 +295,8 @@ def main():
   parser.add_argument('--kage_layout', type=str)
   parser.add_argument('--kage_license', type=str)
   parser.add_argument('--kage_readme', type=str)
+  parser.add_argument('--char_info', type=str)
+  parser.add_argument('--char_info_notice', type=str)
   parser.add_argument('--toolbar_icons_sample', type=str)
   parser.add_argument('--icon_path', type=str)
   parser.add_argument('--credit_file', type=str)

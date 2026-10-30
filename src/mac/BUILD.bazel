@@ -115,6 +115,9 @@ mozc_macos_application(
             # GlyphWiki stroke data (free licence) for drawing composed glyphs;
             # same directory, see data/kage/README.kage.md.
             "//data/kage:kage_data": "Resources/character_composer",
+            # Unihan display metadata (readings, strokes); see
+            # data/character_info/README.md.
+            "//data/character_info:character_info_data": "Resources/character_composer",
             "//unix/ibus:toolbar_icons": "Resources",
             "//data/keymap:keymap_files": "Resources/keymap",
             "//data/preedit:kaeriten.tsv": "Resources/keymap",

@@ -32,6 +32,14 @@
         <translation>Un point d’interrogation (?) représente une case vide.</translation>
     </message>
     <message>
+        <source>%1 strokes</source>
+        <translation>%1 traits</translation>
+    </message>
+    <message>
+        <source>variants: %1</source>
+        <translation>variantes : %1</translation>
+    </message>
+    <message>
         <source>Use this form of the radical</source>
         <translation>Utiliser cette forme du radical</translation>
     </message>
