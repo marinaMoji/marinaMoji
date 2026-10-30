@@ -16,10 +16,6 @@
         <translation>この配置を削除する前に、入力済みの欄を1つだけ残して消去してください。</translation>
     </message>
     <message>
-        <source>Pick a layout. Click a box first to put the layout inside that box.</source>
-        <translation>配置を選んでください。先に欄をクリックすると、その欄の中に配置されます。</translation>
-    </message>
-    <message>
         <source>e.g. LR日月 or ⿰日月</source>
         <translation>例: LR日月 または ⿰日月</translation>
     </message>

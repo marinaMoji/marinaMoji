@@ -16,10 +16,6 @@
         <translation>Videz toutes les cases remplies sauf une avant de supprimer cette disposition.</translation>
     </message>
     <message>
-        <source>Pick a layout. Click a box first to put the layout inside that box.</source>
-        <translation>Choisissez une disposition. Cliquez d’abord sur une case pour y placer la disposition.</translation>
-    </message>
-    <message>
         <source>e.g. LR日月 or ⿰日月</source>
         <translation>ex. LR日月 ou ⿰日月</translation>
     </message>

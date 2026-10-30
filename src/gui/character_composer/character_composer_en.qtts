@@ -16,10 +16,6 @@
         <translation>Clear all but one of the filled boxes before removing this layout.</translation>
     </message>
     <message>
-        <source>Pick a layout. Click a box first to put the layout inside that box.</source>
-        <translation>Pick a layout. Click a box first to put the layout inside that box.</translation>
-    </message>
-    <message>
         <source>e.g. LR日月 or ⿰日月</source>
         <translation>e.g. LR日月 or ⿰日月</translation>
     </message>

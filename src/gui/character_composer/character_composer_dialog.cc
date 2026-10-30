@@ -546,10 +546,6 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
           &CharacterComposerDialog::OnSubmitRequested);
 
   auto *left = new QVBoxLayout;
-  auto *layout_hint = new QLabel(
-      Tr("Pick a layout. Click a box first to put the layout inside that box."), this);
-  layout_hint->setWordWrap(true);
-  left->addWidget(layout_hint);
   left->addLayout(palette_grid);
   left->addWidget(editor_, 0, Qt::AlignHCenter);
 
@@ -608,9 +604,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   char_label_->setAlignment(Qt::AlignCenter);
   char_label_->setMinimumSize(120, 100);
   char_label_->setFrameShape(QFrame::StyledPanel);
-  QFont char_font = char_label_->font();
-  char_font.setPointSize(48);
-  char_label_->setFont(char_font);
+  char_label_->setWordWrap(true);
   char_label_->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
   codepoint_label_ = new QLabel(this);
@@ -775,6 +769,7 @@ void CharacterComposerDialog::UpdateResult() {
 
   QString status;
   bool insertable = false;
+  bool incomplete = false;
   if (table_ == nullptr) {
     status = Tr("Character data was not found in %1, so the character cannot be "
                 "looked up. You can still build the IDS above.")
@@ -796,30 +791,43 @@ void CharacterComposerDialog::UpdateResult() {
       status = Tr("Insert places a drawing on the clipboard (lookup data missing).");
     }
   } else {
-    status = Tr("Fill in every box to look up the character.");
+    incomplete = true;
+    // The fill-in prompt is shown in the preview square, not under it.
+    status.clear();
   }
   if (!note_.isEmpty()) status = note_;
 
-  if (found_.empty()) {
-    char_label_->clear();
-    if (insertable) {
-      std::optional<std::vector<Contour>> outlines;
-      if (kage_ != nullptr) {
-        outlines = ComposerOutlines(editor_->op(), editor_->parts(), *kage_);
-      }
-      char_label_->setPixmap(
-          outlines ? OutlinePreview(*outlines, palette(), devicePixelRatioF())
-                   : DrawingPreview(ComposerGlyphs(editor_->op(), editor_->parts()),
-                                    palette(), devicePixelRatioF()));
-    }
-    codepoint_label_->clear();
-  } else {
+  if (!found_.empty()) {
+    QFont char_font = font();
+    char_font.setPointSize(48);
+    char_label_->setFont(char_font);
     const QString text = FromUtf8(found_);
     char_label_->setText(text);
     const QList<uint> cps = text.toUcs4();
     codepoint_label_->setText(
         cps.isEmpty() ? QString()
                       : QStringLiteral("U+%1").arg(cps.first(), 4, 16, QLatin1Char('0')).toUpper());
+  } else if (insertable) {
+    char_label_->setFont(font());
+    std::optional<std::vector<Contour>> outlines;
+    if (kage_ != nullptr) {
+      outlines = ComposerOutlines(editor_->op(), editor_->parts(), *kage_);
+    }
+    char_label_->setPixmap(
+        outlines ? OutlinePreview(*outlines, palette(), devicePixelRatioF())
+                 : DrawingPreview(ComposerGlyphs(editor_->op(), editor_->parts()),
+                                  palette(), devicePixelRatioF()));
+    codepoint_label_->clear();
+  } else if (incomplete) {
+    // Prompt sits where the character / drawing normally appears.
+    QFont prompt = font();
+    prompt.setPointSize(std::max(11, font().pointSize()));
+    char_label_->setFont(prompt);
+    char_label_->setText(Tr("Fill in every box to look up the character."));
+    codepoint_label_->clear();
+  } else {
+    char_label_->clear();
+    codepoint_label_->clear();
   }
   status_label_->setText(status);
   insert_button_->setEnabled(insertable);
