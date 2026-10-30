@@ -10,6 +10,20 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.20-rc2
+
+Everything in 0.0.20-rc1 plus the entries below, and:
+
+- Windows: the IME starts in hiragana instead of direct input when it
+  activates on a closed thread with no kana mode, so the character composer
+  window (its own process) takes kana. Unverified on Windows.
+- Character composer: IVS sequence entry box, editable IDS box with zi.tools
+  layout codes, Unihan info under the preview, and GlyphWiki positional forms
+  so left/top parts draw narrowed.
+
+macOS CI had not completed for this commit when it was tagged: the build jobs
+were cancelled waiting for a runner.
+
 ### Linux: character composer result is removed once the IBus engine commits it
 The composer writes the chosen Unicode character to `character_composer_result.txt`
 as a fallback for the LibreOffice extension, and the IBus engine also commits it.
