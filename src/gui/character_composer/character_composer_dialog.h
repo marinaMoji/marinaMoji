@@ -27,11 +27,13 @@
 
 class QButtonGroup;
 class QComboBox;
+class QHBoxLayout;
 class QLabel;
 class QListWidget;
 class QListWidgetItem;
 class QPushButton;
 class QToolButton;
+class QVBoxLayout;
 
 namespace mozc {
 namespace gui {
@@ -62,6 +64,35 @@ class SlotEdit : public QLineEdit {
   composer_ids::SlotPath path_;
 };
 
+// One leaf box: the character field, and under it a row of every other form of
+// that radical (when the table knows more than one). Click a form to put it in
+// the field without the automatic position swap.
+class LeafSlot : public QWidget {
+  Q_OBJECT
+
+ public:
+  LeafSlot(LayoutEditor *editor, composer_ids::SlotPath path, std::string op,
+           int part_index, const QString &initial, QWidget *parent);
+  SlotEdit *edit() const { return edit_; }
+  void RefreshForms();
+
+ protected:
+  void resizeEvent(QResizeEvent *event) override;
+
+ private:
+  void PickForm(const QString &form);
+  void UpdateFormsVisibility();
+
+  LayoutEditor *editor_;
+  composer_ids::SlotPath path_;
+  std::string op_;
+  int part_index_ = 0;
+  SlotEdit *edit_ = nullptr;
+  QWidget *forms_row_ = nullptr;
+  QHBoxLayout *forms_layout_ = nullptr;
+  bool has_forms_ = false;
+};
+
 // One layout drawn as a square: its components sit in the operator's shape,
 // nested layouts draw the same thing again inside their cell. Clicking its
 // padding (not a field) selects it.
@@ -87,7 +118,7 @@ class LayoutView : public QWidget {
   composer_ids::SlotPath path_;
   std::string op_;
   bool selected_ = false;
-  std::vector<QWidget *> children_;  // SlotEdit or LayoutView, one per part
+  std::vector<QWidget *> children_;  // LeafSlot or LayoutView, one per part
   QToolButton *remove_button_ = nullptr;
 };
 
@@ -113,9 +144,6 @@ class LayoutEditor : public QWidget {
                  std::vector<composer_ids::ComposerSlot> parts);
   // A palette click: acts on the selected region (see ApplyPaletteOperator).
   void ApplyOperator(const std::string &op);
-  // Replaces the selected field's character by the next form of its radical.
-  // Returns false when nothing is selected or the character has no other form.
-  bool CycleSelectedForm(const composer_ids::IdsTable &table);
   // Selects the region at |path| ({} is the outer square).
   void Select(const composer_ids::SlotPath &path);
   // Called by the view widgets.
@@ -175,7 +203,6 @@ class CharacterComposerDialog : public QDialog {
   void OnBreakApart();
   void OnFindContaining();
   void OnContainingPicked(QListWidgetItem *item);
-  void OnCycleForm();
   void OnSubmitRequested();
 
  protected:
@@ -202,7 +229,6 @@ class CharacterComposerDialog : public QDialog {
   QListWidget *containing_list_ = nullptr;
   QPushButton *insert_button_ = nullptr;
   QPushButton *copy_button_ = nullptr;
-  QPushButton *cycle_button_ = nullptr;
 
   QString note_;  // a one-off message that replaces the status line
   QString data_directory_;

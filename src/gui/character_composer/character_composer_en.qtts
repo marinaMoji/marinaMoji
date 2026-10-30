@@ -20,8 +20,8 @@
         <translation>Pick a layout. Click a box first to put the layout inside that box.</translation>
     </message>
     <message>
-        <source>Next form of this radical</source>
-        <translation>Next form of this radical</translation>
+        <source>Use this form of the radical</source>
+        <translation>Use this form of the radical</translation>
     </message>
     <message>
         <source>Break apart a character</source>
@@ -74,10 +74,6 @@
     <message>
         <source>Copied to the clipboard.</source>
         <translation>Copied to the clipboard.</translation>
-    </message>
-    <message>
-        <source>Select a box holding a radical that has other forms.</source>
-        <translation>Select a box holding a radical that has other forms.</translation>
     </message>
     <message>
         <source>No decomposition on record for this character.</source>

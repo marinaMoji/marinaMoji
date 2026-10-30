@@ -26,6 +26,7 @@
 #include <QPixmap>
 #include <QPushButton>
 #include <QResizeEvent>
+#include <QSizePolicy>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <algorithm>
@@ -197,6 +198,118 @@ void SlotEdit::keyPressEvent(QKeyEvent *event) {
   QLineEdit::keyPressEvent(event);
 }
 
+// --- LeafSlot ---------------------------------------------------------------
+
+LeafSlot::LeafSlot(LayoutEditor *editor, SlotPath path, std::string op,
+                   int part_index, const QString &initial, QWidget *parent)
+    : QWidget(parent),
+      editor_(editor),
+      path_(std::move(path)),
+      op_(std::move(op)),
+      part_index_(part_index) {
+  auto *column = new QVBoxLayout(this);
+  column->setContentsMargins(0, 0, 0, 0);
+  column->setSpacing(2);
+
+  edit_ = new SlotEdit(path_, this);
+  edit_->setText(initial);
+  edit_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  column->addWidget(edit_, /*stretch=*/1);
+
+  forms_row_ = new QWidget(this);
+  forms_row_->setObjectName(QStringLiteral("radical_forms"));
+  forms_layout_ = new QHBoxLayout(forms_row_);
+  forms_layout_->setContentsMargins(0, 0, 0, 0);
+  forms_layout_->setSpacing(2);
+  forms_layout_->addStretch(1);
+  forms_layout_->addStretch(1);
+  column->addWidget(forms_row_, /*stretch=*/0, Qt::AlignHCenter);
+
+  connect(edit_, &QLineEdit::textEdited, this, [this](const QString &typed) {
+    QString text = typed;
+    // A base radical typed where it changes shape is shown in that shape (手
+    // on the left of ⿰ becomes 扌). Picking from the list below is not
+    // "typed", so the base form can still be put back.
+    if (const composer_ids::IdsTable *table = editor_->table()) {
+      if (const auto form =
+              table->AutomaticFormFor(ToUtf8(typed), op_, part_index_)) {
+        text = FromUtf8(*form);
+        edit_->setText(text);
+      }
+    }
+    editor_->SetLeafInput(path_, text);
+    RefreshForms();
+  });
+  connect(edit_, &SlotEdit::gotFocus, this,
+          [this](const std::vector<int> &path) { editor_->Select(path); });
+  connect(edit_, &SlotEdit::submitRequested, editor_,
+          &LayoutEditor::submitRequested);
+
+  RefreshForms();
+}
+
+void LeafSlot::PickForm(const QString &form) {
+  editor_->Select(path_);
+  edit_->setText(form);
+  editor_->SetLeafInput(path_, form);
+  RefreshForms();
+  edit_->setFocus();
+}
+
+void LeafSlot::RefreshForms() {
+  while (QLayoutItem *item = forms_layout_->takeAt(0)) {
+    if (QWidget *w = item->widget()) w->deleteLater();
+    delete item;
+  }
+  forms_layout_->addStretch(1);
+  has_forms_ = false;
+  const composer_ids::IdsTable *table = editor_->table();
+  if (table != nullptr) {
+    const std::vector<std::string> forms = table->FormsOf(ToUtf8(edit_->text()));
+    if (forms.size() >= 2) {
+      has_forms_ = true;
+      const QString current = edit_->text();
+      for (const std::string &form : forms) {
+        const QString label = FromUtf8(form);
+        auto *button = new QToolButton(forms_row_);
+        button->setObjectName(QStringLiteral("radical_form"));
+        button->setText(label);
+        button->setAutoRaise(true);
+        button->setFocusPolicy(Qt::NoFocus);
+        button->setToolTip(Tr("Use this form of the radical"));
+        QFont f = button->font();
+        f.setPointSize(std::max(f.pointSize(), 11));
+        button->setFont(f);
+        const bool selected = label == current;
+        button->setStyleSheet(
+            selected ? QStringLiteral(
+                           "QToolButton { border: 1px solid #f08c00; "
+                           "border-radius: 3px; padding: 1px 4px; "
+                           "font-weight: bold; }")
+                     : QStringLiteral(
+                           "QToolButton { border: 1px solid transparent; "
+                           "border-radius: 3px; padding: 1px 4px; "
+                           "color: palette(mid); }"));
+        connect(button, &QToolButton::clicked, this,
+                [this, label]() { PickForm(label); });
+        forms_layout_->addWidget(button, 0, Qt::AlignBottom);
+      }
+    }
+  }
+  forms_layout_->addStretch(1);
+  UpdateFormsVisibility();
+}
+
+void LeafSlot::UpdateFormsVisibility() {
+  // Tiny enclosure strips have no room; the giant ⿰ / ⿱ boxes do.
+  forms_row_->setVisible(has_forms_ && height() >= 72);
+}
+
+void LeafSlot::resizeEvent(QResizeEvent *event) {
+  QWidget::resizeEvent(event);
+  UpdateFormsVisibility();
+}
+
 // --- LayoutView -------------------------------------------------------------
 
 LayoutView::LayoutView(LayoutEditor *editor, SlotPath path, std::string op,
@@ -206,28 +319,9 @@ LayoutView::LayoutView(LayoutEditor *editor, SlotPath path, std::string op,
     const ComposerSlot &part = parts[i];
     const SlotPath child_path = Child(path_, static_cast<int>(i));
     if (part.kind == ComposerSlot::Kind::kLeaf) {
-      auto *edit = new SlotEdit(child_path, this);
-      edit->setText(FromUtf8(part.input));
-      connect(edit, &QLineEdit::textEdited, this,
-              [this, edit, child_path, i](const QString &typed) {
-                QString text = typed;
-                // A base radical typed where it changes shape is shown in that
-                // shape (手 on the left of ⿰ becomes 扌). Cycling forms with the
-                // button is not "typed", so 手 can still be put back there.
-                if (const composer_ids::IdsTable *table = editor_->table()) {
-                  if (const auto form = table->AutomaticFormFor(
-                          ToUtf8(typed), op_, static_cast<int>(i))) {
-                    text = FromUtf8(*form);
-                    edit->setText(text);
-                  }
-                }
-                editor_->SetLeafInput(child_path, text);
-              });
-      connect(edit, &SlotEdit::gotFocus, this,
-              [this](const std::vector<int> &path) { editor_->Select(path); });
-      connect(edit, &SlotEdit::submitRequested, editor_,
-              &LayoutEditor::submitRequested);
-      children_.push_back(edit);
+      children_.push_back(new LeafSlot(editor_, child_path, op_,
+                                       static_cast<int>(i), FromUtf8(part.input),
+                                       this));
     } else {
       children_.push_back(
           new LayoutView(editor_, child_path, part.op, part.parts, this));
@@ -265,7 +359,7 @@ void LayoutView::PlaceChildren() {
   const QRectF box(0, 0, width(), height());
   for (size_t i = 0; i < children_.size() && static_cast<int>(i) < g.count; ++i) {
     QWidget *child = children_[i];
-    const bool leaf = qobject_cast<SlotEdit *>(child) != nullptr;
+    const bool leaf = qobject_cast<LeafSlot *>(child) != nullptr;
     const QRectF cell = Scaled(leaf ? g.edit[i] : g.cell[i], box);
     const int inset = leaf ? 4 : 3;
     child->setGeometry(cell.toRect().adjusted(inset, inset, -inset, -inset));
@@ -385,19 +479,6 @@ bool LayoutEditor::Flatten(const SlotPath &path) {
   return true;
 }
 
-bool LayoutEditor::CycleSelectedForm(const composer_ids::IdsTable &table) {
-  const ComposerSlot *slot = composer_ids::SlotAt(parts_, selection_);
-  if (slot == nullptr || slot->kind != ComposerSlot::Kind::kLeaf) return false;
-  const std::optional<std::string> next = table.NextFormOf(slot->input);
-  if (!next) return false;
-  const SlotPath path = selection_;
-  SetLeafInput(path, FromUtf8(*next));
-  for (SlotEdit *edit : root_view_->findChildren<SlotEdit *>()) {
-    if (edit->path() == path) edit->setText(FromUtf8(*next));
-  }
-  return true;
-}
-
 std::string LayoutEditor::SelectedLayoutOp() const {
   if (selection_.empty()) return op_;
   const ComposerSlot *slot = composer_ids::SlotAt(parts_, selection_);
@@ -494,11 +575,6 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   status_label_->setWordWrap(true);
   status_label_->setMinimumHeight(40);
 
-  cycle_button_ = new QPushButton(Tr("Next form of this radical"), this);
-  cycle_button_->setFocusPolicy(Qt::NoFocus);
-  cycle_button_->setEnabled(table_ != nullptr);
-  connect(cycle_button_, &QPushButton::clicked, this, &CharacterComposerDialog::OnCycleForm);
-
   auto *break_group = new QGroupBox(Tr("Break apart a character"), this);
   break_apart_edit_ = new QLineEdit(break_group);
   break_apart_edit_->setObjectName(QStringLiteral("break_apart_edit"));
@@ -579,7 +655,6 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   right->addWidget(char_label_, 0, Qt::AlignHCenter);
   right->addWidget(codepoint_label_);
   right->addWidget(status_label_);
-  right->addWidget(cycle_button_);
   right->addStretch(1);
   right->addWidget(break_group);
   right->addWidget(containing_group);
@@ -732,14 +807,6 @@ void CharacterComposerDialog::OnCopy() {
   QApplication::clipboard()->setMimeData(mime);
   note_ = Tr("Drawing copied to the clipboard.");
   UpdateResult();
-}
-
-void CharacterComposerDialog::OnCycleForm() {
-  if (table_ == nullptr) return;
-  if (!editor_->CycleSelectedForm(*table_)) {
-    note_ = Tr("Select a box holding a radical that has other forms.");
-    UpdateResult();
-  }
 }
 
 void CharacterComposerDialog::OnBreakApart() {

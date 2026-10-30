@@ -222,6 +222,28 @@ TEST_F(CharacterComposerDialogTest, WorksWithoutDataFiles) {
   EXPECT_TRUE(Button(&dialog, "Insert")->isEnabled());
 }
 
+TEST_F(CharacterComposerDialogTest, RadicalFormsAppearInsideTheBoxAndCanBePicked) {
+  auto dialog = MakeDialog();
+  auto edits = Edits(dialog.get());
+  // Fixture: 言 on the left of ⿰ becomes 訁; family is 言 / 訁.
+  Type(edits[0], QStringLiteral("言"));
+  EXPECT_EQ(edits[0]->text(), QStringLiteral("訁"));
+
+  std::vector<QToolButton *> form_buttons;
+  for (QToolButton *b : dialog->findChildren<QToolButton *>()) {
+    if (b->objectName() == QStringLiteral("radical_form")) form_buttons.push_back(b);
+  }
+  ASSERT_EQ(form_buttons.size(), 2u);
+  QToolButton *base = nullptr;
+  for (QToolButton *b : form_buttons) {
+    if (b->text() == QStringLiteral("言")) base = b;
+  }
+  ASSERT_NE(base, nullptr);
+  base->click();
+  EXPECT_EQ(Edits(dialog.get())[0]->text(), QStringLiteral("言"));
+  EXPECT_EQ(dialog->findChild<LayoutEditor *>()->parts()[0].input, "言");
+}
+
 }  // namespace
 }  // namespace gui
 }  // namespace mozc

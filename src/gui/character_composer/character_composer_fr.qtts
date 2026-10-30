@@ -20,8 +20,8 @@
         <translation>Choisissez une disposition. Cliquez d’abord sur une case pour y placer la disposition.</translation>
     </message>
     <message>
-        <source>Next form of this radical</source>
-        <translation>Forme suivante de ce radical</translation>
+        <source>Use this form of the radical</source>
+        <translation>Utiliser cette forme du radical</translation>
     </message>
     <message>
         <source>Break apart a character</source>
@@ -74,10 +74,6 @@
     <message>
         <source>Copied to the clipboard.</source>
         <translation>Copié dans le presse-papiers.</translation>
-    </message>
-    <message>
-        <source>Select a box holding a radical that has other forms.</source>
-        <translation>Sélectionnez une case contenant un radical qui a d’autres formes.</translation>
     </message>
     <message>
         <source>No decomposition on record for this character.</source>

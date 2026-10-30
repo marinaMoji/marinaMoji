@@ -168,9 +168,11 @@ Typing 手 in the left box of ⿰ now shows 扌 (and 言 → 訁, 水 → 氵, �
 竹 on top of ⿱ → 𥫗 …), the way the Grognard composer does. The 34
 position rules are Grognard's `auto` table, kept as `radical_auto.json` and
 shipped as `@` lines in `radical_forms.tsv`; `IdsTable::AutomaticFormFor`
-reads them. Only typed input is converted: **Next form** still cycles 手 →
-扌 → ⺘, so the base form can be put back. Lookup was already family-based, so
-the found character is unchanged. Not yet checked in the app.
+reads them. Only typed input is converted. When a radical has other forms,
+they appear as a small clickable list inside that box (手 · 扌 · ⺘), so the
+base form can be put back without a separate **Next form** button. Lookup was
+already family-based, so the found character is unchanged. Not yet checked in
+the app.
 
 #### Character composer: preview the drawing, and write it before the dialog closes
 
