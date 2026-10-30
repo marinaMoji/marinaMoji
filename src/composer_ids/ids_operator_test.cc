@@ -31,6 +31,28 @@ TEST(IdsOperatorTest, NonOperatorsAreRejected) {
   EXPECT_EQ(PartCountFor("木"), 2);
 }
 
+TEST(IdsOperatorTest, ExpandIdsAbbreviationsUsesZiToolsCodes) {
+  EXPECT_EQ(ExpandIdsAbbreviations("LR言某"), "⿰言某");
+  EXPECT_EQ(ExpandIdsAbbreviations("lr日月"), "⿰日月");
+  EXPECT_EQ(ExpandIdsAbbreviations("UD木口"), "⿱木口");
+  EXPECT_EQ(ExpandIdsAbbreviations("LL木木木"), "⿲木木木");
+  EXPECT_EQ(ExpandIdsAbbreviations("XX中"), "⿻中");
+  // Already an operator: leave it alone.
+  EXPECT_EQ(ExpandIdsAbbreviations("⿰言某"), "⿰言某");
+  // Nested codes.
+  EXPECT_EQ(ExpandIdsAbbreviations("LR木UD日月"), "⿰木⿱日月");
+  // Unknown letters stay.
+  EXPECT_EQ(ExpandIdsAbbreviations("AB木"), "AB木");
+}
+
+TEST(IdsOperatorTest, EveryOperatorHasATwoLetterAbbr) {
+  for (const IdsOperatorInfo &info : IdsOperators()) {
+    ASSERT_EQ(info.abbr.size(), 2) << info.name;
+    EXPECT_EQ(ExpandIdsAbbreviations(std::string(info.abbr)), info.op)
+        << info.name;
+  }
+}
+
 }  // namespace
 }  // namespace composer_ids
 }  // namespace mozc

@@ -20,6 +20,22 @@
         <translation>Choisissez une disposition. Cliquez d’abord sur une case pour y placer la disposition.</translation>
     </message>
     <message>
+        <source>e.g. LR日月 or ⿰日月</source>
+        <translation>ex. LR日月 ou ⿰日月</translation>
+    </message>
+    <message>
+        <source>Layout codes for the IDS box</source>
+        <translation>Codes de disposition pour la zone IDS</translation>
+    </message>
+    <message>
+        <source>Type an Ideographic Description Sequence here. These codes become layout operators:</source>
+        <translation>Saisissez ici une séquence de description idéographique. Ces codes deviennent des opérateurs de disposition :</translation>
+    </message>
+    <message>
+        <source>A question mark (?) stands for an empty box.</source>
+        <translation>Un point d’interrogation (?) représente une case vide.</translation>
+    </message>
+    <message>
         <source>Use this form of the radical</source>
         <translation>Utiliser cette forme du radical</translation>
     </message>

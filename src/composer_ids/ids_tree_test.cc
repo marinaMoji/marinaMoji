@@ -183,6 +183,20 @@ TEST(ParseIdsToComposerTreeTest, UnencodedPlaceholdersBecomeEmptySlots) {
   EXPECT_EQ(parsed->unencoded_count, 1);
 }
 
+TEST(ParseIdsToComposerTreeTest, QuestionMarkAndSpacesAreEmptySlots) {
+  // DraftIds writes "?" for an empty box; typing that back must round-trip.
+  const auto parsed = ParseIdsToComposerTree("⿰言?");
+  ASSERT_TRUE(parsed.has_value());
+  EXPECT_EQ(parsed->parts[0], ComposerSlot::Leaf("言"));
+  EXPECT_EQ(parsed->parts[1], ComposerSlot::Leaf());
+  EXPECT_EQ(parsed->unencoded_count, 1);
+
+  const auto spaced = ParseIdsToComposerTree("⿰ 日 月");
+  ASSERT_TRUE(spaced.has_value());
+  EXPECT_EQ(spaced->parts,
+            (Slots{ComposerSlot::Leaf("日"), ComposerSlot::Leaf("月")}));
+}
+
 TEST(ParseIdsToComposerTreeTest, RejectsMalformedInput) {
   EXPECT_EQ(ParseIdsToComposerTree(""), std::nullopt);
   EXPECT_EQ(ParseIdsToComposerTree("木"), std::nullopt);       // no operator

@@ -29,6 +29,7 @@
 #include <QSizePolicy>
 #include <QToolButton>
 #include <QVBoxLayout>
+#include <QFrame>
 #include <algorithm>
 #include <cstddef>
 #include <memory>
@@ -520,8 +521,9 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
     button->setIcon(OperatorIcon(std::string(info.op), this->palette()));
     button->setIconSize(QSize(32, 32));
     button->setFixedSize(46, 46);
-    button->setToolTip(QStringLiteral("%1  %2")
+    button->setToolTip(QStringLiteral("%1  %2  %3")
                            .arg(FromUtf8(std::string(info.op)),
+                                FromUtf8(std::string(info.abbr)),
                                 Tr(std::string(info.name).c_str())));
     button->setFocusPolicy(Qt::NoFocus);  // keep the focus in the field
     palette_->addButton(button, index);
@@ -550,15 +552,58 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   left->addWidget(layout_hint);
   left->addLayout(palette_grid);
   left->addWidget(editor_, 0, Qt::AlignHCenter);
+
+  // IDS entry: shows the draft sequence and accepts typing (LR言某 → ⿰言某).
+  ids_edit_ = new QLineEdit(this);
+  ids_edit_->setObjectName(QStringLiteral("ids_edit"));
+  ids_edit_->setPlaceholderText(Tr("e.g. LR日月 or ⿰日月"));
+  QFont ids_font = ids_edit_->font();
+  ids_font.setPointSize(ids_font.pointSize() + 4);
+  ids_edit_->setFont(ids_font);
+  ids_info_button_ = new QToolButton(this);
+  ids_info_button_->setText(QStringLiteral("ℹ"));
+  ids_info_button_->setCheckable(true);
+  ids_info_button_->setAutoRaise(true);
+  ids_info_button_->setFocusPolicy(Qt::NoFocus);
+  ids_info_button_->setToolTip(Tr("Layout codes for the IDS box"));
+  auto *ids_row = new QHBoxLayout;
+  ids_row->addWidget(ids_edit_, 1);
+  ids_row->addWidget(ids_info_button_, 0, Qt::AlignTop);
+  left->addLayout(ids_row);
+
+  ids_info_panel_ = new QLabel(this);
+  ids_info_panel_->setObjectName(QStringLiteral("ids_info_panel"));
+  ids_info_panel_->setWordWrap(true);
+  ids_info_panel_->setTextFormat(Qt::RichText);
+  ids_info_panel_->setFrameShape(QFrame::StyledPanel);
+  ids_info_panel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+  ids_info_panel_->setVisible(false);
+  {
+    QString html = Tr("Type an Ideographic Description Sequence here. "
+                      "These codes become layout operators:");
+    html += QStringLiteral("<table cellspacing=\"4\">");
+    for (const auto &info : composer_ids::IdsOperators()) {
+      html += QStringLiteral("<tr><td><b>%1</b></td><td>%2</td><td>%3</td></tr>")
+                  .arg(FromUtf8(std::string(info.abbr)),
+                       FromUtf8(std::string(info.op)),
+                       Tr(std::string(info.name).c_str()));
+    }
+    html += QStringLiteral("</table>");
+    html += QStringLiteral("<p>%1</p>")
+                .arg(Tr("A question mark (?) stands for an empty box."));
+    ids_info_panel_->setText(html);
+  }
+  left->addWidget(ids_info_panel_);
+  connect(ids_edit_, &QLineEdit::textEdited, this,
+          &CharacterComposerDialog::OnIdsEdited);
+  // After leaving a half-typed IDS, put the square's draft back in the field.
+  connect(ids_edit_, &QLineEdit::editingFinished, this,
+          [this]() { SyncIdsEditFromEditor(/*force=*/true); });
+  connect(ids_info_button_, &QToolButton::toggled, this,
+          &CharacterComposerDialog::OnIdsInfoToggled);
   left->addStretch(1);
 
   // Result column.
-  ids_label_ = new QLabel(this);
-  ids_label_->setTextInteractionFlags(Qt::TextSelectableByMouse);
-  QFont ids_font = ids_label_->font();
-  ids_font.setPointSize(ids_font.pointSize() + 4);
-  ids_label_->setFont(ids_font);
-
   char_label_ = new QLabel(this);
   char_label_->setAlignment(Qt::AlignCenter);
   char_label_->setMinimumSize(120, 100);
@@ -651,7 +696,6 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   buttons->addWidget(close_button);
 
   auto *right = new QVBoxLayout;
-  right->addWidget(ids_label_);
   right->addWidget(char_label_, 0, Qt::AlignHCenter);
   right->addWidget(codepoint_label_);
   right->addWidget(status_label_);
@@ -691,8 +735,41 @@ void CharacterComposerDialog::UpdatePaletteHighlight() {
   }
 }
 
+void CharacterComposerDialog::SyncIdsEditFromEditor(bool force) {
+  if (ids_edit_ == nullptr || applying_ids_edit_) return;
+  // Leave the field alone while the user is typing into it.
+  if (!force && ids_edit_->hasFocus()) return;
+  const QString draft =
+      FromUtf8(composer_ids::DraftIds(editor_->op(), editor_->parts()));
+  if (ids_edit_->text() != draft) ids_edit_->setText(draft);
+}
+
+void CharacterComposerDialog::OnIdsInfoToggled(bool checked) {
+  ids_info_panel_->setVisible(checked);
+}
+
+void CharacterComposerDialog::OnIdsEdited(const QString &text) {
+  const std::string expanded =
+      composer_ids::ExpandIdsAbbreviations(ToUtf8(text));
+  const QString expanded_q = FromUtf8(expanded);
+  if (expanded_q != text) {
+    // Keep the same distance from the end so a code typed at the caret
+    // becomes the operator under the caret (LR| → ⿰|).
+    const int from_end = text.size() - ids_edit_->cursorPosition();
+    ids_edit_->setText(expanded_q);
+    ids_edit_->setCursorPosition(
+        std::max(0, static_cast<int>(expanded_q.size()) - from_end));
+  }
+
+  auto parsed = composer_ids::ParseIdsToComposerTree(expanded);
+  if (!parsed) return;
+  applying_ids_edit_ = true;
+  editor_->SetLayout(parsed->op, std::move(parsed->parts));
+  applying_ids_edit_ = false;
+}
+
 void CharacterComposerDialog::UpdateResult() {
-  ids_label_->setText(FromUtf8(composer_ids::DraftIds(editor_->op(), editor_->parts())));
+  SyncIdsEditFromEditor();
   found_.clear();
   pending_svg_.clear();
 

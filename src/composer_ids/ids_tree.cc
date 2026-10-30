@@ -32,10 +32,18 @@ std::string TrimInput(std::string_view input) {
   return std::string(s);
 }
 
-// ① .. ⑳: components that have no Unicode character of their own.
+// Empty-box marker in a typed IDS ("⿰言?"), and ① .. ⑳ for components that
+// have no Unicode character of their own.
 bool IsUnencodedPlaceholder(std::string_view ch) {
+  if (ch == "?") return true;
   const std::u32string cp = strings::Utf8ToUtf32(ch);
   return cp.size() == 1 && cp[0] >= 0x2460 && cp[0] <= 0x2473;
+}
+
+bool IsIdsIgnorable(std::string_view ch) {
+  if (ch.empty()) return true;
+  if (ch.size() == 1 && absl::ascii_isspace(ch[0])) return true;
+  return ch == "\xE3\x80\x80";  // ideographic space
 }
 
 void AppendDraft(const ComposerSlot &slot, std::string *out) {
@@ -186,6 +194,7 @@ std::optional<ParsedIds> ParseIdsToComposerTree(std::string_view ids) {
   std::vector<std::string_view> chars;
   for (const std::string_view ch :
        Utf8AsChars(absl::StripAsciiWhitespace(ids))) {
+    if (IsIdsIgnorable(ch)) continue;
     chars.push_back(ch);
   }
   size_t index = 0;

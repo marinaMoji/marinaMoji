@@ -222,6 +222,21 @@ TEST_F(CharacterComposerDialogTest, WorksWithoutDataFiles) {
   EXPECT_TRUE(Button(&dialog, "Insert")->isEnabled());
 }
 
+TEST_F(CharacterComposerDialogTest, IdsEditAcceptsAbbreviationsAndFillsTheBoxes) {
+  auto dialog = MakeDialog();
+  auto *ids = dialog->findChild<QLineEdit *>(QStringLiteral("ids_edit"));
+  ASSERT_NE(ids, nullptr);
+  ids->setFocus();
+  ids->setText(QStringLiteral("LR言某"));
+  emit ids->textEdited(ids->text());
+  EXPECT_EQ(ids->text(), QStringLiteral("⿰言某"));
+  auto *editor = dialog->findChild<LayoutEditor *>();
+  EXPECT_EQ(editor->op(), "⿰");
+  EXPECT_EQ(editor->parts()[0].input, "言");
+  EXPECT_EQ(editor->parts()[1].input, "某");
+  EXPECT_TRUE(Button(dialog.get(), "Insert")->isEnabled());
+}
+
 TEST_F(CharacterComposerDialogTest, RadicalFormsAppearInsideTheBoxAndCanBePicked) {
   auto dialog = MakeDialog();
   auto edits = Edits(dialog.get());

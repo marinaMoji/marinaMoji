@@ -19,6 +19,9 @@ struct IdsOperatorInfo {
   std::string_view op;
   // English name, also the key used for the layout palette's tooltips.
   std::string_view name;
+  // Two-letter code used when typing an IDS by hand, as on zi.tools
+  // (LR -> ⿰, UD -> ⿱, …). ASCII, upper case.
+  std::string_view abbr;
   // 2 for every operator except ⿲ and ⿳, which describe three components.
   int part_count;
 };
@@ -32,6 +35,10 @@ bool IsIdsOperator(std::string_view ch);
 // How many components |op| describes. 2 for anything that is not an operator,
 // so callers never see 0.
 int PartCountFor(std::string_view op);
+
+// Replaces zi.tools layout codes (LR, UD, …) with the IDS operators, ignoring
+// case. Leaves every other character alone. Used by the IDS entry box.
+std::string ExpandIdsAbbreviations(std::string_view ids);
 
 }  // namespace composer_ids
 }  // namespace mozc

@@ -27,7 +27,10 @@ mozc_cc_library(
     srcs = ["ids_operator.cc"],
     hdrs = ["ids_operator.h"],
     visibility = ["//gui/character_composer:__pkg__"],
-    deps = ["@com_google_absl//absl/types:span"],
+    deps = [
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+    ],
 )
 
 mozc_cc_library(

@@ -20,6 +20,22 @@
         <translation>配置を選んでください。先に欄をクリックすると、その欄の中に配置されます。</translation>
     </message>
     <message>
+        <source>e.g. LR日月 or ⿰日月</source>
+        <translation>例: LR日月 または ⿰日月</translation>
+    </message>
+    <message>
+        <source>Layout codes for the IDS box</source>
+        <translation>IDS欄の配置コード</translation>
+    </message>
+    <message>
+        <source>Type an Ideographic Description Sequence here. These codes become layout operators:</source>
+        <translation>ここに漢字構成記述文字列（IDS）を入力します。次のコードは配置演算子になります:</translation>
+    </message>
+    <message>
+        <source>A question mark (?) stands for an empty box.</source>
+        <translation>疑問符（?）は空の欄を表します。</translation>
+    </message>
+    <message>
         <source>Use this form of the radical</source>
         <translation>この部首の字形を使う</translation>
     </message>

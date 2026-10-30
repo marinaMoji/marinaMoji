@@ -162,6 +162,14 @@ old text drawing.
   Genuine `FocusOut` now drops the cached caret (odoriji menu bounce still
   keeps it). Remaining HiDPI/Wayland Qt+IBus mis-scaling is upstream.
 
+#### Character composer: editable IDS box with zi.tools layout codes
+
+The draft IDS under the square is now a text field: editing the boxes updates
+it, and typing into it updates the boxes. Two-letter codes from zi.tools
+expand as you type (`LR言某` → `⿰言某`, also `UD` `LL` `UU` `OC` `OD` `OU`
+`OR` `RD` `LD` `RU` `XX`). An ℹ button lists the codes. `?` means an empty
+box. Not yet checked in the app.
+
 #### Character composer: radical forms follow position, as in Grognard
 
 Typing 手 in the left box of ⿰ now shows 扌 (and 言 → 訁, 水 → 氵, 人 → 亻,

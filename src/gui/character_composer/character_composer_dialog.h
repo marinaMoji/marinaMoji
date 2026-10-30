@@ -204,6 +204,8 @@ class CharacterComposerDialog : public QDialog {
   void OnFindContaining();
   void OnContainingPicked(QListWidgetItem *item);
   void OnSubmitRequested();
+  void OnIdsEdited(const QString &text);
+  void OnIdsInfoToggled(bool checked);
 
  protected:
   void keyPressEvent(QKeyEvent *event) override;
@@ -214,12 +216,17 @@ class CharacterComposerDialog : public QDialog {
   // Insert if ready, after committing any IME preedit.
   void TryInsert();
   void UpdatePaletteHighlight();
+  // Writes DraftIds into the IDS entry box. Skips while the user is typing
+  // there, unless |force|.
+  void SyncIdsEditFromEditor(bool force = false);
 
   std::unique_ptr<composer_ids::IdsTable> table_;
   std::unique_ptr<KageResources> kage_;  // GlyphWiki strokes; may be null
   LayoutEditor *editor_ = nullptr;
   QButtonGroup *palette_ = nullptr;
-  QLabel *ids_label_ = nullptr;
+  QLineEdit *ids_edit_ = nullptr;
+  QToolButton *ids_info_button_ = nullptr;
+  QLabel *ids_info_panel_ = nullptr;
   QLabel *char_label_ = nullptr;
   QLabel *codepoint_label_ = nullptr;
   QLabel *status_label_ = nullptr;
@@ -232,6 +239,7 @@ class CharacterComposerDialog : public QDialog {
 
   QString note_;  // a one-off message that replaces the status line
   QString data_directory_;
+  bool applying_ids_edit_ = false;  // true while OnIdsEdited updates the square
   std::string found_;       // the encoded character for the current layout, or ""
   std::string result_;      // Unicode Insert chose, or ""
   std::function<void(const std::string &)> on_svg_inserted_;

@@ -20,6 +20,22 @@
         <translation>Pick a layout. Click a box first to put the layout inside that box.</translation>
     </message>
     <message>
+        <source>e.g. LR日月 or ⿰日月</source>
+        <translation>e.g. LR日月 or ⿰日月</translation>
+    </message>
+    <message>
+        <source>Layout codes for the IDS box</source>
+        <translation>Layout codes for the IDS box</translation>
+    </message>
+    <message>
+        <source>Type an Ideographic Description Sequence here. These codes become layout operators:</source>
+        <translation>Type an Ideographic Description Sequence here. These codes become layout operators:</translation>
+    </message>
+    <message>
+        <source>A question mark (?) stands for an empty box.</source>
+        <translation>A question mark (?) stands for an empty box.</translation>
+    </message>
+    <message>
         <source>Use this form of the radical</source>
         <translation>Use this form of the radical</translation>
     </message>
