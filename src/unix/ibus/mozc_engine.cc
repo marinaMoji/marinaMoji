@@ -54,6 +54,7 @@
 #include "base/system_util.h"
 #include "base/util.h"
 #include "base/vlog.h"
+#include "composer_ids/composer_result.h"
 #include "client/client.h"
 #include "client/marina_setup_wizard.h"
 #include "protocol/candidate_window.pb.h"
@@ -1212,6 +1213,10 @@ void MozcEngine::MaybeFlushPendingToolbarCommit(IbusEngineWrapper* engine) {
   commands::Output output;
   output.mutable_result()->set_value(text);
   UpdateAll(engine, output);
+  // The character is in the document. Remove the composer's profile result so
+  // the LibreOffice extension, which inserts that file when the input method
+  // could not, does not insert it a second time.
+  FileUtil::Unlink(composer_ids::DefaultResultFilePath()).IgnoreError();
 }
 
 void MozcEngine::SetCompositionModeFromToolbar(

@@ -355,6 +355,7 @@ mozc_cc_library(
         "//client",
         "//client:marina_setup_wizard",
         "//composer:kaeriten_table_util",
+        "//composer_ids:composer_result",
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",
         "//protocol:config_cc_proto",

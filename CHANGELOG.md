@@ -10,6 +10,14 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Linux: character composer result is removed once the IBus engine commits it
+The composer writes the chosen Unicode character to `character_composer_result.txt`
+as a fallback for the LibreOffice extension, and the IBus engine also commits it.
+Both worked on a healthy setup, so Writer got the character twice (issue #102).
+The engine now deletes the file after the commit; the extension inserts only a
+file that is still there after a short grace period (the input method could not
+deliver it). macOS and Windows already delete the file when they read it.
+
 ### Linux apt: RC packages sort before the final release
 
 Debian treats a hyphen in the package Version as starting the debian

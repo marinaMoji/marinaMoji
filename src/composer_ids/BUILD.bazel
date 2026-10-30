@@ -68,6 +68,7 @@ mozc_cc_library(
     visibility = [
         "//gui/character_composer:__pkg__",
         "//mac:__pkg__",
+        "//unix/ibus:__pkg__",
         "//win32/tip:__pkg__",
     ],
     deps = [
