@@ -22,5 +22,10 @@
   <file alias="tr_ja.qm">../base/tr_ja.qm</file>
   <file alias="tr_en.qm">../base/tr_en.qm</file>
   <file alias="tr_fr.qm">../base/tr_fr.qm</file>
+  <file alias="combo_chevron.png">combo_chevron.png</file>
+  <!-- Light mark: high-DPI raster exported from preferences_header_logo.svg -->
+  <file alias="preferences_header_logo.png">preferences_header_logo.png</file>
+  <file alias="preferences_header_logo_dark.png">preferences_header_logo_dark.png</file>
+  <file alias="preferences_header_logo.svg">preferences_header_logo.svg</file>
 </qresource>
 </RCC>

@@ -21,6 +21,7 @@ class ConfigDialogSyncTab {
   explicit ConfigDialogSyncTab(client::Client* client, QWidget* parent);
 
   void AddToTabWidget(QTabWidget* tab_widget);
+  QWidget* page() const { return tab_; }
   void LoadFromServer();
   bool SaveToServer();
 

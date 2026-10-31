@@ -110,6 +110,14 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   // Linux/IBus only: load/save candidate window choice from ibus_config.textproto.
   void LoadIbusCandidateWindowFromFile();
   void SaveIbusCandidateWindowToFile() const;
+  // Reorganise tabs into Writing / Dictionaries / Keyboard / Suggestions /
+  // Privacy & Sync / Application. Does not change config keys or defaults.
+  void MigratePreferencesInformationArchitecture();
+  // Sidebar, page title, and footer styling. Does not move settings.
+  void InstallPreferencesShell();
+  void ApplyPreferencesChrome();
+  void RefinePreferencesControls();
+  void UpdatePreferencesScrollPolicy();
 
   std::unique_ptr<client::ClientInterface> client_;
   std::string custom_keymap_table_;

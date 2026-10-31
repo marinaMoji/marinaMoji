@@ -4,11 +4,16 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QFontMetrics>
+#include <QFrame>
 #include <QHeaderView>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QPushButton>
+#include <QSizePolicy>
 #include <QTabWidget>
 #include <QVBoxLayout>
+
+#include <string>
 
 #include "session/marina_number_row_bindings_util.h"
 
@@ -123,11 +128,7 @@ constexpr MarinaPhysicalSlot kAssignableSlots[] = {
     MarinaPhysicalSlot::MARINA_SLOT_GRAVE,
 };
 
-// Rebuild the Key dropdown for the current Modifier, omitting OS-blocked
-// chords (Ctrl+Shift+0 on Windows). Keeps the previous selection when still
-// available; otherwise falls back to the first listed key.
-void PopulateSlotCombo(QComboBox* slot_combo,
-                       MarinaShortcutModifier modifier,
+void PopulateSlotCombo(QComboBox* slot_combo, MarinaShortcutModifier modifier,
                        MarinaPhysicalSlot preferred_slot) {
   if (slot_combo == nullptr) {
     return;
@@ -150,17 +151,66 @@ void PopulateSlotCombo(QComboBox* slot_combo,
   slot_combo->blockSignals(signals_blocked);
 }
 
+QFrame* MakeSectionHeader(const QString& title, QWidget* parent) {
+  auto* header = new QFrame(parent);
+  header->setProperty("class", QStringLiteral("setting-group-header"));
+  header->setFrameShape(QFrame::NoFrame);
+  auto* layout = new QHBoxLayout(header);
+  layout->setContentsMargins(0, 0, 0, 0);
+  auto* label = new QLabel(title, header);
+  QFont font = label->font();
+  font.setPointSizeF(label->font().pointSizeF());
+  font.setWeight(QFont::Medium);
+  label->setFont(font);
+  layout->addWidget(label);
+  auto* line = new QFrame(header);
+  line->setProperty("class", QStringLiteral("setting-group-line"));
+  line->setFrameShape(QFrame::HLine);
+  line->setFixedHeight(1);
+  layout->addWidget(line, 1);
+  return header;
+}
+
+QLabel* MakeSecondaryLabel(const QString& text, QWidget* parent) {
+  auto* label = new QLabel(text, parent);
+  label->setObjectName(QStringLiteral("preferencesSecondary"));
+  label->setWordWrap(true);
+  label->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+  return label;
+}
+
+QPushButton* MakeDisclosure(const QString& closed_text, QWidget* parent) {
+  auto* button = new QPushButton(closed_text, parent);
+  button->setProperty("role", QStringLiteral("disclosure"));
+  button->setCheckable(true);
+  button->setFlat(true);
+  button->setCursor(Qt::PointingHandCursor);
+  button->setFocusPolicy(Qt::StrongFocus);
+  return button;
+}
+
 }  // namespace
 
 ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
     : tab_(new QWidget(parent)) {
   auto* layout = new QVBoxLayout(tab_);
+  layout->setContentsMargins(0, 4, 8, 12);
+  layout->setSpacing(10);
+
+  // --- Mode switching ---
+  layout->addWidget(MakeSectionHeader(QObject::tr("Mode switching"), tab_));
 
   disable_left_shift_direct_toggle_ = new QCheckBox(
       QObject::tr("Disable Left Shift toggle (Japanese ↔ Direct input)"), tab_);
   layout->addWidget(disable_left_shift_direct_toggle_);
 
-  left_shift_help_ = new QLabel(
+  layout->addWidget(MakeSecondaryLabel(
+      QObject::tr("Left Shift: Japanese ↔ direct input. Right Shift: hiragana "
+                  "↔ Manyōshū, or macron dead key in direct input. Double-tap "
+                  "Left Shift locks the current mode."),
+      tab_));
+
+  left_shift_help_ = MakeSecondaryLabel(
       QObject::tr(
           "When enabled (default), press and release Left Shift alone to switch "
           "between hiragana and direct input only (Manyōshū, half-width, and "
@@ -172,33 +222,38 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
           "macron dead key (tap Right Shift, then a vowel). Shift still works "
           "for capitals and shortcuts while locked."),
       tab_);
-  left_shift_help_->setWordWrap(true);
-  left_shift_help_->setContentsMargins(0, 2, 0, 6);
+  left_shift_help_->setVisible(false);
   layout->addWidget(left_shift_help_);
 
+  auto* mode_disclosure =
+      MakeDisclosure(QObject::tr("How mode switching works"), tab_);
+  layout->addWidget(mode_disclosure, 0, Qt::AlignLeft);
+  QObject::connect(mode_disclosure, &QPushButton::toggled, tab_,
+                   [this, mode_disclosure](bool open) {
+                     left_shift_help_->setVisible(open);
+                     mode_disclosure->setText(
+                         open ? QObject::tr("Hide mode switching details")
+                              : QObject::tr("How mode switching works"));
+                   });
+
 #ifdef _WIN32
-  // marinaMoji: the renderer process turns off the "press Shift 5 times"
-  // popup for its own lifetime (see win32/base/sticky_keys_util.h), so that
-  // case is handled automatically and silently. What that never does is
-  // switch StickyKeys itself off -- if the user (or a previous accidental
-  // 5x-tap, before marinaMoji started disabling the hotkey) already has it
-  // on, a lone Shift tap latches Shift for the next key, which breaks the
-  // gestures above (e.g. capitalizing the next macron vowel unexpectedly).
-  // Surface that instead of silently overriding a real accessibility choice.
-  sticky_keys_warning_ = new QLabel(
+  sticky_keys_warning_ = MakeSecondaryLabel(
       QObject::tr(
           "Windows StickyKeys is currently on. It will interfere with the "
           "Left/Right Shift shortcuts above (a tap latches Shift for the "
           "next key). If you don't need it, turn it off in Ease of Access "
           "settings."),
       tab_);
-  sticky_keys_warning_->setWordWrap(true);
-  sticky_keys_warning_->setStyleSheet("color: #b45309;");  // amber, not error-red
+  sticky_keys_warning_->setObjectName(QStringLiteral("preferencesWarning"));
   layout->addWidget(sticky_keys_warning_);
 
-  open_sticky_keys_settings_button_ =
-      new QPushButton(QObject::tr("Open Ease of Access keyboard settings..."), tab_);
-  layout->addWidget(open_sticky_keys_settings_button_);
+  open_sticky_keys_settings_button_ = new QPushButton(
+      QObject::tr("Open Ease of Access keyboard settings..."), tab_);
+  open_sticky_keys_settings_button_->setProperty(
+      "role", QStringLiteral("secondary"));
+  open_sticky_keys_settings_button_->setSizePolicy(QSizePolicy::Maximum,
+                                                   QSizePolicy::Fixed);
+  layout->addWidget(open_sticky_keys_settings_button_, 0, Qt::AlignLeft);
   QObject::connect(open_sticky_keys_settings_button_, &QPushButton::clicked,
                    [] {
                      Process::OpenBrowser("ms-settings:easeofaccess-keyboard");
@@ -212,45 +267,57 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
   open_sticky_keys_settings_button_ = nullptr;
 #endif  // _WIN32
 
-  layout->addSpacing(16);
+  // --- Custom shortcuts ---
+  layout->addWidget(MakeSectionHeader(QObject::tr("Custom shortcuts"), tab_));
 
-  number_row_help_ = new QLabel(
+  number_row_help_ = MakeSecondaryLabel(
       QObject::tr(
-          "Assign marina actions to physical number-row keys (the top row on "
-          "your keyboard). Shortcuts follow the key position, not the letter "
-          "printed on the key, so they work on Dvorak, AZERTY, and other "
-          "layouts."),
+          "Assign marina actions to physical number-row keys. Shortcuts follow "
+          "key position, not the printed letter, so they work on Dvorak, "
+          "AZERTY, and other layouts."),
       tab_);
-  number_row_help_->setWordWrap(true);
-  number_row_help_->setContentsMargins(0, 2, 0, 6);
   layout->addWidget(number_row_help_);
 
 #if defined(__APPLE__)
-  mac_number_row_note_ = new QLabel(
+  mac_number_row_note_ = MakeSecondaryLabel(
       QObject::tr(
           "Custom number-row bindings are saved here and apply on Linux. "
           "macOS still uses the default bindings until a future update."),
       tab_);
-  mac_number_row_note_->setWordWrap(true);
-  mac_number_row_note_->setContentsMargins(0, 2, 0, 6);
   layout->addWidget(mac_number_row_note_);
 #else
   mac_number_row_note_ = nullptr;
 #endif
 
 #ifdef _WIN32
-  win_number_row_note_ = new QLabel(
+  win_number_row_note_ = MakeSecondaryLabel(
       QObject::tr(
           "Dictionary entry defaults to Ctrl+Shift+9 on Windows. Ctrl+Shift+0 "
           "is not available here: Windows often swallows it for "
           "input-language switching, even when that hotkey looks unassigned."),
       tab_);
-  win_number_row_note_->setWordWrap(true);
-  win_number_row_note_->setContentsMargins(0, 2, 0, 6);
   layout->addWidget(win_number_row_note_);
 #else   // !_WIN32
   win_number_row_note_ = nullptr;
 #endif  // _WIN32
+
+  auto* shortcuts_details = MakeSecondaryLabel(
+      QObject::tr(
+          "Each row maps one action to a modifier and a physical key. Conflicts "
+          "are checked when you Apply. Empty or duplicate chords are rejected."),
+      tab_);
+  shortcuts_details->setVisible(false);
+  layout->addWidget(shortcuts_details);
+  auto* shortcuts_disclosure =
+      MakeDisclosure(QObject::tr("How custom shortcuts work"), tab_);
+  layout->addWidget(shortcuts_disclosure, 0, Qt::AlignLeft);
+  QObject::connect(shortcuts_disclosure, &QPushButton::toggled, tab_,
+                   [shortcuts_details, shortcuts_disclosure](bool open) {
+                     shortcuts_details->setVisible(open);
+                     shortcuts_disclosure->setText(
+                         open ? QObject::tr("Hide custom shortcut details")
+                              : QObject::tr("How custom shortcuts work"));
+                   });
 
   number_row_table_ = new QTableWidget(7, 3, tab_);
   number_row_table_->setHorizontalHeaderLabels(
@@ -258,20 +325,23 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
   number_row_table_->verticalHeader()->setVisible(false);
   number_row_table_->setSelectionMode(QAbstractItemView::NoSelection);
   number_row_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  number_row_table_->setShowGrid(false);
+  number_row_table_->setAlternatingRowColors(false);
+  number_row_table_->setFocusPolicy(Qt::StrongFocus);
   for (int row = 0; row < 7; ++row) {
     const MarinaNumberRowAction action = ActionForRow(row);
     auto* action_item = new QTableWidgetItem(ActionLabel(action));
     number_row_table_->setItem(row, kColumnAction, action_item);
 
     auto* modifier_combo = new QComboBox(number_row_table_);
-    modifier_combo->addItem(QObject::tr("Ctrl"), MarinaShortcutModifier::MARINA_MOD_CTRL);
+    modifier_combo->addItem(QObject::tr("Ctrl"),
+                            MarinaShortcutModifier::MARINA_MOD_CTRL);
     modifier_combo->addItem(QObject::tr("Ctrl+Shift"),
                             MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT);
     number_row_table_->setCellWidget(row, kColumnModifier, modifier_combo);
 
     auto* slot_combo = new QComboBox(number_row_table_);
-    PopulateSlotCombo(slot_combo,
-                      MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
+    PopulateSlotCombo(slot_combo, MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
                       MarinaPhysicalSlot::MARINA_SLOT_1);
     number_row_table_->setCellWidget(row, kColumnSlot, slot_combo);
 
@@ -289,32 +359,55 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
           PopulateSlotCombo(slot_combo, modifier, preferred);
         });
   }
-  number_row_table_->resizeColumnsToContents();
-  const int row_h = QFontMetrics(number_row_table_->font()).height() + 14;
+  const int row_h = QFontMetrics(number_row_table_->font()).height() + 18;
   number_row_table_->verticalHeader()->setDefaultSectionSize(row_h);
+  number_row_table_->horizontalHeader()->setSectionResizeMode(
+      0, QHeaderView::Stretch);
+  number_row_table_->horizontalHeader()->setSectionResizeMode(
+      1, QHeaderView::ResizeToContents);
+  number_row_table_->horizontalHeader()->setSectionResizeMode(
+      2, QHeaderView::ResizeToContents);
+  // Fixed height so a parent stretch can never collapse the table under the
+  // Kaeriten section (which previously painted on top of the rows).
+  number_row_table_->setFixedHeight(row_h * 7 + 36);
+  number_row_table_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
   layout->addWidget(number_row_table_);
 
-  layout->addSpacing(16);
+  // --- Kaeriten ---
+  layout->addWidget(MakeSectionHeader(QObject::tr("Kaeriten shortcuts"), tab_));
 
-  kaeriten_help_ = new QLabel(
-      QObject::tr(
-          "In direct input, type semicolon then your keys to insert kaeriten "
-          "marks (for example ;r → ㆑). Marks not in the default set (e.g. "
-          "linking mark ㆐) can be added with New entry."),
+  kaeriten_help_ = MakeSecondaryLabel(
+      QObject::tr("In direct input, type semicolon then a key (for example "
+                  ";r → ㆑)."),
       tab_);
-  kaeriten_help_->setWordWrap(true);
-  kaeriten_help_->setContentsMargins(0, 2, 0, 6);
   layout->addWidget(kaeriten_help_);
 
-  layout->addSpacing(8);
+  auto* kaeriten_details = MakeSecondaryLabel(
+      QObject::tr(
+          "Marks not in the default set (for example linking mark ㆐) can be "
+          "added with New entry in the editor. Custom entries are stored with "
+          "your other preferences."),
+      tab_);
+  kaeriten_details->setVisible(false);
+  layout->addWidget(kaeriten_details);
+  auto* kaeriten_disclosure =
+      MakeDisclosure(QObject::tr("How kaeriten shortcuts work"), tab_);
+  layout->addWidget(kaeriten_disclosure, 0, Qt::AlignLeft);
+  QObject::connect(kaeriten_disclosure, &QPushButton::toggled, tab_,
+                   [kaeriten_details, kaeriten_disclosure](bool open) {
+                     kaeriten_details->setVisible(open);
+                     kaeriten_disclosure->setText(
+                         open ? QObject::tr("Hide kaeriten details")
+                              : QObject::tr("How kaeriten shortcuts work"));
+                   });
 
   edit_kaeriten_button_ =
       new QPushButton(QObject::tr("Edit kaeriten shortcuts..."), tab_);
-  layout->addWidget(edit_kaeriten_button_);
+  edit_kaeriten_button_->setProperty("role", QStringLiteral("secondary"));
+  edit_kaeriten_button_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+  layout->addWidget(edit_kaeriten_button_, 0, Qt::AlignLeft);
 
-  layout->addSpacing(12);
-
-  layout->addStretch();
+  layout->addSpacing(8);
 }
 
 void ConfigDialogShortcutsTab::AddToTabWidget(QTabWidget* tab_widget) {
@@ -428,13 +521,13 @@ void ConfigDialogShortcutsTab::ApplyToConfig(config::Config* config) const {
 
 void ConfigDialogShortcutsTab::ConnectApplyButton(const QObject* receiver,
                                                   const char* slot) {
-  QObject::connect(disable_left_shift_direct_toggle_, SIGNAL(clicked()), receiver,
-                   slot);
+  QObject::connect(disable_left_shift_direct_toggle_, SIGNAL(clicked()),
+                   receiver, slot);
   for (int row = 0; row < 7; ++row) {
     if (auto* modifier_combo = qobject_cast<QComboBox*>(
             number_row_table_->cellWidget(row, kColumnModifier))) {
-      QObject::connect(modifier_combo, SIGNAL(currentIndexChanged(int)), receiver,
-                       slot);
+      QObject::connect(modifier_combo, SIGNAL(currentIndexChanged(int)),
+                       receiver, slot);
     }
     if (auto* slot_combo = qobject_cast<QComboBox*>(
             number_row_table_->cellWidget(row, kColumnSlot))) {

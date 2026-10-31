@@ -21,6 +21,7 @@ class ConfigDialogShortcutsTab {
   explicit ConfigDialogShortcutsTab(QWidget* parent);
 
   void AddToTabWidget(QTabWidget* tab_widget);
+  QWidget* page() const { return tab_; }
   void LoadFromConfig(const config::Config& config);
   bool ValidateBeforeApply(QString* error_message) const;
   void ApplyToConfig(config::Config* config) const;

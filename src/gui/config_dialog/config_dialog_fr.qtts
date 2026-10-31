@@ -535,6 +535,63 @@
 <context>
     <name>QObject</name>
     <message>
+        <source>Mode switching</source>
+        <translation>Changement de mode</translation>
+    </message>
+    <message>
+        <source>Custom shortcuts</source>
+        <translation>Raccourcis personnalisés</translation>
+    </message>
+    <message>
+        <source>Kaeriten shortcuts</source>
+        <translation>Raccourcis kaeriten</translation>
+    </message>
+    <message>
+        <source>How mode switching works</source>
+        <translation>Fonctionnement du changement de mode</translation>
+    </message>
+    <message>
+        <source>Hide mode switching details</source>
+        <translation>Masquer les détails du changement de mode</translation>
+    </message>
+    <message>
+        <source>How custom shortcuts work</source>
+        <translation>Fonctionnement des raccourcis personnalisés</translation>
+    </message>
+    <message>
+        <source>Hide custom shortcut details</source>
+        <translation>Masquer les détails des raccourcis</translation>
+    </message>
+    <message>
+        <source>How kaeriten shortcuts work</source>
+        <translation>Fonctionnement des raccourcis kaeriten</translation>
+    </message>
+    <message>
+        <source>Hide kaeriten details</source>
+        <translation>Masquer les détails kaeriten</translation>
+    </message>
+    <message>
+        <source>Left Shift: Japanese ↔ direct input. Right Shift: hiragana ↔ Manyōshū, or macron dead key in direct input. Double-tap Left Shift locks the current mode.</source>
+        <translation>Maj gauche : japonais ↔ saisie directe. Maj droite : hiragana ↔ Manyōshū, ou touche morte de macron en saisie directe. Double appui sur Maj gauche pour verrouiller le mode.</translation>
+    </message>
+    <message>
+        <source>Assign marina actions to physical number-row keys. Shortcuts follow key position, not the printed letter, so they work on Dvorak, AZERTY, and other layouts.</source>
+        <translation>Assignez des actions marina aux touches de la rangée numérique physique. Les raccourcis suivent la position, pas la lettre imprimée (Dvorak, AZERTY, etc.).</translation>
+    </message>
+    <message>
+        <source>Each row maps one action to a modifier and a physical key. Conflicts are checked when you Apply. Empty or duplicate chords are rejected.</source>
+        <translation>Chaque ligne associe une action à un modificateur et une touche physique. Les conflits sont vérifiés à l’application ; les accords vides ou en double sont refusés.</translation>
+    </message>
+    <message>
+        <source>In direct input, type semicolon then a key (for example ;r → ㆑).</source>
+        <translation>En saisie directe, tapez un point-virgule puis une touche (par exemple ;r → ㆑).</translation>
+    </message>
+    <message>
+        <source>Marks not in the default set (for example linking mark ㆐) can be added with New entry in the editor. Custom entries are stored with your other preferences.</source>
+        <translation>Les marques absentes du jeu par défaut (par ex. ㆐) s’ajoutent via Nouvelle entrée. Les entrées personnalisées sont enregistrées avec vos autres préférences.</translation>
+    </message>
+
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="49" />
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="64" />
         <source>Fullwidth</source>
@@ -961,6 +1018,41 @@ Essayez d’exécuter %3 dans le Terminal et consultez %4.</translation>
 </context>
 <context>
     <name>mozc::gui::ConfigDialog</name>
+    <message>
+        <location filename="config_dialog.cc" line="701"/>
+        <source>Preferences</source>
+        <translation>Préférences</translation>
+    </message>
+    <message>
+        <source>Personal entries</source>
+        <translation>Entrées personnelles</translation>
+    </message>
+    <message><source>Writing</source><translation>Saisie</translation></message>
+    <message><source>Dictionaries</source><translation>Dictionnaires</translation></message>
+    <message><source>Keyboard</source><translation>Clavier</translation></message>
+    <message><source>Suggestions</source><translation>Suggestions</translation></message>
+    <message><source>Privacy &amp; Sync</source><translation>Confidentialité et sync</translation></message>
+    <message><source>Application</source><translation>Application</translation></message>
+    <message><source>Input</source><translation>Entrée</translation></message>
+    <message><source>Punctuation &amp; symbols</source><translation>Ponctuation et symboles</translation></message>
+    <message><source>Spacing &amp; widths</source><translation>Espaces et chasse</translation></message>
+    <message><source>Conversion</source><translation>Conversion</translation></message>
+    <message><source>Kanji forms</source><translation>Formes de kanji</translation></message>
+    <message><source>Detailed width rules</source><translation>Règles de chasse détaillées</translation></message>
+    <message><source>Candidate appearance</source><translation>Apparence des candidats</translation></message>
+    <message><source>Learning</source><translation>Apprentissage</translation></message>
+    <message><source>Personal dictionary</source><translation>Dictionnaire personnel</translation></message>
+    <message><source>Dictionary sources</source><translation>Sources de dictionnaire</translation></message>
+    <message><source>Scholarly vocabulary</source><translation>Vocabulaire savant</translation></message>
+    <message><source>Special conversions</source><translation>Conversions spéciales</translation></message>
+    <message><source>Keymap</source><translation>Disposition des touches</translation></message>
+    <message><source>Key behaviour</source><translation>Comportement des touches</translation></message>
+    <message><source>Candidate selection</source><translation>Sélection des candidats</translation></message>
+    <message><source>Mode switching</source><translation>Changement de mode</translation></message>
+    <message><source>Synchronisation</source><translation>Synchronisation</translation></message>
+    <message><source>Updates</source><translation>Mises à jour</translation></message>
+    <message><source>Startup</source><translation>Démarrage</translation></message>
+    <message><source>System</source><translation>Système</translation></message>
     <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="258" />
         <source>%1 Preferences</source>

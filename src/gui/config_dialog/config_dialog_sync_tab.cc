@@ -28,6 +28,9 @@ ConfigDialogSyncTab::ConfigDialogSyncTab(client::Client* client,
                                          QWidget* parent)
     : client_(client), tab_(new QWidget(parent)) {
   auto* layout = new QVBoxLayout(tab_);
+  // Embedded under Preferences → Privacy & Sync (no outer page chrome).
+  layout->setContentsMargins(0, 2, 0, 0);
+  layout->setSpacing(8);
 
   enabled_ = new QCheckBox(
       QObject::tr("Enable encrypted sync (dictionary and history)"), tab_);
@@ -99,7 +102,8 @@ ConfigDialogSyncTab::ConfigDialogSyncTab(client::Client* client,
   status_ = new QLabel(tab_);
   status_->setWordWrap(true);
   layout->addWidget(status_);
-  layout->addStretch();
+  // No expanding stretch: this page is embedded in a scrolling Preferences
+  // column, and a stretch left a tall empty band under Synchronisation.
 
   QObject::connect(browse_, &QPushButton::clicked, [this]() { OnBrowseFile(); });
   QObject::connect(generate_key_, &QPushButton::clicked,

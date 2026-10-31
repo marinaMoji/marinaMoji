@@ -528,6 +528,41 @@
 <context>
     <name>mozc::gui::ConfigDialog</name>
     <message>
+        <location filename="config_dialog.cc" line="701"/>
+        <source>Preferences</source>
+        <translation>Preferences</translation>
+    </message>
+    <message>
+        <source>Personal entries</source>
+        <translation>Personal entries</translation>
+    </message>
+    <message><source>Writing</source><translation>Writing</translation></message>
+    <message><source>Dictionaries</source><translation>Dictionaries</translation></message>
+    <message><source>Keyboard</source><translation>Keyboard</translation></message>
+    <message><source>Suggestions</source><translation>Suggestions</translation></message>
+    <message><source>Privacy &amp; Sync</source><translation>Privacy &amp; Sync</translation></message>
+    <message><source>Application</source><translation>Application</translation></message>
+    <message><source>Input</source><translation>Input</translation></message>
+    <message><source>Punctuation &amp; symbols</source><translation>Punctuation &amp; symbols</translation></message>
+    <message><source>Spacing &amp; widths</source><translation>Spacing &amp; widths</translation></message>
+    <message><source>Conversion</source><translation>Conversion</translation></message>
+    <message><source>Kanji forms</source><translation>Kanji forms</translation></message>
+    <message><source>Detailed width rules</source><translation>Detailed width rules</translation></message>
+    <message><source>Candidate appearance</source><translation>Candidate appearance</translation></message>
+    <message><source>Learning</source><translation>Learning</translation></message>
+    <message><source>Personal dictionary</source><translation>Personal dictionary</translation></message>
+    <message><source>Dictionary sources</source><translation>Dictionary sources</translation></message>
+    <message><source>Scholarly vocabulary</source><translation>Scholarly vocabulary</translation></message>
+    <message><source>Special conversions</source><translation>Special conversions</translation></message>
+    <message><source>Keymap</source><translation>Keymap</translation></message>
+    <message><source>Key behaviour</source><translation>Key behaviour</translation></message>
+    <message><source>Candidate selection</source><translation>Candidate selection</translation></message>
+    <message><source>Mode switching</source><translation>Mode switching</translation></message>
+    <message><source>Synchronisation</source><translation>Synchronisation</translation></message>
+    <message><source>Updates</source><translation>Updates</translation></message>
+    <message><source>Startup</source><translation>Startup</translation></message>
+    <message><source>System</source><translation>System</translation></message>
+    <message>
         <location filename="config_dialog.cc" line="130"/>
         <source>Custom keymap</source>
         <translation></translation>

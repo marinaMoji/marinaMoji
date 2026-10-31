@@ -536,6 +536,63 @@
 <context>
     <name>QObject</name>
     <message>
+        <source>Mode switching</source>
+        <translation>モード切替</translation>
+    </message>
+    <message>
+        <source>Custom shortcuts</source>
+        <translation>カスタムショートカット</translation>
+    </message>
+    <message>
+        <source>Kaeriten shortcuts</source>
+        <translation>返り点ショートカット</translation>
+    </message>
+    <message>
+        <source>How mode switching works</source>
+        <translation>モード切替の詳細</translation>
+    </message>
+    <message>
+        <source>Hide mode switching details</source>
+        <translation>モード切替の詳細を隠す</translation>
+    </message>
+    <message>
+        <source>How custom shortcuts work</source>
+        <translation>カスタムショートカットの詳細</translation>
+    </message>
+    <message>
+        <source>Hide custom shortcut details</source>
+        <translation>カスタムショートカットの詳細を隠す</translation>
+    </message>
+    <message>
+        <source>How kaeriten shortcuts work</source>
+        <translation>返り点ショートカットの詳細</translation>
+    </message>
+    <message>
+        <source>Hide kaeriten details</source>
+        <translation>返り点の詳細を隠す</translation>
+    </message>
+    <message>
+        <source>Left Shift: Japanese ↔ direct input. Right Shift: hiragana ↔ Manyōshū, or macron dead key in direct input. Double-tap Left Shift locks the current mode.</source>
+        <translation>左Shift：日本語↔直接入力。右Shift：ひらがな↔万葉仮名、または直接入力時の長音デッドキー。左Shiftを素早く2回でモードをロック。</translation>
+    </message>
+    <message>
+        <source>Assign marina actions to physical number-row keys. Shortcuts follow key position, not the printed letter, so they work on Dvorak, AZERTY, and other layouts.</source>
+        <translation>物理的な数字キー列にmarinaの操作を割り当てます。ショートカットは印字ではなくキー位置に従うので、DvorakやAZERTYなどでも同じです。</translation>
+    </message>
+    <message>
+        <source>Each row maps one action to a modifier and a physical key. Conflicts are checked when you Apply. Empty or duplicate chords are rejected.</source>
+        <translation>各行は1つの操作を修飾キーと物理キーに対応づけます。適用時に競合を検査し、空や重複は拒否されます。</translation>
+    </message>
+    <message>
+        <source>In direct input, type semicolon then a key (for example ;r → ㆑).</source>
+        <translation>直接入力では、セミコロンのあとにキーを入力します（例：;r → ㆑）。</translation>
+    </message>
+    <message>
+        <source>Marks not in the default set (for example linking mark ㆐) can be added with New entry in the editor. Custom entries are stored with your other preferences.</source>
+        <translation>標準にない記号（例：連結記号 ㆐）は、編集画面の新規登録で追加できます。カスタム項目は他の設定と同様に保存されます。</translation>
+    </message>
+
+    <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="49" />
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/character_form_editor.cc" line="64" />
         <source>Fullwidth</source>
@@ -962,6 +1019,41 @@ Try running %3 in Terminal and check %4.</source>
 </context>
 <context>
     <name>mozc::gui::ConfigDialog</name>
+    <message>
+        <location filename="config_dialog.cc" line="701"/>
+        <source>Preferences</source>
+        <translation>環境設定</translation>
+    </message>
+    <message>
+        <source>Personal entries</source>
+        <translation>個人用の登録</translation>
+    </message>
+    <message><source>Writing</source><translation>入力・変換</translation></message>
+    <message><source>Dictionaries</source><translation>辞書</translation></message>
+    <message><source>Keyboard</source><translation>キーボード</translation></message>
+    <message><source>Suggestions</source><translation>サジェスト</translation></message>
+    <message><source>Privacy &amp; Sync</source><translation>プライバシーと同期</translation></message>
+    <message><source>Application</source><translation>アプリケーション</translation></message>
+    <message><source>Input</source><translation>入力</translation></message>
+    <message><source>Punctuation &amp; symbols</source><translation>句読点と記号</translation></message>
+    <message><source>Spacing &amp; widths</source><translation>スペースと全角半角</translation></message>
+    <message><source>Conversion</source><translation>変換</translation></message>
+    <message><source>Kanji forms</source><translation>漢字の字形</translation></message>
+    <message><source>Detailed width rules</source><translation>全角・半角の詳細</translation></message>
+    <message><source>Candidate appearance</source><translation>候補ウィンドウ</translation></message>
+    <message><source>Learning</source><translation>学習</translation></message>
+    <message><source>Personal dictionary</source><translation>ユーザー辞書</translation></message>
+    <message><source>Dictionary sources</source><translation>辞書の種類</translation></message>
+    <message><source>Scholarly vocabulary</source><translation>学術・歴史語彙</translation></message>
+    <message><source>Special conversions</source><translation>特殊変換</translation></message>
+    <message><source>Keymap</source><translation>キー設定</translation></message>
+    <message><source>Key behaviour</source><translation>キーの動作</translation></message>
+    <message><source>Candidate selection</source><translation>候補の選択</translation></message>
+    <message><source>Mode switching</source><translation>モード切替</translation></message>
+    <message><source>Synchronisation</source><translation>同期</translation></message>
+    <message><source>Updates</source><translation>アップデート</translation></message>
+    <message><source>Startup</source><translation>起動</translation></message>
+    <message><source>System</source><translation>システム</translation></message>
     <message>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="310" />
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="314" />
