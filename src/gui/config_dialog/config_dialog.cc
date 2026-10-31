@@ -216,15 +216,7 @@ namespace {
 // Preferences may trigger a slow server-side config write; use the same
 // generous IPC timeout as dictionary_tool (100s), not the 30s client default.
 constexpr absl::Duration kConfigDialogTimeout = absl::Milliseconds(100000);
-}  // namespace
 
-#if defined(MARINAMOJI) && defined(__APPLE__)
-namespace {
-
-// Runs `marinaMoji --silent_update <mode>` (see SilentUpdateCommand in
-// mac/main.mm for why it must be that binary) and returns its one-word result:
-// on / off / approval / missing. Returns an empty string and fills |error| if
-// it could not be run or reported a failure.
 constexpr int kAutosaveDebounceMs = 200;
 
 // QTimer behind the Qt-free AutosaveController.
@@ -253,7 +245,15 @@ bool PreviewFlagEnabled(const char *name) { return qgetenv(name) == "1"; }
 bool PreviewModeEnabled() {
   return PreviewFlagEnabled("MARINAMOJI_PREFS_UI_PREVIEW");
 }
+}  // namespace
 
+#if defined(MARINAMOJI) && defined(__APPLE__)
+namespace {
+
+// Runs `marinaMoji --silent_update <mode>` (see SilentUpdateCommand in
+// mac/main.mm for why it must be that binary) and returns its one-word result:
+// on / off / approval / missing. Returns an empty string and fills |error| if
+// it could not be run or reported a failure.
 QString RunSilentUpdate(const QString &mode, QString *error) {
   // Preferences is marinaMoji.app/Contents/Resources/ConfigDialog.app.
   QString exe = QDir::cleanPath(QCoreApplication::applicationDirPath() +
