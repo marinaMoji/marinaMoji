@@ -1275,7 +1275,9 @@ Kyū   國 學</translation>
     <message><source>Encrypted dictionary and history sync</source><translation>Synchronisation chiffrée du dictionnaire et de l’historique</translation></message>
     <message><source>Per-group fullwidth and halfwidth defaults</source><translation>Largeur pleine ou demie par défaut, par groupe</translation></message>
     <message><source>Not saved yet: %1</source><translation>Non enregistré : %1</translation></message>
-    <message><source>Not saved: the converter is not running.</source><translation>Non enregistré : le convertisseur n’est pas en cours d’exécution.</translation></message>
+    <message><source>Could not save settings. %1</source><translation>Impossible d’enregistrer les paramètres. %1</translation></message>
+    <message><source>The converter is not running.</source><translation>Le convertisseur n’est pas en cours d’exécution.</translation></message>
+    <message><source>Settings status</source><translation>État des paramètres</translation></message>
     <message><source>Application</source><translation>Application</translation></message>
     <message><source>Input</source><translation>Entrée</translation></message>
     <message><source>Punctuation &amp; symbols</source><translation>Ponctuation et symboles</translation></message>

@@ -1276,7 +1276,9 @@ Kyū   國 學</source>
     <message><source>Encrypted dictionary and history sync</source><translation>辞書と履歴の暗号化同期</translation></message>
     <message><source>Per-group fullwidth and halfwidth defaults</source><translation>文字グループごとの全角・半角の既定値</translation></message>
     <message><source>Not saved yet: %1</source><translation>未保存: %1</translation></message>
-    <message><source>Not saved: the converter is not running.</source><translation>未保存: 変換サーバーが起動していません。</translation></message>
+    <message><source>Could not save settings. %1</source><translation>設定を保存できませんでした。%1</translation></message>
+    <message><source>The converter is not running.</source><translation>変換サーバーが起動していません。</translation></message>
+    <message><source>Settings status</source><translation>設定の状態</translation></message>
     <message><source>Application</source><translation>アプリケーション</translation></message>
     <message><source>Input</source><translation>入力</translation></message>
     <message><source>Punctuation &amp; symbols</source><translation>句読点と記号</translation></message>

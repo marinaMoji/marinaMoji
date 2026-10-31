@@ -42,6 +42,7 @@
 
 #include "client/client_interface.h"
 #include "gui/base/github_update_checker.h"
+#include "gui/config_dialog/autosave_controller.h"
 #include "gui/config_dialog/config_dialog_shortcuts_tab.h"
 #include "gui/config_dialog/config_dialog_sync_tab.h"
 #include "gui/config_dialog/preferences_explanations.h"
@@ -112,16 +113,18 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   void ConvertToProto(config::Config* config) const;
   void ConvertFromProto(const config::Config& config);
   // Persist UI → config via the existing client SetConfig path (and platform
-  // side effects that Apply/OK used to run). When quiet_validation is true,
-  // invalid intermediate states (e.g. unfinished shortcut chords) skip the
-  // modal warning so autosave stays quiet while the user is still editing.
-  bool Update(bool quiet_validation = false);
+  // side effects that Apply/OK used to run). |interactive| is true when the
+  // user is waiting (closing, committing an editor) and a modal may explain a
+  // problem; timer-driven autosaves pass false and stay quiet. The result
+  // tells AutosaveController whether the problem is incomplete settings or a
+  // persistence failure.
+  AutosaveController::Result Update(bool interactive);
   void Reload();
   void ScheduleAutoSave();
-  void FlushAutoSave();
-  // Runs Update() on the GUI thread; serializes overlapping requests so a
-  // nested/re-entrant save cannot persist an older snapshot over a newer one.
-  void RunAutoSave(bool quiet_validation);
+  // Saves anything pending now. False if something is left unsaved.
+  bool FlushAutoSave();
+  // For editors whose result is not a control: mark changed, then save now.
+  void CommitAutoSave();
   // Linux/IBus only: load/save candidate window choice from ibus_config.textproto.
   void LoadIbusCandidateWindowFromFile();
   void SaveIbusCandidateWindowToFile() const;
@@ -133,9 +136,8 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   void ApplyPreferencesChrome();
   void RefinePreferencesControls();
   void UpdatePreferencesScrollPolicy();
-  // Sidebar status line shown while autosave cannot persist (invalid
-  // intermediate state, converter not running). Empty text hides it.
-  void SetSaveStatus(const QString& text);
+  // Reflects autosave state in the in-content banner (hidden when all is well).
+  void SetSaveStatus(const AutosaveController::Status& status);
 
   std::unique_ptr<client::ClientInterface> client_;
   std::string custom_keymap_table_;
@@ -159,16 +161,8 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   bool update_check_silent_ = false;
   bool auto_update_check_started_ = false;
 
-  // Blocks ScheduleAutoSave while ConvertFromProto/Reload fills controls.
-  bool autosave_suppressed_ = false;
-  // True while RunAutoSave is inside Update/SetConfig (may re-enter the
-  // event loop during IPC or modal error dialogs).
-  bool autosave_in_progress_ = false;
-  // Set when ScheduleAutoSave runs during autosave_in_progress_; causes
-  // RunAutoSave to repeat with the latest UI state before returning.
-  bool autosave_dirty_ = false;
-  QTimer* autosave_timer_ = nullptr;
-  QLabel* save_status_label_ = nullptr;
+  std::unique_ptr<AutosaveController> autosave_;
+  QLabel* save_banner_ = nullptr;
 
   // Last value pushed to each platform side effect, so an autosave only
   // re-applies the ones whose control actually changed.

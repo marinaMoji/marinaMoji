@@ -30,6 +30,7 @@
 // Qt component of configure dialog for Mozc
 #include "gui/config_dialog/config_dialog.h"
 
+#include "gui/config_dialog/autosave_controller.h"
 #include "gui/config_dialog/config_dialog_shortcuts_tab.h"
 #include "gui/config_dialog/config_dialog_sync_tab.h"
 #include "gui/config_dialog/config_dialog_theme.h"
@@ -71,6 +72,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 #include <algorithm>
+#include <functional>
 #include <cstdint>
 #include <fstream>
 #include <istream>
@@ -223,6 +225,35 @@ namespace {
 // mac/main.mm for why it must be that binary) and returns its one-word result:
 // on / off / approval / missing. Returns an empty string and fills |error| if
 // it could not be run or reported a failure.
+constexpr int kAutosaveDebounceMs = 200;
+
+// QTimer behind the Qt-free AutosaveController.
+class QtAutosaveTimer : public AutosaveController::Timer {
+ public:
+  explicit QtAutosaveTimer(int interval_ms) {
+    timer_.setSingleShot(true);
+    timer_.setInterval(interval_ms);
+  }
+  void Connect(const std::function<void()> &on_timeout) {
+    QObject::connect(&timer_, &QTimer::timeout, &timer_,
+                     [on_timeout]() { on_timeout(); });
+  }
+  void Start() override { timer_.start(); }  // restarts if running
+  void Stop() override { timer_.stop(); }
+
+ private:
+  QTimer timer_;
+};
+
+// Developer-only hooks for cross-platform visual testing. They count only when
+// set to exactly "1", so an empty or stray variable in a user's environment
+// changes nothing, and they never alter what is saved: preview mode
+// suppresses persistence instead of risking a real profile.
+bool PreviewFlagEnabled(const char *name) { return qgetenv(name) == "1"; }
+bool PreviewModeEnabled() {
+  return PreviewFlagEnabled("MARINAMOJI_PREFS_UI_PREVIEW");
+}
+
 QString RunSilentUpdate(const QString &mode, QString *error) {
   // Preferences is marinaMoji.app/Contents/Resources/ConfigDialog.app.
   QString exe = QDir::cleanPath(QCoreApplication::applicationDirPath() +
@@ -408,17 +439,19 @@ ConfigDialog::ConfigDialog()
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
   // Preview-only: force dark chrome without changing system appearance.
-  if (qEnvironmentVariableIsSet("MARINAMOJI_PREFS_UI_PREVIEW_DARK")) {
+  if (PreviewFlagEnabled("MARINAMOJI_PREFS_UI_PREVIEW_DARK")) {
     QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
   }
 #endif
 
-  autosave_timer_ = new QTimer(this);
-  autosave_timer_->setSingleShot(true);
-  autosave_timer_->setInterval(200);
-  connect(autosave_timer_, &QTimer::timeout, this, [this]() {
-    RunAutoSave(/*quiet_validation=*/true);
-  });
+  auto autosave_timer = std::make_unique<QtAutosaveTimer>(kAutosaveDebounceMs);
+  autosave_timer->Connect([this]() { autosave_->OnTimeout(); });
+  autosave_ = std::make_unique<AutosaveController>(
+      [this](bool interactive) { return Update(interactive); },
+      [this](const AutosaveController::Status& status) {
+        SetSaveStatus(status);
+      },
+      std::move(autosave_timer));
 
   // signal/slot
   QObject::connect(clearUserHistoryButton, SIGNAL(clicked()), this,
@@ -699,14 +732,14 @@ ConfigDialog::ConfigDialog()
   // this window immediately. The shell has to be in place before that.
   InstallPreferencesShell();
 
-  autosave_suppressed_ = true;
+  autosave_->SetSuppressed(true);
   Reload();
 #ifdef _WIN32
   IMEHotKeyDisabledCheckBox->setChecked(WinUtil::GetIMEHotKeyDisabled());
 #else   // _WIN32
   IMEHotKeyDisabledCheckBox->setVisible(false);
 #endif  // _WIN32
-  autosave_suppressed_ = false;
+  autosave_->SetSuppressed(false);
 
 #if defined(GOOGLE_JAPANESE_INPUT_BUILD) && defined(CHANNEL_DEV)
   usageStatsCheckBox->setEnabled(false);
@@ -1650,17 +1683,6 @@ void ConfigDialog::InstallPreferencesShell() {
   side_layout->addSpacing(Spacing::utility_gap);
   side_layout->addWidget(reset_button, 0, Qt::AlignLeft);
 
-  save_status_label_ = new QLabel(sidebar);
-  save_status_label_->setObjectName(QStringLiteral("preferencesSaveStatus"));
-  save_status_label_->setWordWrap(true);
-  save_status_label_->setFont(
-      config_dialog_theme::UiFont(config_dialog_theme::Type::utility));
-  save_status_label_->setMaximumWidth(kSidebarWidth - kSidebarPadL -
-                                      kSidebarPadR);
-  save_status_label_->hide();
-  side_layout->addSpacing(Spacing::utility_gap);
-  side_layout->addWidget(save_status_label_, 0, Qt::AlignLeft);
-
   auto* rule = new QFrame(this);
   rule->setObjectName(QStringLiteral("preferencesSidebarRule"));
   rule->setFrameShape(QFrame::NoFrame);
@@ -1698,6 +1720,17 @@ void ConfigDialog::InstallPreferencesShell() {
   title_rule->setFixedHeight(1);
   content_layout->addWidget(title_rule);
   content_layout->addSpacing(Spacing::rule_to_section);
+
+  // Autosave problems. Hidden unless something is wrong, so a successful save
+  // shows nothing at all. It lives in the content column, not the sidebar, so
+  // it stays visible however narrow the window or collapsed the sidebar.
+  save_banner_ = new QLabel(content);
+  save_banner_->setObjectName(QStringLiteral("preferencesSaveBanner"));
+  save_banner_->setWordWrap(true);
+  save_banner_->setTextInteractionFlags(Qt::NoTextInteraction);
+  save_banner_->setAccessibleName(tr("Settings status"));
+  save_banner_->hide();
+  content_layout->addWidget(save_banner_);
 
   // setupUi builds these as vertical boxes. Narrow to QVBoxLayout for insert
   // and stretch APIs that the base QLayout type does not expose.
@@ -2194,7 +2227,7 @@ void ConfigDialog::Reload() {
   if (!GetConfig(&config)) {
     // Standalone UI preview builds cannot talk to the installed converter.
     // Skip the modal so the window remains inspectable.
-    if (!qEnvironmentVariableIsSet("MARINAMOJI_PREFS_UI_PREVIEW")) {
+    if (!PreviewModeEnabled()) {
       QString message = tr("Failed to get current config values.");
 #if defined(__APPLE__)
       message += QStringLiteral("\n\n") +
@@ -2219,7 +2252,8 @@ void ConfigDialog::Reload() {
   }
 }
 
-bool ConfigDialog::Update(bool quiet_validation) {
+AutosaveController::Result ConfigDialog::Update(bool interactive) {
+  using Outcome = AutosaveController::Outcome;
   config::Config config;
   ConvertToProto(&config);
 
@@ -2229,11 +2263,10 @@ bool ConfigDialog::Update(bool quiet_validation) {
         "The current custom keymap table is empty. "
         "When custom keymap is selected, "
         "you must customize it.");
-    if (!quiet_validation) {
+    if (interactive) {
       QMessageBox::warning(this, windowTitle(), message);
     }
-    SetSaveStatus(tr("Not saved yet: %1").arg(message));
-    return false;
+    return {Outcome::kIncomplete, message.toStdString()};
   }
 
   if (shortcuts_tab_) {
@@ -2243,12 +2276,16 @@ bool ConfigDialog::Update(bool quiet_validation) {
           shortcut_error.isEmpty()
               ? tr("Number-row shortcut bindings are invalid.")
               : shortcut_error;
-      if (!quiet_validation) {
+      if (interactive) {
         QMessageBox::warning(this, windowTitle(), message);
       }
-      SetSaveStatus(tr("Not saved yet: %1").arg(message));
-      return false;
+      return {Outcome::kIncomplete, message.toStdString()};
     }
+  }
+
+  // Visual-preview runs must never write to a real profile.
+  if (PreviewModeEnabled()) {
+    return {Outcome::kSaved, std::string()};
   }
 
   // Note: Romaji/Kana input style, the fixed romaji keyboard layout, and the
@@ -2259,16 +2296,14 @@ bool ConfigDialog::Update(bool quiet_validation) {
   // focus. No message box is needed anymore.
 
   if (!SetConfig(config)) {
-    // An autosave must not raise a modal on every edit while the converter is
-    // down; the sidebar status says so instead. Closing the window still
-    // reports the failure.
-    if (!quiet_validation) {
+    // A timer-driven autosave must not raise a modal on every edit while the
+    // converter is down; the banner reports it. Closing the window (or an
+    // editor commit) is interactive and still tells the user.
+    if (interactive) {
       QMessageBox::critical(this, windowTitle(), tr("Failed to update config"));
     }
-    SetSaveStatus(tr("Not saved: the converter is not running."));
-    return false;
+    return {Outcome::kFailed, tr("The converter is not running.").toStdString()};
   }
-  SetSaveStatus(QString());
 
 #if defined(__linux__)
   if (const bool use_ibus = candidateWindowComboBox->currentData().toBool();
@@ -2312,7 +2347,7 @@ bool ConfigDialog::Update(bool quiet_validation) {
     sync_tab_->SaveToServer();
   }
 
-  return true;
+  return {Outcome::kSaved, std::string()};
 }
 
 void ConfigDialog::SetSendStatsCheckBox() {
@@ -2811,7 +2846,7 @@ void ConfigDialog::EditKeymap() {
     custom_keymap_table_ = output;
     // set keymapSettingComboBox to "Custom keymap"
     keymapSettingComboBox->setCurrentIndex(0);
-    FlushAutoSave();
+    CommitAutoSave();
   }
 }
 
@@ -2819,7 +2854,7 @@ void ConfigDialog::EditRomanTable() {
   std::string output;
   if (gui::RomanTableEditorDialog::Show(this, custom_roman_table_, &output)) {
     custom_roman_table_ = output;
-    FlushAutoSave();
+    CommitAutoSave();
   }
 }
 
@@ -2828,7 +2863,7 @@ void ConfigDialog::EditKaeritenTable() {
   if (gui::KaeritenTableEditorDialog::Show(this, custom_kaeriten_table_,
                                            &output)) {
     custom_kaeriten_table_ = output;
-    FlushAutoSave();
+    CommitAutoSave();
   }
 }
 
@@ -2871,10 +2906,10 @@ void ConfigDialog::ResetToDefaults() {
                             QMessageBox::Cancel)) {
     // TODO(taku): remove the dependency to config::ConfigHandler
     // nice to have GET_DEFAULT_CONFIG command
-    autosave_suppressed_ = true;
+    autosave_->SetSuppressed(true);
     ConvertFromProto(config::ConfigHandler::DefaultConfig());
-    autosave_suppressed_ = false;
-    FlushAutoSave();
+    autosave_->SetSuppressed(false);
+    CommitAutoSave();
   }
 }
 
@@ -2889,53 +2924,42 @@ void ConfigDialog::EnableApplyButton() {
 }
 
 void ConfigDialog::ScheduleAutoSave() {
-  if (autosave_suppressed_) {
-    return;
+  if (autosave_ != nullptr) {
+    autosave_->NotifyChanged();
   }
-  // A change arrived while SetConfig (or an error dialog) is still running:
-  // mark dirty so RunAutoSave repeats with the latest UI after it returns.
-  if (autosave_in_progress_) {
-    autosave_dirty_ = true;
-    return;
-  }
-  if (autosave_timer_ == nullptr) {
-    return;
-  }
-  autosave_timer_->start();
 }
 
-void ConfigDialog::RunAutoSave(bool quiet_validation) {
-  if (autosave_suppressed_) {
-    return;
-  }
-  if (autosave_in_progress_) {
-    autosave_dirty_ = true;
-    return;
-  }
-  autosave_in_progress_ = true;
-  do {
-    autosave_dirty_ = false;
-    // Always read ConvertToProto at the start of each pass so a newer UI
-    // state cannot be overwritten by an older in-flight snapshot.
-    Update(quiet_validation);
-  } while (autosave_dirty_);
-  autosave_in_progress_ = false;
+bool ConfigDialog::FlushAutoSave() {
+  return autosave_ == nullptr || autosave_->Flush();
 }
 
-void ConfigDialog::FlushAutoSave() {
-  if (autosave_timer_ != nullptr) {
-    autosave_timer_->stop();
-  }
-  // Closing and editor commits must surface validation problems.
-  RunAutoSave(/*quiet_validation=*/false);
+// Editors (keymap, roman table, kaeriten table) hold their result outside the
+// controls, so the autosave is told explicitly and saved right away.
+void ConfigDialog::CommitAutoSave() {
+  ScheduleAutoSave();
+  FlushAutoSave();
 }
 
-void ConfigDialog::SetSaveStatus(const QString& text) {
-  if (save_status_label_ == nullptr) {
+void ConfigDialog::SetSaveStatus(const AutosaveController::Status& status) {
+  if (save_banner_ == nullptr) {
     return;
   }
-  save_status_label_->setText(text);
-  save_status_label_->setVisible(!text.isEmpty());
+  using Kind = AutosaveController::Status::Kind;
+  if (status.kind == Kind::kNone) {
+    save_banner_->clear();
+    save_banner_->hide();
+    return;
+  }
+  const QString detail = QString::fromStdString(status.detail);
+  const bool failed = status.kind == Kind::kFailed;
+  // Two distinct cases: settings that are not complete yet (the user can fix
+  // them) and valid settings that could not be persisted (not their fault).
+  save_banner_->setText(failed ? tr("Could not save settings. %1").arg(detail)
+                               : tr("Not saved yet: %1").arg(detail));
+  save_banner_->setProperty("kind", failed ? "failed" : "incomplete");
+  save_banner_->style()->unpolish(save_banner_);
+  save_banner_->style()->polish(save_banner_);
+  save_banner_->show();
 }
 
 void ConfigDialog::done(int result) {

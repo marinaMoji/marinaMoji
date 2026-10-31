@@ -10,6 +10,41 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Preferences: new layout, settings save as you change them
+
+The Preferences window has a new sidebar layout. Its pages are Writing,
+Dictionaries, Keyboard, Suggestions, Privacy & Sync and Application, with
+optional explanations under each setting (English, French, Japanese; no config
+keys or defaults changed).
+
+**Behaviour change: there is no Cancel, Apply or OK any more.** A change is
+saved about 0.2 s after you make it, and again when the window closes, so Esc
+or the close button cannot drop the last edit. There is no undo; "Reset to
+defaults" (which asks first) is the way back. Successful saves show nothing.
+
+Problems are shown in a banner at the top of the page, not in a dialog, and the
+banner disappears as soon as the problem is resolved:
+
+- **"Not saved yet: …"** (muted): the settings are incomplete, for example
+  Custom keymap with an empty table or an invalid number-row shortcut. Nothing
+  is written until it is fixed.
+- **"Could not save settings. …"** (amber): the settings are valid but could not
+  be persisted, for example the converter is not running. The next change, or
+  closing the window, retries.
+
+Closing the window with something still unsaved does show a dialog, because the
+banner would disappear with the window. Platform side effects (the IBus
+candidate-window file, the Windows IME hotkey, the macOS login item and
+`sync.conf`) are now applied only when their own setting changes, not on every
+save.
+
+The autosave logic is a separate, Qt-free class (`autosave_controller`) with 16
+unit tests covering debounce, rapid changes, re-entrancy, failed saves, retry
+and closing with pending changes. The dialog itself has not been run on any
+platform since these changes: see #103. For visual testing, `MARINAMOJI_PREFS_UI_PREVIEW=1`
+runs the dialog without saving anything and `MARINAMOJI_PREFS_UI_PREVIEW_DARK=1`
+forces dark chrome; any other value, including an empty one, is ignored.
+
 ### Character composer: Japanese readings in kana, 旧字体/新字体 links
 
 `char_info.tsv` is rebuilt from Unicode 18.0 Unihan with three more columns:
