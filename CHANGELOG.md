@@ -10,6 +10,17 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.20-rc3
+
+Everything in 0.0.20-rc2 plus the entries below, and:
+
+- Character composer: Japanese readings in kana, 旧字体/新字体 lines, and
+  cjkvi-variants/hydzd variants in the Unihan info under the preview. The C++
+  parser and dialog changes were not built or run before CI.
+- Toolbar: the new long logo (icon, wordmark, tagline) in light and dark.
+- Not changed: the Windows IME hiragana-on-activation change from rc2 is still
+  unverified on a real Windows machine.
+
 ### Toolbar: new long logo
 
 The toolbar logo is now `header_logo.svg` from the visual style folder: icon,
