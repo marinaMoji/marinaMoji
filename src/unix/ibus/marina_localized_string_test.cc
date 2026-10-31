@@ -19,7 +19,8 @@ constexpr const char* kKeys[] = {
     "MM.LiveConversion", "MM.CharacterComposer", "MM.SymbolsPalette",
     "MM.PinPalette",    "MM.OdorijiTab",       "MM.Kaeriten",
     "MM.Symbols",       "MM.User",             "MM.OdorijiHint",
-    "MM.KaeritenHint",  "MM.UserSymbolsHint",  "MM.KeyboardShortcuts",
+    "MM.KaeritenHint",  "MM.SymbolsHint",      "MM.UserSymbolsHint",
+    "MM.KeyboardShortcuts",
     "MM.Script",        "MM.Composition",      "MM.Close",
 };
 

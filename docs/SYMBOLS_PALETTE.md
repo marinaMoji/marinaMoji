@@ -12,16 +12,16 @@ This document describes the toolbar Symbols Palette in marinaMoji (macOS and Lin
   - `User`
 - Palette state is remembered per device:
   - last-open tab
-  - `Pin palette` checkbox state
+  - `Keep open` checkbox state
 
 ## Behavior
 
 - Clicking a symbol inserts it immediately.
 - On the **Odoriji** tab, the choice also becomes your default odoriji (same as the main Odoriji palette / Ctrl+Shift+1).
 - Default behavior is **insert and close**.
-- If `Pin palette` is checked, the palette stays open after insertion **and** when focus leaves the composing text field (clicking another position in the same app, or switching to another app). Escape still closes a pinned palette.
-- `Odoriji` and `Kaeriten` tabs include a note that keyboard shortcuts exist in the active keymap.
-- An **unpinned** palette also closes on **Escape**, or when focus leaves the composing text field. Both are handled outside the palette window itself, since it deliberately avoids interrupting typing — see each platform's key-event/focus-loss handling (`unix/ibus/mozc_engine.cc`, `mac/mozc_toolbar.mm`'s `-cancelOperation:`/`-windowDidResignKey:`, `win32/tip/tip_keyevent_handler.cc`). Without the unpinned focus-loss close, a palette left open with nothing clicked had no way to dismiss and would sit on screen indefinitely. (Windows focus-loss still closes even when pinned; Linux and macOS respect Pin.)
+- If `Keep open` is checked, the palette stays open after insertion **and** when focus leaves the composing text field (clicking another position in the same app, or switching to another app). Escape still closes a pinned palette.
+- Each tab shows one short explanatory line beneath the tab strip.
+- An **unpinned** palette also closes on **Escape**, or when focus leaves the composing text field. Both are handled outside the palette window itself, since it deliberately avoids interrupting typing — see each platform's key-event/focus-loss handling (`unix/ibus/mozc_engine.cc`, `mac/mozc_toolbar.mm`'s `-cancelOperation:`/`-windowDidResignKey:`, `win32/tip/tip_keyevent_handler.cc`). Without the unpinned focus-loss close, a palette left open with nothing clicked had no way to dismiss and would sit on screen indefinitely. (Windows focus-loss still closes even when Keep open is checked; Linux and macOS respect Keep open.)
 - **Linux:** the palette is a keep-above utility that does **not** take keyboard focus (typing stays in the text field). Drag it by the title bar. It is WM-managed (no X11 `override_redirect`); that, plus CSS against `:backdrop`, keeps the chrome looking active instead of permanently greyed.
 
 ## Tab contents

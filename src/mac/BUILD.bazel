@@ -219,6 +219,28 @@ mozc_objc_library(
 )
 
 mozc_objc_library(
+    name = "symbols_palette_preview_main_lib",
+    srcs = ["symbols_palette_preview_main.mm"],
+    sdk_frameworks = ["Cocoa"],
+    tags = ["manual"],
+    deps = [":mozc_toolbar"],
+)
+
+mozc_macos_application(
+    name = "symbols_palette_preview",
+    bundle_id = MACOS_BUNDLE_ID_PREFIX + ".SymbolsPalettePreview",
+    bundle_name = "SymbolsPalettePreview",
+    infoplists = ["SymbolsPalettePreview-Info.plist"],
+    strings = [
+        "Resources/en.lproj/Localizable.strings",
+        "Resources/fr.lproj/Localizable.strings",
+        "Resources/ja.lproj/Localizable.strings",
+    ],
+    tags = ["manual"],
+    deps = [":symbols_palette_preview_main_lib"],
+)
+
+mozc_objc_library(
     name = "sync_overlay",
     srcs = ["sync_overlay.mm"],
     hdrs = ["sync_overlay.h"],

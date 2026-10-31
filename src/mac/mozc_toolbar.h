@@ -52,6 +52,10 @@ void MozcShortcutsWindowShow(client::ClientInterface *client);
 void MozcImkNotifyToolLaunchStarting();
 bool MozcImkShouldSuppressSetValueDirect();
 
+// Dev/UI preview: open the Symbols Palette with a nil client (no insertion).
+// Intended for MARINAMOJI_SYMBOLS_PALETTE_PREVIEW=1 visual checks.
+void MozcSymbolsPalettePreviewShow();
+
 }  // namespace mac
 }  // namespace mozc
 

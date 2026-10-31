@@ -36,19 +36,20 @@ constexpr int kColumns = 8;
 // Logical (96 DPI) metrics. Every use scales these by the window's current
 // DPI -- unlike the toolbar this window is made of ordinary child controls,
 // which Windows does not scale for us in a PerMonitorV2 process.
-constexpr int kButtonWidthLogical = 40;
-constexpr int kButtonHeightLogical = 32;
-constexpr int kGapLogical = 4;
-constexpr int kMarginLogical = 8;
+constexpr int kButtonWidthLogical = 46;
+constexpr int kButtonHeightLogical = 46;
+constexpr int kGapLogical = 7;
+constexpr int kMarginLogical = 10;
 constexpr int kTabStripHeightLogical = 28;
-constexpr int kPinCheckboxHeightLogical = 24;
-constexpr int kHintHeightLogical = 32;
+constexpr int kPinCheckboxHeightLogical = 22;
+constexpr int kHintHeightLogical = 18;
 // Symbol glyphs (々 ゝ ㆐ …) need a larger face than the shell UI default to
-// be legible and unambiguous at a glance; mac uses an 18pt system font.
-constexpr int kSymbolFontHeightLogical = 20;
-// Rows visible before the symbol area starts scrolling. Four rows fits the
-// stock Odoriji/Kaeriten/Symbols lists; a long user list scrolls.
-constexpr int kMaxVisibleRows = 4;
+// be legible and unambiguous at a glance; mac uses ~26pt in the redesigned
+// compact cells.
+constexpr int kSymbolFontHeightLogical = 22;
+// Rows visible before the symbol area starts scrolling. Fixed for every tab so
+// the window does not jump when switching categories.
+constexpr int kMaxVisibleRows = 3;
 
 // marinaMoji: mirrors src/session/odoriji_palette.cc's kOdorijiChars and
 // mac's BuildDefaultOdorijiSymbols()/BuildDefaultGeneralSymbols(). Kept as a
@@ -90,10 +91,12 @@ const wchar_t* HintKeyForTab(int tab) {
       return L"MM.OdorijiHint";
     case 1:
       return L"MM.KaeritenHint";
+    case 2:
+      return L"MM.SymbolsHint";
     case 3:
       return L"MM.UserSymbolsHint";
     default:
-      return nullptr;  // the general Symbols tab needs no explanation
+      return nullptr;
   }
 }
 
@@ -331,11 +334,13 @@ void SymbolsPaletteWindow::CreateBackgroundBrush() {
 }
 
 COLORREF SymbolsPaletteWindow::BackgroundColor() const {
-  return is_dark_theme_ ? RGB(32, 35, 40) : ::GetSysColor(COLOR_WINDOW);
+  // Match Preferences / mac Symbols Palette Prussian vocabulary.
+  return is_dark_theme_ ? RGB(0x18, 0x26, 0x3B) : RGB(0xFF, 0xFF, 0xFF);
 }
 
 COLORREF SymbolsPaletteWindow::TextColor() const {
-  return is_dark_theme_ ? RGB(235, 235, 235) : ::GetSysColor(COLOR_WINDOWTEXT);
+  // Glyph / primary ink: blue-black in light mode, not saturated Prussian.
+  return is_dark_theme_ ? RGB(0xF4, 0xF7, 0xFB) : RGB(0x25, 0x3D, 0x55);
 }
 
 void SymbolsPaletteWindow::ApplyFont(HWND control, HFONT font) {
@@ -369,7 +374,7 @@ void SymbolsPaletteWindow::CreateTabControl() {
   ApplyFont(tab_control_, ui_font_);
   ApplyDarkModeTheme(tab_control_);
 
-  const wchar_t* const label_keys[] = {L"MM.Odoriji", L"MM.Kaeriten",
+  const wchar_t* const label_keys[] = {L"MM.OdorijiTab", L"MM.Kaeriten",
                                        L"MM.Symbols", L"MM.User"};
   for (int i = 0; i < kNumTabs; ++i) {
     TCITEMW item = {};
@@ -389,27 +394,20 @@ int SymbolsPaletteWindow::RowCountForTab(int tab) const {
 }
 
 int SymbolsPaletteWindow::SymbolAreaTop() const {
-  int top = Scaled(kTabStripHeightLogical) + Scaled(kMarginLogical);
-  if (HintKeyForTab(active_tab_) != nullptr) {
-    top += Scaled(kHintHeightLogical);
-  }
-  return top;
+  // Always reserve hint-row height so switching tabs never resizes the window.
+  return Scaled(kTabStripHeightLogical) + Scaled(kMarginLogical) +
+         Scaled(kHintHeightLogical) + Scaled(4);
 }
 
 CSize SymbolsPaletteWindow::ComputeClientSize() const {
   int width = Scaled(kMarginLogical) * 2 +
               kColumns * Scaled(kButtonWidthLogical) +
               (kColumns - 1) * Scaled(kGapLogical);
-  if (MaxScrollOffset() > 0) {
-    // A visible scrollbar eats client width; widen so the last column keeps
-    // its margin rather than being clipped.
-    width += ::GetSystemMetrics(SM_CXVSCROLL);
-  }
-  const int visible_rows =
-      std::clamp(RowCountForTab(active_tab_), 1, kMaxVisibleRows);
+  // Reserve scrollbar gutter once so width stays stable across tabs.
+  width += ::GetSystemMetrics(SM_CXVSCROLL);
   const int height = SymbolAreaTop() +
-                     visible_rows * (Scaled(kButtonHeightLogical) +
-                                     Scaled(kGapLogical)) +
+                     kMaxVisibleRows * (Scaled(kButtonHeightLogical) +
+                                        Scaled(kGapLogical)) +
                      Scaled(kMarginLogical) +
                      Scaled(kPinCheckboxHeightLogical) +
                      Scaled(kMarginLogical);
@@ -444,13 +442,13 @@ void SymbolsPaletteWindow::Relayout() {
     const wchar_t* hint_key = HintKeyForTab(active_tab_);
     if (hint_key != nullptr) {
       ::SetWindowTextW(hint_label_, MarinaLocalizedString(hint_key));
-      ::SetWindowPos(hint_label_, nullptr, margin, tab_height + margin,
-                     client_size.cx - margin * 2, Scaled(kHintHeightLogical),
-                     SWP_NOZORDER | SWP_NOACTIVATE);
-      ::ShowWindow(hint_label_, SW_SHOW);
     } else {
-      ::ShowWindow(hint_label_, SW_HIDE);
+      ::SetWindowTextW(hint_label_, L"");
     }
+    ::SetWindowPos(hint_label_, nullptr, margin, tab_height + margin,
+                   client_size.cx - margin * 2, Scaled(kHintHeightLogical),
+                   SWP_NOZORDER | SWP_NOACTIVATE);
+    ::ShowWindow(hint_label_, SW_SHOW);
   }
 
   if (pin_checkbox_ != nullptr) {

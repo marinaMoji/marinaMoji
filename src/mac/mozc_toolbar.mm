@@ -541,16 +541,362 @@ std::string GetKeymapPath(const std::string &filename) {
 // ---------------------------------------------------------------------------
 #pragma mark - MozcSymbolsPaletteWindowController
 
+// Compact typesetter's-tray palette. Visual tokens mirror Preferences
+// (config_dialog_theme.h) without depending on Qt.
+namespace {
+
+constexpr CGFloat kPaletteDefaultWidth = 560.0;
+// Tab + hint + three cell rows + discreet footer (Auto Layout floor ~248).
+constexpr CGFloat kPaletteDefaultHeight = 248.0;
+constexpr CGFloat kPaletteMinWidth = 420.0;
+constexpr CGFloat kPaletteMinHeight = 210.0;
+constexpr CGFloat kSymbolCellSize = 46.0;
+constexpr CGFloat kSymbolCellGap = 7.0;
+// ~8% smaller than the first redesign pass; cells stay 46px for breathing room.
+constexpr CGFloat kSymbolGlyphSize = 24.0;
+constexpr CGFloat kSymbolCellRadius = 4.5;
+constexpr NSInteger kSymbolColumns = 9;
+constexpr NSInteger kSymbolsTabCount = 4;
+
+NSColor *PaletteColor(uint8_t r, uint8_t g, uint8_t b, CGFloat a = 1.0) {
+  return [NSColor colorWithCalibratedRed:r / 255.0
+                                   green:g / 255.0
+                                    blue:b / 255.0
+                                   alpha:a];
+}
+
+bool PaletteIsDarkAppearance() {
+  NSAppearanceName best = [NSApp.effectiveAppearance
+      bestMatchFromAppearancesWithNames:@[
+        NSAppearanceNameAqua, NSAppearanceNameDarkAqua
+      ]];
+  return [best isEqualToString:NSAppearanceNameDarkAqua];
+}
+
+struct PaletteChrome {
+  NSColor *window;
+  NSColor *glyph;       // character ink (blue-black, not saturated Prussian)
+  NSColor *secondary;   // hints, footer, inactive tabs
+  NSColor *tabActive;   // Prussian blue
+  NSColor *tabHover;
+  NSColor *cellBg;
+  NSColor *cellBorder;
+  NSColor *cellHover;
+  NSColor *cellHoverBorder;
+  NSColor *cellPressed;
+  NSColor *focus;       // keyboard focus outline (Prussian, never system orange)
+  NSColor *divider;
+};
+
+PaletteChrome MakePaletteChrome(bool dark) {
+  PaletteChrome chrome;
+  if (dark) {
+    chrome.window = PaletteColor(0x18, 0x26, 0x3B);
+    chrome.glyph = PaletteColor(0xF4, 0xF7, 0xFB);
+    chrome.secondary = PaletteColor(0xA9, 0xB9, 0xCE);
+    chrome.tabActive = PaletteColor(0x94, 0xB8, 0xE5);
+    chrome.tabHover = PaletteColor(0xC5, 0xD7, 0xEE);
+    chrome.cellBg = PaletteColor(0x22, 0x35, 0x50);
+    chrome.cellBorder = PaletteColor(0x4A, 0x60, 0x7C);
+    chrome.cellHover = PaletteColor(0x30, 0x4B, 0x6C);
+    chrome.cellHoverBorder = PaletteColor(0x94, 0xB8, 0xE5);
+    chrome.cellPressed = PaletteColor(0x1A, 0x2C, 0x44);
+    chrome.focus = PaletteColor(0xC5, 0xD7, 0xEE);
+    chrome.divider = PaletteColor(0x34, 0x47, 0x61);
+  } else {
+    // Light: white porcelain + pale blue-grey + deep Prussian (~#173B61).
+    chrome.window = PaletteColor(0xFF, 0xFF, 0xFF);
+    chrome.glyph = PaletteColor(0x25, 0x3D, 0x55);
+    chrome.secondary = PaletteColor(0x61, 0x77, 0x8E);
+    chrome.tabActive = PaletteColor(0x17, 0x3B, 0x61);
+    chrome.tabHover = PaletteColor(0x40, 0x6B, 0x96);
+    chrome.cellBg = PaletteColor(0xFA, 0xFC, 0xFE);
+    chrome.cellBorder = PaletteColor(0xCE, 0xDA, 0xE6);
+    chrome.cellHover = PaletteColor(0xEA, 0xF2, 0xF9);
+    chrome.cellHoverBorder = PaletteColor(0x40, 0x6B, 0x96);
+    chrome.cellPressed = PaletteColor(0xDC, 0xE9, 0xF5);
+    chrome.focus = PaletteColor(0x17, 0x3B, 0x61);
+    chrome.divider = PaletteColor(0xD8, 0xE2, 0xEC);
+  }
+  return chrome;
+}
+
+// Conventional Unicode names for the stock odoriji / symbols inventories.
+// Do not invent scholarly names; omit unknowns (tooltips then show code points).
+NSString *ConventionalSymbolName(NSString *symbol) {
+  static NSDictionary<NSString *, NSString *> *names = @{
+    @"々" : @"Ideographic iteration mark",
+    @"ゝ" : @"Hiragana iteration mark",
+    @"ゞ" : @"Hiragana voiced iteration mark",
+    @"ヽ" : @"Katakana iteration mark",
+    @"ヾ" : @"Katakana voiced iteration mark",
+    @"〻" : @"Vertical ideographic iteration mark",
+    @"〱" : @"Vertical kana repeat mark",
+    @"〲" : @"Vertical kana repeat with voiced sound mark",
+    @"〳" : @"Vertical kana repeat mark upper half",
+    @"〴" : @"Vertical kana repeat with voiced sound mark upper half",
+    @"〵" : @"Vertical kana repeat mark lower half",
+    @"ヶ" : @"Katakana letter small ke",
+    @"…" : @"Horizontal ellipsis",
+    @"—" : @"Em dash",
+    @"※" : @"Reference mark",
+    @"×" : @"Multiplication sign",
+  };
+  return names[symbol];
+}
+
+NSString *TooltipForSymbol(NSString *symbol) {
+  if (symbol.length == 0) return nil;
+  NSMutableString *codes = [NSMutableString string];
+  for (NSUInteger i = 0; i < symbol.length; ) {
+    const unichar high = [symbol characterAtIndex:i];
+    uint32_t cp = high;
+    NSUInteger advance = 1;
+    if (CFStringIsSurrogateHighCharacter(high) && i + 1 < symbol.length) {
+      const unichar low = [symbol characterAtIndex:i + 1];
+      if (CFStringIsSurrogateLowCharacter(low)) {
+        cp = CFStringGetLongCharacterForSurrogatePair(high, low);
+        advance = 2;
+      }
+    }
+    if (codes.length > 0) [codes appendString:@" "];
+    [codes appendFormat:@"U+%04X", cp];
+    i += advance;
+  }
+  NSString *name = ConventionalSymbolName(symbol);
+  if (name.length > 0) {
+    return [NSString stringWithFormat:@"%@ — %@\n%@", symbol, name, codes];
+  }
+  return [NSString stringWithFormat:@"%@\n%@", symbol, codes];
+}
+
+}  // namespace
+
+// Top-left origin so the character tray sits under the description, not
+// stranded at the bottom of a taller scroll view (AppKit default is bottom-left).
+@interface MozcFlippedView : NSView
+@end
+@implementation MozcFlippedView
+- (BOOL)isFlipped {
+  return YES;
+}
+@end
+
+// Suppresses the system accent focus ring (often orange) and draws a
+// Prussian-blue outline instead — active-tab underline stays separate.
+@interface MozcPaletteTabButton : NSButton
+@property(nonatomic, assign) BOOL isDark;
+@property(nonatomic, assign) BOOL isActiveTab;
+- (void)applyTabChrome;
+@end
+
+@implementation MozcPaletteTabButton {
+  BOOL hovering_;
+}
+
+- (instancetype)initWithFrame:(NSRect)frame {
+  self = [super initWithFrame:frame];
+  if (!self) return nil;
+  self.bezelStyle = NSBezelStyleInline;
+  self.bordered = NO;
+  self.wantsLayer = YES;
+  self.layer.cornerRadius = 3.0;
+  self.layer.borderWidth = 0.0;
+  self.focusRingType = NSFocusRingTypeNone;
+  NSTrackingArea *area = [[NSTrackingArea alloc]
+      initWithRect:NSZeroRect
+           options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways |
+                    NSTrackingInVisibleRect)
+             owner:self
+          userInfo:nil];
+  [self addTrackingArea:area];
+  return self;
+}
+
+- (void)mouseEntered:(NSEvent *)event {
+  hovering_ = YES;
+  [self applyTabChrome];
+}
+
+- (void)mouseExited:(NSEvent *)event {
+  hovering_ = NO;
+  [self applyTabChrome];
+}
+
+- (BOOL)becomeFirstResponder {
+  const BOOL ok = [super becomeFirstResponder];
+  [self applyTabChrome];
+  return ok;
+}
+
+- (BOOL)resignFirstResponder {
+  const BOOL ok = [super resignFirstResponder];
+  [self applyTabChrome];
+  return ok;
+}
+
+- (void)applyTabChrome {
+  const PaletteChrome chrome = MakePaletteChrome(self.isDark);
+  const BOOL focused = (self.window.firstResponder == self);
+  NSColor *colour = chrome.secondary;
+  if (self.isActiveTab) {
+    colour = chrome.tabActive;
+  } else if (hovering_) {
+    colour = chrome.tabHover;
+  }
+  NSMutableAttributedString *title = [[NSMutableAttributedString alloc]
+      initWithString:self.title ?: @""];
+  [title addAttribute:NSForegroundColorAttributeName
+                value:colour
+                range:NSMakeRange(0, title.length)];
+  [title addAttribute:NSFontAttributeName
+                value:[NSFont systemFontOfSize:12.5
+                                        weight:(self.isActiveTab
+                                                    ? NSFontWeightSemibold
+                                                    : NSFontWeightRegular)]
+                range:NSMakeRange(0, title.length)];
+  self.attributedTitle = title;
+  // Focus ≠ active: thin Prussian outline only when this control is key.
+  if (focused) {
+    self.layer.borderWidth = 1.5;
+    self.layer.borderColor = chrome.focus.CGColor;
+    self.layer.backgroundColor = [NSColor clearColor].CGColor;
+  } else {
+    self.layer.borderWidth = 0.0;
+    self.layer.borderColor = [NSColor clearColor].CGColor;
+    self.layer.backgroundColor = [NSColor clearColor].CGColor;
+  }
+}
+
+@end
+
+@interface MozcSymbolCellButton : NSButton
+@property(nonatomic, assign) BOOL isDark;
+- (void)applyPaletteChrome;
+@end
+
+@implementation MozcSymbolCellButton {
+  BOOL hovering_;
+}
+
++ (NSFont *)symbolFont {
+  NSFont *font = [NSFont fontWithName:@"Hiragino Mincho ProN" size:kSymbolGlyphSize];
+  if (font == nil) {
+    font = [NSFont fontWithName:@"HiraginoSans-W3" size:kSymbolGlyphSize];
+  }
+  if (font == nil) {
+    font = [NSFont systemFontOfSize:kSymbolGlyphSize];
+  }
+  return font;
+}
+
+- (instancetype)initWithFrame:(NSRect)frame {
+  self = [super initWithFrame:frame];
+  if (!self) return nil;
+  self.bezelStyle = NSBezelStyleShadowlessSquare;
+  self.bordered = NO;
+  self.wantsLayer = YES;
+  self.layer.cornerRadius = kSymbolCellRadius;
+  self.layer.borderWidth = 1.0;
+  self.font = [MozcSymbolCellButton symbolFont];
+  self.focusRingType = NSFocusRingTypeNone;
+  NSTrackingArea *area = [[NSTrackingArea alloc]
+      initWithRect:NSZeroRect
+           options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways |
+                    NSTrackingInVisibleRect)
+             owner:self
+          userInfo:nil];
+  [self addTrackingArea:area];
+  return self;
+}
+
+- (void)mouseEntered:(NSEvent *)event {
+  hovering_ = YES;
+  [self applyPaletteChrome];
+}
+
+- (void)mouseExited:(NSEvent *)event {
+  hovering_ = NO;
+  [self applyPaletteChrome];
+}
+
+- (void)mouseDown:(NSEvent *)event {
+  [self applyPaletteChrome];
+  [super mouseDown:event];
+  [self applyPaletteChrome];
+}
+
+- (BOOL)becomeFirstResponder {
+  const BOOL ok = [super becomeFirstResponder];
+  [self applyPaletteChrome];
+  return ok;
+}
+
+- (BOOL)resignFirstResponder {
+  const BOOL ok = [super resignFirstResponder];
+  [self applyPaletteChrome];
+  return ok;
+}
+
+- (void)applyPaletteChrome {
+  const PaletteChrome chrome = MakePaletteChrome(self.isDark);
+  const BOOL focused = (self.window.firstResponder == self);
+  const BOOL pressed = self.highlighted;
+  NSColor *bg = chrome.cellBg;
+  NSColor *border = chrome.cellBorder;
+  CGFloat borderWidth = 1.0;
+  if (pressed) {
+    bg = chrome.cellPressed;
+    border = chrome.cellHoverBorder;
+  } else if (focused) {
+    bg = hovering_ ? chrome.cellHover : chrome.cellBg;
+    border = chrome.focus;
+    borderWidth = 1.5;
+  } else if (hovering_) {
+    bg = chrome.cellHover;
+    border = chrome.cellHoverBorder;
+  }
+  self.layer.backgroundColor = bg.CGColor;
+  self.layer.borderColor = border.CGColor;
+  self.layer.borderWidth = borderWidth;
+  NSMutableAttributedString *title = [[NSMutableAttributedString alloc]
+      initWithString:self.title ?: @""];
+  [title addAttribute:NSForegroundColorAttributeName
+                value:chrome.glyph
+                range:NSMakeRange(0, title.length)];
+  [title addAttribute:NSFontAttributeName
+                value:self.font
+                range:NSMakeRange(0, title.length)];
+  NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
+  style.alignment = NSTextAlignmentCenter;
+  [title addAttribute:NSParagraphStyleAttributeName
+                value:style
+                range:NSMakeRange(0, title.length)];
+  self.attributedTitle = title;
+}
+
+@end
+
 @interface MozcSymbolsPaletteWindowController : NSWindowController
-    <NSTabViewDelegate, NSWindowDelegate> {
+    <NSWindowDelegate> {
   mozc::client::ClientInterface *client_;
   __weak id<ControllerCallback> callbackController_;
-  NSTabView *tabView_;
+  NSStackView *rootStack_;
+  NSStackView *tabStrip_;
+  NSMutableArray<MozcPaletteTabButton *> *tabButtons_;
+  NSView *tabUnderline_;
+  NSLayoutConstraint *tabUnderlineLeading_;
+  NSLayoutConstraint *tabUnderlineWidth_;
+  NSTextField *descriptionLabel_;
+  NSScrollView *scrollView_;
+  NSView *gridHost_;
   NSButton *pinCheckbox_;
-  NSStackView *odorijiStack_;
-  NSStackView *kaeritenStack_;
-  NSStackView *symbolsStack_;
-  NSStackView *userStack_;
+  NSView *footerDivider_;
+  NSInteger selectedTab_;
+  std::vector<std::string> odorijiSymbols_;
+  std::vector<std::string> kaeritenSymbols_;
+  std::vector<std::string> generalSymbols_;
+  std::vector<std::string> userSymbols_;
 }
 - (instancetype)initWithClient:(mozc::client::ClientInterface *)client
                     controller:(id<ControllerCallback>)controller;
@@ -560,14 +906,14 @@ std::string GetKeymapPath(const std::string &filename) {
 
 - (instancetype)initWithClient:(mozc::client::ClientInterface *)client
                     controller:(id<ControllerCallback>)controller {
-  NSPanel *window =
-      [[NSPanel alloc] initWithContentRect:NSMakeRect(0, 0, 520, 380)
-                                 styleMask:NSWindowStyleMaskTitled |
-                                           NSWindowStyleMaskClosable |
-                                           NSWindowStyleMaskResizable |
-                                           NSWindowStyleMaskNonactivatingPanel
-                                   backing:NSBackingStoreBuffered
-                                     defer:YES];
+  NSPanel *window = [[NSPanel alloc]
+      initWithContentRect:NSMakeRect(0, 0, kPaletteDefaultWidth,
+                                     kPaletteDefaultHeight)
+                styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
+                          NSWindowStyleMaskResizable |
+                          NSWindowStyleMaskNonactivatingPanel
+                  backing:NSBackingStoreBuffered
+                    defer:YES];
   window.title = MarinaLocalizedString(@"MM.SymbolsPalette");
   window.releasedWhenClosed = NO;
   [window setFloatingPanel:YES];
@@ -575,6 +921,7 @@ std::string GetKeymapPath(const std::string &filename) {
   [window setHidesOnDeactivate:NO];
   [window setBecomesKeyOnlyIfNeeded:YES];
   window.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces;
+  window.minSize = NSMakeSize(kPaletteMinWidth, kPaletteMinHeight);
   [window center];
 
   self = [super initWithWindow:window];
@@ -582,126 +929,328 @@ std::string GetKeymapPath(const std::string &filename) {
   client_ = client;
   callbackController_ = controller;
   window.delegate = self;
+  selectedTab_ = kSymbolsTabOdoriji;
+  tabButtons_ = [NSMutableArray array];
 
-  NSView *content = window.contentView;
-  tabView_ = [[NSTabView alloc] initWithFrame:NSMakeRect(10, 50, 500, 320)];
-  tabView_.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-  tabView_.delegate = self;
-  [content addSubview:tabView_];
+  odorijiSymbols_ = BuildDefaultOdorijiSymbols();
+  kaeritenSymbols_ = BuildKaeritenSymbols(client_);
+  generalSymbols_ = BuildDefaultGeneralSymbols();
+  userSymbols_ = LoadUserSymbolsFromFile();
 
-  pinCheckbox_ =
-      [[NSButton alloc] initWithFrame:NSMakeRect(12, 14, 200, 24)];
-  pinCheckbox_.buttonType = NSButtonTypeSwitch;
-  pinCheckbox_.title = MarinaLocalizedString(@"MM.PinPalette");
-  pinCheckbox_.target = self;
-  pinCheckbox_.action = @selector(pinCheckboxChanged:);
-  pinCheckbox_.state = [self loadPinnedPreference] ? NSControlStateValueOn
-                                                   : NSControlStateValueOff;
-  [content addSubview:pinCheckbox_];
-
-  [self addSymbolsTabWithIdentifier:@"MM.Odoriji"
-                              title:MarinaLocalizedString(@"MM.Odoriji")
-                            symbols:BuildDefaultOdorijiSymbols()
-                        hintMessage:MarinaLocalizedString(@"MM.OdorijiHint")
-                            outView:&odorijiStack_];
-  [self addSymbolsTabWithIdentifier:@"MM.Kaeriten"
-                              title:MarinaLocalizedString(@"MM.Kaeriten")
-                            symbols:BuildKaeritenSymbols(client_)
-                        hintMessage:MarinaLocalizedString(@"MM.KaeritenHint")
-                            outView:&kaeritenStack_];
-  [self addSymbolsTabWithIdentifier:@"MM.Symbols"
-                              title:MarinaLocalizedString(@"MM.Symbols")
-                            symbols:BuildDefaultGeneralSymbols()
-                        hintMessage:nil
-                            outView:&symbolsStack_];
-  [self addSymbolsTabWithIdentifier:@"MM.User"
-                              title:MarinaLocalizedString(@"MM.User")
-                            symbols:[self loadUserSymbols]
-                        hintMessage:MarinaLocalizedString(@"MM.UserSymbolsHint")
-                            outView:&userStack_];
+  [self buildChrome];
+  [self applyAppearance];
 
   NSInteger saved_tab = [self loadLastTabPreference];
-  if (saved_tab >= 0 && saved_tab < tabView_.numberOfTabViewItems) {
-    [tabView_ selectTabViewItemAtIndex:saved_tab];
-  } else {
-    [tabView_ selectTabViewItemAtIndex:kSymbolsTabOdoriji];
+  if (saved_tab < 0 || saved_tab >= kSymbolsTabCount) {
+    saved_tab = kSymbolsTabOdoriji;
   }
+  [self selectTab:saved_tab notify:NO];
+
+  [NSApp addObserver:self
+          forKeyPath:@"effectiveAppearance"
+             options:NSKeyValueObservingOptionNew
+             context:nullptr];
 
   return self;
 }
 
-- (void)addSymbolsTabWithIdentifier:(NSString *)identifier
-                              title:(NSString *)title
-                            symbols:(const std::vector<std::string> &)symbols
-                        hintMessage:(NSString *)hintMessage
-                            outView:(NSStackView * __strong *)outView {
-  NSTabViewItem *item = [[NSTabViewItem alloc] initWithIdentifier:identifier];
-  item.label = title;
+- (void)dealloc {
+  @try {
+    [NSApp removeObserver:self forKeyPath:@"effectiveAppearance"];
+  } @catch (NSException *) {
+  }
+}
 
-  NSScrollView *scroll = [[NSScrollView alloc] initWithFrame:NSZeroRect];
-  scroll.hasVerticalScroller = YES;
-  scroll.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+- (void)observeValueForKeyPath:(NSString *)keyPath
+                      ofObject:(id)object
+                        change:(NSDictionary *)change
+                       context:(void *)context {
+  if ([keyPath isEqualToString:@"effectiveAppearance"]) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [self applyAppearance];
+    });
+  }
+}
 
-  NSView *container = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 460, 300)];
-  NSStackView *stack = [[NSStackView alloc] initWithFrame:NSMakeRect(0, 0, 460, 300)];
-  stack.orientation = NSUserInterfaceLayoutOrientationVertical;
-  stack.alignment = NSLayoutAttributeLeading;
-  stack.spacing = 8.0;
-  stack.edgeInsets = NSEdgeInsetsMake(8, 8, 8, 8);
-  stack.translatesAutoresizingMaskIntoConstraints = NO;
-  [container addSubview:stack];
+- (void)buildChrome {
+  NSView *content = self.window.contentView;
+  content.wantsLayer = YES;
+
+  rootStack_ = [[NSStackView alloc] initWithFrame:NSZeroRect];
+  rootStack_.orientation = NSUserInterfaceLayoutOrientationVertical;
+  rootStack_.alignment = NSLayoutAttributeLeading;
+  rootStack_.distribution = NSStackViewDistributionFill;
+  rootStack_.spacing = 6.0;
+  rootStack_.edgeInsets = NSEdgeInsetsMake(8, 12, 8, 12);
+  rootStack_.translatesAutoresizingMaskIntoConstraints = NO;
+  [content addSubview:rootStack_];
   [NSLayoutConstraint activateConstraints:@[
-    [stack.leadingAnchor constraintEqualToAnchor:container.leadingAnchor],
-    [stack.trailingAnchor constraintEqualToAnchor:container.trailingAnchor],
-    [stack.topAnchor constraintEqualToAnchor:container.topAnchor]
+    [rootStack_.leadingAnchor constraintEqualToAnchor:content.leadingAnchor],
+    [rootStack_.trailingAnchor constraintEqualToAnchor:content.trailingAnchor],
+    [rootStack_.topAnchor constraintEqualToAnchor:content.topAnchor],
+    [rootStack_.bottomAnchor constraintEqualToAnchor:content.bottomAnchor],
   ]];
 
-  if (hintMessage.length > 0) {
-    NSTextField *hint = [NSTextField labelWithString:hintMessage];
-    hint.lineBreakMode = NSLineBreakByWordWrapping;
-    hint.maximumNumberOfLines = 2;
-    [stack addArrangedSubview:hint];
+  NSView *tabRow = [[NSView alloc] initWithFrame:NSZeroRect];
+  tabRow.translatesAutoresizingMaskIntoConstraints = NO;
+  tabStrip_ = [[NSStackView alloc] initWithFrame:NSZeroRect];
+  tabStrip_.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+  tabStrip_.alignment = NSLayoutAttributeCenterY;
+  tabStrip_.spacing = 16.0;
+  tabStrip_.translatesAutoresizingMaskIntoConstraints = NO;
+  [tabRow addSubview:tabStrip_];
+
+  tabUnderline_ = [[NSView alloc] initWithFrame:NSZeroRect];
+  tabUnderline_.wantsLayer = YES;
+  tabUnderline_.translatesAutoresizingMaskIntoConstraints = NO;
+  [tabRow addSubview:tabUnderline_];
+
+  NSArray<NSString *> *tabKeys =
+      @[ @"MM.OdorijiTab", @"MM.Kaeriten", @"MM.Symbols", @"MM.User" ];
+  for (NSInteger i = 0; i < tabKeys.count; ++i) {
+    MozcPaletteTabButton *tab =
+        [[MozcPaletteTabButton alloc] initWithFrame:NSZeroRect];
+    tab.title = MarinaLocalizedString(tabKeys[i]);
+    tab.target = self;
+    tab.action = @selector(tabClicked:);
+    tab.tag = i;
+    [tabButtons_ addObject:tab];
+    [tabStrip_ addArrangedSubview:tab];
   }
 
-  NSStackView *row = nil;
-  constexpr NSInteger kColumns = 8;
-  NSInteger col = 0;
-  NSInteger symbolIndex = 0;
+  [NSLayoutConstraint activateConstraints:@[
+    [tabRow.heightAnchor constraintEqualToConstant:26.0],
+    [tabStrip_.leadingAnchor constraintEqualToAnchor:tabRow.leadingAnchor],
+    [tabStrip_.topAnchor constraintEqualToAnchor:tabRow.topAnchor],
+    [tabStrip_.bottomAnchor constraintEqualToAnchor:tabRow.bottomAnchor
+                                           constant:-3.0],
+    [tabUnderline_.heightAnchor constraintEqualToConstant:1.5],
+    [tabUnderline_.bottomAnchor constraintEqualToAnchor:tabRow.bottomAnchor],
+  ]];
+  tabUnderlineLeading_ =
+      [tabUnderline_.leadingAnchor constraintEqualToAnchor:tabRow.leadingAnchor];
+  tabUnderlineWidth_ = [tabUnderline_.widthAnchor constraintEqualToConstant:40];
+  tabUnderlineLeading_.active = YES;
+  tabUnderlineWidth_.active = YES;
+  [rootStack_ addArrangedSubview:tabRow];
+  [tabRow.widthAnchor constraintEqualToAnchor:rootStack_.widthAnchor
+                                     constant:-24.0]
+      .active = YES;
+
+  descriptionLabel_ = [NSTextField labelWithString:@""];
+  // Visually subordinate to the 12.5pt tabs.
+  descriptionLabel_.font = [NSFont systemFontOfSize:11.0 weight:NSFontWeightRegular];
+  descriptionLabel_.lineBreakMode = NSLineBreakByTruncatingTail;
+  descriptionLabel_.maximumNumberOfLines = 1;
+  descriptionLabel_.translatesAutoresizingMaskIntoConstraints = NO;
+  [rootStack_ addArrangedSubview:descriptionLabel_];
+  [descriptionLabel_.widthAnchor constraintEqualToAnchor:rootStack_.widthAnchor
+                                                constant:-24.0]
+      .active = YES;
+
+  scrollView_ = [[NSScrollView alloc] initWithFrame:NSZeroRect];
+  scrollView_.hasVerticalScroller = YES;
+  scrollView_.hasHorizontalScroller = NO;
+  scrollView_.borderType = NSNoBorder;
+  scrollView_.drawsBackground = NO;
+  scrollView_.translatesAutoresizingMaskIntoConstraints = NO;
+  // Three cell rows (46+7+46+7+46) without reserving a blank fourth band.
+  [scrollView_.heightAnchor constraintGreaterThanOrEqualToConstant:152.0]
+      .active = YES;
+  [rootStack_ addArrangedSubview:scrollView_];
+  [scrollView_.widthAnchor constraintEqualToAnchor:rootStack_.widthAnchor
+                                          constant:-24.0]
+      .active = YES;
+  [scrollView_ setContentHuggingPriority:1
+                          forOrientation:NSLayoutConstraintOrientationVertical];
+  [scrollView_
+      setContentCompressionResistancePriority:1
+                               forOrientation:
+                                   NSLayoutConstraintOrientationVertical];
+
+  footerDivider_ = [[NSView alloc] initWithFrame:NSZeroRect];
+  footerDivider_.wantsLayer = YES;
+  footerDivider_.translatesAutoresizingMaskIntoConstraints = NO;
+  [footerDivider_.heightAnchor constraintEqualToConstant:1.0].active = YES;
+  [rootStack_ addArrangedSubview:footerDivider_];
+  [footerDivider_.widthAnchor constraintEqualToAnchor:rootStack_.widthAnchor
+                                             constant:-24.0]
+      .active = YES;
+
+  pinCheckbox_ = [[NSButton alloc] initWithFrame:NSZeroRect];
+  pinCheckbox_.buttonType = NSButtonTypeSwitch;
+  pinCheckbox_.title = MarinaLocalizedString(@"MM.PinPalette");
+  pinCheckbox_.controlSize = NSControlSizeSmall;
+  pinCheckbox_.font = [NSFont systemFontOfSize:11.0 weight:NSFontWeightRegular];
+  pinCheckbox_.target = self;
+  pinCheckbox_.action = @selector(pinCheckboxChanged:);
+  pinCheckbox_.state = [self loadPinnedPreference] ? NSControlStateValueOn
+                                                   : NSControlStateValueOff;
+  pinCheckbox_.focusRingType = NSFocusRingTypeNone;
+  if ([pinCheckbox_ respondsToSelector:@selector(setContentTintColor:)]) {
+    pinCheckbox_.contentTintColor =
+        MakePaletteChrome(PaletteIsDarkAppearance()).tabActive;
+  }
+  [rootStack_ addArrangedSubview:pinCheckbox_];
+}
+
+- (NSString *)hintKeyForTab:(NSInteger)tab {
+  switch (tab) {
+    case 0:
+      return @"MM.OdorijiHint";
+    case 1:
+      return @"MM.KaeritenHint";
+    case 2:
+      return @"MM.SymbolsHint";
+    case 3:
+      return @"MM.UserSymbolsHint";
+    default:
+      return nil;
+  }
+}
+
+- (const std::vector<std::string> &)symbolsForTab:(NSInteger)tab {
+  switch (tab) {
+    case 0:
+      return odorijiSymbols_;
+    case 1:
+      return kaeritenSymbols_;
+    case 2:
+      return generalSymbols_;
+    case 3:
+      return userSymbols_;
+    default:
+      return odorijiSymbols_;
+  }
+}
+
+- (void)rebuildGrid {
+  const bool dark = PaletteIsDarkAppearance();
+  const std::vector<std::string> &symbols = [self symbolsForTab:selectedTab_];
+  const BOOL isOdoriji = (selectedTab_ == kSymbolsTabOdoriji);
+
+  const CGFloat hostWidth =
+      MAX(scrollView_.contentSize.width, kPaletteMinWidth - 40.0);
+  NSInteger columns = kSymbolColumns;
+  if (hostWidth > 0) {
+    columns = MAX(
+        1, static_cast<NSInteger>((hostWidth + kSymbolCellGap) /
+                                  (kSymbolCellSize + kSymbolCellGap)));
+  }
+  const NSInteger count = static_cast<NSInteger>(symbols.size());
+  const NSInteger rows =
+      count == 0 ? 1 : (count + columns - 1) / columns;
+  const CGFloat hostHeight =
+      rows * kSymbolCellSize + MAX(0, rows - 1) * kSymbolCellGap + 4.0;
+
+  gridHost_ =
+      [[MozcFlippedView alloc] initWithFrame:NSMakeRect(0, 0, hostWidth, hostHeight)];
+  NSInteger index = 0;
   for (const std::string &value : symbols) {
     if (value.empty()) continue;
-    if (row == nil || col == 0) {
-      row = [[NSStackView alloc] initWithFrame:NSZeroRect];
-      row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-      row.alignment = NSLayoutAttributeCenterY;
-      row.spacing = 6.0;
-      [stack addArrangedSubview:row];
-    }
+    const NSInteger col = index % columns;
+    const NSInteger row = index / columns;
+    const CGFloat x = col * (kSymbolCellSize + kSymbolCellGap);
+    const CGFloat y = row * (kSymbolCellSize + kSymbolCellGap);
+    MozcSymbolCellButton *button = [[MozcSymbolCellButton alloc]
+        initWithFrame:NSMakeRect(x, y, kSymbolCellSize, kSymbolCellSize)];
     NSString *text = [NSString stringWithUTF8String:value.c_str()];
-    NSButton *button = [NSButton buttonWithTitle:text
-                                          target:self
-                                          action:@selector(symbolClicked:)];
-    if ([identifier isEqualToString:@"MM.Odoriji"]) {
+    button.title = text;
+    button.toolTip = TooltipForSymbol(text);
+    button.target = self;
+    button.action = @selector(symbolClicked:);
+    button.isDark = dark;
+    if (isOdoriji) {
       button.identifier = @"odorijiSymbolButton";
-      button.tag = symbolIndex;
+      button.tag = index;
     }
-    button.bezelStyle = NSBezelStyleRounded;
-    button.controlSize = NSControlSizeRegular;
-    button.font = [NSFont systemFontOfSize:18.0];
-    [button.widthAnchor constraintGreaterThanOrEqualToConstant:40.0].active = YES;
-    [button.heightAnchor constraintEqualToConstant:32.0].active = YES;
-    button.contentTintColor = nil;
-    [row addArrangedSubview:button];
-    col = (col + 1) % kColumns;
-    ++symbolIndex;
+    [button applyPaletteChrome];
+    [gridHost_ addSubview:button];
+    ++index;
   }
 
-  [stack addArrangedSubview:[NSView new]];
-  scroll.documentView = container;
-  item.view = scroll;
-  [tabView_ addTabViewItem:item];
-  if (outView) {
-    *outView = stack;
+  if (count == 0 && selectedTab_ == 3) {
+    NSTextField *empty = [NSTextField
+        labelWithString:MarinaLocalizedString(@"MM.UserSymbolsEmpty")];
+    empty.font = [NSFont systemFontOfSize:11.0];
+    empty.textColor = MakePaletteChrome(dark).secondary;
+    empty.frame = NSMakeRect(0, 4, hostWidth, 20);
+    [gridHost_ addSubview:empty];
   }
+
+  scrollView_.documentView = gridHost_;
+  [scrollView_.contentView scrollToPoint:NSMakePoint(0, 0)];
+  [scrollView_ reflectScrolledClipView:scrollView_.contentView];
+}
+
+- (void)updateTabChrome {
+  const bool dark = PaletteIsDarkAppearance();
+  const PaletteChrome chrome = MakePaletteChrome(dark);
+  for (MozcPaletteTabButton *tab in tabButtons_) {
+    tab.isDark = dark;
+    tab.isActiveTab = (tab.tag == selectedTab_);
+    [tab applyTabChrome];
+  }
+  tabUnderline_.layer.backgroundColor = chrome.tabActive.CGColor;
+  if (selectedTab_ >= 0 &&
+      selectedTab_ < static_cast<NSInteger>(tabButtons_.count)) {
+    MozcPaletteTabButton *active = tabButtons_[selectedTab_];
+    [tabStrip_ layoutSubtreeIfNeeded];
+    const NSRect frame =
+        [active convertRect:active.bounds toView:tabUnderline_.superview];
+    tabUnderlineLeading_.constant = NSMinX(frame);
+    tabUnderlineWidth_.constant = NSWidth(frame);
+  }
+}
+
+- (void)applyAppearance {
+  const bool dark = PaletteIsDarkAppearance();
+  const PaletteChrome chrome = MakePaletteChrome(dark);
+  self.window.backgroundColor = chrome.window;
+  self.window.contentView.layer.backgroundColor = chrome.window.CGColor;
+  descriptionLabel_.textColor = chrome.secondary;
+  descriptionLabel_.font =
+      [NSFont systemFontOfSize:11.0 weight:NSFontWeightRegular];
+  footerDivider_.layer.backgroundColor = chrome.divider.CGColor;
+  NSMutableAttributedString *pinTitle = [[NSMutableAttributedString alloc]
+      initWithString:MarinaLocalizedString(@"MM.PinPalette")];
+  [pinTitle addAttribute:NSForegroundColorAttributeName
+                   value:chrome.secondary
+                   range:NSMakeRange(0, pinTitle.length)];
+  [pinTitle addAttribute:NSFontAttributeName
+                   value:[NSFont systemFontOfSize:11.0 weight:NSFontWeightRegular]
+                   range:NSMakeRange(0, pinTitle.length)];
+  pinCheckbox_.attributedTitle = pinTitle;
+  if ([pinCheckbox_ respondsToSelector:@selector(setContentTintColor:)]) {
+    pinCheckbox_.contentTintColor = chrome.tabActive;
+  }
+  [self updateTabChrome];
+  [self rebuildGrid];
+}
+
+- (void)windowDidResize:(NSNotification *)notification {
+  [self rebuildGrid];
+  [self updateTabChrome];
+}
+
+- (void)selectTab:(NSInteger)tab notify:(BOOL)notify {
+  if (tab < 0 || tab >= kSymbolsTabCount) return;
+  selectedTab_ = tab;
+  NSString *hintKey = [self hintKeyForTab:tab];
+  descriptionLabel_.stringValue =
+      hintKey ? MarinaLocalizedString(hintKey) : @"";
+  [self updateTabChrome];
+  [self rebuildGrid];
+  if (notify) {
+    [self saveLastTabPreference:tab];
+  }
+}
+
+- (void)tabClicked:(NSButton *)sender {
+  [self selectTab:sender.tag notify:YES];
+  // Mouse activation should not leave a focus ring on the tab; keyboard
+  // users still reach tabs via Tab / arrow keys (custom Prussian outline).
+  [self.window makeFirstResponder:nil];
 }
 
 - (std::vector<std::string>)loadUserSymbols {
@@ -750,11 +1299,6 @@ std::string GetKeymapPath(const std::string &filename) {
   [self savePinnedPreference:(pinCheckbox_.state == NSControlStateValueOn)];
 }
 
-- (void)tabView:(NSTabView *)tabView didSelectTabViewItem:(NSTabViewItem *)item {
-  NSInteger index = [tabView indexOfTabViewItem:item];
-  [self saveLastTabPreference:index];
-}
-
 - (void)symbolClicked:(NSButton *)sender {
   NSString *text = sender.title;
   if (text.length == 0) return;
@@ -766,8 +1310,6 @@ std::string GetKeymapPath(const std::string &filename) {
   if (!controller) return;
 
   // Odoriji tab: insert the clicked mark and make it the Ctrl+Shift+1 default.
-  // One command — the old SHOW+SUBMIT pair needed the candidate palette armed,
-  // which Direct input no longer does.
   if ([sender.identifier isEqualToString:@"odorijiSymbolButton"]) {
     mozc::commands::SessionCommand insert;
     insert.set_type(mozc::commands::SessionCommand::INSERT_ODORIJI_DEFAULT);
@@ -784,21 +1326,10 @@ std::string GetKeymapPath(const std::string &filename) {
   }
 }
 
-// Escape closes the palette even when pinned (same as Linux force=true).
-// Standard NSResponder action for Esc/Cmd-.; reaches us because the panel
-// is made key on open (see symbolsClicked:).
 - (void)cancelOperation:(id)sender {
   [self dismissPalette];
 }
 
-// "Clicked outside" the palette: it was made key on open (nonactivating
-// panels can become key for their own controls without stealing app
-// activation from the composing text field's app), so clicking anywhere
-// else -- including back into that text field -- resigns key status. Left
-// unhandled, an *unpinned* palette the user opens and then ignores has no
-// way to close and sits on screen indefinitely. When Pin is checked, keep
-// the palette up so the user can click a new caret position (or another
-// app) and keep inserting — matching Linux MozcToolbarHideSymbolsPalette.
 - (void)windowDidResignKey:(NSNotification *)notification {
   if (pinCheckbox_.state == NSControlStateValueOn) {
     return;
@@ -818,7 +1349,31 @@ std::string GetKeymapPath(const std::string &filename) {
   g_symbols_palette_visible = false;
 }
 
+- (void)forceKeepOpenForPreview {
+  pinCheckbox_.state = NSControlStateValueOn;
+}
+
 @end
+
+namespace mozc {
+namespace mac {
+
+void MozcSymbolsPalettePreviewShow() {
+  static MozcSymbolsPaletteWindowController *preview_ctrl = nil;
+  if (preview_ctrl == nil) {
+    preview_ctrl =
+        [[MozcSymbolsPaletteWindowController alloc] initWithClient:nullptr
+                                                        controller:nil];
+  }
+  [preview_ctrl forceKeepOpenForPreview];
+  g_symbols_palette_visible = true;
+  NSWindow *window = [preview_ctrl window];
+  [window center];
+  [window makeKeyAndOrderFront:nil];
+}
+
+}  // namespace mac
+}  // namespace mozc
 
 // ---------------------------------------------------------------------------
 #pragma mark - MozcToolbarView

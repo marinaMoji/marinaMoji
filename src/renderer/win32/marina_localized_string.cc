@@ -60,29 +60,29 @@ constexpr LocalizedEntry kEntries[] = {
      L"ツールバーを非表示"},
 
     // Symbols Palette.
-    {L"MM.PinPalette", L"Pin palette", L"Épingler la palette",
-     L"パレットを固定"},
+    {L"MM.PinPalette", L"Keep open", L"Garder ouverte", L"開いたままにする"},
     {L"MM.Odoriji", L"Odoriji (iteration marks)",
      L"Odoriji (marques d'itération)", L"踊り字（繰り返し記号）"},
+    {L"MM.OdorijiTab", L"Odoriji", L"Odoriji", L"踊り字"},
     {L"MM.Kaeriten", L"Kaeriten", L"Kaeriten", L"返り点"},
     {L"MM.Symbols", L"Symbols", L"Symboles", L"記号"},
     {L"MM.User", L"User", L"Utilisateur", L"ユーザー"},
     {L"MM.OdorijiHint",
-     L"Clicking an odoriji inserts it and sets it as your default (same "
-     L"behavior as the main Odoriji palette). Shortcuts are available in your "
-     L"keymap (Ctrl+Shift+1/2 on common layouts).",
-     L"Un clic sur un odoriji l'insère et le définit par défaut (comme la "
-     L"palette Odoriji principale). Les raccourcis sont disponibles dans votre "
-     L"table de touches (Ctrl+Maj+1/2 sur les dispositions courantes).",
-     L"踊り字をクリックすると挿入され、既定の踊り字として設定されます"
-     L"（メインの踊り字パレットと同じ動作）。ショートカットはキーマップで"
-     L"設定できます（一般的な配列では Ctrl+Shift+1/2）。"},
-    {L"MM.KaeritenHint", L"Shortcuts are available in your keymap.",
-     L"Les raccourcis sont disponibles dans votre table de touches.",
-     L"ショートカットはキーマップで設定できます。"},
-    {L"MM.UserSymbolsHint", L"Edit user symbols in Settings.",
-     L"Modifiez les symboles utilisateur dans les Paramètres.",
-     L"ユーザー記号は設定で編集できます。"},
+     L"Insert an iteration mark or set your default.",
+     L"Insérer une marque d'itération ou définir la valeur par défaut.",
+     L"踊り字を挿入するか、既定の踊り字に設定します。"},
+    {L"MM.KaeritenHint",
+     L"Marks for reading classical Chinese in Japanese order.",
+     L"Marques pour lire le chinois classique dans l'ordre japonais.",
+     L"漢文を日本語の語順で読むための記号。"},
+    {L"MM.SymbolsHint", L"Punctuation and special characters.",
+     L"Ponctuation et caractères spéciaux.", L"句読点と特殊文字。"},
+    {L"MM.UserSymbolsHint",
+     L"Your saved symbols. Edit them in Settings.",
+     L"Vos symboles enregistrés. Modifiez-les dans les Paramètres.",
+     L"保存した記号。設定で編集できます。"},
+    {L"MM.UserSymbolsEmpty", L"No saved symbols yet.",
+     L"Aucun symbole enregistré.", L"保存された記号はまだありません。"},
 
     // Shortcuts viewer.
     {L"MM.Script", L"Script", L"Script", L"スクリプト"},

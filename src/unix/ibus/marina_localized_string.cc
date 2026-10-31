@@ -46,28 +46,28 @@ constexpr LocalizedEntry kEntries[] = {
     // Symbols Palette.
     {"MM.SymbolsPalette", "Symbols Palette", "Palette de symboles",
      "記号パレット"},
-    {"MM.PinPalette", "Pin palette", "Épingler la palette", "パレットを固定"},
-    // Linux only: the short tab label ("MM.Odoriji" is the long menu form).
+    {"MM.PinPalette", "Keep open", "Garder ouverte", "開いたままにする"},
+    // Short tab label ("MM.Odoriji" is the long menu form with parenthetical).
     {"MM.OdorijiTab", "Odoriji", "Odoriji", "踊り字"},
     {"MM.Kaeriten", "Kaeriten", "Kaeriten", "返り点"},
     {"MM.Symbols", "Symbols", "Symboles", "記号"},
     {"MM.User", "User", "Utilisateur", "ユーザー"},
     {"MM.OdorijiHint",
-     "Clicking an odoriji inserts it and sets it as your default (same "
-     "behavior as the main Odoriji palette). Shortcuts are available in your "
-     "keymap (Ctrl+Shift+1/2 on common layouts).",
-     "Un clic sur un odoriji l'insère et le définit par défaut (comme la "
-     "palette Odoriji principale). Les raccourcis sont disponibles dans votre "
-     "table de touches (Ctrl+Maj+1/2 sur les dispositions courantes).",
-     "踊り字をクリックすると挿入され、既定の踊り字として設定されます"
-     "（メインの踊り字パレットと同じ動作）。ショートカットはキーマップで"
-     "設定できます（一般的な配列では Ctrl+Shift+1/2）。"},
-    {"MM.KaeritenHint", "Shortcuts are available in your keymap.",
-     "Les raccourcis sont disponibles dans votre table de touches.",
-     "ショートカットはキーマップで設定できます。"},
-    {"MM.UserSymbolsHint", "Edit user symbols in Preferences.",
-     "Modifiez les symboles utilisateur dans les Préférences.",
-     "ユーザー記号は環境設定で編集できます。"},
+     "Insert an iteration mark or set your default.",
+     "Insérer une marque d'itération ou définir la valeur par défaut.",
+     "踊り字を挿入するか、既定の踊り字に設定します。"},
+    {"MM.KaeritenHint",
+     "Marks for reading classical Chinese in Japanese order.",
+     "Marques pour lire le chinois classique dans l'ordre japonais.",
+     "漢文を日本語の語順で読むための記号。"},
+    {"MM.SymbolsHint", "Punctuation and special characters.",
+     "Ponctuation et caractères spéciaux.", "句読点と特殊文字。"},
+    {"MM.UserSymbolsHint",
+     "Your saved symbols. Edit them in Preferences.",
+     "Vos symboles enregistrés. Modifiez-les dans les Préférences.",
+     "保存した記号。環境設定で編集できます。"},
+    {"MM.UserSymbolsEmpty", "No saved symbols yet.",
+     "Aucun symbole enregistré.", "保存された記号はまだありません。"},
 
     // Keyboard Shortcuts viewer.
     {"MM.KeyboardShortcuts", "Keyboard Shortcuts", "Raccourcis clavier",

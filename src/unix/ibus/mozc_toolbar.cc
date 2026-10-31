@@ -854,9 +854,14 @@ static void EnsureToolbarCSS(bool dark) {
 }
 
 // Re-apply theme (CSS + all icons) when system theme changes or on first show.
+static void EnsureSymbolsPaletteCSS();
+
 static void RefreshToolbarTheme() {
   g_toolbar_dark_theme = IsSystemThemeDark();
   EnsureToolbarCSS(g_toolbar_dark_theme);
+  if (g_symbols_window) {
+    EnsureSymbolsPaletteCSS();
+  }
   if (!g_toolbar_window) return;
   // Logo: replace image inside g_logo_cell.
   if (g_logo_cell) {
@@ -1355,30 +1360,216 @@ static int g_symbols_drag_offset_x = 0;
 static int g_symbols_drag_offset_y = 0;
 
 constexpr int kSymbolsTabOdoriji = 0;
-constexpr int kSymbolsGridColumns = 8;
+constexpr int kSymbolsGridColumns = 9;
+constexpr int kSymbolsCellSize = 46;
+constexpr int kSymbolsCellGap = 7;
+constexpr int kSymbolsPaletteDefaultWidth = 560;
+constexpr int kSymbolsPaletteDefaultHeight = 260;
 
 // The palette must stay above the focused app without becoming the focused
 // window (so IME focus / typing stay in the text field). Themes then paint it
 // with :backdrop (grey "deselected" chrome). Force the active colours.
+// marinaMoji indigo tokens (match Preferences config_dialog_theme.h). Applied
+// only under #marinamoji-symbols-palette so the toolbar itself is untouched.
 static void EnsureSymbolsPaletteCSS() {
-  if (g_symbols_css_provider) return;
+  if (g_symbols_css_provider) {
+    gtk_style_context_remove_provider_for_screen(
+        gdk_screen_get_default(), GTK_STYLE_PROVIDER(g_symbols_css_provider));
+    g_object_unref(g_symbols_css_provider);
+    g_symbols_css_provider = nullptr;
+  }
   g_symbols_css_provider = gtk_css_provider_new();
+  const bool dark = g_toolbar_dark_theme;
   const char* css =
+      dark ?
       "#marinamoji-symbols-palette,"
       "#marinamoji-symbols-palette:backdrop {"
-      "  background-color: @theme_bg_color;"
-      "  color: @theme_fg_color;"
+      "  background-color: #18263B;"
+      "  color: #F4F7FB;"
       "}"
       "#marinamoji-symbols-palette headerbar,"
       "#marinamoji-symbols-palette headerbar:backdrop {"
-      "  background-color: @theme_bg_color;"
-      "  color: @theme_fg_color;"
+      "  background-color: #18263B;"
+      "  color: #F4F7FB;"
       "  box-shadow: none;"
       "}"
       "#marinamoji-symbols-palette decoration,"
       "#marinamoji-symbols-palette decoration:backdrop {"
-      "  background-color: @theme_bg_color;"
+      "  background-color: #18263B;"
       "  box-shadow: none;"
+      "}"
+      "#marinamoji-symbols-palette notebook {"
+      "  background-color: #18263B;"
+      "  border: none;"
+      "  padding: 0;"
+      "}"
+      "#marinamoji-symbols-palette notebook > header {"
+      "  background-color: #18263B;"
+      "  border: none;"
+      "  box-shadow: none;"
+      "  padding: 0 0 2px 0;"
+      "}"
+      "#marinamoji-symbols-palette notebook > header > tabs > tab {"
+      "  background: transparent;"
+      "  border: none;"
+      "  box-shadow: none;"
+      "  padding: 4px 10px 6px 10px;"
+      "  margin: 0 4px;"
+      "  min-width: 0;"
+      "  min-height: 0;"
+      "  color: #A9B9CE;"
+      "  font-weight: normal;"
+      "}"
+      "#marinamoji-symbols-palette notebook > header > tabs > tab:hover {"
+      "  color: #C5D7EE;"
+      "  background: transparent;"
+      "}"
+      "#marinamoji-symbols-palette notebook > header > tabs > tab:checked {"
+      "  color: #94B8E5;"
+      "  font-weight: 600;"
+      "  background: transparent;"
+      "  box-shadow: inset 0 -2px 0 #94B8E5;"
+      "}"
+      "#marinamoji-symbols-palette .marina-symbols-hint {"
+      "  color: #A9B9CE;"
+      "  font-size: 11px;"
+      "  font-weight: normal;"
+      "  padding: 0 0 4px 2px;"
+      "}"
+      "#marinamoji-symbols-palette button.marina-symbol-cell {"
+      "  background-color: #223550;"
+      "  color: #F4F7FB;"
+      "  border: 1px solid #4A607C;"
+      "  border-radius: 4.5px;"
+      "  box-shadow: none;"
+      "  padding: 0;"
+      "  min-width: 46px;"
+      "  min-height: 46px;"
+      "  font-size: 22px;"
+      "}"
+      "#marinamoji-symbols-palette button.marina-symbol-cell:hover {"
+      "  background-color: #304B6C;"
+      "  border-color: #94B8E5;"
+      "}"
+      "#marinamoji-symbols-palette button.marina-symbol-cell:active {"
+      "  background-color: #1A2C44;"
+      "}"
+      "#marinamoji-symbols-palette checkbutton {"
+      "  color: #A9B9CE;"
+      "  font-size: 12px;"
+      "}"
+      "#marinamoji-symbols-palette checkbutton check {"
+      "  background-color: #223550;"
+      "  border: 1px solid #5A708C;"
+      "  border-radius: 3px;"
+      "  box-shadow: none;"
+      "  color: #94B8E5;"
+      "}"
+      "#marinamoji-symbols-palette checkbutton check:checked {"
+      "  background-color: #1A2C44;"
+      "  border-color: #94B8E5;"
+      "  color: #94B8E5;"
+      "}"
+      :
+      "#marinamoji-symbols-palette,"
+      "#marinamoji-symbols-palette:backdrop {"
+      "  background-color: #FFFFFF;"
+      "  color: #253D55;"
+      "}"
+      "#marinamoji-symbols-palette headerbar,"
+      "#marinamoji-symbols-palette headerbar:backdrop {"
+      "  background-color: #FFFFFF;"
+      "  color: #173B61;"
+      "  box-shadow: none;"
+      "}"
+      "#marinamoji-symbols-palette decoration,"
+      "#marinamoji-symbols-palette decoration:backdrop {"
+      "  background-color: #FFFFFF;"
+      "  box-shadow: none;"
+      "}"
+      "#marinamoji-symbols-palette notebook {"
+      "  background-color: #FFFFFF;"
+      "  border: none;"
+      "  padding: 0;"
+      "}"
+      "#marinamoji-symbols-palette notebook > header {"
+      "  background-color: #FFFFFF;"
+      "  border: none;"
+      "  box-shadow: none;"
+      "  padding: 0 0 2px 0;"
+      "}"
+      "#marinamoji-symbols-palette notebook > header > tabs > tab {"
+      "  background: transparent;"
+      "  border: none;"
+      "  box-shadow: none;"
+      "  outline: none;"
+      "  padding: 4px 10px 6px 10px;"
+      "  margin: 0 4px;"
+      "  min-width: 0;"
+      "  min-height: 0;"
+      "  color: #61778E;"
+      "  font-weight: normal;"
+      "}"
+      "#marinamoji-symbols-palette notebook > header > tabs > tab:hover {"
+      "  color: #406B96;"
+      "  background: transparent;"
+      "}"
+      "#marinamoji-symbols-palette notebook > header > tabs > tab:checked {"
+      "  color: #173B61;"
+      "  font-weight: 600;"
+      "  background: transparent;"
+      "  box-shadow: inset 0 -2px 0 #173B61;"
+      "}"
+      "#marinamoji-symbols-palette notebook > header > tabs > tab:focus {"
+      "  outline: 1.5px solid #173B61;"
+      "  outline-offset: 1px;"
+      "}"
+      "#marinamoji-symbols-palette .marina-symbols-hint {"
+      "  color: #61778E;"
+      "  font-size: 11px;"
+      "  font-weight: normal;"
+      "  padding: 0 0 2px 2px;"
+      "}"
+      "#marinamoji-symbols-palette button.marina-symbol-cell {"
+      "  background-color: #FAFCFE;"
+      "  color: #253D55;"
+      "  border: 1px solid #CEDAE6;"
+      "  border-radius: 4.5px;"
+      "  box-shadow: none;"
+      "  outline: none;"
+      "  padding: 0;"
+      "  min-width: 46px;"
+      "  min-height: 46px;"
+      "  font-size: 20px;"
+      "}"
+      "#marinamoji-symbols-palette button.marina-symbol-cell:hover {"
+      "  background-color: #EAF2F9;"
+      "  border-color: #406B96;"
+      "}"
+      "#marinamoji-symbols-palette button.marina-symbol-cell:active {"
+      "  background-color: #DCE9F5;"
+      "}"
+      "#marinamoji-symbols-palette button.marina-symbol-cell:focus {"
+      "  border-color: #173B61;"
+      "  border-width: 1.5px;"
+      "}"
+      "#marinamoji-symbols-palette checkbutton {"
+      "  color: #61778E;"
+      "  font-size: 11px;"
+      "}"
+      "#marinamoji-symbols-palette checkbutton check {"
+      "  min-width: 14px;"
+      "  min-height: 14px;"
+      "  background-color: #FAFCFE;"
+      "  border: 1px solid #CEDAE6;"
+      "  border-radius: 3px;"
+      "  box-shadow: none;"
+      "  color: #173B61;"
+      "}"
+      "#marinamoji-symbols-palette checkbutton check:checked {"
+      "  background-color: #EAF2F9;"
+      "  border-color: #173B61;"
+      "  color: #173B61;"
       "}";
   gtk_css_provider_load_from_data(g_symbols_css_provider, css, -1, nullptr);
   gtk_style_context_add_provider_for_screen(
@@ -1548,28 +1739,39 @@ static void OnSymbolButtonClicked(GtkButton* /*button*/, gpointer user_data) {
 
 static GtkWidget* CreateSymbolsTabPage(const std::vector<std::string>& symbols,
                                        const char* hint, bool is_odoriji) {
-  GtkWidget* outer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
-  gtk_container_set_border_width(GTK_CONTAINER(outer), 8);
+  GtkWidget* outer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+  gtk_container_set_border_width(GTK_CONTAINER(outer), 4);
   if (hint && hint[0] != '\0') {
     GtkWidget* hint_label = gtk_label_new(hint);
-    gtk_label_set_line_wrap(GTK_LABEL(hint_label), TRUE);
+    gtk_widget_set_name(hint_label, "marina-symbols-hint");
+    gtk_style_context_add_class(gtk_widget_get_style_context(hint_label),
+                                "marina-symbols-hint");
+    gtk_label_set_line_wrap(GTK_LABEL(hint_label), FALSE);
+    gtk_label_set_ellipsize(GTK_LABEL(hint_label), PANGO_ELLIPSIZE_END);
     gtk_label_set_xalign(GTK_LABEL(hint_label), 0.0f);
+    gtk_label_set_yalign(GTK_LABEL(hint_label), 0.5f);
+    gtk_widget_set_halign(hint_label, GTK_ALIGN_START);
     gtk_box_pack_start(GTK_BOX(outer), hint_label, FALSE, FALSE, 0);
   }
   GtkWidget* scroll = gtk_scrolled_window_new(nullptr, nullptr);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER,
                                  GTK_POLICY_AUTOMATIC);
-  gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll), 260);
+  gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll), 160);
+  gtk_widget_set_vexpand(scroll, TRUE);
   GtkWidget* grid = gtk_grid_new();
-  gtk_grid_set_row_spacing(GTK_GRID(grid), 6);
-  gtk_grid_set_column_spacing(GTK_GRID(grid), 6);
+  gtk_grid_set_row_spacing(GTK_GRID(grid), kSymbolsCellGap);
+  gtk_grid_set_column_spacing(GTK_GRID(grid), kSymbolsCellGap);
+  gtk_widget_set_halign(grid, GTK_ALIGN_START);
+  gtk_widget_set_valign(grid, GTK_ALIGN_START);
   int col = 0;
   int row = 0;
   int odoriji_index = 0;
   for (const std::string& symbol : symbols) {
     if (symbol.empty()) continue;
     GtkWidget* btn = gtk_button_new_with_label(symbol.c_str());
-    gtk_widget_set_size_request(btn, 40, 32);
+    gtk_style_context_add_class(gtk_widget_get_style_context(btn),
+                                "marina-symbol-cell");
+    gtk_widget_set_size_request(btn, kSymbolsCellSize, kSymbolsCellSize);
     gtk_widget_set_focus_on_click(btn, FALSE);
     gtk_widget_set_can_focus(btn, FALSE);
     auto* data = new SymbolButtonData();
@@ -1631,7 +1833,8 @@ constexpr int kSymbolsTabUser = 3;
 static void RefreshUserSymbolsTab() {
   if (!g_symbols_notebook) return;
   GtkWidget* new_page = CreateSymbolsTabPage(
-      LoadUserSymbolsFromFile(), MarinaLocalizedString("MM.UserSymbolsHint"), false);
+      LoadUserSymbolsFromFile(), MarinaLocalizedString("MM.UserSymbolsHint"),
+      false);
   gtk_notebook_remove_page(GTK_NOTEBOOK(g_symbols_notebook), kSymbolsTabUser);
   gtk_notebook_insert_page(GTK_NOTEBOOK(g_symbols_notebook), new_page,
                            gtk_label_new(MarinaLocalizedString("MM.User")), kSymbolsTabUser);
@@ -1651,7 +1854,10 @@ static void ShowSymbolsPalette() {
   gtk_window_set_title(GTK_WINDOW(g_symbols_window),
                        MarinaLocalizedString("MM.SymbolsPalette"));
   gtk_window_set_resizable(GTK_WINDOW(g_symbols_window), TRUE);
-  gtk_window_set_default_size(GTK_WINDOW(g_symbols_window), 520, 380);
+  gtk_window_set_default_size(GTK_WINDOW(g_symbols_window),
+                              kSymbolsPaletteDefaultWidth,
+                              kSymbolsPaletteDefaultHeight);
+  gtk_widget_set_size_request(g_symbols_window, 420, 240);
   gtk_window_set_position(GTK_WINDOW(g_symbols_window), GTK_WIN_POS_CENTER);
   ApplySymbolsPaletteWindowHints(g_symbols_window);
 
@@ -1676,11 +1882,12 @@ static void ShowSymbolsPalette() {
   g_signal_connect(g_symbols_window, "motion-notify-event",
                    G_CALLBACK(OnSymbolsWindowMotion), nullptr);
 
-  GtkWidget* content = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
-  gtk_container_set_border_width(GTK_CONTAINER(content), 8);
+  GtkWidget* content = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+  gtk_container_set_border_width(GTK_CONTAINER(content), 10);
   gtk_container_add(GTK_CONTAINER(g_symbols_window), content);
 
   g_symbols_notebook = gtk_notebook_new();
+  gtk_notebook_set_show_border(GTK_NOTEBOOK(g_symbols_notebook), FALSE);
   gtk_box_pack_start(GTK_BOX(content), g_symbols_notebook, TRUE, TRUE, 0);
 
   const char* odoriji_hint = MarinaLocalizedString("MM.OdorijiHint");
@@ -1695,8 +1902,9 @@ static void ShowSymbolsPalette() {
   gtk_notebook_append_page(GTK_NOTEBOOK(g_symbols_notebook), kaeriten_page,
                            gtk_label_new(MarinaLocalizedString("MM.Kaeriten")));
 
-  GtkWidget* symbols_page =
-      CreateSymbolsTabPage(BuildDefaultGeneralSymbols(), nullptr, false);
+  GtkWidget* symbols_page = CreateSymbolsTabPage(
+      BuildDefaultGeneralSymbols(), MarinaLocalizedString("MM.SymbolsHint"),
+      false);
   gtk_notebook_append_page(GTK_NOTEBOOK(g_symbols_notebook), symbols_page,
                            gtk_label_new(MarinaLocalizedString("MM.Symbols")));
 
