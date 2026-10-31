@@ -98,6 +98,9 @@ int g_window_x = 0;
 int g_window_y = 0;
 static unsigned g_drag_motion_count = 0;
 static bool g_symbols_palette_visible = false;
+// The palette window itself; RefreshToolbarTheme() below needs it before the
+// rest of the palette state is declared further down.
+static GtkWidget* g_symbols_window = nullptr;
 
 // Theme: follow system light/dark (e.g. Linux Mint, GNOME, Cinnamon).
 static bool g_toolbar_dark_theme = false;
@@ -1351,7 +1354,6 @@ struct SymbolButtonData {
   std::string text;
 };
 
-static GtkWidget* g_symbols_window = nullptr;
 static GtkWidget* g_symbols_notebook = nullptr;
 static GtkWidget* g_symbols_pin_check = nullptr;
 static GtkCssProvider* g_symbols_css_provider = nullptr;
