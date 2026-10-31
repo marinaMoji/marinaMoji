@@ -23,6 +23,7 @@
   <file alias="tr_en.qm">../base/tr_en.qm</file>
   <file alias="tr_fr.qm">../base/tr_fr.qm</file>
   <file alias="combo_chevron.png">combo_chevron.png</file>
+  <file alias="checkbox_check.png">checkbox_check.png</file>
   <!-- Light mark: high-DPI raster exported from preferences_header_logo.svg -->
   <file alias="preferences_header_logo.png">preferences_header_logo.png</file>
   <file alias="preferences_header_logo_dark.png">preferences_header_logo_dark.png</file>

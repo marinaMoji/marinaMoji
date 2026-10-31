@@ -1,5 +1,7 @@
 #include "gui/config_dialog/config_dialog_shortcuts_tab.h"
 
+#include "gui/config_dialog/config_dialog_theme.h"
+
 #include <QAbstractItemView>
 #include <QCheckBox>
 #include <QComboBox>
@@ -155,25 +157,26 @@ QFrame* MakeSectionHeader(const QString& title, QWidget* parent) {
   auto* header = new QFrame(parent);
   header->setProperty("class", QStringLiteral("setting-group-header"));
   header->setFrameShape(QFrame::NoFrame);
+  header->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
   auto* layout = new QHBoxLayout(header);
   layout->setContentsMargins(0, 0, 0, 0);
+  layout->setSpacing(10);
   auto* label = new QLabel(title, header);
-  QFont font = label->font();
-  font.setPointSizeF(label->font().pointSizeF());
-  font.setWeight(QFont::Medium);
-  label->setFont(font);
-  layout->addWidget(label);
+  label->setFont(config_dialog_theme::SectionFont());
+  layout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignVCenter);
   auto* line = new QFrame(header);
   line->setProperty("class", QStringLiteral("setting-group-line"));
   line->setFrameShape(QFrame::HLine);
   line->setFixedHeight(1);
-  layout->addWidget(line, 1);
+  layout->addWidget(line, 1, Qt::AlignVCenter);
   return header;
 }
 
 QLabel* MakeSecondaryLabel(const QString& text, QWidget* parent) {
   auto* label = new QLabel(text, parent);
   label->setObjectName(QStringLiteral("preferencesSecondary"));
+  label->setFont(config_dialog_theme::UiFont(
+      config_dialog_theme::Type::secondary));
   label->setWordWrap(true);
   label->setAlignment(Qt::AlignLeft | Qt::AlignTop);
   return label;

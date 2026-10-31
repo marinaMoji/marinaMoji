@@ -27,7 +27,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-// Visual tokens for the Preferences window.
+// Visual tokens for the Preferences window (Phase 1 typographic refinement).
 //
 // Companion specs:
 //   visual_style/docs/settings/preferences-design.md
@@ -60,6 +60,48 @@ inline qreal PlatformPointSize(int mac_point_size) {
 #endif  // __APPLE__
 }
 
+// Shared spacing scale (logical px at the macOS reference). Prefer these over
+// ad-hoc margins so pages share one vertical rhythm.
+struct Spacing {
+  static constexpr int unit = 4;
+  static constexpr int content_inset_l = 32;
+  static constexpr int content_inset_r = 28;
+  static constexpr int content_inset_t = 22;
+  static constexpr int content_inset_b = 12;
+  static constexpr int page_right_gutter = 12;  // clears scrollbar
+  static constexpr int title_to_rule = 10;
+  static constexpr int rule_to_section = 18;    // title → first section ≈ 28
+  static constexpr int section_to_control = 12;
+  static constexpr int row = 10;
+  static constexpr int related = 8;
+  static constexpr int label_to_help = 6;
+  static constexpr int before_section = 22;     // last control → next section
+  static constexpr int before_subhead = 14;
+  static constexpr int sidebar_width = 220;
+  static constexpr int sidebar_pad_l = 18;
+  static constexpr int sidebar_pad_r = 16;
+  static constexpr int sidebar_pad_t = 24;
+  static constexpr int sidebar_pad_b = 20;
+  static constexpr int logo_to_prefs = 12;
+  static constexpr int prefs_to_nav = 18;
+  static constexpr int nav_row = 38;
+  static constexpr int footer_pad_x = 24;
+  static constexpr int footer_pad_y = 10;
+  static constexpr int footer_height = 52;  // compositional bar, ~48–54
+  static constexpr int utility_row = 30;
+  static constexpr int info_gap = 6;  // label text → ⓘ
+};
+
+struct Type {
+  static constexpr int page_title = 34;
+  static constexpr int section = 17;
+  static constexpr int subhead = 14;
+  static constexpr int label = 14;
+  static constexpr int secondary = 13;
+  static constexpr int brand_sub = 12;
+  static constexpr int nav = 14;
+};
+
 inline QFont DisplayFont(int mac_point_size) {
   QFont font;
   font.setFamilies({QStringLiteral("Hiragino Mincho ProN"),
@@ -71,6 +113,40 @@ inline QFont DisplayFont(int mac_point_size) {
   font.setPointSizeF(PlatformPointSize(mac_point_size));
   font.setWeight(QFont::Medium);
   return font;
+}
+
+inline QFont PageTitleFont() {
+  QFont font = DisplayFont(Type::page_title);
+  // Slight tracking reads as typeset chapter titles without looking spaced-out.
+  font.setLetterSpacing(QFont::PercentageSpacing, 102.0);
+  return font;
+}
+
+inline QFont UiFont(int mac_point_size, QFont::Weight weight = QFont::Normal) {
+  QFont font;
+  font.setFamilies({QStringLiteral("Hiragino Sans"),
+                    QStringLiteral("Hiragino Kaku Gothic ProN"),
+                    QStringLiteral("Yu Gothic UI"),
+                    QStringLiteral("Yu Gothic"),
+                    QStringLiteral("Noto Sans CJK JP"),
+                    QStringLiteral("Noto Sans JP"),
+                    QStringLiteral("Segoe UI"),
+                    QStringLiteral("sans-serif")});
+  font.setPointSizeF(PlatformPointSize(mac_point_size));
+  font.setWeight(weight);
+  return font;
+}
+
+inline QFont SectionFont() {
+  return UiFont(Type::section, QFont::Medium);
+}
+
+inline QFont SubheadFont() {
+  return UiFont(Type::subhead, QFont::Medium);
+}
+
+inline QFont LabelFont() {
+  return UiFont(Type::label, QFont::Normal);
 }
 
 inline bool IsDark() {
@@ -90,6 +166,7 @@ struct Palette {
   QColor secondary;
   QColor disabled;
   QColor rule;
+  QColor title_rule;
   QColor border_control;
   QColor nav_selected;
   QColor nav_hover;
@@ -103,6 +180,8 @@ struct Palette {
   QColor selection_bg;
   QColor selection_text;
   QColor warning;
+  QColor check_border;
+  QColor utility;  // muted sidebar utility labels
 };
 
 inline Palette Colors(bool dark) {
@@ -113,22 +192,25 @@ inline Palette Colors(bool dark) {
         QColor(0x22, 0x35, 0x50),  // raised
         QColor(0xF4, 0xF7, 0xFB),  // text
         QColor(0xF4, 0xF7, 0xFB),  // heading
-        QColor(0xB7, 0xC6, 0xD8),  // secondary (stronger than disabled)
+        QColor(0xA9, 0xB9, 0xCE),  // secondary
         QColor(0x6E, 0x7F, 0x94),  // disabled
         QColor(0x34, 0x47, 0x61),  // rule
+        QColor(0x4A, 0x60, 0x7C),  // title_rule (slightly stronger)
         QColor(0x4A, 0x60, 0x7C),  // border_control
-        QColor(0x30, 0x4B, 0x6C),  // nav_selected
-        QColor(0x1A, 0x2C, 0x44),  // nav_hover
+        QColor(0x1A, 0x2C, 0x44),  // nav_selected (quiet wash)
+        QColor(0x16, 0x24, 0x38),  // nav_hover
         QColor(0x94, 0xB8, 0xE5),  // accent
         QColor(0x2A, 0x40, 0x5C),  // accent_subtle
         QColor(0x11, 0x1D, 0x30),  // on_accent
         QColor(0x94, 0xB8, 0xE5),  // primary
         QColor(0xC5, 0xD7, 0xEE),  // primary_hover
         QColor(0x7A, 0xA3, 0xD4),  // primary_pressed
-        QColor(0xF4, 0xF7, 0xFB),  // focus
+        QColor(0xC5, 0xD7, 0xEE),  // focus
         QColor(0x30, 0x4B, 0x6C),  // selection_bg
         QColor(0xF4, 0xF7, 0xFB),  // selection_text
         QColor(0xE0, 0xA4, 0x56),  // warning
+        QColor(0x5A, 0x70, 0x8C),  // check_border
+        QColor(0x7A, 0x8C, 0xA0),  // utility
     };
   }
   return Palette{
@@ -137,11 +219,12 @@ inline Palette Colors(bool dark) {
       QColor(0xFF, 0xFF, 0xFF),  // raised
       QColor(0x27, 0x31, 0x3D),  // text
       QColor(0x1E, 0x3A, 0x5F),  // heading
-      QColor(0x4F, 0x5F, 0x72),  // secondary (distinct from disabled)
+      QColor(0x5A, 0x6A, 0x7C),  // secondary
       QColor(0x9A, 0xA3, 0xAD),  // disabled
-      QColor(0xE2, 0xE8, 0xF0),  // rule
+      QColor(0xD7, 0xDE, 0xE7),  // rule (hairline blue-grey)
+      QColor(0xC5, 0xD0, 0xDC),  // title_rule
       QColor(0xC5, 0xD0, 0xDC),  // border_control
-      QColor(0xE5, 0xED, 0xF7),  // nav_selected
+      QColor(0x00, 0x00, 0x00, 0x00),  // nav_selected (transparent; bar carries selection)
       QColor(0xEA, 0xF0, 0xF6),  // nav_hover
       QColor(0x1E, 0x3A, 0x5F),  // accent
       QColor(0xE5, 0xED, 0xF7),  // accent_subtle
@@ -153,10 +236,21 @@ inline Palette Colors(bool dark) {
       QColor(0xE5, 0xED, 0xF7),  // selection_bg
       QColor(0x1E, 0x3A, 0x5F),  // selection_text
       QColor(0xB4, 0x53, 0x09),  // warning
+      QColor(0xA8, 0xB4, 0xC2),  // check_border
+      QColor(0x6E, 0x7C, 0x8C),  // utility
   };
 }
 
-inline QString Hex(const QColor& color) { return color.name(QColor::HexRgb); }
+inline QString Hex(const QColor& color) {
+  if (color.alpha() < 255) {
+    return QStringLiteral("rgba(%1,%2,%3,%4)")
+        .arg(color.red())
+        .arg(color.green())
+        .arg(color.blue())
+        .arg(color.alpha());
+  }
+  return color.name(QColor::HexRgb);
+}
 
 inline QString Stylesheet(bool dark) {
   const Palette palette = Colors(dark);
@@ -168,20 +262,23 @@ inline QString Stylesheet(bool dark) {
 
       "QLabel {"
       "  color: @@TEXT@@; background: transparent;"
-      "  padding-top: 1px; padding-bottom: 2px; }"
+      "  padding-top: 1px; padding-bottom: 1px; }"
       "QLabel:disabled { color: @@DISABLED@@; }"
       "QLabel#preferencesBrand { color: @@HEADING@@; background: transparent; }"
       "QLabel#preferencesBrandSub {"
-      "  color: @@SECONDARY@@; background: transparent; }"
+      "  color: @@SECONDARY@@; background: transparent;"
+      "  letter-spacing: 0.04em; }"
       "QLabel#preferencesPageTitle {"
       "  color: @@HEADING@@; background: transparent;"
-      "  padding-left: 0; margin-left: 0; }"
+      "  padding: 0; margin: 0; }"
       "QLabel#preferencesHelp,"
       "QLabel#incognitoModeMessage,"
       "QLabel#usageStatsMessage,"
       "QLabel#preferencesSecondary {"
       "  color: @@SECONDARY@@; }"
       "QLabel#preferencesWarning { color: @@WARNING@@; }"
+      "QLabel#preferencesSubhead {"
+      "  color: @@HEADING@@; margin: 0; padding: 0; }"
       "QFrame[class=\"setting-group-header\"] {"
       "  margin: 0; padding: 0; }"
       "QFrame[class=\"setting-group-header\"] QLabel {"
@@ -191,27 +288,72 @@ inline QString Stylesheet(bool dark) {
       "QFrame#preferencesSidebarRule,"
       "QFrame#preferencesTitleRule,"
       "QFrame#preferencesFooterRule {"
-      "  color: @@RULE@@; background-color: @@RULE@@; border: none; }"
-      "QFrame#preferencesSidebarRule { max-width: 1px; }"
-      "QFrame#preferencesTitleRule, QFrame#preferencesFooterRule,"
-      "QFrame[class=\"setting-group-line\"] { max-height: 1px; }"
+      "  border: none; }"
+      "QFrame[class=\"setting-group-line\"] {"
+      "  color: @@RULE@@; background-color: @@RULE@@; max-height: 1px; }"
+      "QFrame#preferencesTitleRule {"
+      "  color: @@TITLE_RULE@@; background-color: @@TITLE_RULE@@;"
+      "  max-height: 1px; }"
+      "QFrame#preferencesFooterRule {"
+      "  color: @@RULE@@; background-color: @@RULE@@; max-height: 1px; }"
+      "QFrame#preferencesSidebarRule {"
+      "  color: @@RULE@@; background-color: @@RULE@@; max-width: 1px; }"
 
+      /* Sidebar nav: table-of-contents — left hairline, no outlined pill. */
       "QListWidget#preferencesNav {"
       "  background: transparent; border: none; outline: none; }"
       "QListWidget#preferencesNav::item {"
       "  color: @@TEXT@@; background: transparent;"
-      "  padding: 7px 10px; border: 1px solid transparent; border-radius: 3px; }"
+      "  padding: 9px 10px 9px 12px;"
+      "  border: none; border-left: 2px solid transparent;"
+      "  border-radius: 0px; margin: 1px 0; }"
       "QListWidget#preferencesNav::item:hover {"
-      "  background: @@NAV_HOVER@@; }"
+      "  background: @@NAV_HOVER@@; color: @@HEADING@@; }"
       "QListWidget#preferencesNav::item:selected {"
-      "  background: @@NAV_SELECTED@@; color: @@HEADING@@; font-weight: 600; }"
+      "  background: @@NAV_SELECTED@@; color: @@ACCENT@@;"
+      "  font-weight: 600; border-left: 2px solid @@ACCENT@@; }"
+      "QListWidget#preferencesNav::item:selected:hover {"
+      "  background: @@NAV_HOVER@@; }"
       "QListWidget#preferencesNav::item:focus {"
-      "  border: 1px solid @@FOCUS@@; }"
+      "  background: @@NAV_HOVER@@;"
+      "  border-left: 2px solid @@FOCUS@@; }"
+      "QListWidget#preferencesNav::item:selected:focus {"
+      "  border-left: 2px solid @@ACCENT@@;"
+      "  background: @@ACCENT_SUBTLE@@; }"
+
+      "QFrame#preferencesUtilityRule {"
+      "  color: @@RULE@@; background-color: @@RULE@@; max-height: 1px;"
+      "  border: none; }"
+      "QWidget#preferencesFooter {"
+      "  background-color: @@WINDOW@@; }"
+      /* Match nav text inset: 2px indicator gutter + 12px padding. */
+      "QPushButton#preferencesUtilityButton {"
+      "  color: @@UTILITY@@; background: transparent;"
+      "  border: none; border-left: 2px solid transparent; border-radius: 0;"
+      "  text-align: left; padding: 5px 10px 5px 12px; font-weight: 400; }"
+      "QPushButton#preferencesUtilityButton:hover {"
+      "  color: @@HEADING@@; background: @@NAV_HOVER@@; }"
+      "QPushButton#preferencesUtilityButton:focus {"
+      "  color: @@HEADING@@; background: @@NAV_HOVER@@;"
+      "  border-left: 2px solid @@FOCUS@@; }"
+      "QPushButton#preferencesUtilityButton[active=\"true\"] {"
+      "  color: @@ACCENT@@; font-weight: 600; }"
+      "QPushButton#preferencesUtilityButton[active=\"true\"]:hover {"
+      "  color: @@ACCENT@@; background: @@NAV_HOVER@@; }"
+      "QToolButton#preferencesInfoButton {"
+      "  background: transparent; border: none; padding: 0; margin: 0; }"
+      "QFrame#preferencesExplanationPopover {"
+      "  background: @@RAISED@@; border: 1px solid @@BORDER_CONTROL@@;"
+      "  border-radius: 4px; }"
+      "QLabel#preferencesExplanationTitle { color: @@HEADING@@; }"
+      "QLabel#preferencesExplanationBody { color: @@TEXT@@; }"
+      "QLabel#preferencesExplanationExample {"
+      "  color: @@SECONDARY@@; padding-top: 4px; }"
 
       "QComboBox {"
       "  color: @@TEXT@@; background: @@RAISED@@;"
       "  border: 1px solid @@BORDER_CONTROL@@; border-radius: 3px;"
-      "  padding: 5px 28px 5px 10px; min-height: 22px; }"
+      "  padding: 6px 28px 6px 11px; min-height: 20px; }"
       "QComboBox:hover { border-color: @@ACCENT@@; }"
       "QComboBox:focus { border: 1px solid @@FOCUS@@; }"
       "QComboBox:disabled {"
@@ -219,32 +361,48 @@ inline QString Stylesheet(bool dark) {
       "QComboBox::drop-down {"
       "  border: none; background: transparent; width: 22px; }"
       "QComboBox::down-arrow {"
-      "  image: url(:/combo_chevron.png); width: 10px; height: 10px; }"
+      "  image: url(:/combo_chevron.png); width: 9px; height: 9px; }"
       "QComboBox QAbstractItemView {"
       "  color: @@TEXT@@; background: @@RAISED@@; outline: 0;"
       "  border: 1px solid @@BORDER_CONTROL@@;"
       "  selection-background-color: @@SELECTION_BG@@;"
-      "  selection-color: @@SELECTION_TEXT@@; }"
+      "  selection-color: @@SELECTION_TEXT@@;"
+      "  padding: 4px; }"
 
       "QSpinBox {"
       "  color: @@TEXT@@; background: @@RAISED@@;"
       "  border: 1px solid @@BORDER_CONTROL@@; border-radius: 3px;"
-      "  padding: 4px 8px; min-height: 22px; }"
+      "  padding: 5px 8px; min-height: 20px; }"
+      "QSpinBox:hover { border-color: @@ACCENT@@; }"
       "QSpinBox:focus { border: 1px solid @@FOCUS@@; }"
       "QSpinBox:disabled { color: @@DISABLED@@; border-color: @@RULE@@; }"
 
       "QCheckBox {"
-      "  color: @@TEXT@@; spacing: 8px;"
+      "  color: @@TEXT@@; spacing: 9px;"
       "  margin-left: 0; padding-left: 0;"
-      "  min-height: 1.4em; padding-top: 2px; padding-bottom: 2px; }"
+      "  min-height: 1.45em; padding-top: 2px; padding-bottom: 2px; }"
       "QCheckBox:disabled { color: @@DISABLED@@; }"
+      "QCheckBox::indicator {"
+      "  width: 15px; height: 15px;"
+      "  border: 1px solid @@CHECK_BORDER@@; border-radius: 2px;"
+      "  background: @@RAISED@@; }"
+      "QCheckBox::indicator:hover { border-color: @@ACCENT@@; }"
+      "QCheckBox::indicator:checked {"
+      "  background: @@ACCENT@@; border-color: @@ACCENT@@;"
+      "  image: url(:/checkbox_check.png); }"
+      "QCheckBox::indicator:disabled {"
+      "  background: @@WINDOW@@; border-color: @@RULE@@; }"
+      "QCheckBox::indicator:checked:disabled {"
+      "  background: @@DISABLED@@; border-color: @@DISABLED@@;"
+      "  image: url(:/checkbox_check.png); }"
 
       "QPushButton {"
       "  color: @@TEXT@@; background: @@RAISED@@;"
       "  border: 1px solid @@BORDER_CONTROL@@; border-radius: 3px;"
-      "  min-height: 1.35em; padding: 5px 12px; }"
+      "  min-height: 1.35em; padding: 6px 13px; }"
       "QPushButton:hover { border-color: @@ACCENT@@; }"
       "QPushButton:focus { border: 1px solid @@FOCUS@@; }"
+      "QPushButton:pressed { background: @@ACCENT_SUBTLE@@; }"
       "QPushButton:disabled { color: @@DISABLED@@; border-color: @@RULE@@; }"
       "QPushButton[role=\"primary\"] {"
       "  color: @@ON_ACCENT@@; background: @@PRIMARY@@;"
@@ -258,9 +416,10 @@ inline QString Stylesheet(bool dark) {
       "  color: @@WINDOW@@; background: @@DISABLED@@; border-color: @@DISABLED@@; }"
       "QPushButton[role=\"secondary\"] {"
       "  color: @@ACCENT@@; background: @@WINDOW@@;"
-      "  border: 1px solid @@ACCENT@@; padding: 6px 14px; }"
-      "QPushButton[role=\"secondary\"]:hover { border: 2px solid @@ACCENT@@; }"
-      "QPushButton[role=\"secondary\"]:focus { border: 2px solid @@FOCUS@@; }"
+      "  border: 1px solid @@BORDER_CONTROL@@; padding: 6px 14px; }"
+      "QPushButton[role=\"secondary\"]:hover {"
+      "  border-color: @@ACCENT@@; background: @@ACCENT_SUBTLE@@; }"
+      "QPushButton[role=\"secondary\"]:focus { border: 1px solid @@FOCUS@@; }"
       "QPushButton[role=\"secondary\"]:disabled {"
       "  color: @@DISABLED@@; border-color: @@RULE@@; }"
       "QPushButton[role=\"quiet\"] {"
@@ -280,29 +439,30 @@ inline QString Stylesheet(bool dark) {
       "QLineEdit {"
       "  color: @@TEXT@@; background: @@RAISED@@;"
       "  border: 1px solid @@BORDER_CONTROL@@; border-radius: 3px;"
-      "  padding: 5px 8px; selection-background-color: @@SELECTION_BG@@;"
+      "  padding: 6px 9px; selection-background-color: @@SELECTION_BG@@;"
       "  selection-color: @@SELECTION_TEXT@@; }"
+      "QLineEdit:hover { border-color: @@ACCENT@@; }"
       "QLineEdit:focus { border: 1px solid @@FOCUS@@; }"
 
       "QHeaderView::section {"
       "  color: @@HEADING@@; background: @@WINDOW@@;"
       "  border: none; border-bottom: 1px solid @@RULE@@;"
-      "  padding: 6px 8px; font-weight: 600; }"
+      "  padding: 7px 8px; font-weight: 600; }"
       "QTableWidget {"
       "  color: @@TEXT@@; background: @@WINDOW@@; gridline-color: @@RULE@@;"
       "  border: 1px solid @@RULE@@; border-radius: 3px;"
       "  selection-background-color: @@SELECTION_BG@@;"
       "  selection-color: @@SELECTION_TEXT@@; }"
-      "QTableWidget::item { padding: 4px 8px; }"
+      "QTableWidget::item { padding: 5px 8px; }"
       "QTableWidget::item:focus { border: 1px solid @@FOCUS@@; }"
 
       "QScrollArea#preferencesScroll { background: @@WINDOW@@; border: none; }"
       "QScrollArea#preferencesScroll > QWidget > QWidget {"
       "  background: transparent; }"
       "QScrollBar:vertical {"
-      "  background: @@WINDOW@@; width: 12px; margin: 0; border: none; }"
+      "  background: @@WINDOW@@; width: 11px; margin: 0; border: none; }"
       "QScrollBar::handle:vertical {"
-      "  background: @@BORDER_CONTROL@@; min-height: 28px; border-radius: 5px;"
+      "  background: @@BORDER_CONTROL@@; min-height: 28px; border-radius: 4px;"
       "  margin: 2px; }"
       "QScrollBar::handle:vertical:hover { background: @@SECONDARY@@; }"
       "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
@@ -310,9 +470,9 @@ inline QString Stylesheet(bool dark) {
       "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {"
       "  background: none; }"
       "QScrollBar:horizontal {"
-      "  background: @@WINDOW@@; height: 12px; margin: 0; border: none; }"
+      "  background: @@WINDOW@@; height: 11px; margin: 0; border: none; }"
       "QScrollBar::handle:horizontal {"
-      "  background: @@BORDER_CONTROL@@; min-width: 28px; border-radius: 5px;"
+      "  background: @@BORDER_CONTROL@@; min-width: 28px; border-radius: 4px;"
       "  margin: 2px; }"
       "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {"
       "  width: 0; background: none; border: none; }"
@@ -320,7 +480,10 @@ inline QString Stylesheet(bool dark) {
       "  background: none; }"
 
       "QTabWidget::pane { border: none; background: transparent; }"
-      "QGroupBox { padding-top: 1.1em; margin-top: 0.4em; }");
+      "QGroupBox {"
+      "  color: @@HEADING@@; border: none; margin-top: 0.6em;"
+      "  padding-top: 0.9em; }"
+      "QGroupBox::title { subcontrol-origin: margin; left: 0; padding: 0; }");
 
   const struct {
     const char* token;
@@ -334,6 +497,7 @@ inline QString Stylesheet(bool dark) {
       {"@@SECONDARY@@", palette.secondary},
       {"@@DISABLED@@", palette.disabled},
       {"@@RULE@@", palette.rule},
+      {"@@TITLE_RULE@@", palette.title_rule},
       {"@@BORDER_CONTROL@@", palette.border_control},
       {"@@NAV_SELECTED@@", palette.nav_selected},
       {"@@NAV_HOVER@@", palette.nav_hover},
@@ -347,6 +511,8 @@ inline QString Stylesheet(bool dark) {
       {"@@SELECTION_BG@@", palette.selection_bg},
       {"@@SELECTION_TEXT@@", palette.selection_text},
       {"@@WARNING@@", palette.warning},
+      {"@@CHECK_BORDER@@", palette.check_border},
+      {"@@UTILITY@@", palette.utility},
   };
   for (const auto& token : tokens) {
     qss.replace(QLatin1String(token.token), Hex(token.color));

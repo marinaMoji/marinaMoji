@@ -33,6 +33,7 @@
 #include "gui/config_dialog/config_dialog_shortcuts_tab.h"
 #include "gui/config_dialog/config_dialog_sync_tab.h"
 #include "gui/config_dialog/config_dialog_theme.h"
+#include "gui/config_dialog/preferences_explanations.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -50,9 +51,11 @@
 #include <QInputDialog>
 #include <QLabel>
 #include <QListWidget>
+#include <QListWidgetItem>
 #include <QMessageBox>
 #include <QPixmap>
 #include <QPushButton>
+#include <QToolButton>
 #include <QScrollArea>
 #include <QShowEvent>
 #include <QSizePolicy>
@@ -676,6 +679,8 @@ ConfigDialog::ConfigDialog()
 
   // Reorganise into the six architecture pages before the visual shell reads
   // tab titles for the sidebar.
+  explanation_controller_ =
+      std::make_unique<PreferencesExplanationController>(this);
   MigratePreferencesInformationArchitecture();
 
   // Before Reload(). A failed config read opens a modal message, which shows
@@ -729,6 +734,15 @@ void AddToPage(QVBoxLayout* page_layout, QWidget* widget) {
   }
   FlattenGroupMargins(widget);
   widget->show();
+  // Pages use spacing 0 so section helpers own the rhythm. Separate consecutive
+  // controls with the shared row gap, but do not stack another gap onto the
+  // spacer already inserted after a section heading.
+  if (page_layout->count() > 0) {
+    QLayoutItem* last = page_layout->itemAt(page_layout->count() - 1);
+    if (last == nullptr || last->spacerItem() == nullptr) {
+      page_layout->addSpacing(config_dialog_theme::Spacing::row);
+    }
+  }
   page_layout->addWidget(widget);
 }
 
@@ -810,6 +824,13 @@ void FlushLeftInk(QLabel* label) {
   label->setContentsMargins(-std::max({0, bearing, ink}), 0, 0, 0);
 }
 
+void AddSectionGap(QVBoxLayout* page_layout, bool first_on_page) {
+  if (page_layout == nullptr || first_on_page) {
+    return;
+  }
+  page_layout->addSpacing(config_dialog_theme::Spacing::before_section);
+}
+
 QFrame* MakeIaSectionHeader(const QString& title, QWidget* parent) {
   auto* header = new QFrame(parent);
   header->setProperty("class", QStringLiteral("setting-group-header"));
@@ -817,36 +838,93 @@ QFrame* MakeIaSectionHeader(const QString& title, QWidget* parent) {
   header->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
   auto* layout = new QHBoxLayout(header);
   layout->setContentsMargins(0, 0, 0, 0);
-  layout->setSpacing(8);
+  layout->setSpacing(10);
   auto* label = new QLabel(title, header);
-  QFont font = label->font();
-  font.setPointSizeF(config_dialog_theme::PlatformPointSize(16));
-  font.setWeight(QFont::Medium);
-  label->setFont(font);
+  label->setFont(config_dialog_theme::SectionFont());
   FlushLeftInk(label);
   layout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignVCenter);
   auto* line = new QFrame(header);
   line->setProperty("class", QStringLiteral("setting-group-line"));
   line->setFrameShape(QFrame::HLine);
   line->setFixedHeight(1);
-  layout->addWidget(line, 1);
+  layout->addWidget(line, 1, Qt::AlignVCenter);
   return header;
 }
 
-QWidget* MakeLabelControlRow(QWidget* label, QWidget* control, QWidget* parent) {
-  auto* row = new QWidget(parent);
-  row->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-  auto* layout = new QHBoxLayout(row);
-  layout->setContentsMargins(0, 2, 0, 2);
-  layout->setSpacing(12);
+// Minor grouping under a major section: no rule, quieter type.
+QLabel* MakeIaSectionSubhead(const QString& title, QWidget* parent) {
+  auto* label = new QLabel(title, parent);
+  label->setObjectName(QStringLiteral("preferencesSubhead"));
+  label->setFont(config_dialog_theme::SubheadFont());
+  FlushLeftInk(label);
+  return label;
+}
+
+void AddMajorSection(QVBoxLayout* page_layout, const QString& title,
+                     QWidget* page, bool* first_section) {
+  AddSectionGap(page_layout, first_section != nullptr && *first_section);
+  if (first_section != nullptr) {
+    *first_section = false;
+  }
+  page_layout->addWidget(MakeIaSectionHeader(title, page));
+  page_layout->addSpacing(config_dialog_theme::Spacing::section_to_control);
+}
+
+void AddMinorSubhead(QVBoxLayout* page_layout, const QString& title,
+                     QWidget* page) {
+  page_layout->addSpacing(config_dialog_theme::Spacing::before_subhead);
+  page_layout->addWidget(MakeIaSectionSubhead(title, page));
+  page_layout->addSpacing(config_dialog_theme::Spacing::related);
+}
+
+// Label (or checkbox) + ⓘ as one compact typographic unit — never a
+// right-edge layout citizen. The slot width is reserved even when the
+// symbol is hidden so toggling explanations does not shift controls.
+QWidget* MakeInlineAnnotatedLabel(
+    QWidget* label, PreferencesExplanationController* explanations,
+    const char* explanation_id, QWidget* parent) {
+  auto* group = new QWidget(parent);
+  group->setObjectName(QStringLiteral("preferencesAnnotatedLabel"));
+  group->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+  auto* layout = new QHBoxLayout(group);
+  layout->setContentsMargins(0, 0, 0, 0);
+  layout->setSpacing(config_dialog_theme::Spacing::info_gap);
   if (label != nullptr) {
     TakeFromLayout(label);
     if (auto* text = qobject_cast<QLabel*>(label)) {
+      text->setFont(config_dialog_theme::LabelFont());
       FlushLeftInk(text);
+      text->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     } else if (auto* box = qobject_cast<QCheckBox*>(label)) {
       box->setContentsMargins(0, 0, 0, 0);
+      box->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     }
     layout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignVCenter);
+  }
+  if (explanations != nullptr) {
+    layout->addWidget(explanations->MakeInfoSlot(explanation_id, group), 0,
+                      Qt::AlignVCenter);
+  }
+  return group;
+}
+
+QWidget* MakeLabelControlRow(QWidget* label, QWidget* control, QWidget* parent,
+                             PreferencesExplanationController* explanations,
+                             const char* explanation_id = nullptr) {
+  auto* row = new QWidget(parent);
+  row->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+  auto* layout = new QHBoxLayout(row);
+  layout->setContentsMargins(0, config_dialog_theme::Spacing::unit / 2, 0,
+                             config_dialog_theme::Spacing::unit / 2);
+  layout->setSpacing(12);
+  if (label != nullptr) {
+    layout->addWidget(
+        MakeInlineAnnotatedLabel(label, explanations, explanation_id, row), 0,
+        Qt::AlignLeft | Qt::AlignVCenter);
+  } else if (explanations != nullptr) {
+    // Keep a reserved slot so control columns stay aligned.
+    layout->addWidget(explanations->MakeInfoSlot(nullptr, row), 0,
+                      Qt::AlignVCenter);
   }
   layout->addStretch(1);
   if (control != nullptr) {
@@ -856,11 +934,83 @@ QWidget* MakeLabelControlRow(QWidget* label, QWidget* control, QWidget* parent) 
   return row;
 }
 
+// Content-sized control (typically a checkbox) with ⓘ immediately after its
+// text. Do not use this for full-width groups or tables.
+QWidget* MakeExplainedControlRow(QWidget* control, QWidget* parent,
+                                 PreferencesExplanationController* explanations,
+                                 const char* explanation_id) {
+  return MakeInlineAnnotatedLabel(control, explanations, explanation_id,
+                                  parent);
+}
+
+bool AttachExplanationInPlace(QWidget* widget,
+                              PreferencesExplanationController* explanations,
+                              const char* explanation_id) {
+  if (widget == nullptr || explanations == nullptr ||
+      explanation_id == nullptr ||
+      FindPreferencesExplanation(explanation_id) == nullptr) {
+    return false;
+  }
+  QWidget* parent = widget->parentWidget();
+  QLayout* host = parent != nullptr ? parent->layout() : nullptr;
+  if (host == nullptr) {
+    return false;
+  }
+
+  int row = 0;
+  int col = 0;
+  int row_span = 1;
+  int col_span = 1;
+  int box_index = -1;
+  auto* grid = qobject_cast<QGridLayout*>(host);
+  auto* box = qobject_cast<QBoxLayout*>(host);
+  if (grid != nullptr) {
+    const int index = grid->indexOf(widget);
+    if (index < 0) {
+      return false;
+    }
+    grid->getItemPosition(index, &row, &col, &row_span, &col_span);
+    grid->removeWidget(widget);
+  } else if (box != nullptr) {
+    box_index = box->indexOf(widget);
+    if (box_index < 0) {
+      return false;
+    }
+    box->removeWidget(widget);
+  } else {
+    return false;
+  }
+
+  auto* wrap = new QWidget(parent);
+  wrap->setObjectName(QStringLiteral("preferencesAnnotatedLabel"));
+  wrap->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+  auto* layout = new QHBoxLayout(wrap);
+  layout->setContentsMargins(0, 0, 0, 0);
+  layout->setSpacing(config_dialog_theme::Spacing::info_gap);
+  widget->setParent(wrap);
+  if (auto* check = qobject_cast<QCheckBox*>(widget)) {
+    check->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+  }
+  layout->addWidget(widget, 0, Qt::AlignLeft | Qt::AlignVCenter);
+  layout->addWidget(explanations->MakeInfoSlot(explanation_id, wrap), 0,
+                    Qt::AlignVCenter);
+  layout->addStretch(1);
+
+  if (grid != nullptr) {
+    grid->addWidget(wrap, row, col, row_span, col_span);
+  } else if (box != nullptr) {
+    box->insertWidget(box_index, wrap);
+  }
+  return true;
+}
+
 QWidget* MakeNewPreferencesPage(QWidget* parent) {
   auto* page = new QWidget(parent);
   auto* layout = new QVBoxLayout(page);
-  layout->setContentsMargins(0, 0, 14, 8);
-  layout->setSpacing(6);
+  layout->setContentsMargins(0, 0, config_dialog_theme::Spacing::page_right_gutter,
+                             config_dialog_theme::Spacing::unit * 2);
+  // Rhythm comes from AddMajorSection / AddMinorSubhead / AddToPage gaps.
+  layout->setSpacing(0);
   return page;
 }
 
@@ -882,6 +1032,8 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
     return;
   }
 
+  PreferencesExplanationController* explanations =
+      explanation_controller_.get();
   QWidget* shortcuts_page =
       shortcuts_tab_ != nullptr ? shortcuts_tab_->page() : nullptr;
   QWidget* sync_page = sync_tab_ != nullptr ? sync_tab_->page() : nullptr;
@@ -912,30 +1064,37 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
       qobject_cast<QVBoxLayout*>(application->layout());
 
   // --- Writing ---
-  writing_layout->addWidget(MakeIaSectionHeader(tr("Input"), writing));
+  // Major sections keep a rule; Input/Conversion host quieter subheads so the
+  // page does not read as a stack of equally loud headings.
+  bool writing_first = true;
+  AddMajorSection(writing_layout, tr("Input"), writing, &writing_first);
   AddToPage(writing_layout,
-            MakeLabelControlRow(inputModeLabel, inputModeComboBox, writing));
+            MakeLabelControlRow(inputModeLabel, inputModeComboBox, writing,
+                                explanations, "writing.input_mode"));
 
-  writing_layout->addWidget(
-      MakeIaSectionHeader(tr("Punctuation & symbols"), writing));
-  AddToPage(writing_layout, MakeLabelControlRow(PunctuationsSettingLabel,
-                                                punctuationsSettingComboBox,
-                                                writing));
-  AddToPage(writing_layout, MakeLabelControlRow(symbolsSettingLabel,
-                                                symbolsSettingComboBox,
-                                                writing));
+  AddMinorSubhead(writing_layout, tr("Punctuation & symbols"), writing);
+  AddToPage(writing_layout,
+            MakeLabelControlRow(PunctuationsSettingLabel,
+                                punctuationsSettingComboBox, writing,
+                                explanations, "writing.punctuation_style"));
+  AddToPage(writing_layout,
+            MakeLabelControlRow(symbolsSettingLabel, symbolsSettingComboBox,
+                                writing, explanations, "writing.symbol_style"));
 
-  writing_layout->addWidget(
-      MakeIaSectionHeader(tr("Spacing & widths"), writing));
-  AddToPage(writing_layout, MakeLabelControlRow(spaceInputSettingLabel,
-                                                spaceCharacterFormComboBox,
-                                                writing));
-  AddToPage(writing_layout, MakeLabelControlRow(numpadCharacterFormLabel,
-                                                numpadCharacterFormComboBox,
-                                                writing));
-  AddToPage(writing_layout, autoSwitchCompositionMode);
+  AddMinorSubhead(writing_layout, tr("Spacing & widths"), writing);
+  AddToPage(writing_layout,
+            MakeLabelControlRow(spaceInputSettingLabel,
+                                spaceCharacterFormComboBox, writing,
+                                explanations, "writing.space_style"));
+  AddToPage(writing_layout,
+            MakeLabelControlRow(numpadCharacterFormLabel,
+                                numpadCharacterFormComboBox, writing,
+                                explanations, nullptr));
+  AddToPage(writing_layout,
+            MakeExplainedControlRow(autoSwitchCompositionMode, writing,
+                                    explanations, "writing.auto_halfwidth"));
 
-  writing_layout->addWidget(MakeIaSectionHeader(tr("Conversion"), writing));
+  AddMajorSection(writing_layout, tr("Conversion"), writing, &writing_first);
   {
     // Same left–right pattern as other settings rows: master checkbox on the
     // left, punctuation toggles grouped on the right.
@@ -957,7 +1116,8 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
       punct_layout->addWidget(box, 0, Qt::AlignVCenter);
     }
     AddToPage(writing_layout,
-              MakeLabelControlRow(useAutoConversion, punct_controls, writing));
+              MakeLabelControlRow(useAutoConversion, punct_controls, writing,
+                                  explanations, "writing.auto_conversion"));
   }
   if (miscStartKanjiModeWidget != nullptr) {
     // Live/manual conversion lives in the same Misc block as shin/kyū.
@@ -965,37 +1125,58 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
     TakeFromLayout(startLiveModeComboBox);
     AddToPage(writing_layout,
               MakeLabelControlRow(startLiveModeLabel, startLiveModeComboBox,
-                                  writing));
+                                  writing, explanations,
+                                  "writing.initial_conversion_mode"));
   }
-  AddToPage(writing_layout, twoStepCommitCheckBox);
+  AddToPage(writing_layout,
+            MakeExplainedControlRow(twoStepCommitCheckBox, writing,
+                                    explanations, "writing.two_step_enter"));
 
-  writing_layout->addWidget(MakeIaSectionHeader(tr("Kanji forms"), writing));
+  AddMinorSubhead(writing_layout, tr("Kanji forms"), writing);
   if (widget_start_kanji != nullptr) {
     // Prefer the labelled shin/kyū row when present.
     TakeFromLayout(startKanjiModeLabel);
     TakeFromLayout(startKanjiModeComboBox);
     AddToPage(writing_layout,
               MakeLabelControlRow(startKanjiModeLabel, startKanjiModeComboBox,
-                                  writing));
+                                  writing, explanations, "writing.kanji_style"));
   } else if (miscStartKanjiModeWidget != nullptr) {
     AddToPage(writing_layout, miscStartKanjiModeWidget);
   }
 
-  writing_layout->addWidget(
-      MakeIaSectionHeader(tr("Detailed width rules"), writing));
+  AddMajorSection(writing_layout, tr("Detailed width rules"), writing,
+                  &writing_first);
+  if (explanations != nullptr) {
+    auto* width_hint = new QWidget(writing);
+    auto* width_hint_layout = new QHBoxLayout(width_hint);
+    width_hint_layout->setContentsMargins(0, 0, 0, 0);
+    width_hint_layout->setSpacing(8);
+    auto* width_label = new QLabel(
+        tr("Per-group fullwidth and halfwidth defaults"), width_hint);
+    width_label->setObjectName(QStringLiteral("preferencesSecondary"));
+    width_label->setFont(config_dialog_theme::UiFont(
+        config_dialog_theme::Type::secondary));
+    width_hint_layout->addWidget(width_label, 0, Qt::AlignVCenter);
+    width_hint_layout->addWidget(
+        explanations->MakeInfoSlot("writing.width_rules", width_hint), 0,
+        Qt::AlignVCenter);
+    width_hint_layout->addStretch(1);
+    AddToPage(writing_layout, width_hint);
+  }
   AddToPage(writing_layout, fullwidthHalfwidthGroup);
 
-  writing_layout->addWidget(
-      MakeIaSectionHeader(tr("Candidate appearance"), writing));
+  AddMajorSection(writing_layout, tr("Candidate appearance"), writing,
+                  &writing_first);
   AddToPage(writing_layout, appearanceGroup);
   AddToPage(writing_layout, miscCandidateWindowWidget);
-  writing_layout->addSpacing(8);
+  writing_layout->addSpacing(config_dialog_theme::Spacing::unit * 2);
 
   // --- Dictionaries ---
   // Rebuild Learning as a compact label/control row (the old grid left a tall
   // spacer cell that read as extra padding under the section header).
-  dictionaries_layout->addWidget(
-      MakeIaSectionHeader(tr("Learning"), dictionaries));
+  bool dictionaries_first = true;
+  AddMajorSection(dictionaries_layout, tr("Learning"), dictionaries,
+                  &dictionaries_first);
   {
     TakeFromLayout(label_7);
     TakeFromLayout(historyLearningLevelComboBox);
@@ -1003,7 +1184,8 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
     label_7->setWordWrap(false);
     AddToPage(dictionaries_layout,
               MakeLabelControlRow(label_7, historyLearningLevelComboBox,
-                                  dictionaries));
+                                  dictionaries, explanations,
+                                  "dictionaries.learning"));
     auto* clear_row = new QWidget(dictionaries);
     auto* clear_layout = new QHBoxLayout(clear_row);
     clear_layout->setContentsMargins(0, 0, 0, 2);
@@ -1015,76 +1197,132 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
     }
   }
 
-  dictionaries_layout->addWidget(
-      MakeIaSectionHeader(tr("Personal dictionary"), dictionaries));
+  AddMajorSection(dictionaries_layout, tr("Personal dictionary"), dictionaries,
+                  &dictionaries_first);
   AddToPage(dictionaries_layout, userDictionaryGroup);
 
-  dictionaries_layout->addWidget(
-      MakeIaSectionHeader(tr("Dictionary sources"), dictionaries));
+  AddMajorSection(dictionaries_layout, tr("Dictionary sources"), dictionaries,
+                  &dictionaries_first);
   AddToPage(dictionaries_layout, usageDictionaryGroup);
+  AttachExplanationInPlace(localUsageDictionaryCheckBox, explanations,
+                           "dictionaries.usage");
 
-  dictionaries_layout->addWidget(
-      MakeIaSectionHeader(tr("Scholarly vocabulary"), dictionaries));
+  AddMajorSection(dictionaries_layout, tr("Scholarly vocabulary"), dictionaries,
+                  &dictionaries_first);
   if (packs_widget != nullptr) {
     if (auto* packs_layout = packs_widget->layout()) {
       packs_layout->setContentsMargins(0, 2, 0, 2);
     }
     AddToPage(dictionaries_layout, packs_widget);
+    const QList<QCheckBox*> pack_boxes =
+        packs_widget->findChildren<QCheckBox*>();
+    if (!pack_boxes.isEmpty()) {
+      AttachExplanationInPlace(pack_boxes.first(), explanations,
+                               "dictionaries.scholarly");
+    }
   }
 
-  dictionaries_layout->addWidget(
-      MakeIaSectionHeader(tr("Special conversions"), dictionaries));
+  AddMajorSection(dictionaries_layout, tr("Special conversions"), dictionaries,
+                  &dictionaries_first);
   AddToPage(dictionaries_layout, specialConversionsGroup);
-  dictionaries_layout->addSpacing(8);
+  AttachExplanationInPlace(emojiConversionCheckBox, explanations,
+                           "dictionaries.special");
+  dictionaries_layout->addSpacing(config_dialog_theme::Spacing::unit * 2);
 
   // --- Keyboard ---
-  keyboard_layout->addWidget(MakeIaSectionHeader(tr("Keymap"), keyboard));
+  bool keyboard_first = true;
+  AddMajorSection(keyboard_layout, tr("Keymap"), keyboard, &keyboard_first);
   AddToPage(keyboard_layout, keymapGroup);
 
-  keyboard_layout->addWidget(
-      MakeIaSectionHeader(tr("Key behaviour"), keyboard));
+  AddMajorSection(keyboard_layout, tr("Key behaviour"), keyboard,
+                  &keyboard_first);
   AddToPage(keyboard_layout,
-            MakeLabelControlRow(yenSignLabel, yenSignComboBox, keyboard));
-  AddToPage(keyboard_layout, MakeLabelControlRow(keyboardLayoutLabel,
-                                                 keyboardLayoutComboBox,
-                                                 keyboard));
+            MakeLabelControlRow(yenSignLabel, yenSignComboBox, keyboard,
+                                explanations, nullptr));
+  AddToPage(keyboard_layout,
+            MakeLabelControlRow(keyboardLayoutLabel, keyboardLayoutComboBox,
+                                keyboard, explanations, nullptr));
   AddToPage(keyboard_layout, useJapaneseLayout);
 
-  keyboard_layout->addWidget(
-      MakeIaSectionHeader(tr("Candidate selection"), keyboard));
+  AddMajorSection(keyboard_layout, tr("Candidate selection"), keyboard,
+                  &keyboard_first);
   AddToPage(keyboard_layout,
             MakeLabelControlRow(selectionShortcutModeLabel,
-                                selectionShortcutModeComboBox, keyboard));
+                                selectionShortcutModeComboBox, keyboard,
+                                explanations, nullptr));
 
-  keyboard_layout->addWidget(
-      MakeIaSectionHeader(tr("Mode switching"), keyboard));
+  // One Mode switching section: page-level controls, then the Shortcuts block
+  // without repeating its own Mode switching heading.
+  AddMajorSection(keyboard_layout, tr("Mode switching"), keyboard,
+                  &keyboard_first);
   AddToPage(keyboard_layout,
             MakeLabelControlRow(autoCorrectionLable_3,
-                                shiftKeyModeSwitchComboBox, keyboard));
-  AddToPage(keyboard_layout, useModeIndicator);
+                                shiftKeyModeSwitchComboBox, keyboard,
+                                explanations, "keyboard.shift_mode_switch"));
+  AddToPage(keyboard_layout,
+            MakeExplainedControlRow(useModeIndicator, keyboard, explanations,
+                                    "keyboard.mode_indicator"));
   if (shortcuts_page != nullptr) {
-    // Keep Shortcuts as one intact block (Mode switching / Custom / Kaeriten).
-    // Do not disassemble its layout — that caused overlapping text.
+    // Keep Shortcuts as one intact block (Custom / Kaeriten). Do not
+    // disassemble its layout — that caused overlapping text.
+    keyboard_layout->addSpacing(
+        config_dialog_theme::Spacing::before_subhead);
     EmbedFormerTabPage(keyboard_layout, tabs, shortcuts_page);
+    for (QLabel* label : shortcuts_page->findChildren<QLabel*>()) {
+      if (label->text() == tr("Mode switching")) {
+        if (QWidget* header = label->parentWidget()) {
+          header->hide();
+        }
+        break;
+      }
+    }
   }
-  keyboard_layout->addSpacing(8);
+  keyboard_layout->addSpacing(config_dialog_theme::Spacing::unit * 2);
 
-  // --- Suggestions (retitle existing content) ---
-  AddToPage(suggestions_layout, suggestSourceHeader);
+  // --- Suggestions ---
+  bool suggestions_first = true;
+  auto header_title = [](QFrame* header, const QString& fallback) {
+    if (header != nullptr) {
+      for (QLabel* label : header->findChildren<QLabel*>()) {
+        if (!label->text().isEmpty()) {
+          return label->text();
+        }
+      }
+    }
+    return fallback;
+  };
+  if (suggestSourceHeader != nullptr) {
+    suggestSourceHeader->hide();
+  }
+  AddMajorSection(suggestions_layout,
+                  header_title(suggestSourceHeader, tr("Suggestion sources")),
+                  suggestions, &suggestions_first);
   AddToPage(suggestions_layout, suggestSourceGroup);
-  AddToPage(suggestions_layout, suggestOtherHeader);
+  AttachExplanationInPlace(historySuggestCheckBox, explanations,
+                           "suggestions.history");
+  AttachExplanationInPlace(dictionarySuggestCheckBox, explanations,
+                           "suggestions.system_dictionary");
+  AttachExplanationInPlace(realtimeConversionCheckBox, explanations,
+                           "suggestions.realtime");
+  if (suggestOtherHeader != nullptr) {
+    suggestOtherHeader->hide();
+  }
+  AddMajorSection(suggestions_layout,
+                  header_title(suggestOtherHeader, tr("Other settings")),
+                  suggestions, &suggestions_first);
   AddToPage(suggestions_layout, suggestOtherGroup);
-  suggestions_layout->addSpacing(8);
+  suggestions_layout->addSpacing(config_dialog_theme::Spacing::unit * 2);
 
   // --- Privacy & Sync ---
   // Rebuild each block flush-left. The old UI paired an empty checkbox with a
   // separate label (Secret mode) and left default layout margins on headers,
   // which read as a staggered indent next to normal checkboxes.
+  bool privacy_first = true;
   if (incognitoModeHeader != nullptr) {
     incognitoModeHeader->hide();
   }
-  privacy_layout->addWidget(
-      MakeIaSectionHeader(tr("Secret mode"), privacy_sync));
+  AddMajorSection(privacy_layout, tr("Secret mode"), privacy_sync,
+                  &privacy_first);
   if (incognitoModeCheckBox != nullptr) {
     TakeFromLayout(incognitoModeCheckBox);
     if (incognitoModeMessage != nullptr) {
@@ -1094,7 +1332,9 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
     }
     incognitoModeCheckBox->setSizePolicy(QSizePolicy::Preferred,
                                          QSizePolicy::Preferred);
-    AddToPage(privacy_layout, incognitoModeCheckBox);
+    AddToPage(privacy_layout,
+              MakeExplainedControlRow(incognitoModeCheckBox, privacy_sync,
+                                      explanations, "privacy.secret_mode"));
   }
   if (incognitoModeGroup != nullptr) {
     incognitoModeGroup->hide();
@@ -1103,11 +1343,14 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
   if (presentationModeHeader != nullptr) {
     presentationModeHeader->hide();
   }
-  privacy_layout->addWidget(
-      MakeIaSectionHeader(tr("Presentation mode"), privacy_sync));
+  AddMajorSection(privacy_layout, tr("Presentation mode"), privacy_sync,
+                  &privacy_first);
   if (presentationModeCheckBox != nullptr) {
     TakeFromLayout(presentationModeCheckBox);
-    AddToPage(privacy_layout, presentationModeCheckBox);
+    AddToPage(privacy_layout,
+              MakeExplainedControlRow(presentationModeCheckBox, privacy_sync,
+                                      explanations,
+                                      "privacy.presentation_mode"));
   }
   if (presentationModeGroup != nullptr) {
     presentationModeGroup->hide();
@@ -1116,11 +1359,13 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
   if (usageStatsHeader != nullptr) {
     usageStatsHeader->hide();
   }
-  privacy_layout->addWidget(MakeIaSectionHeader(
-      tr("Usage statistics and crash reports"), privacy_sync));
+  AddMajorSection(privacy_layout, tr("Usage statistics and crash reports"),
+                  privacy_sync, &privacy_first);
   if (usageStatsMessage != nullptr) {
     TakeFromLayout(usageStatsMessage);
-    usageStatsMessage->setContentsMargins(0, 2, 0, 6);
+    usageStatsMessage->setContentsMargins(
+        0, config_dialog_theme::Spacing::label_to_help / 2, 0,
+        config_dialog_theme::Spacing::label_to_help);
     AddToPage(privacy_layout, usageStatsMessage);
   }
   if (usageStatsMessageGroup != nullptr) {
@@ -1130,24 +1375,42 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
     AddToPage(privacy_layout, usageStatsButtonGroup);
   }
 
-  privacy_layout->addWidget(
-      MakeIaSectionHeader(tr("Synchronisation"), privacy_sync));
+  AddMajorSection(privacy_layout, tr("Synchronisation"), privacy_sync,
+                  &privacy_first);
+  if (explanations != nullptr) {
+    auto* sync_hint = new QWidget(privacy_sync);
+    auto* sync_hint_layout = new QHBoxLayout(sync_hint);
+    sync_hint_layout->setContentsMargins(0, 0, 0, 0);
+    sync_hint_layout->setSpacing(8);
+    auto* sync_label = new QLabel(
+        tr("Encrypted dictionary and history sync"), sync_hint);
+    sync_label->setObjectName(QStringLiteral("preferencesSecondary"));
+    sync_label->setFont(config_dialog_theme::UiFont(
+        config_dialog_theme::Type::secondary));
+    sync_hint_layout->addWidget(sync_label, 0, Qt::AlignVCenter);
+    sync_hint_layout->addWidget(
+        explanations->MakeInfoSlot("privacy.sync", sync_hint), 0,
+        Qt::AlignVCenter);
+    sync_hint_layout->addStretch(1);
+    AddToPage(privacy_layout, sync_hint);
+  }
   if (sync_page != nullptr) {
     EmbedFormerTabPage(privacy_layout, tabs, sync_page);
   }
-  privacy_layout->addSpacing(8);
+  privacy_layout->addSpacing(config_dialog_theme::Spacing::unit * 2);
 
   // --- Application ---
-  application_layout->addWidget(
-      MakeIaSectionHeader(tr("Updates"), application));
+  bool application_first = true;
+  AddMajorSection(application_layout, tr("Updates"), application,
+                  &application_first);
   if (updates_host != nullptr) {
     if (auto* updates_layout = updates_host->layout()) {
       updates_layout->setContentsMargins(0, 2, 0, 2);
     }
     AddToPage(application_layout, updates_host);
   }
-  application_layout->addWidget(
-      MakeIaSectionHeader(tr("Startup"), application));
+  AddMajorSection(application_layout, tr("Startup"), application,
+                  &application_first);
   // Prefer the checkbox group alone so the nested "Startup" header is not
   // duplicated under our section title.
   if (startupGroup != nullptr) {
@@ -1169,14 +1432,14 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
        miscAdministrationWidget->isVisible()) ||
       (miscLoggingWidget != nullptr && miscLoggingWidget->isVisible());
   if (show_system) {
-    application_layout->addWidget(
-        MakeIaSectionHeader(tr("System"), application));
+    AddMajorSection(application_layout, tr("System"), application,
+                    &application_first);
     AddToPage(application_layout, miscDefaultIMEWidget);
     AddToPage(application_layout, miscAdministrationWidget);
     // Keep the nested "Logging" subheading under System; flatten margins only.
     AddToPage(application_layout, miscLoggingWidget);
   }
-  application_layout->addSpacing(8);
+  application_layout->addSpacing(config_dialog_theme::Spacing::unit * 2);
 
   // Drop empty/old tab shells; widgets have been reparented above.
   ClearTabWidget(tabs);
@@ -1205,9 +1468,10 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
 void ConfigDialog::InstallPreferencesShell() {
   QTabWidget* tabs = configDialogTabWidget;
 
-  constexpr int kSidebarWidth = 228;
-  constexpr int kSidebarPadL = 14;
-  constexpr int kSidebarPadR = 14;
+  using Spacing = config_dialog_theme::Spacing;
+  constexpr int kSidebarWidth = Spacing::sidebar_width;
+  constexpr int kSidebarPadL = Spacing::sidebar_pad_l;
+  constexpr int kSidebarPadR = Spacing::sidebar_pad_r;
   auto* sidebar = new QWidget(this);
   sidebar->setObjectName(QStringLiteral("preferencesSidebar"));
   sidebar->setFixedWidth(kSidebarWidth);
@@ -1215,7 +1479,8 @@ void ConfigDialog::InstallPreferencesShell() {
   sidebar->setAutoFillBackground(true);
 
   auto* side_layout = new QVBoxLayout(sidebar);
-  side_layout->setContentsMargins(kSidebarPadL, 22, kSidebarPadR, 22);
+  side_layout->setContentsMargins(kSidebarPadL, Spacing::sidebar_pad_t,
+                                  kSidebarPadR, Spacing::sidebar_pad_b);
   side_layout->setSpacing(0);
 
   auto* brand = new QLabel(sidebar);
@@ -1238,13 +1503,12 @@ void ConfigDialog::InstallPreferencesShell() {
   }
   auto* brand_sub = new QLabel(tr("Preferences"), sidebar);
   brand_sub->setObjectName(QStringLiteral("preferencesBrandSub"));
-  QFont sub_font = brand_sub->font();
-  sub_font.setPointSizeF(config_dialog_theme::PlatformPointSize(13));
-  brand_sub->setFont(sub_font);
+  brand_sub->setFont(config_dialog_theme::UiFont(
+      config_dialog_theme::Type::brand_sub, QFont::Normal));
   side_layout->addWidget(brand);
-  side_layout->addSpacing(14);  // clear gap between mark and "Preferences"
+  side_layout->addSpacing(Spacing::logo_to_prefs);
   side_layout->addWidget(brand_sub);
-  side_layout->addSpacing(16);
+  side_layout->addSpacing(Spacing::prefs_to_nav);
 
   auto* nav = new QListWidget(sidebar);
   nav->setObjectName(QStringLiteral("preferencesNav"));
@@ -1253,18 +1517,76 @@ void ConfigDialog::InstallPreferencesShell() {
   nav->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
   nav->setFocusPolicy(Qt::StrongFocus);
   nav->setWordWrap(true);
-  nav->setSpacing(1);
+  nav->setSpacing(0);
+  nav->setUniformItemSizes(true);
   nav->setAccessibleName(tr("Preferences"));
-  QFont nav_font = nav->font();
-  nav_font.setPointSizeF(config_dialog_theme::PlatformPointSize(13));
-  nav->setFont(nav_font);
+  nav->setFont(config_dialog_theme::UiFont(config_dialog_theme::Type::nav));
   nav->blockSignals(true);
   for (int i = 0; i < tabs->count(); ++i) {
-    nav->addItem(tabs->tabText(i));
+    auto* item = new QListWidgetItem(tabs->tabText(i));
+    item->setSizeHint(QSize(0, Spacing::nav_row));
+    nav->addItem(item);
   }
   nav->setCurrentRow(tabs->currentIndex());
   nav->blockSignals(false);
   side_layout->addWidget(nav, 1);
+
+  // Secondary utilities: bottom-anchored, left-aligned with nav text.
+  side_layout->addSpacing(Spacing::prefs_to_nav);
+  auto* utility_rule = new QFrame(sidebar);
+  utility_rule->setObjectName(QStringLiteral("preferencesUtilityRule"));
+  utility_rule->setFrameShape(QFrame::NoFrame);
+  utility_rule->setFixedHeight(1);
+  side_layout->addWidget(utility_rule);
+  side_layout->addSpacing(Spacing::related);
+
+  auto make_utility_button = [&](const QString& text) {
+    auto* button = new QPushButton(text, sidebar);
+    button->setObjectName(QStringLiteral("preferencesUtilityButton"));
+    button->setCursor(Qt::PointingHandCursor);
+    button->setFocusPolicy(Qt::StrongFocus);
+    button->setFlat(true);
+    button->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    button->setFixedHeight(Spacing::utility_row);
+    button->setMinimumWidth(kSidebarWidth - kSidebarPadL - kSidebarPadR);
+    button->setFont(
+        config_dialog_theme::UiFont(config_dialog_theme::Type::nav));
+    return button;
+  };
+
+  auto* explanations_button = make_utility_button(tr("Show explanations"));
+  auto* reset_button = make_utility_button(tr("Reset to defaults"));
+
+  auto sync_explanations_button = [explanations_button, this]() {
+    const bool on = explanation_controller_ != nullptr &&
+                    explanation_controller_->enabled();
+    explanations_button->setText(on ? tr("Hide explanations")
+                                    : tr("Show explanations"));
+    explanations_button->setProperty("active", on);
+    explanations_button->style()->unpolish(explanations_button);
+    explanations_button->style()->polish(explanations_button);
+  };
+  sync_explanations_button();
+  if (explanation_controller_ != nullptr) {
+    connect(explanation_controller_.get(),
+            &PreferencesExplanationController::enabledChanged, this,
+            [sync_explanations_button](bool) { sync_explanations_button(); });
+  }
+  connect(explanations_button, &QPushButton::clicked, this, [this]() {
+    if (explanation_controller_ != nullptr) {
+      explanation_controller_->ToggleEnabled();
+    }
+  });
+
+  // Move the existing Reset control into the utility region (same slot).
+  TakeFromLayout(resetToDefaultsButton);
+  resetToDefaultsButton->hide();
+  connect(reset_button, &QPushButton::clicked, this,
+          &ConfigDialog::ResetToDefaults);
+
+  // Tight pair: no extra gap beyond the fixed row heights.
+  side_layout->addWidget(explanations_button, 0, Qt::AlignLeft);
+  side_layout->addWidget(reset_button, 0, Qt::AlignLeft);
 
   auto* rule = new QFrame(this);
   rule->setObjectName(QStringLiteral("preferencesSidebarRule"));
@@ -1278,29 +1600,31 @@ void ConfigDialog::InstallPreferencesShell() {
   auto* content_layout = new QVBoxLayout(content);
   // One shared content inset: page title, section headers, labels, and
   // checkbox indicators all share this left edge.
-  content_layout->setContentsMargins(28, 18, 24, 8);
+  content_layout->setContentsMargins(
+      Spacing::content_inset_l, Spacing::content_inset_t,
+      Spacing::content_inset_r, Spacing::content_inset_b);
   content_layout->setSpacing(0);
 
   auto* title = new QLabel(tabs->tabText(tabs->currentIndex()), content);
   title->setObjectName(QStringLiteral("preferencesPageTitle"));
-  title->setFont(config_dialog_theme::DisplayFont(28));
+  title->setFont(config_dialog_theme::PageTitleFont());
   // Serif display faces need an explicit height; otherwise the first paint on
   // macOS often clips the ascenders until something forces a relayout.
   {
     const QFontMetrics title_metrics(title->font());
-    title->setMinimumHeight(title_metrics.height() + 6);
+    title->setMinimumHeight(title_metrics.height() + 8);
     title->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
   }
   FlushLeftInk(title);
   content_layout->addWidget(title, 0, Qt::AlignLeft);
-  content_layout->addSpacing(6);
+  content_layout->addSpacing(Spacing::title_to_rule);
 
   auto* title_rule = new QFrame(content);
   title_rule->setObjectName(QStringLiteral("preferencesTitleRule"));
   title_rule->setFrameShape(QFrame::NoFrame);
   title_rule->setFixedHeight(1);
   content_layout->addWidget(title_rule);
-  content_layout->addSpacing(8);
+  content_layout->addSpacing(Spacing::rule_to_section);
 
   // setupUi builds these as vertical boxes. Narrow to QVBoxLayout for insert
   // and stretch APIs that the base QLayout type does not expose.
@@ -1347,16 +1671,37 @@ void ConfigDialog::InstallPreferencesShell() {
   root->setStretch(0, 1);
   root->setStretch(1, 0);
 
-  // Footer: Reset left; Cancel · Apply · OK grouped on the right. On macOS
-  // QDialogButtonBox parks Apply in the centre ActionRole, so the buttons are
-  // laid out by hand while still owned by the box for role/clicked handling.
+  // Footer: full-width compositional bar. Reset lives in the sidebar; Cancel ·
+  // Apply · OK stay here because preferences require explicit confirmation.
+  // On macOS QDialogButtonBox parks Apply in the centre ActionRole, so the
+  // buttons are laid out by hand while still owned by the box for clicked.
   if (auto* footer = qobject_cast<QHBoxLayout*>(
           root->count() >= 3 && root->itemAt(2) != nullptr
               ? root->itemAt(2)->layout()
               : nullptr)) {
-    footer->setContentsMargins(24, 12, 24, 16);
-    footer->setSpacing(8);
-    root->setStretch(2, 0);
+    while (footer->count() > 0) {
+      QLayoutItem* item = footer->takeAt(0);
+      if (item == nullptr) {
+        continue;
+      }
+      if (QWidget* widget = item->widget()) {
+        if (widget == configDialogButtonBox || widget == resetToDefaultsButton) {
+          widget->hide();
+        }
+      }
+      delete item;
+    }
+
+    auto* footer_bar = new QWidget(this);
+    footer_bar->setObjectName(QStringLiteral("preferencesFooter"));
+    footer_bar->setFixedHeight(Spacing::footer_height);
+    footer_bar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    auto* footer_bar_layout = new QHBoxLayout(footer_bar);
+    footer_bar_layout->setContentsMargins(Spacing::footer_pad_x,
+                                          Spacing::footer_pad_y,
+                                          Spacing::footer_pad_x,
+                                          Spacing::footer_pad_y);
+    footer_bar_layout->setSpacing(Spacing::related);
 
     QPushButton* ok_button =
         configDialogButtonBox->button(QDialogButtonBox::Ok);
@@ -1364,10 +1709,10 @@ void ConfigDialog::InstallPreferencesShell() {
         configDialogButtonBox->button(QDialogButtonBox::Cancel);
     QPushButton* apply_button =
         configDialogButtonBox->button(QDialogButtonBox::Apply);
-    footer->removeWidget(configDialogButtonBox);
     configDialogButtonBox->hide();
 
-    auto* actions = new QWidget(this);
+    footer_bar_layout->addStretch(1);
+    auto* actions = new QWidget(footer_bar);
     actions->setObjectName(QStringLiteral("preferencesFooterActions"));
     auto* actions_layout = new QHBoxLayout(actions);
     actions_layout->setContentsMargins(0, 0, 0, 0);
@@ -1381,7 +1726,9 @@ void ConfigDialog::InstallPreferencesShell() {
     if (ok_button != nullptr) {
       actions_layout->addWidget(ok_button);
     }
-    footer->addWidget(actions);
+    footer_bar_layout->addWidget(actions);
+    footer->addWidget(footer_bar);
+    root->setStretch(2, 0);
   }
 
   // QTabWidget forces every page to the tallest page's height. Short pages
@@ -1400,8 +1747,9 @@ void ConfigDialog::InstallPreferencesShell() {
     }
     page->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
     if (auto* page_layout = qobject_cast<QVBoxLayout*>(page->layout())) {
-      page_layout->setContentsMargins(0, 0, 14, 8);
-      page_layout->setSpacing(6);
+      page_layout->setContentsMargins(0, 0, Spacing::page_right_gutter,
+                                      Spacing::unit * 2);
+      page_layout->setSpacing(0);
       for (int item = page_layout->count() - 1; item >= 0; --item) {
         QLayoutItem* layout_item = page_layout->itemAt(item);
         if (layout_item == nullptr || layout_item->spacerItem() == nullptr) {
@@ -1459,6 +1807,9 @@ void ConfigDialog::InstallPreferencesShell() {
       title->setText(page_titles.at(index));
       FlushLeftInk(title);
     }
+    if (explanation_controller_ != nullptr) {
+      explanation_controller_->OnPreferencesPageChanged();
+    }
     UpdatePreferencesScrollPolicy();
   };
 
@@ -1479,10 +1830,7 @@ void ConfigDialog::InstallPreferencesShell() {
     }
     const QList<QLabel*> labels = frame->findChildren<QLabel*>();
     for (QLabel* label : labels) {
-      QFont font = label->font();
-      font.setPointSizeF(config_dialog_theme::PlatformPointSize(16));
-      font.setWeight(QFont::Medium);
-      label->setFont(font);
+      label->setFont(config_dialog_theme::SectionFont());
       FlushLeftInk(label);
     }
   }
@@ -1515,7 +1863,6 @@ void ConfigDialog::InstallPreferencesShell() {
     button->style()->unpolish(button);
     button->style()->polish(button);
   };
-  mark(resetToDefaultsButton, "quiet");
   mark(configDialogButtonBox->button(QDialogButtonBox::Ok), "primary");
   mark(configDialogButtonBox->button(QDialogButtonBox::Apply), "secondary");
   mark(configDialogButtonBox->button(QDialogButtonBox::Cancel), "quiet");
@@ -1586,7 +1933,7 @@ void ConfigDialog::RefinePreferencesControls() {
     spin->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
   }
 
-  // Dictionary: label left, editor buttons stacked and right-aligned.
+  // Dictionary: label+ⓘ left, editor buttons stacked and right-aligned.
   if (auto* grid = qobject_cast<QGridLayout*>(userDictionaryGroup->layout())) {
     while (grid->count() > 0) {
       QLayoutItem* item = grid->takeAt(0);
@@ -1600,6 +1947,14 @@ void ConfigDialog::RefinePreferencesControls() {
     auto* personal_label =
         new QLabel(tr("Personal entries"), userDictionaryGroup);
     personal_label->setObjectName(QStringLiteral("preferencesSecondary"));
+    personal_label->setFont(config_dialog_theme::LabelFont());
+    QWidget* label_cell = personal_label;
+    if (explanation_controller_ != nullptr) {
+      label_cell = MakeInlineAnnotatedLabel(personal_label,
+                                            explanation_controller_.get(),
+                                            "dictionaries.personal",
+                                            userDictionaryGroup);
+    }
     auto* buttons = new QWidget(userDictionaryGroup);
     auto* buttons_layout = new QVBoxLayout(buttons);
     buttons_layout->setContentsMargins(0, 0, 0, 0);
@@ -1613,7 +1968,7 @@ void ConfigDialog::RefinePreferencesControls() {
                                             QSizePolicy::Fixed);
     editUserSymbolsButton->setSizePolicy(QSizePolicy::Maximum,
                                          QSizePolicy::Fixed);
-    grid->addWidget(personal_label, 0, 0, Qt::AlignLeft | Qt::AlignTop);
+    grid->addWidget(label_cell, 0, 0, Qt::AlignLeft | Qt::AlignTop);
     grid->addWidget(buttons, 0, 1, 2, 1, Qt::AlignRight | Qt::AlignTop);
     grid->setColumnStretch(0, 1);
     grid->setColumnStretch(1, 0);

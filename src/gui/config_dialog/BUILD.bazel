@@ -69,6 +69,14 @@ mozc_qt_moc(
 )
 
 mozc_qt_moc(
+    name = "moc_preferences_explanations",
+    srcs = [
+        "preferences_explanations.h",
+    ],
+    outs = ["moc_preferences_explanations.cc"],
+)
+
+mozc_qt_moc(
     name = "moc_generic_table_editor",
     srcs = [
         "generic_table_editor.h",
@@ -143,6 +151,7 @@ mozc_qt_uic(
 mozc_qt_rcc(
     name = "qrc_config_dialog",
     srcs = [
+        "checkbox_check.png",
         "combo_chevron.png",
         "config_dialog_en.qm",
         "config_dialog_fr.qm",
@@ -186,6 +195,7 @@ mozc_cc_qt_library(
         "keybinding_editor.cc",
         "keybinding_editor_delegate.cc",
         "keymap_editor.cc",
+        "preferences_explanations.cc",
         "roman_table_editor.cc",
         ":moc_character_form_editor",
         ":moc_config_dialog",
@@ -194,6 +204,7 @@ mozc_cc_qt_library(
         ":moc_keybinding_editor",
         ":moc_keybinding_editor_delegate",
         ":moc_keymap_editor",
+        ":moc_preferences_explanations",
         ":moc_roman_table_editor",
         ":qrc_config_dialog",
     ],
@@ -208,6 +219,7 @@ mozc_cc_qt_library(
         "keybinding_editor.h",
         "keybinding_editor_delegate.h",
         "keymap_editor.h",
+        "preferences_explanations.h",
         "roman_table_editor.h",
         ":uic_config_dialog",
         ":uic_generic_table_editor",

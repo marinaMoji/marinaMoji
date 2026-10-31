@@ -43,6 +43,7 @@
 #include "gui/base/github_update_checker.h"
 #include "gui/config_dialog/config_dialog_shortcuts_tab.h"
 #include "gui/config_dialog/config_dialog_sync_tab.h"
+#include "gui/config_dialog/preferences_explanations.h"
 #include "gui/config_dialog/ui_config_dialog.h"
 #include "protocol/config.pb.h"
 #include "protocol/commands.pb.h"
@@ -131,6 +132,7 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
 
   std::unique_ptr<ConfigDialogShortcutsTab> shortcuts_tab_;
   std::unique_ptr<ConfigDialogSyncTab> sync_tab_;
+  std::unique_ptr<PreferencesExplanationController> explanation_controller_;
 
   QCheckBox *include_unstable_updates_checkbox_ = nullptr;
   QCheckBox *auto_check_for_updates_checkbox_ = nullptr;
