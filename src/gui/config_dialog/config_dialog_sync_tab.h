@@ -1,6 +1,9 @@
 #ifndef MOZC_GUI_CONFIG_DIALOG_CONFIG_DIALOG_SYNC_TAB_H_
 #define MOZC_GUI_CONFIG_DIALOG_CONFIG_DIALOG_SYNC_TAB_H_
 
+#include <optional>
+#include <string>
+
 #include <QCheckBox>
 #include <QComboBox>
 #include <QLabel>
@@ -52,6 +55,9 @@ class ConfigDialogSyncTab {
   QLabel* status_;
 
   commands::UserSyncConfig config_;
+  // Serialized config last written by SaveToServer(); lets the Preferences
+  // autosave skip rewriting sync.conf when nothing in this tab changed.
+  std::optional<std::string> last_saved_;
 };
 
 }  // namespace gui

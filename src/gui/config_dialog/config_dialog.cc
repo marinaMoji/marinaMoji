@@ -1650,6 +1650,17 @@ void ConfigDialog::InstallPreferencesShell() {
   side_layout->addSpacing(Spacing::utility_gap);
   side_layout->addWidget(reset_button, 0, Qt::AlignLeft);
 
+  save_status_label_ = new QLabel(sidebar);
+  save_status_label_->setObjectName(QStringLiteral("preferencesSaveStatus"));
+  save_status_label_->setWordWrap(true);
+  save_status_label_->setFont(
+      config_dialog_theme::UiFont(config_dialog_theme::Type::utility));
+  save_status_label_->setMaximumWidth(kSidebarWidth - kSidebarPadL -
+                                      kSidebarPadR);
+  save_status_label_->hide();
+  side_layout->addSpacing(Spacing::utility_gap);
+  side_layout->addWidget(save_status_label_, 0, Qt::AlignLeft);
+
   auto* rule = new QFrame(this);
   rule->setObjectName(QStringLiteral("preferencesSidebarRule"));
   rule->setFrameShape(QFrame::NoFrame);
@@ -2214,25 +2225,28 @@ bool ConfigDialog::Update(bool quiet_validation) {
 
   if (config.session_keymap() == config::Config::CUSTOM &&
       config.custom_keymap_table().empty()) {
+    const QString message = tr(
+        "The current custom keymap table is empty. "
+        "When custom keymap is selected, "
+        "you must customize it.");
     if (!quiet_validation) {
-      QMessageBox::warning(this, windowTitle(),
-                           tr("The current custom keymap table is empty. "
-                              "When custom keymap is selected, "
-                              "you must customize it."));
+      QMessageBox::warning(this, windowTitle(), message);
     }
+    SetSaveStatus(tr("Not saved yet: %1").arg(message));
     return false;
   }
 
   if (shortcuts_tab_) {
     QString shortcut_error;
     if (!shortcuts_tab_->ValidateBeforeApply(&shortcut_error)) {
+      const QString message =
+          shortcut_error.isEmpty()
+              ? tr("Number-row shortcut bindings are invalid.")
+              : shortcut_error;
       if (!quiet_validation) {
-        QMessageBox::warning(
-            this, windowTitle(),
-            shortcut_error.isEmpty()
-                ? tr("Number-row shortcut bindings are invalid.")
-                : shortcut_error);
+        QMessageBox::warning(this, windowTitle(), message);
       }
+      SetSaveStatus(tr("Not saved yet: %1").arg(message));
       return false;
     }
   }
@@ -2245,16 +2259,32 @@ bool ConfigDialog::Update(bool quiet_validation) {
   // focus. No message box is needed anymore.
 
   if (!SetConfig(config)) {
-    QMessageBox::critical(this, windowTitle(), tr("Failed to update config"));
+    // An autosave must not raise a modal on every edit while the converter is
+    // down; the sidebar status says so instead. Closing the window still
+    // reports the failure.
+    if (!quiet_validation) {
+      QMessageBox::critical(this, windowTitle(), tr("Failed to update config"));
+    }
+    SetSaveStatus(tr("Not saved: the converter is not running."));
     return false;
   }
+  SetSaveStatus(QString());
 
 #if defined(__linux__)
-  SaveIbusCandidateWindowToFile();
+  if (const bool use_ibus = candidateWindowComboBox->currentData().toBool();
+      applied_ibus_candidate_window_ != use_ibus) {
+    SaveIbusCandidateWindowToFile();
+    applied_ibus_candidate_window_ = use_ibus;
+  }
 #endif  // __linux__
 
 #ifdef _WIN32
-  if (!WinUtil::SetIMEHotKeyDisabled(IMEHotKeyDisabledCheckBox->isChecked())) {
+  if (const bool disabled = IMEHotKeyDisabledCheckBox->isChecked();
+      applied_ime_hotkey_disabled_ == disabled) {
+    // Unchanged since the last apply.
+  } else if (WinUtil::SetIMEHotKeyDisabled(disabled)) {
+    applied_ime_hotkey_disabled_ = disabled;
+  } else {
     // Do not show any dialog here, since this operation will not fail
     // in almost all cases.
     // TODO(taku): better to show dialog?
@@ -2263,14 +2293,18 @@ bool ConfigDialog::Update(bool quiet_validation) {
 #endif  // _WIN32
 
 #ifdef __APPLE__
-  if (startupCheckBox->isChecked()) {
-    if (!MacUtil::CheckPrelauncherLoginItemStatus()) {
-      MacUtil::AddPrelauncherLoginItem();
+  if (const bool startup = startupCheckBox->isChecked();
+      applied_startup_ != startup) {
+    if (startup) {
+      if (!MacUtil::CheckPrelauncherLoginItemStatus()) {
+        MacUtil::AddPrelauncherLoginItem();
+      }
+    } else {
+      if (MacUtil::CheckPrelauncherLoginItemStatus()) {
+        MacUtil::RemovePrelauncherLoginItem();
+      }
     }
-  } else {
-    if (MacUtil::CheckPrelauncherLoginItemStatus()) {
-      MacUtil::RemovePrelauncherLoginItem();
-    }
+    applied_startup_ = startup;
   }
 #endif  // __APPLE__
 
@@ -2697,12 +2731,6 @@ void ConfigDialog::ConvertToProto(config::Config* config) const {
 #undef GET_COMBOBOX
 #undef GET_CHECKBOX
 
-void ConfigDialog::clicked(QAbstractButton* button) {
-  // Cancel · Apply · OK were removed; Preferences auto-saves. Kept so the
-  // moc-generated slot remains linked if a platform still emits it.
-  Q_UNUSED(button);
-}
-
 void ConfigDialog::ClearUserHistory() {
   if (QMessageBox::Ok !=
       QMessageBox::question(
@@ -2900,6 +2928,14 @@ void ConfigDialog::FlushAutoSave() {
   }
   // Closing and editor commits must surface validation problems.
   RunAutoSave(/*quiet_validation=*/false);
+}
+
+void ConfigDialog::SetSaveStatus(const QString& text) {
+  if (save_status_label_ == nullptr) {
+    return;
+  }
+  save_status_label_->setText(text);
+  save_status_label_->setVisible(!text.isEmpty());
 }
 
 void ConfigDialog::done(int result) {

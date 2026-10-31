@@ -35,6 +35,7 @@
 #include <QObject>
 #include <QTimer>
 #include <map>
+#include <optional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -72,7 +73,6 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   // by the moc tool and |QObject::connect| against these methods results in
   // failure. See b/5935351 about how we found this issue.
  protected slots:
-  virtual void clicked(QAbstractButton* button);
   virtual void ClearUserHistory();
   virtual void EditUserDictionary();
   virtual void EditUserSymbols();
@@ -133,6 +133,9 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   void ApplyPreferencesChrome();
   void RefinePreferencesControls();
   void UpdatePreferencesScrollPolicy();
+  // Sidebar status line shown while autosave cannot persist (invalid
+  // intermediate state, converter not running). Empty text hides it.
+  void SetSaveStatus(const QString& text);
 
   std::unique_ptr<client::ClientInterface> client_;
   std::string custom_keymap_table_;
@@ -165,6 +168,13 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   // RunAutoSave to repeat with the latest UI state before returning.
   bool autosave_dirty_ = false;
   QTimer* autosave_timer_ = nullptr;
+  QLabel* save_status_label_ = nullptr;
+
+  // Last value pushed to each platform side effect, so an autosave only
+  // re-applies the ones whose control actually changed.
+  std::optional<bool> applied_ibus_candidate_window_;
+  std::optional<bool> applied_ime_hotkey_disabled_;
+  std::optional<bool> applied_startup_;
 
   // marinaMoji: one checkbox per mozc::kDictionaryPackIds entry, built at
   // runtime in the constructor rather than in the .ui file so new packs

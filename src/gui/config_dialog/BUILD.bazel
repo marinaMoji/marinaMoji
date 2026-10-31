@@ -152,7 +152,6 @@ mozc_qt_rcc(
     name = "qrc_config_dialog",
     srcs = [
         "checkbox_check.png",
-        "combo_chevron.png",
         "config_dialog_en.qm",
         "config_dialog_fr.qm",
         "config_dialog_ja.qm",
@@ -160,8 +159,8 @@ mozc_qt_rcc(
         "keymap_fr.qm",
         "keymap_ja.qm",
         "preferences_header_logo.png",
-        "preferences_header_logo.svg",
         "preferences_header_logo_dark.png",
+        "//gui/base:combo_chevron.png",
         "//gui/base:tr_en.qm",
         "//gui/base:tr_fr.qm",
         "//gui/base:tr_ja.qm",

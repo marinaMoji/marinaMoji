@@ -9,6 +9,6 @@
   <file alias="harbour_splash.png">harbour_splash.png</file>
   <file alias="wordmark.png">wordmark.png</file>
   <file alias="slogan.png">slogan.png</file>
-  <file alias="combo_chevron.png">combo_chevron.png</file>
+  <file alias="combo_chevron.png">../base/combo_chevron.png</file>
 </qresource>
 </RCC>

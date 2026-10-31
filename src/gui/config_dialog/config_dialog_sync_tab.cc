@@ -200,7 +200,15 @@ bool ConfigDialogSyncTab::SaveToServer() {
   config_.set_auto_sync_interval_minutes(interval_->value());
   config_.set_sync_cooldown_seconds(cooldown_->value());
   config_.set_has_sync_key(sync::HasStoredSyncKey());
-  return sync::SaveSyncConfig(config_).ok();
+  const std::string serialized = config_.SerializeAsString();
+  if (last_saved_.has_value() && *last_saved_ == serialized) {
+    return true;
+  }
+  if (!sync::SaveSyncConfig(config_).ok()) {
+    return false;
+  }
+  last_saved_ = serialized;
+  return true;
 }
 
 void ConfigDialogSyncTab::UpdateUiState() {

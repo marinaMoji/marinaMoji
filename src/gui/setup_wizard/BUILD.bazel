@@ -52,13 +52,13 @@ mozc_qt_moc(
 mozc_qt_rcc(
     name = "qrc_setup_wizard",
     srcs = [
-        "combo_chevron.png",
         "harbour_splash.png",
         "setup_wizard_en.qm",
         "setup_wizard_fr.qm",
         "setup_wizard_ja.qm",
         "slogan.png",
         "wordmark.png",
+        "//gui/base:combo_chevron.png",
         "//gui/base:tr_en.qm",
         "//gui/base:tr_fr.qm",
         "//gui/base:tr_ja.qm",

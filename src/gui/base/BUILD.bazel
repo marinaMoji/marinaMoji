@@ -120,6 +120,7 @@ mozc_qt_moc(
 )
 
 exports_files([
+    "combo_chevron.png",
     "tr_en.qm",
     "tr_fr.qm",
     "tr_ja.qm",
