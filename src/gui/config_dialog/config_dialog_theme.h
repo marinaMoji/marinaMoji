@@ -40,8 +40,11 @@
 
 #include <QColor>
 #include <QFont>
+#include <QFontMetrics>
 #include <QGuiApplication>
+#include <QLabel>
 #include <QPalette>
+#include <QSizePolicy>
 #include <QString>
 #include <QStyleHints>
 #include <QtGlobal>
@@ -67,39 +70,43 @@ struct Spacing {
   static constexpr int content_inset_l = 32;
   static constexpr int content_inset_r = 28;
   static constexpr int content_inset_t = 22;
-  static constexpr int content_inset_b = 12;
+  static constexpr int content_inset_b = 8;
   static constexpr int page_right_gutter = 12;  // clears scrollbar
+  static constexpr int page_bottom_pad = 32;    // last control → window edge
   static constexpr int title_to_rule = 10;
   static constexpr int rule_to_section = 18;    // title → first section ≈ 28
-  static constexpr int section_to_control = 12;
+  static constexpr int section_to_control = 16; // Level 2 → first control
+  static constexpr int subhead_to_control = 14; // Level 3 → first control
+  static constexpr int heading_rule_gap = 14;   // Level 2 text → rule
   static constexpr int row = 10;
   static constexpr int related = 8;
   static constexpr int label_to_help = 6;
-  static constexpr int before_section = 22;     // last control → next section
-  static constexpr int before_subhead = 14;
+  static constexpr int before_section = 28;     // last control → Level 2
+  static constexpr int before_subhead = 24;     // last control → Level 3
   static constexpr int sidebar_width = 220;
   static constexpr int sidebar_pad_l = 18;
   static constexpr int sidebar_pad_r = 16;
   static constexpr int sidebar_pad_t = 24;
-  static constexpr int sidebar_pad_b = 20;
-  static constexpr int logo_to_prefs = 12;
-  static constexpr int prefs_to_nav = 18;
+  static constexpr int sidebar_pad_b = 28;      // utilities → bottom
+  static constexpr int logo_to_prefs = 18;      // brand → Preferences
+  static constexpr int prefs_to_nav = 26;       // Preferences → Writing
+  static constexpr int logo_right_clearance = 22;
   static constexpr int nav_row = 38;
-  static constexpr int footer_pad_x = 24;
-  static constexpr int footer_pad_y = 10;
-  static constexpr int footer_height = 52;  // compositional bar, ~48–54
-  static constexpr int utility_row = 30;
-  static constexpr int info_gap = 6;  // label text → ⓘ
+  static constexpr int utility_row = 22;
+  static constexpr int utility_gap = 6;         // between utility labels
+  static constexpr int utility_rule_gap = 18;   // separator → first utility
+  static constexpr int info_gap = 6;            // label text → ⓘ
 };
 
 struct Type {
-  static constexpr int page_title = 34;
-  static constexpr int section = 17;
-  static constexpr int subhead = 14;
-  static constexpr int label = 14;
+  static constexpr int page_title = 34;  // Level 1 — serif chapter title
+  static constexpr int section = 19;     // Level 2 — primary section
+  static constexpr int subhead = 16;     // Level 3 — subsection
+  static constexpr int label = 15;       // Level 4 — setting label
   static constexpr int secondary = 13;
   static constexpr int brand_sub = 12;
   static constexpr int nav = 14;
+  static constexpr int utility = 13;
 };
 
 inline QFont DisplayFont(int mac_point_size) {
@@ -138,15 +145,28 @@ inline QFont UiFont(int mac_point_size, QFont::Weight weight = QFont::Normal) {
 }
 
 inline QFont SectionFont() {
+  // Level 2: medium (~500), larger than labels.
   return UiFont(Type::section, QFont::Medium);
 }
 
 inline QFont SubheadFont() {
-  return UiFont(Type::subhead, QFont::Medium);
+  // Level 3: semibold (~600) so subsections read as headings, not labels.
+  return UiFont(Type::subhead, QFont::DemiBold);
 }
 
 inline QFont LabelFont() {
   return UiFont(Type::label, QFont::Normal);
+}
+
+// Ascender/descender room for heading QLabels (avoids vertical clipping).
+inline void EnsureHeadingMetrics(QLabel* label) {
+  if (label == nullptr) {
+    return;
+  }
+  const QFontMetrics metrics(label->font());
+  // height() already includes leading; a small extra guards CJK/serif faces.
+  label->setMinimumHeight(metrics.height() + 2);
+  label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
 }
 
 inline bool IsDark() {
@@ -237,7 +257,7 @@ inline Palette Colors(bool dark) {
       QColor(0x1E, 0x3A, 0x5F),  // selection_text
       QColor(0xB4, 0x53, 0x09),  // warning
       QColor(0xA8, 0xB4, 0xC2),  // check_border
-      QColor(0x6E, 0x7C, 0x8C),  // utility
+      QColor(0x64, 0x7B, 0x91),  // utility (#647B91)
   };
 }
 
@@ -286,16 +306,13 @@ inline QString Stylesheet(bool dark) {
 
       "QFrame[class=\"setting-group-line\"],"
       "QFrame#preferencesSidebarRule,"
-      "QFrame#preferencesTitleRule,"
-      "QFrame#preferencesFooterRule {"
+      "QFrame#preferencesTitleRule {"
       "  border: none; }"
       "QFrame[class=\"setting-group-line\"] {"
       "  color: @@RULE@@; background-color: @@RULE@@; max-height: 1px; }"
       "QFrame#preferencesTitleRule {"
       "  color: @@TITLE_RULE@@; background-color: @@TITLE_RULE@@;"
       "  max-height: 1px; }"
-      "QFrame#preferencesFooterRule {"
-      "  color: @@RULE@@; background-color: @@RULE@@; max-height: 1px; }"
       "QFrame#preferencesSidebarRule {"
       "  color: @@RULE@@; background-color: @@RULE@@; max-width: 1px; }"
 
@@ -324,22 +341,20 @@ inline QString Stylesheet(bool dark) {
       "QFrame#preferencesUtilityRule {"
       "  color: @@RULE@@; background-color: @@RULE@@; max-height: 1px;"
       "  border: none; }"
-      "QWidget#preferencesFooter {"
-      "  background-color: @@WINDOW@@; }"
-      /* Match nav text inset: 2px indicator gutter + 12px padding. */
+      /* Quiet utilities: same left text axis as nav (2px + 12px), no pill. */
       "QPushButton#preferencesUtilityButton {"
       "  color: @@UTILITY@@; background: transparent;"
       "  border: none; border-left: 2px solid transparent; border-radius: 0;"
-      "  text-align: left; padding: 5px 10px 5px 12px; font-weight: 400; }"
+      "  text-align: left; padding: 2px 8px 2px 12px; font-weight: 400; }"
       "QPushButton#preferencesUtilityButton:hover {"
-      "  color: @@HEADING@@; background: @@NAV_HOVER@@; }"
+      "  color: @@ACCENT@@; background: transparent; }"
       "QPushButton#preferencesUtilityButton:focus {"
-      "  color: @@HEADING@@; background: @@NAV_HOVER@@;"
+      "  color: @@ACCENT@@; background: transparent;"
       "  border-left: 2px solid @@FOCUS@@; }"
       "QPushButton#preferencesUtilityButton[active=\"true\"] {"
-      "  color: @@ACCENT@@; font-weight: 600; }"
+      "  color: @@ACCENT@@; font-weight: 400; background: transparent; }"
       "QPushButton#preferencesUtilityButton[active=\"true\"]:hover {"
-      "  color: @@ACCENT@@; background: @@NAV_HOVER@@; }"
+      "  color: @@ACCENT@@; background: transparent; }"
       "QToolButton#preferencesInfoButton {"
       "  background: transparent; border: none; padding: 0; margin: 0; }"
       "QFrame#preferencesExplanationPopover {"
@@ -353,7 +368,7 @@ inline QString Stylesheet(bool dark) {
       "QComboBox {"
       "  color: @@TEXT@@; background: @@RAISED@@;"
       "  border: 1px solid @@BORDER_CONTROL@@; border-radius: 3px;"
-      "  padding: 6px 28px 6px 11px; min-height: 20px; }"
+      "  padding: 6px 28px 6px 11px; min-height: 22px; }"
       "QComboBox:hover { border-color: @@ACCENT@@; }"
       "QComboBox:focus { border: 1px solid @@FOCUS@@; }"
       "QComboBox:disabled {"

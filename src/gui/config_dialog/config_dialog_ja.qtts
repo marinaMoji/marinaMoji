@@ -506,6 +506,20 @@
         <source>Reset to defaults</source>
         <translation>初期値に戻す</translation>
     </message>
+
+    <!-- marinaMoji Preferences localisation top-up -->
+    <message>
+        <source>Show explanations</source>
+        <translation>説明を表示</translation>
+    </message>
+    <message>
+        <source>Hide explanations</source>
+        <translation>説明を隠す</translation>
+    </message>
+    <message>
+        <source>Suggestion sources</source>
+        <translation>サジェストの元</translation>
+    </message>
 </context>
 <context>
     <name>GenericTableEditorDialog</name>
@@ -977,6 +991,220 @@ Try running %3 in Terminal and check %4.</source>
 %2
 
 ターミナルで %3 を実行し、%4 を確認してください。</translation>
+    </message>
+
+    <!-- marinaMoji Preferences localisation top-up -->
+    <message>
+        <source>Input mode</source>
+        <translation>入力モード</translation>
+    </message>
+    <message>
+        <source>Sets the default writing mode when marinaMoji starts: hiragana, katakana, half-width katakana, or direct (Latin) input. You can still change mode from the toolbar or keyboard while typing.</source>
+        <translation>marinaMoji の起動時の既定の入力モード（ひらがな、カタカナ、半角カタカナ、または直接入力）を設定します。入力中でもツールバーやキーボードから切り替えられます。</translation>
+    </message>
+    <message>
+        <source>Punctuation style</source>
+        <translation>句読点のスタイル</translation>
+    </message>
+    <message>
+        <source>Chooses whether period and comma keys produce Japanese punctuation (、。) or Western forms (，．) while composing.</source>
+        <translation>入力中にピリオド・カンマのキーが日本語の句読点（、。）になるか、欧文形式（，．）になるかを選びます。</translation>
+    </message>
+    <message>
+        <source>Japanese  、。
+Alternative  ，．</source>
+        <translation>日本語　、。
+別形式　，．</translation>
+    </message>
+    <message>
+        <source>Symbol style</source>
+        <translation>記号のスタイル</translation>
+    </message>
+    <message>
+        <source>Controls whether symbols such as brackets and currency signs are inserted in fullwidth or halfwidth form by default.</source>
+        <translation>括弧や通貨記号などの記号を、既定で全角と半角のどちらで挿入するかを制御します。</translation>
+    </message>
+    <message>
+        <source>Space input style</source>
+        <translation>スペースの入力</translation>
+    </message>
+    <message>
+        <source>Decides whether the space bar inserts a fullwidth or halfwidth space, or follows the current character-width rules.</source>
+        <translation>スペースキーが全角・半角のどちらを入れるか、または現在の文字幅の規則に従うかを決めます。</translation>
+    </message>
+    <message>
+        <source>Automatically switch to halfwidth</source>
+        <translation>自動的に半角へ切り替える</translation>
+    </message>
+    <message>
+        <source>After certain punctuation, marinaMoji can switch temporarily to halfwidth input so Latin letters and digits stay compact without leaving Japanese mode.</source>
+        <translation>特定の句読点のあとに一時的に半角入力へ切り替え、日本語モードのままラテン文字や数字をコンパクトに入力できます。</translation>
+    </message>
+    <message>
+        <source>Convert at punctuations</source>
+        <translation>句読点で変換する</translation>
+    </message>
+    <message>
+        <source>When enabled, typing selected punctuation (。、? !) ends the current phrase and converts it automatically, similar to pressing Space then Enter on many Japanese IMEs. Use the checkboxes to choose which marks trigger conversion.</source>
+        <translation>有効にすると、選んだ句読点（。、? !）を打ったときに現在の文節を終えて自動変換します。多くの日本語 IME でスペースのあと Enter を押すのと似ています。どの記号で変換するかはチェックボックスで選べます。</translation>
+    </message>
+    <message>
+        <source>Initial conversion mode</source>
+        <translation>起動時の変換モード</translation>
+    </message>
+    <message>
+        <source>Manual mode waits for Space (or your convert key) before showing kanji candidates. Live mode offers conversions while you type, which feels closer to predictive input.</source>
+        <translation>手動モードはスペース（または変換キー）を押すまで漢字候補を出しません。ライブモードは入力中に変換候補を出し、予測入力に近い感覚です。</translation>
+    </message>
+    <message>
+        <source>Two-step Enter after conversion</source>
+        <translation>変換後は Enter を二回で確定</translation>
+    </message>
+    <message>
+        <source>When enabled, the first Enter confirms the conversion candidate and the second Enter commits the text. Useful if you often refine candidates before inserting them. This option is experimental.</source>
+        <translation>有効にすると、1 回目の Enter で変換候補を確定し、2 回目の Enter でテキストを確定します。候補を調整してから確定したい場合に便利です。実験的な機能です。</translation>
+    </message>
+    <message>
+        <source>Initial kanji style</source>
+        <translation>起動時の漢字字形</translation>
+    </message>
+    <message>
+        <source>Shin (modern) forms are everyday shinjitai. Kyū (traditional) converts dictionary results toward kyūjitai using OpenCC and marinaMoji’s custom tables—helpful for historical texts. You can still toggle shin/kyū from the toolbar while writing.</source>
+        <translation>新字体は日常の常用形です。旧字体は OpenCC と marinaMoji の独自表で辞書結果を旧字体寄りに変換し、歴史資料の入力に役立ちます。入力中でもツールバーから新／旧を切り替えられます。</translation>
+    </message>
+    <message>
+        <source>Shin  国 学
+Kyū   國 學</source>
+        <translation>新　国 学
+旧　國 學</translation>
+    </message>
+    <message>
+        <source>Detailed width rules</source>
+        <translation>全角・半角の詳細</translation>
+    </message>
+    <message>
+        <source>For each character group (letters, digits, punctuation, and so on), choose whether composition and conversion should prefer fullwidth or halfwidth forms. This table is the fine-grained companion to the simpler spacing and symbol settings above.</source>
+        <translation>文字種（英字、数字、句読点など）ごとに、未確定文字列と変換結果で全角と半角のどちらを優先するかを選べます。上のスペースや記号の簡易設定を細かく補う表です。</translation>
+    </message>
+    <message>
+        <source>Learning / personalization</source>
+        <translation>学習／パーソナライズ</translation>
+    </message>
+    <message>
+        <source>Controls how strongly past conversions influence new suggestions. Clear personalization data removes that learned history; it does not delete your user dictionary entries.</source>
+        <translation>過去の変換が新しい候補にどれだけ影響するかを制御します。「パーソナライズを消去」はその学習履歴だけを消し、ユーザー辞書の登録は消しません。</translation>
+    </message>
+    <message>
+        <source>Personal dictionary</source>
+        <translation>ユーザー辞書</translation>
+    </message>
+    <message>
+        <source>Your own readings and spellings—names, archaic forms, specialist terms. Edit user symbols maintains short strings that appear on the User tab of the toolbar Symbols palette.</source>
+        <translation>名前、古語、専門用語など、あなた自身の読みと表記です。「ユーザー記号の編集」はツールバーの記号パレット「ユーザー」タブに出る短い文字列を管理します。</translation>
+    </message>
+    <message>
+        <source>Dictionary sources</source>
+        <translation>辞書の種類</translation>
+    </message>
+    <message>
+        <source>Usage and related dictionaries adjust how frequent phrases are ranked and how similar readings are disambiguated.</source>
+        <translation>用例などの関連辞書は、よく使う語句の順位付けや似た読みの判別に影響します。</translation>
+    </message>
+    <message>
+        <source>Scholarly vocabulary</source>
+        <translation>学術・歴史語彙</translation>
+    </message>
+    <message>
+        <source>Optional dictionary packs add specialised vocabulary (for example historical or domain-specific terms) without changing everyday conversion when left disabled.</source>
+        <translation>任意の辞書パックは、歴史語や専門語などの語彙を追加します。オフのままなら日常の変換には影響しません。</translation>
+    </message>
+    <message>
+        <source>Special conversions</source>
+        <translation>特殊変換</translation>
+    </message>
+    <message>
+        <source>Fine-tunes conversions such as date/time and symbol or emoji expansion. Disable entries that interrupt scholarly typing.</source>
+        <translation>日時や記号・絵文字の展開などの変換を細かく調整します。学術的な入力の妨げになる項目はオフにできます。</translation>
+    </message>
+    <message>
+        <source>Keymap</source>
+        <translation>キー設定</translation>
+    </message>
+    <message>
+        <source>Chooses a familiar shortcut layout (for example MS-IME or Kotoeri). Customize… remaps individual keys; the romaji table includes marinaMoji’s historical-kana entries.</source>
+        <translation>使い慣れたショートカット配列（MS-IME やことえりなど）を選びます。「カスタマイズ…」で個々のキーを割り当てられ、ローマ字表には marinaMoji の歴史的仮名の項目も含まれます。</translation>
+    </message>
+    <message>
+        <source>Shift key mode switch</source>
+        <translation>シフトキーによる入力切替</translation>
+    </message>
+    <message>
+        <source>Configures how Shift interacts with Japanese ↔ direct input and related mode changes. Shortcuts preferences can also disable the Left Shift toggle or use double-tap Left Shift to lock a mode.</source>
+        <translation>Shift が日本語入力と直接入力などのモード切替にどう関わるかを設定します。ショートカット設定では左 Shift のトグルを無効にしたり、左 Shift のダブルタップでモードを固定したりもできます。</translation>
+    </message>
+    <message>
+        <source>Mode indicator</source>
+        <translation>モードインジケータ</translation>
+    </message>
+    <message>
+        <source>Shows a small on-screen cue for the current input mode near the cursor, which helps when the toolbar is hidden.</source>
+        <translation>ツールバーを隠しているときなどに便利なよう、カーソル付近に現在の入力モードを小さく表示します。</translation>
+    </message>
+    <message>
+        <source>Kaeriten reading marks are entered with a semicolon followed by a key. Edit the table to change the key portion; the leading semicolon is required.</source>
+        <translation>返り点はセミコロンのあとにキーを続けて入力します。表ではキー部分を変更でき、先頭のセミコロンは必須です。</translation>
+    </message>
+    <message>
+        <source>Use input history</source>
+        <translation>入力履歴を使う</translation>
+    </message>
+    <message>
+        <source>Offers candidates based on what you have converted before. Turn this off, or use Secret mode, when you do not want local history to influence suggestions.</source>
+        <translation>過去に変換した内容に基づく候補を出します。ローカル履歴を候補に使いたくないときはオフにするか、シークレットモードを使ってください。</translation>
+    </message>
+    <message>
+        <source>Use system dictionary</source>
+        <translation>システム辞書を使う</translation>
+    </message>
+    <message>
+        <source>Includes candidates from the main system lexicon while you type, before a full Space conversion.</source>
+        <translation>スペースで本変換する前から、メインのシステム辞書の候補を入力中に含めます。</translation>
+    </message>
+    <message>
+        <source>Use realtime conversion</source>
+        <translation>リアルタイム変換を使う</translation>
+    </message>
+    <message>
+        <source>Shows kanji guesses in the pre-edit line as you type romaji, before you press Space for a full conversion.</source>
+        <translation>ローマ字入力中、スペースで本変換する前から未確定行に漢字の推測を表示します。</translation>
+    </message>
+    <message>
+        <source>Secret mode</source>
+        <translation>シークレットモード</translation>
+    </message>
+    <message>
+        <source>Temporarily disables personalization, history-based suggestions, and the user dictionary—useful on shared machines or sensitive drafts. It also skips exporting history during synchronisation.</source>
+        <translation>パーソナライズ、履歴に基づく候補、ユーザー辞書を一時的に無効にします。共有マシンや機微な原稿に便利で、同期時の履歴エクスポートも行いません。</translation>
+    </message>
+    <message>
+        <source>Presentation mode</source>
+        <translation>プレゼンテーションモード</translation>
+    </message>
+    <message>
+        <source>Turns off all suggestions for demos or screen sharing so candidates do not appear unexpectedly.</source>
+        <translation>デモや画面共有のときに候補が不意に出ないよう、すべてのサジェストをオフにします。</translation>
+    </message>
+    <message>
+        <source>Synchronisation</source>
+        <translation>同期</translation>
+    </message>
+    <message>
+        <source>Encrypted sync shares dictionary and/or learning history through a file you control (for example in Nextcloud). Generate or enter a sync key on each device; marinaMoji stores the key only locally.</source>
+        <translation>暗号化同期は、あなたが管理するファイル（例: Nextcloud）経由で辞書や学習履歴を共有します。各端末で同期キーを生成または入力し、marinaMoji はそのキーを端末内だけに保存します。</translation>
+    </message>
+    <message>
+        <source>About this setting</source>
+        <translation>この設定について</translation>
     </message>
 </context>
 <context>
@@ -1518,6 +1746,20 @@ Open the download page?</source>
         <location filename="../../../../../../Users/daniel/Code/marinaMozc/src/gui/config_dialog/config_dialog.cc" line="390" />
         <source>Apply</source>
         <translation>適用</translation>
+    </message>
+
+    <!-- marinaMoji Preferences localisation top-up -->
+    <message>
+        <source>Show explanations</source>
+        <translation>説明を表示</translation>
+    </message>
+    <message>
+        <source>Hide explanations</source>
+        <translation>説明を隠す</translation>
+    </message>
+    <message>
+        <source>Suggestion sources</source>
+        <translation>サジェストの元</translation>
     </message>
 </context>
 <context>

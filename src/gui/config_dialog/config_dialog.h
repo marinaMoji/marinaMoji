@@ -32,6 +32,7 @@
 #ifndef MOZC_GUI_CONFIG_DIALOG_CONFIG_DIALOG_H_
 #define MOZC_GUI_CONFIG_DIALOG_CONFIG_DIALOG_H_
 
+#include <QCloseEvent>
 #include <QObject>
 #include <QTimer>
 #include <map>
@@ -84,6 +85,8 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   virtual void SelectAutoConversionSetting(int state);
   virtual void SelectSuggestionSetting(int state);
   virtual void LaunchAdministrationDialog();
+  // Slot formerly named EnableApplyButton: ordinary control changes schedule
+  // an automatic persist through the existing SetConfig path.
   virtual void EnableApplyButton();
   virtual void CheckForUpdates();
   virtual void OnUpdateAvailable(const QString& tag_name, const QString& html_url,
@@ -95,6 +98,7 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
  protected:
   bool eventFilter(QObject* obj, QEvent* event) override;
   void showEvent(QShowEvent* event) override;
+  void closeEvent(QCloseEvent* event) override;
 
  private:
   void MaybeAutoCheckForUpdates();
@@ -106,15 +110,24 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   void GetSendStatsCheckBox() const;
   void ConvertToProto(config::Config* config) const;
   void ConvertFromProto(const config::Config& config);
-  bool Update();
+  // Persist UI → config via the existing client SetConfig path (and platform
+  // side effects that Apply/OK used to run). When quiet_validation is true,
+  // invalid intermediate states (e.g. unfinished shortcut chords) skip the
+  // modal warning so autosave stays quiet while the user is still editing.
+  bool Update(bool quiet_validation = false);
   void Reload();
+  void ScheduleAutoSave();
+  void FlushAutoSave();
+  // Runs Update() on the GUI thread; serializes overlapping requests so a
+  // nested/re-entrant save cannot persist an older snapshot over a newer one.
+  void RunAutoSave(bool quiet_validation);
   // Linux/IBus only: load/save candidate window choice from ibus_config.textproto.
   void LoadIbusCandidateWindowFromFile();
   void SaveIbusCandidateWindowToFile() const;
   // Reorganise tabs into Writing / Dictionaries / Keyboard / Suggestions /
   // Privacy & Sync / Application. Does not change config keys or defaults.
   void MigratePreferencesInformationArchitecture();
-  // Sidebar, page title, and footer styling. Does not move settings.
+  // Sidebar + page chrome. Does not move settings.
   void InstallPreferencesShell();
   void ApplyPreferencesChrome();
   void RefinePreferencesControls();
@@ -141,6 +154,16 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   std::unique_ptr<GitHubUpdateChecker> update_checker_;
   bool update_check_silent_ = false;
   bool auto_update_check_started_ = false;
+
+  // Blocks ScheduleAutoSave while ConvertFromProto/Reload fills controls.
+  bool autosave_suppressed_ = false;
+  // True while RunAutoSave is inside Update/SetConfig (may re-enter the
+  // event loop during IPC or modal error dialogs).
+  bool autosave_in_progress_ = false;
+  // Set when ScheduleAutoSave runs during autosave_in_progress_; causes
+  // RunAutoSave to repeat with the latest UI state before returning.
+  bool autosave_dirty_ = false;
+  QTimer* autosave_timer_ = nullptr;
 
   // marinaMoji: one checkbox per mozc::kDictionaryPackIds entry, built at
   // runtime in the constructor rather than in the .ui file so new packs

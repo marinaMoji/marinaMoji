@@ -157,12 +157,13 @@ QFrame* MakeSectionHeader(const QString& title, QWidget* parent) {
   auto* header = new QFrame(parent);
   header->setProperty("class", QStringLiteral("setting-group-header"));
   header->setFrameShape(QFrame::NoFrame);
-  header->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+  header->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
   auto* layout = new QHBoxLayout(header);
   layout->setContentsMargins(0, 0, 0, 0);
-  layout->setSpacing(10);
+  layout->setSpacing(config_dialog_theme::Spacing::heading_rule_gap);
   auto* label = new QLabel(title, header);
   label->setFont(config_dialog_theme::SectionFont());
+  config_dialog_theme::EnsureHeadingMetrics(label);
   layout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignVCenter);
   auto* line = new QFrame(header);
   line->setProperty("class", QStringLiteral("setting-group-line"));
@@ -307,7 +308,8 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
   auto* shortcuts_details = MakeSecondaryLabel(
       QObject::tr(
           "Each row maps one action to a modifier and a physical key. Conflicts "
-          "are checked when you Apply. Empty or duplicate chords are rejected."),
+          "are checked automatically when you change a binding. Empty or "
+          "duplicate chords are rejected."),
       tab_);
   shortcuts_details->setVisible(false);
   layout->addWidget(shortcuts_details);

@@ -36,6 +36,7 @@
 #include "gui/config_dialog/preferences_explanations.h"
 
 #include <QCheckBox>
+#include <QCloseEvent>
 #include <QComboBox>
 #include <QProcess>
 #include <QFileInfo>
@@ -58,6 +59,7 @@
 #include <QToolButton>
 #include <QScrollArea>
 #include <QShowEvent>
+#include <QTableWidgetItem>
 #include <QSizePolicy>
 #include <QSpacerItem>
 #include <QSpinBox>
@@ -402,15 +404,24 @@ ConfigDialog::ConfigDialog()
   useModeIndicator->hide();
 #endif  // !_WIN32
 
-  // Reset texts explicitly for translations.
-  configDialogButtonBox->button(QDialogButtonBox::Ok)->setText(tr("OK"));
-  configDialogButtonBox->button(QDialogButtonBox::Cancel)
-      ->setText(tr("Cancel"));
-  configDialogButtonBox->button(QDialogButtonBox::Apply)->setText(tr("Apply"));
+  // Preferences auto-saves; the stock button box is hidden by the shell.
+  configDialogButtonBox->hide();
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+  // Preview-only: force dark chrome without changing system appearance.
+  if (qEnvironmentVariableIsSet("MARINAMOJI_PREFS_UI_PREVIEW_DARK")) {
+    QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
+  }
+#endif
+
+  autosave_timer_ = new QTimer(this);
+  autosave_timer_->setSingleShot(true);
+  autosave_timer_->setInterval(200);
+  connect(autosave_timer_, &QTimer::timeout, this, [this]() {
+    RunAutoSave(/*quiet_validation=*/true);
+  });
 
   // signal/slot
-  QObject::connect(configDialogButtonBox, SIGNAL(clicked(QAbstractButton*)),
-                   this, SLOT(clicked(QAbstractButton*)));
   QObject::connect(clearUserHistoryButton, SIGNAL(clicked()), this,
                    SLOT(ClearUserHistory()));
   QObject::connect(editUserDictionaryButton, SIGNAL(clicked()), this,
@@ -438,17 +449,19 @@ ConfigDialog::ConfigDialog()
   QObject::connect(launchAdministrationDialogButtonForUsageStats,
                    SIGNAL(clicked()), this, SLOT(LaunchAdministrationDialog()));
 
-  // Event handlers to enable 'Apply' button.
-  Connect(findChildren<QPushButton*>(), SIGNAL(clicked()), this,
-          SLOT(EnableApplyButton()));
+  // Auto-save on committed control changes. Push-button tools (Edit…, Clear…)
+  // are excluded: only those that mutate staged tables call EnableApplyButton
+  // explicitly after a successful edit.
   Connect(findChildren<QCheckBox*>(), SIGNAL(clicked()), this,
           SLOT(EnableApplyButton()));
   Connect(findChildren<QComboBox*>(), SIGNAL(activated(int)), this,
           SLOT(EnableApplyButton()));
   Connect(findChildren<QSpinBox*>(), SIGNAL(editingFinished()), this,
           SLOT(EnableApplyButton()));
-  // 'Apply' button is disabled on launching.
-  configDialogButtonBox->button(QDialogButtonBox::Apply)->setEnabled(false);
+  if (characterFormEditor != nullptr) {
+    connect(characterFormEditor, &QTableWidget::itemChanged, this,
+            [this](QTableWidgetItem*) { EnableApplyButton(); });
+  }
 
   // When clicking these messages, CheckBoxs corresponding
   // to them should be toggled.
@@ -687,13 +700,14 @@ ConfigDialog::ConfigDialog()
   // this window immediately. The shell has to be in place before that.
   InstallPreferencesShell();
 
+  autosave_suppressed_ = true;
   Reload();
-
 #ifdef _WIN32
   IMEHotKeyDisabledCheckBox->setChecked(WinUtil::GetIMEHotKeyDisabled());
 #else   // _WIN32
   IMEHotKeyDisabledCheckBox->setVisible(false);
 #endif  // _WIN32
+  autosave_suppressed_ = false;
 
 #if defined(GOOGLE_JAPANESE_INPUT_BUILD) && defined(CHANNEL_DEV)
   usageStatsCheckBox->setEnabled(false);
@@ -789,7 +803,8 @@ void EmbedFormerTabPage(QVBoxLayout* dest, QTabWidget* tabs, QWidget* page) {
 }
 
 // Official wordmark, authored as SVG and shipped as a high-DPI raster (this
-// dialog does not yet bundle QtSvg). Scaled to nearly the full sidebar width.
+// dialog does not yet bundle QtSvg). Scaled with right-side clearance in the
+// sidebar.
 QPixmap LoadPreferencesBrandLogo(bool dark, int logical_width, qreal dpr) {
   const QPixmap src(dark ? QStringLiteral(":/preferences_header_logo_dark.png")
                          : QStringLiteral(":/preferences_header_logo.png"));
@@ -835,12 +850,13 @@ QFrame* MakeIaSectionHeader(const QString& title, QWidget* parent) {
   auto* header = new QFrame(parent);
   header->setProperty("class", QStringLiteral("setting-group-header"));
   header->setFrameShape(QFrame::NoFrame);
-  header->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+  header->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
   auto* layout = new QHBoxLayout(header);
   layout->setContentsMargins(0, 0, 0, 0);
-  layout->setSpacing(10);
+  layout->setSpacing(config_dialog_theme::Spacing::heading_rule_gap);
   auto* label = new QLabel(title, header);
   label->setFont(config_dialog_theme::SectionFont());
+  config_dialog_theme::EnsureHeadingMetrics(label);
   FlushLeftInk(label);
   layout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignVCenter);
   auto* line = new QFrame(header);
@@ -851,11 +867,12 @@ QFrame* MakeIaSectionHeader(const QString& title, QWidget* parent) {
   return header;
 }
 
-// Minor grouping under a major section: no rule, quieter type.
+// Level 3: no rule, semibold — subordinate to Level 2, stronger than labels.
 QLabel* MakeIaSectionSubhead(const QString& title, QWidget* parent) {
   auto* label = new QLabel(title, parent);
   label->setObjectName(QStringLiteral("preferencesSubhead"));
   label->setFont(config_dialog_theme::SubheadFont());
+  config_dialog_theme::EnsureHeadingMetrics(label);
   FlushLeftInk(label);
   return label;
 }
@@ -874,7 +891,7 @@ void AddMinorSubhead(QVBoxLayout* page_layout, const QString& title,
                      QWidget* page) {
   page_layout->addSpacing(config_dialog_theme::Spacing::before_subhead);
   page_layout->addWidget(MakeIaSectionSubhead(title, page));
-  page_layout->addSpacing(config_dialog_theme::Spacing::related);
+  page_layout->addSpacing(config_dialog_theme::Spacing::subhead_to_control);
 }
 
 // Label (or checkbox) + ⓘ as one compact typographic unit — never a
@@ -1207,8 +1224,8 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
   AttachExplanationInPlace(localUsageDictionaryCheckBox, explanations,
                            "dictionaries.usage");
 
-  AddMajorSection(dictionaries_layout, tr("Scholarly vocabulary"), dictionaries,
-                  &dictionaries_first);
+  AddMinorSubhead(dictionaries_layout, tr("Scholarly vocabulary"),
+                  dictionaries);
   if (packs_widget != nullptr) {
     if (auto* packs_layout = packs_widget->layout()) {
       packs_layout->setContentsMargins(0, 2, 0, 2);
@@ -1222,8 +1239,7 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
     }
   }
 
-  AddMajorSection(dictionaries_layout, tr("Special conversions"), dictionaries,
-                  &dictionaries_first);
+  AddMinorSubhead(dictionaries_layout, tr("Special conversions"), dictionaries);
   AddToPage(dictionaries_layout, specialConversionsGroup);
   AttachExplanationInPlace(emojiConversionCheckBox, explanations,
                            "dictionaries.special");
@@ -1234,8 +1250,7 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
   AddMajorSection(keyboard_layout, tr("Keymap"), keyboard, &keyboard_first);
   AddToPage(keyboard_layout, keymapGroup);
 
-  AddMajorSection(keyboard_layout, tr("Key behaviour"), keyboard,
-                  &keyboard_first);
+  AddMinorSubhead(keyboard_layout, tr("Key behaviour"), keyboard);
   AddToPage(keyboard_layout,
             MakeLabelControlRow(yenSignLabel, yenSignComboBox, keyboard,
                                 explanations, nullptr));
@@ -1244,17 +1259,15 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
                                 keyboard, explanations, nullptr));
   AddToPage(keyboard_layout, useJapaneseLayout);
 
-  AddMajorSection(keyboard_layout, tr("Candidate selection"), keyboard,
-                  &keyboard_first);
+  AddMinorSubhead(keyboard_layout, tr("Candidate selection"), keyboard);
   AddToPage(keyboard_layout,
             MakeLabelControlRow(selectionShortcutModeLabel,
                                 selectionShortcutModeComboBox, keyboard,
                                 explanations, nullptr));
 
-  // One Mode switching section: page-level controls, then the Shortcuts block
-  // without repeating its own Mode switching heading.
-  AddMajorSection(keyboard_layout, tr("Mode switching"), keyboard,
-                  &keyboard_first);
+  // Mode switching: page-level controls, then the Shortcuts block without
+  // repeating its own Mode switching heading.
+  AddMinorSubhead(keyboard_layout, tr("Mode switching"), keyboard);
   AddToPage(keyboard_layout,
             MakeLabelControlRow(autoCorrectionLable_3,
                                 shiftKeyModeSwitchComboBox, keyboard,
@@ -1489,13 +1502,16 @@ void ConfigDialog::InstallPreferencesShell() {
   brand->setScaledContents(false);
   {
     const bool dark = config_dialog_theme::IsDark();
-    const int logo_w = kSidebarWidth - kSidebarPadL - kSidebarPadR;
+    // ~9% smaller than full sidebar inner width; keeps ≥22 px right clearance.
+    const int sidebar_inner = kSidebarWidth - kSidebarPadL - kSidebarPadR;
+    const int logo_w =
+        sidebar_inner - Spacing::logo_right_clearance;
     const QPixmap logo =
         LoadPreferencesBrandLogo(dark, logo_w, brand->devicePixelRatioF());
     if (!logo.isNull()) {
       brand->setPixmap(logo);
       brand->setFixedHeight(qRound(logo.height() / logo.devicePixelRatioF()));
-      brand->setMinimumWidth(logo_w);
+      brand->setFixedWidth(logo_w);
     } else {
       brand->setText(GuiUtil::ProductName());
       brand->setFont(config_dialog_theme::DisplayFont(17));
@@ -1531,14 +1547,13 @@ void ConfigDialog::InstallPreferencesShell() {
   nav->blockSignals(false);
   side_layout->addWidget(nav, 1);
 
-  // Secondary utilities: bottom-anchored, left-aligned with nav text.
-  side_layout->addSpacing(Spacing::prefs_to_nav);
+  // Utilities: bottom-anchored via nav stretch; quieter than primary nav.
   auto* utility_rule = new QFrame(sidebar);
   utility_rule->setObjectName(QStringLiteral("preferencesUtilityRule"));
   utility_rule->setFrameShape(QFrame::NoFrame);
   utility_rule->setFixedHeight(1);
   side_layout->addWidget(utility_rule);
-  side_layout->addSpacing(Spacing::related);
+  side_layout->addSpacing(Spacing::utility_rule_gap);
 
   auto make_utility_button = [&](const QString& text) {
     auto* button = new QPushButton(text, sidebar);
@@ -1550,7 +1565,7 @@ void ConfigDialog::InstallPreferencesShell() {
     button->setFixedHeight(Spacing::utility_row);
     button->setMinimumWidth(kSidebarWidth - kSidebarPadL - kSidebarPadR);
     button->setFont(
-        config_dialog_theme::UiFont(config_dialog_theme::Type::nav));
+        config_dialog_theme::UiFont(config_dialog_theme::Type::utility));
     return button;
   };
 
@@ -1584,8 +1599,8 @@ void ConfigDialog::InstallPreferencesShell() {
   connect(reset_button, &QPushButton::clicked, this,
           &ConfigDialog::ResetToDefaults);
 
-  // Tight pair: no extra gap beyond the fixed row heights.
   side_layout->addWidget(explanations_button, 0, Qt::AlignLeft);
+  side_layout->addSpacing(Spacing::utility_gap);
   side_layout->addWidget(reset_button, 0, Qt::AlignLeft);
 
   auto* rule = new QFrame(this);
@@ -1662,22 +1677,13 @@ void ConfigDialog::InstallPreferencesShell() {
   upper->addWidget(body);
   root->setContentsMargins(0, 0, 0, 0);
   root->setSpacing(0);
-
-  auto* footer_rule = new QFrame(this);
-  footer_rule->setObjectName(QStringLiteral("preferencesFooterRule"));
-  footer_rule->setFrameShape(QFrame::NoFrame);
-  footer_rule->setFixedHeight(1);
-  root->insertWidget(1, footer_rule);
   root->setStretch(0, 1);
-  root->setStretch(1, 0);
 
-  // Footer: full-width compositional bar. Reset lives in the sidebar; Cancel ·
-  // Apply · OK stay here because preferences require explicit confirmation.
-  // On macOS QDialogButtonBox parks Apply in the centre ActionRole, so the
-  // buttons are laid out by hand while still owned by the box for clicked.
+  // Drop Cancel · Apply · OK and the entire footer region so the sidebar and
+  // content extend to the window's bottom corners (macOS settings style).
   if (auto* footer = qobject_cast<QHBoxLayout*>(
-          root->count() >= 3 && root->itemAt(2) != nullptr
-              ? root->itemAt(2)->layout()
+          root->count() >= 2 && root->itemAt(1) != nullptr
+              ? root->itemAt(1)->layout()
               : nullptr)) {
     while (footer->count() > 0) {
       QLayoutItem* item = footer->takeAt(0);
@@ -1685,51 +1691,20 @@ void ConfigDialog::InstallPreferencesShell() {
         continue;
       }
       if (QWidget* widget = item->widget()) {
+        widget->hide();
         if (widget == configDialogButtonBox || widget == resetToDefaultsButton) {
-          widget->hide();
+          // reset lives in the sidebar; button box is unused with autosave.
         }
       }
       delete item;
     }
-
-    auto* footer_bar = new QWidget(this);
-    footer_bar->setObjectName(QStringLiteral("preferencesFooter"));
-    footer_bar->setFixedHeight(Spacing::footer_height);
-    footer_bar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    auto* footer_bar_layout = new QHBoxLayout(footer_bar);
-    footer_bar_layout->setContentsMargins(Spacing::footer_pad_x,
-                                          Spacing::footer_pad_y,
-                                          Spacing::footer_pad_x,
-                                          Spacing::footer_pad_y);
-    footer_bar_layout->setSpacing(Spacing::related);
-
-    QPushButton* ok_button =
-        configDialogButtonBox->button(QDialogButtonBox::Ok);
-    QPushButton* cancel_button =
-        configDialogButtonBox->button(QDialogButtonBox::Cancel);
-    QPushButton* apply_button =
-        configDialogButtonBox->button(QDialogButtonBox::Apply);
-    configDialogButtonBox->hide();
-
-    footer_bar_layout->addStretch(1);
-    auto* actions = new QWidget(footer_bar);
-    actions->setObjectName(QStringLiteral("preferencesFooterActions"));
-    auto* actions_layout = new QHBoxLayout(actions);
-    actions_layout->setContentsMargins(0, 0, 0, 0);
-    actions_layout->setSpacing(8);
-    if (cancel_button != nullptr) {
-      actions_layout->addWidget(cancel_button);
+    footer->setContentsMargins(0, 0, 0, 0);
+    footer->setSpacing(0);
+    if (QLayoutItem* footer_item = root->takeAt(1)) {
+      delete footer_item;
     }
-    if (apply_button != nullptr) {
-      actions_layout->addWidget(apply_button);
-    }
-    if (ok_button != nullptr) {
-      actions_layout->addWidget(ok_button);
-    }
-    footer_bar_layout->addWidget(actions);
-    footer->addWidget(footer_bar);
-    root->setStretch(2, 0);
   }
+  configDialogButtonBox->hide();
 
   // QTabWidget forces every page to the tallest page's height. Short pages
   // then stretch and open huge vertical gaps. Move pages into a stack that
@@ -1747,8 +1722,10 @@ void ConfigDialog::InstallPreferencesShell() {
     }
     page->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
     if (auto* page_layout = qobject_cast<QVBoxLayout*>(page->layout())) {
+      // Comfortable bottom inset so the last control is not flush to the edge
+      // once the former footer is gone (~28–36 logical px).
       page_layout->setContentsMargins(0, 0, Spacing::page_right_gutter,
-                                      Spacing::unit * 2);
+                                      Spacing::page_bottom_pad);
       page_layout->setSpacing(0);
       for (int item = page_layout->count() - 1; item >= 0; --item) {
         QLayoutItem* layout_item = page_layout->itemAt(item);
@@ -1831,6 +1808,7 @@ void ConfigDialog::InstallPreferencesShell() {
     const QList<QLabel*> labels = frame->findChildren<QLabel*>();
     for (QLabel* label : labels) {
       label->setFont(config_dialog_theme::SectionFont());
+      config_dialog_theme::EnsureHeadingMetrics(label);
       FlushLeftInk(label);
     }
   }
@@ -1863,32 +1841,32 @@ void ConfigDialog::InstallPreferencesShell() {
     button->style()->unpolish(button);
     button->style()->polish(button);
   };
-  mark(configDialogButtonBox->button(QDialogButtonBox::Ok), "primary");
-  mark(configDialogButtonBox->button(QDialogButtonBox::Apply), "secondary");
-  mark(configDialogButtonBox->button(QDialogButtonBox::Cancel), "quiet");
   mark(editKeymapButton, "secondary");
   mark(editRomanTableButton, "secondary");
   mark(editUserDictionaryButton, "secondary");
   mark(editUserSymbolsButton, "secondary");
   mark(clearUserHistoryButton, "quiet");
 
-  RefinePreferencesControls();
-
-  resize(1020, 740);
-  setMinimumSize(880, 580);
+  resize(1020, 700);
+  setMinimumSize(880, 560);
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
   connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this,
-          [this](Qt::ColorScheme) { ApplyPreferencesChrome(); });
+          [this](Qt::ColorScheme) {
+            ApplyPreferencesChrome();
+            RefinePreferencesControls();
+          });
 #endif
+  // Stylesheet first: combo sizeHint must include QSS padding/chevron, or
+  // labels such as "Follow input mode" get clipped.
   ApplyPreferencesChrome();
+  RefinePreferencesControls();
   QTimer::singleShot(0, this, &ConfigDialog::UpdatePreferencesScrollPolicy);
 }
 
 void ConfigDialog::RefinePreferencesControls() {
-  // Content-driven combo widths: compact / standard / wide, never full-bleed.
-  // Skip combos inside tables — cell widgets are parented to the viewport, and
-  // fixed widths there clip the Key column under the scrollbar.
+  // Content-driven combo widths from Qt's sizeHint (after stylesheet polish).
+  // Skip combos inside tables — fixed widths there clip under the scrollbar.
   auto is_inside_table = [](QWidget* widget) {
     for (QWidget* ancestor = widget; ancestor != nullptr;
          ancestor = ancestor->parentWidget()) {
@@ -1903,23 +1881,25 @@ void ConfigDialog::RefinePreferencesControls() {
     if (combo == nullptr || is_inside_table(combo)) {
       continue;
     }
+    combo->setMaximumWidth(QWIDGETSIZE_MAX);
     combo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+    combo->style()->unpolish(combo);
+    combo->style()->polish(combo);
+    // Prefer the wider of Qt's sizeHint and an explicit text+QSS measure.
+    // QSS uses padding 6px 28px 6px 11px plus a 22px drop-down slot.
     const QFontMetrics metrics(combo->font());
-    int widest = metrics.horizontalAdvance(QStringLiteral("MMMMMMMM"));
+    int text_w = metrics.horizontalAdvance(QStringLiteral("MMMMMMMM"));
     for (int i = 0; i < combo->count(); ++i) {
-      widest = std::max(widest, metrics.horizontalAdvance(combo->itemText(i)));
+      text_w =
+          std::max(text_w, metrics.horizontalAdvance(combo->itemText(i)));
     }
-    const int content = widest + 44;  // padding + chevron
-    int width = 168;
-    if (content <= 140) {
-      width = 140;
-    } else if (content <= 200) {
-      width = 180;
-    } else if (content <= 260) {
-      width = 240;
-    } else {
-      width = std::min(content, 300);
-    }
+    constexpr int kQssChrome = 11 + 28 + 2 + 22;  // pads + borders + arrow
+    constexpr int kMin = 128;
+    constexpr int kMax = 420;
+    const int from_text = text_w + kQssChrome;
+    const int from_hint = combo->sizeHint().width() + 12;
+    const int width =
+        std::clamp(std::max(from_text, from_hint), kMin, kMax);
     combo->setFixedWidth(width);
     combo->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
   }
@@ -2100,13 +2080,16 @@ void ConfigDialog::ApplyPreferencesChrome() {
   }
   if (auto* brand =
           findChild<QLabel*>(QStringLiteral("preferencesBrand"))) {
-    constexpr int kLogoWidth = 228 - 14 - 14;
+    using Spacing = config_dialog_theme::Spacing;
+    const int logo_w = Spacing::sidebar_width - Spacing::sidebar_pad_l -
+                       Spacing::sidebar_pad_r -
+                       Spacing::logo_right_clearance;
     const QPixmap logo = LoadPreferencesBrandLogo(
-        dark, kLogoWidth, brand->devicePixelRatioF());
+        dark, logo_w, brand->devicePixelRatioF());
     if (!logo.isNull()) {
       brand->setPixmap(logo);
       brand->setFixedHeight(qRound(logo.height() / logo.devicePixelRatioF()));
-      brand->setMinimumWidth(kLogoWidth);
+      brand->setFixedWidth(logo_w);
       brand->setText(QString());
     }
   }
@@ -2178,27 +2161,31 @@ void ConfigDialog::Reload() {
   }
 }
 
-bool ConfigDialog::Update() {
+bool ConfigDialog::Update(bool quiet_validation) {
   config::Config config;
   ConvertToProto(&config);
 
   if (config.session_keymap() == config::Config::CUSTOM &&
       config.custom_keymap_table().empty()) {
-    QMessageBox::warning(this, windowTitle(),
-                         tr("The current custom keymap table is empty. "
-                            "When custom keymap is selected, "
-                            "you must customize it."));
+    if (!quiet_validation) {
+      QMessageBox::warning(this, windowTitle(),
+                           tr("The current custom keymap table is empty. "
+                              "When custom keymap is selected, "
+                              "you must customize it."));
+    }
     return false;
   }
 
   if (shortcuts_tab_) {
     QString shortcut_error;
     if (!shortcuts_tab_->ValidateBeforeApply(&shortcut_error)) {
-      QMessageBox::warning(
-          this, windowTitle(),
-          shortcut_error.isEmpty()
-              ? tr("Number-row shortcut bindings are invalid.")
-              : shortcut_error);
+      if (!quiet_validation) {
+        QMessageBox::warning(
+            this, windowTitle(),
+            shortcut_error.isEmpty()
+                ? tr("Number-row shortcut bindings are invalid.")
+                : shortcut_error);
+      }
       return false;
     }
   }
@@ -2664,23 +2651,9 @@ void ConfigDialog::ConvertToProto(config::Config* config) const {
 #undef GET_CHECKBOX
 
 void ConfigDialog::clicked(QAbstractButton* button) {
-  switch (configDialogButtonBox->buttonRole(button)) {
-    case QDialogButtonBox::AcceptRole:
-      if (Update()) {
-        // Defer accept() so we are not destroying the dialog from inside the
-        // button signal handler (avoids macOS "quit unexpectedly" reports).
-        QTimer::singleShot(0, this, &QDialog::accept);
-      }
-      break;
-    case QDialogButtonBox::ApplyRole:
-      Update();
-      break;
-    case QDialogButtonBox::RejectRole:
-      QTimer::singleShot(0, this, &QDialog::reject);
-      break;
-    default:
-      break;
-  }
+  // Cancel · Apply · OK were removed; Preferences auto-saves. Kept so the
+  // moc-generated slot remains linked if a platform still emits it.
+  Q_UNUSED(button);
 }
 
 void ConfigDialog::ClearUserHistory() {
@@ -2763,6 +2736,7 @@ void ConfigDialog::EditKeymap() {
     custom_keymap_table_ = output;
     // set keymapSettingComboBox to "Custom keymap"
     keymapSettingComboBox->setCurrentIndex(0);
+    FlushAutoSave();
   }
 }
 
@@ -2770,7 +2744,7 @@ void ConfigDialog::EditRomanTable() {
   std::string output;
   if (gui::RomanTableEditorDialog::Show(this, custom_roman_table_, &output)) {
     custom_roman_table_ = output;
-    EnableApplyButton();
+    FlushAutoSave();
   }
 }
 
@@ -2779,7 +2753,7 @@ void ConfigDialog::EditKaeritenTable() {
   if (gui::KaeritenTableEditorDialog::Show(this, custom_kaeriten_table_,
                                            &output)) {
     custom_kaeriten_table_ = output;
-    EnableApplyButton();
+    FlushAutoSave();
   }
 }
 
@@ -2822,7 +2796,10 @@ void ConfigDialog::ResetToDefaults() {
                             QMessageBox::Cancel)) {
     // TODO(taku): remove the dependency to config::ConfigHandler
     // nice to have GET_DEFAULT_CONFIG command
+    autosave_suppressed_ = true;
     ConvertFromProto(config::ConfigHandler::DefaultConfig());
+    autosave_suppressed_ = false;
+    FlushAutoSave();
   }
 }
 
@@ -2833,7 +2810,54 @@ void ConfigDialog::LaunchAdministrationDialog() {
 }
 
 void ConfigDialog::EnableApplyButton() {
-  configDialogButtonBox->button(QDialogButtonBox::Apply)->setEnabled(true);
+  ScheduleAutoSave();
+}
+
+void ConfigDialog::ScheduleAutoSave() {
+  if (autosave_suppressed_) {
+    return;
+  }
+  // A change arrived while SetConfig (or an error dialog) is still running:
+  // mark dirty so RunAutoSave repeats with the latest UI after it returns.
+  if (autosave_in_progress_) {
+    autosave_dirty_ = true;
+    return;
+  }
+  if (autosave_timer_ == nullptr) {
+    return;
+  }
+  autosave_timer_->start();
+}
+
+void ConfigDialog::RunAutoSave(bool quiet_validation) {
+  if (autosave_suppressed_) {
+    return;
+  }
+  if (autosave_in_progress_) {
+    autosave_dirty_ = true;
+    return;
+  }
+  autosave_in_progress_ = true;
+  do {
+    autosave_dirty_ = false;
+    // Always read ConvertToProto at the start of each pass so a newer UI
+    // state cannot be overwritten by an older in-flight snapshot.
+    Update(quiet_validation);
+  } while (autosave_dirty_);
+  autosave_in_progress_ = false;
+}
+
+void ConfigDialog::FlushAutoSave() {
+  if (autosave_timer_ != nullptr) {
+    autosave_timer_->stop();
+  }
+  // Closing and editor commits must surface validation problems.
+  RunAutoSave(/*quiet_validation=*/false);
+}
+
+void ConfigDialog::closeEvent(QCloseEvent* event) {
+  FlushAutoSave();
+  QDialog::closeEvent(event);
 }
 
 ConfigDialog::~ConfigDialog() = default;
@@ -2882,8 +2906,8 @@ void ConfigDialog::showEvent(QShowEvent *event) {
   }
   // macOS sometimes restores a smaller geometry from the process before our
   // shell resize sticks. Re-assert the preferred size on first show.
-  if (width() < 1000 || height() < 700) {
-    resize(1020, 740);
+  if (width() < 1000 || height() < 660) {
+    resize(1020, 700);
   }
   if (auto* title =
           findChild<QLabel*>(QStringLiteral("preferencesPageTitle"))) {

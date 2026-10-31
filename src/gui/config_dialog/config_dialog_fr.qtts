@@ -505,6 +505,20 @@
         <source>Reset to defaults</source>
         <translation>Réinitialiser les paramètres par défaut</translation>
     </message>
+
+    <!-- marinaMoji Preferences localisation top-up -->
+    <message>
+        <source>Show explanations</source>
+        <translation>Afficher les explications</translation>
+    </message>
+    <message>
+        <source>Hide explanations</source>
+        <translation>Masquer les explications</translation>
+    </message>
+    <message>
+        <source>Suggestion sources</source>
+        <translation>Sources des suggestions</translation>
+    </message>
 </context>
 <context>
     <name>GenericTableEditorDialog</name>
@@ -976,6 +990,220 @@ Try running %3 in Terminal and check %4.</source>
 %2
 
 Essayez d’exécuter %3 dans le Terminal et consultez %4.</translation>
+    </message>
+
+    <!-- marinaMoji Preferences localisation top-up -->
+    <message>
+        <source>Input mode</source>
+        <translation>Mode de saisie</translation>
+    </message>
+    <message>
+        <source>Sets the default writing mode when marinaMoji starts: hiragana, katakana, half-width katakana, or direct (Latin) input. You can still change mode from the toolbar or keyboard while typing.</source>
+        <translation>Définit le mode d’écriture par défaut au démarrage de marinaMoji : hiragana, katakana, katakana demi-chasse ou saisie directe (latin). Vous pouvez toujours changer de mode depuis la barre d’outils ou le clavier pendant la saisie.</translation>
+    </message>
+    <message>
+        <source>Punctuation style</source>
+        <translation>Style de ponctuation</translation>
+    </message>
+    <message>
+        <source>Chooses whether period and comma keys produce Japanese punctuation (、。) or Western forms (，．) while composing.</source>
+        <translation>Choisit si les touches point et virgule produisent la ponctuation japonaise (、。) ou les formes occidentales (，．) pendant la composition.</translation>
+    </message>
+    <message>
+        <source>Japanese  、。
+Alternative  ，．</source>
+        <translation>Japonais  、。
+Autre forme  ，．</translation>
+    </message>
+    <message>
+        <source>Symbol style</source>
+        <translation>Style des symboles</translation>
+    </message>
+    <message>
+        <source>Controls whether symbols such as brackets and currency signs are inserted in fullwidth or halfwidth form by default.</source>
+        <translation>Contrôle si les symboles (parenthèses, signes monétaires, etc.) sont insérés par défaut en pleine chasse ou en demi-chasse.</translation>
+    </message>
+    <message>
+        <source>Space input style</source>
+        <translation>Style d’espace</translation>
+    </message>
+    <message>
+        <source>Decides whether the space bar inserts a fullwidth or halfwidth space, or follows the current character-width rules.</source>
+        <translation>Décide si la barre d’espace insère une espace pleine chasse ou demi-chasse, ou suit les règles de chasse en cours.</translation>
+    </message>
+    <message>
+        <source>Automatically switch to halfwidth</source>
+        <translation>Passer automatiquement en demi-chasse</translation>
+    </message>
+    <message>
+        <source>After certain punctuation, marinaMoji can switch temporarily to halfwidth input so Latin letters and digits stay compact without leaving Japanese mode.</source>
+        <translation>Après certaines ponctuations, marinaMoji peut passer temporairement en saisie demi-chasse afin que lettres latines et chiffres restent compacts sans quitter le mode japonais.</translation>
+    </message>
+    <message>
+        <source>Convert at punctuations</source>
+        <translation>Convertir à la ponctuation</translation>
+    </message>
+    <message>
+        <source>When enabled, typing selected punctuation (。、? !) ends the current phrase and converts it automatically, similar to pressing Space then Enter on many Japanese IMEs. Use the checkboxes to choose which marks trigger conversion.</source>
+        <translation>Lorsqu’elle est activée, la saisie de certaines ponctuations (。、? !) termine la phrase en cours et la convertit automatiquement, comme Espace puis Entrée sur de nombreux IME japonais. Utilisez les cases pour choisir les signes déclencheurs.</translation>
+    </message>
+    <message>
+        <source>Initial conversion mode</source>
+        <translation>Mode de conversion initial</translation>
+    </message>
+    <message>
+        <source>Manual mode waits for Space (or your convert key) before showing kanji candidates. Live mode offers conversions while you type, which feels closer to predictive input.</source>
+        <translation>Le mode manuel attend Espace (ou votre touche de conversion) avant d’afficher les candidats kanji. Le mode en direct propose des conversions pendant la saisie, plus proche d’une saisie prédictive.</translation>
+    </message>
+    <message>
+        <source>Two-step Enter after conversion</source>
+        <translation>Entrée en deux temps après conversion</translation>
+    </message>
+    <message>
+        <source>When enabled, the first Enter confirms the conversion candidate and the second Enter commits the text. Useful if you often refine candidates before inserting them. This option is experimental.</source>
+        <translation>Lorsqu’elle est activée, la première Entrée confirme le candidat et la seconde valide le texte. Utile si vous affinez souvent les candidats avant insertion. Option expérimentale.</translation>
+    </message>
+    <message>
+        <source>Initial kanji style</source>
+        <translation>Style de kanji initial</translation>
+    </message>
+    <message>
+        <source>Shin (modern) forms are everyday shinjitai. Kyū (traditional) converts dictionary results toward kyūjitai using OpenCC and marinaMoji’s custom tables—helpful for historical texts. You can still toggle shin/kyū from the toolbar while writing.</source>
+        <translation>Les formes shin (modernes) sont les shinjitai courants. Kyū (traditionnel) oriente les résultats du dictionnaire vers le kyūjitai via OpenCC et les tables marinaMoji—utile pour les textes historiques. Vous pouvez toujours basculer shin/kyū depuis la barre d’outils.</translation>
+    </message>
+    <message>
+        <source>Shin  国 学
+Kyū   國 學</source>
+        <translation>Shin  国 学
+Kyū   國 學</translation>
+    </message>
+    <message>
+        <source>Detailed width rules</source>
+        <translation>Règles de chasse détaillées</translation>
+    </message>
+    <message>
+        <source>For each character group (letters, digits, punctuation, and so on), choose whether composition and conversion should prefer fullwidth or halfwidth forms. This table is the fine-grained companion to the simpler spacing and symbol settings above.</source>
+        <translation>Pour chaque groupe de caractères (lettres, chiffres, ponctuation, etc.), choisissez si la composition et la conversion préfèrent la pleine chasse ou la demi-chasse. Ce tableau précise les réglages plus simples d’espaces et de symboles ci-dessus.</translation>
+    </message>
+    <message>
+        <source>Learning / personalization</source>
+        <translation>Apprentissage / personnalisation</translation>
+    </message>
+    <message>
+        <source>Controls how strongly past conversions influence new suggestions. Clear personalization data removes that learned history; it does not delete your user dictionary entries.</source>
+        <translation>Contrôle à quel point les conversions passées influencent les nouvelles suggestions. Effacer la personnalisation supprime cet historique appris, sans supprimer les entrées du dictionnaire personnel.</translation>
+    </message>
+    <message>
+        <source>Personal dictionary</source>
+        <translation>Dictionnaire personnel</translation>
+    </message>
+    <message>
+        <source>Your own readings and spellings—names, archaic forms, specialist terms. Edit user symbols maintains short strings that appear on the User tab of the toolbar Symbols palette.</source>
+        <translation>Vos propres lectures et orthographes—noms, formes archaïques, termes spécialisés. Modifier les symboles utilisateur gère les courtes chaînes de l’onglet Utilisateur de la palette Symboles.</translation>
+    </message>
+    <message>
+        <source>Dictionary sources</source>
+        <translation>Sources de dictionnaire</translation>
+    </message>
+    <message>
+        <source>Usage and related dictionaries adjust how frequent phrases are ranked and how similar readings are disambiguated.</source>
+        <translation>Les dictionnaires d’usage et apparentés influencent le classement des locutions fréquentes et la distinction des lectures proches.</translation>
+    </message>
+    <message>
+        <source>Scholarly vocabulary</source>
+        <translation>Vocabulaire savant</translation>
+    </message>
+    <message>
+        <source>Optional dictionary packs add specialised vocabulary (for example historical or domain-specific terms) without changing everyday conversion when left disabled.</source>
+        <translation>Des paquets de dictionnaire optionnels ajoutent un vocabulaire spécialisé (termes historiques ou de domaine) sans modifier la conversion quotidienne s’ils restent désactivés.</translation>
+    </message>
+    <message>
+        <source>Special conversions</source>
+        <translation>Conversions spéciales</translation>
+    </message>
+    <message>
+        <source>Fine-tunes conversions such as date/time and symbol or emoji expansion. Disable entries that interrupt scholarly typing.</source>
+        <translation>Affine les conversions telles que date/heure et l’expansion de symboles ou d’emoji. Désactivez les entrées qui gênent une saisie savante.</translation>
+    </message>
+    <message>
+        <source>Keymap</source>
+        <translation>Disposition des touches</translation>
+    </message>
+    <message>
+        <source>Chooses a familiar shortcut layout (for example MS-IME or Kotoeri). Customize… remaps individual keys; the romaji table includes marinaMoji’s historical-kana entries.</source>
+        <translation>Choisit une disposition de raccourcis familière (par ex. MS-IME ou Kotoeri). Personnaliser… réaffecte des touches ; la table romaji inclut les entrées de kana historiques de marinaMoji.</translation>
+    </message>
+    <message>
+        <source>Shift key mode switch</source>
+        <translation>Basculement de mode par Maj</translation>
+    </message>
+    <message>
+        <source>Configures how Shift interacts with Japanese ↔ direct input and related mode changes. Shortcuts preferences can also disable the Left Shift toggle or use double-tap Left Shift to lock a mode.</source>
+        <translation>Configure l’interaction de Maj avec le japonais ↔ saisie directe et les changements de mode associés. Les préférences de raccourcis peuvent aussi désactiver le basculement Maj gauche ou utiliser un double appui pour verrouiller un mode.</translation>
+    </message>
+    <message>
+        <source>Mode indicator</source>
+        <translation>Indicateur de mode</translation>
+    </message>
+    <message>
+        <source>Shows a small on-screen cue for the current input mode near the cursor, which helps when the toolbar is hidden.</source>
+        <translation>Affiche près du curseur un petit indicateur du mode de saisie actuel, utile lorsque la barre d’outils est masquée.</translation>
+    </message>
+    <message>
+        <source>Kaeriten reading marks are entered with a semicolon followed by a key. Edit the table to change the key portion; the leading semicolon is required.</source>
+        <translation>Les marques de lecture kaeriten s’entrent avec un point-virgule suivi d’une touche. Modifiez la table pour changer la touche ; le point-virgule initial est obligatoire.</translation>
+    </message>
+    <message>
+        <source>Use input history</source>
+        <translation>Utiliser l’historique de saisie</translation>
+    </message>
+    <message>
+        <source>Offers candidates based on what you have converted before. Turn this off, or use Secret mode, when you do not want local history to influence suggestions.</source>
+        <translation>Propose des candidats d’après vos conversions passées. Désactivez cette option, ou utilisez le mode secret, si vous ne voulez pas que l’historique local influence les suggestions.</translation>
+    </message>
+    <message>
+        <source>Use system dictionary</source>
+        <translation>Utiliser le dictionnaire système</translation>
+    </message>
+    <message>
+        <source>Includes candidates from the main system lexicon while you type, before a full Space conversion.</source>
+        <translation>Inclut des candidats du lexique système principal pendant la saisie, avant une conversion complète par Espace.</translation>
+    </message>
+    <message>
+        <source>Use realtime conversion</source>
+        <translation>Utiliser la conversion en temps réel</translation>
+    </message>
+    <message>
+        <source>Shows kanji guesses in the pre-edit line as you type romaji, before you press Space for a full conversion.</source>
+        <translation>Affiche des suggestions de kanji dans la ligne de préédition pendant la saisie romaji, avant Espace pour une conversion complète.</translation>
+    </message>
+    <message>
+        <source>Secret mode</source>
+        <translation>Mode secret</translation>
+    </message>
+    <message>
+        <source>Temporarily disables personalization, history-based suggestions, and the user dictionary—useful on shared machines or sensitive drafts. It also skips exporting history during synchronisation.</source>
+        <translation>Désactive temporairement la personnalisation, les suggestions basées sur l’historique et le dictionnaire personnel—utile sur les machines partagées ou pour des brouillons sensibles. N’exporte pas non plus l’historique lors de la synchronisation.</translation>
+    </message>
+    <message>
+        <source>Presentation mode</source>
+        <translation>Mode présentation</translation>
+    </message>
+    <message>
+        <source>Turns off all suggestions for demos or screen sharing so candidates do not appear unexpectedly.</source>
+        <translation>Désactive toutes les suggestions pour les démonstrations ou le partage d’écran, afin que les candidats n’apparaissent pas de façon inattendue.</translation>
+    </message>
+    <message>
+        <source>Synchronisation</source>
+        <translation>Synchronisation</translation>
+    </message>
+    <message>
+        <source>Encrypted sync shares dictionary and/or learning history through a file you control (for example in Nextcloud). Generate or enter a sync key on each device; marinaMoji stores the key only locally.</source>
+        <translation>La synchronisation chiffrée partage le dictionnaire et/ou l’historique d’apprentissage via un fichier que vous contrôlez (par ex. dans Nextcloud). Générez ou saisissez une clé sur chaque appareil ; marinaMoji ne la conserve que localement.</translation>
+    </message>
+    <message>
+        <source>About this setting</source>
+        <translation>À propos de ce paramètre</translation>
     </message>
 </context>
 <context>
@@ -1513,6 +1741,20 @@ Ouvrir la page de téléchargement ?</translation>
  - Saisie historique
  - Statistiques d'utilisation et rapports de plantage
  - Paramètres de l'administrateur</translation>
+    </message>
+
+    <!-- marinaMoji Preferences localisation top-up -->
+    <message>
+        <source>Show explanations</source>
+        <translation>Afficher les explications</translation>
+    </message>
+    <message>
+        <source>Hide explanations</source>
+        <translation>Masquer les explications</translation>
+    </message>
+    <message>
+        <source>Suggestion sources</source>
+        <translation>Sources des suggestions</translation>
     </message>
 </context>
 <context>
