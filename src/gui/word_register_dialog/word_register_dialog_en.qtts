@@ -6,36 +6,44 @@
     <message>
         <location filename="word_register_dialog.ui" line="26"/>
         <source>[ProductName] Word Register Dialog</source>
-        <translation type="unfinished"></translation>
+        <translation>[ProductName] Add Word</translation>
     </message>
     <message>
         <location filename="word_register_dialog.ui" line="52"/>
         <source>Word</source>
-        <translation type="unfinished"></translation>
+        <translation>Word</translation>
     </message>
     <message>
         <location filename="word_register_dialog.ui" line="59"/>
         <source>Reading</source>
-        <translation type="unfinished"></translation>
+        <translation>Reading</translation>
     </message>
     <message>
         <location filename="word_register_dialog.ui" line="66"/>
         <source>Part of Speech</source>
-        <translation type="unfinished"></translation>
+        <translation>Part of Speech</translation>
     </message>
     <message>
         <location filename="word_register_dialog.ui" line="73"/>
         <source>Dictionary</source>
-        <translation type="unfinished"></translation>
+        <translation>Dictionary</translation>
     </message>
     <message>
         <location filename="word_register_dialog.ui" line="125"/>
         <source>Edit user dictionary...</source>
-        <translation type="unfinished"></translation>
+        <translation>Edit user dictionary...</translation>
     </message>
 </context>
 <context>
     <name>mozc::gui::WordRegisterDialog</name>
+    <message>
+        <source>Add word</source>
+        <translation>Add word</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Cancel</translation>
+    </message>
     <message>
         <location filename="word_register_dialog.cc" line="32"/>
         <source>[ProductName]</source>

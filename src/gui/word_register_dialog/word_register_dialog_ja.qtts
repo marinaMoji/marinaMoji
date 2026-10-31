@@ -37,6 +37,14 @@
 <context>
     <name>mozc::gui::WordRegisterDialog</name>
     <message>
+        <source>Add word</source>
+        <translation>登録</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
         <location filename="word_register_dialog.cc" line="32"/>
         <source>[ProductName]</source>
         <translation>[ProductName]</translation>

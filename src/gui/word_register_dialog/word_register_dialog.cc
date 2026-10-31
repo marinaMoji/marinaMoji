@@ -29,8 +29,17 @@
 
 #include "gui/word_register_dialog/word_register_dialog.h"
 
+#include <QAbstractButton>
+#include <QDialogButtonBox>
+#include <QGridLayout>
+#include <QLabel>
+#include <QLayout>
 #include <QMessageBox>
+#include <QPushButton>
+#include <QSizePolicy>
+#include <QStyle>
 #include <QtGui>
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <functional>
@@ -51,6 +60,7 @@
 #include "dictionary/user_dictionary_util.h"
 #include "dictionary/user_pos.h"
 #include "gui/base/util.h"
+#include "gui/config_dialog/config_dialog_theme.h"
 #include "protocol/user_dictionary_storage.pb.h"
 
 #if defined(__ANDROID__) || defined(__wasm__)
@@ -111,6 +121,132 @@ QString GetEnv(const char* envname) {
 #endif  // __APPLE__ or __linux__
   // TODO(team): Support other platforms.
   return QLatin1String("");
+}
+
+namespace theme = config_dialog_theme;
+
+// Preferences colours/focus only — denser than the Settings page rhythm.
+QString CompactWordRegisterStylesheet(bool dark) {
+  QString qss = theme::Stylesheet(dark);
+  qss.replace(QStringLiteral("QDialog#ConfigDialog"),
+              QStringLiteral("QDialog#WordRegisterDialog"));
+  // Do not override QDialogButtonBox button-layout — keep native Cancel/OK order.
+  qss += QStringLiteral(
+      "QDialog#WordRegisterDialog QLabel {"
+      "  padding: 0; margin: 0; }"
+      "QDialog#WordRegisterDialog QLineEdit {"
+      "  padding: 1px 5px; min-height: 20px; max-height: 24px; }"
+      "QDialog#WordRegisterDialog QComboBox {"
+      "  padding: 1px 20px 1px 5px; min-height: 20px; max-height: 24px; }"
+      "QDialog#WordRegisterDialog QPushButton {"
+      "  min-height: 0; max-height: 24px; padding: 2px 8px; }"
+      "QDialog#WordRegisterDialog QPushButton[role=\"primary\"] {"
+      "  padding: 2px 10px; }"
+      "QDialog#WordRegisterDialog QPushButton[role=\"secondary\"] {"
+      "  padding: 2px 8px; }"
+      "QDialog#WordRegisterDialog QPushButton[role=\"disclosure\"] {"
+      "  padding: 1px 0; max-height: none; }");
+  return qss;
+}
+
+void ApplyWordRegisterChrome(WordRegisterDialog* dialog, QLabel* word_label,
+                             QLabel* reading_label, QLabel* pos_label,
+                             QLabel* dictionary_label,
+                             QPushButton* manage_dictionaries,
+                             QDialogButtonBox* button_box) {
+  if (dialog == nullptr) {
+    return;
+  }
+  dialog->setStyleSheet(CompactWordRegisterStylesheet(theme::IsDark()));
+
+  // Compact utility type (Preferences family, not page-label size).
+  const QFont label_font =
+      theme::UiFont(theme::Type::secondary, QFont::Normal);
+  int label_column_width = 0;
+  for (QLabel* label :
+       {word_label, reading_label, pos_label, dictionary_label}) {
+    if (label == nullptr) {
+      continue;
+    }
+    label->setFont(label_font);
+    label->setWordWrap(false);
+    label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
+    label_column_width =
+        std::max(label_column_width, label->sizeHint().width());
+  }
+  // Keep labels in one narrow aligned column.
+  label_column_width = std::min(std::max(label_column_width + 2, 72), 120);
+  for (QLabel* label :
+       {word_label, reading_label, pos_label, dictionary_label}) {
+    if (label != nullptr) {
+      label->setFixedWidth(label_column_width);
+    }
+  }
+
+  if (manage_dictionaries != nullptr) {
+    manage_dictionaries->setProperty("role", QStringLiteral("disclosure"));
+    manage_dictionaries->setCursor(Qt::PointingHandCursor);
+    manage_dictionaries->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    manage_dictionaries->setFont(label_font);
+    // Keep long FR/JA captions from forcing the window wider.
+    manage_dictionaries->setMaximumWidth(200);
+  }
+
+  if (button_box != nullptr) {
+    button_box->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    // Native platform order (macOS: Cancel … Add word on the far right).
+    button_box->setCenterButtons(false);
+    if (auto* ok =
+            qobject_cast<QPushButton*>(button_box->button(QDialogButtonBox::Ok))) {
+      ok->setText(dialog->tr("Add word"));
+      ok->setProperty("role", QStringLiteral("primary"));
+      ok->setDefault(true);
+      ok->setAutoDefault(true);
+      ok->style()->unpolish(ok);
+      ok->style()->polish(ok);
+    }
+    if (auto* cancel = qobject_cast<QPushButton*>(
+            button_box->button(QDialogButtonBox::Cancel))) {
+      // Explicit caption so Cancel follows app locale (qt_*.qm is not always
+      // present for every preferred language on macOS).
+      cancel->setText(dialog->tr("Cancel"));
+      cancel->setProperty("role", QStringLiteral("secondary"));
+      cancel->setDefault(false);
+      cancel->setAutoDefault(false);
+      cancel->style()->unpolish(cancel);
+      cancel->style()->polish(cancel);
+    }
+  }
+
+  if (auto* fields =
+          dialog->findChild<QGridLayout*>(QStringLiteral("fieldsLayout"))) {
+    fields->setColumnStretch(0, 0);
+    fields->setColumnStretch(1, 0);
+    fields->setColumnMinimumWidth(0, label_column_width);
+  }
+
+  // ~15–20% narrower than the previous 420×250 utility band.
+  if (QLayout* root = dialog->layout()) {
+    root->setSizeConstraint(QLayout::SetMinAndMaxSize);
+  }
+  dialog->setMinimumSize(340, 210);
+  dialog->setMaximumSize(380, 250);
+  dialog->adjustSize();
+  QSize hint = dialog->sizeHint();
+  int width = hint.width();
+  int height = hint.height();
+  if (width < 340) {
+    width = 340;
+  } else if (width > 380) {
+    width = 380;
+  }
+  if (height < 210) {
+    height = 210;
+  } else if (height > 250) {
+    height = 250;
+  }
+  dialog->resize(width, height);
+  dialog->setFixedSize(dialog->size());
 }
 }  // namespace
 
@@ -213,6 +349,10 @@ WordRegisterDialog::WordRegisterDialog()
 
   UpdateUIStatus();
   GuiUtil::ReplaceWidgetLabels(this);
+
+  ApplyWordRegisterChrome(this, Wordlabel, ReadingLabel, PartOfSpeechlabel,
+                          Dictionarylabel, LaunchDictionaryToolpushButton,
+                          WordRegisterDialogbuttonBox);
 
   // Turn on IME
   EnableIME();
@@ -573,3 +713,8 @@ void WordRegisterDialog::EnableIME() {
 }
 }  // namespace gui
 }  // namespace mozc
+
+// density
+// denser-pass
+// sizeband
+// final-compact

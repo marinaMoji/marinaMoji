@@ -37,54 +37,72 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>340</width>
-    <height>180</height>
+    <width>360</width>
+    <height>230</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>340</width>
-    <height>180</height>
+    <height>0</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>340</width>
-    <height>180</height>
+    <width>380</width>
+    <height>16777215</height>
    </size>
   </property>
   <property name="windowTitle">
    <string>[ProductName] Word Register Dialog</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout_2">
-   <property name="margin">
+  <property name="sizeGripEnabled">
+   <bool>false</bool>
+  </property>
+  <layout class="QVBoxLayout" name="outerLayout">
+   <property name="leftMargin">
+    <number>12</number>
+   </property>
+   <property name="topMargin">
+    <number>10</number>
+   </property>
+   <property name="rightMargin">
+    <number>12</number>
+   </property>
+   <property name="bottomMargin">
+    <number>8</number>
+   </property>
+   <property name="spacing">
     <number>6</number>
    </property>
-   <item row="0" column="0">
-    <layout class="QGridLayout" name="gridLayout">
-     <property name="margin">
-      <number>6</number>
+   <item>
+    <layout class="QGridLayout" name="fieldsLayout">
+     <property name="horizontalSpacing">
+      <number>8</number>
      </property>
-     <item row="0" column="1" colspan="3">
-      <widget class="QLineEdit" name="WordlineEdit"/>
-     </item>
-     <item row="1" column="1" colspan="3">
-      <widget class="QComboBox" name="ReadinglineEdit">
-       <property name="editable">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1" colspan="2">
-      <widget class="QComboBox" name="PartOfSpeechcomboBox"/>
-     </item>
-     <item row="3" column="1" colspan="3">
-      <widget class="QComboBox" name="DictionarycomboBox"/>
-     </item>
+     <property name="verticalSpacing">
+      <number>4</number>
+     </property>
      <item row="0" column="0">
       <widget class="QLabel" name="Wordlabel">
        <property name="text">
         <string>Word</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignVCenter</set>
+       </property>
+       <property name="buddy">
+        <cstring>WordlineEdit</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="WordlineEdit">
+       <property name="maximumSize">
+        <size>
+         <width>240</width>
+         <height>16777215</height>
+        </size>
        </property>
       </widget>
      </item>
@@ -93,71 +111,183 @@
        <property name="text">
         <string>Reading</string>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignVCenter</set>
+       </property>
+       <property name="buddy">
+        <cstring>ReadinglineEdit</cstring>
+       </property>
       </widget>
      </item>
-     <item row="2" column="0">
+     <item row="1" column="1">
+      <widget class="QComboBox" name="ReadinglineEdit">
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>240</width>
+         <height>16777215</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0" colspan="2">
+      <spacer name="pairGap">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Fixed</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>0</width>
+         <height>6</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item row="3" column="0">
       <widget class="QLabel" name="PartOfSpeechlabel">
        <property name="text">
         <string>Part of Speech</string>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignVCenter</set>
+       </property>
+       <property name="buddy">
+        <cstring>PartOfSpeechcomboBox</cstring>
+       </property>
       </widget>
      </item>
-     <item row="3" column="0">
+     <item row="3" column="1">
+      <layout class="QHBoxLayout" name="posControlRow">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QComboBox" name="PartOfSpeechcomboBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>120</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>150</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="posStretch">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>1</width>
+           <height>1</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item row="4" column="0">
       <widget class="QLabel" name="Dictionarylabel">
        <property name="text">
         <string>Dictionary</string>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignVCenter</set>
+       </property>
+       <property name="buddy">
+        <cstring>DictionarycomboBox</cstring>
+       </property>
       </widget>
      </item>
-     <item row="2" column="3">
-      <spacer name="horizontalSpacer">
+     <item row="4" column="1">
+      <widget class="QComboBox" name="DictionarycomboBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>240</width>
+         <height>16777215</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <spacer name="footerGap">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>0</width>
+       <height>4</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="footerLayout">
+     <property name="spacing">
+      <number>6</number>
+     </property>
+     <item>
+      <widget class="QPushButton" name="LaunchDictionaryToolpushButton">
+       <property name="text">
+        <string>Edit user dictionary...</string>
+       </property>
+       <property name="flat">
+        <bool>true</bool>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="footerStretch">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
-         <width>40</width>
-         <height>20</height>
+         <width>8</width>
+         <height>8</height>
         </size>
        </property>
       </spacer>
      </item>
-     <item row="4" column="0" colspan="4">
-      <spacer name="verticalSpacer">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>40</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item row="5" column="2" colspan="2">
+     <item>
       <widget class="QDialogButtonBox" name="WordRegisterDialogbuttonBox">
        <property name="standardButtons">
         <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
        </property>
-      </widget>
-     </item>
-     <item row="5" column="0" colspan="2">
-      <widget class="QPushButton" name="LaunchDictionaryToolpushButton">
-       <property name="minimumSize">
-        <size>
-         <width>140</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>200</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Edit user dictionary...</string>
+       <property name="centerButtons">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
