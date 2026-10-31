@@ -36,7 +36,6 @@
 #include "gui/config_dialog/preferences_explanations.h"
 
 #include <QCheckBox>
-#include <QCloseEvent>
 #include <QComboBox>
 #include <QProcess>
 #include <QFileInfo>
@@ -2903,9 +2902,9 @@ void ConfigDialog::FlushAutoSave() {
   RunAutoSave(/*quiet_validation=*/false);
 }
 
-void ConfigDialog::closeEvent(QCloseEvent* event) {
+void ConfigDialog::done(int result) {
   FlushAutoSave();
-  QDialog::closeEvent(event);
+  QDialog::done(result);
 }
 
 ConfigDialog::~ConfigDialog() = default;

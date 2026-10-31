@@ -211,9 +211,9 @@ mozc_cc_qt_library(
     hdrs = [
         "character_form_editor.h",
         "config_dialog.h",
-        "config_dialog_theme.h",
         "config_dialog_shortcuts_tab.h",
         "config_dialog_sync_tab.h",
+        "config_dialog_theme.h",
         "generic_table_editor.h",
         "kaeriten_table_editor.h",
         "keybinding_editor.h",

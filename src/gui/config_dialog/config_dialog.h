@@ -32,7 +32,6 @@
 #ifndef MOZC_GUI_CONFIG_DIALOG_CONFIG_DIALOG_H_
 #define MOZC_GUI_CONFIG_DIALOG_CONFIG_DIALOG_H_
 
-#include <QCloseEvent>
 #include <QObject>
 #include <QTimer>
 #include <map>
@@ -98,7 +97,9 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
  protected:
   bool eventFilter(QObject* obj, QEvent* event) override;
   void showEvent(QShowEvent* event) override;
-  void closeEvent(QCloseEvent* event) override;
+  // Esc, the window close button and Cmd/Ctrl+W all end in done(); closeEvent
+  // is not reached when reject() is called directly, so flush here.
+  void done(int result) override;
 
  private:
   void MaybeAutoCheckForUpdates();
