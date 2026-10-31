@@ -10,6 +10,27 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer: Japanese readings in kana, 旧字体/新字体 links
+
+`char_info.tsv` is rebuilt from Unicode 18.0 Unihan with three more columns:
+`kJapanese` (on in katakana, kun in hiragana; 23,959 characters, against about
+13,000 with the romanised `kJapaneseOn`/`kJapaneseKun`), and the directional
+`kJapaneseOldVariant`/`kJapaneseNewVariant`. The Unihan info under the preview
+shows the kana reading when there is one and adds "old form" and "new form"
+lines. Older `char_info.tsv` files without the columns still load. Not built or
+run on Windows or macOS here; the C++ test is Linux-only.
+
+`variants` also takes the pairs in two tables from cjkvi-variants
+(`cjkvi-variants.txt`, `hydzd-variants.txt`), in both directions, for characters
+that already have a row: 10,948 characters had variants, now 21,417, and 鐧 lists
+锏 鐗 𨰓. That repository has no licence file, so this is recorded in
+`data/character_info/README.md` as a maintainer decision; its
+`twedu-variants.txt` (from the Taiwanese MOE dictionary) is deliberately not used.
+
+Checked and not used: KANJIDIC2 would add readings to only 79 more characters
+(CC BY-SA); the MJ character table (CC BY-SA 2.1 JP) has no 鐧 row. 鐧 (U+9427)
+itself has no Japanese reading in Unihan, KANJIDIC2 or MJ.
+
 ### Release candidate 0.0.20-rc2
 
 Everything in 0.0.20-rc1 plus the entries below, and:

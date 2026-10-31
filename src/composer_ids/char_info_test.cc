@@ -9,6 +9,26 @@ namespace mozc {
 namespace composer_ids {
 namespace {
 
+TEST(CharInfoTableTest, ParsesJapaneseColumns) {
+  constexpr char kTsv[] =
+      "#char\tcp\tstrokes\tpinyin\tja_on\tja_kun\trs\tdefinition\tvariants\t"
+      "ja_kana\told_form\tnew_form\n"
+      "國\tU+570B\t11\tguó\tKOKU\tKUNI\t31.8\tnation\t国\tコク くに\t\t国\n";
+  auto table = CharInfoTable::FromTsv(kTsv);
+  ASSERT_TRUE(table.ok());
+  const CharInfo *info = table->Find("國");
+  ASSERT_NE(info, nullptr);
+  EXPECT_EQ(info->ja_kana, "コク くに");
+  EXPECT_EQ(info->old_form, "");
+  EXPECT_EQ(info->new_form, "国");
+}
+
+TEST(CharInfoTableTest, OldFilesWithoutJapaneseColumnsStillParse) {
+  auto table = CharInfoTable::FromTsv("謀\tU+8B00\t16\n");
+  ASSERT_TRUE(table.ok());
+  EXPECT_EQ(table->Find("謀")->ja_kana, "");
+}
+
 TEST(CharInfoTableTest, ParsesARow) {
   constexpr char kTsv[] =
       "#char\tcp\tstrokes\tpinyin\tja_on\tja_kun\trs\tdefinition\tvariants\n"

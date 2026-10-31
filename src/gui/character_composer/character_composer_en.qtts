@@ -40,6 +40,14 @@
         <translation>variants: %1</translation>
     </message>
     <message>
+        <source>old form: %1</source>
+        <translation>old form: %1</translation>
+    </message>
+    <message>
+        <source>new form: %1</source>
+        <translation>new form: %1</translation>
+    </message>
+    <message>
         <source>Use this form of the radical</source>
         <translation>Use this form of the radical</translation>
     </message>

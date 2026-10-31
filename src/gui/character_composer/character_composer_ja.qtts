@@ -40,6 +40,14 @@
         <translation>異体字: %1</translation>
     </message>
     <message>
+        <source>old form: %1</source>
+        <translation>旧字体: %1</translation>
+    </message>
+    <message>
+        <source>new form: %1</source>
+        <translation>新字体: %1</translation>
+    </message>
+    <message>
         <source>Use this form of the radical</source>
         <translation>この部首の字形を使う</translation>
     </message>

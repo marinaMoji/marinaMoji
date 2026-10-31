@@ -832,12 +832,24 @@ void CharacterComposerDialog::UpdateResult() {
         if (!meta.isEmpty()) lines << meta.join(QStringLiteral(" · "));
         QStringList readings;
         if (!info->pinyin.empty()) readings << FromUtf8(info->pinyin);
-        if (!info->ja_on.empty()) readings << FromUtf8(info->ja_on);
-        if (!info->ja_kun.empty()) readings << FromUtf8(info->ja_kun);
+        if (!info->ja_kana.empty()) {
+          // Kana (on in katakana, kun in hiragana) reads better than the
+          // romanised on/kun, and covers many characters those lack.
+          readings << FromUtf8(info->ja_kana);
+        } else {
+          if (!info->ja_on.empty()) readings << FromUtf8(info->ja_on);
+          if (!info->ja_kun.empty()) readings << FromUtf8(info->ja_kun);
+        }
         if (!readings.isEmpty()) lines << readings.join(QStringLiteral(" · "));
         if (!info->definition.empty()) lines << FromUtf8(info->definition);
         if (!info->variants.empty()) {
           lines << Tr("variants: %1").arg(FromUtf8(info->variants));
+        }
+        if (!info->old_form.empty()) {
+          lines << Tr("old form: %1").arg(FromUtf8(info->old_form));
+        }
+        if (!info->new_form.empty()) {
+          lines << Tr("new form: %1").arg(FromUtf8(info->new_form));
         }
         info_label_->setText(lines.join(QLatin1Char('\n')));
       }

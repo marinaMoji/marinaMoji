@@ -34,8 +34,16 @@ FIELDS = {
     'kMandarin': 'pinyin',
     'kJapaneseOn': 'ja_on',
     'kJapaneseKun': 'ja_kun',
+    'kJapanese': 'ja_kana',
     'kRSUnicode': 'rs',
     'kDefinition': 'definition',
+}
+
+# Directional Japanese relations, kept apart from |variants| so the dialog can
+# say which way they point (旧字体 -> 新字体).
+JAPANESE_FORM_FIELDS = {
+    'kJapaneseOldVariant': 'old_form',
+    'kJapaneseNewVariant': 'new_form',
 }
 
 VARIANT_FIELDS = (
@@ -76,7 +84,8 @@ def load_unihan(directory: pathlib.Path) -> dict[int, dict[str, str]]:
                     col = FIELDS[field]
                     # First wins for multi-file duplicates; Unihan is consistent.
                     rows[cp].setdefault(col, value)
-                elif field in VARIANT_FIELDS:
+                elif field in JAPANESE_FORM_FIELDS or field in VARIANT_FIELDS:
+                    col = JAPANESE_FORM_FIELDS.get(field, 'variants')
                     chars = []
                     for token in value.replace(',', ' ').split():
                         # Values look like "U+4E00<kMatthews>" or plain "U+4E00".
@@ -88,13 +97,53 @@ def load_unihan(directory: pathlib.Path) -> dict[int, dict[str, str]]:
                             except ValueError:
                                 pass
                     if chars:
-                        prev = rows[cp].get('variants', '')
+                        prev = rows[cp].get(col, '')
                         merged = []
                         for c in (prev.split() if prev else []) + chars:
                             if c not in merged:
                                 merged.append(c)
-                        rows[cp]['variants'] = ' '.join(merged)
+                        rows[cp][col] = ' '.join(merged)
     return rows
+
+
+# Variant tables from github.com/cjkvi/cjkvi-variants, read when --cjkvi-variants
+# is given. Lines are "A,relation,B"; header lines have <name>/<rev> in the
+# middle column. Relations are not directional here: each pair is listed both
+# ways in |variants|.
+CJKVI_VARIANT_FILES = ('cjkvi-variants.txt', 'hydzd-variants.txt')
+
+
+def add_cjkvi_variants(rows: dict[int, dict[str, str]],
+                       directory: pathlib.Path) -> int:
+    """Adds the pairs in |directory|'s cjkvi variant tables to |rows|.
+
+    Returns the number of (character, variant) links added.
+    """
+    added = 0
+    for name in CJKVI_VARIANT_FILES:
+        path = directory / name
+        if not path.exists():
+            raise SystemExit(f'missing {path}')
+        with path.open(encoding='utf-8') as f:
+            for line in f:
+                if not line.strip() or line.startswith('#'):
+                    continue
+                parts = line.rstrip('\n').split(',')
+                if (len(parts) != 3 or parts[1].startswith('<')
+                        or len(parts[0]) != 1 or len(parts[2]) != 1
+                        or parts[0] == parts[2]):
+                    continue
+                for a, b in ((parts[0], parts[2]), (parts[2], parts[0])):
+                    # Only for characters that already have a row: this adds
+                    # to what Unihan describes, it does not create new rows.
+                    row = rows.get(ord(a))
+                    if row is None:
+                        continue
+                    have = row.get('variants', '').split()
+                    if b not in have:
+                        row['variants'] = ' '.join(have + [b])
+                        added += 1
+    return added
 
 
 def first_strokes(raw: str) -> str:
@@ -109,7 +158,7 @@ def in_composer_blocks(cp: int) -> bool:
 def write_tsv(rows: dict[int, dict[str, str]], out: pathlib.Path,
               composer_blocks: bool) -> int:
     columns = ('char', 'cp', 'strokes', 'pinyin', 'ja_on', 'ja_kun', 'rs',
-               'definition', 'variants')
+               'definition', 'variants', 'ja_kana', 'old_form', 'new_form')
     n = 0
     with out.open('w', encoding='utf-8', newline='\n') as f:
         f.write('# Character display info for the marinaMoji character composer.\n')
@@ -136,6 +185,9 @@ def write_tsv(rows: dict[int, dict[str, str]], out: pathlib.Path,
                 'rs': info.get('rs', ''),
                 'definition': info.get('definition', ''),
                 'variants': info.get('variants', ''),
+                'ja_kana': info.get('ja_kana', ''),
+                'old_form': info.get('old_form', ''),
+                'new_form': info.get('new_form', ''),
             }
             f.write('\t'.join(cells[c] for c in columns) + '\n')
             n += 1
@@ -149,9 +201,15 @@ def main() -> None:
     ap.add_argument('--out', type=pathlib.Path, required=True)
     ap.add_argument('--composer-blocks', action='store_true',
                     help='only BMP radicals/kana/CJK blocks the composer draws')
+    ap.add_argument('--cjkvi-variants', type=pathlib.Path,
+                    help='directory with cjkvi-variants.txt and '
+                         'hydzd-variants.txt (see README.md)')
     args = ap.parse_args()
 
     rows = load_unihan(args.unihan)
+    if args.cjkvi_variants:
+        added = add_cjkvi_variants(rows, args.cjkvi_variants)
+        print(f'{added} cjkvi variant links added', file=sys.stderr)
     n = write_tsv(rows, args.out, args.composer_blocks)
     print(f'{n} characters -> {args.out}', file=sys.stderr)
 

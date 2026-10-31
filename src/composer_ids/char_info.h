@@ -27,6 +27,9 @@ struct CharInfo {
   std::string rs;          // "149.9"
   std::string definition;  // English gloss
   std::string variants;    // space-separated characters
+  std::string ja_kana;     // "カン ケン" (on in katakana, kun in hiragana)
+  std::string old_form;    // 旧字体 of this character, if this is a 新字体
+  std::string new_form;    // 新字体 of this character, if this is a 旧字体
 };
 
 class CharInfoTable {
