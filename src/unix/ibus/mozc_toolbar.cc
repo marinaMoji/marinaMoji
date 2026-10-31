@@ -26,6 +26,7 @@
 #include <gtk/gtk.h>
 #include <cairo/cairo.h>
 #include <librsvg/rsvg.h>
+#include <algorithm>
 #include <cstdlib>
 #include <cstdio>
 #include <dlfcn.h>
@@ -389,13 +390,33 @@ static void UpdateModeIndicatorIcon(commands::CompositionMode mode) {
   }
 }
 
+// Integer scale factor of the screen the toolbar is on (2 on HiDPI).
+static int ToolbarScaleFactor() {
+  if (g_toolbar_window && gtk_widget_get_realized(g_toolbar_window)) {
+    return std::max(1, gtk_widget_get_scale_factor(g_toolbar_window));
+  }
+  GdkDisplay* display = gdk_display_get_default();
+  GdkMonitor* monitor =
+      display ? gdk_display_get_primary_monitor(display) : nullptr;
+  return monitor ? std::max(1, gdk_monitor_get_scale_factor(monitor)) : 1;
+}
+
 // Create image from SVG for logo (wider than button icons). |dark| = use dark-theme logo.
+// The logo is rendered at the screen's scale factor so its fine strokes stay
+// sharp on HiDPI displays instead of being upscaled from a 1x bitmap.
 static GtkWidget* CreateLogoImage(bool dark) {
   const char* filename = dark ? "logo_long_dark.svg" : "logo_long_light.svg";
-  GdkPixbuf* pixbuf = LoadSvgIcon(filename, kToolbarLogoWidth, kIconSize);
+  const int scale = ToolbarScaleFactor();
+  GdkPixbuf* pixbuf =
+      LoadSvgIcon(filename, kToolbarLogoWidth * scale, kIconSize * scale);
   if (!pixbuf) return gtk_image_new();
-  GtkWidget* img = gtk_image_new_from_pixbuf(pixbuf);
+  cairo_surface_t* surface = gdk_cairo_surface_create_from_pixbuf(
+      pixbuf, scale, g_toolbar_window ? gtk_widget_get_window(g_toolbar_window)
+                                      : nullptr);
   g_object_unref(pixbuf);
+  if (!surface) return gtk_image_new();
+  GtkWidget* img = gtk_image_new_from_surface(surface);
+  cairo_surface_destroy(surface);
   return img;
 }
 

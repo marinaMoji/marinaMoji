@@ -10,6 +10,16 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Toolbar logo: heavier wordmark, sharp on HiDPI
+
+The long logo looked soft next to the other toolbar icons on every OS. The
+wordmark is Cormorant Garamond Light, whose hairlines shrink to ~0.2 px at the
+24 px toolbar height. The toolbar copies of the SVG (`logo_long_{light,dark}.svg`)
+now carry a 0.4 stroke on the wordmark (keeps the Didot thick/thin contrast) (the tagline is kept); `header_logo.svg`
+is untouched. Windows PNGs regenerated. On Linux the logo is also rendered at
+the screen's scale factor (it was a fixed 1x bitmap). Not built or checked on
+Linux/Windows yet.
+
 ### Release candidate 0.0.20-rc3
 
 Everything in 0.0.20-rc2 plus the entries below, and:
