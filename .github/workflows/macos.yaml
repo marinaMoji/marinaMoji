@@ -58,6 +58,12 @@ jobs:
         run: |
           python3 build_tools/build_qt.py --release --confirm_license --macos_cpus=arm64
 
+      - name: Pin Bazel to this runner's Xcode
+        working-directory: ./src
+        # tools/local_xcode/BUILD records the SDK versions of the Mac that last
+        # wrote it; regenerate it so it matches the runner.
+        run: bash mac/write_local_xcode_config.sh
+
       - name: bazel build
         working-directory: ./src
         run: |
@@ -109,6 +115,12 @@ jobs:
         run: |
           python3 build_tools/build_qt.py --release --confirm_license --macos_cpus=x86_64
 
+      - name: Pin Bazel to this runner's Xcode
+        working-directory: ./src
+        # tools/local_xcode/BUILD records the SDK versions of the Mac that last
+        # wrote it; regenerate it so it matches the runner.
+        run: bash mac/write_local_xcode_config.sh
+
       - name: bazel build
         working-directory: ./src
         run: |
@@ -144,6 +156,12 @@ jobs:
         # This command uses src/third_party_cache as the download cache.
         run: |
           python3 build_tools/update_deps.py
+
+      - name: Pin Bazel to this runner's Xcode
+        working-directory: ./src
+        # tools/local_xcode/BUILD records the SDK versions of the Mac that last
+        # wrote it; regenerate it so it matches the runner.
+        run: bash mac/write_local_xcode_config.sh
 
       - name: bazel test
         working-directory: ./src

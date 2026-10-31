@@ -165,6 +165,12 @@ jobs:
             config.bzl
           grep -n "_RELEASE" config.bzl
 
+      - name: Pin Bazel to this runner's Xcode
+        working-directory: ./src
+        # tools/local_xcode/BUILD records the SDK versions of the Mac that last
+        # wrote it; regenerate it so it matches the runner.
+        run: bash mac/write_local_xcode_config.sh
+
       - name: bazel build (signed)
         working-directory: ./src
         run: |
