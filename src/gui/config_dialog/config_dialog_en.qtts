@@ -1250,5 +1250,45 @@ Kyū   國 學</translation>
         <source>Do you want to overwrite the current roman table?</source>
         <translation></translation>
     </message>
+    <message>
+        <source>About</source>
+        <translation>About</translation>
+    </message>
+    <message>
+        <source>Make room for character</source>
+        <translation>Make room for character</translation>
+    </message>
+    <message>
+        <source>M. Pandolfino · D.P. Morgan</source>
+        <translation>M. Pandolfino · D.P. Morgan</translation>
+    </message>
+    <message>
+        <source>Based on %1</source>
+        <translation>Based on %1</translation>
+    </message>
+    <message>
+        <source>Mozc</source>
+        <translation>Mozc</translation>
+    </message>
+    <message>
+        <source>© Google LLC</source>
+        <translation>© Google LLC</translation>
+    </message>
+    <message>
+        <source>Open‑source software</source>
+        <translation>Open‑source software</translation>
+    </message>
+    <message>
+        <source>Website</source>
+        <translation>Website</translation>
+    </message>
+    <message>
+        <source>Source code</source>
+        <translation>Source code</translation>
+    </message>
+    <message>
+        <source>Report an issue</source>
+        <translation>Report an issue</translation>
+    </message>
 </context>
 </TS>

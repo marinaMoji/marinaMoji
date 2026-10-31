@@ -27,16 +27,50 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <QGuiApplication>
 #include <QtGui>
+#include <cstdlib>
 #include <string>
 
+#include "base/process.h"
 #include "base/system_util.h"
-#include "gui/about_dialog/about_dialog.h"
+#include "gui/base/preferences_page_request.h"
 #include "gui/base/singleton_window_helper.h"
 #include "gui/base/util.h"
 
+#ifdef MARINAMOJI
+#ifdef __APPLE__
+#include "base/mac/mac_process.h"
+#endif  // __APPLE__
+#else   // !MARINAMOJI
+#include "gui/about_dialog/about_dialog.h"
+#endif  // MARINAMOJI
+
 int RunAboutDialog(int argc, char *argv[]) {
+#ifdef MARINAMOJI
+  // About content now lives on Preferences → Application. Request that page
+  // and open Preferences (raising it if already running).
+  auto app = mozc::gui::GuiUtil::InitQt(argc, argv);
+  Q_UNUSED(app);
+
+  mozc::gui::RequestPreferencesPage(
+      mozc::gui::kPreferencesPageApplication);
+  qputenv("MARINAMOJI_PREFERENCES_PAGE",
+          mozc::gui::kPreferencesPageApplication);
+
+#ifdef __APPLE__
+  if (!mozc::MacProcess::LaunchMozcTool("config_dialog")) {
+    return 1;
+  }
+#else   // !__APPLE__
+  size_t pid = 0;
+  if (!mozc::Process::SpawnProcess(mozc::SystemUtil::GetToolPath(),
+                                   "--mode=config_dialog", &pid)) {
+    return 1;
+  }
+#endif  // __APPLE__
+  return 0;
+
+#else   // !MARINAMOJI
   Q_INIT_RESOURCE(qrc_about_dialog);
   auto app = mozc::gui::GuiUtil::InitQt(argc, argv);
 
@@ -45,7 +79,6 @@ int RunAboutDialog(int argc, char *argv[]) {
   mozc::gui::SingletonWindowHelper window_helper(name);
 
   if (window_helper.FindPreviousWindow()) {
-    // already running
     window_helper.ActivatePreviousWindow();
     return -1;
   }
@@ -57,4 +90,5 @@ int RunAboutDialog(int argc, char *argv[]) {
   about_dialog.show();
   about_dialog.raise();
   return app->exec();
+#endif  // MARINAMOJI
 }

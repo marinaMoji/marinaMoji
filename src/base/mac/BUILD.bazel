@@ -47,6 +47,8 @@ mozc_objc_library(
     deps = [
         ":mac_util",
         "//base:const",
+        "//base:file_util",
+        "//base:system_util",
         "//base:util",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",

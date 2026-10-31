@@ -2078,5 +2078,45 @@ Ouvrir la page de téléchargement ?</translation>
         <source>Do you want to overwrite the current roman table?</source>
         <translation>Voulez-vous remplacer la table de Romaji actuelle?</translation>
     </message>
+    <message>
+        <source>About</source>
+        <translation>À propos</translation>
+    </message>
+    <message>
+        <source>Make room for character</source>
+        <translation>place au caractère</translation>
+    </message>
+    <message>
+        <source>M. Pandolfino · D.P. Morgan</source>
+        <translation>M. Pandolfino · D.P. Morgan</translation>
+    </message>
+    <message>
+        <source>Based on %1</source>
+        <translation>Basé sur %1</translation>
+    </message>
+    <message>
+        <source>Mozc</source>
+        <translation>Mozc</translation>
+    </message>
+    <message>
+        <source>© Google LLC</source>
+        <translation>© Google LLC</translation>
+    </message>
+    <message>
+        <source>Open‑source software</source>
+        <translation>Logiciels libres</translation>
+    </message>
+    <message>
+        <source>Website</source>
+        <translation>Site web</translation>
+    </message>
+    <message>
+        <source>Source code</source>
+        <translation>Code source</translation>
+    </message>
+    <message>
+        <source>Report an issue</source>
+        <translation>Signaler un problème</translation>
+    </message>
 </context>
 </TS>

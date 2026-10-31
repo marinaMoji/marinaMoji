@@ -90,8 +90,12 @@ mozc_cc_qt_library(
         "//base:util",
         "//base:version",
         "//gui/base:gui_base",
+        "//gui/base:preferences_page_request",
         "//gui/base:singleton_window_helper",
-    ],
+    ] + select({
+        "@platforms//os:osx": ["//base/mac:mac_process"],
+        "//conditions:default": [],
+    }),
 )
 
 mozc_cc_qt_library(

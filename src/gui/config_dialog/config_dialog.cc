@@ -37,9 +37,12 @@
 #include "gui/config_dialog/preferences_explanations.h"
 
 #include <QCheckBox>
+#include <QClipboard>
 #include <QComboBox>
 #include <QProcess>
+#include <QEnterEvent>
 #include <QFileInfo>
+#include <QFileSystemWatcher>
 #include <QDir>
 #include <QCoreApplication>
 #include <QDialogButtonBox>
@@ -50,12 +53,17 @@
 #include <QHeaderView>
 #include <QHBoxLayout>
 #include <QInputDialog>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QListWidget>
 #include <QListWidgetItem>
 #include <QMessageBox>
+#include <QMouseEvent>
+#include <QPainter>
+#include <QPaintEvent>
 #include <QPixmap>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QToolButton>
 #include <QScrollArea>
 #include <QShowEvent>
@@ -69,9 +77,11 @@
 #include <QTabBar>
 #include <QTableWidget>
 #include <QTabWidget>
+#include <QTextDocument>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <algorithm>
+#include <cmath>
 #include <functional>
 #include <cstdint>
 #include <fstream>
@@ -90,9 +100,11 @@
 #include "base/process.h"
 #include "client/client.h"
 #include "config/config_handler.h"
+#include "gui/base/preferences_page_request.h"
 #include "gui/base/stats_config_util.h"
 #include "gui/base/util.h"
 #include "gui/config_dialog/keymap_editor.h"
+#include "base/system_util.h"
 #include "gui/config_dialog/kaeriten_table_editor.h"
 #include "gui/config_dialog/roman_table_editor.h"
 #include "protocol/config.pb.h"
@@ -618,7 +630,11 @@ ConfigDialog::ConfigDialog()
 
     check_for_updates_button_ =
         new QPushButton(tr("Check for updates…"), updates_widget);
-    updates_layout->addWidget(check_for_updates_button_);
+    // Compact left-aligned control — not a full-width action bar.
+    check_for_updates_button_->setSizePolicy(QSizePolicy::Maximum,
+                                             QSizePolicy::Fixed);
+    check_for_updates_button_->setMinimumWidth(160);
+    updates_layout->addWidget(check_for_updates_button_, 0, Qt::AlignLeft);
 
     miscTabLayout->insertWidget(0, updates_widget);
 
@@ -763,6 +779,10 @@ void FlattenGroupMargins(QWidget* widget) {
   if (widget == nullptr) {
     return;
   }
+  // About colophon owns its own spacing; flattening collapses its copy height.
+  if (widget->property("marinamojiPreserveLayout").toBool()) {
+    return;
+  }
   if (QLayout* layout = widget->layout()) {
     layout->setContentsMargins(0, 2, 0, 2);
     layout->setSpacing(std::min(layout->spacing(), 8));
@@ -850,6 +870,115 @@ QPixmap LoadPreferencesBrandLogo(bool dark, int logical_width, qreal dpr) {
   return scaled;
 }
 
+// About harbour (day_mode / night_mode) with a pre-baked soft alpha fade so the
+// bitmap dissolves into the page — no card, border, or hard rectangle.
+QPixmap LoadAboutHarbourSource(bool dark) {
+  return QPixmap(dark ? QStringLiteral(":/preferences_about_harbour_dark.png")
+                      : QStringLiteral(":/preferences_about_harbour.png"));
+}
+
+QPixmap ScaleAboutHarbour(const QPixmap& src, int logical_w, int logical_h,
+                          qreal dpr) {
+  if (src.isNull() || logical_w <= 0 || logical_h <= 0) {
+    return QPixmap();
+  }
+  const qreal ratio = dpr > 0 ? dpr : 1.0;
+  const QSize px(std::max(1, qRound(logical_w * ratio)),
+                 std::max(1, qRound(logical_h * ratio)));
+  QPixmap scaled =
+      src.scaled(px, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+  scaled.setDevicePixelRatio(ratio);
+  return scaled;
+}
+
+// Harbour as background decoration: fills the colophon cell (logo → links),
+// right-aligned with soft alpha. Height is driven by the copy, not a fixed stamp.
+class AboutHarbourLabel : public QLabel {
+ public:
+  explicit AboutHarbourLabel(QWidget* parent = nullptr) : QLabel(parent) {
+    setObjectName(QStringLiteral("preferencesAboutArtwork"));
+    setAlignment(Qt::AlignRight | Qt::AlignTop);
+    setScaledContents(false);
+    setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    setAutoFillBackground(false);
+    setAttribute(Qt::WA_NoSystemBackground, true);
+    setAttribute(Qt::WA_TranslucentBackground, true);
+    setStyleSheet(
+        QStringLiteral("background: transparent; border: none;"));
+    // Expand to the stacked cell; do not impose a taller minimum than the copy.
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    setMinimumSize(0, 0);
+  }
+
+  void SetDark(bool dark) {
+    source_ = LoadAboutHarbourSource(dark);
+    RefreshPixmap();
+  }
+
+  QSize sizeHint() const override { return QSize(420, 1); }
+  QSize minimumSizeHint() const override { return QSize(0, 0); }
+
+ protected:
+  void resizeEvent(QResizeEvent* event) override {
+    QLabel::resizeEvent(event);
+    RefreshPixmap();
+  }
+
+  void paintEvent(QPaintEvent* event) override {
+    QPainter painter(this);
+    painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+    painter.setClipRect(event->rect().intersected(rect()));
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    if (scaled_.isNull()) {
+      return;
+    }
+    const qreal dpr = scaled_.devicePixelRatio();
+    const int pw = qRound(scaled_.width() / dpr);
+    // Right-align; top-align so mountains sit by the logo and water meets the links.
+    const int x = std::max(0, width() - pw);
+    painter.drawPixmap(x, 0, scaled_);
+  }
+
+ private:
+  void RefreshPixmap() {
+    if (source_.isNull()) {
+      scaled_ = QPixmap();
+      update();
+      return;
+    }
+    // Prefer the sibling copy height so we span logo → links even before
+    // the grid has finished stretching this widget.
+    int target_h = height();
+    if (QWidget* host = parentWidget()) {
+      if (QWidget* copy = host->findChild<QWidget*>(
+              QStringLiteral("preferencesAboutCopy"))) {
+        target_h = std::max({target_h, copy->height(),
+                             copy->sizeHint().height()});
+      }
+    }
+    target_h = std::max(target_h, 160);
+    const int avail_w =
+        std::max(target_h, width() > 1 ? width() : 420);
+    // Paint via scaled_ — setPixmap() would shrink QLabel's size hint.
+    scaled_ = ScaleAboutHarbour(source_, avail_w, target_h,
+                                devicePixelRatioF());
+    update();
+  }
+
+  QPixmap source_;
+  QPixmap scaled_;
+};
+
+void ApplyAboutHarbourArtwork(QLabel* artwork, bool dark) {
+  // AboutHarbourLabel is a local QLabel subclass without Q_OBJECT; identify by
+  // objectName rather than qobject_cast.
+  if (artwork == nullptr ||
+      artwork->objectName() != QLatin1String("preferencesAboutArtwork")) {
+    return;
+  }
+  static_cast<AboutHarbourLabel*>(artwork)->SetDark(dark);
+}
+
 // Pull glyph ink flush to the layout edge. Large/serif capitals often have a
 // positive left bearing, which made page/section titles look indented past
 // body labels and checkbox indicators.
@@ -871,11 +1000,14 @@ void FlushLeftInk(QLabel* label) {
   label->setContentsMargins(-std::max({0, bearing, ink}), 0, 0, 0);
 }
 
-void AddSectionGap(QVBoxLayout* page_layout, bool first_on_page) {
+void AddSectionGap(QVBoxLayout* page_layout, bool first_on_page,
+                   int before_px = -1) {
   if (page_layout == nullptr || first_on_page) {
     return;
   }
-  page_layout->addSpacing(config_dialog_theme::Spacing::before_section);
+  page_layout->addSpacing(
+      before_px >= 0 ? before_px
+                     : config_dialog_theme::Spacing::before_section);
 }
 
 QFrame* MakeIaSectionHeader(const QString& title, QWidget* parent) {
@@ -910,13 +1042,18 @@ QLabel* MakeIaSectionSubhead(const QString& title, QWidget* parent) {
 }
 
 void AddMajorSection(QVBoxLayout* page_layout, const QString& title,
-                     QWidget* page, bool* first_section) {
-  AddSectionGap(page_layout, first_section != nullptr && *first_section);
+                     QWidget* page, bool* first_section,
+                     int before_px = -1, int after_header_px = -1) {
+  AddSectionGap(page_layout,
+                first_section != nullptr && *first_section, before_px);
   if (first_section != nullptr) {
     *first_section = false;
   }
   page_layout->addWidget(MakeIaSectionHeader(title, page));
-  page_layout->addSpacing(config_dialog_theme::Spacing::section_to_control);
+  page_layout->addSpacing(
+      after_header_px >= 0
+          ? after_header_px
+          : config_dialog_theme::Spacing::section_to_control);
 }
 
 void AddMinorSubhead(QVBoxLayout* page_layout, const QString& title,
@@ -1063,6 +1200,377 @@ QWidget* MakeNewPreferencesPage(QWidget* parent) {
   return page;
 }
 
+void OpenExternalUrl(const QString& url) {
+  if (url.isEmpty()) {
+    return;
+  }
+  Process::OpenBrowser(url.toStdString());
+}
+
+// QLabel with wordWrap + top alignment often collapses to a single clipped
+// line until a later resize. heightForWidth keeps colophon copy at natural
+// height for the laid-out column width.
+class ColophonTextLabel : public QLabel {
+ public:
+  using QLabel::QLabel;
+
+  bool hasHeightForWidth() const override { return wordWrap(); }
+
+  int heightForWidth(int w) const override {
+    const int width = std::max(1, w);
+    if (textFormat() == Qt::RichText || textFormat() == Qt::AutoText) {
+      QTextDocument doc;
+      doc.setDefaultFont(font());
+      doc.setHtml(text());
+      doc.setTextWidth(width);
+      return std::max(1, static_cast<int>(std::ceil(doc.size().height())));
+    }
+    return fontMetrics()
+        .boundingRect(QRect(0, 0, width, 0),
+                      static_cast<int>(alignment()) | Qt::TextWordWrap, text())
+        .height();
+  }
+
+  QSize sizeHint() const override {
+    const int w = width() > 1 ? width() : minimumSizeHint().width();
+    if (!wordWrap()) {
+      return QLabel::sizeHint();
+    }
+    return QSize(w, heightForWidth(w));
+  }
+
+  QSize minimumSizeHint() const override {
+    if (!wordWrap()) {
+      return QLabel::minimumSizeHint();
+    }
+    const int w = std::max(280, minimumWidth());
+    return QSize(0, heightForWidth(w));
+  }
+
+ protected:
+  void resizeEvent(QResizeEvent* event) override {
+    QLabel::resizeEvent(event);
+    SyncHeight();
+  }
+
+  void showEvent(QShowEvent* event) override {
+    QLabel::showEvent(event);
+    SyncHeight();
+  }
+
+ private:
+  void SyncHeight() {
+    if (!wordWrap()) {
+      return;
+    }
+    // Never measure wrap height at a near-zero width — that produced a
+    // multi-line fixedHeight and a huge empty gap above the links.
+    const int w = std::max(width(), 320);
+    setFixedHeight(heightForWidth(w));
+  }
+};
+
+// Plain-text nav link. QLabel rich-text <a> ignores QSS and paints the system
+// link colour with a permanent underline; this widget owns colour + hover.
+class AboutNavLink : public QLabel {
+ public:
+  AboutNavLink(const QString& text, const QString& url, QWidget* parent)
+      : QLabel(parent), url_(url) {
+    setObjectName(QStringLiteral("preferencesAboutNavLink"));
+    setTextFormat(Qt::PlainText);
+    setTextInteractionFlags(Qt::NoTextInteraction);
+    setFocusPolicy(Qt::StrongFocus);
+    setCursor(Qt::PointingHandCursor);
+    setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    setFont(config_dialog_theme::UiFont(12, QFont::Medium));
+    setText(text + QStringLiteral(" ↗"));
+    setProperty("aboutLinkUrl", url);
+  }
+
+  void SetAccent(const QColor& color) {
+    accent_ = color;
+    RefreshStyle();
+  }
+
+ protected:
+  void enterEvent(QEnterEvent* event) override {
+    QLabel::enterEvent(event);
+    hovered_ = true;
+    RefreshStyle();
+  }
+  void leaveEvent(QEvent* event) override {
+    QLabel::leaveEvent(event);
+    hovered_ = false;
+    RefreshStyle();
+  }
+  void focusInEvent(QFocusEvent* event) override {
+    QLabel::focusInEvent(event);
+    RefreshStyle();
+  }
+  void focusOutEvent(QFocusEvent* event) override {
+    QLabel::focusOutEvent(event);
+    RefreshStyle();
+  }
+  void mouseReleaseEvent(QMouseEvent* event) override {
+    if (event->button() == Qt::LeftButton && rect().contains(event->pos())) {
+      OpenExternalUrl(url_);
+    }
+    QLabel::mouseReleaseEvent(event);
+  }
+  void keyPressEvent(QKeyEvent* event) override {
+    if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter ||
+        event->key() == Qt::Key_Space) {
+      OpenExternalUrl(url_);
+      event->accept();
+      return;
+    }
+    QLabel::keyPressEvent(event);
+  }
+
+ private:
+  void RefreshStyle() {
+    if (!accent_.isValid()) {
+      return;
+    }
+    const bool emphasize = hovered_ || hasFocus();
+    // Underline via QFont — QLabel QSS text-decoration is unreliable.
+    QFont link_font = font();
+    link_font.setUnderline(emphasize);
+    setFont(link_font);
+    setStyleSheet(
+        QStringLiteral(
+            "QLabel#preferencesAboutNavLink {"
+            "  color: %1;"
+            "  background: transparent;"
+            "  border: none;"
+            "  padding: 1px 0;"
+            "}")
+            .arg(config_dialog_theme::Hex(accent_)));
+  }
+
+  QString url_;
+  QColor accent_;
+  bool hovered_ = false;
+};
+
+QString AboutAttributionHtml(const config_dialog_theme::Palette& palette) {
+  // Inline <a style> is required: QLabel HTML anchors ignore QSS colour rules.
+  const std::string credit_filepath =
+      FileUtil::JoinPath(SystemUtil::GetDocumentDirectory(), "credits_en.html");
+  const QFont attr_font =
+      config_dialog_theme::UiFont(11, QFont::Normal);
+  const QString accent = config_dialog_theme::Hex(palette.accent);
+  const QString link =
+      QStringLiteral(
+          "<a href=\"%1\" style=\"color:%2; text-decoration:none;\">%3</a>");
+  // U+2011 (non-breaking hyphen) + NBSP: a normal hyphen in "Open-source"
+  // is a legal wrap point in Qt rich text ("Open-" / "software").
+  const QString oss = QObject::tr("Open\u2011source\u00A0software");
+  // Keep "© Google LLC" and the OSS phrase intact; allow a wrap only at ·.
+  const QString google = QObject::tr("©\u00A0Google\u00A0LLC");
+  // NBSP before the Mozc link: Qt rich text otherwise wraps after "Based on"
+  // (ordinary space before <a>), even when the column is wide enough.
+  const QString based_on =
+      QObject::tr("Based\u00A0on\u00A0%1")
+          .arg(link.arg(QStringLiteral("https://github.com/google/mozc"),
+                        accent, QObject::tr("Mozc")));
+  // Phrases use NBSP internally; wraps may only fall at · if the line is long.
+  return QStringLiteral(
+             "<div style=\"margin:0; padding:0; line-height:1.35; "
+             "color:%1; font-family:'%2'; font-size:%3pt;\">"
+             "%4&nbsp;·&nbsp;%5&nbsp;·&nbsp;%6"
+             "</div>")
+      .arg(config_dialog_theme::Hex(palette.secondary),
+           attr_font.family().toHtmlEscaped(),
+           QString::number(attr_font.pointSizeF(), 'f', 1), based_on,
+           google.toHtmlEscaped(),
+           link.arg(QStringLiteral("file://") +
+                        QString::fromStdString(credit_filepath),
+                    accent, oss.toHtmlEscaped()));
+}
+
+// Host paints the harbour in the background; copy is a normal foreground layout
+// whose height (logo → links) defines the harbour's vertical span.
+class AboutColophonHost : public QWidget {
+ public:
+  AboutColophonHost(QWidget* parent, bool dark) : QWidget(parent) {
+    setObjectName(QStringLiteral("preferencesAboutColophon"));
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    setProperty("marinamojiPreserveLayout", true);
+    setAutoFillBackground(false);
+    setAttribute(Qt::WA_StyledBackground, false);
+
+    artwork_ = new AboutHarbourLabel(this);
+    ApplyAboutHarbourArtwork(artwork_, dark);
+    artwork_->lower();
+
+    copy_ = new QWidget(this);
+    copy_->setObjectName(QStringLiteral("preferencesAboutCopy"));
+    copy_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    copy_->setAutoFillBackground(false);
+    copy_->setAttribute(Qt::WA_NoSystemBackground, true);
+    copy_->setAttribute(Qt::WA_TranslucentBackground, true);
+    copy_->setStyleSheet(QStringLiteral("background: transparent;"));
+    copy_->raise();
+
+    auto* copy_layout = new QVBoxLayout(copy_);
+    // Right inset keeps line-ends in the fade, not the densest ink.
+    copy_layout->setContentsMargins(0, 0, 140, 0);
+    copy_layout->setSpacing(0);
+
+    const config_dialog_theme::Palette palette =
+        config_dialog_theme::Colors(dark);
+
+    auto* logo = new QLabel(copy_);
+    logo->setObjectName(QStringLiteral("preferencesAboutLogo"));
+    logo->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    logo->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    logo->setStyleSheet(QStringLiteral("background: transparent;"));
+    const int logo_w = 180;
+    const QPixmap pixmap =
+        LoadPreferencesBrandLogo(dark, logo_w, logo->devicePixelRatioF());
+    if (!pixmap.isNull()) {
+      logo->setPixmap(pixmap);
+      logo->setFixedSize(
+          logo_w, qRound(pixmap.height() / pixmap.devicePixelRatioF()));
+    } else {
+      logo->setText(GuiUtil::ProductName());
+      logo->setFont(config_dialog_theme::DisplayFont(18));
+    }
+    copy_layout->addWidget(logo, 0, Qt::AlignLeft | Qt::AlignTop);
+    copy_layout->addSpacing(5);
+
+    QFont subtitle_font = config_dialog_theme::DisplayFont(14);
+    subtitle_font.setWeight(QFont::Normal);
+    subtitle_font.setItalic(true);
+    auto* subtitle = new ColophonTextLabel(
+        QObject::tr("Make room for character"), copy_);
+    subtitle->setObjectName(QStringLiteral("preferencesAboutSubtitle"));
+    subtitle->setWordWrap(true);
+    subtitle->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    subtitle->setFont(subtitle_font);
+    subtitle->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    subtitle->setStyleSheet(
+        QStringLiteral("color: %1; background: transparent;")
+            .arg(config_dialog_theme::Hex(palette.secondary)));
+    copy_layout->addWidget(subtitle);
+
+    copy_layout->addSpacing(20);
+
+    QFont authors_font = config_dialog_theme::DisplayFont(16);
+    authors_font.setWeight(QFont::Normal);
+    auto* authors = new ColophonTextLabel(
+        QObject::tr("M.\u00A0Pandolfino\u00A0·\u00A0D.P.\u00A0Morgan"),
+        copy_);
+    authors->setObjectName(QStringLiteral("preferencesAboutAuthors"));
+    authors->setWordWrap(true);
+    authors->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    authors->setFont(authors_font);
+    authors->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    authors->setStyleSheet(
+        QStringLiteral("color: %1; background: transparent;")
+            .arg(config_dialog_theme::Hex(palette.heading)));
+    copy_layout->addWidget(authors);
+    copy_layout->addSpacing(7);
+
+    auto* attribution = new ColophonTextLabel(copy_);
+    attribution->setObjectName(QStringLiteral("preferencesAboutAttribution"));
+    attribution->setTextFormat(Qt::RichText);
+    attribution->setTextInteractionFlags(Qt::TextBrowserInteraction);
+    attribution->setOpenExternalLinks(false);
+    attribution->setWordWrap(true);
+    attribution->setFocusPolicy(Qt::StrongFocus);
+    attribution->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    attribution->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    attribution->setFont(config_dialog_theme::UiFont(11, QFont::Normal));
+    attribution->setStyleSheet(QStringLiteral("background: transparent;"));
+    attribution->setText(AboutAttributionHtml(palette));
+    QObject::connect(attribution, &QLabel::linkActivated, parent,
+                     [](const QString& url) { OpenExternalUrl(url); });
+    copy_layout->addWidget(attribution);
+
+    copy_layout->addSpacing(16);
+
+    auto* links = new QWidget(copy_);
+    links->setObjectName(QStringLiteral("preferencesAboutLinks"));
+    links->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    links->setStyleSheet(QStringLiteral("background: transparent;"));
+    auto* links_layout = new QHBoxLayout(links);
+    links_layout->setContentsMargins(0, 0, 0, 0);
+    links_layout->setSpacing(16);
+    auto add_nav = [&](const QString& text, const QString& url) {
+      auto* link = new AboutNavLink(text, url, links);
+      link->SetAccent(palette.accent);
+      links_layout->addWidget(link, 0, Qt::AlignLeft | Qt::AlignVCenter);
+    };
+    add_nav(QObject::tr("Website"),
+            QStringLiteral("https://marinamoji.crcao.fr"));
+    add_nav(QObject::tr("Source code"),
+            QStringLiteral("https://github.com/marinaMoji/marinaMoji"));
+    add_nav(QObject::tr("Report an issue"),
+            QStringLiteral(
+                "https://github.com/marinaMoji/marinaMoji/issues"));
+    copy_layout->addWidget(links, 0, Qt::AlignLeft | Qt::AlignTop);
+  }
+
+  QSize sizeHint() const override {
+    if (copy_ == nullptr) {
+      return QSize(400, 200);
+    }
+    return copy_->sizeHint();
+  }
+
+  QSize minimumSizeHint() const override {
+    if (copy_ == nullptr) {
+      return QSize(280, 160);
+    }
+    return copy_->minimumSizeHint();
+  }
+
+ protected:
+  void resizeEvent(QResizeEvent* event) override {
+    QWidget::resizeEvent(event);
+    Relayout();
+  }
+
+  void showEvent(QShowEvent* event) override {
+    QWidget::showEvent(event);
+    Relayout();
+  }
+
+ private:
+  void Relayout() {
+    if (copy_ == nullptr || artwork_ == nullptr || width() <= 1) {
+      return;
+    }
+    // Lay out the copy at the host width; height runs through the link row.
+    copy_->setFixedWidth(width());
+    if (QLayout* lay = copy_->layout()) {
+      lay->activate();
+    }
+    int h = std::max(1, copy_->sizeHint().height());
+    copy_->setGeometry(0, 0, width(), h);
+    if (QWidget* links = copy_->findChild<QWidget*>(
+            QStringLiteral("preferencesAboutLinks"))) {
+      // Pin harbour bottom to the link row, not a slightly short sizeHint.
+      h = std::max(h, links->geometry().bottom() + 1);
+      copy_->setGeometry(0, 0, width(), h);
+    }
+    artwork_->setGeometry(0, 0, width(), h);
+    artwork_->lower();
+    copy_->raise();
+    setFixedHeight(h);
+  }
+
+  AboutHarbourLabel* artwork_ = nullptr;
+  QWidget* copy_ = nullptr;
+};
+
+QWidget* MakeAboutColophon(QWidget* parent, bool dark) {
+  return new AboutColophonHost(parent, dark);
+}
+
 void ClearTabWidget(QTabWidget* tabs) {
   if (tabs == nullptr) {
     return;
@@ -1101,6 +1609,7 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
   auto* suggestions = MakeNewPreferencesPage(tabs);
   auto* privacy_sync = MakeNewPreferencesPage(tabs);
   auto* application = MakeNewPreferencesPage(tabs);
+  application->setObjectName(QStringLiteral("preferencesPageApplication"));
 
   auto* writing_layout = qobject_cast<QVBoxLayout*>(writing->layout());
   auto* dictionaries_layout =
@@ -1493,9 +2002,14 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
   privacy_layout->addSpacing(config_dialog_theme::Spacing::unit * 2);
 
   // --- Application ---
+  // Tighter section rhythm: harbour height dominates About; keep Updates +
+  // Startup + About within the normal Preferences viewport without scrolling.
+  constexpr int kAppSectionBefore = 10;
+  constexpr int kAppSectionAfterHeader = 8;
   bool application_first = true;
   AddMajorSection(application_layout, tr("Updates"), application,
-                  &application_first);
+                  &application_first, kAppSectionBefore,
+                  kAppSectionAfterHeader);
   if (updates_host != nullptr) {
     if (auto* updates_layout = updates_host->layout()) {
       updates_layout->setContentsMargins(0, 2, 0, 2);
@@ -1503,7 +2017,8 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
     AddToPage(application_layout, updates_host);
   }
   AddMajorSection(application_layout, tr("Startup"), application,
-                  &application_first);
+                  &application_first, kAppSectionBefore,
+                  kAppSectionAfterHeader);
   // Prefer the checkbox group alone so the nested "Startup" header is not
   // duplicated under our section title.
   if (startupGroup != nullptr) {
@@ -1517,6 +2032,13 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
   } else {
     AddToPage(application_layout, miscStartupWidget);
   }
+
+  AddMajorSection(application_layout, tr("About"), application,
+                  &application_first, kAppSectionBefore,
+                  kAppSectionAfterHeader);
+  AddToPage(application_layout,
+            MakeAboutColophon(application, config_dialog_theme::IsDark()));
+
   // System hosts platform-specific blocks; skip the section when all are hidden
   // (e.g. macOS release builds hide IME, admin, and NDEBUG logging).
   const bool show_system =
@@ -1532,7 +2054,7 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
     // Keep the nested "Logging" subheading under System; flatten margins only.
     AddToPage(application_layout, miscLoggingWidget);
   }
-  application_layout->addSpacing(config_dialog_theme::Spacing::unit * 2);
+  application_layout->addSpacing(config_dialog_theme::Spacing::unit);
 
   // Drop empty/old tab shells; widgets have been reparented above.
   ClearTabWidget(tabs);
@@ -1841,6 +2363,8 @@ void ConfigDialog::InstallPreferencesShell() {
   }
   tabs->hide();
 
+  stack->setObjectName(QStringLiteral("preferencesStack"));
+
   auto* scroll_host = new QWidget(content);
   scroll_host->setObjectName(QStringLiteral("preferencesScrollHost"));
   scroll_host->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -1953,6 +2477,80 @@ void ConfigDialog::InstallPreferencesShell() {
   ApplyPreferencesChrome();
   RefinePreferencesControls();
   QTimer::singleShot(0, this, &ConfigDialog::UpdatePreferencesScrollPolicy);
+
+  // About → Application redirects (and similar) write a one-shot request file.
+  {
+    auto* watcher = new QFileSystemWatcher(this);
+    const QString request_path =
+        QString::fromStdString(PreferencesPageRequestPath());
+    const QString request_dir = QFileInfo(request_path).absolutePath();
+    if (!request_dir.isEmpty()) {
+      watcher->addPath(request_dir);
+    }
+    connect(watcher, &QFileSystemWatcher::directoryChanged, this,
+            [this](const QString&) { ApplyPendingPreferencesPageRequest(); });
+    connect(watcher, &QFileSystemWatcher::fileChanged, this,
+            [this](const QString&) { ApplyPendingPreferencesPageRequest(); });
+  }
+  ApplyPendingPreferencesPageRequest();
+}
+
+void ConfigDialog::SelectPreferencesPage(const QString& page_object_name) {
+  if (page_object_name.isEmpty()) {
+    return;
+  }
+  auto* stack =
+      findChild<QStackedWidget*>(QStringLiteral("preferencesStack"));
+  auto* nav = findChild<QListWidget*>(QStringLiteral("preferencesNav"));
+  if (stack == nullptr) {
+    return;
+  }
+  for (int i = 0; i < stack->count(); ++i) {
+    QWidget* page = stack->widget(i);
+    if (page == nullptr || page->objectName() != page_object_name) {
+      continue;
+    }
+    if (stack->currentIndex() != i) {
+      stack->setCurrentIndex(i);
+    }
+    if (nav != nullptr && nav->currentRow() != i) {
+      nav->setCurrentRow(i);
+    }
+    // Scroll so the About colophon (including footer links) is in view.
+    if (auto* scroll =
+            findChild<QScrollArea*>(QStringLiteral("preferencesScroll"))) {
+      if (auto* about =
+              page->findChild<QWidget*>(QStringLiteral("preferencesAboutColophon"))) {
+        QWidget* anchor = page->findChild<QWidget*>(
+            QStringLiteral("preferencesAboutLinks"));
+        if (anchor == nullptr) {
+          anchor = about;
+        }
+        QTimer::singleShot(0, this, [scroll, about, anchor]() {
+          if (scroll == nullptr || about == nullptr) {
+            return;
+          }
+          // Prefer the link row so a tall colophon is not cropped at the bottom.
+          scroll->ensureWidgetVisible(anchor != nullptr ? anchor : about, 0, 28);
+        });
+      }
+    }
+    return;
+  }
+}
+
+void ConfigDialog::ApplyPendingPreferencesPageRequest() {
+  std::string page = ConsumePreferencesPageRequest();
+  if (page.empty()) {
+    const QByteArray env = qgetenv("MARINAMOJI_PREFERENCES_PAGE");
+    if (!env.isEmpty()) {
+      page = env.constData();
+      qunsetenv("MARINAMOJI_PREFERENCES_PAGE");
+    }
+  }
+  if (page == kPreferencesPageApplication) {
+    SelectPreferencesPage(QStringLiteral("preferencesPageApplication"));
+  }
 }
 
 void ConfigDialog::RefinePreferencesControls() {
@@ -2182,6 +2780,50 @@ void ConfigDialog::ApplyPreferencesChrome() {
       brand->setFixedHeight(qRound(logo.height() / logo.devicePixelRatioF()));
       brand->setFixedWidth(logo_w);
       brand->setText(QString());
+    }
+  }
+  if (auto* about_logo =
+          findChild<QLabel*>(QStringLiteral("preferencesAboutLogo"))) {
+    const int logo_w = 180;
+    const QPixmap logo = LoadPreferencesBrandLogo(
+        dark, logo_w, about_logo->devicePixelRatioF());
+    if (!logo.isNull()) {
+      about_logo->setPixmap(logo);
+      about_logo->setFixedHeight(
+          qRound(logo.height() / logo.devicePixelRatioF()));
+      about_logo->setFixedWidth(logo_w);
+      about_logo->setText(QString());
+    }
+  }
+  if (auto* harbour =
+          findChild<QLabel*>(QStringLiteral("preferencesAboutArtwork"))) {
+    ApplyAboutHarbourArtwork(harbour, dark);
+  }
+  if (auto* subtitle =
+          findChild<QLabel*>(QStringLiteral("preferencesAboutSubtitle"))) {
+    subtitle->setStyleSheet(
+        QStringLiteral("color: %1; background: transparent;")
+            .arg(config_dialog_theme::Hex(palette.secondary)));
+  }
+  if (auto* authors =
+          findChild<QLabel*>(QStringLiteral("preferencesAboutAuthors"))) {
+    authors->setStyleSheet(
+        QStringLiteral("color: %1; background: transparent;")
+            .arg(config_dialog_theme::Hex(palette.heading)));
+  }
+  if (auto* attribution =
+          findChild<QLabel*>(QStringLiteral("preferencesAboutAttribution"))) {
+    // Rebuild HTML so inline <a style> colours match the active theme.
+    attribution->setText(AboutAttributionHtml(palette));
+  }
+  if (auto* links_host =
+          findChild<QWidget*>(QStringLiteral("preferencesAboutLinks"))) {
+    // AboutNavLink has no Q_OBJECT; identify by objectName.
+    for (QLabel* label : links_host->findChildren<QLabel*>()) {
+      if (label->objectName() ==
+          QLatin1String("preferencesAboutNavLink")) {
+        static_cast<AboutNavLink*>(label)->SetAccent(palette.accent);
+      }
     }
   }
   if (QWidget* content =
@@ -3022,6 +3664,7 @@ void ConfigDialog::showEvent(QShowEvent *event) {
     title->setMinimumHeight(title_metrics.height() + 6);
     title->updateGeometry();
   }
+  ApplyPendingPreferencesPageRequest();
   UpdatePreferencesScrollPolicy();
   // Second pass after the window is on-screen: first paint often clips the
   // serif page title until a system UI event forces a relayout (Spotlight).

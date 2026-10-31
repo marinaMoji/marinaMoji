@@ -2079,5 +2079,45 @@ Open the download page?</source>
         <source>Do you want to overwrite the current roman table?</source>
         <translation>現在のローマ字テーブルを上書きしますか？</translation>
     </message>
+    <message>
+        <source>About</source>
+        <translation>このアプリについて</translation>
+    </message>
+    <message>
+        <source>Make room for character</source>
+        <translation>文字に余白を</translation>
+    </message>
+    <message>
+        <source>M. Pandolfino · D.P. Morgan</source>
+        <translation>M. Pandolfino · D.P. Morgan</translation>
+    </message>
+    <message>
+        <source>Based on %1</source>
+        <translation>%1 を基に</translation>
+    </message>
+    <message>
+        <source>Mozc</source>
+        <translation>Mozc</translation>
+    </message>
+    <message>
+        <source>© Google LLC</source>
+        <translation>© Google LLC</translation>
+    </message>
+    <message>
+        <source>Open‑source software</source>
+        <translation>オープンソースソフトウェア</translation>
+    </message>
+    <message>
+        <source>Website</source>
+        <translation>ウェブサイト</translation>
+    </message>
+    <message>
+        <source>Source code</source>
+        <translation>ソースコード</translation>
+    </message>
+    <message>
+        <source>Report an issue</source>
+        <translation>問題を報告</translation>
+    </message>
 </context>
 </TS>

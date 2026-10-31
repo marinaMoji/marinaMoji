@@ -136,6 +136,10 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   void ApplyPreferencesChrome();
   void RefinePreferencesControls();
   void UpdatePreferencesScrollPolicy();
+  // Select a preferences page by stable objectName (e.g. preferencesPageApplication).
+  void SelectPreferencesPage(const QString& page_object_name);
+  // Honour About → Application redirects (env + request file).
+  void ApplyPendingPreferencesPageRequest();
   // Reflects autosave state in the in-content banner (hidden when all is well).
   void SetSaveStatus(const AutosaveController::Status& status);
 

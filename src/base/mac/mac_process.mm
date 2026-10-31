@@ -36,7 +36,9 @@
 #include "absl/log/log.h"
 #include "absl/strings/string_view.h"
 #include "base/const.h"
+#include "base/file_util.h"
 #include "base/mac/mac_util.h"
+#include "base/system_util.h"
 #include "base/util.h"
 
 namespace mozc {
@@ -84,7 +86,16 @@ bool LaunchMozcToolInternal(absl::string_view tool_name, absl::string_view error
   // If normal expected tool_name is specified, we invoke specific application.
   NSString *appName = nil;
   if (tool_name == "about_dialog") {
-    appName = @"AboutDialog.app";
+    // marinaMoji: About content lives on Preferences → Application.
+    setenv("MARINAMOJI_PREFERENCES_PAGE", "application", 1);
+    // One-shot request so an already-open Preferences window selects Application.
+    {
+      const std::string path =
+          mozc::FileUtil::JoinPath(mozc::SystemUtil::GetUserProfileDirectory(),
+                                   ".preferences_page_request");
+      mozc::FileUtil::SetContents(path, "application").IgnoreError();
+    }
+    appName = @"ConfigDialog.app";
   } else if (tool_name == "character_palette") {
     appName = @"CharacterPalette.app";
   } else if (tool_name == "config_dialog") {

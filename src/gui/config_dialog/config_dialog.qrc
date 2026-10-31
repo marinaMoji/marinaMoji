@@ -28,5 +28,8 @@
        (the SVG itself is not bundled; this dialog does not link QtSvg) -->
   <file alias="preferences_header_logo.png">preferences_header_logo.png</file>
   <file alias="preferences_header_logo_dark.png">preferences_header_logo_dark.png</file>
+  <!-- About colophon harbour: day_mode / night_mode from visual_style/current -->
+  <file alias="preferences_about_harbour.png">preferences_about_harbour.png</file>
+  <file alias="preferences_about_harbour_dark.png">preferences_about_harbour_dark.png</file>
 </qresource>
 </RCC>
