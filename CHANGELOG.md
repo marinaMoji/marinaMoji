@@ -10,6 +10,15 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Toolbar: new long logo
+
+The toolbar logo is now `header_logo.svg` from the visual style folder: icon,
+wordmark and a "JAPANESE INPUT METHOD" tagline, in light and dark versions
+(`logo_long_light.svg` / `logo_long_dark.svg`, same names and 1441x321 shape as
+before, so no layout code changed). The Windows PNGs (24/36/48 px) are
+re-rendered from them. The tagline is only a few pixels tall at 24 px. Looked at
+as rendered files on both toolbar backgrounds; not run in the real toolbar.
+
 ### Preferences: new layout, settings save as you change them
 
 The Preferences window has a new sidebar layout. Its pages are Writing,
