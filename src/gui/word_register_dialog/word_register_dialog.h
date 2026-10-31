@@ -55,6 +55,9 @@ class WordRegisterDialog : public QDialog, private Ui::WordRegisterDialog {
 
   bool IsAvailable() const;
 
+ protected:
+  void changeEvent(QEvent* event) override;
+
  protected slots:
   void Clicked(QAbstractButton* button);
   void LineEditChanged(const QString& str);
@@ -75,6 +78,9 @@ class WordRegisterDialog : public QDialog, private Ui::WordRegisterDialog {
   ErrorCode SaveEntry();
 
   void UpdateUIStatus();
+
+  // Preferences palette + dense QSS; reapplied on OS colour-scheme changes.
+  void ApplyWordRegisterChrome();
 
   // Copy the current selected text on the foreground window
   // to clipboard. This method should be invoked before

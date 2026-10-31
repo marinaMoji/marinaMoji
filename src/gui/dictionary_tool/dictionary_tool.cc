@@ -29,16 +29,31 @@
 
 #include "gui/dictionary_tool/dictionary_tool.h"
 
+#include <QAbstractItemView>
 #include <QFileDialog>
+#include <QFontMetrics>
+#include <QFrame>
+#include <QGuiApplication>
+#include <QHeaderView>
 #include <QInputDialog>
+#include <QLabel>
+#include <QListWidget>
 #include <QMenu>
 #include <QMessageBox>
 #include <QProgressDialog>
 #include <QShortcut>
+#include <QSizePolicy>
+#include <QStatusBar>
+#include <QStyle>
+#include <QStyleHints>
+#include <QTableWidget>
 #include <QThread>
 #include <QTimer>
+#include <QToolBar>
+#include <QVBoxLayout>
 #include <QtGui>
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -66,6 +81,7 @@
 #include "gui/base/encoding_util.h"
 #include "gui/base/util.h"
 #include "gui/config_dialog/combobox_delegate.h"
+#include "gui/config_dialog/config_dialog_theme.h"
 #include "gui/dictionary_tool/find_dialog.h"
 #include "gui/dictionary_tool/import_dialog.h"
 #include "protocol/commands.pb.h"
@@ -103,11 +119,14 @@ constexpr absl::Duration kSessionTimeout = absl::Milliseconds(100000);
 
 int GetTableHeight(QTableWidget* widget) {
   // Dragon Hack:
-  // Here we use "龍" to calc font size, as it looks almsot square
+  // Here we use "龍" to calc font size, as it looks almost square.
   const QRect rect =
       QFontMetrics(widget->font()).boundingRect(QStringLiteral("龍"));
-  return static_cast<int>(rect.height() * 1.4);
+  // Compact lexical rows (~26–30 logical px) while keeping CJK readable.
+  return std::clamp(static_cast<int>(std::lround(rect.height() * 1.3)), 26, 30);
 }
+
+namespace theme = config_dialog_theme;
 
 std::unique_ptr<QProgressDialog> CreateProgressDialog(const QString& message,
                                                       QWidget* parent,
@@ -324,6 +343,10 @@ DictionaryTool::DictionaryTool(QWidget* parent)
       storage_(std::make_unique<UserDictionaryStorage>()),
       current_dic_id_(0),
       window_title_(GuiUtil::ProductName()),
+      dic_menu_button_(nullptr),
+      new_word_button_(nullptr),
+      delete_word_button_(nullptr),
+      find_button_(nullptr),
       dic_menu_(new QMenu),
       new_action_(nullptr),
       rename_action_(nullptr),
@@ -352,15 +375,8 @@ DictionaryTool::DictionaryTool(QWidget* parent)
     LOG(WARNING) << "UserDictionaryStorage::Load() failed";
   }
 
-  if (!storage_->Lock()) {
-    QMessageBox::information(
-        this, window_title_,
-        tr("Another process is accessing the user dictionary file."));
-    is_available_ = false;
-    return;
-  }
-
-  // main window
+  // main window — build chrome before taking the dictionary lock so dark/light
+  // styling still applies if the lock is unavailable.
 #ifndef __linux__
   // For some reason setCentralWidget crashes the dictionary_tool on Linux
   // TODO(taku): investigate the cause of the crashes
@@ -369,38 +385,51 @@ DictionaryTool::DictionaryTool(QWidget* parent)
 
   setContextMenuPolicy(Qt::NoContextMenu);
 
-  // toolbar
+  // toolbar — Tools | Add / Remove …… Find (existing Find dialog)
   toolbar_->setFloatable(false);
   toolbar_->setMovable(false);
   dic_menu_button_ = new QPushButton(tr("Tools"), this);
-  dic_menu_button_->setFlat(true);
   new_word_button_ = new QPushButton(tr("Add"), this);
-  new_word_button_->setFlat(true);
   delete_word_button_ = new QPushButton(tr("Remove"), this);
-  delete_word_button_->setFlat(true);
+  find_button_ = new QPushButton(tr("Find..."), this);
   toolbar_->addWidget(dic_menu_button_);
+  toolbar_->addSeparator();
   toolbar_->addWidget(new_word_button_);
   toolbar_->addWidget(delete_word_button_);
+  QWidget* toolbar_stretch = new QWidget(this);
+  toolbar_stretch->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+  toolbar_->addWidget(toolbar_stretch);
+  toolbar_->addWidget(find_button_);
 
-  // Cosmetic tweaks for Mac.
+  // Sidebar: understated heading + dictionary list.
+  auto* sidebar_pane = new QWidget(this);
+  sidebar_pane->setObjectName(QStringLiteral("dictionarySidebar"));
+  auto* sidebar_layout = new QVBoxLayout(sidebar_pane);
+  sidebar_layout->setContentsMargins(10, 10, 8, 8);
+  sidebar_layout->setSpacing(2);
+  auto* dictionaries_heading = new QLabel(tr("Dictionaries"), sidebar_pane);
+  dictionaries_heading->setObjectName(
+      QStringLiteral("dictionarySidebarHeading"));
+  sidebar_layout->addWidget(dictionaries_heading);
+  dic_list_->setParent(sidebar_pane);
+  sidebar_layout->addWidget(dic_list_, /*stretch=*/1);
+  splitter_->insertWidget(0, sidebar_pane);
+
 #ifdef __APPLE__
   dic_list_->setAttribute(Qt::WA_MacShowFocusRect, false);
-  dic_list_->setAutoFillBackground(true);
-  dic_list_->setFrameStyle(QFrame::NoFrame);
-
-  dic_content_->setFrameStyle(QFrame::NoFrame);
-  dic_content_->setShowGrid(false);
+  dic_content_->setAttribute(Qt::WA_MacShowFocusRect, false);
 #endif  // __APPLE__
 
+  dic_list_->setFrameStyle(QFrame::NoFrame);
   dic_content_->setWordWrap(false);
   dic_content_->verticalHeader()->hide();
   dic_content_->horizontalHeader()->setStretchLastSection(true);
   dic_content_->horizontalHeader()->setSortIndicatorShown(true);
   dic_content_->horizontalHeader()->setHighlightSections(false);
-  dic_content_->setAlternatingRowColors(true);
+  dic_content_->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft |
+                                                        Qt::AlignVCenter);
 
-  // We fix the row height so that paint() is executed faster.
-  // This changes allows DictionaryTool handle about 1M words.
+  // Fixed row height keeps paint/layout fast for large dictionaries.
   dic_content_->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
   dic_content_->verticalHeader()->setDefaultSectionSize(
       GetTableHeight(dic_content_));
@@ -495,6 +524,7 @@ DictionaryTool::DictionaryTool(QWidget* parent)
   // Signals and slots to connect buttons to actions.
   connect(new_word_button_, SIGNAL(clicked()), this, SLOT(AddWord()));
   connect(delete_word_button_, SIGNAL(clicked()), this, SLOT(DeleteWord()));
+  connect(find_button_, SIGNAL(clicked()), find_dialog_, SLOT(show()));
 
   // When empty area of Dictionary Table is clicked,
   // insert a new word. This is only enabled on Mac
@@ -504,6 +534,46 @@ DictionaryTool::DictionaryTool(QWidget* parent)
   // response to change of selection/data of items.
   connect(dic_list_, SIGNAL(itemSelectionChanged()), this,
           SLOT(OnDictionarySelectionChanged()));
+
+  // Default window and panes (~800×500; sidebar ~170 logical px).
+  resize(800, 500);
+  setMinimumSize(560, 320);
+  if (QWidget* sidebar =
+          findChild<QWidget*>(QStringLiteral("dictionarySidebar"))) {
+    sidebar->setMinimumWidth(140);
+    sidebar->setMaximumWidth(280);
+  }
+  splitter_->setStretchFactor(0, 0);
+  splitter_->setStretchFactor(1, 1);
+  splitter_->setSizes(QList<int>() << 170 << 630);
+
+  // Initial column proportions: Reading 25%, Word 35%, POS 15%, Comment ~25%.
+  // stretchLastSection keeps Comment as the remainder; do not reset on refresh.
+  const int table_width = 630;
+  dic_content_->setColumnWidth(0, static_cast<int>(table_width * 0.25));
+  dic_content_->setColumnWidth(1, static_cast<int>(table_width * 0.35));
+  dic_content_->setColumnWidth(2, static_cast<int>(table_width * 0.15));
+
+  sort_state_.sorted = false;
+
+#ifdef __APPLE__
+  setUnifiedTitleAndToolBarOnMac(true);
+#endif  // __APPLE__
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+  connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this,
+          [this](Qt::ColorScheme) { ApplyDictionaryToolChrome(); });
+#endif  // Qt >= 6.5
+  ApplyDictionaryToolChrome();
+  GuiUtil::ReplaceWidgetLabels(this);
+
+  if (!storage_->Lock()) {
+    QMessageBox::information(
+        this, window_title_,
+        tr("Another process is accessing the user dictionary file."));
+    is_available_ = false;
+    return;
+  }
 
   // Initialize the list widget for a list of dictionaries.
   InitDictionaryList();
@@ -515,17 +585,6 @@ DictionaryTool::DictionaryTool(QWidget* parent)
     OnDictionarySelectionChanged();
   }
 
-  // Adjust the splitter.
-  splitter_->setSizes(QList<int>() << static_cast<int>(width() * 0.25)
-                                   << static_cast<int>(width() * 0.75));
-
-  // adjust column width
-  dic_content_->setColumnWidth(0, static_cast<int>(width() * 0.18));
-  dic_content_->setColumnWidth(1, static_cast<int>(width() * 0.18));
-  dic_content_->setColumnWidth(2, static_cast<int>(width() * 0.18));
-
-  sort_state_.sorted = false;
-
   // If this is the first time for the user dictionary is used, create
   // a default dictionary.
   if (absl::Status s = storage_->Exists(); !s.ok()) {
@@ -534,16 +593,142 @@ DictionaryTool::DictionaryTool(QWidget* parent)
     CreateDictionaryHelper(tr("User Dictionary 1"));
   }
 
-  // for Mac-like style
-#ifdef __APPLE__
-  setUnifiedTitleAndToolBarOnMac(true);
-#endif  // __APPLE__
-
   StartMonitoringUserEdit();
   UpdateUIStatus();
 
-  GuiUtil::ReplaceWidgetLabels(this);
   qApp->installEventFilter(this);
+}
+
+void DictionaryTool::ApplyDictionaryToolChrome() {
+  const bool dark = theme::IsDark();
+  const theme::Palette palette = theme::Colors(dark);
+
+  // Object names must be set before the window stylesheet so #id selectors match.
+  if (dic_list_ != nullptr) {
+    dic_list_->setObjectName(QStringLiteral("dictionarySidebarList"));
+  }
+  if (dic_content_ != nullptr) {
+    dic_content_->setObjectName(QStringLiteral("dic_content_"));
+  }
+
+  setAttribute(Qt::WA_StyledBackground, true);
+  setStyleSheet(theme::DictionaryToolStylesheet(dark));
+  theme::ApplySurfacePalette(this, palette);
+  if (centralWidget() != nullptr) {
+    theme::ApplySurfacePalette(centralWidget(), palette);
+  }
+
+  const QFont ui_font = theme::UiFont(theme::Type::secondary, QFont::Normal);
+  const QFont heading_font =
+      theme::UiFont(theme::Type::secondary, QFont::DemiBold);
+
+  if (QWidget* sidebar =
+          findChild<QWidget*>(QStringLiteral("dictionarySidebar"))) {
+    theme::ApplySurfacePalette(sidebar, palette, /*sidebar_surface=*/true);
+  }
+  if (auto* heading =
+          findChild<QLabel*>(QStringLiteral("dictionarySidebarHeading"))) {
+    heading->setFont(heading_font);
+  }
+
+  if (dic_list_ != nullptr) {
+    dic_list_->setFont(ui_font);
+    dic_list_->setUniformItemSizes(true);
+    dic_list_->setSpacing(0);
+    dic_list_->setFocusPolicy(Qt::StrongFocus);
+    dic_list_->setFrameShape(QFrame::NoFrame);
+    theme::ApplySurfacePalette(dic_list_, palette, /*sidebar_surface=*/true);
+    // Sidebar selection: quiet marinaMoji wash (not system orange / table select).
+    {
+      QPalette list_palette = dic_list_->palette();
+      list_palette.setColor(QPalette::Highlight, palette.accent_subtle);
+      list_palette.setColor(QPalette::HighlightedText, palette.accent);
+      list_palette.setColor(QPalette::Inactive, QPalette::Highlight,
+                            palette.accent_subtle);
+      list_palette.setColor(QPalette::Inactive, QPalette::HighlightedText,
+                            palette.accent);
+      dic_list_->setPalette(list_palette);
+    }
+    if (QWidget* viewport = dic_list_->viewport()) {
+      theme::ApplySurfacePalette(viewport, palette, /*sidebar_surface=*/true);
+      // Hard fill: Fusion can leave the viewport black under a dark OS chrome
+      // even when the app theme is light (or the reverse).
+      viewport->setStyleSheet(
+          QStringLiteral("background-color: %1;")
+              .arg(theme::Hex(palette.sidebar)));
+      QPalette viewport_palette = viewport->palette();
+      viewport_palette.setColor(QPalette::Highlight, palette.accent_subtle);
+      viewport_palette.setColor(QPalette::HighlightedText, palette.accent);
+      viewport->setPalette(viewport_palette);
+    }
+  }
+
+  if (dic_content_ != nullptr) {
+    dic_content_->setFont(ui_font);
+    // Header: compact, slightly less weight than DemiBold body headings.
+    QFont header_font = ui_font;
+    header_font.setWeight(QFont::Medium);
+    dic_content_->horizontalHeader()->setFont(header_font);
+    dic_content_->setShowGrid(false);
+    dic_content_->setAlternatingRowColors(false);
+    dic_content_->setFrameStyle(QFrame::NoFrame);
+    dic_content_->setWordWrap(false);
+    dic_content_->setSelectionBehavior(QAbstractItemView::SelectItems);
+    dic_content_->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    // Keep fixed row geometry after font/theme changes (26–30 logical px).
+    dic_content_->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    dic_content_->verticalHeader()->setDefaultSectionSize(
+        GetTableHeight(dic_content_));
+    theme::ApplySurfacePalette(dic_content_, palette);
+    if (QWidget* viewport = dic_content_->viewport()) {
+      theme::ApplySurfacePalette(viewport, palette);
+      viewport->setStyleSheet(
+          QStringLiteral("background-color: %1;")
+              .arg(theme::Hex(palette.window)));
+    }
+    if (dic_content_->horizontalHeader() != nullptr) {
+      theme::ApplySurfacePalette(dic_content_->horizontalHeader(), palette,
+                                 /*sidebar_surface=*/true);
+      dic_content_->horizontalHeader()->setDefaultAlignment(
+          Qt::AlignLeft | Qt::AlignVCenter);
+      dic_content_->horizontalHeader()->setMinimumSectionSize(48);
+    }
+  }
+
+  if (toolbar_ != nullptr) {
+    toolbar_->setFont(ui_font);
+    toolbar_->setIconSize(QSize(16, 16));
+    toolbar_->setToolButtonStyle(Qt::ToolButtonTextOnly);
+    theme::ApplySurfacePalette(toolbar_, palette);
+  }
+
+  for (QPushButton* button : {dic_menu_button_, new_word_button_,
+                              delete_word_button_, find_button_}) {
+    if (button == nullptr) {
+      continue;
+    }
+    button->setFont(ui_font);
+    button->setCursor(Qt::PointingHandCursor);
+    button->setFlat(true);
+    button->setAutoDefault(false);
+    button->setDefault(false);
+  }
+  if (find_button_ != nullptr) {
+    find_button_->setProperty("role", QStringLiteral("toolbar_find"));
+    find_button_->style()->unpolish(find_button_);
+    find_button_->style()->polish(find_button_);
+  }
+
+  if (statusbar_ != nullptr) {
+    statusbar_->setFont(ui_font);
+    statusbar_->setSizeGripEnabled(true);
+    theme::ApplySurfacePalette(statusbar_, palette, /*sidebar_surface=*/true);
+  }
+
+  if (splitter_ != nullptr) {
+    splitter_->setHandleWidth(1);
+    splitter_->setChildrenCollapsible(false);
+  }
 }
 
 void DictionaryTool::closeEvent(QCloseEvent* event) {
@@ -592,6 +777,10 @@ bool DictionaryTool::eventFilter(QObject* obj, QEvent* event) {
   if (event->type() == QEvent::ApplicationDeactivate) {
     constexpr int kDelayOnDeactivateTime = 200;
     QTimer::singleShot(kDelayOnDeactivateTime, this, SLOT(OnDeactivate()));
+  }
+  if (event->type() == QEvent::ThemeChange ||
+      event->type() == QEvent::ApplicationPaletteChange) {
+    ApplyDictionaryToolChrome();
   }
   return QWidget::eventFilter(obj, event);
 }

@@ -32,13 +32,18 @@
 #include <QSplitter>
 #include <QtGui>
 
+#include "gui/config_dialog/config_dialog_theme.h"
+
 void ZeroWidthSplitterHandle::paintEvent(QPaintEvent *event) {
-#ifdef __APPLE__
   QPainter painter(this);
-  QColor topColor(145, 145, 145);
-  painter.setPen(topColor);
-  painter.drawLine(0, 0, 0, height());
-#endif  // __APPLE__
+  const auto palette = mozc::gui::config_dialog_theme::Colors(
+      mozc::gui::config_dialog_theme::IsDark());
+  painter.setPen(palette.rule);
+  if (orientation() == Qt::Horizontal) {
+    painter.drawLine(0, 0, 0, height());
+  } else {
+    painter.drawLine(0, 0, width(), 0);
+  }
 }
 
 QSize ZeroWidthSplitterHandle::sizeHint() const {

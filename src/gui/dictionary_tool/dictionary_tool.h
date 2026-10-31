@@ -184,10 +184,14 @@ class DictionaryTool : public QMainWindow, private Ui::DictionaryTool {
 
   QString window_title_;
 
+  // Apply marinaMoji colours/fonts; also used when the OS colour scheme changes.
+  void ApplyDictionaryToolChrome();
+
   // Buttons
   QPushButton* dic_menu_button_;
   QPushButton* new_word_button_;
   QPushButton* delete_word_button_;
+  QPushButton* find_button_;
 
   // Menu for managing dictionary.
   QMenu* dic_menu_;

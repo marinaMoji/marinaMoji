@@ -49,6 +49,10 @@
 #include <QStyleHints>
 #include <QtGlobal>
 
+#ifdef __APPLE__
+#include <CoreFoundation/CoreFoundation.h>
+#endif  // __APPLE__
+
 namespace mozc {
 namespace gui {
 namespace config_dialog_theme {
@@ -170,11 +174,33 @@ inline void EnsureHeadingMetrics(QLabel* label) {
 }
 
 inline bool IsDark() {
+#ifdef __APPLE__
+  // Fusion sometimes lags behind AppKit; honour the user preference directly.
+  if (CFPropertyListRef ref = CFPreferencesCopyAppValue(
+          CFSTR("AppleInterfaceStyle"), kCFPreferencesAnyApplication)) {
+    bool dark = false;
+    if (CFGetTypeID(ref) == CFStringGetTypeID()) {
+      dark = CFStringCompare(static_cast<CFStringRef>(ref), CFSTR("Dark"),
+                             0) == kCFCompareEqualTo;
+    }
+    CFRelease(ref);
+    if (dark) {
+      return true;
+    }
+  }
+#endif  // __APPLE__
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-  return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
-#else
+  const Qt::ColorScheme scheme =
+      QGuiApplication::styleHints()->colorScheme();
+  if (scheme == Qt::ColorScheme::Dark) {
+    return true;
+  }
+  if (scheme == Qt::ColorScheme::Light) {
+    return false;
+  }
+#endif  // Qt >= 6.5
+  // Unknown / older Qt / macOS Auto: fall back to the application palette.
   return QGuiApplication::palette().color(QPalette::Window).lightness() < 128;
-#endif
 }
 
 struct Palette {
@@ -261,6 +287,39 @@ inline Palette Colors(bool dark) {
   };
 }
 
+// Fill Window/Base/Text so Fusion + stylesheet stay coherent in dark mode
+// (avoids black QAbstractItemView viewports when the OS is dark).
+// Parameter is named `colors` to avoid clashing with QWidget::palette().
+inline void ApplySurfacePalette(QWidget* widget, const Palette& colors,
+                                bool sidebar_surface = false) {
+  if (widget == nullptr) {
+    return;
+  }
+  const QColor surface = sidebar_surface ? colors.sidebar : colors.window;
+  QPalette widget_palette = widget->palette();
+  widget_palette.setColor(QPalette::Window, surface);
+  widget_palette.setColor(QPalette::Base, surface);
+  widget_palette.setColor(QPalette::AlternateBase, surface);
+  widget_palette.setColor(QPalette::Button, surface);
+  widget_palette.setColor(QPalette::WindowText, colors.text);
+  widget_palette.setColor(QPalette::Text, colors.text);
+  widget_palette.setColor(QPalette::ButtonText, colors.text);
+  widget_palette.setColor(QPalette::BrightText, colors.text);
+  widget_palette.setColor(QPalette::PlaceholderText, colors.secondary);
+  widget_palette.setColor(QPalette::Highlight, colors.selection_bg);
+  widget_palette.setColor(QPalette::HighlightedText, colors.selection_text);
+  widget_palette.setColor(QPalette::Inactive, QPalette::Highlight,
+                          colors.selection_bg);
+  widget_palette.setColor(QPalette::Inactive, QPalette::HighlightedText,
+                          colors.selection_text);
+  widget_palette.setColor(QPalette::Light, colors.raised);
+  widget_palette.setColor(QPalette::Mid, colors.rule);
+  widget_palette.setColor(QPalette::Dark, colors.border_control);
+  widget->setPalette(widget_palette);
+  widget->setAutoFillBackground(true);
+  widget->setAttribute(Qt::WA_StyledBackground, true);
+}
+
 inline QString Hex(const QColor& color) {
   if (color.alpha() < 255) {
     return QStringLiteral("rgba(%1,%2,%3,%4)")
@@ -270,6 +329,43 @@ inline QString Hex(const QColor& color) {
         .arg(color.alpha());
   }
   return color.name(QColor::HexRgb);
+}
+
+// Substitute @@TOKEN@@ placeholders with palette colours.
+inline QString ApplyPaletteTokens(QString qss, const Palette& palette) {
+  const struct {
+    const char* token;
+    QColor color;
+  } tokens[] = {
+      {"@@WINDOW@@", palette.window},
+      {"@@SIDEBAR@@", palette.sidebar},
+      {"@@RAISED@@", palette.raised},
+      {"@@TEXT@@", palette.text},
+      {"@@HEADING@@", palette.heading},
+      {"@@SECONDARY@@", palette.secondary},
+      {"@@DISABLED@@", palette.disabled},
+      {"@@RULE@@", palette.rule},
+      {"@@TITLE_RULE@@", palette.title_rule},
+      {"@@BORDER_CONTROL@@", palette.border_control},
+      {"@@NAV_SELECTED@@", palette.nav_selected},
+      {"@@NAV_HOVER@@", palette.nav_hover},
+      {"@@ACCENT@@", palette.accent},
+      {"@@ACCENT_SUBTLE@@", palette.accent_subtle},
+      {"@@ON_ACCENT@@", palette.on_accent},
+      {"@@PRIMARY@@", palette.primary},
+      {"@@PRIMARY_HOVER@@", palette.primary_hover},
+      {"@@PRIMARY_PRESSED@@", palette.primary_pressed},
+      {"@@FOCUS@@", palette.focus},
+      {"@@SELECTION_BG@@", palette.selection_bg},
+      {"@@SELECTION_TEXT@@", palette.selection_text},
+      {"@@WARNING@@", palette.warning},
+      {"@@CHECK_BORDER@@", palette.check_border},
+      {"@@UTILITY@@", palette.utility},
+  };
+  for (const auto& token : tokens) {
+    qss.replace(QLatin1String(token.token), Hex(token.color));
+  }
+  return qss;
 }
 
 inline QString Stylesheet(bool dark) {
@@ -504,39 +600,145 @@ inline QString Stylesheet(bool dark) {
       "  padding-top: 0.9em; }"
       "QGroupBox::title { subcontrol-origin: margin; left: 0; padding: 0; }");
 
-  const struct {
-    const char* token;
-    QColor color;
-  } tokens[] = {
-      {"@@WINDOW@@", palette.window},
-      {"@@SIDEBAR@@", palette.sidebar},
-      {"@@RAISED@@", palette.raised},
-      {"@@TEXT@@", palette.text},
-      {"@@HEADING@@", palette.heading},
-      {"@@SECONDARY@@", palette.secondary},
-      {"@@DISABLED@@", palette.disabled},
-      {"@@RULE@@", palette.rule},
-      {"@@TITLE_RULE@@", palette.title_rule},
-      {"@@BORDER_CONTROL@@", palette.border_control},
-      {"@@NAV_SELECTED@@", palette.nav_selected},
-      {"@@NAV_HOVER@@", palette.nav_hover},
-      {"@@ACCENT@@", palette.accent},
-      {"@@ACCENT_SUBTLE@@", palette.accent_subtle},
-      {"@@ON_ACCENT@@", palette.on_accent},
-      {"@@PRIMARY@@", palette.primary},
-      {"@@PRIMARY_HOVER@@", palette.primary_hover},
-      {"@@PRIMARY_PRESSED@@", palette.primary_pressed},
-      {"@@FOCUS@@", palette.focus},
-      {"@@SELECTION_BG@@", palette.selection_bg},
-      {"@@SELECTION_TEXT@@", palette.selection_text},
-      {"@@WARNING@@", palette.warning},
-      {"@@CHECK_BORDER@@", palette.check_border},
-      {"@@UTILITY@@", palette.utility},
-  };
-  for (const auto& token : tokens) {
-    qss.replace(QLatin1String(token.token), Hex(token.color));
-  }
-  return qss;
+  return ApplyPaletteTokens(qss, palette);
+}
+
+// Dense stylesheet for the Dictionary Manager (QMainWindow utility).
+// Reuses Preferences palette tokens; does not inherit Preferences page spacing.
+inline QString DictionaryToolStylesheet(bool dark) {
+  const Palette palette = Colors(dark);
+  QString qss = QStringLiteral(
+      "QMainWindow#DictionaryTool { background-color: @@WINDOW@@; }"
+      "QWidget#centralwidget { background-color: @@WINDOW@@; }"
+      "QWidget#dictionarySidebar { background-color: @@SIDEBAR@@; }"
+      "QLabel#dictionarySidebarHeading {"
+      "  color: @@SECONDARY@@; background: transparent;"
+      "  padding: 0 2px 4px 4px; }"
+
+      "QListWidget#dictionarySidebarList {"
+      "  background-color: @@SIDEBAR@@; border: none; outline: none;"
+      "  show-decoration-selected: 1; color: @@TEXT@@; }"
+      "QListWidget#dictionarySidebarList::viewport {"
+      "  background-color: @@SIDEBAR@@; }"
+      "QListWidget#dictionarySidebarList::item {"
+      "  color: @@TEXT@@; background: transparent;"
+      "  padding: 5px 8px 5px 10px;"
+      "  border: none; border-left: 2px solid transparent;"
+      "  border-radius: 0; margin: 0; }"
+      "QListWidget#dictionarySidebarList::item:hover {"
+      "  background: @@NAV_HOVER@@; color: @@HEADING@@; }"
+      "QListWidget#dictionarySidebarList::item:selected {"
+      "  background-color: @@ACCENT_SUBTLE@@; color: @@ACCENT@@;"
+      "  font-weight: 600; border-left: 2px solid @@ACCENT@@; }"
+      "QListWidget#dictionarySidebarList::item:selected:!active {"
+      "  background-color: @@ACCENT_SUBTLE@@; color: @@ACCENT@@; }"
+      "QListWidget#dictionarySidebarList::item:selected:hover {"
+      "  background-color: @@NAV_HOVER@@; }"
+      "QListWidget#dictionarySidebarList::item:focus {"
+      "  background: @@NAV_HOVER@@; border-left: 2px solid @@FOCUS@@; }"
+      "QListWidget#dictionarySidebarList::item:selected:focus {"
+      "  border-left: 2px solid @@ACCENT@@;"
+      "  background-color: @@ACCENT_SUBTLE@@; }"
+
+      "QTableWidget#dic_content_ {"
+      "  color: @@TEXT@@; background-color: @@WINDOW@@;"
+      "  alternate-background-color: @@WINDOW@@;"
+      "  gridline-color: transparent;"
+      "  border: none; border-left: 1px solid @@RULE@@;"
+      "  outline: none;"
+      "  selection-background-color: @@SELECTION_BG@@;"
+      "  selection-color: @@SELECTION_TEXT@@; }"
+      "QTableWidget#dic_content_::viewport {"
+      "  background-color: @@WINDOW@@; }"
+      // Row separators are painted in DictionaryContentTableWidget::paintEvent
+      // (continuous lines). Do not use per-item border-bottom — POS cells use
+      // QItemDelegate and ignore ::item borders, which broke row alignment.
+      "QTableWidget#dic_content_::item {"
+      "  padding: 1px 8px; color: @@TEXT@@;"
+      "  border: none; }"
+      "QTableWidget#dic_content_::item:selected {"
+      "  background: @@SELECTION_BG@@; color: @@SELECTION_TEXT@@; }"
+      "QTableWidget#dic_content_::item:focus {"
+      "  background: @@SELECTION_BG@@; color: @@SELECTION_TEXT@@; }"
+      "QHeaderView::section {"
+      "  color: @@HEADING@@; background: @@SIDEBAR@@;"
+      "  border: none; border-bottom: 1px solid @@RULE@@;"
+      "  border-right: 1px solid @@RULE@@;"
+      "  padding: 3px 8px; font-weight: 500; }"
+      "QHeaderView::section:last {"
+      "  border-right: none; }"
+      "QTableCornerButton::section {"
+      "  background: @@SIDEBAR@@; border: none;"
+      "  border-bottom: 1px solid @@RULE@@; }"
+
+      "QToolBar#toolbar_ {"
+      "  background: @@WINDOW@@; border: none;"
+      "  border-bottom: 1px solid @@RULE@@;"
+      "  spacing: 2px; padding: 2px 8px; }"
+      "QToolBar#toolbar_ QPushButton {"
+      "  color: @@TEXT@@; background: transparent;"
+      "  border: 1px solid transparent; border-radius: 3px;"
+      "  min-height: 0; max-height: 24px; padding: 2px 7px; }"
+      "QToolBar#toolbar_ QPushButton:hover {"
+      "  color: @@HEADING@@; background: @@ACCENT_SUBTLE@@;"
+      "  border-color: @@BORDER_CONTROL@@; }"
+      "QToolBar#toolbar_ QPushButton:pressed {"
+      "  background: @@NAV_HOVER@@; }"
+      "QToolBar#toolbar_ QPushButton:disabled { color: @@DISABLED@@; }"
+      "QToolBar#toolbar_ QPushButton:focus {"
+      "  border: 1px solid @@FOCUS@@; }"
+      "QToolBar#toolbar_ QPushButton[role=\"toolbar_find\"] {"
+      "  color: @@ACCENT@@; }"
+      "QToolBar#toolbar_::separator {"
+      "  background: @@RULE@@; width: 1px; margin: 4px 3px; }"
+
+      "QStatusBar#statusbar_ {"
+      "  background: @@SIDEBAR@@; color: @@SECONDARY@@;"
+      "  border: none; border-top: 1px solid @@RULE@@;"
+      "  min-height: 18px; max-height: 22px; padding: 0 6px; }"
+      "QStatusBar#statusbar_::item { border: none; }"
+
+      "QLineEdit {"
+      "  color: @@TEXT@@; background: @@RAISED@@;"
+      "  border: 1px solid @@FOCUS@@; border-radius: 2px;"
+      "  padding: 1px 5px;"
+      "  selection-background-color: @@SELECTION_BG@@;"
+      "  selection-color: @@SELECTION_TEXT@@; }"
+      "QComboBox {"
+      "  color: @@TEXT@@; background: @@RAISED@@;"
+      "  border: 1px solid @@FOCUS@@; border-radius: 2px;"
+      "  padding: 1px 20px 1px 5px; }"
+      "QComboBox::drop-down {"
+      "  border: none; background: transparent; width: 18px; }"
+      "QComboBox QAbstractItemView {"
+      "  color: @@TEXT@@; background: @@RAISED@@; outline: 0;"
+      "  border: 1px solid @@BORDER_CONTROL@@;"
+      "  selection-background-color: @@SELECTION_BG@@;"
+      "  selection-color: @@SELECTION_TEXT@@; }"
+
+      "QScrollBar:vertical {"
+      "  background: @@WINDOW@@; width: 10px; margin: 0; border: none; }"
+      "QScrollBar::handle:vertical {"
+      "  background: @@BORDER_CONTROL@@; min-height: 24px; border-radius: 4px;"
+      "  margin: 2px; }"
+      "QScrollBar::handle:vertical:hover { background: @@SECONDARY@@; }"
+      "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
+      "  height: 0; background: none; border: none; }"
+      "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {"
+      "  background: none; }"
+      "QScrollBar:horizontal {"
+      "  background: @@WINDOW@@; height: 10px; margin: 0; border: none; }"
+      "QScrollBar::handle:horizontal {"
+      "  background: @@BORDER_CONTROL@@; min-width: 24px; border-radius: 4px;"
+      "  margin: 2px; }"
+      "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {"
+      "  width: 0; background: none; border: none; }"
+      "QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {"
+      "  background: none; }"
+
+      "QSplitter::handle { background: @@RULE@@; width: 1px; }");
+
+  return ApplyPaletteTokens(qss, palette);
 }
 
 }  // namespace config_dialog_theme

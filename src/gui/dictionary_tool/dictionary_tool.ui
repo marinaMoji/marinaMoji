@@ -37,22 +37,43 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>700</width>
-    <height>420</height>
+    <width>800</width>
+    <height>500</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>560</width>
+    <height>320</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>[ProductName] Dictionary Tool</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <property name="spacing">
+     <number>0</number>
+    </property>
     <item row="0" column="0">
      <widget class="ZeroWidthSplitter" name="splitter_">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
       <widget class="QListWidget" name="dic_list_"/>
-      <widget class="::mozc::gui::DictionaryContentTableWidget" name="dic_content_"/>
+      <widget class="mozc::gui::DictionaryContentTableWidget" name="dic_content_"/>
      </widget>
     </item>
    </layout>
@@ -78,7 +99,7 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>::mozc::gui::DictionaryContentTableWidget</class>
+   <class>mozc::gui::DictionaryContentTableWidget</class>
    <extends>QTableWidget</extends>
    <header>gui/dictionary_tool/dictionary_content_table_widget.h</header>
   </customwidget>

@@ -37,6 +37,7 @@
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "gui/base/util.h"
+#include "gui/config_dialog/config_dialog_theme.h"
 
 namespace mozc {
 namespace gui {
@@ -140,8 +141,13 @@ FOUND:
     QTableWidgetItem *item = table_->item(matched_row, matched_column);
     DCHECK(item);
     last_item_ = item;
+    // Temporary local override; cleared when the table regains focus.
+    const auto palette =
+        config_dialog_theme::Colors(config_dialog_theme::IsDark());
     table_->setStyleSheet(
-        QStringLiteral("selection-background-color : yellow;"));
+        QStringLiteral("selection-background-color: %1; selection-color: %2;")
+            .arg(config_dialog_theme::Hex(palette.accent_subtle),
+                 config_dialog_theme::Hex(palette.heading)));
     table_->setCurrentItem(item);
     table_->scrollToItem(item);
   } else {

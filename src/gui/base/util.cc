@@ -47,6 +47,7 @@
 #include <QObject>
 #include <QStringList>
 #include <QStyleFactory>
+#include <QStyleHints>
 #include <QtGui>
 #include <memory>
 #include <string>
@@ -111,6 +112,44 @@ void InstallDefaultTranslator() {
 }
 }  // namespace
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+// Fusion does not always inherit AppKit's effective appearance; nudge Qt's
+// colour scheme from the global AppleInterfaceStyle preference so Preferences,
+// Add Word, and Dictionary Manager share one dark/light decision.
+// Override with MARINAMOJI_FORCE_COLOR_SCHEME=dark|light for local checks.
+void SyncFusionColorSchemeFromSystem() {
+  const QByteArray force =
+      qgetenv("MARINAMOJI_FORCE_COLOR_SCHEME").toLower();
+  if (force == "dark") {
+    QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
+    return;
+  }
+  if (force == "light") {
+    QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Light);
+    return;
+  }
+#ifdef __APPLE__
+  CFPropertyListRef ref = CFPreferencesCopyAppValue(
+      CFSTR("AppleInterfaceStyle"), kCFPreferencesAnyApplication);
+  if (ref == nullptr) {
+    // Light or Auto with no explicit Dark key — let Qt follow the system.
+    QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Unknown);
+    return;
+  }
+  bool dark = false;
+  if (CFGetTypeID(ref) == CFStringGetTypeID()) {
+    dark = CFStringCompare(static_cast<CFStringRef>(ref), CFSTR("Dark"), 0) ==
+           kCFCompareEqualTo;
+  }
+  CFRelease(ref);
+  QGuiApplication::styleHints()->setColorScheme(
+      dark ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
+#else   // !__APPLE__
+  QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Unknown);
+#endif  // __APPLE__
+}
+#endif  // Qt >= 6.5
+
 // static
 std::unique_ptr<QApplication> GuiUtil::InitQt(int &argc, char *argv[]) {
   QApplication::setStyle(QStyleFactory::create(QLatin1String("fusion")));
@@ -120,6 +159,9 @@ std::unique_ptr<QApplication> GuiUtil::InitQt(int &argc, char *argv[]) {
 #ifdef __APPLE__
   app->setFont(QFont("Hiragino Sans"));
 #endif  // __APPLE__
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+  SyncFusionColorSchemeFromSystem();
+#endif  // Qt >= 6.5
 
   InstallEventFilter();
   InstallDefaultTranslator();

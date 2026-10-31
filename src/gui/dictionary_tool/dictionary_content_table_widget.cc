@@ -29,13 +29,9 @@
 
 #include "gui/dictionary_tool/dictionary_content_table_widget.h"
 
-#include <QHeaderView>
-#include <QScrollBar>
+#include <QPainter>
+#include <QPaintEvent>
 #include <QtGui>
-
-#ifdef __APPLE__
-#include <algorithm>
-#endif  // __APPLE__
 
 namespace mozc::gui {
 
@@ -43,42 +39,37 @@ DictionaryContentTableWidget::DictionaryContentTableWidget(QWidget *parent)
     : QTableWidget(parent) {}
 
 void DictionaryContentTableWidget::paintEvent(QPaintEvent *event) {
+  // Keep a uniform viewport below the last entry — do not paint synthetic
+  // alternating stripes into empty space.
   QTableView::paintEvent(event);
 
-#ifdef __APPLE__
-  if (!isEnabled()) {
+  // Continuous horizontal row separators across the full viewport width.
+  // Per-cell QSS borders break at the POS column because ComboBoxDelegate
+  // is a QItemDelegate (not QStyledItemDelegate), so it ignores ::item borders.
+  if (rowCount() <= 0 || columnCount() <= 0 || model() == nullptr) {
     return;
   }
 
-  const int row_height = rowCount() > 0 ? rowHeight(0)
-                         : verticalHeader()->defaultSectionSize();
-  if (row_height <= 0) [[unlikely]] {
-    // If row_height is not available, do not paint the alternate color.
-    return;
-  }
-
-  int row_y = 0;
-  if (rowCount() > 0) {
-    // rowViewportPosition() returns the Y-coordinate of the row directly on the
-    // viewport, automatically accounting for the vertical scrollbar offset.
-    const int last_row_bottom = rowViewportPosition(rowCount() - 1)
-                                + rowHeight(rowCount() - 1);
-    row_y = std::max(0, last_row_bottom);
-  }
-
-  bool is_odd = rowCount() % 2 == 1;
   QPainter painter(viewport());
-  const QColor alternate_color =
-      viewport()->palette().color(QPalette::Active, QPalette::AlternateBase);
-  while (row_y < height()) {
-    if (is_odd) {
-      QRect draw_rect(0, row_y, width(), row_height);
-      painter.fillRect(draw_rect, alternate_color);
+  painter.setClipRect(event->rect());
+  QPen pen(palette().color(QPalette::Mid));
+  // Cosmetic 1px stays hairline on Retina; avoids fractional double borders.
+  pen.setWidth(0);
+  painter.setPen(pen);
+
+  const int left = event->rect().left();
+  const int right = event->rect().right();
+  for (int row = 0; row < rowCount(); ++row) {
+    const QRect cell = visualRect(model()->index(row, 0));
+    if (!cell.isValid()) {
+      continue;
     }
-    row_y += row_height;
-    is_odd = !is_odd;
+    const int y = cell.bottom();
+    if (y < event->rect().top() || y > event->rect().bottom()) {
+      continue;
+    }
+    painter.drawLine(left, y, right, y);
   }
-#endif  // __APPLE__
 }
 
 void DictionaryContentTableWidget::mouseDoubleClickEvent(QMouseEvent *event) {
@@ -93,7 +84,12 @@ void DictionaryContentTableWidget::mouseDoubleClickEvent(QMouseEvent *event) {
 }
 
 void DictionaryContentTableWidget::focusInEvent(QFocusEvent *event) {
-  setStyleSheet(QString());
+  // Find dialog temporarily sets a selection colour on this widget; clear
+  // only that local override so the main-window theme remains intact.
+  if (!styleSheet().isEmpty()) {
+    setStyleSheet(QString());
+  }
+  QTableWidget::focusInEvent(event);
 }
 
 }  // namespace mozc::gui

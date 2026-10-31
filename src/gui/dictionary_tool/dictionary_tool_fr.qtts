@@ -85,6 +85,10 @@
 <context>
     <name>mozc::gui::DictionaryTool</name>
     <message>
+        <source>Dictionaries</source>
+        <translation>Dictionnaires</translation>
+    </message>
+    <message>
         <location filename="dictionary_tool.cc" line="275" />
         <source>[ProductName]</source>
         <translation>[ProductName]</translation>
@@ -259,7 +263,7 @@
     <message>
         <location filename="dictionary_tool.cc" line="405" />
         <source>Find...</source>
-        <translation>Find...</translation>
+        <translation>Rechercher…</translation>
     </message>
     <message>
         <location filename="dictionary_tool.cc" line="418" />

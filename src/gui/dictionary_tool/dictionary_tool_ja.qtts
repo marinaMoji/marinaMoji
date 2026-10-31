@@ -86,6 +86,10 @@
 <context>
     <name>mozc::gui::DictionaryTool</name>
     <message>
+        <source>Dictionaries</source>
+        <translation>辞書</translation>
+    </message>
+    <message>
         <location filename="dictionary_tool.cc" line="275"/>
         <source>[ProductName]</source>
         <translation>[ProductName]</translation>
