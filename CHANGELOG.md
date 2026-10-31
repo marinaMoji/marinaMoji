@@ -18,6 +18,9 @@ Everything in 0.0.20-rc2 plus the entries below, and:
   cjkvi-variants/hydzd variants in the Unihan info under the preview. The C++
   parser and dialog changes were not built or run before CI.
 - Toolbar: the new long logo (icon, wordmark, tagline) in light and dark.
+- Preferences: the autosave timer and preview flags are compiled on every
+  platform; they were inside the macOS-only block, which broke the Linux build
+  (and would break Windows).
 - Not changed: the Windows IME hiragana-on-activation change from rc2 is still
   unverified on a real Windows machine.
 
