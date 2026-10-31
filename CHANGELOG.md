@@ -10,6 +10,32 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.20-rc4
+
+Interface redesign. Everything in 0.0.20-rc3 plus the entries below, and:
+
+- **Preferences** has the new sidebar layout and saves as you change things
+  (no Cancel/Apply/OK; problems show in a banner), described under
+  "Preferences: new layout, settings save as you change them" below. Validation
+  steps are in #103.
+- **About** now lives on Preferences → Application. The About menu item and
+  dialog open Preferences on that page (raising it if it is already running)
+  instead of showing the old separate About window.
+- **Add Word** and **Dictionary** tools restyled to match Preferences.
+- **Symbols palette** restyled on macOS, Windows and Linux/IBus, with updated
+  French and Japanese strings.
+- **Toolbar logo**: heavier wordmark, sharp on HiDPI (below).
+- **macOS CI** now generates the Bazel Xcode pin from the runner
+  (`mac/write_local_xcode_config.sh`); the committed `tools/local_xcode/BUILD`
+  had a SDK version from a developer Mac, which broke every macOS job.
+
+Not verified in real use: the redesigned windows and the palette have been
+built by CI but not walked through on Windows, Linux or macOS. CI on the
+commit before the palette restyle (`25f62af`) was green on all four jobs; the
+palette commit had not been built by CI when this was written. As with every
+release, the Windows MSIs come out of CI unsigned and need
+`scripts/sign-windows-release.mjs`.
+
 ### Toolbar logo: heavier wordmark, sharp on HiDPI
 
 The long logo looked soft next to the other toolbar icons on every OS. The
