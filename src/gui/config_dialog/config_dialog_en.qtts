@@ -651,6 +651,18 @@ Kyū   國 學</translation>
         <translation>Configures how Shift interacts with Japanese ↔ direct input and related mode changes. Shortcuts preferences can also disable the Left Shift toggle or use double-tap Left Shift to lock a mode.</translation>
     </message>
     <message>
+        <source>Left Shift mode toggle</source>
+        <translation>Left Shift mode toggle</translation>
+    </message>
+    <message>
+        <source>When enabled (default), press and release Left Shift alone to switch between hiragana and direct input only (Manyōshū, half-width, and other modes are unaffected). From direct input, Left Shift returns to the hiragana or full-katakana mode you were using before. Double-tap Left Shift to lock or unlock the current mode; on Windows, Ctrl+Alt+Right Shift does the same. Right Shift alone toggles hiragana and Manyōshū, except in Direct input, where it arms the macron dead key (tap Right Shift, then a vowel). Shift still works for capitals and shortcuts while locked.</source>
+        <translation>When enabled (default), press and release Left Shift alone to switch between hiragana and direct input only (Manyōshū, half-width, and other modes are unaffected). From direct input, Left Shift returns to the hiragana or full-katakana mode you were using before. Double-tap Left Shift to lock or unlock the current mode; on Windows, Ctrl+Alt+Right Shift does the same. Right Shift alone toggles hiragana and Manyōshū, except in Direct input, where it arms the macron dead key (tap Right Shift, then a vowel). Shift still works for capitals and shortcuts while locked.</translation>
+    </message>
+    <message>
+        <source>Left Shift: Japanese ↔ direct input. Right Shift: hiragana ↔ Manyōshū, or macron dead key in direct input. Double-tap Left Shift locks the current mode.</source>
+        <translation>Left Shift: Japanese ↔ direct input. Right Shift: hiragana ↔ Manyōshū, or macron dead key in direct input. Double-tap Left Shift locks the current mode.</translation>
+    </message>
+    <message>
         <source>Mode indicator</source>
         <translation>Mode indicator</translation>
     </message>
@@ -665,6 +677,14 @@ Kyū   國 學</translation>
     <message>
         <source>Kaeriten reading marks are entered with a semicolon followed by a key. Edit the table to change the key portion; the leading semicolon is required.</source>
         <translation>Kaeriten reading marks are entered with a semicolon followed by a key. Edit the table to change the key portion; the leading semicolon is required.</translation>
+    </message>
+    <message>
+        <source>In direct input, type semicolon then a key (for example ;r → ㆑). Edit the table to change the key portion; the leading semicolon is required. Marks not in the default set (for example linking mark ㆐) can be added with New entry in the editor. Custom entries are stored with your other preferences.</source>
+        <translation>In direct input, type semicolon then a key (for example ;r → ㆑). Edit the table to change the key portion; the leading semicolon is required. Marks not in the default set (for example linking mark ㆐) can be added with New entry in the editor. Custom entries are stored with your other preferences.</translation>
+    </message>
+    <message>
+        <source>;r → ㆑</source>
+        <translation>;r → ㆑</translation>
     </message>
     <message>
         <source>Use input history</source>

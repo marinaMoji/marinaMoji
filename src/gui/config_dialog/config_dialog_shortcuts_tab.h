@@ -22,6 +22,9 @@ class ConfigDialogShortcutsTab {
 
   void AddToTabWidget(QTabWidget* tab_widget);
   QWidget* page() const { return tab_; }
+  QCheckBox* disable_left_shift_direct_toggle() const {
+    return disable_left_shift_direct_toggle_;
+  }
   void LoadFromConfig(const config::Config& config);
   bool ValidateBeforeApply(QString* error_message) const;
   void ApplyToConfig(config::Config* config) const;
@@ -35,14 +38,12 @@ class ConfigDialogShortcutsTab {
 
   QWidget* tab_;
   QCheckBox* disable_left_shift_direct_toggle_;
-  QLabel* left_shift_help_;
   QLabel* sticky_keys_warning_;
   QPushButton* open_sticky_keys_settings_button_;
   QLabel* number_row_help_;
   QLabel* mac_number_row_note_;
   QLabel* win_number_row_note_;
   QTableWidget* number_row_table_;
-  QLabel* kaeriten_help_;
   QPushButton* edit_kaeriten_button_;
 };
 

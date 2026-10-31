@@ -1142,6 +1142,10 @@ Kyū   國 學</translation>
         <translation>Configure l’interaction de Maj avec le japonais ↔ saisie directe et les changements de mode associés. Les préférences de raccourcis peuvent aussi désactiver le basculement Maj gauche ou utiliser un double appui pour verrouiller un mode.</translation>
     </message>
     <message>
+        <source>Left Shift mode toggle</source>
+        <translation>Basculement de mode avec Maj gauche</translation>
+    </message>
+    <message>
         <source>Mode indicator</source>
         <translation>Indicateur de mode</translation>
     </message>
@@ -1152,6 +1156,14 @@ Kyū   國 學</translation>
     <message>
         <source>Kaeriten reading marks are entered with a semicolon followed by a key. Edit the table to change the key portion; the leading semicolon is required.</source>
         <translation>Les marques de lecture kaeriten s’entrent avec un point-virgule suivi d’une touche. Modifiez la table pour changer la touche ; le point-virgule initial est obligatoire.</translation>
+    </message>
+    <message>
+        <source>In direct input, type semicolon then a key (for example ;r → ㆑). Edit the table to change the key portion; the leading semicolon is required. Marks not in the default set (for example linking mark ㆐) can be added with New entry in the editor. Custom entries are stored with your other preferences.</source>
+        <translation>En saisie directe, tapez un point-virgule puis une touche (par exemple ;r → ㆑). Modifiez la table pour changer la touche ; le point-virgule initial est obligatoire. Les marques absentes du jeu par défaut (par exemple le signe de liaison ㆐) s’ajoutent via Nouvelle entrée dans l’éditeur et sont enregistrées avec vos autres préférences.</translation>
+    </message>
+    <message>
+        <source>;r → ㆑</source>
+        <translation>;r → ㆑</translation>
     </message>
     <message>
         <source>Use input history</source>

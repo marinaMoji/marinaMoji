@@ -1182,10 +1182,31 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
   }
   AddToPage(writing_layout, fullwidthHalfwidthGroup);
 
+  // Candidate appearance is OS-specific. AddToPage() calls show(), so only
+  // migrate controls that belong here — otherwise a Linux-only empty combo
+  // (IBus vs Mozc) reappears on macOS/Windows after setVisible(false).
+#if defined(__APPLE__)
   AddMajorSection(writing_layout, tr("Candidate appearance"), writing,
                   &writing_first);
   AddToPage(writing_layout, appearanceGroup);
+  if (miscCandidateWindowWidget != nullptr) {
+    miscCandidateWindowWidget->hide();
+  }
+#elif defined(__linux__)
+  AddMajorSection(writing_layout, tr("Candidate appearance"), writing,
+                  &writing_first);
   AddToPage(writing_layout, miscCandidateWindowWidget);
+  if (appearanceGroup != nullptr) {
+    appearanceGroup->hide();
+  }
+#else
+  if (appearanceGroup != nullptr) {
+    appearanceGroup->hide();
+  }
+  if (miscCandidateWindowWidget != nullptr) {
+    miscCandidateWindowWidget->hide();
+  }
+#endif
   writing_layout->addSpacing(config_dialog_theme::Spacing::unit * 2);
 
   // --- Dictionaries ---
@@ -1272,9 +1293,17 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
             MakeLabelControlRow(autoCorrectionLable_3,
                                 shiftKeyModeSwitchComboBox, keyboard,
                                 explanations, "keyboard.shift_mode_switch"));
+  // Mode indicator is Windows-only; AddToPage() would otherwise leave an
+  // orphan ⓘ after hide().
+#ifdef _WIN32
   AddToPage(keyboard_layout,
             MakeExplainedControlRow(useModeIndicator, keyboard, explanations,
                                     "keyboard.mode_indicator"));
+#else
+  if (useModeIndicator != nullptr) {
+    useModeIndicator->hide();
+  }
+#endif  // _WIN32
   if (shortcuts_page != nullptr) {
     // Keep Shortcuts as one intact block (Custom / Kaeriten). Do not
     // disassemble its layout — that caused overlapping text.
@@ -1286,8 +1315,23 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
         if (QWidget* header = label->parentWidget()) {
           header->hide();
         }
-        break;
+      } else if (label->text() == tr("Kaeriten shortcuts") &&
+                 explanations != nullptr) {
+        // Keep the heading rule: insert ⓘ between the title and the line.
+        if (QWidget* header = label->parentWidget()) {
+          if (auto* header_layout =
+                  qobject_cast<QHBoxLayout*>(header->layout())) {
+            header_layout->insertWidget(
+                1, explanations->MakeInfoSlot("keyboard.kaeriten", header), 0,
+                Qt::AlignVCenter);
+          }
+        }
       }
+    }
+    if (shortcuts_tab_ != nullptr) {
+      AttachExplanationInPlace(
+          shortcuts_tab_->disable_left_shift_direct_toggle(), explanations,
+          "keyboard.left_shift_toggle");
     }
   }
   keyboard_layout->addSpacing(config_dialog_theme::Spacing::unit * 2);
@@ -1376,16 +1420,20 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
                   privacy_sync, &privacy_first);
   if (usageStatsMessage != nullptr) {
     TakeFromLayout(usageStatsMessage);
-    usageStatsMessage->setContentsMargins(
-        0, config_dialog_theme::Spacing::label_to_help / 2, 0,
-        config_dialog_theme::Spacing::label_to_help);
+    // Message-only section: no extra bottom pad before the next Level-2 gap.
+    usageStatsMessage->setContentsMargins(0, 0, 0, 0);
     AddToPage(privacy_layout, usageStatsMessage);
   }
   if (usageStatsMessageGroup != nullptr) {
     usageStatsMessageGroup->hide();
   }
-  if (usageStatsButtonGroup != nullptr) {
+  // AddToPage() forces show(); skip the empty Settings row on marinaMoji/OSS
+  // so it does not leave a blank strip under the privacy statement.
+  if (usageStatsButtonGroup != nullptr &&
+      !usageStatsButtonGroup->isHidden()) {
     AddToPage(privacy_layout, usageStatsButtonGroup);
+  } else if (usageStatsButtonGroup != nullptr) {
+    usageStatsButtonGroup->hide();
   }
 
   AddMajorSection(privacy_layout, tr("Synchronisation"), privacy_sync,

@@ -172,6 +172,24 @@ std::vector<PreferencesExplanation> BuildCatalog() {
           "Left Shift toggle or use double-tap Left Shift to lock a mode."),
       QString(), QStringLiteral("section_settings"));
 
+  add("keyboard.left_shift_toggle",
+      QObject::tr("Left Shift mode toggle"),
+      QObject::tr(
+          "When enabled (default), press and release Left Shift alone to "
+          "switch between hiragana and direct input only (Manyōshū, "
+          "half-width, and other modes are unaffected). From direct input, "
+          "Left Shift returns to the hiragana or full-katakana mode you were "
+          "using before. Double-tap Left Shift to lock or unlock the current "
+          "mode; on Windows, Ctrl+Alt+Right Shift does the same. Right Shift "
+          "alone toggles hiragana and Manyōshū, except in Direct input, where "
+          "it arms the macron dead key (tap Right Shift, then a vowel). Shift "
+          "still works for capitals and shortcuts while locked."),
+      QObject::tr(
+          "Left Shift: Japanese ↔ direct input. Right Shift: hiragana ↔ "
+          "Manyōshū, or macron dead key in direct input. Double-tap Left "
+          "Shift locks the current mode."),
+      QStringLiteral("section_settings"));
+
   add("keyboard.mode_indicator",
       QObject::tr("Mode indicator"),
       QObject::tr(
@@ -181,10 +199,12 @@ std::vector<PreferencesExplanation> BuildCatalog() {
   add("keyboard.kaeriten",
       QObject::tr("Kaeriten shortcuts"),
       QObject::tr(
-          "Kaeriten reading marks are entered with a semicolon followed by a "
-          "key. Edit the table to change the key portion; the leading "
-          "semicolon is required."),
-      QString(), QStringLiteral("section_kaeriten"));
+          "In direct input, type semicolon then a key (for example ;r → ㆑). "
+          "Edit the table to change the key portion; the leading semicolon is "
+          "required. Marks not in the default set (for example linking mark "
+          "㆐) can be added with New entry in the editor. Custom entries are "
+          "stored with your other preferences."),
+      QObject::tr(";r → ㆑"), QStringLiteral("section_kaeriten"));
 
   add("suggestions.history",
       QObject::tr("Use input history"),

@@ -1143,6 +1143,10 @@ Kyū   國 學</source>
         <translation>Shift が日本語入力と直接入力などのモード切替にどう関わるかを設定します。ショートカット設定では左 Shift のトグルを無効にしたり、左 Shift のダブルタップでモードを固定したりもできます。</translation>
     </message>
     <message>
+        <source>Left Shift mode toggle</source>
+        <translation>左Shiftによるモード切替</translation>
+    </message>
+    <message>
         <source>Mode indicator</source>
         <translation>モードインジケータ</translation>
     </message>
@@ -1153,6 +1157,14 @@ Kyū   國 學</source>
     <message>
         <source>Kaeriten reading marks are entered with a semicolon followed by a key. Edit the table to change the key portion; the leading semicolon is required.</source>
         <translation>返り点はセミコロンのあとにキーを続けて入力します。表ではキー部分を変更でき、先頭のセミコロンは必須です。</translation>
+    </message>
+    <message>
+        <source>In direct input, type semicolon then a key (for example ;r → ㆑). Edit the table to change the key portion; the leading semicolon is required. Marks not in the default set (for example linking mark ㆐) can be added with New entry in the editor. Custom entries are stored with your other preferences.</source>
+        <translation>直接入力では、セミコロンのあとにキーを入力します（例：;r → ㆑）。表ではキー部分を変更でき、先頭のセミコロンは必須です。標準にない記号（例：連結記号 ㆐）は、編集画面の新規登録で追加でき、他の設定と同様に保存されます。</translation>
+    </message>
+    <message>
+        <source>;r → ㆑</source>
+        <translation>;r → ㆑</translation>
     </message>
     <message>
         <source>Use input history</source>

@@ -202,43 +202,13 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
   layout->setSpacing(10);
 
   // --- Mode switching ---
+  // Mode-switching help lives in the Preferences ⓘ popover
+  // (keyboard.left_shift_toggle), attached after this page is embedded.
   layout->addWidget(MakeSectionHeader(QObject::tr("Mode switching"), tab_));
 
   disable_left_shift_direct_toggle_ = new QCheckBox(
       QObject::tr("Disable Left Shift toggle (Japanese ↔ Direct input)"), tab_);
   layout->addWidget(disable_left_shift_direct_toggle_);
-
-  layout->addWidget(MakeSecondaryLabel(
-      QObject::tr("Left Shift: Japanese ↔ direct input. Right Shift: hiragana "
-                  "↔ Manyōshū, or macron dead key in direct input. Double-tap "
-                  "Left Shift locks the current mode."),
-      tab_));
-
-  left_shift_help_ = MakeSecondaryLabel(
-      QObject::tr(
-          "When enabled (default), press and release Left Shift alone to switch "
-          "between hiragana and direct input only (Manyōshū, half-width, and "
-          "other modes are unaffected). From direct input, Left Shift returns "
-          "to the hiragana or full-katakana mode you were using before. "
-          "Double-tap Left Shift to lock or unlock the current mode; on Windows, "
-          "Ctrl+Alt+Right Shift does the same. Right Shift alone toggles "
-          "hiragana and Manyōshū, except in Direct input, where it arms the "
-          "macron dead key (tap Right Shift, then a vowel). Shift still works "
-          "for capitals and shortcuts while locked."),
-      tab_);
-  left_shift_help_->setVisible(false);
-  layout->addWidget(left_shift_help_);
-
-  auto* mode_disclosure =
-      MakeDisclosure(QObject::tr("How mode switching works"), tab_);
-  layout->addWidget(mode_disclosure, 0, Qt::AlignLeft);
-  QObject::connect(mode_disclosure, &QPushButton::toggled, tab_,
-                   [this, mode_disclosure](bool open) {
-                     left_shift_help_->setVisible(open);
-                     mode_disclosure->setText(
-                         open ? QObject::tr("Hide mode switching details")
-                              : QObject::tr("How mode switching works"));
-                   });
 
 #ifdef _WIN32
   sticky_keys_warning_ = MakeSecondaryLabel(
@@ -379,40 +349,15 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
   layout->addWidget(number_row_table_);
 
   // --- Kaeriten ---
+  // Help lives in the Preferences ⓘ popover (keyboard.kaeriten), attached
+  // after this page is embedded.
   layout->addWidget(MakeSectionHeader(QObject::tr("Kaeriten shortcuts"), tab_));
-
-  kaeriten_help_ = MakeSecondaryLabel(
-      QObject::tr("In direct input, type semicolon then a key (for example "
-                  ";r → ㆑)."),
-      tab_);
-  layout->addWidget(kaeriten_help_);
-
-  auto* kaeriten_details = MakeSecondaryLabel(
-      QObject::tr(
-          "Marks not in the default set (for example linking mark ㆐) can be "
-          "added with New entry in the editor. Custom entries are stored with "
-          "your other preferences."),
-      tab_);
-  kaeriten_details->setVisible(false);
-  layout->addWidget(kaeriten_details);
-  auto* kaeriten_disclosure =
-      MakeDisclosure(QObject::tr("How kaeriten shortcuts work"), tab_);
-  layout->addWidget(kaeriten_disclosure, 0, Qt::AlignLeft);
-  QObject::connect(kaeriten_disclosure, &QPushButton::toggled, tab_,
-                   [kaeriten_details, kaeriten_disclosure](bool open) {
-                     kaeriten_details->setVisible(open);
-                     kaeriten_disclosure->setText(
-                         open ? QObject::tr("Hide kaeriten details")
-                              : QObject::tr("How kaeriten shortcuts work"));
-                   });
 
   edit_kaeriten_button_ =
       new QPushButton(QObject::tr("Edit kaeriten shortcuts..."), tab_);
   edit_kaeriten_button_->setProperty("role", QStringLiteral("secondary"));
   edit_kaeriten_button_->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
   layout->addWidget(edit_kaeriten_button_, 0, Qt::AlignLeft);
-
-  layout->addSpacing(8);
 }
 
 void ConfigDialogShortcutsTab::AddToTabWidget(QTabWidget* tab_widget) {
