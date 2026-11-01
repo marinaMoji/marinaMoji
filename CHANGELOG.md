@@ -10,6 +10,20 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.20-rc5
+
+Everything in 0.0.20-rc4 plus:
+
+- **Character composer** redesign (construct / examine / discover panels).
+  Picking a search result now only browses it: the composition in the editor is
+  left alone, and "Return to composition" goes back. The Linux unit test still
+  expected the old behaviour (picking loaded the result into the editor) and
+  failed CI; it now checks the browse-only behaviour.
+- Composer translations: the committed `.qm` files were stale and are rebuilt
+  from the `.qtts`.
+- **Toolbar logo**: the wordmark now keeps the header logo's thick/thin
+  contrast (lighter stroke than in rc4), tagline included.
+
 ### Release candidate 0.0.20-rc4
 
 Interface redesign. Everything in 0.0.20-rc3 plus the entries below, and:

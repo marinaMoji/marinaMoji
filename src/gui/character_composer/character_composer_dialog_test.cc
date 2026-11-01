@@ -201,11 +201,21 @@ TEST_F(CharacterComposerDialogTest, FindContainingListsOnlyCharactersWithEveryCo
   Button(dialog.get(), "Find")->click();
   EXPECT_EQ(list->count(), 3);
 
-  // Picking a result loads its parts into the editor.
-  emit list->itemClicked(list->item(0));  // 某 = ⿱廿木
+  // Picking a result is browse-only: it shows that character in the specimen
+  // but leaves the composition in the editor alone.
   auto *editor = dialog->findChild<LayoutEditor *>();
-  EXPECT_EQ(editor->op(), "⿱");
-  EXPECT_EQ(editor->parts()[1].input, "木");
+  auto *back = dialog->findChild<QPushButton *>(QStringLiteral("returnLink"));
+  auto *glyph = dialog->findChild<QLabel *>(QStringLiteral("specimenGlyph"));
+  ASSERT_NE(back, nullptr);
+  ASSERT_NE(glyph, nullptr);
+  const std::string op_before = editor->op();
+  EXPECT_FALSE(back->isEnabled());
+  emit list->itemClicked(list->item(0));
+  EXPECT_EQ(editor->op(), op_before);
+  EXPECT_TRUE(back->isEnabled());
+  EXPECT_EQ(glyph->text(), list->item(0)->text());
+  back->click();
+  EXPECT_FALSE(back->isEnabled());
 
   edit->setText(QStringLiteral("目言"));
   Button(dialog.get(), "Find")->click();
