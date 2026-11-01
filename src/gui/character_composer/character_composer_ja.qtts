@@ -56,8 +56,8 @@
         <translation>文字を分解</translation>
     </message>
     <message>
-        <source>Type a character</source>
-        <translation>文字を入力</translation>
+        <source>Character</source>
+        <translation>文字</translation>
     </message>
     <message>
         <source>Break apart</source>
@@ -164,8 +164,8 @@
         <translation>次の部品を含む文字を検索…</translation>
     </message>
     <message>
-        <source>Type one or more components</source>
-        <translation>部品を1つ以上入力</translation>
+        <source>Enter components</source>
+        <translation>部品を入力</translation>
     </message>
     <message>
         <source>Find</source>
@@ -356,8 +356,8 @@
         <translation>部首</translation>
     </message>
     <message>
-        <source>Other</source>
-        <translation>その他</translation>
+        <source>Mandarin</source>
+        <translation>普通話</translation>
     </message>
     <message>
         <source>Additional search</source>

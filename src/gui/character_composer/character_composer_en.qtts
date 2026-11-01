@@ -56,8 +56,8 @@
         <translation>Break apart a character</translation>
     </message>
     <message>
-        <source>Type a character</source>
-        <translation>Type a character</translation>
+        <source>Character</source>
+        <translation>Character</translation>
     </message>
     <message>
         <source>Break apart</source>
@@ -164,8 +164,8 @@
         <translation>Find characters containing…</translation>
     </message>
     <message>
-        <source>Type one or more components</source>
-        <translation>Type one or more components</translation>
+        <source>Enter components</source>
+        <translation>Enter components</translation>
     </message>
     <message>
         <source>Find</source>
@@ -356,8 +356,8 @@
         <translation>Radical</translation>
     </message>
     <message>
-        <source>Other</source>
-        <translation>Other</translation>
+        <source>Mandarin</source>
+        <translation>Mandarin</translation>
     </message>
     <message>
         <source>Additional search</source>

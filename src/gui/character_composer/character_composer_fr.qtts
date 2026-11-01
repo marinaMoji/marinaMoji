@@ -56,8 +56,8 @@
         <translation>Décomposer un caractère</translation>
     </message>
     <message>
-        <source>Type a character</source>
-        <translation>Saisissez un caractère</translation>
+        <source>Character</source>
+        <translation>Caractère</translation>
     </message>
     <message>
         <source>Break apart</source>
@@ -164,8 +164,8 @@
         <translation>Chercher les caractères contenant…</translation>
     </message>
     <message>
-        <source>Type one or more components</source>
-        <translation>Saisissez un ou plusieurs composants</translation>
+        <source>Enter components</source>
+        <translation>Saisir des composants</translation>
     </message>
     <message>
         <source>Find</source>
@@ -356,8 +356,8 @@
         <translation>Radical</translation>
     </message>
     <message>
-        <source>Other</source>
-        <translation>Autre</translation>
+        <source>Mandarin</source>
+        <translation>Mandarin</translation>
     </message>
     <message>
         <source>Additional search</source>

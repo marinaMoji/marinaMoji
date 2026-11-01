@@ -259,6 +259,7 @@ int RunCharacterComposer(int argc, char *argv[]) {
   //   MARINAMOJI_COMPOSER_SCREENSHOT=/path/out.png
   //   MARINAMOJI_COMPOSER_DEMO_IDS=⿰日月
   //   MARINAMOJI_COMPOSER_DEMO_SEARCH=日   (optional; selects first result)
+  //   MARINAMOJI_COMPOSER_DEMO_SIZE=960x560  (optional WxH before grab)
   //   MARINAMOJI_COMPOSER_DEMO_QUIT=1      (exit after saving)
   if (const char *shot = std::getenv("MARINAMOJI_COMPOSER_SCREENSHOT");
       shot != nullptr && shot[0] != '\0') {
@@ -267,15 +268,30 @@ int RunCharacterComposer(int argc, char *argv[]) {
     const std::string demo_ids =
         (ids_env != nullptr && ids_env[0] != '\0') ? ids_env : "⿰日月";
     const char *search_env = std::getenv("MARINAMOJI_COMPOSER_DEMO_SEARCH");
+    const char *size_env = std::getenv("MARINAMOJI_COMPOSER_DEMO_SIZE");
     const bool quit_after =
         std::getenv("MARINAMOJI_COMPOSER_DEMO_QUIT") != nullptr;
     QTimer::singleShot(250, &dialog, [&dialog, shot_path, demo_ids, search_env,
-                                      quit_after, app = app.get()]() {
+                                      size_env, quit_after, app = app.get()]() {
+      if (size_env != nullptr && size_env[0] != '\0') {
+        const QString size = QString::fromUtf8(size_env);
+        const QStringList parts =
+            size.toLower().split(QLatin1Char('x'), Qt::SkipEmptyParts);
+        if (parts.size() == 2) {
+          bool ok_w = false;
+          bool ok_h = false;
+          const int width = parts[0].toInt(&ok_w);
+          const int height = parts[1].toInt(&ok_h);
+          if (ok_w && ok_h && width > 200 && height > 200) {
+            dialog.resize(width, height);
+          }
+        }
+      }
       dialog.ApplyIdsExpression(demo_ids);
       if (search_env != nullptr && search_env[0] != '\0') {
         dialog.RunComponentSearch(search_env, /*result_index=*/0);
       }
-      QTimer::singleShot(400, &dialog, [&dialog, shot_path, quit_after, app]() {
+      QTimer::singleShot(450, &dialog, [&dialog, shot_path, quit_after, app]() {
         const QPixmap grabbed = dialog.grab();
         if (!grabbed.save(shot_path, "PNG")) {
           LOG(ERROR) << "Cannot write screenshot to "
