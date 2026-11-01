@@ -31,8 +31,9 @@ using Entry = prediction::UserHistoryStorage::Entry;
 //
 // CharacterFormManager is a process-wide singleton and the sync daemon runs
 // many cycles in one process. Load() returns false without touching it when
-// there is no history file, which would leave the forms of an earlier cycle
-// in place; clear them so they are neither exported nor saved back.
+// there is no history file (it only clears the entries), which would leave the
+// forms of an earlier cycle in place; clear them so they are neither exported
+// nor saved back.
 void LoadHistory(prediction::UserHistoryStorage& storage) {
   storage.Wait();
   if (!storage.Load()) {
