@@ -183,5 +183,149 @@
         <source>%1 characters found. Click one to load its parts.</source>
         <translation>%1 文字が見つかりました。クリックすると部品を読み込みます。</translation>
     </message>
+    <message>
+        <source>01  Structure</source>
+        <translation>01  構造</translation>
+    </message>
+    <message>
+        <source>02  Components</source>
+        <translation>02  部品</translation>
+    </message>
+    <message>
+        <source>COMPOSED CHARACTER</source>
+        <translation>合成文字</translation>
+    </message>
+    <message>
+        <source>Readings</source>
+        <translation>読み</translation>
+    </message>
+    <message>
+        <source>Variants</source>
+        <translation>異体字</translation>
+    </message>
+    <message>
+        <source>Structure</source>
+        <translation>構造</translation>
+    </message>
+    <message>
+        <source>Unicode</source>
+        <translation>Unicode</translation>
+    </message>
+    <message>
+        <source>Character information</source>
+        <translation>文字情報</translation>
+    </message>
+    <message>
+        <source>Explore characters</source>
+        <translation>文字を探す</translation>
+    </message>
+    <message>
+        <source>Decompose a character</source>
+        <translation>文字を分解</translation>
+    </message>
+    <message>
+        <source>Find by components</source>
+        <translation>部品から探す</translation>
+    </message>
+    <message>
+        <source>No encoded character</source>
+        <translation>符号化文字なし</translation>
+    </message>
+    <message>
+        <source>Drawing only</source>
+        <translation>図形のみ</translation>
+    </message>
+    <message>
+        <source>Encoded character</source>
+        <translation>符号化文字</translation>
+    </message>
+    <message>
+        <source>Incomplete composition</source>
+        <translation>未完成の合成</translation>
+    </message>
+    <message>
+        <source>Enter a character in each component box.</source>
+        <translation>各部品欄に文字を入力してください。</translation>
+    </message>
+    <message>
+        <source>Left / Right</source>
+        <translation>左 / 右</translation>
+    </message>
+    <message>
+        <source>Top / Bottom</source>
+        <translation>上 / 下</translation>
+    </message>
+    <message>
+        <source>Left / Middle / Right</source>
+        <translation>左 / 中 / 右</translation>
+    </message>
+    <message>
+        <source>Top / Middle / Bottom</source>
+        <translation>上 / 中 / 下</translation>
+    </message>
+    <message>
+        <source>Enclosure / Interior</source>
+        <translation>囲み / 内部</translation>
+    </message>
+    <message>
+        <source>Surround / Interior</source>
+        <translation>取り囲み / 内部</translation>
+    </message>
+    <message>
+        <source>Upper-left / Lower-right</source>
+        <translation>左上 / 右下</translation>
+    </message>
+    <message>
+        <source>Upper-right / Lower-left</source>
+        <translation>右上 / 左下</translation>
+    </message>
+    <message>
+        <source>Lower-left / Upper-right</source>
+        <translation>左下 / 右上</translation>
+    </message>
+    <message>
+        <source>Overlapping components</source>
+        <translation>重なり合う部品</translation>
+    </message>
+    <message>
+        <source>Components</source>
+        <translation>部品</translation>
+    </message>
+    <message>
+        <source>01</source>
+        <translation>01</translation>
+    </message>
+    <message>
+        <source>02</source>
+        <translation>02</translation>
+    </message>
+    <message>
+        <source>Japanese readings</source>
+        <translation>日本語の読み</translation>
+    </message>
+    <message>
+        <source>Other readings</source>
+        <translation>その他の読み</translation>
+    </message>
+    <message>
+        <source>Meaning</source>
+        <translation>意味</translation>
+    </message>
+    <message>
+        <source>Classification</source>
+        <translation>分類</translation>
+    </message>
+    <message>
+        <source>Radical %1</source>
+        <translation>部首 %1</translation>
+    </message>
+    <message>
+        <source>Not encoded in Unicode</source>
+        <translation>Unicodeに未収録</translation>
+    </message>
+    <message>
+        <source>Insert places a drawing on the clipboard for Word (Kaeriten → Insert composed character) or other office plugins.</source>
+        <translation>「挿入」は、Word（返り点 → 合成文字を挿入）やその他のオフィス用プラグイン向けに図形をクリップボードに置きます。</translation>
+    </message>
 </context>
 </TS>

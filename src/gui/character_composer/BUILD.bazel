@@ -159,6 +159,7 @@ mozc_cc_qt_library(
         "//composer_ids:ids_tree",
         "//gui/base:gui_base",
         "//gui/base:singleton_window_helper",
+        "//gui/config_dialog:config_dialog_theme",
         "//kage",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",

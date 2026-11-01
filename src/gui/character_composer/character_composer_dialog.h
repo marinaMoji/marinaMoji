@@ -13,6 +13,7 @@
 #include <QDialog>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QSize>
 #include <QString>
 #include <QWidget>
 #include <memory>
@@ -28,6 +29,7 @@
 
 class QButtonGroup;
 class QComboBox;
+class QEvent;
 class QHBoxLayout;
 class QLabel;
 class QListWidget;
@@ -132,6 +134,9 @@ class LayoutEditor : public QWidget {
  public:
   explicit LayoutEditor(QWidget *parent = nullptr);
 
+  QSize sizeHint() const override;
+  QSize minimumSizeHint() const override;
+
   // The table consulted for positional radical forms (手 -> 扌 on the left of
   // ⿰). Not owned; may be null.
   void set_table(const composer_ids::IdsTable *table) { table_ = table; }
@@ -212,13 +217,19 @@ class CharacterComposerDialog : public QDialog {
 
  protected:
   void keyPressEvent(QKeyEvent *event) override;
+  void changeEvent(QEvent *event) override;
 
  private:
   void BuildUi(const QString &data_directory);
+  void ApplyTheme();
   void UpdateResult();
+  void UpdateComponentRoles();
+  void UpdateCharInfoPanel(const composer_ids::CharInfo *info,
+                           const QString &ids_text, const QString &unicode_text);
   // Insert if ready, after committing any IME preedit.
   void TryInsert();
   void UpdatePaletteHighlight();
+  void RefreshPaletteIcons();
   // Writes DraftIds into the IDS entry box. Skips while the user is typing
   // there, unless |force|.
   void SyncIdsEditFromEditor(bool force = false);
@@ -228,23 +239,40 @@ class CharacterComposerDialog : public QDialog {
   std::unique_ptr<KageResources> kage_;  // GlyphWiki strokes; may be null
   LayoutEditor *editor_ = nullptr;
   QButtonGroup *palette_ = nullptr;
+  QWidget *construct_panel_ = nullptr;
+  QWidget *examine_panel_ = nullptr;
+  QWidget *explore_panel_ = nullptr;
+  QLabel *component_roles_label_ = nullptr;
   QLineEdit *ids_edit_ = nullptr;
   QToolButton *ids_info_button_ = nullptr;
   QLabel *ids_info_panel_ = nullptr;
   QLabel *char_label_ = nullptr;
-  QLabel *codepoint_label_ = nullptr;
-  QLabel *info_label_ = nullptr;  // readings / strokes under the preview
-  QLabel *status_label_ = nullptr;
+  QWidget *specimen_group_ = nullptr;
+  QLabel *specimen_caption_ = nullptr;
+  QLabel *status_heading_ = nullptr;
+  QLabel *status_detail_ = nullptr;
+  QLabel *japanese_readings_value_ = nullptr;
+  QLabel *other_readings_value_ = nullptr;
+  QLabel *meaning_value_ = nullptr;
+  QLabel *classification_value_ = nullptr;
+  QLabel *variants_value_ = nullptr;
+  QLabel *structure_value_ = nullptr;
+  QLabel *unicode_value_ = nullptr;
   QLineEdit *break_apart_edit_ = nullptr;
   QComboBox *decomposition_combo_ = nullptr;
   QLineEdit *containing_edit_ = nullptr;
   QListWidget *containing_list_ = nullptr;
   QPushButton *insert_button_ = nullptr;
   QPushButton *copy_button_ = nullptr;
+  QPushButton *clear_button_ = nullptr;
+  QPushButton *close_button_ = nullptr;
+  QPushButton *break_button_ = nullptr;
+  QPushButton *find_button_ = nullptr;
 
   QString note_;  // a one-off message that replaces the status line
   QString data_directory_;
   bool applying_ids_edit_ = false;  // true while OnIdsEdited updates the square
+  bool applying_theme_ = false;     // guards ApplyTheme vs changeEvent re-entry
   std::string found_;       // the encoded character for the current layout, or ""
   std::string result_;      // Unicode Insert chose, or ""
   std::function<void(const std::string &)> on_svg_inserted_;

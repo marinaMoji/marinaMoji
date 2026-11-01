@@ -183,5 +183,149 @@
         <source>%1 characters found. Click one to load its parts.</source>
         <translation>%1 caractères trouvés. Cliquez sur l’un d’eux pour charger ses parties.</translation>
     </message>
+    <message>
+        <source>01  Structure</source>
+        <translation>01  Structure</translation>
+    </message>
+    <message>
+        <source>02  Components</source>
+        <translation>02  Composants</translation>
+    </message>
+    <message>
+        <source>COMPOSED CHARACTER</source>
+        <translation>CARACTÈRE COMPOSÉ</translation>
+    </message>
+    <message>
+        <source>Readings</source>
+        <translation>Lectures</translation>
+    </message>
+    <message>
+        <source>Variants</source>
+        <translation>Variantes</translation>
+    </message>
+    <message>
+        <source>Structure</source>
+        <translation>Structure</translation>
+    </message>
+    <message>
+        <source>Unicode</source>
+        <translation>Unicode</translation>
+    </message>
+    <message>
+        <source>Character information</source>
+        <translation>Informations sur le caractère</translation>
+    </message>
+    <message>
+        <source>Explore characters</source>
+        <translation>Explorer les caractères</translation>
+    </message>
+    <message>
+        <source>Decompose a character</source>
+        <translation>Décomposer un caractère</translation>
+    </message>
+    <message>
+        <source>Find by components</source>
+        <translation>Rechercher par composants</translation>
+    </message>
+    <message>
+        <source>No encoded character</source>
+        <translation>Aucun caractère codé</translation>
+    </message>
+    <message>
+        <source>Drawing only</source>
+        <translation>Dessin seulement</translation>
+    </message>
+    <message>
+        <source>Encoded character</source>
+        <translation>Caractère codé</translation>
+    </message>
+    <message>
+        <source>Incomplete composition</source>
+        <translation>Composition incomplète</translation>
+    </message>
+    <message>
+        <source>Enter a character in each component box.</source>
+        <translation>Saisissez un caractère dans chaque case.</translation>
+    </message>
+    <message>
+        <source>Left / Right</source>
+        <translation>Gauche / Droite</translation>
+    </message>
+    <message>
+        <source>Top / Bottom</source>
+        <translation>Haut / Bas</translation>
+    </message>
+    <message>
+        <source>Left / Middle / Right</source>
+        <translation>Gauche / Milieu / Droite</translation>
+    </message>
+    <message>
+        <source>Top / Middle / Bottom</source>
+        <translation>Haut / Milieu / Bas</translation>
+    </message>
+    <message>
+        <source>Enclosure / Interior</source>
+        <translation>Enceinte / Intérieur</translation>
+    </message>
+    <message>
+        <source>Surround / Interior</source>
+        <translation>Entourage / Intérieur</translation>
+    </message>
+    <message>
+        <source>Upper-left / Lower-right</source>
+        <translation>Haut-gauche / Bas-droite</translation>
+    </message>
+    <message>
+        <source>Upper-right / Lower-left</source>
+        <translation>Haut-droite / Bas-gauche</translation>
+    </message>
+    <message>
+        <source>Lower-left / Upper-right</source>
+        <translation>Bas-gauche / Haut-droite</translation>
+    </message>
+    <message>
+        <source>Overlapping components</source>
+        <translation>Composants superposés</translation>
+    </message>
+    <message>
+        <source>Components</source>
+        <translation>Composants</translation>
+    </message>
+    <message>
+        <source>01</source>
+        <translation>01</translation>
+    </message>
+    <message>
+        <source>02</source>
+        <translation>02</translation>
+    </message>
+    <message>
+        <source>Japanese readings</source>
+        <translation>Lectures japonaises</translation>
+    </message>
+    <message>
+        <source>Other readings</source>
+        <translation>Autres lectures</translation>
+    </message>
+    <message>
+        <source>Meaning</source>
+        <translation>Sens</translation>
+    </message>
+    <message>
+        <source>Classification</source>
+        <translation>Classification</translation>
+    </message>
+    <message>
+        <source>Radical %1</source>
+        <translation>Radical %1</translation>
+    </message>
+    <message>
+        <source>Not encoded in Unicode</source>
+        <translation>Non encodé en Unicode</translation>
+    </message>
+    <message>
+        <source>Insert places a drawing on the clipboard for Word (Kaeriten → Insert composed character) or other office plugins.</source>
+        <translation>Insérer place un dessin dans le presse-papiers pour Word (Kaeriten → Insérer le caractère composé) ou d’autres modules bureautiques.</translation>
+    </message>
 </context>
 </TS>

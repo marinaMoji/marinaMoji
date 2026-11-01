@@ -174,6 +174,18 @@ inline void EnsureHeadingMetrics(QLabel* label) {
 }
 
 inline bool IsDark() {
+  // Same override GuiUtil::SyncFusionColorSchemeFromSystem documents for
+  // local light/dark checks (screenshots, companion dialogs).
+  {
+    const QByteArray force =
+        qgetenv("MARINAMOJI_FORCE_COLOR_SCHEME").toLower();
+    if (force == "dark") {
+      return true;
+    }
+    if (force == "light") {
+      return false;
+    }
+  }
 #ifdef __APPLE__
   // Fusion sometimes lags behind AppKit; honour the user preference directly.
   if (CFPropertyListRef ref = CFPreferencesCopyAppValue(

@@ -3,21 +3,26 @@
 
 #include "gui/character_composer/character_composer_dialog.h"
 
+#include <QAbstractButton>
 #include <QApplication>
 #include <QButtonGroup>
 #include <QClipboard>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QEvent>
 #include <QFocusEvent>
 #include <QFont>
+#include <QFormLayout>
+#include <QFrame>
 #include <QGridLayout>
-#include <QGroupBox>
-#include <QHBoxLayout>
 #include <QGuiApplication>
+#include <QHBoxLayout>
 #include <QIcon>
 #include <QInputMethod>
 #include <QLabel>
+#include <QListView>
 #include <QListWidget>
+#include <QMimeData>
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
@@ -25,11 +30,13 @@
 #include <QFontMetricsF>
 #include <QPixmap>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QResizeEvent>
+#include <QScrollArea>
 #include <QSizePolicy>
+#include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
-#include <QFrame>
 #include <algorithm>
 #include <cstddef>
 #include <memory>
@@ -45,19 +52,29 @@
 #include "gui/character_composer/composer_kage.h"
 #include "gui/character_composer/composer_svg.h"
 #include "gui/character_composer/layout_geometry.h"
-
-#include <QMimeData>
+#include "gui/config_dialog/config_dialog_theme.h"
 
 namespace mozc {
 namespace gui {
+
+namespace composer_dialog_metrics {
+constexpr int kEditorHeight = 216;
+constexpr int kStructureButton = 44;
+constexpr int kStructureIcon = 28;
+constexpr int kPreviewLogical = 152;
+}  // namespace composer_dialog_metrics
+
 namespace {
 
 using composer_ids::ComposerSlot;
 using composer_ids::SlotPath;
+namespace theme = config_dialog_theme;
+using composer_dialog_metrics::kEditorHeight;
+using composer_dialog_metrics::kStructureButton;
+using composer_dialog_metrics::kStructureIcon;
+using composer_dialog_metrics::kPreviewLogical;
 
 constexpr char kContext[] = "mozc::gui::CharacterComposerDialog";
-
-const QColor kSelectionColor(240, 140, 0);
 
 QString Tr(const char *source) {
   return QCoreApplication::translate(kContext, source);
@@ -81,7 +98,6 @@ QRectF Scaled(const FRect &r, const QRectF &box) {
                 r.w * box.width(), r.h * box.height());
 }
 
-// Draws the operator's shape: dashed separators and frames, as in the square.
 void DrawGeometry(QPainter *p, const OperatorGeometry &g, const QRectF &box) {
   for (const FLine &line : g.dividers) {
     p->drawLine(QPointF(box.x() + line.x1 * box.width(), box.y() + line.y1 * box.height()),
@@ -92,11 +108,9 @@ void DrawGeometry(QPainter *p, const OperatorGeometry &g, const QRectF &box) {
   }
 }
 
-// The drawing Insert would produce, painted from the same glyph layout as the
-// SVG (the SVG itself needs Qt's SVG module, which is not built here).
 QPixmap DrawingPreview(const std::vector<PlacedGlyph> &glyphs, const QPalette &palette,
                        qreal device_pixel_ratio) {
-  constexpr int kSize = 96;
+  const int kSize = kPreviewLogical;
   QPixmap pixmap(static_cast<int>(kSize * device_pixel_ratio),
                  static_cast<int>(kSize * device_pixel_ratio));
   pixmap.setDevicePixelRatio(device_pixel_ratio);
@@ -105,7 +119,7 @@ QPixmap DrawingPreview(const std::vector<PlacedGlyph> &glyphs, const QPalette &p
   p.setRenderHint(QPainter::Antialiasing);
   p.setRenderHint(QPainter::TextAntialiasing);
   p.setPen(palette.color(QPalette::Text));
-  const double scale = kSize / 1000.0;  // glyphs are laid out in a 1000-unit square
+  const double scale = kSize / 1000.0;
   for (const PlacedGlyph &g : glyphs) {
     QFont f;
     f.setFamilies({QStringLiteral("Hiragino Mincho ProN"), QStringLiteral("Yu Mincho"),
@@ -124,17 +138,16 @@ QPixmap DrawingPreview(const std::vector<PlacedGlyph> &glyphs, const QPalette &p
   return pixmap;
 }
 
-// The same, for a glyph drawn from KAGE strokes: filled outlines, no fonts.
 QPixmap OutlinePreview(const std::vector<Contour> &outlines, const QPalette &palette,
                        qreal device_pixel_ratio) {
-  constexpr int kSize = 96;
+  const int kSize = kPreviewLogical;
   QPixmap pixmap(static_cast<int>(kSize * device_pixel_ratio),
                  static_cast<int>(kSize * device_pixel_ratio));
   pixmap.setDevicePixelRatio(device_pixel_ratio);
   pixmap.fill(Qt::transparent);
   QPainterPath path;
   path.setFillRule(Qt::WindingFill);
-  const double scale = kSize / 1000.0;  // outlines are in a 1000-unit square
+  const double scale = kSize / 1000.0;
   for (const Contour &contour : outlines) {
     if (contour.empty()) continue;
     path.moveTo(contour[0].first * scale, contour[0].second * scale);
@@ -152,21 +165,235 @@ QPixmap OutlinePreview(const std::vector<Contour> &outlines, const QPalette &pal
   return pixmap;
 }
 
-QIcon OperatorIcon(const std::string &op, const QPalette &palette) {
-  constexpr int kSize = 32;
+QIcon OperatorIcon(const std::string &op, const QColor &ink) {
+  const int kSize = kStructureIcon;
   QPixmap pixmap(kSize * 2, kSize * 2);
   pixmap.setDevicePixelRatio(2.0);
   pixmap.fill(Qt::transparent);
   QPainter p(&pixmap);
   p.setRenderHint(QPainter::Antialiasing);
-  const QRectF box(3, 3, kSize - 6, kSize - 6);
-  p.setPen(QPen(palette.color(QPalette::ButtonText), 1.5));
+  const QRectF box(2.5, 2.5, kSize - 5, kSize - 5);
+  p.setPen(QPen(ink, 1.4));
   p.setBrush(Qt::NoBrush);
   p.drawRect(box);
-  p.setPen(QPen(palette.color(QPalette::ButtonText), 1.2, Qt::DashLine));
+  p.setPen(QPen(ink, 1.1, Qt::DashLine));
   DrawGeometry(&p, GeometryFor(op), box);
   p.end();
   return QIcon(pixmap);
+}
+
+QWidget *MakeSectionHeading(const QString &number, const QString &title,
+                             QWidget *parent) {
+  auto *row = new QWidget(parent);
+  auto *layout = new QHBoxLayout(row);
+  layout->setContentsMargins(0, 0, 0, 0);
+  layout->setSpacing(8);
+  if (!number.isEmpty()) {
+    auto *num = new QLabel(number, row);
+    num->setObjectName(QStringLiteral("sectionNumber"));
+    num->setFont(theme::DisplayFont(18));
+    theme::EnsureHeadingMetrics(num);
+    layout->addWidget(num, 0, Qt::AlignVCenter);
+  }
+  auto *label = new QLabel(title, row);
+  label->setObjectName(QStringLiteral("sectionHeading"));
+  label->setFont(theme::DisplayFont(22));
+  theme::EnsureHeadingMetrics(label);
+  layout->addWidget(label, 0, Qt::AlignVCenter);
+  auto *rule = new QFrame(row);
+  rule->setObjectName(QStringLiteral("sectionRule"));
+  rule->setFrameShape(QFrame::HLine);
+  rule->setFixedHeight(1);
+  rule->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+  layout->addWidget(rule, 1, Qt::AlignVCenter);
+  return row;
+}
+
+// Split ja_kana by script: katakana → on'yomi, hiragana → kun'yomi.
+void SplitJaKana(const QString &kana, QStringList *on, QStringList *kun) {
+  for (const QString &token :
+       kana.split(QRegularExpression(QStringLiteral("\\s+")),
+                  Qt::SkipEmptyParts)) {
+    if (token.isEmpty()) continue;
+    const QChar::Script script = token.at(0).script();
+    if (script == QChar::Script_Hiragana) {
+      kun->append(token);
+    } else {
+      on->append(token);
+    }
+  }
+}
+
+QString JoinDot(const QStringList &parts) {
+  return parts.join(QStringLiteral(" · "));
+}
+
+QString FormatVariants(const composer_ids::CharInfo &info) {
+  QStringList parts;
+  if (!info.variants.empty()) {
+    const QString raw = FromUtf8(info.variants);
+    for (const QString &token :
+         raw.split(QRegularExpression(QStringLiteral("\\s+")),
+                   Qt::SkipEmptyParts)) {
+      parts << token;
+    }
+  }
+  if (!info.old_form.empty()) {
+    parts << Tr("old form: %1").arg(FromUtf8(info.old_form));
+  }
+  if (!info.new_form.empty()) {
+    parts << Tr("new form: %1").arg(FromUtf8(info.new_form));
+  }
+  return parts.isEmpty() ? QString() : parts.join(QStringLiteral("  "));
+}
+
+QString ComponentRolesFor(const std::string &op) {
+  if (op == "⿰") return Tr("Left / Right");
+  if (op == "⿱") return Tr("Top / Bottom");
+  if (op == "⿲") return Tr("Left / Middle / Right");
+  if (op == "⿳") return Tr("Top / Middle / Bottom");
+  if (op == "⿴") return Tr("Enclosure / Interior");
+  if (op == "⿵" || op == "⿶" || op == "⿷") return Tr("Surround / Interior");
+  if (op == "⿸") return Tr("Upper-left / Lower-right");
+  if (op == "⿹") return Tr("Upper-right / Lower-left");
+  if (op == "⿺") return Tr("Lower-left / Upper-right");
+  if (op == "⿻") return Tr("Overlapping components");
+  return QString();
+}
+
+QLabel *MakeInfoValue(QWidget *parent) {
+  auto *label = new QLabel(QStringLiteral("—"), parent);
+  label->setObjectName(QStringLiteral("infoValue"));
+  label->setWordWrap(true);
+  label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+  return label;
+}
+
+QString ComposerStylesheet(bool dark) {
+  const theme::Palette palette = theme::Colors(dark);
+  QString qss = QStringLiteral(
+      "QDialog#CharacterComposerDialog {"
+      "  background-color: @@WINDOW@@; }"
+      "QWidget#constructPanel { background-color: @@SIDEBAR@@; }"
+      "QWidget#examinePanel, QWidget#explorePanel {"
+      "  background-color: @@WINDOW@@; }"
+      "QScrollArea#exploreScroll, QScrollArea#exploreScroll > QWidget > QWidget {"
+      "  background: transparent; border: none; }"
+      "QFrame#columnRule, QFrame#footerRule {"
+      "  border: none; color: @@RULE@@; background-color: @@RULE@@; }"
+      "QFrame#sectionRule {"
+      "  border: none; color: @@TITLE_RULE@@; background-color: @@TITLE_RULE@@; }"
+
+      "QLabel { color: @@TEXT@@; background: transparent; }"
+      "QLabel#sectionHeading { color: @@HEADING@@; }"
+      "QLabel#sectionNumber { color: @@SECONDARY@@; }"
+      "QLabel#componentRoles { color: @@ACCENT@@; }"
+      "QLabel#specimenCaption {"
+      "  color: @@SECONDARY@@; letter-spacing: 0.14em; }"
+      "QLabel#statusHeading { color: @@HEADING@@; }"
+      "QLabel#statusDetail { color: @@SECONDARY@@; }"
+      "QLabel#infoKey { color: @@SECONDARY@@; }"
+      "QLabel#infoValue { color: @@TEXT@@; }"
+      "QLabel#exploreSubhead { color: @@HEADING@@; }"
+      "QLabel#ids_info_panel {"
+      "  color: @@TEXT@@; background: @@RAISED@@;"
+      "  border: 1px solid @@BORDER_CONTROL@@; border-radius: 4px;"
+      "  padding: 8px; }"
+      "QLabel#specimenGlyph {"
+      "  background: transparent; border: none; padding: 0; margin: 0; }"
+      "QWidget#layoutEditor {"
+      "  background-color: @@RAISED@@;"
+      "  border: 1px solid @@RULE@@; border-radius: 3px; }"
+      "QWidget#specimenGroup {"
+      "  background: transparent; border: none; }"
+
+      "QLineEdit {"
+      "  color: @@TEXT@@; background: @@RAISED@@;"
+      "  border: 1px solid @@BORDER_CONTROL@@; border-radius: 3px;"
+      "  padding: 5px 8px; min-height: 22px;"
+      "  selection-background-color: @@SELECTION_BG@@;"
+      "  selection-color: @@SELECTION_TEXT@@; }"
+      "QLineEdit:hover { border-color: @@ACCENT@@; }"
+      "QLineEdit:focus { border: 1px solid @@FOCUS@@; }"
+      "QLineEdit#slotEdit {"
+      "  padding: 1px; border-radius: 2px; border: 1px solid transparent;"
+      "  background: transparent; }"
+      "QLineEdit#slotEdit:focus { border: 1px solid @@FOCUS@@; }"
+      "QLineEdit#slotEdit[selected=\"true\"] {"
+      "  border: 1px solid @@ACCENT@@; }"
+
+      "QToolButton#structureButton {"
+      "  background: @@RAISED@@; border: 1px solid @@BORDER_CONTROL@@;"
+      "  border-radius: 3px; padding: 1px; }"
+      "QToolButton#structureButton:hover { border-color: @@ACCENT@@; }"
+      "QToolButton#structureButton:checked {"
+      "  background: @@ACCENT_SUBTLE@@; border: 1px solid @@ACCENT@@; }"
+      "QToolButton#structureButton:focus {"
+      "  border: 1px solid @@FOCUS@@; }"
+      "QToolButton#radical_form {"
+      "  border: 1px solid transparent; border-radius: 3px;"
+      "  padding: 1px 4px; color: @@SECONDARY@@; background: transparent; }"
+      "QToolButton#radical_form[selectedForm=\"true\"] {"
+      "  border: 1px solid @@ACCENT@@; color: @@ACCENT@@; font-weight: 600; }"
+
+      "QComboBox {"
+      "  color: @@TEXT@@; background: @@RAISED@@;"
+      "  border: 1px solid @@BORDER_CONTROL@@; border-radius: 3px;"
+      "  padding: 5px 28px 5px 9px; min-height: 22px; }"
+      "QComboBox:hover { border-color: @@ACCENT@@; }"
+      "QComboBox:focus { border: 1px solid @@FOCUS@@; }"
+      "QComboBox QAbstractItemView {"
+      "  color: @@TEXT@@; background: @@RAISED@@; outline: 0;"
+      "  border: 1px solid @@BORDER_CONTROL@@;"
+      "  selection-background-color: @@SELECTION_BG@@;"
+      "  selection-color: @@SELECTION_TEXT@@; }"
+
+      "QListWidget#containingList {"
+      "  color: @@TEXT@@; background: @@RAISED@@;"
+      "  border: 1px solid @@BORDER_CONTROL@@; border-radius: 3px;"
+      "  outline: none; }"
+      "QListWidget#containingList::item:selected {"
+      "  background: @@SELECTION_BG@@; color: @@SELECTION_TEXT@@; }"
+
+      "QPushButton {"
+      "  color: @@TEXT@@; background: @@RAISED@@;"
+      "  border: 1px solid @@BORDER_CONTROL@@; border-radius: 3px;"
+      "  min-height: 1.35em; padding: 6px 13px; }"
+      "QPushButton:hover { border-color: @@ACCENT@@; }"
+      "QPushButton:focus { border: 1px solid @@FOCUS@@; }"
+      "QPushButton:pressed { background: @@ACCENT_SUBTLE@@; }"
+      "QPushButton:disabled { color: @@DISABLED@@; border-color: @@RULE@@; }"
+      "QPushButton#primaryButton {"
+      "  color: @@ON_ACCENT@@; background: @@PRIMARY@@;"
+      "  border: 1px solid @@PRIMARY@@; padding: 6px 16px; }"
+      "QPushButton#primaryButton:hover {"
+      "  background: @@PRIMARY_HOVER@@; border-color: @@PRIMARY_HOVER@@; }"
+      "QPushButton#primaryButton:pressed {"
+      "  background: @@PRIMARY_PRESSED@@; border-color: @@PRIMARY_PRESSED@@; }"
+      "QPushButton#primaryButton:disabled {"
+      "  color: @@WINDOW@@; background: @@DISABLED@@; border-color: @@DISABLED@@; }"
+      "QPushButton#outlineButton, QPushButton#secondaryButton {"
+      "  color: @@ACCENT@@; background: @@WINDOW@@;"
+      "  border: 1px solid @@BORDER_CONTROL@@;"
+      "  min-width: 88px; padding: 5px 12px; }"
+      "QPushButton#outlineButton:hover, QPushButton#secondaryButton:hover {"
+      "  border-color: @@ACCENT@@; background: @@ACCENT_SUBTLE@@; }"
+      "QPushButton#textButton {"
+      "  color: @@SECONDARY@@; background: transparent;"
+      "  border: 1px solid transparent; }"
+      "QPushButton#textButton:hover { color: @@HEADING@@; }"
+
+      "QScrollBar:vertical {"
+      "  background: @@WINDOW@@; width: 11px; margin: 0; border: none; }"
+      "QScrollBar::handle:vertical {"
+      "  background: @@BORDER_CONTROL@@; min-height: 28px; border-radius: 4px;"
+      "  margin: 2px; }"
+      "QScrollBar::handle:vertical:hover { background: @@SECONDARY@@; }"
+      "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
+      "  height: 0; background: none; border: none; }"
+      "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {"
+      "  background: none; }");
+  return theme::ApplyPaletteTokens(qss, palette);
 }
 
 }  // namespace
@@ -175,16 +402,21 @@ QIcon OperatorIcon(const std::string &op, const QPalette &palette) {
 
 SlotEdit::SlotEdit(SlotPath path, QWidget *parent)
     : QLineEdit(parent), path_(std::move(path)) {
+  setObjectName(QStringLiteral("slotEdit"));
   setAlignment(Qt::AlignCenter);
   setPlaceholderText(QStringLiteral("字"));
   QFont f = font();
-  f.setPointSize(std::max(f.pointSize(), 10) + 6);
+  f.setPixelSize(36);
   setFont(f);
 }
 
 void SlotEdit::SetSelected(bool selected) {
-  setStyleSheet(selected ? QStringLiteral("QLineEdit { border: 2px solid #f08c00; }")
-                         : QString());
+  setProperty("selected", selected);
+  if (style() != nullptr) {
+    style()->unpolish(this);
+    style()->polish(this);
+  }
+  update();
 }
 
 void SlotEdit::focusInEvent(QFocusEvent *event) {
@@ -283,15 +515,11 @@ void LeafSlot::RefreshForms() {
         f.setPointSize(std::max(f.pointSize(), 11));
         button->setFont(f);
         const bool selected = label == current;
-        button->setStyleSheet(
-            selected ? QStringLiteral(
-                           "QToolButton { border: 1px solid #f08c00; "
-                           "border-radius: 3px; padding: 1px 4px; "
-                           "font-weight: bold; }")
-                     : QStringLiteral(
-                           "QToolButton { border: 1px solid transparent; "
-                           "border-radius: 3px; padding: 1px 4px; "
-                           "color: palette(mid); }"));
+        button->setProperty("selectedForm", selected);
+        if (button->style() != nullptr) {
+          button->style()->unpolish(button);
+          button->style()->polish(button);
+        }
         connect(button, &QToolButton::clicked, this,
                 [this, label]() { PickForm(label); });
         forms_layout_->addWidget(button, 0, Qt::AlignBottom);
@@ -303,8 +531,18 @@ void LeafSlot::RefreshForms() {
 }
 
 void LeafSlot::UpdateFormsVisibility() {
-  // Tiny enclosure strips have no room; the giant ⿰ / ⿱ boxes do.
-  forms_row_->setVisible(has_forms_ && height() >= 72);
+  // Tiny enclosure strips have no room for radical chips.
+  forms_row_->setVisible(has_forms_ && height() >= 64);
+  if (edit_ == nullptr) return;
+  const int chip = forms_row_->isVisible() ? 20 : 0;
+  const int avail = std::max(18, height() - chip - 4);
+  // Aim for ~40–55px glyphs in simple cells; nestings scale down.
+  const int px = std::clamp((avail * 3) / 4, 24, 56);
+  QFont f = edit_->font();
+  if (f.pixelSize() != px) {
+    f.setPixelSize(px);
+    edit_->setFont(f);
+  }
 }
 
 void LeafSlot::resizeEvent(QResizeEvent *event) {
@@ -377,14 +615,16 @@ void LayoutView::paintEvent(QPaintEvent *) {
   p.setRenderHint(QPainter::Antialiasing);
   const QRectF box = QRectF(rect()).adjusted(1, 1, -1, -1);
   p.setBrush(Qt::NoBrush);
-  p.setPen(QPen(palette().color(QPalette::Mid), 1, Qt::SolidLine));
-  p.drawRect(box);
-  p.setPen(QPen(palette().color(QPalette::Mid), 1, Qt::DashLine));
-  DrawGeometry(&p, GeometryFor(op_), box);
+  const bool dark = config_dialog_theme::IsDark();
+  const auto colors = config_dialog_theme::Colors(dark);
   if (selected_) {
-    p.setPen(QPen(kSelectionColor, 2));
-    p.drawRect(box.adjusted(1, 1, -1, -1));
+    p.setPen(QPen(colors.accent, 1.5));
+  } else {
+    p.setPen(QPen(colors.rule, 1, Qt::SolidLine));
   }
+  p.drawRect(box);
+  p.setPen(QPen(colors.rule, 1, Qt::DashLine));
+  DrawGeometry(&p, GeometryFor(op_), box);
 }
 
 void LayoutView::mousePressEvent(QMouseEvent *event) {
@@ -397,10 +637,21 @@ void LayoutView::mousePressEvent(QMouseEvent *event) {
 
 LayoutEditor::LayoutEditor(QWidget *parent) : QWidget(parent) {
   auto *layout = new QVBoxLayout(this);
-  layout->setContentsMargins(0, 0, 0, 0);
-  setFixedSize(340, 340);
+  layout->setContentsMargins(4, 4, 4, 4);
+  setObjectName(QStringLiteral("layoutEditor"));
+  setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+  setFixedHeight(composer_dialog_metrics::kEditorHeight);
+  setMinimumWidth(200);
   parts_ = composer_ids::ResizePartsForOperator(op_, {});
   Rebuild();
+}
+
+QSize LayoutEditor::sizeHint() const {
+  return QSize(260, composer_dialog_metrics::kEditorHeight);
+}
+
+QSize LayoutEditor::minimumSizeHint() const {
+  return QSize(200, composer_dialog_metrics::kEditorHeight);
 }
 
 void LayoutEditor::Rebuild() {
@@ -497,39 +748,52 @@ CharacterComposerDialog::CharacterComposerDialog(
       table_(std::move(table)),
       char_info_(std::move(char_info)),
       data_directory_(data_directory) {
-  // GlyphWiki's strokes, to draw a structure with no Unicode character as one
-  // glyph. Missing is fine: the drawing falls back to the components as text.
   if (auto resources = KageResources::LoadFromDirectory(data_directory_.toStdString())) {
     kage_ = std::make_unique<KageResources>(*std::move(resources));
   }
   BuildUi(data_directory);
+  ApplyTheme();
   OnLayoutChanged();
 }
 
+void CharacterComposerDialog::changeEvent(QEvent *event) {
+  QDialog::changeEvent(event);
+  if (applying_theme_) return;
+  if (event->type() == QEvent::PaletteChange ||
+      event->type() == QEvent::ApplicationPaletteChange ||
+      event->type() == QEvent::StyleChange) {
+    ApplyTheme();
+    RefreshPaletteIcons();
+    UpdateResult();
+  }
+}
+
 void CharacterComposerDialog::BuildUi(const QString &data_directory) {
+  setObjectName(QStringLiteral("CharacterComposerDialog"));
   setWindowTitle(Tr("Character composer"));
-  // A separate process cannot be made a child of the document window, so
-  // without this the document hides the dialog as soon as it is clicked.
   setWindowFlags(Qt::WindowSystemMenuHint | Qt::WindowCloseButtonHint |
                  Qt::WindowTitleHint | Qt::WindowStaysOnTopHint);
+  setMinimumSize(900, 620);
+  resize(980, 740);
 
-  // Palette of the twelve layouts.
   palette_ = new QButtonGroup(this);
   palette_->setExclusive(false);
   auto *palette_grid = new QGridLayout;
-  palette_grid->setSpacing(4);
+  palette_grid->setHorizontalSpacing(8);
+  palette_grid->setVerticalSpacing(8);
+  palette_grid->setContentsMargins(0, 0, 0, 0);
   int index = 0;
   for (const auto &info : composer_ids::IdsOperators()) {
     auto *button = new QToolButton(this);
+    button->setObjectName(QStringLiteral("structureButton"));
     button->setCheckable(true);
-    button->setIcon(OperatorIcon(std::string(info.op), this->palette()));
-    button->setIconSize(QSize(32, 32));
-    button->setFixedSize(46, 46);
+    button->setIconSize(QSize(kStructureIcon, kStructureIcon));
+    button->setFixedSize(kStructureButton, kStructureButton);
     button->setToolTip(QStringLiteral("%1  %2  %3")
                            .arg(FromUtf8(std::string(info.op)),
                                 FromUtf8(std::string(info.abbr)),
                                 Tr(std::string(info.name).c_str())));
-    button->setFocusPolicy(Qt::NoFocus);  // keep the focus in the field
+    button->setFocusPolicy(Qt::StrongFocus);
     palette_->addButton(button, index);
     palette_grid->addWidget(button, index / 6, index % 6);
     ++index;
@@ -539,9 +803,12 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
 
   editor_ = new LayoutEditor(this);
   editor_->set_table(table_.get());
-  connect(editor_, &LayoutEditor::changed, this, &CharacterComposerDialog::OnLayoutChanged);
-  connect(editor_, &LayoutEditor::selectionChanged, this,
-          &CharacterComposerDialog::UpdatePaletteHighlight);
+  connect(editor_, &LayoutEditor::changed, this,
+          &CharacterComposerDialog::OnLayoutChanged);
+  connect(editor_, &LayoutEditor::selectionChanged, this, [this]() {
+    UpdatePaletteHighlight();
+    UpdateComponentRoles();
+  });
   connect(editor_, &LayoutEditor::flattenRefused, this, [this]() {
     note_ = Tr("Clear all but one of the filled boxes before removing this layout.");
     UpdateResult();
@@ -549,17 +816,13 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   connect(editor_, &LayoutEditor::submitRequested, this,
           &CharacterComposerDialog::OnSubmitRequested);
 
-  auto *left = new QVBoxLayout;
-  left->addLayout(palette_grid);
-  left->addWidget(editor_, 0, Qt::AlignHCenter);
+  component_roles_label_ = new QLabel(this);
+  component_roles_label_->setObjectName(QStringLiteral("componentRoles"));
+  component_roles_label_->setFont(theme::UiFont(13, QFont::DemiBold));
 
-  // IDS entry: shows the draft sequence and accepts typing (LR言某 → ⿰言某).
   ids_edit_ = new QLineEdit(this);
   ids_edit_->setObjectName(QStringLiteral("ids_edit"));
   ids_edit_->setPlaceholderText(Tr("e.g. LR日月 or ⿰日月"));
-  QFont ids_font = ids_edit_->font();
-  ids_font.setPointSize(ids_font.pointSize() + 4);
-  ids_edit_->setFont(ids_font);
   ids_info_button_ = new QToolButton(this);
   ids_info_button_->setText(QStringLiteral("ℹ"));
   ids_info_button_->setCheckable(true);
@@ -567,15 +830,14 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   ids_info_button_->setFocusPolicy(Qt::NoFocus);
   ids_info_button_->setToolTip(Tr("Layout codes for the IDS box"));
   auto *ids_row = new QHBoxLayout;
+  ids_row->setSpacing(6);
   ids_row->addWidget(ids_edit_, 1);
   ids_row->addWidget(ids_info_button_, 0, Qt::AlignTop);
-  left->addLayout(ids_row);
 
   ids_info_panel_ = new QLabel(this);
   ids_info_panel_->setObjectName(QStringLiteral("ids_info_panel"));
   ids_info_panel_->setWordWrap(true);
   ids_info_panel_->setTextFormat(Qt::RichText);
-  ids_info_panel_->setFrameShape(QFrame::StyledPanel);
   ids_info_panel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
   ids_info_panel_->setVisible(false);
   {
@@ -593,53 +855,122 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
                 .arg(Tr("A question mark (?) stands for an empty box."));
     ids_info_panel_->setText(html);
   }
-  left->addWidget(ids_info_panel_);
   connect(ids_edit_, &QLineEdit::textEdited, this,
           &CharacterComposerDialog::OnIdsEdited);
-  // After leaving a half-typed IDS, put the square's draft back in the field.
   connect(ids_edit_, &QLineEdit::editingFinished, this,
           [this]() { SyncIdsEditFromEditor(/*force=*/true); });
   connect(ids_info_button_, &QToolButton::toggled, this,
           &CharacterComposerDialog::OnIdsInfoToggled);
-  left->addStretch(1);
 
-  // Result column.
+  construct_panel_ = new QWidget(this);
+  construct_panel_->setObjectName(QStringLiteral("constructPanel"));
+  auto *construct = new QVBoxLayout(construct_panel_);
+  construct->setContentsMargins(14, 14, 12, 10);
+  construct->setSpacing(10);
+  construct->addWidget(
+      MakeSectionHeading(Tr("01"), Tr("Structure"), construct_panel_));
+  construct->addLayout(palette_grid);
+  construct->addWidget(
+      MakeSectionHeading(Tr("02"), Tr("Components"), construct_panel_));
+  construct->addWidget(component_roles_label_);
+  construct->addWidget(editor_, 0);
+  construct->addLayout(ids_row);
+  construct->addWidget(ids_info_panel_);
+  construct->addStretch(1);
+
   char_label_ = new QLabel(this);
+  char_label_->setObjectName(QStringLiteral("specimenGlyph"));
   char_label_->setAlignment(Qt::AlignCenter);
-  char_label_->setMinimumSize(120, 100);
-  char_label_->setFrameShape(QFrame::StyledPanel);
-  char_label_->setWordWrap(true);
+  char_label_->setMinimumSize(kPreviewLogical, kPreviewLogical);
+  char_label_->setFixedHeight(kPreviewLogical + 12);
+  char_label_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+  char_label_->setFrameShape(QFrame::NoFrame);
+  char_label_->setAutoFillBackground(false);
+  char_label_->setAttribute(Qt::WA_TranslucentBackground, true);
   char_label_->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
-  codepoint_label_ = new QLabel(this);
-  codepoint_label_->setAlignment(Qt::AlignCenter);
+  specimen_caption_ = new QLabel(Tr("COMPOSED CHARACTER"), this);
+  specimen_caption_->setObjectName(QStringLiteral("specimenCaption"));
+  specimen_caption_->setAlignment(Qt::AlignCenter);
+  specimen_caption_->setFont(theme::UiFont(10, QFont::DemiBold));
 
-  info_label_ = new QLabel(this);
-  info_label_->setAlignment(Qt::AlignCenter);
-  info_label_->setWordWrap(true);
-  info_label_->setTextInteractionFlags(Qt::TextSelectableByMouse);
-  QFont info_font = info_label_->font();
-  info_font.setPointSize(std::max(10, info_font.pointSize() - 1));
-  info_label_->setFont(info_font);
+  status_heading_ = new QLabel(this);
+  status_heading_->setObjectName(QStringLiteral("statusHeading"));
+  status_heading_->setAlignment(Qt::AlignCenter);
+  status_heading_->setWordWrap(true);
+  status_heading_->setFont(theme::UiFont(16, QFont::Medium));
 
-  status_label_ = new QLabel(this);
-  status_label_->setWordWrap(true);
-  status_label_->setMinimumHeight(40);
+  status_detail_ = new QLabel(this);
+  status_detail_->setObjectName(QStringLiteral("statusDetail"));
+  status_detail_->setAlignment(Qt::AlignCenter);
+  status_detail_->setWordWrap(true);
+  status_detail_->setFont(theme::UiFont(12));
 
-  auto *break_group = new QGroupBox(Tr("Break apart a character"), this);
-  break_apart_edit_ = new QLineEdit(break_group);
+  specimen_group_ = new QWidget(this);
+  specimen_group_->setObjectName(QStringLiteral("specimenGroup"));
+  auto *specimen_layout = new QVBoxLayout(specimen_group_);
+  specimen_layout->setContentsMargins(0, 0, 0, 0);
+  specimen_layout->setSpacing(8);
+  specimen_layout->addWidget(char_label_, 0, Qt::AlignHCenter);
+  specimen_layout->addWidget(specimen_caption_);
+  specimen_layout->addWidget(status_heading_);
+  specimen_layout->addWidget(status_detail_);
+
+  examine_panel_ = new QWidget(this);
+  examine_panel_->setObjectName(QStringLiteral("examinePanel"));
+  auto *examine = new QVBoxLayout(examine_panel_);
+  examine->setContentsMargins(16, 20, 16, 16);
+  examine->setSpacing(0);
+  examine->addStretch(1);
+  examine->addWidget(specimen_group_, 0, Qt::AlignHCenter);
+  examine->addStretch(1);
+
+  japanese_readings_value_ = MakeInfoValue(this);
+  other_readings_value_ = MakeInfoValue(this);
+  meaning_value_ = MakeInfoValue(this);
+  classification_value_ = MakeInfoValue(this);
+  variants_value_ = MakeInfoValue(this);
+  structure_value_ = MakeInfoValue(this);
+  unicode_value_ = MakeInfoValue(this);
+
+  auto add_info_row = [](QVBoxLayout *host, const QString &key, QLabel *value) {
+    auto *key_label = new QLabel(key);
+    key_label->setObjectName(QStringLiteral("infoKey"));
+    key_label->setFont(theme::UiFont(13));
+    value->setFont(theme::UiFont(14));
+    host->addWidget(key_label);
+    host->addWidget(value);
+    host->addSpacing(6);
+  };
+
+  auto *info_block = new QWidget(this);
+  auto *info_layout = new QVBoxLayout(info_block);
+  info_layout->setContentsMargins(0, 0, 0, 0);
+  info_layout->setSpacing(2);
+  add_info_row(info_layout, Tr("Japanese readings"), japanese_readings_value_);
+  add_info_row(info_layout, Tr("Other readings"), other_readings_value_);
+  add_info_row(info_layout, Tr("Meaning"), meaning_value_);
+  add_info_row(info_layout, Tr("Classification"), classification_value_);
+  add_info_row(info_layout, Tr("Variants"), variants_value_);
+  add_info_row(info_layout, Tr("Structure"), structure_value_);
+  add_info_row(info_layout, Tr("Unicode"), unicode_value_);
+
+  break_apart_edit_ = new QLineEdit(this);
   break_apart_edit_->setObjectName(QStringLiteral("break_apart_edit"));
   break_apart_edit_->setPlaceholderText(Tr("Type a character"));
-  auto *break_button = new QPushButton(Tr("Break apart"), break_group);
-  break_button->setAutoDefault(false);
-  break_button->setEnabled(table_ != nullptr);
-  decomposition_combo_ = new QComboBox(break_group);
+  break_button_ = new QPushButton(Tr("Break apart"), this);
+  break_button_->setObjectName(QStringLiteral("secondaryButton"));
+  break_button_->setAutoDefault(false);
+  break_button_->setEnabled(table_ != nullptr);
+  break_button_->setFixedWidth(104);
+  decomposition_combo_ = new QComboBox(this);
   decomposition_combo_->setVisible(false);
-  auto *break_layout = new QGridLayout(break_group);
-  break_layout->addWidget(break_apart_edit_, 0, 0);
-  break_layout->addWidget(break_button, 0, 1);
-  break_layout->addWidget(decomposition_combo_, 1, 0, 1, 2);
-  connect(break_button, &QPushButton::clicked, this, &CharacterComposerDialog::OnBreakApart);
+  auto *break_row = new QHBoxLayout;
+  break_row->setSpacing(8);
+  break_row->addWidget(break_apart_edit_, 1);
+  break_row->addWidget(break_button_);
+  connect(break_button_, &QPushButton::clicked, this,
+          &CharacterComposerDialog::OnBreakApart);
   connect(break_apart_edit_, &QLineEdit::returnPressed, this,
           &CharacterComposerDialog::OnBreakApart);
   connect(decomposition_combo_, QOverload<int>::of(&QComboBox::activated), this,
@@ -650,29 +981,32 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
             }
           });
 
-  auto *containing_group = new QGroupBox(Tr("Find characters containing…"), this);
-  containing_edit_ = new QLineEdit(containing_group);
+  containing_edit_ = new QLineEdit(this);
   containing_edit_->setObjectName(QStringLiteral("containing_edit"));
   containing_edit_->setPlaceholderText(Tr("Type one or more components"));
-  auto *containing_button = new QPushButton(Tr("Find"), containing_group);
-  containing_button->setAutoDefault(false);
-  containing_button->setEnabled(table_ != nullptr);
-  containing_list_ = new QListWidget(containing_group);
+  find_button_ = new QPushButton(Tr("Find"), this);
+  find_button_->setObjectName(QStringLiteral("secondaryButton"));
+  find_button_->setAutoDefault(false);
+  find_button_->setEnabled(table_ != nullptr);
+  find_button_->setFixedWidth(104);
+  containing_list_ = new QListWidget(this);
+  containing_list_->setObjectName(QStringLiteral("containingList"));
   containing_list_->setViewMode(QListView::IconMode);
   containing_list_->setResizeMode(QListView::Adjust);
   containing_list_->setMovement(QListView::Static);
   containing_list_->setUniformItemSizes(true);
   containing_list_->setGridSize(QSize(44, 44));
-  containing_list_->setFixedHeight(140);
+  containing_list_->setMinimumHeight(100);
+  containing_list_->setMaximumHeight(180);
   containing_list_->setVisible(false);
   QFont containing_font = containing_list_->font();
   containing_font.setPointSize(containing_font.pointSize() + 8);
   containing_list_->setFont(containing_font);
-  auto *containing_layout = new QGridLayout(containing_group);
-  containing_layout->addWidget(containing_edit_, 0, 0);
-  containing_layout->addWidget(containing_button, 0, 1);
-  containing_layout->addWidget(containing_list_, 1, 0, 1, 2);
-  connect(containing_button, &QPushButton::clicked, this,
+  auto *find_row = new QHBoxLayout;
+  find_row->setSpacing(8);
+  find_row->addWidget(containing_edit_, 1);
+  find_row->addWidget(find_button_);
+  connect(find_button_, &QPushButton::clicked, this,
           &CharacterComposerDialog::OnFindContaining);
   connect(containing_edit_, &QLineEdit::returnPressed, this,
           &CharacterComposerDialog::OnFindContaining);
@@ -681,49 +1015,207 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   connect(containing_list_, &QListWidget::itemActivated, this,
           &CharacterComposerDialog::OnContainingPicked);
 
-  insert_button_ = new QPushButton(Tr("Insert"), this);
-  insert_button_->setDefault(true);
+  auto *decompose_label = new QLabel(Tr("Decompose a character"), this);
+  decompose_label->setObjectName(QStringLiteral("exploreSubhead"));
+  decompose_label->setFont(theme::UiFont(13, QFont::DemiBold));
+  auto *find_label = new QLabel(Tr("Find by components"), this);
+  find_label->setObjectName(QStringLiteral("exploreSubhead"));
+  find_label->setFont(theme::UiFont(13, QFont::DemiBold));
+
+  auto *explore_inner = new QWidget(this);
+  auto *explore_layout = new QVBoxLayout(explore_inner);
+  explore_layout->setContentsMargins(0, 0, 8, 0);
+  explore_layout->setSpacing(8);
+  explore_layout->addWidget(MakeSectionHeading(
+      QString(), Tr("Character information"), explore_inner));
+  explore_layout->addWidget(info_block);
+  explore_layout->addSpacing(10);
+  explore_layout->addWidget(
+      MakeSectionHeading(QString(), Tr("Explore characters"), explore_inner));
+  explore_layout->addWidget(decompose_label);
+  explore_layout->addLayout(break_row);
+  explore_layout->addWidget(decomposition_combo_);
+  explore_layout->addSpacing(6);
+  explore_layout->addWidget(find_label);
+  explore_layout->addLayout(find_row);
+  explore_layout->addWidget(containing_list_, 1);
+  explore_layout->addStretch(0);
+
+  auto *explore_scroll = new QScrollArea(this);
+  explore_scroll->setObjectName(QStringLiteral("exploreScroll"));
+  explore_scroll->setWidgetResizable(true);
+  explore_scroll->setFrameShape(QFrame::NoFrame);
+  explore_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  explore_scroll->setWidget(explore_inner);
+
+  explore_panel_ = new QWidget(this);
+  explore_panel_->setObjectName(QStringLiteral("explorePanel"));
+  auto *explore_outer = new QVBoxLayout(explore_panel_);
+  explore_outer->setContentsMargins(14, 16, 16, 12);
+  explore_outer->addWidget(explore_scroll);
+
+  auto *columns = new QHBoxLayout;
+  columns->setContentsMargins(0, 0, 0, 0);
+  columns->setSpacing(0);
+  columns->addWidget(construct_panel_, 28);
+  auto *div1 = new QFrame(this);
+  div1->setObjectName(QStringLiteral("columnRule"));
+  div1->setFrameShape(QFrame::VLine);
+  div1->setFixedWidth(1);
+  columns->addWidget(div1);
+  columns->addWidget(examine_panel_, 38);
+  auto *div2 = new QFrame(this);
+  div2->setObjectName(QStringLiteral("columnRule"));
+  div2->setFrameShape(QFrame::VLine);
+  div2->setFixedWidth(1);
+  columns->addWidget(div2);
+  columns->addWidget(explore_panel_, 34);
+
+  clear_button_ = new QPushButton(Tr("Clear"), this);
+  clear_button_->setObjectName(QStringLiteral("textButton"));
+  clear_button_->setAutoDefault(false);
   copy_button_ = new QPushButton(Tr("Copy"), this);
+  copy_button_->setObjectName(QStringLiteral("outlineButton"));
   copy_button_->setAutoDefault(false);
-  auto *clear_button = new QPushButton(Tr("Clear"), this);
-  clear_button->setAutoDefault(false);
-  auto *close_button = new QPushButton(Tr("Close"), this);
-  close_button->setAutoDefault(false);
-  connect(insert_button_, &QPushButton::clicked, this, &CharacterComposerDialog::OnInsert);
-  connect(copy_button_, &QPushButton::clicked, this, &CharacterComposerDialog::OnCopy);
-  connect(clear_button, &QPushButton::clicked, editor_, &LayoutEditor::Clear);
-  connect(close_button, &QPushButton::clicked, this, &QDialog::reject);
+  insert_button_ = new QPushButton(Tr("Insert"), this);
+  insert_button_->setObjectName(QStringLiteral("primaryButton"));
+  insert_button_->setDefault(true);
+  close_button_ = new QPushButton(Tr("Close"), this);
+  close_button_->setObjectName(QStringLiteral("textButton"));
+  close_button_->setAutoDefault(false);
+  connect(insert_button_, &QPushButton::clicked, this,
+          &CharacterComposerDialog::OnInsert);
+  connect(copy_button_, &QPushButton::clicked, this,
+          &CharacterComposerDialog::OnCopy);
+  connect(clear_button_, &QPushButton::clicked, editor_, &LayoutEditor::Clear);
+  connect(close_button_, &QPushButton::clicked, this, &QDialog::reject);
 
-  auto *buttons = new QHBoxLayout;
-  buttons->addWidget(clear_button);
-  buttons->addStretch(1);
-  buttons->addWidget(copy_button_);
-  buttons->addWidget(insert_button_);
-  buttons->addWidget(close_button);
+  auto *footer = new QHBoxLayout;
+  footer->setContentsMargins(16, 8, 16, 10);
+  footer->setSpacing(8);
+  footer->addWidget(clear_button_);
+  footer->addStretch(1);
+  footer->addWidget(copy_button_);
+  footer->addWidget(insert_button_);
+  footer->addWidget(close_button_);
 
-  auto *right = new QVBoxLayout;
-  right->addWidget(char_label_, 0, Qt::AlignHCenter);
-  right->addWidget(codepoint_label_);
-  right->addWidget(info_label_);
-  right->addWidget(status_label_);
-  right->addStretch(1);
-  right->addWidget(break_group);
-  right->addWidget(containing_group);
-  right->addLayout(buttons);
+  auto *footer_rule = new QFrame(this);
+  footer_rule->setObjectName(QStringLiteral("footerRule"));
+  footer_rule->setFrameShape(QFrame::HLine);
+  footer_rule->setFixedHeight(1);
 
-  auto *root = new QHBoxLayout(this);
-  root->addLayout(left);
-  root->addSpacing(12);
-  root->addLayout(right, 1);
+  auto *root = new QVBoxLayout(this);
+  root->setContentsMargins(0, 0, 0, 0);
+  root->setSpacing(0);
+  root->addLayout(columns, 1);
+  root->addWidget(footer_rule);
+  root->addLayout(footer);
 
+  RefreshPaletteIcons();
   UpdatePaletteHighlight();
+  UpdateComponentRoles();
   (void)data_directory;
+}
+
+void CharacterComposerDialog::ApplyTheme() {
+  if (applying_theme_) return;
+  applying_theme_ = true;
+  const bool dark = theme::IsDark();
+  const theme::Palette colors = theme::Colors(dark);
+  setStyleSheet(ComposerStylesheet(dark));
+  theme::ApplySurfacePalette(this, colors);
+  if (construct_panel_ != nullptr) {
+    theme::ApplySurfacePalette(construct_panel_, colors, /*sidebar_surface=*/true);
+  }
+  if (examine_panel_ != nullptr) {
+    theme::ApplySurfacePalette(examine_panel_, colors);
+  }
+  if (explore_panel_ != nullptr) {
+    theme::ApplySurfacePalette(explore_panel_, colors);
+  }
+  if (editor_ != nullptr) {
+    theme::ApplySurfacePalette(editor_, colors);
+    editor_->update();
+  }
+  applying_theme_ = false;
+}
+
+void CharacterComposerDialog::RefreshPaletteIcons() {
+  if (palette_ == nullptr) return;
+  const theme::Palette colors = theme::Colors(theme::IsDark());
+  const auto operators = composer_ids::IdsOperators();
+  for (size_t i = 0; i < operators.size(); ++i) {
+    if (QAbstractButton *button = palette_->button(static_cast<int>(i))) {
+      button->setIcon(OperatorIcon(std::string(operators[i].op), colors.heading));
+    }
+  }
+}
+
+void CharacterComposerDialog::UpdateComponentRoles() {
+  if (component_roles_label_ == nullptr || editor_ == nullptr) return;
+  component_roles_label_->setText(ComponentRolesFor(editor_->SelectedLayoutOp()));
+}
+
+void CharacterComposerDialog::UpdateCharInfoPanel(
+    const composer_ids::CharInfo *info, const QString &ids_text,
+    const QString &unicode_text) {
+  const QString dash = QStringLiteral("—");
+  if (info != nullptr) {
+    QStringList on;
+    QStringList kun;
+    if (!info->ja_kana.empty()) {
+      SplitJaKana(FromUtf8(info->ja_kana), &on, &kun);
+    } else {
+      if (!info->ja_on.empty()) {
+        on += FromUtf8(info->ja_on)
+                  .split(QRegularExpression(QStringLiteral("\\s+")),
+                         Qt::SkipEmptyParts);
+      }
+      if (!info->ja_kun.empty()) {
+        kun += FromUtf8(info->ja_kun)
+                   .split(QRegularExpression(QStringLiteral("\\s+")),
+                          Qt::SkipEmptyParts);
+      }
+    }
+    QStringList japanese;
+    if (!on.isEmpty()) japanese << JoinDot(on);
+    if (!kun.isEmpty()) japanese << JoinDot(kun);
+    japanese_readings_value_->setText(japanese.isEmpty() ? dash
+                                                         : japanese.join(QLatin1Char('\n')));
+
+    other_readings_value_->setText(
+        info->pinyin.empty() ? dash : FromUtf8(info->pinyin));
+    meaning_value_->setText(
+        info->definition.empty() ? dash : FromUtf8(info->definition));
+
+    QStringList classification;
+    if (!info->strokes.empty()) {
+      classification << Tr("%1 strokes").arg(FromUtf8(info->strokes));
+    }
+    if (!info->rs.empty()) {
+      classification << Tr("Radical %1").arg(FromUtf8(info->rs));
+    }
+    classification_value_->setText(
+        classification.isEmpty() ? dash : JoinDot(classification));
+
+    const QString variants = FormatVariants(*info);
+    variants_value_->setText(variants.isEmpty() ? dash : variants);
+  } else {
+    japanese_readings_value_->setText(dash);
+    other_readings_value_->setText(dash);
+    meaning_value_->setText(dash);
+    classification_value_->setText(dash);
+    variants_value_->setText(dash);
+  }
+  structure_value_->setText(ids_text.isEmpty() ? dash : ids_text);
+  unicode_value_->setText(unicode_text.isEmpty() ? dash : unicode_text);
 }
 
 void CharacterComposerDialog::OnLayoutChanged() {
   note_.clear();
   UpdateResult();
   UpdatePaletteHighlight();
+  UpdateComponentRoles();
 }
 
 void CharacterComposerDialog::OnPaletteClicked(int index) {
@@ -744,7 +1236,6 @@ void CharacterComposerDialog::UpdatePaletteHighlight() {
 
 void CharacterComposerDialog::SyncIdsEditFromEditor(bool force) {
   if (ids_edit_ == nullptr || applying_ids_edit_) return;
-  // Leave the field alone while the user is typing into it.
   if (!force && ids_edit_->hasFocus()) return;
   const QString draft =
       FromUtf8(composer_ids::DraftIds(editor_->op(), editor_->parts()));
@@ -760,8 +1251,6 @@ void CharacterComposerDialog::OnIdsEdited(const QString &text) {
       composer_ids::ExpandIdsAbbreviations(ToUtf8(text));
   const QString expanded_q = FromUtf8(expanded);
   if (expanded_q != text) {
-    // Keep the same distance from the end so a code typed at the caret
-    // becomes the operator under the caret (LR| → ⿰|).
     const int from_end = text.size() - ids_edit_->cursorPosition();
     ids_edit_->setText(expanded_q);
     ids_edit_->setCursorPosition(
@@ -780,15 +1269,22 @@ void CharacterComposerDialog::UpdateResult() {
   found_.clear();
   pending_svg_.clear();
 
-  QString status;
+  QString status_heading;
+  QString status_detail;
   bool insertable = false;
   bool incomplete = false;
+  QString ids_text;
+  QString unicode_text;
+
   if (table_ == nullptr) {
-    status = Tr("Character data was not found in %1, so the character cannot be "
-                "looked up. You can still build the IDS above.")
-                 .arg(data_directory_);
+    status_detail =
+        Tr("Character data was not found in %1, so the character cannot be "
+           "looked up. You can still build the IDS above.")
+            .arg(data_directory_);
   }
+
   if (const auto ids = composer_ids::ComposeIds(editor_->op(), editor_->parts())) {
+    ids_text = FromUtf8(*ids);
     pending_svg_ = RenderComposerSvg(editor_->op(), editor_->parts(), 1000,
                                      kage_.get());
     insertable = !pending_svg_.empty();
@@ -796,66 +1292,49 @@ void CharacterComposerDialog::UpdateResult() {
       if (const auto found = table_->FindEncodedCharacter(*ids)) {
         found_ = *found;
       } else {
-        status = Tr("No encoded character has this structure. Insert places a "
-                    "drawing on the clipboard for Word (Kaeriten → Insert "
-                    "composed character) or other office plugins.");
+        status_heading = Tr("Not encoded in Unicode");
+        status_detail =
+            Tr("Insert places a drawing on the clipboard for Word "
+               "(Kaeriten → Insert composed character) or other office plugins.");
       }
     } else if (insertable) {
-      status = Tr("Insert places a drawing on the clipboard (lookup data missing).");
+      status_heading = Tr("Drawing only");
+      status_detail =
+          Tr("Insert places a drawing on the clipboard (lookup data missing).");
     }
   } else {
     incomplete = true;
-    // The fill-in prompt is shown in the preview square, not under it.
-    status.clear();
+    ids_text = FromUtf8(composer_ids::DraftIds(editor_->op(), editor_->parts()));
   }
-  if (!note_.isEmpty()) status = note_;
 
-  info_label_->clear();
+  if (!note_.isEmpty()) {
+    status_detail = note_;
+  }
+
+  const composer_ids::CharInfo *info = nullptr;
   if (!found_.empty()) {
-    QFont char_font = font();
-    char_font.setPointSize(48);
+    QFont char_font = theme::DisplayFont(108);
     char_label_->setFont(char_font);
+    char_label_->setPixmap(QPixmap());
     const QString text = FromUtf8(found_);
     char_label_->setText(text);
     const QList<uint> cps = text.toUcs4();
-    codepoint_label_->setText(
-        cps.isEmpty() ? QString()
-                      : QStringLiteral("U+%1").arg(cps.first(), 4, 16, QLatin1Char('0')).toUpper());
+    unicode_text =
+        cps.isEmpty()
+            ? QString()
+            : QStringLiteral("U+%1")
+                  .arg(cps.first(), 4, 16, QLatin1Char('0'))
+                  .toUpper();
+    status_heading = unicode_text;
+    if (status_detail.isEmpty()) {
+      status_detail = Tr("Encoded character");
+    }
     if (char_info_ != nullptr) {
-      if (const composer_ids::CharInfo *info = char_info_->Find(found_)) {
-        QStringList lines;
-        QStringList meta;
-        if (!info->strokes.empty()) {
-          meta << Tr("%1 strokes").arg(FromUtf8(info->strokes));
-        }
-        if (!info->rs.empty()) meta << FromUtf8(info->rs);
-        if (!meta.isEmpty()) lines << meta.join(QStringLiteral(" · "));
-        QStringList readings;
-        if (!info->pinyin.empty()) readings << FromUtf8(info->pinyin);
-        if (!info->ja_kana.empty()) {
-          // Kana (on in katakana, kun in hiragana) reads better than the
-          // romanised on/kun, and covers many characters those lack.
-          readings << FromUtf8(info->ja_kana);
-        } else {
-          if (!info->ja_on.empty()) readings << FromUtf8(info->ja_on);
-          if (!info->ja_kun.empty()) readings << FromUtf8(info->ja_kun);
-        }
-        if (!readings.isEmpty()) lines << readings.join(QStringLiteral(" · "));
-        if (!info->definition.empty()) lines << FromUtf8(info->definition);
-        if (!info->variants.empty()) {
-          lines << Tr("variants: %1").arg(FromUtf8(info->variants));
-        }
-        if (!info->old_form.empty()) {
-          lines << Tr("old form: %1").arg(FromUtf8(info->old_form));
-        }
-        if (!info->new_form.empty()) {
-          lines << Tr("new form: %1").arg(FromUtf8(info->new_form));
-        }
-        info_label_->setText(lines.join(QLatin1Char('\n')));
-      }
+      info = char_info_->Find(found_);
     }
   } else if (insertable) {
     char_label_->setFont(font());
+    char_label_->setText(QString());
     std::optional<std::vector<Contour>> outlines;
     if (kage_ != nullptr) {
       outlines = ComposerOutlines(editor_->op(), editor_->parts(), *kage_);
@@ -864,19 +1343,25 @@ void CharacterComposerDialog::UpdateResult() {
         outlines ? OutlinePreview(*outlines, palette(), devicePixelRatioF())
                  : DrawingPreview(ComposerGlyphs(editor_->op(), editor_->parts()),
                                   palette(), devicePixelRatioF()));
-    codepoint_label_->clear();
   } else if (incomplete) {
-    // Prompt sits where the character / drawing normally appears.
-    QFont prompt = font();
-    prompt.setPointSize(std::max(11, font().pointSize()));
+    QFont prompt = theme::UiFont(13);
     char_label_->setFont(prompt);
+    char_label_->setPixmap(QPixmap());
     char_label_->setText(Tr("Fill in every box to look up the character."));
-    codepoint_label_->clear();
+    status_heading = Tr("Incomplete composition");
+    if (status_detail.isEmpty()) {
+      status_detail = Tr("Enter a character in each component box.");
+    }
   } else {
     char_label_->clear();
-    codepoint_label_->clear();
   }
-  status_label_->setText(status);
+
+  // CharInfo only for a genuine encoded match — never for incomplete /
+  // unencoded compositions that merely resemble another character.
+  UpdateCharInfoPanel(info, ids_text, unicode_text);
+
+  status_heading_->setText(status_heading);
+  status_detail_->setText(status_detail);
   insert_button_->setEnabled(insertable);
   copy_button_->setEnabled(!found_.empty() || insertable);
 }
@@ -884,8 +1369,6 @@ void CharacterComposerDialog::UpdateResult() {
 void CharacterComposerDialog::OnSubmitRequested() { TryInsert(); }
 
 void CharacterComposerDialog::TryInsert() {
-  // Text still being composed in an IME is not in the box yet, so the layout
-  // (and the Insert button) would be one character behind.
   if (QInputMethod *input_method = QGuiApplication::inputMethod()) {
     input_method->commit();
   }
@@ -896,7 +1379,6 @@ void CharacterComposerDialog::TryInsert() {
 
 void CharacterComposerDialog::keyPressEvent(QKeyEvent *event) {
   if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
-    // Enter in the search fields runs the search, not Insert.
     QWidget *focus = focusWidget();
     if (focus != break_apart_edit_ && focus != containing_edit_) TryInsert();
     return;
@@ -914,7 +1396,6 @@ void CharacterComposerDialog::OnInsert() {
   }
   if (pending_svg_.empty()) return;
   result_svg_ = pending_svg_;
-  // Office.js cannot read local files; the Word add-in reads this clipboard.
   auto *mime = new QMimeData;
   mime->setData(QStringLiteral("image/svg+xml"),
                 QByteArray::fromStdString(result_svg_));
@@ -980,7 +1461,6 @@ void CharacterComposerDialog::OnFindContaining() {
     UpdateResult();
     return;
   }
-  // The list is only a pick-list; a component like 一 matches thousands.
   constexpr size_t kMaxShown = 500;
   for (size_t i = 0; i < matches.size() && i < kMaxShown; ++i) {
     auto *item = new QListWidgetItem(FromUtf8(matches[i]), containing_list_);
