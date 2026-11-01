@@ -39,6 +39,7 @@ class QListWidget;
 class QListWidgetItem;
 class QPushButton;
 class QSpinBox;
+class QTimer;
 class QToolButton;
 class QVBoxLayout;
 
@@ -341,6 +342,10 @@ class CharacterComposerDialog : public QDialog {
   QSpinBox *stroke_max_ = nullptr;
   QPushButton *components_button_ = nullptr;
   ComponentsPopup *components_popup_ = nullptr;
+  QTimer *popup_timer_ = nullptr;
+  // Components that find nothing for the query in |unavailable_key_|.
+  std::string unavailable_key_;
+  std::vector<std::string> unavailable_cache_;
   QPushButton *insert_button_ = nullptr;
   QPushButton *copy_button_ = nullptr;
   QPushButton *clear_button_ = nullptr;

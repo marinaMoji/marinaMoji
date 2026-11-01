@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 
@@ -45,7 +46,8 @@ struct LookupQuery {
 // Reads "木12" (exactly 12 strokes), "木<12" (fewer than 12), "木>8" (more than
 // 8), "木9-12" (9 to 12), and "<=" / ">=" ("木>=8") for inclusive bounds.
 // Full-width digits and signs work too. The filter may stand anywhere, and
-// alone ("9-12"). Anything else that is ASCII is ignored.
+// alone ("9-12"). Several filters all apply ("木>3 <9" is 4 to 8). Anything
+// else that is ASCII is ignored.
 LookupQuery ParseLookupQuery(std::string_view text);
 
 class IdsTable {
@@ -158,6 +160,10 @@ class IdsTable {
   absl::flat_hash_map<std::string, int> leading_strokes_;
   // LeadingStroke results, including the ones worked out from decompositions.
   mutable absl::flat_hash_map<std::string, int> leading_cache_;
+  // Characters whose decomposition LeadingStroke is walking now; a cycle in
+  // the data ends the walk at the repeated character.
+  mutable absl::flat_hash_set<std::string> leading_in_progress_;
+  mutable bool leading_cut_short_ = false;
   // Base form of a component -> sorted characters containing it at any depth.
   // Built by FindContaining.
   mutable std::optional<

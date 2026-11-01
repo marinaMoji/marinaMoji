@@ -300,6 +300,26 @@ TEST_F(CharacterComposerDialogTest, StrokeBoxesNarrowTheSearch) {
   EXPECT_EQ(Characters(list).size(), 3);
 }
 
+TEST_F(CharacterComposerDialogTest, EnterInAStrokeBoxSearchesInsteadOfInserting) {
+  auto dialog = MakeDialogWithStrokes();
+  auto edits = Edits(dialog.get());
+  Type(edits[0], QStringLiteral("言"));
+  Type(edits[1], QStringLiteral("某"));
+  ASSERT_TRUE(Button(dialog.get(), "Insert")->isEnabled());
+  auto *low = dialog->findChild<QSpinBox *>(QStringLiteral("stroke_min"));
+  auto *search = dialog->findChild<QLineEdit *>(QStringLiteral("containing_edit"));
+  auto *list = dialog->findChild<QListWidget *>();
+  search->setText(QStringLiteral("木"));
+  // A spin box's focus is its inner line edit.
+  auto *inner = low->findChild<QLineEdit *>();
+  ASSERT_NE(inner, nullptr);
+  inner->setFocus();
+  QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+  QCoreApplication::sendEvent(inner, &enter);
+  EXPECT_TRUE(dialog->result().empty()) << "Enter must not insert";
+  EXPECT_EQ(Characters(list).size(), 3) << "Enter runs the search";
+}
+
 TEST_F(CharacterComposerDialogTest, ResultsAreSortedByStrokesThenLeadingStroke) {
   auto dialog = MakeDialogWithStrokes();
   auto *edit = dialog->findChild<QLineEdit *>(QStringLiteral("containing_edit"));

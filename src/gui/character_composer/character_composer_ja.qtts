@@ -32,8 +32,8 @@
         <translation>疑問符（?）は空の欄を表します。</translation>
     </message>
     <message>
-        <source>%1 strokes</source>
-        <translation>%1画</translation>
+        <source>Strokes: %1</source>
+        <translation>画数: %1</translation>
     </message>
     <message>
         <source>variants: %1</source>
@@ -380,8 +380,12 @@
         <translation>%1 文字が見つかりました。先頭の %2 文字を表示しています。部品を増やすか画数を絞り込んでください。</translation>
     </message>
     <message>
-        <source>%1 strokes, starts with %2</source>
-        <translation>%1 画、起筆 %2</translation>
+        <source>%1 characters found; showing the first %2 of each stroke count. Add components or narrow the strokes.</source>
+        <translation>%1 文字が見つかりました。画数ごとに先頭の %2 文字を表示しています。部品を増やすか画数を絞り込んでください。</translation>
+    </message>
+    <message>
+        <source>Strokes: %1, starts with %2</source>
+        <translation>画数: %1、起筆 %2</translation>
     </message>
     <message>
         <source>(none)</source>

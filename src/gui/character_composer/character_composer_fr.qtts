@@ -32,8 +32,8 @@
         <translation>Un point d’interrogation (?) représente une case vide.</translation>
     </message>
     <message>
-        <source>%1 strokes</source>
-        <translation>%1 traits</translation>
+        <source>Strokes: %1</source>
+        <translation>Traits : %1</translation>
     </message>
     <message>
         <source>variants: %1</source>
@@ -380,8 +380,12 @@
         <translation>%1 caractères trouvés ; affichage des %2 premiers. Ajoutez des composants ou resserrez le nombre de traits.</translation>
     </message>
     <message>
-        <source>%1 strokes, starts with %2</source>
-        <translation>%1 traits, commence par %2</translation>
+        <source>%1 characters found; showing the first %2 of each stroke count. Add components or narrow the strokes.</source>
+        <translation>%1 caractères trouvés ; affichage des %2 premiers pour chaque nombre de traits. Ajoutez des composants ou resserrez le nombre de traits.</translation>
+    </message>
+    <message>
+        <source>Strokes: %1, starts with %2</source>
+        <translation>Traits : %1, commence par %2</translation>
     </message>
     <message>
         <source>(none)</source>

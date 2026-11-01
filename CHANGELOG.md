@@ -18,9 +18,11 @@ Discover → "Find by components" gains:
   open; the same number in both for an exact count), or a count written among
   the components: `木12` (exactly 12), `木<12` (fewer than 12), `木>8` (more than
   8), `木9-12` (9 to 12); `<=` / `>=` make the bound inclusive. Full-width digits
-  and signs (`木９－１２`) work, and the filter can stand alone (`9-12`, capped at
-  500 results). Boxes and a typed count both apply. A character with several
-  regional counts matches if any one fits.
+  and signs (`木９－１２`) work, and the filter can stand alone (`9-12`). Boxes
+  and every typed count all apply together (`木>3 <9` is 4 to 8). A character
+  with several regional counts matches if any one fits. A long result list is
+  limited per stroke count, so a broad range still reaches its high end.
+  Pressing Enter in a stroke box runs the search.
 - **Sorted results.** Results are sorted by stroke count, then by leading stroke
   in the order 一 丨 丿 丶 乛, under stroke-count headings (which cannot be
   picked). The leading stroke comes from a table of strokes, radicals and common

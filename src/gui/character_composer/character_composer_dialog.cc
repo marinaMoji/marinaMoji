@@ -37,6 +37,7 @@
 #include <QSpinBox>
 #include <QSizePolicy>
 #include <QStyle>
+#include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <algorithm>
@@ -965,7 +966,7 @@ void ComponentsPopup::Rebuild() {
     number->setFont(theme::UiFont(12, QFont::DemiBold));
     number->setAlignment(Qt::AlignCenter);
     number->setFixedSize(34, 34);
-    number->setToolTip(Tr("%1 strokes").arg(group.strokes));
+    number->setToolTip(Tr("Strokes: %1").arg(group.strokes));
     grid_->addWidget(number, cell / kColumns, cell % kColumns);
     ++cell;
     for (const std::string &ch : chars) {
@@ -977,7 +978,7 @@ void ComponentsPopup::Rebuild() {
       button->setCheckable(true);
       button->setFixedSize(34, 34);
       button->setFocusPolicy(Qt::NoFocus);
-      button->setToolTip(QStringLiteral("%1  %2").arg(text, Tr("%1 strokes").arg(group.strokes)));
+      button->setToolTip(QStringLiteral("%1  %2").arg(text, Tr("Strokes: %1").arg(group.strokes)));
       connect(button, &QToolButton::clicked, this,
               [this, text]() { emit componentToggled(text); });
       grid_->addWidget(button, cell / kColumns, cell % kColumns);
@@ -1346,8 +1347,14 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
           &CharacterComposerDialog::OnFindContaining);
   connect(containing_edit_, &QLineEdit::returnPressed, this,
           &CharacterComposerDialog::OnFindContaining);
-  connect(containing_edit_, &QLineEdit::textChanged, this,
+  // Greying out components costs a search each; wait for a pause in typing.
+  popup_timer_ = new QTimer(this);
+  popup_timer_->setSingleShot(true);
+  popup_timer_->setInterval(150);
+  connect(popup_timer_, &QTimer::timeout, this,
           &CharacterComposerDialog::UpdateComponentsPopup);
+  connect(containing_edit_, &QLineEdit::textChanged, popup_timer_,
+          QOverload<>::of(&QTimer::start));
   containing_edit_->setToolTip(
       Tr("Type one or more components, or pick them with Components…. A stroke "
          "count typed here works too: 12 (exactly), <12 (fewer), >8 (more), "
@@ -1855,7 +1862,11 @@ void CharacterComposerDialog::keyPressEvent(QKeyEvent *event) {
   if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
     QWidget *focus = focusWidget();
     // Enter in the search fields runs the search, not Insert.
-    if (focus == stroke_min_ || focus == stroke_max_) {
+    // (A spin box's focus is its inner line edit, hence isAncestorOf.)
+    const auto in_box = [focus](const QWidget *box) {
+      return focus != nullptr && (focus == box || box->isAncestorOf(focus));
+    };
+    if (in_box(stroke_min_) || in_box(stroke_max_)) {
       OnFindContaining();
     } else if (focus != break_apart_edit_ && focus != containing_edit_) {
       TryInsert();
@@ -1990,14 +2001,30 @@ void CharacterComposerDialog::OnFindContaining() {
   table_->SortByStrokes(&matches);
 
   // The list is only a pick-list; a component like 一 matches thousands.
+  // |matches| is sorted by stroke count, so when there are headings the limit
+  // applies to each stroke count: a broad range still reaches its high end.
   constexpr size_t kMaxShown = 500;
+  constexpr size_t kMinPerCount = 40;
   const bool headings = table_->has_stroke_counts();
-  std::optional<int> current_heading;
-  bool first = true;
+  std::vector<std::optional<int>> counts;
+  size_t groups = 0;
+  for (const std::string &ch : matches) {
+    counts.push_back(table_->StrokeCount(ch));
+    if (counts.size() == 1 || counts.back() != counts[counts.size() - 2]) {
+      ++groups;
+    }
+  }
+  const size_t limit =
+      headings ? std::max(kMinPerCount, kMaxShown / std::max<size_t>(groups, 1))
+               : kMaxShown;
   const QFont heading_font = theme::UiFont(11, QFont::DemiBold);
-  for (size_t i = 0; i < matches.size() && i < kMaxShown; ++i) {
-    const std::optional<int> strokes = table_->StrokeCount(matches[i]);
-    if (headings && (first || strokes != current_heading)) {
+  size_t shown = 0;
+  size_t in_group = 0;
+  for (size_t i = 0; i < matches.size(); ++i) {
+    const std::optional<int> strokes = counts[i];
+    const bool new_group = i == 0 || strokes != counts[i - 1];
+    if (new_group) in_group = 0;
+    if (headings && new_group) {
       // A stroke-count heading cell, like the numbers in Components….
       auto *heading = new QListWidgetItem(
           strokes ? QString::number(*strokes) : QStringLiteral("?"), results_list_);
@@ -2005,29 +2032,38 @@ void CharacterComposerDialog::OnFindContaining() {
       heading->setFlags(Qt::NoItemFlags);
       heading->setData(kHeadingRole, true);
       heading->setFont(heading_font);
-      heading->setToolTip(strokes ? Tr("%1 strokes").arg(*strokes)
+      heading->setToolTip(strokes ? Tr("Strokes: %1").arg(*strokes)
                                   : Tr("Stroke count unknown"));
-      current_heading = strokes;
-      first = false;
     }
+    if (in_group++ >= limit) continue;
+    ++shown;
     auto *item = new QListWidgetItem(FromUtf8(matches[i]), results_list_);
     item->setTextAlignment(Qt::AlignCenter);
     const QString leading = LeadingStrokeGlyph(table_->LeadingStroke(matches[i]));
     if (strokes && !leading.isEmpty()) {
-      item->setToolTip(Tr("%1 strokes, starts with %2").arg(*strokes).arg(leading));
+      item->setToolTip(
+          Tr("Strokes: %1, starts with %2").arg(*strokes).arg(leading));
     } else if (strokes) {
-      item->setToolTip(Tr("%1 strokes").arg(*strokes));
+      item->setToolTip(Tr("Strokes: %1").arg(*strokes));
     }
   }
   if (clear_results_button_ != nullptr) clear_results_button_->setVisible(true);
-  results_status_->setText(
-      matches.size() > kMaxShown
-          ? Tr("%1 characters found; showing the first %2. Add components or "
-               "narrow the strokes.")
-                .arg(matches.size())
-                .arg(kMaxShown)
-          : Tr("%1 characters found. Click one to examine it.")
-                .arg(matches.size()));
+  if (shown == matches.size()) {
+    results_status_->setText(
+        Tr("%1 characters found. Click one to examine it.").arg(matches.size()));
+  } else if (headings) {
+    results_status_->setText(
+        Tr("%1 characters found; showing the first %2 of each stroke count. "
+           "Add components or narrow the strokes.")
+            .arg(matches.size())
+            .arg(limit));
+  } else {
+    results_status_->setText(
+        Tr("%1 characters found; showing the first %2. Add components or "
+           "narrow the strokes.")
+            .arg(matches.size())
+            .arg(kMaxShown));
+  }
 }
 
 void CharacterComposerDialog::OnToggleComponentsPopup() {
@@ -2061,6 +2097,7 @@ void CharacterComposerDialog::OnComponentToggled(const QString &component) {
 
 void CharacterComposerDialog::UpdateComponentsPopup() {
   if (components_popup_ == nullptr) return;
+  popup_timer_->stop();
   const composer_ids::LookupQuery query = CurrentQuery();
   const std::vector<std::string> selected =
       SplitChars(query.components.c_str());
@@ -2070,12 +2107,27 @@ void CharacterComposerDialog::UpdateComponentsPopup() {
       components_popup_->grey_out_unavailable() &&
       (!query.components.empty() || query.strokes.has_value()) &&
       (!query.strokes.has_value() || table_->has_stroke_counts())) {
-    for (const std::string &ch : components_popup_->ShownComponents()) {
-      if (Contains(selected, ch)) continue;
-      if (table_->FindContaining(query.components + ch, query.strokes).empty()) {
-        unavailable.push_back(ch);
+    const std::vector<std::string> shown = components_popup_->ShownComponents();
+    // The answer depends on these alone; options toggled in the window and
+    // repeated calls for the same text reuse it.
+    const std::string key =
+        query.components + "|" +
+        (query.strokes ? std::to_string(query.strokes->min) + "-" +
+                             std::to_string(query.strokes->max)
+                       : std::string()) +
+        "|" + std::to_string(shown.size());
+    if (key != unavailable_key_) {
+      unavailable_cache_.clear();
+      for (const std::string &ch : shown) {
+        if (Contains(selected, ch)) continue;
+        if (table_->FindContaining(query.components + ch, query.strokes)
+                .empty()) {
+          unavailable_cache_.push_back(ch);
+        }
       }
+      unavailable_key_ = key;
     }
+    unavailable = unavailable_cache_;
   }
   components_popup_->SetState(selected, unavailable);
 }

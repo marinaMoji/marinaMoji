@@ -196,7 +196,9 @@ void IdsTable::LoadStrokeCounts(std::string_view tsv) {
       int n = 0;
       if (absl::SimpleAtoi(value, &n) && n > 0) counts.push_back(n);
     }
-    if (!counts.empty()) stroke_counts_[std::string(line.substr(0, tab))] = std::move(counts);
+    if (!counts.empty()) {
+      stroke_counts_[std::string(line.substr(0, tab))] = std::move(counts);
+    }
   }
 }
 
@@ -330,7 +332,8 @@ std::vector<std::string> IdsTable::FindContaining(
 }
 
 std::vector<std::string> IdsTable::FindContaining(
-    std::string_view components, const std::optional<StrokeRange> &strokes) const {
+    std::string_view components,
+    const std::optional<StrokeRange> &strokes) const {
   const auto in_range = [&](const std::string &ch) {
     if (!strokes.has_value()) return true;
     const auto it = stroke_counts_.find(ch);
@@ -416,14 +419,22 @@ int IdsTable::LeadingStrokeAt(std::string_view ch, int depth) const {
   }
   constexpr int kMaxDepth = 12;
   const auto decompositions = by_char_.find(key);
-  if (decompositions == by_char_.end() || depth >= kMaxDepth) return 0;
-  // Marks |ch| as in progress, so cyclic data ends in "unknown".
-  leading_cache_[key] = 0;
+  if (decompositions == by_char_.end()) return leading_cache_[key] = 0;
+  if (depth == 0) leading_cut_short_ = false;
+  if (depth >= kMaxDepth || leading_in_progress_.contains(key)) {
+    // Cyclic or too deep: unknown here, but only because of where the walk
+    // started, so the callers on the way back must not cache their answer.
+    leading_cut_short_ = true;
+    return 0;
+  }
+  leading_in_progress_.insert(key);
   int result = 0;
   for (const std::string &ids : decompositions->second) {
     result = LeadingStrokeOfIds(ids, depth + 1);
     if (result != 0) break;
   }
+  leading_in_progress_.erase(key);
+  if (result == 0 && leading_cut_short_ && depth > 0) return 0;
   return leading_cache_[key] = result;
 }
 
@@ -455,7 +466,9 @@ int IdsTable::LeadingStrokeOfIds(std::string_view ids, int depth) const {
     }
     const size_t first = i + 1;
     if (first < n && written_last(chars[i], chars[first])) {
-      if (const int inner = self(self, skip(skip, first)); inner != 0) return inner;
+      if (const int inner = self(self, skip(skip, first)); inner != 0) {
+        return inner;
+      }
     }
     return self(self, first);
   };
@@ -501,7 +514,8 @@ std::string NormalizeQuery(std::string_view text) {
     else if (ch.size() == 3 && ch.substr(0, 2) == "\xEF\xBC" &&
              static_cast<unsigned char>(ch[2]) >= 0x90 &&
              static_cast<unsigned char>(ch[2]) <= 0x99) {
-      out += static_cast<char>('0' + (static_cast<unsigned char>(ch[2]) - 0x90));  // ０-９
+      // ０-９
+      out += static_cast<char>('0' + (static_cast<unsigned char>(ch[2]) - 0x90));
     } else {
       out.append(ch);
     }
@@ -544,7 +558,9 @@ LookupQuery ParseLookupQuery(std::string_view text) {
     const auto read_number = [&](int *value) {
       if (!IsDigit(ascii_at(i))) return false;
       int n = 0;
-      for (; IsDigit(ascii_at(i)); ++i) n = std::min(n * 10 + (ascii_at(i) - '0'), 999);
+      for (; IsDigit(ascii_at(i)); ++i) {
+        n = std::min(n * 10 + (ascii_at(i) - '0'), 999);
+      }
       *value = n;
       return true;
     };
@@ -563,6 +579,11 @@ LookupQuery ParseLookupQuery(std::string_view text) {
       range.max = std::max(first, second);
     } else {
       range.min = range.max = first;
+    }
+    if (query.strokes.has_value()) {
+      // Several filters in one query ("木>3 <9"): all of them apply.
+      range.min = std::max(range.min, query.strokes->min);
+      range.max = std::min(range.max, query.strokes->max);
     }
     query.strokes = range;
   }

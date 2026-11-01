@@ -195,6 +195,30 @@ TEST(IdsTableTest, ParsesStrokeFilters) {
   EXPECT_FALSE(strokes("").has_value());
 }
 
+TEST(IdsTableTest, SeveralStrokeFiltersAllApply) {
+  const auto range = [](std::string_view text) {
+    return *ParseLookupQuery(text).strokes;
+  };
+  EXPECT_EQ(range("木>3 <9").min, 4);
+  EXPECT_EQ(range("木>3 <9").max, 8);
+  EXPECT_EQ(range("木 4-12 8-20").min, 8);
+  EXPECT_EQ(range("木 4-12 8-20").max, 12);
+  // Disjoint filters leave an empty range, which matches nothing.
+  EXPECT_FALSE(range("<3 >8").Contains(5));
+  EXPECT_FALSE(range("<3 >8").Contains(1));
+}
+
+TEST(IdsTableTest, LeadingStrokeIsNotPoisonedByACycle) {
+  // ㄅ and ㄆ contain each other; ㄆ also has an honest decomposition.
+  auto table = IdsTable::FromTsv(
+      "⿰ㄆ丁\tㄅ\n⿰ㄅ丁\tㄆ\n⿰一ㄅ\tㄆ\n", "");
+  ASSERT_TRUE(table.ok());
+  // Asking for ㄆ first walks into ㄅ while ㄆ is in progress; ㄅ's answer
+  // there is a dead end that must not stick.
+  EXPECT_EQ(table->LeadingStroke("ㄆ"), 1);
+  EXPECT_EQ(table->LeadingStroke("ㄅ"), 1);
+}
+
 TEST(IdsTableTest, FindContainingFiltersByStrokeCount) {
   IdsTable table = LoadFixture();
   table.LoadStrokeCounts("某\t9\n相\t9\n謀\t16\n言\t7\n木\t4\n齒\t12,15\nbad line\n");
