@@ -68,31 +68,6 @@ using CharacterFormHistory =
 // Canonical UCS-2 character used as the storage key for the NUMBER group ('0').
 constexpr char16_t kNormalizedNumberChar = u'0';  // 0x0030
 
-// Maps width-dependent number styles (e.g., NUMBER_SEPARATED_ARABIC_* and
-// NUMBER_ARABIC_AND_KANJI_*, which encode half-width/full-width directly in the
-// Style enum) to match `form` when `form` is HALF_WIDTH or FULL_WIDTH.
-// Width-independent styles (such as DEFAULT_STYLE, NUMBER_KANJI, or
-// NUMBER_CIRCLED) are returned unchanged.
-NumberUtil::NumberString::Style AdaptNumberStyleToForm(
-    NumberUtil::NumberString::Style style, Config::CharacterForm form) {
-  DCHECK(form == Config::HALF_WIDTH || form == Config::FULL_WIDTH);
-  const bool is_half_width = (form == Config::HALF_WIDTH);
-  switch (style) {
-    case NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_HALFWIDTH:
-    case NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_FULLWIDTH:
-      return is_half_width
-                 ? NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_HALFWIDTH
-                 : NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_FULLWIDTH;
-    case NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_HALFWIDTH:
-    case NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_FULLWIDTH:
-      return is_half_width
-                 ? NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_HALFWIDTH
-                 : NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_FULLWIDTH;
-    default:
-      return style;
-  }
-}
-
 // Thread-safe in-memory storage for character forms and number style,
 // persisted via UserHistoryStorage.
 class CharacterFormStorage {
@@ -191,6 +166,14 @@ class CharacterFormStorage {
 
   // marinaMoji: Overwrites the entries present in `history` and keeps the
   // rest. Marks the storage dirty if anything changed.
+  //
+  // The form of "0" and LastNumberStyle are kept in step, as
+  // SetCharacterForm("0") does. They arrive independently (the sync daemon
+  // stamps them per key, and the old cform.db never aligned them), so when one
+  // of them arrives alone the other follows it, and when both arrive and
+  // disagree "0" wins: every committed number updates it, so it is the more
+  // recent of the two. (The sync layer, which has the timestamps, settles a
+  // disagreement itself before it gets here.)
   void Merge(const CharacterFormHistory& history) {
     absl::MutexLock lock(mutex_);
     auto* map = proto_.mutable_character_form_map();
@@ -201,17 +184,56 @@ class CharacterFormStorage {
         dirty_ = true;
       }
     }
-    if (history.has_last_number_form() && history.has_last_number_style() &&
-        !(proto_.has_last_number_form() && proto_.has_last_number_style() &&
-          proto_.last_number_form() == history.last_number_form() &&
-          proto_.last_number_style() == history.last_number_style())) {
-      proto_.set_last_number_form(history.last_number_form());
-      proto_.set_last_number_style(history.last_number_style());
-      dirty_ = true;
+    const bool has_incoming_number =
+        history.has_last_number_form() && history.has_last_number_style();
+    if (has_incoming_number) {
+      if (!history.character_form_map().contains(kNormalizedNumberChar) &&
+          (history.last_number_form() ==
+               static_cast<uint32_t>(Config::HALF_WIDTH) ||
+           history.last_number_form() ==
+               static_cast<uint32_t>(Config::FULL_WIDTH))) {
+        // Only the number style arrived: "0" follows it.
+        auto [it, inserted] =
+            map->try_emplace(kNormalizedNumberChar, history.last_number_form());
+        if (inserted || it->second != history.last_number_form()) {
+          it->second = history.last_number_form();
+          dirty_ = true;
+        }
+      }
+      SetNumberStyleLocked(ReconciledNumberStyleLocked(
+          history.last_number_form(), history.last_number_style()));
+    } else if (history.character_form_map().contains(kNormalizedNumberChar) &&
+               proto_.has_last_number_form() && proto_.has_last_number_style()) {
+      // Only "0" arrived: the existing number style follows it.
+      SetNumberStyleLocked(ReconciledNumberStyleLocked(
+          proto_.last_number_form(), proto_.last_number_style()));
     }
   }
 
  private:
+  // marinaMoji: SetCharacterForm("0") keeps LastNumberStyle in step with the
+  // form of "0". Merge() brings in the two independently (per-key sync stamps,
+  // and the old cform.db never kept them aligned), so apply the same rule
+  // afterwards. "0" wins: every committed number updates it, so it is the more
+  // recent of the two.
+  CharacterFormManager::NumberFormStyle ReconciledNumberStyleLocked(
+      uint32_t form, uint32_t style) const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
+    const auto it = proto_.character_form_map().find(kNormalizedNumberChar);
+    if (it != proto_.character_form_map().end() &&
+        (it->second == static_cast<uint32_t>(Config::HALF_WIDTH) ||
+         it->second == static_cast<uint32_t>(Config::FULL_WIDTH))) {
+      form = it->second;
+    }
+    const auto number_style = static_cast<NumberUtil::NumberString::Style>(style);
+    if (form == static_cast<uint32_t>(Config::HALF_WIDTH) ||
+        form == static_cast<uint32_t>(Config::FULL_WIDTH)) {
+      return {static_cast<Config::CharacterForm>(form),
+              AdaptNumberStyleToForm(number_style,
+                                     static_cast<Config::CharacterForm>(form))};
+    }
+    return {static_cast<Config::CharacterForm>(form), number_style};
+  }
+
   void SetNumberStyleLocked(
       const CharacterFormManager::NumberFormStyle& form_style)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
@@ -776,6 +798,31 @@ void CharacterFormManagerImpl::AddRule(const absl::string_view key,
 }
 
 }  // namespace
+
+// Maps width-dependent number styles (e.g., NUMBER_SEPARATED_ARABIC_* and
+// NUMBER_ARABIC_AND_KANJI_*, which encode half-width/full-width directly in the
+// Style enum) to match `form` when `form` is HALF_WIDTH or FULL_WIDTH.
+// Width-independent styles (such as DEFAULT_STYLE, NUMBER_KANJI, or
+// NUMBER_CIRCLED) are returned unchanged.
+NumberUtil::NumberString::Style AdaptNumberStyleToForm(
+    NumberUtil::NumberString::Style style, Config::CharacterForm form) {
+  DCHECK(form == Config::HALF_WIDTH || form == Config::FULL_WIDTH);
+  const bool is_half_width = (form == Config::HALF_WIDTH);
+  switch (style) {
+    case NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_HALFWIDTH:
+    case NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_FULLWIDTH:
+      return is_half_width
+                 ? NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_HALFWIDTH
+                 : NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_FULLWIDTH;
+    case NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_HALFWIDTH:
+    case NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_FULLWIDTH:
+      return is_half_width
+                 ? NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_HALFWIDTH
+                 : NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_FULLWIDTH;
+    default:
+      return style;
+  }
+}
 
 class CharacterFormManager::Data {
  public:

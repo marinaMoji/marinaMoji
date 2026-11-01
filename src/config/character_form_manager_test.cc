@@ -957,6 +957,91 @@ TEST_F(CharacterFormManagerTest, SyncNumberCharacterFormAndLastNumberStyle) {
             config::Config::HALF_WIDTH);
 }
 
+// marinaMoji: MergeStorage() is used by the sync daemon and by the cform.db
+// migration. Both can bring a "0" form and a LastNumberStyle that disagree
+// (they are synced per key, and the old cform.db never kept them in step), so
+// the merge must leave them consistent like SetCharacterForm("0") does.
+TEST_F(CharacterFormManagerTest, MergeStorageKeepsNumberFormConsistent) {
+  CharacterFormManager* manager =
+      CharacterFormManager::GetCharacterFormManager();
+  manager->SetDefaultRule();
+  manager->ClearHistory();
+
+  using CharacterFormHistory = CharacterFormManager::CharacterFormHistory;
+  const auto expect_last_number_style =
+      [&](config::Config::CharacterForm expected_form,
+          NumberUtil::NumberString::Style expected_style) {
+        const auto style = manager->GetLastNumberStyle();
+        ASSERT_TRUE(style.has_value());
+        EXPECT_EQ(style->form, expected_form);
+        EXPECT_EQ(style->style, expected_style);
+      };
+
+  // Only "0" arrives: an existing LastNumberStyle follows it.
+  manager->SetLastNumberStyle(
+      {config::Config::FULL_WIDTH,
+       NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_FULLWIDTH});
+  {
+    CharacterFormHistory history;
+    (*history.mutable_character_form_map())[u'0'] =
+        static_cast<uint32_t>(config::Config::HALF_WIDTH);
+    manager->MergeStorage(history);
+  }
+  EXPECT_EQ(manager->GetConversionCharacterForm("0"),
+            config::Config::HALF_WIDTH);
+  expect_last_number_style(
+      config::Config::HALF_WIDTH,
+      NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_HALFWIDTH);
+
+  // A disagreeing pair arrives together: "0" wins, as it is updated by every
+  // committed number and so is the more recent of the two.
+  manager->ClearHistory();
+  {
+    CharacterFormHistory history;
+    (*history.mutable_character_form_map())[u'0'] =
+        static_cast<uint32_t>(config::Config::HALF_WIDTH);
+    history.set_last_number_form(config::Config::FULL_WIDTH);
+    history.set_last_number_style(
+        NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_FULLWIDTH);
+    manager->MergeStorage(history);
+  }
+  EXPECT_EQ(manager->GetConversionCharacterForm("0"),
+            config::Config::HALF_WIDTH);
+  expect_last_number_style(
+      config::Config::HALF_WIDTH,
+      NumberUtil::NumberString::NUMBER_ARABIC_AND_KANJI_HALFWIDTH);
+
+  // Width-independent styles keep their style; only the form follows "0".
+  manager->ClearHistory();
+  {
+    CharacterFormHistory history;
+    (*history.mutable_character_form_map())[u'0'] =
+        static_cast<uint32_t>(config::Config::FULL_WIDTH);
+    history.set_last_number_form(config::Config::HALF_WIDTH);
+    history.set_last_number_style(NumberUtil::NumberString::NUMBER_KANJI);
+    manager->MergeStorage(history);
+  }
+  expect_last_number_style(config::Config::FULL_WIDTH,
+                           NumberUtil::NumberString::NUMBER_KANJI);
+
+  // An already consistent pair is stored as is and merging it again changes
+  // nothing.
+  manager->ClearHistory();
+  CharacterFormHistory consistent;
+  (*consistent.mutable_character_form_map())[u'0'] =
+      static_cast<uint32_t>(config::Config::HALF_WIDTH);
+  consistent.set_last_number_form(config::Config::HALF_WIDTH);
+  consistent.set_last_number_style(NumberUtil::NumberString::DEFAULT_STYLE);
+  manager->MergeStorage(consistent);
+  expect_last_number_style(config::Config::HALF_WIDTH,
+                           NumberUtil::NumberString::DEFAULT_STYLE);
+  user_history_predictor::UserHistory saved;
+  manager->SaveStorage(&saved);
+  EXPECT_FALSE(manager->IsStorageDirty());
+  manager->MergeStorage(consistent);
+  EXPECT_FALSE(manager->IsStorageDirty());
+}
+
 }  // namespace
 }  // namespace config
 }  // namespace mozc

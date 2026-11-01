@@ -14,7 +14,9 @@
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
 #include "base/file_util.h"
+#include "base/number_util.h"
 #include "base/system_util.h"
+#include "config/character_form_manager.h"
 #include "protocol/config.pb.h"
 
 namespace mozc {
@@ -31,6 +33,44 @@ constexpr uint32_t kMaxNumberStyle = 15;
 
 bool IsValidForm(uint32_t form) {
   return config::Config::CharacterForm_IsValid(static_cast<int>(form));
+}
+
+// The form of "0" and the number style are stamped separately, so the
+// per-key winners can come from different devices and disagree about the
+// width. CharacterFormManager keeps them aligned on a single device, so settle
+// it here, where the timestamps are known: the more recent of the two wins and
+// the other takes its width and stamp, so that every device reaches the same
+// state. Width-independent number styles keep their style.
+void ReconcileNumberForm(CharacterFormSyncState* state) {
+  constexpr uint32_t kZero = 0x0030;
+  constexpr uint32_t kHalf = config::Config::HALF_WIDTH;
+  constexpr uint32_t kFull = config::Config::FULL_WIDTH;
+  if (!state->number_style.has_value()) {
+    return;
+  }
+  const auto it = state->forms.find(kZero);
+  if (it == state->forms.end()) {
+    return;
+  }
+  StampedCharacterForm& zero = it->second;
+  StampedNumberStyle& number = *state->number_style;
+  const auto is_width = [](uint32_t form) {
+    return form == kHalf || form == kFull;
+  };
+  if (zero.form == number.form || !is_width(zero.form) ||
+      !is_width(number.form)) {
+    return;
+  }
+  if (number.updated_at > zero.updated_at) {
+    zero.form = number.form;
+    zero.updated_at = number.updated_at;
+  } else {
+    number.form = zero.form;
+    number.style = static_cast<uint32_t>(config::AdaptNumberStyleToForm(
+        static_cast<NumberUtil::NumberString::Style>(number.style),
+        static_cast<config::Config::CharacterForm>(zero.form)));
+    number.updated_at = zero.updated_at;
+  }
 }
 
 std::string GetLocalStatePath() {
@@ -144,6 +184,7 @@ CharacterFormSyncState MergeCharacterForms(const CharacterFormSyncState& remote,
     }
     merged.number_style = remote.number_style;
   }
+  ReconcileNumberForm(&merged);
   if (stats != nullptr) {
     stats->from_remote = from_remote;
   }

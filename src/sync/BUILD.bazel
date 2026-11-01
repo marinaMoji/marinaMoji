@@ -167,7 +167,9 @@ mozc_cc_library(
     hdrs = ["sync_character_form.h"],
     deps = [
         "//base:file_util",
+        "//base:number_util",
         "//base:system_util",
+        "//config:character_form_manager",
         "//prediction:user_history_predictor_cc_proto",
         "//protocol:config_cc_proto",
         "@com_google_absl//absl/container:btree",
@@ -380,6 +382,7 @@ mozc_cc_test(
     srcs = ["sync_character_form_test.cc"],
     deps = [
         ":sync_character_form",
+        "//base:number_util",
         "//prediction:user_history_predictor_cc_proto",
         "//protocol:config_cc_proto",
         "//testing:mozctest",

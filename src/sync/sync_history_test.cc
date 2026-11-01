@@ -185,7 +185,9 @@ TEST_F(SyncHistoryTest, ImportMergesCharacterForms) {
   auto storage = Reload();
   EXPECT_TRUE(storage->Contains("kai", "階"));
   const CharacterFormHistory forms = Forms()->GetStorageSnapshot();
-  EXPECT_EQ(forms.character_form_map().at(kDigit), Config::HALF_WIDTH);
+  // The imported number style arrived without a form for "0", so "0" follows
+  // it and the two stay consistent.
+  EXPECT_EQ(forms.character_form_map().at(kDigit), Config::FULL_WIDTH);
   EXPECT_EQ(forms.character_form_map().at(kKatakana), Config::HALF_WIDTH);
   EXPECT_EQ(forms.last_number_form(), Config::FULL_WIDTH);
   EXPECT_EQ(forms.last_number_style(), 5);

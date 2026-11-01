@@ -46,6 +46,13 @@ namespace config {
 
 // TODO(hidehiko): Move some methods which don't depend on "config" to the
 //   mozc::Util class.
+// Maps width-dependent number styles (NUMBER_SEPARATED_ARABIC_* and
+// NUMBER_ARABIC_AND_KANJI_*, which encode half-width/full-width in the Style
+// enum) to `form`, which must be HALF_WIDTH or FULL_WIDTH. Width-independent
+// styles are returned unchanged.
+NumberUtil::NumberString::Style AdaptNumberStyleToForm(
+    NumberUtil::NumberString::Style style, Config::CharacterForm form);
+
 class CharacterFormManager {
  public:
   struct NumberFormStyle {

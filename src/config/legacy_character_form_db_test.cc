@@ -34,19 +34,26 @@ absl::string_view KeyOf(const char16_t& ucs2) {
                            sizeof(ucs2));
 }
 
-// Writes a cform.db the way the old CharacterFormManager did.
-void WriteOldCformDb(const std::string& path) {
+// Writes a cform.db the way the old CharacterFormManager did. The old code
+// kept the form of "0" and the number style independently, so `zero_form` and
+// `number_form` need not agree.
+void WriteOldCformDb(const std::string& path,
+                     Config::CharacterForm zero_form = Config::HALF_WIDTH,
+                     Config::CharacterForm number_form = Config::HALF_WIDTH,
+                     NumberUtil::NumberString::Style number_style =
+                         NumberUtil::NumberString::NUMBER_KANJI) {
   std::unique_ptr<storage::LruStorage> storage = storage::LruStorage::Create(
       path.c_str(), sizeof(uint32_t), kLruSize, kSeedValue);
   ASSERT_NE(storage, nullptr);
   const uint32_t half = Config::HALF_WIDTH;
   const uint32_t full = Config::FULL_WIDTH;
+  const uint32_t zero = zero_form;
   storage->Insert(KeyOf(u'ア'), reinterpret_cast<const char*>(&half));
-  storage->Insert(KeyOf(u'0'), reinterpret_cast<const char*>(&half));
+  storage->Insert(KeyOf(u'0'), reinterpret_cast<const char*>(&zero));
   storage->Insert(KeyOf(u'['), reinterpret_cast<const char*>(&full));
   OldNumberStyleEntry number = {};
-  number.form_ = Config::HALF_WIDTH;
-  number.style_ = NumberUtil::NumberString::NUMBER_KANJI;
+  number.form_ = number_form;
+  number.style_ = number_style;
   storage->Insert(KeyOf(u'N'), reinterpret_cast<const char*>(&number));
 }
 
@@ -147,6 +154,26 @@ TEST_F(LegacyCharacterFormDbTest, LoadStorageMigratesOnce) {
   EXPECT_EQ(saved.character_form_history().character_form_map().size(), 3);
   manager->LoadStorage(saved);
   EXPECT_FALSE(manager->IsStorageDirty());
+}
+
+// A cform.db whose "0" form and number style disagree is migrated into a
+// consistent pair (the form of "0" wins), like SetCharacterForm("0") keeps them.
+TEST_F(LegacyCharacterFormDbTest, MigrationKeepsNumberFormConsistent) {
+  const std::string path = GetLegacyCharacterFormDbPath();
+  WriteOldCformDb(
+      path, /*zero_form=*/Config::HALF_WIDTH, /*number_form=*/Config::FULL_WIDTH,
+      NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_FULLWIDTH);
+
+  CharacterFormManager* manager = CharacterFormManager::GetCharacterFormManager();
+  manager->LoadStorage(user_history_predictor::UserHistory());
+
+  EXPECT_EQ(manager->GetConversionCharacterForm("0"), Config::HALF_WIDTH);
+  const std::optional<const CharacterFormManager::NumberFormStyle> style =
+      manager->GetLastNumberStyle();
+  ASSERT_TRUE(style.has_value());
+  EXPECT_EQ(style->form, Config::HALF_WIDTH);
+  EXPECT_EQ(style->style,
+            NumberUtil::NumberString::NUMBER_SEPARATED_ARABIC_HALFWIDTH);
 }
 
 }  // namespace

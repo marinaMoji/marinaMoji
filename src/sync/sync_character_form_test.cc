@@ -3,6 +3,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "base/number_util.h"
 #include "prediction/user_history_predictor.pb.h"
 #include "protocol/config.pb.h"
 #include "testing/mozctest.h"
@@ -110,8 +111,11 @@ TEST(SyncCharacterFormTest, MergeNewerStampWins) {
             (StampedCharacterForm{Config::HALF_WIDTH, 100}));
   EXPECT_EQ(merged.forms.at(kBracket),
             (StampedCharacterForm{Config::FULL_WIDTH, 50}));
+  // The remote number style (full-width, 200) is newer than the local one, but
+  // the local "0" (half-width, 300) is newer still, so the number style takes
+  // its width (style 2 is the full-width form of style 1).
   EXPECT_EQ(merged.number_style,
-            (StampedNumberStyle{Config::FULL_WIDTH, 2, 200}));
+            (StampedNumberStyle{Config::HALF_WIDTH, 1, 300}));
   EXPECT_EQ(stats.from_remote, 3);  // ア, ［, number style.
 }
 
@@ -158,6 +162,57 @@ TEST(SyncCharacterFormTest, DevicesConverge) {
   // Opposite order.
   EXPECT_EQ(MergeCharacterForms(MergeCharacterForms({}, b, nullptr), a, nullptr),
             a_after);
+}
+
+// The form of "0" and the number style are stamped separately, so the per-key
+// winners can come from different devices and disagree about the width. The
+// merge settles it by recency, and every device reaches the same state.
+TEST(SyncCharacterFormTest, MergeSettlesNumberWidthByRecency) {
+  using Style = NumberUtil::NumberString;
+
+  // Device A: "0" is half-width (newer). Device B: number style is full-width
+  // (older).
+  CharacterFormSyncState a;
+  a.forms[kDigit] = {Config::HALF_WIDTH, 400};
+  CharacterFormSyncState b;
+  b.number_style = StampedNumberStyle{
+      Config::FULL_WIDTH, Style::NUMBER_SEPARATED_ARABIC_FULLWIDTH, 200};
+
+  const CharacterFormSyncState a_view = MergeCharacterForms(b, a, nullptr);
+  const CharacterFormSyncState b_view = MergeCharacterForms(a, b, nullptr);
+  EXPECT_EQ(a_view, b_view);
+  EXPECT_EQ(a_view.forms.at(kDigit).form, Config::HALF_WIDTH);
+  ASSERT_TRUE(a_view.number_style.has_value());
+  EXPECT_EQ(a_view.number_style->form, Config::HALF_WIDTH);
+  EXPECT_EQ(a_view.number_style->style,
+            Style::NUMBER_SEPARATED_ARABIC_HALFWIDTH);
+  EXPECT_EQ(a_view.number_style->updated_at, 400);
+
+  // The other way round: the number style is newer, "0" follows it.
+  a.forms[kDigit] = {Config::HALF_WIDTH, 100};
+  b.number_style->updated_at = 300;
+  const CharacterFormSyncState newer = MergeCharacterForms(b, a, nullptr);
+  EXPECT_EQ(newer, MergeCharacterForms(a, b, nullptr));
+  EXPECT_EQ(newer.forms.at(kDigit).form, Config::FULL_WIDTH);
+  EXPECT_EQ(newer.forms.at(kDigit).updated_at, 300);
+  EXPECT_EQ(newer.number_style->style,
+            Style::NUMBER_SEPARATED_ARABIC_FULLWIDTH);
+
+  // Width-independent styles keep their style; only the form follows.
+  b.number_style = StampedNumberStyle{Config::HALF_WIDTH,
+                                      Style::NUMBER_KANJI, 100};
+  a.forms[kDigit] = {Config::FULL_WIDTH, 500};
+  const CharacterFormSyncState kanji = MergeCharacterForms(b, a, nullptr);
+  EXPECT_EQ(kanji.number_style->form, Config::FULL_WIDTH);
+  EXPECT_EQ(kanji.number_style->style, Style::NUMBER_KANJI);
+
+  // Agreeing values are left alone.
+  a.forms[kDigit] = {Config::HALF_WIDTH, 100};
+  b.number_style = StampedNumberStyle{Config::HALF_WIDTH,
+                                      Style::DEFAULT_STYLE, 900};
+  const CharacterFormSyncState same = MergeCharacterForms(b, a, nullptr);
+  EXPECT_EQ(same.forms.at(kDigit).updated_at, 100);
+  EXPECT_EQ(same.number_style->updated_at, 900);
 }
 
 TEST(SyncCharacterFormTest, ToCharacterFormHistory) {
