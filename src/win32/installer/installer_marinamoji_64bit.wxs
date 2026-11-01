@@ -202,7 +202,9 @@
       <ComponentRef Id="MarinaMojiOpenccVariants" />
       <ComponentRef Id="MarinaMojiComposerIds" />
       <ComponentRef Id="MarinaMojiComposerForms" />
+      <ComponentRef Id="MarinaMojiComposerStrokes" />
       <ComponentRef Id="MarinaMojiComposerLicense" />
+      <ComponentRef Id="MarinaMojiComposerUnicodeLicense" />
       <ComponentRef Id="MarinaMojiComposerReadme" />
       <ComponentRef Id="MarinaMojiKageGlyphs" />
       <ComponentRef Id="MarinaMojiKageLayout" />
@@ -592,8 +594,14 @@
           <Component Id="MarinaMojiComposerForms">
             <File Id="radical_forms.tsv" Name="radical_forms.tsv" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ComposerFormsPath)" />
           </Component>
+          <Component Id="MarinaMojiComposerStrokes">
+            <File Id="stroke_counts.tsv" Name="stroke_counts.tsv" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ComposerStrokesPath)" />
+          </Component>
           <Component Id="MarinaMojiComposerLicense">
             <File Id="composer_LICENSE.GPL_2.0" Name="LICENSE.GPL-2.0" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ComposerLicensePath)" />
+          </Component>
+          <Component Id="MarinaMojiComposerUnicodeLicense">
+            <File Id="composer_LICENSE.Unicode" Name="LICENSE.Unicode" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ComposerUnicodeLicensePath)" />
           </Component>
           <Component Id="MarinaMojiComposerReadme">
             <File Id="composer_README.md" Name="README.md" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.ComposerReadmePath)" />

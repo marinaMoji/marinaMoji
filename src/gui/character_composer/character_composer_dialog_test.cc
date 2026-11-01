@@ -7,6 +7,7 @@
 #include "gui/character_composer/character_composer_dialog.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QCoreApplication>
 #include <QEvent>
 #include <QKeyEvent>
@@ -14,7 +15,9 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QString>
+#include <QStringList>
 #include <QToolButton>
 #include <memory>
 #include <string>
@@ -74,6 +77,37 @@ class CharacterComposerDialogTest : public ::testing::Test {
 
   static QPushButton *Button(QWidget *w, const QString &text) {
     for (QPushButton *b : w->findChildren<QPushButton *>()) {
+      if (b->text() == text) return b;
+    }
+    return nullptr;
+  }
+
+  // The characters in the results list, without the stroke-count headings.
+  static QStringList Characters(QListWidget *list) {
+    QStringList out;
+    for (int i = 0; i < list->count(); ++i) {
+      if (list->item(i)->flags() & Qt::ItemIsEnabled) out << list->item(i)->text();
+    }
+    return out;
+  }
+
+  // A dialog on the fixture table with stroke counts and leading strokes.
+  static std::unique_ptr<CharacterComposerDialog> MakeDialogWithStrokes() {
+    const std::string dir = FileUtil::Dirname(testing::GetSourceFileOrDie(
+        {"composer_ids", "testdata", "ids_table.tsv"}));
+    auto loaded = composer_ids::IdsTable::LoadFromDirectory(dir);
+    EXPECT_TRUE(loaded.ok());
+    loaded->LoadStrokeCounts("某\t9\n相\t9\n謀\t16\n");
+    loaded->LoadLeadingStrokes("相\t1\n某\t2\n");
+    auto dialog = std::make_unique<CharacterComposerDialog>(
+        std::make_unique<composer_ids::IdsTable>(*std::move(loaded)),
+        QString::fromStdString(dir));
+    dialog->show();
+    return dialog;
+  }
+
+  static QToolButton *ComponentButton(QWidget *popup, const QString &text) {
+    for (QToolButton *b : popup->findChildren<QToolButton *>()) {
       if (b->text() == text) return b;
     }
     return nullptr;
@@ -220,6 +254,126 @@ TEST_F(CharacterComposerDialogTest, FindContainingListsOnlyCharactersWithEveryCo
   edit->setText(QStringLiteral("目言"));
   Button(dialog.get(), "Find")->click();
   EXPECT_EQ(list->count(), 0);
+}
+
+TEST_F(CharacterComposerDialogTest, FindContainingAcceptsAStrokeFilter) {
+  auto dialog = MakeDialogWithStrokes();
+  auto *edit = dialog->findChild<QLineEdit *>(QStringLiteral("containing_edit"));
+  auto *list = dialog->findChild<QListWidget *>();
+  edit->setText(QStringLiteral("木>9"));
+  Button(dialog.get(), "Find")->click();
+  EXPECT_EQ(Characters(list), QStringList({QStringLiteral("謀")}));
+  edit->setText(QStringLiteral("木9"));
+  Button(dialog.get(), "Find")->click();
+  EXPECT_EQ(Characters(list).size(), 2);
+  edit->setText(QStringLiteral("木20"));
+  Button(dialog.get(), "Find")->click();
+  EXPECT_EQ(list->count(), 0);
+}
+
+TEST_F(CharacterComposerDialogTest, StrokeBoxesNarrowTheSearch) {
+  auto dialog = MakeDialogWithStrokes();
+  auto *edit = dialog->findChild<QLineEdit *>(QStringLiteral("containing_edit"));
+  auto *list = dialog->findChild<QListWidget *>();
+  auto *low = dialog->findChild<QSpinBox *>(QStringLiteral("stroke_min"));
+  auto *high = dialog->findChild<QSpinBox *>(QStringLiteral("stroke_max"));
+  ASSERT_NE(low, nullptr);
+  ASSERT_NE(high, nullptr);
+  edit->setText(QStringLiteral("木"));
+  low->setValue(10);  // searches as the value changes
+  EXPECT_EQ(Characters(list), QStringList({QStringLiteral("謀")}));
+  low->setValue(9);
+  high->setValue(9);
+  EXPECT_EQ(Characters(list),
+            QStringList({QStringLiteral("相"), QStringLiteral("某")}));
+  // Reversed bounds are swapped: 12 to 9 is 9 to 12.
+  low->setValue(12);
+  EXPECT_EQ(Characters(list).size(), 2);
+  // A count typed in the field must hold as well.
+  edit->setText(QStringLiteral("木>9"));
+  Button(dialog.get(), "Find")->click();
+  EXPECT_TRUE(Characters(list).isEmpty());
+  // Both boxes back to "any": no stroke filter left.
+  edit->setText(QStringLiteral("木"));
+  low->setValue(0);
+  high->setValue(0);
+  EXPECT_EQ(Characters(list).size(), 3);
+}
+
+TEST_F(CharacterComposerDialogTest, ResultsAreSortedByStrokesThenLeadingStroke) {
+  auto dialog = MakeDialogWithStrokes();
+  auto *edit = dialog->findChild<QLineEdit *>(QStringLiteral("containing_edit"));
+  auto *list = dialog->findChild<QListWidget *>();
+  edit->setText(QStringLiteral("木"));
+  Button(dialog.get(), "Find")->click();
+  // 相 (一) before 某 (丨) in the 9-stroke group, then 16 strokes.
+  ASSERT_EQ(list->count(), 5);
+  EXPECT_EQ(list->item(0)->text(), QStringLiteral("9"));
+  EXPECT_EQ(list->item(1)->text(), QStringLiteral("相"));
+  EXPECT_EQ(list->item(2)->text(), QStringLiteral("某"));
+  EXPECT_EQ(list->item(3)->text(), QStringLiteral("16"));
+  EXPECT_EQ(list->item(4)->text(), QStringLiteral("謀"));
+  // A heading is not a character: picking it leaves the layout alone.
+  auto *editor = dialog->findChild<LayoutEditor *>();
+  const std::string before = editor->op();
+  emit list->itemClicked(list->item(3));
+  EXPECT_EQ(editor->op(), before);
+  EXPECT_TRUE(editor->parts().empty() || editor->parts()[0].input.empty());
+}
+
+TEST_F(CharacterComposerDialogTest, ComponentsPopupTogglesComponentsInTheSearch) {
+  auto dialog = MakeDialogWithStrokes();
+  auto *edit = dialog->findChild<QLineEdit *>(QStringLiteral("containing_edit"));
+  auto *list = dialog->findChild<QListWidget *>();
+  auto *popup = dialog->findChild<ComponentsPopup *>();
+  ASSERT_NE(popup, nullptr);
+  EXPECT_FALSE(popup->isVisible());
+  Button(dialog.get(), "Components…")->click();
+  EXPECT_TRUE(popup->isVisible());
+
+  ComponentButton(popup, QStringLiteral("木"))->click();
+  EXPECT_EQ(edit->text(), QStringLiteral("木"));
+  EXPECT_EQ(Characters(list).size(), 3);
+  EXPECT_TRUE(ComponentButton(popup, QStringLiteral("木"))->isChecked());
+
+  ComponentButton(popup, QStringLiteral("目"))->click();
+  EXPECT_EQ(edit->text(), QStringLiteral("木 目"));
+  EXPECT_EQ(Characters(list), QStringList({QStringLiteral("相")}));
+  // Nothing holds 木, 目 and 言 together, so 言 is greyed out.
+  EXPECT_FALSE(ComponentButton(popup, QStringLiteral("言"))->isEnabled());
+  EXPECT_TRUE(ComponentButton(popup, QStringLiteral("目"))->isEnabled());
+
+  ComponentButton(popup, QStringLiteral("木"))->click();  // off again
+  EXPECT_EQ(edit->text(), QStringLiteral("目"));
+  EXPECT_FALSE(ComponentButton(popup, QStringLiteral("木"))->isChecked());
+
+  Button(popup, "Clear selection")->click();
+  EXPECT_TRUE(edit->text().isEmpty());
+  EXPECT_EQ(list->count(), 0);
+
+  Button(dialog.get(), "Components…")->click();
+  EXPECT_FALSE(popup->isVisible());
+}
+
+TEST_F(CharacterComposerDialogTest, ComponentsPopupCanHideRadicalVariants) {
+  auto dialog = MakeDialog();
+  auto *popup = dialog->findChild<ComponentsPopup *>();
+  ASSERT_NE(popup, nullptr);
+  EXPECT_NE(ComponentButton(popup, QStringLiteral("氵")), nullptr);
+  for (QCheckBox *box : popup->findChildren<QCheckBox *>()) {
+    if (box->text().startsWith(QStringLiteral("Show radical variants"))) box->setChecked(false);
+  }
+  QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+  EXPECT_EQ(ComponentButton(popup, QStringLiteral("氵")), nullptr);
+  EXPECT_NE(ComponentButton(popup, QStringLiteral("水")), nullptr);
+}
+
+TEST_F(CharacterComposerDialogTest, StrokeFilterWithoutStrokeDataSaysSo) {
+  auto dialog = MakeDialog();  // the fixture directory has no stroke_counts.tsv
+  auto *edit = dialog->findChild<QLineEdit *>(QStringLiteral("containing_edit"));
+  edit->setText(QStringLiteral("木9"));
+  Button(dialog.get(), "Find")->click();
+  EXPECT_EQ(dialog->findChild<QListWidget *>()->count(), 0);
 }
 
 TEST_F(CharacterComposerDialogTest, WorksWithoutDataFiles) {

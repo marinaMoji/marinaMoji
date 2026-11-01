@@ -1,15 +1,20 @@
-# Character composer data (GPL-2.0-or-later)
+# Character composer data (GPL-2.0-or-later; Unicode License)
 
-**This directory is not BSD-licensed.** Unlike the rest of marinaMoji, the data
-files here are derived from the CHISE IDS project and are licensed under the
-**GNU General Public License, version 2 or (at your option) any later version**.
-The full text is in `LICENSE.GPL-2.0`.
+**This directory is not BSD-licensed.** Unlike the rest of marinaMoji, the IDS
+data files here (`ids_table.tsv`, `radical_forms.tsv`) are derived from the
+CHISE IDS project and are licensed under the **GNU General Public License,
+version 2 or (at your option) any later version**. The full text is in
+`LICENSE.GPL-2.0`. `stroke_counts.tsv` comes from the Unicode Unihan database
+and is under the **Unicode License v3**, whose text is in `LICENSE.Unicode`.
 
 | File | Contents |
 |------|----------|
 | `ids_table.tsv` | 101,298 `IDS<TAB>character` pairs: an ideographic description sequence and the encoded character it describes (`⿰言某` → 謀). |
 | `radical_forms.tsv` | 25 radical families (人 亻 ⺅ 𠆢, 言 訁 …), tab-separated, base form first, then 34 `@` lines (`@ 手 ⿰0 扌`): the form a radical takes at a position, from `radical_auto.json`. |
+| `stroke_counts.tsv` | 93,837 `character<TAB>count[,count...]` lines: total stroke counts from the Unicode Unihan database (`kTotalStrokes`; Unicode License v3, see `LICENSE.Unicode`), used by the stroke filter of "Find characters containing…". A character with several regional counts lists them all. Optional: the composer works without it. Rebuild with `build_stroke_counts.py --unihan Unihan_IRGSources.txt --out stroke_counts.tsv`. |
 | `cjkvi-ids-README.md` | Upstream README (conventions and licence statement). |
+| `LICENSE.GPL-2.0` | GPL version 2, for `ids_table.tsv` and `radical_forms.tsv`. |
+| `LICENSE.Unicode` | Unicode License v3 (from <https://www.unicode.org/license.txt>), for `stroke_counts.tsv`. |
 
 ## Provenance
 
@@ -60,5 +65,6 @@ binary. The composer code (`src/composer_ids`, `src/gui/character_composer`)
 remains BSD-3-Clause. If the files are missing the composer still builds IDS
 strings; only the character lookup is unavailable.
 
-Anyone who redistributes marinaMoji must keep this directory, its licence text
-and this notice together with the data files.
+Anyone who redistributes marinaMoji must keep this directory, its licence texts
+(`LICENSE.GPL-2.0`, `LICENSE.Unicode`) and this notice together with the data
+files.

@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -16,6 +17,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
+#include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
 #include "base/file_util.h"
@@ -29,6 +31,61 @@ namespace {
 
 constexpr std::string_view kIdsFile = "ids_table.tsv";
 constexpr std::string_view kRadicalFormsFile = "radical_forms.tsv";
+constexpr std::string_view kStrokeCountsFile = "stroke_counts.tsv";
+
+// The class of the first stroke (see IdsTable::LeadingStroke) of the strokes,
+// radical forms and common components that decompositions bottom out in.
+// Written by hand for marinaMoji (BSD-3-Clause, like this file), following
+// the mainland Chinese five-way convention: rising strokes count as
+// horizontal, right-falling strokes as dots, every bend and hook (竖钩 in 小
+// and 水 too) as turning. Characters whose first stroke differs between the
+// Chinese and Japanese orders (馬, 長, 右, 皮, 乃 …) are left out on purpose;
+// they sort after the five classes unless a decomposition decides.
+struct LeadingStrokeGroup {
+  int stroke_class;
+  const char *chars;  // UTF-8, one character each
+};
+constexpr LeadingStrokeGroup kLeadingStrokeGroups[] = {
+    {1,
+     "一㇀二三十干于工土士王玉丰耒天夫开井未末正平五元"
+     "云示下不丁七万丈与才寸大太犬木本戈弋甘其革酉西两"
+     "而耳豆雨面百石厂匚廿世古可至互瓦牙尤巫亞来表事吏"
+     "再丙頁夏東車辰走赤青束考老者耶戸臣支求豕甫夹奉春"
+     "黄黃扌⺘𤣩耂⺹艹⺾车尢麦比甚巨歺戊戌𠦝"},
+    {2,
+     "丨口囗日曰目田由甲申电中虫冂上止卜山貝見只足皿罒"
+     "⺫罓尚⺌黒里果骨四史央内吅品巾虍齒鹵业北非典曲少"
+     "光当門刂⺉𧾷⻊黑⺊贝齿肉鬥占"},
+    {3,
+     "丿人亻⺅𠆢入八儿几九千川久夕勹匕斤爪⺤爫父片牛牜"
+     "生失矢禾白自舌舟竹⺮𥫗臼血行彳金釒钅⻐食飠𩙿饣⻟"
+     "魚鳥身角丘年午手毛气欠犭⺨月用風瓜采豸隹鬼香夂攵"
+     "彡缶后垂重乎我免先及乏乍系鼠兵乘鼻⺈鱼𦥑𠂊谷𠂉㐅"
+     "鸟每氏爻告朱杀與"},
+    {4,
+     "丶⺀亠冫氵⺡宀冖广疒立言訁讠⻈文方主火灬⺣米羊首"
+     "关美义斗心忄⺖⺗必永市交亡六亥玄衣衤⻂礻⺭辶⻌⻍"
+     "之户鹿麻高京齊门兑兰半并前益良卒帝音章竟产离亨龍"
+     "⺍丷䒑𦍌龹䜌"},
+    {5,
+     "乙乚乛𠃌𠃊亅了子也习刀力又马弓己已巳尸尹卩阝⻖⻏"
+     "凵厶幺糸糹纟⺯女母毋丑民艮水氺⺢小承予矛聿隶刃叉"
+     "飞飛廴巛彐癶巴彑尺⺄"},
+};
+
+int BuiltinLeadingStroke(std::string_view ch) {
+  static const absl::flat_hash_map<std::string, int> *const table = [] {
+    auto *map = new absl::flat_hash_map<std::string, int>;
+    for (const LeadingStrokeGroup &group : kLeadingStrokeGroups) {
+      for (const std::string_view c : Utf8AsChars(group.chars)) {
+        map->emplace(std::string(c), group.stroke_class);
+      }
+    }
+    return map;
+  }();
+  const auto it = table->find(ch);
+  return it == table->end() ? 0 : it->second;
+}
 
 std::string_view StripCarriageReturn(std::string_view line) {
   if (!line.empty() && line.back() == '\r') line.remove_suffix(1);
@@ -115,7 +172,32 @@ absl::StatusOr<IdsTable> IdsTable::LoadFromDirectory(
   // The radical families only widen matching; the table works without them.
   absl::StatusOr<std::string> forms =
       FileUtil::GetContents(FileUtil::JoinPath(directory, kRadicalFormsFile));
-  return FromTsv(*ids, forms.ok() ? std::string_view(*forms) : "");
+  absl::StatusOr<IdsTable> table =
+      FromTsv(*ids, forms.ok() ? std::string_view(*forms) : "");
+  if (!table.ok()) return table;
+  // Stroke counts only enable the stroke filter; the table works without them.
+  if (absl::StatusOr<std::string> strokes = FileUtil::GetContents(
+          FileUtil::JoinPath(directory, kStrokeCountsFile));
+      strokes.ok()) {
+    table->LoadStrokeCounts(*strokes);
+  }
+  return table;
+}
+
+void IdsTable::LoadStrokeCounts(std::string_view tsv) {
+  stroke_counts_.clear();
+  for (std::string_view line : absl::StrSplit(tsv, '\n')) {
+    line = StripCarriageReturn(line);
+    const size_t tab = line.find('\t');
+    if (tab == std::string_view::npos || tab == 0) continue;
+    std::vector<int> counts;
+    for (const std::string_view value :
+         absl::StrSplit(line.substr(tab + 1), ',', absl::SkipEmpty())) {
+      int n = 0;
+      if (absl::SimpleAtoi(value, &n) && n > 0) counts.push_back(n);
+    }
+    if (!counts.empty()) stroke_counts_[std::string(line.substr(0, tab))] = std::move(counts);
+  }
 }
 
 std::string IdsTable::DefaultDirectory() {
@@ -244,6 +326,19 @@ void IdsTable::BuildContainingIndex() const {
 
 std::vector<std::string> IdsTable::FindContaining(
     std::string_view components) const {
+  return FindContaining(components, std::nullopt);
+}
+
+std::vector<std::string> IdsTable::FindContaining(
+    std::string_view components, const std::optional<StrokeRange> &strokes) const {
+  const auto in_range = [&](const std::string &ch) {
+    if (!strokes.has_value()) return true;
+    const auto it = stroke_counts_.find(ch);
+    return it != stroke_counts_.end() &&
+           std::any_of(it->second.begin(), it->second.end(),
+                       [&](int n) { return strokes->Contains(n); });
+  };
+
   std::vector<const std::vector<std::string> *> lists;
   ComponentSet seen;
   BuildContainingIndex();
@@ -257,7 +352,15 @@ std::vector<std::string> IdsTable::FindContaining(
     if (it == containing_->end()) return {};  // nothing contains this one
     lists.push_back(&it->second);
   }
-  if (lists.empty()) return {};
+  if (lists.empty()) {
+    std::vector<std::string> all;
+    if (!strokes.has_value()) return all;
+    for (const auto &entry : stroke_counts_) {
+      if (in_range(entry.first)) all.push_back(entry.first);
+    }
+    std::sort(all.begin(), all.end());
+    return all;
+  }
 
   std::sort(lists.begin(), lists.end(),
             [](const auto *a, const auto *b) { return a->size() < b->size(); });
@@ -267,9 +370,203 @@ std::vector<std::string> IdsTable::FindContaining(
         lists.begin() + 1, lists.end(), [&](const std::vector<std::string> *list) {
           return std::binary_search(list->begin(), list->end(), ch);
         });
-    if (in_all) result.push_back(ch);
+    if (in_all && in_range(ch)) result.push_back(ch);
   }
   return result;
+}
+
+std::optional<int> IdsTable::StrokeCount(std::string_view ch) const {
+  const auto it = stroke_counts_.find(ch);
+  if (it == stroke_counts_.end() || it->second.empty()) return std::nullopt;
+  return it->second.front();
+}
+
+void IdsTable::LoadLeadingStrokes(std::string_view tsv) {
+  leading_strokes_.clear();
+  leading_cache_.clear();
+  for (std::string_view line : absl::StrSplit(tsv, '\n')) {
+    line = StripCarriageReturn(line);
+    if (line.empty() || line.front() == '#') continue;
+    const size_t tab = line.find('\t');
+    if (tab == std::string_view::npos || tab == 0) continue;
+    int n = 0;
+    if (!absl::SimpleAtoi(line.substr(tab + 1), &n) || n < 1 || n > 5) continue;
+    leading_strokes_[std::string(line.substr(0, tab))] = n;
+  }
+}
+
+int IdsTable::LeadingStroke(std::string_view ch) const {
+  for (const std::string_view first :
+       Utf8AsChars(absl::StripAsciiWhitespace(ch))) {
+    return LeadingStrokeAt(first, 0);
+  }
+  return 0;
+}
+
+int IdsTable::LeadingStrokeAt(std::string_view ch, int depth) const {
+  if (const auto it = leading_cache_.find(ch); it != leading_cache_.end()) {
+    return it->second;
+  }
+  const std::string key(ch);
+  if (const auto it = leading_strokes_.find(key); it != leading_strokes_.end()) {
+    return leading_cache_[key] = it->second;
+  }
+  if (const int builtin = BuiltinLeadingStroke(ch); builtin != 0) {
+    return leading_cache_[key] = builtin;
+  }
+  constexpr int kMaxDepth = 12;
+  const auto decompositions = by_char_.find(key);
+  if (decompositions == by_char_.end() || depth >= kMaxDepth) return 0;
+  // Marks |ch| as in progress, so cyclic data ends in "unknown".
+  leading_cache_[key] = 0;
+  int result = 0;
+  for (const std::string &ids : decompositions->second) {
+    result = LeadingStrokeOfIds(ids, depth + 1);
+    if (result != 0) break;
+  }
+  return leading_cache_[key] = result;
+}
+
+int IdsTable::LeadingStrokeOfIds(std::string_view ids, int depth) const {
+  std::vector<std::string_view> chars;
+  for (const std::string_view ch : Utf8AsChars(ids)) chars.push_back(ch);
+  const size_t n = chars.size();
+
+  // The index just past the subtree that starts at |i|.
+  const auto skip = [&](auto &&self, size_t i) -> size_t {
+    if (i >= n) return n;
+    if (!IsIdsOperator(chars[i])) return i + 1;
+    size_t j = i + 1;
+    for (int k = PartCountFor(chars[i]); k > 0; --k) j = self(self, j);
+    return j;
+  };
+  // Enclosures whose outer part is written after the inner one.
+  const auto written_last = [](std::string_view op, std::string_view part) {
+    if (op == "⿺") {
+      return part == "辶" || part == "⻌" || part == "⻍" || part == "⻎" ||
+             part == "廴";
+    }
+    return op == "⿶" && part == "凵";
+  };
+  const auto lead = [&](auto &&self, size_t i) -> int {
+    if (i >= n) return 0;
+    if (!IsIdsOperator(chars[i])) {
+      return IsComponent(chars[i]) ? LeadingStrokeAt(chars[i], depth) : 0;
+    }
+    const size_t first = i + 1;
+    if (first < n && written_last(chars[i], chars[first])) {
+      if (const int inner = self(self, skip(skip, first)); inner != 0) return inner;
+    }
+    return self(self, first);
+  };
+  return lead(lead, 0);
+}
+
+void IdsTable::SortByStrokes(std::vector<std::string> *chars) const {
+  struct Keyed {
+    int strokes;
+    int leading;
+    std::string ch;
+  };
+  std::vector<Keyed> keyed;
+  keyed.reserve(chars->size());
+  for (std::string &ch : *chars) {
+    const std::optional<int> strokes = StrokeCount(ch);
+    const int leading = LeadingStroke(ch);
+    keyed.push_back({strokes.value_or(std::numeric_limits<int>::max()),
+                     leading == 0 ? 6 : leading, std::move(ch)});
+  }
+  // UTF-8 byte order is code point order.
+  std::sort(keyed.begin(), keyed.end(), [](const Keyed &a, const Keyed &b) {
+    if (a.strokes != b.strokes) return a.strokes < b.strokes;
+    if (a.leading != b.leading) return a.leading < b.leading;
+    return a.ch < b.ch;
+  });
+  chars->clear();
+  for (Keyed &k : keyed) chars->push_back(std::move(k.ch));
+}
+
+namespace {
+
+// Folds the full-width forms a Japanese IME produces onto ASCII.
+std::string NormalizeQuery(std::string_view text) {
+  std::string out;
+  for (const std::string_view ch : Utf8AsChars(text)) {
+    if (ch == "＜") out += '<';
+    else if (ch == "＞") out += '>';
+    else if (ch == "≤") out += "<=";
+    else if (ch == "≥") out += ">=";
+    else if (ch == "－" || ch == "−" || ch == "–" || ch == "ー" || ch == "〜" ||
+             ch == "～" || ch == "~") out += '-';
+    else if (ch.size() == 3 && ch.substr(0, 2) == "\xEF\xBC" &&
+             static_cast<unsigned char>(ch[2]) >= 0x90 &&
+             static_cast<unsigned char>(ch[2]) <= 0x99) {
+      out += static_cast<char>('0' + (static_cast<unsigned char>(ch[2]) - 0x90));  // ０-９
+    } else {
+      out.append(ch);
+    }
+  }
+  return out;
+}
+
+bool IsDigit(char c) { return c >= '0' && c <= '9'; }
+
+}  // namespace
+
+LookupQuery ParseLookupQuery(std::string_view text) {
+  const std::string normalized = NormalizeQuery(text);
+  std::vector<std::string_view> chars;
+  for (const std::string_view ch : Utf8AsChars(normalized)) chars.push_back(ch);
+  const auto ascii_at = [&](size_t i) -> char {
+    return i < chars.size() && chars[i].size() == 1 ? chars[i][0] : '\0';
+  };
+
+  LookupQuery query;
+  for (size_t i = 0; i < chars.size();) {
+    const char c = ascii_at(i);
+    if (c != '<' && c != '>' && !IsDigit(c)) {
+      // A component is one non-ASCII character; ASCII (blanks, letters) is noise.
+      if (chars[i].size() > 1) query.components.append(chars[i]);
+      ++i;
+      continue;
+    }
+    // A stroke filter: [<|>][=]N or N-M.
+    char op = 0;
+    bool inclusive = false;
+    if (c == '<' || c == '>') {
+      op = c;
+      ++i;
+      if (ascii_at(i) == '=') {
+        inclusive = true;
+        ++i;
+      }
+    }
+    const auto read_number = [&](int *value) {
+      if (!IsDigit(ascii_at(i))) return false;
+      int n = 0;
+      for (; IsDigit(ascii_at(i)); ++i) n = std::min(n * 10 + (ascii_at(i) - '0'), 999);
+      *value = n;
+      return true;
+    };
+    int first = 0;
+    if (!read_number(&first)) continue;  // a stray "<" with no number
+    StrokeRange range;
+    if (op == '<') {
+      range.max = inclusive ? first : first - 1;
+    } else if (op == '>') {
+      range.min = inclusive ? first : first + 1;
+    } else if (ascii_at(i) == '-' && IsDigit(ascii_at(i + 1))) {
+      ++i;
+      int second = 0;
+      read_number(&second);
+      range.min = std::min(first, second);
+      range.max = std::max(first, second);
+    } else {
+      range.min = range.max = first;
+    }
+    query.strokes = range;
+  }
+  return query;
 }
 
 }  // namespace composer_ids

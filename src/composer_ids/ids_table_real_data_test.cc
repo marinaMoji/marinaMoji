@@ -74,6 +74,38 @@ TEST(IdsTableRealDataTest, FindContainingWorksOnTheFullTable) {
   EXPECT_GT(table.FindContaining("木").size(), found.size());
 }
 
+TEST(IdsTableRealDataTest, StrokeFilterOnTheFullTable) {
+  const IdsTable table = LoadRealTable();
+  ASSERT_TRUE(table.has_stroke_counts());
+  const LookupQuery exact = ParseLookupQuery("言木16");
+  EXPECT_THAT(table.FindContaining(exact.components, exact.strokes),
+              ::testing::Contains("謀"));
+  const LookupQuery fewer = ParseLookupQuery("言木<16");
+  EXPECT_THAT(table.FindContaining(fewer.components, fewer.strokes),
+              ::testing::Not(::testing::Contains("謀")));
+  const LookupQuery range = ParseLookupQuery("木4-4");
+  EXPECT_THAT(table.FindContaining(range.components, range.strokes), ::testing::IsEmpty());
+}
+
+TEST(IdsTableRealDataTest, LeadingStrokesOnTheFullTable) {
+  const IdsTable table = LoadRealTable();
+  EXPECT_EQ(table.LeadingStroke("木"), 1);
+  EXPECT_EQ(table.LeadingStroke("呆"), 2);
+  EXPECT_EQ(table.LeadingStroke("和"), 3);
+  EXPECT_EQ(table.LeadingStroke("架"), 5);
+  // Worked out from decompositions: 謀 = ⿰言某, 道 = ⿺辶首.
+  EXPECT_EQ(table.LeadingStroke("謀"), 4);
+  EXPECT_EQ(table.LeadingStroke("道"), 4);
+  std::vector<std::string> found = table.FindContaining("木口");
+  table.SortByStrokes(&found);
+  ASSERT_FALSE(found.empty());
+  for (size_t i = 1; i < found.size(); ++i) {
+    const int a = table.StrokeCount(found[i - 1]).value_or(1000);
+    const int b = table.StrokeCount(found[i]).value_or(1000);
+    EXPECT_LE(a, b) << found[i - 1] << " before " << found[i];
+  }
+}
+
 TEST(IdsTableRealDataTest, NoStrayTagsRemain) {
   const IdsTable table = LoadRealTable();
   EXPECT_FALSE(table.FindEncodedCharacter("⿰言某[GTKV]").has_value());

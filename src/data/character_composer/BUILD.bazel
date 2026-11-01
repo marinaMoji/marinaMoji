@@ -2,15 +2,19 @@
 # All rights reserved.
 #
 # The data in this package is NOT covered by the BSD license of the rest of the
-# tree. See README.md and LICENSE.GPL-2.0 in this directory.
+# tree. See README.md in this directory: ids_table.tsv and radical_forms.tsv are
+# under LICENSE.GPL-2.0; stroke_counts.tsv is Unicode (Unihan) data under
+# LICENSE.Unicode.
 
 package(default_visibility = ["//visibility:public"])
 
 exports_files([
     "LICENSE.GPL-2.0",
+    "LICENSE.Unicode",
     "README.md",
     "ids_table.tsv",
     "radical_forms.tsv",
+    "stroke_counts.tsv",
 ])
 
 # Installed as separate files next to mozc_server; never a dependency of a
@@ -19,8 +23,10 @@ filegroup(
     name = "character_composer_data",
     srcs = [
         "LICENSE.GPL-2.0",
+        "LICENSE.Unicode",
         "README.md",
         "ids_table.tsv",
         "radical_forms.tsv",
+        "stroke_counts.tsv",
     ],
 )

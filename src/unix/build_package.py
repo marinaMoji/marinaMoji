@@ -52,7 +52,9 @@ MARINA_OPENCC_FILES = (
 CHARACTER_COMPOSER_FILES = (
     'ids_table.tsv',
     'radical_forms.tsv',
+    'stroke_counts.tsv',
     'LICENSE.GPL-2.0',
+    'LICENSE.Unicode',
     'README.md',
     # GlyphWiki stroke data for drawing composed glyphs (data/kage).
     'kage_glyphs.tsv',

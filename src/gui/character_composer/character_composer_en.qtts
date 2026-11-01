@@ -176,10 +176,6 @@
         <translation>No character contains all of these components.</translation>
     </message>
     <message>
-        <source>%1 characters found; showing the first %2. Add more components to narrow the search.</source>
-        <translation>%1 characters found; showing the first %2. Add more components to narrow the search.</translation>
-    </message>
-    <message>
         <source>%1 characters found. Click one to load its parts.</source>
         <translation>%1 characters found. Click one to load its parts.</translation>
     </message>
@@ -378,6 +374,82 @@
     <message>
         <source>%1 characters found. Click one to examine it.</source>
         <translation>%1 characters found. Click one to examine it.</translation>
+    </message>
+    <message>
+        <source>%1 characters found; showing the first %2. Add components or narrow the strokes.</source>
+        <translation>%1 characters found; showing the first %2. Add components or narrow the strokes.</translation>
+    </message>
+    <message>
+        <source>%1 strokes, starts with %2</source>
+        <translation>%1 strokes, starts with %2</translation>
+    </message>
+    <message>
+        <source>(none)</source>
+        <translation>(none)</translation>
+    </message>
+    <message>
+        <source>Clear selection</source>
+        <translation>Clear selection</translation>
+    </message>
+    <message>
+        <source>Click a component to add it to the search; click again to remove it. Numbers are stroke counts.</source>
+        <translation>Click a component to add it to the search; click again to remove it. Numbers are stroke counts.</translation>
+    </message>
+    <message>
+        <source>Components…</source>
+        <translation>Components…</translation>
+    </message>
+    <message>
+        <source>Fewest strokes</source>
+        <translation>Fewest strokes</translation>
+    </message>
+    <message>
+        <source>Grey out components that find nothing</source>
+        <translation>Grey out components that find nothing</translation>
+    </message>
+    <message>
+        <source>Most strokes</source>
+        <translation>Most strokes</translation>
+    </message>
+    <message>
+        <source>No character matches these components and stroke count.</source>
+        <translation>No character matches these components and stroke count.</translation>
+    </message>
+    <message>
+        <source>Same number in both for an exact count.</source>
+        <translation>Same number in both for an exact count.</translation>
+    </message>
+    <message>
+        <source>Selected:</source>
+        <translation>Selected:</translation>
+    </message>
+    <message>
+        <source>Show radical variants (亻 扌 氵 …)</source>
+        <translation>Show radical variants (亻 扌 氵 …)</translation>
+    </message>
+    <message>
+        <source>Sorted by strokes, then leading stroke  一 丨 丿 丶 乛</source>
+        <translation>Sorted by strokes, then leading stroke  一 丨 丿 丶 乛</translation>
+    </message>
+    <message>
+        <source>Stroke count unknown</source>
+        <translation>Stroke count unknown</translation>
+    </message>
+    <message>
+        <source>Stroke counts were not found in %1, so the stroke filter cannot be used.</source>
+        <translation>Stroke counts were not found in %1, so the stroke filter cannot be used.</translation>
+    </message>
+    <message>
+        <source>Type one or more components, or pick them with Components…. A stroke count typed here works too: 12 (exactly), &lt;12 (fewer), &gt;8 (more), 9-12 (between).</source>
+        <translation>Type one or more components, or pick them with Components…. A stroke count typed here works too: 12 (exactly), &lt;12 (fewer), &gt;8 (more), 9-12 (between).</translation>
+    </message>
+    <message>
+        <source>any</source>
+        <translation>any</translation>
+    </message>
+    <message>
+        <source>to</source>
+        <translation>to</translation>
     </message>
 </context>
 </TS>

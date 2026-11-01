@@ -6,6 +6,7 @@
 #include <QAbstractButton>
 #include <QApplication>
 #include <QButtonGroup>
+#include <QCheckBox>
 #include <QClipboard>
 #include <QComboBox>
 #include <QCoreApplication>
@@ -33,6 +34,7 @@
 #include <QRegularExpression>
 #include <QResizeEvent>
 #include <QScrollArea>
+#include <QSpinBox>
 #include <QSizePolicy>
 #include <QStyle>
 #include <QToolButton>
@@ -92,6 +94,53 @@ std::string ToUtf8(const QString &s) {
   const QByteArray bytes = s.toUtf8();
   return std::string(bytes.constData(), bytes.size());
 }
+
+// What the Components… window offers: common components, by stroke count.
+struct ComponentGroup {
+  int strokes;
+  const char *components;  // UTF-8, one character each
+};
+constexpr ComponentGroup kComponentGroups[] = {
+    {1, "一丨丿丶乙亅"},
+    {2, "二亠人亻𠆢儿入八冂冖冫几凵刀刂力勹匕匚十卜卩厂厶又廴"},
+    {3, "口囗土士夂夕大女子宀寸小尸山川工己巾干广弓彡彳忄扌氵犭艹辶阝"},
+    {4, "心戈戸手支攵文斗斤方日曰月木欠止歹殳毋比毛氏水火灬爪父片牛犬王礻耂"},
+    {5, "玄瓦甘生用田疋疒白皮皿目矛矢石示禾穴立衤"},
+    {6, "竹⺮米糸缶羊羽老而耳聿肉臣自至舌舟艮色虍虫血行衣西"},
+    {7, "見角言谷豆豕貝赤走足身車辛辰酉里"},
+    {8, "金長門隹雨青非"},
+    {9, "面革音頁風飛食首香骨鬼"},
+    {10, "馬高髟"},
+    {11, "魚鳥鹿麻黄黒"},
+    {14, "鼻"},
+    {16, "龍"},
+};
+// Positional forms hidden when "Show radical variants" is unticked. (王, 月
+// and 艹 stay: they are components in their own right too.)
+constexpr char kVariantForms[] = "亻𠆢刂忄扌氵犭礻衤⺮耂灬";
+
+std::vector<std::string> SplitChars(const char *utf8) {
+  std::vector<std::string> out;
+  const QString text = QString::fromUtf8(utf8);
+  for (const uint cp : text.toUcs4()) {
+    out.push_back(ToUtf8(QString::fromUcs4(reinterpret_cast<const char32_t *>(&cp), 1)));
+  }
+  return out;
+}
+
+bool Contains(const std::vector<std::string> &list, const std::string &s) {
+  return std::find(list.begin(), list.end(), s) != list.end();
+}
+
+// The glyph of a leading stroke class (see IdsTable::LeadingStroke).
+QString LeadingStrokeGlyph(int stroke_class) {
+  static const char *const kGlyphs[] = {"", "一", "丨", "丿", "丶", "乛"};
+  if (stroke_class < 1 || stroke_class > 5) return QString();
+  return QString::fromUtf8(kGlyphs[stroke_class]);
+}
+
+// Marks a stroke-count heading in the results list.
+constexpr int kHeadingRole = Qt::UserRole + 1;
 
 SlotPath Child(const SlotPath &path, int index) {
   SlotPath child = path;
@@ -325,6 +374,15 @@ QString ComposerStylesheet(bool dark) {
       "  selection-color: @@SELECTION_TEXT@@; }"
       "QLineEdit:hover { border-color: @@ACCENT@@; }"
       "QLineEdit:focus { border: 1px solid @@FOCUS@@; }"
+      "QSpinBox {"
+      "  color: @@TEXT@@; background: @@RAISED@@;"
+      "  border: 1px solid @@BORDER_CONTROL@@; border-radius: 3px;"
+      "  padding: 4px 6px; min-height: 22px;"
+      "  selection-background-color: @@SELECTION_BG@@;"
+      "  selection-color: @@SELECTION_TEXT@@; }"
+      "QSpinBox:hover { border-color: @@ACCENT@@; }"
+      "QSpinBox:focus { border: 1px solid @@FOCUS@@; }"
+      "QSpinBox:disabled { color: @@DISABLED@@; border-color: @@RULE@@; }"
       "QLineEdit#slotEdit {"
       "  padding: 1px; border-radius: 2px; border: 1px solid transparent;"
       "  background: transparent; }"
@@ -370,6 +428,25 @@ QString ComposerStylesheet(bool dark) {
       "  border: 1px solid @@ACCENT@@; }"
       "QListWidget#resultsList::item:focus {"
       "  border: 1px solid @@FOCUS@@; }"
+      // Stroke-count headings (Qt::NoItemFlags, so :disabled).
+      "QListWidget#resultsList::item:disabled {"
+      "  color: @@SECONDARY@@; background: @@ACCENT_SUBTLE@@; }"
+      "QDialog#componentsPopup { background-color: @@WINDOW@@; }"
+      "QDialog#componentsPopup QScrollArea, QDialog#componentsPopup QScrollArea > QWidget > QWidget {"
+      "  background: transparent; border: none; }"
+      "QCheckBox { color: @@TEXT@@; background: transparent; }"
+      "QCheckBox:disabled { color: @@DISABLED@@; }"
+      "QLabel#strokeHeading {"
+      "  color: @@SECONDARY@@; background: @@ACCENT_SUBTLE@@; border-radius: 2px; }"
+      "QToolButton#componentTile {"
+      "  color: @@TEXT@@; background: transparent; border: 1px solid @@RULE@@;"
+      "  border-radius: 3px; padding: 0; }"
+      "QToolButton#componentTile:hover {"
+      "  background: @@RAISED@@; border-color: @@ACCENT@@; }"
+      "QToolButton#componentTile:checked {"
+      "  background: @@ACCENT_SUBTLE@@; border: 1px solid @@ACCENT@@; color: @@ACCENT@@; }"
+      "QToolButton#componentTile:disabled {"
+      "  color: @@DISABLED@@; border-color: transparent; }"
       "QPushButton#returnLink {"
       "  color: @@ACCENT@@; background: transparent; border: none;"
       "  padding: 2px 4px; text-align: center; min-height: 0; }"
@@ -773,6 +850,161 @@ std::string LayoutEditor::SelectedLayoutOp() const {
                                                                       : std::string();
 }
 
+// --- ComponentsPopup ---------------------------------------------------------
+
+ComponentsPopup::ComponentsPopup(QWidget *parent) : QDialog(parent) {
+  setObjectName(QStringLiteral("componentsPopup"));
+  setWindowTitle(Tr("Components"));
+  // A tool window: stays above the composer, never takes it over.
+  setWindowFlags(Qt::Tool | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
+  setModal(false);
+
+  auto *hint = new QLabel(
+      Tr("Click a component to add it to the search; click again to remove it. "
+         "Numbers are stroke counts."),
+      this);
+  hint->setObjectName(QStringLiteral("resultsStatus"));
+  hint->setWordWrap(true);
+  hint->setFont(theme::UiFont(11));
+
+  variants_check_ = new QCheckBox(Tr("Show radical variants (亻 扌 氵 …)"), this);
+  variants_check_->setChecked(true);
+  variants_check_->setFont(theme::UiFont(12));
+  grey_out_check_ = new QCheckBox(Tr("Grey out components that find nothing"), this);
+  grey_out_check_->setChecked(true);
+  grey_out_check_->setFont(theme::UiFont(12));
+  connect(variants_check_, &QCheckBox::toggled, this, [this]() {
+    Rebuild();
+    emit optionsChanged();
+  });
+  connect(grey_out_check_, &QCheckBox::toggled, this, &ComponentsPopup::optionsChanged);
+  auto *options = new QHBoxLayout;
+  options->setSpacing(16);
+  options->addWidget(variants_check_);
+  options->addWidget(grey_out_check_);
+  options->addStretch(1);
+
+  grid_host_ = new QWidget(this);
+  grid_ = new QGridLayout(grid_host_);
+  grid_->setSpacing(3);
+  grid_->setContentsMargins(0, 0, 0, 0);
+  auto *scroll = new QScrollArea(this);
+  scroll->setWidget(grid_host_);
+  scroll->setWidgetResizable(true);
+  scroll->setFrameShape(QFrame::NoFrame);
+  scroll->setMinimumSize(500, 460);
+
+  selected_label_ = new QLabel(this);
+  selected_label_->setFont(theme::UiFont(16));
+  auto *selected_key = new QLabel(Tr("Selected:"), this);
+  selected_key->setObjectName(QStringLiteral("infoKey"));
+  selected_key->setFont(theme::UiFont(12));
+  auto *clear_button = new QPushButton(Tr("Clear selection"), this);
+  clear_button->setObjectName(QStringLiteral("textButton"));
+  clear_button->setAutoDefault(false);
+  auto *close_button = new QPushButton(Tr("Close"), this);
+  close_button->setObjectName(QStringLiteral("secondaryButton"));
+  close_button->setAutoDefault(false);
+  connect(clear_button, &QPushButton::clicked, this, &ComponentsPopup::clearRequested);
+  connect(close_button, &QPushButton::clicked, this, &QDialog::hide);
+  auto *footer = new QHBoxLayout;
+  footer->setSpacing(8);
+  footer->addWidget(selected_key);
+  footer->addWidget(selected_label_, 1);
+  footer->addWidget(clear_button);
+  footer->addWidget(close_button);
+
+  auto *root = new QVBoxLayout(this);
+  root->setContentsMargins(12, 10, 12, 10);
+  root->setSpacing(8);
+  root->addWidget(hint);
+  root->addLayout(options);
+  root->addWidget(scroll, 1);
+  root->addLayout(footer);
+
+  Rebuild();
+}
+
+bool ComponentsPopup::grey_out_unavailable() const {
+  return grey_out_check_->isChecked();
+}
+
+std::vector<std::string> ComponentsPopup::ShownComponents() const {
+  const std::vector<std::string> variants = SplitChars(kVariantForms);
+  std::vector<std::string> shown;
+  for (const ComponentGroup &group : kComponentGroups) {
+    for (std::string &ch : SplitChars(group.components)) {
+      if (!variants_check_->isChecked() && Contains(variants, ch)) continue;
+      shown.push_back(std::move(ch));
+    }
+  }
+  return shown;
+}
+
+void ComponentsPopup::Rebuild() {
+  // Drop the old cells; the grid is small, so rebuilding is simplest.
+  while (QLayoutItem *item = grid_->takeAt(0)) {
+    delete item->widget();
+    delete item;
+  }
+  buttons_.clear();
+
+  constexpr int kColumns = 13;
+  const std::vector<std::string> variants = SplitChars(kVariantForms);
+  const QFont tile_font = theme::UiFont(18);
+  int cell = 0;
+  for (const ComponentGroup &group : kComponentGroups) {
+    std::vector<std::string> chars;
+    for (std::string &ch : SplitChars(group.components)) {
+      if (!variants_check_->isChecked() && Contains(variants, ch)) continue;
+      chars.push_back(std::move(ch));
+    }
+    if (chars.empty()) continue;
+    auto *number = new QLabel(QString::number(group.strokes), grid_host_);
+    number->setObjectName(QStringLiteral("strokeHeading"));
+    number->setFont(theme::UiFont(12, QFont::DemiBold));
+    number->setAlignment(Qt::AlignCenter);
+    number->setFixedSize(34, 34);
+    number->setToolTip(Tr("%1 strokes").arg(group.strokes));
+    grid_->addWidget(number, cell / kColumns, cell % kColumns);
+    ++cell;
+    for (const std::string &ch : chars) {
+      const QString text = FromUtf8(ch);
+      auto *button = new QToolButton(grid_host_);
+      button->setObjectName(QStringLiteral("componentTile"));
+      button->setText(text);
+      button->setFont(tile_font);
+      button->setCheckable(true);
+      button->setFixedSize(34, 34);
+      button->setFocusPolicy(Qt::NoFocus);
+      button->setToolTip(QStringLiteral("%1  %2").arg(text, Tr("%1 strokes").arg(group.strokes)));
+      connect(button, &QToolButton::clicked, this,
+              [this, text]() { emit componentToggled(text); });
+      grid_->addWidget(button, cell / kColumns, cell % kColumns);
+      buttons_.insert(text, button);
+      ++cell;
+    }
+  }
+  grid_->setRowStretch(cell / kColumns + 1, 1);
+  SetState(selected_, unavailable_);
+}
+
+void ComponentsPopup::SetState(const std::vector<std::string> &selected,
+                               const std::vector<std::string> &unavailable) {
+  selected_ = selected;
+  unavailable_ = unavailable;
+  const bool grey_out = grey_out_check_->isChecked();
+  for (auto it = buttons_.begin(); it != buttons_.end(); ++it) {
+    const std::string ch = ToUtf8(it.key());
+    const bool is_selected = Contains(selected_, ch);
+    it.value()->setChecked(is_selected);
+    it.value()->setEnabled(is_selected || !grey_out || !Contains(unavailable_, ch));
+  }
+  QStringList shown;
+  for (const std::string &ch : selected_) shown << FromUtf8(ch);
+  selected_label_->setText(shown.isEmpty() ? Tr("(none)") : shown.join(QLatin1Char(' ')));
+}
+
 // --- CharacterComposerDialog ------------------------------------------------
 
 CharacterComposerDialog::CharacterComposerDialog(
@@ -1114,6 +1346,51 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
           &CharacterComposerDialog::OnFindContaining);
   connect(containing_edit_, &QLineEdit::returnPressed, this,
           &CharacterComposerDialog::OnFindContaining);
+  connect(containing_edit_, &QLineEdit::textChanged, this,
+          &CharacterComposerDialog::UpdateComponentsPopup);
+  containing_edit_->setToolTip(
+      Tr("Type one or more components, or pick them with Components…. A stroke "
+         "count typed here works too: 12 (exactly), <12 (fewer), >8 (more), "
+         "9-12 (between)."));
+
+  components_button_ = new QPushButton(Tr("Components…"), this);
+  components_button_->setObjectName(QStringLiteral("textButton"));
+  components_button_->setAutoDefault(false);
+  components_button_->setCheckable(true);
+  components_button_->setEnabled(table_ != nullptr);
+  connect(components_button_, &QPushButton::clicked, this,
+          &CharacterComposerDialog::OnToggleComponentsPopup);
+
+  const auto make_stroke_box = [this](const QString &name, const QString &accessible) {
+    auto *box = new QSpinBox(this);
+    box->setObjectName(name);
+    box->setAccessibleName(accessible);
+    box->setRange(0, 99);
+    box->setSpecialValueText(Tr("any"));  // 0 means no bound
+    box->setEnabled(table_ != nullptr);
+    connect(box, QOverload<int>::of(&QSpinBox::valueChanged), this,
+            &CharacterComposerDialog::OnFindContaining);
+    return box;
+  };
+  stroke_min_ = make_stroke_box(QStringLiteral("stroke_min"), Tr("Fewest strokes"));
+  stroke_max_ = make_stroke_box(QStringLiteral("stroke_max"), Tr("Most strokes"));
+  auto *strokes_key = new QLabel(Tr("Strokes"), this);
+  strokes_key->setObjectName(QStringLiteral("infoKey"));
+  strokes_key->setFont(theme::UiFont(12));
+  strokes_key->setBuddy(stroke_min_);
+  auto *strokes_to = new QLabel(Tr("to"), this);
+  strokes_to->setObjectName(QStringLiteral("infoKey"));
+  strokes_to->setFont(theme::UiFont(12));
+  auto *stroke_row = new QHBoxLayout;
+  stroke_row->setSpacing(6);
+  stroke_row->addWidget(strokes_key);
+  stroke_row->addWidget(stroke_min_);
+  stroke_row->addWidget(strokes_to);
+  stroke_row->addWidget(stroke_max_);
+  stroke_row->addStretch(1);
+  stroke_row->addWidget(components_button_);
+  stroke_min_->setToolTip(Tr("Same number in both for an exact count."));
+  stroke_max_->setToolTip(Tr("Same number in both for an exact count."));
 
   auto *decompose_label = new QLabel(Tr("Decompose a character"), this);
   decompose_label->setObjectName(QStringLiteral("exploreSubhead"));
@@ -1145,6 +1422,18 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   connect(results_list_, &QListWidget::itemActivated, this,
           &CharacterComposerDialog::OnContainingPicked);
 
+  components_popup_ = new ComponentsPopup(this);
+  connect(components_popup_, &ComponentsPopup::componentToggled, this,
+          &CharacterComposerDialog::OnComponentToggled);
+  connect(components_popup_, &ComponentsPopup::clearRequested, this, [this]() {
+    containing_edit_->clear();
+    OnFindContaining();
+  });
+  connect(components_popup_, &ComponentsPopup::optionsChanged, this,
+          &CharacterComposerDialog::UpdateComponentsPopup);
+  connect(components_popup_, &QDialog::finished, this,
+          [this]() { components_button_->setChecked(false); });
+
   clear_results_button_ = new QPushButton(Tr("Clear results"), this);
   clear_results_button_->setObjectName(QStringLiteral("textButton"));
   clear_results_button_->setAutoDefault(false);
@@ -1164,10 +1453,16 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   controls_layout->addSpacing(2);
   controls_layout->addWidget(find_label);
   controls_layout->addLayout(find_row);
+  controls_layout->addLayout(stroke_row);
   controls_layout->addSpacing(4);
   controls_layout->addWidget(
       MakeSectionHeading(Tr("Results"), discover_controls, clear_results_button_));
   controls_layout->addWidget(results_status_);
+  auto *order_label = new QLabel(
+      Tr("Sorted by strokes, then leading stroke  一 丨 丿 丶 乛"), this);
+  order_label->setObjectName(QStringLiteral("resultsStatus"));
+  order_label->setFont(theme::UiFont(10));
+  controls_layout->addWidget(order_label);
 
   discover_panel_ = new QWidget(this);
   discover_panel_->setObjectName(QStringLiteral("discoverPanel"));
@@ -1559,7 +1854,12 @@ void CharacterComposerDialog::TryInsert() {
 void CharacterComposerDialog::keyPressEvent(QKeyEvent *event) {
   if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
     QWidget *focus = focusWidget();
-    if (focus != break_apart_edit_ && focus != containing_edit_) TryInsert();
+    // Enter in the search fields runs the search, not Insert.
+    if (focus == stroke_min_ || focus == stroke_max_) {
+      OnFindContaining();
+    } else if (focus != break_apart_edit_ && focus != containing_edit_) {
+      TryInsert();
+    }
     return;
   }
   QDialog::keyPressEvent(event);
@@ -1644,36 +1944,145 @@ void CharacterComposerDialog::OnBreakApart() {
   }
 }
 
+composer_ids::LookupQuery CharacterComposerDialog::CurrentQuery() const {
+  composer_ids::LookupQuery query =
+      composer_ids::ParseLookupQuery(ToUtf8(containing_edit_->text()));
+  const int low = stroke_min_->value();   // 0: no bound
+  const int high = stroke_max_->value();
+  if (low == 0 && high == 0) return query;
+  composer_ids::StrokeRange boxes;
+  if (low > 0) boxes.min = low;
+  if (high > 0) boxes.max = high;
+  if (low > 0 && high > 0 && low > high) std::swap(boxes.min, boxes.max);
+  if (query.strokes.has_value()) {
+    // A count typed in the field as well: both must hold.
+    boxes.min = std::max(boxes.min, query.strokes->min);
+    boxes.max = std::min(boxes.max, query.strokes->max);
+  }
+  query.strokes = boxes;
+  return query;
+}
+
 void CharacterComposerDialog::OnFindContaining() {
   results_list_->clear();
+  results_status_->clear();
   if (clear_results_button_ != nullptr) clear_results_button_->setVisible(false);
   if (table_ == nullptr) return;
-  const std::vector<std::string> matches =
-      table_->FindContaining(ToUtf8(containing_edit_->text()));
+  const composer_ids::LookupQuery query = CurrentQuery();
+  UpdateComponentsPopup();
+  if (query.components.empty() && !query.strokes.has_value()) return;
+  if (query.strokes.has_value() && !table_->has_stroke_counts()) {
+    results_status_->setText(Tr("Stroke counts were not found in %1, so the "
+                                "stroke filter cannot be used.")
+                                 .arg(data_directory_));
+    return;
+  }
+  std::vector<std::string> matches =
+      table_->FindContaining(query.components, query.strokes);
   if (matches.empty()) {
     results_status_->setText(
-        Tr("No character contains all of these components."));
+        query.strokes.has_value()
+            ? Tr("No character matches these components and stroke count.")
+            : Tr("No character contains all of these components."));
     RefreshActiveView();
     return;
   }
+  table_->SortByStrokes(&matches);
+
+  // The list is only a pick-list; a component like 一 matches thousands.
   constexpr size_t kMaxShown = 500;
+  const bool headings = table_->has_stroke_counts();
+  std::optional<int> current_heading;
+  bool first = true;
+  const QFont heading_font = theme::UiFont(11, QFont::DemiBold);
   for (size_t i = 0; i < matches.size() && i < kMaxShown; ++i) {
+    const std::optional<int> strokes = table_->StrokeCount(matches[i]);
+    if (headings && (first || strokes != current_heading)) {
+      // A stroke-count heading cell, like the numbers in Components….
+      auto *heading = new QListWidgetItem(
+          strokes ? QString::number(*strokes) : QStringLiteral("?"), results_list_);
+      heading->setTextAlignment(Qt::AlignCenter);
+      heading->setFlags(Qt::NoItemFlags);
+      heading->setData(kHeadingRole, true);
+      heading->setFont(heading_font);
+      heading->setToolTip(strokes ? Tr("%1 strokes").arg(*strokes)
+                                  : Tr("Stroke count unknown"));
+      current_heading = strokes;
+      first = false;
+    }
     auto *item = new QListWidgetItem(FromUtf8(matches[i]), results_list_);
     item->setTextAlignment(Qt::AlignCenter);
+    const QString leading = LeadingStrokeGlyph(table_->LeadingStroke(matches[i]));
+    if (strokes && !leading.isEmpty()) {
+      item->setToolTip(Tr("%1 strokes, starts with %2").arg(*strokes).arg(leading));
+    } else if (strokes) {
+      item->setToolTip(Tr("%1 strokes").arg(*strokes));
+    }
   }
   if (clear_results_button_ != nullptr) clear_results_button_->setVisible(true);
   results_status_->setText(
       matches.size() > kMaxShown
-          ? Tr("%1 characters found; showing the first %2. Add more "
-               "components to narrow the search.")
+          ? Tr("%1 characters found; showing the first %2. Add components or "
+               "narrow the strokes.")
                 .arg(matches.size())
                 .arg(kMaxShown)
           : Tr("%1 characters found. Click one to examine it.")
                 .arg(matches.size()));
 }
 
+void CharacterComposerDialog::OnToggleComponentsPopup() {
+  if (components_popup_->isVisible()) {
+    components_popup_->hide();
+    components_button_->setChecked(false);
+    return;
+  }
+  UpdateComponentsPopup();
+  // Beside the composer, where it does not cover the results.
+  const QRect frame = frameGeometry();
+  components_popup_->adjustSize();
+  components_popup_->move(frame.right() + 8, frame.top());
+  components_popup_->show();
+  components_popup_->raise();
+  components_button_->setChecked(true);
+}
+
+void CharacterComposerDialog::OnComponentToggled(const QString &component) {
+  // Rebuild the field from its parts, keeping a stroke count typed there.
+  QString text = containing_edit_->text();
+  if (text.contains(component)) {
+    text.remove(component);
+  } else {
+    if (!text.isEmpty() && !text.endsWith(QLatin1Char(' '))) text += QLatin1Char(' ');
+    text += component;
+  }
+  containing_edit_->setText(text.simplified());
+  OnFindContaining();
+}
+
+void CharacterComposerDialog::UpdateComponentsPopup() {
+  if (components_popup_ == nullptr) return;
+  const composer_ids::LookupQuery query = CurrentQuery();
+  const std::vector<std::string> selected =
+      SplitChars(query.components.c_str());
+  std::vector<std::string> unavailable;
+  // Only worth working out while the window shows it.
+  if (table_ != nullptr && components_popup_->isVisible() &&
+      components_popup_->grey_out_unavailable() &&
+      (!query.components.empty() || query.strokes.has_value()) &&
+      (!query.strokes.has_value() || table_->has_stroke_counts())) {
+    for (const std::string &ch : components_popup_->ShownComponents()) {
+      if (Contains(selected, ch)) continue;
+      if (table_->FindContaining(query.components + ch, query.strokes).empty()) {
+        unavailable.push_back(ch);
+      }
+    }
+  }
+  components_popup_->SetState(selected, unavailable);
+}
+
 void CharacterComposerDialog::OnContainingPicked(QListWidgetItem *item) {
   if (item == nullptr) return;
+  if (item->data(kHeadingRole).toBool()) return;  // a stroke-count heading
   // Browse only: do not overwrite LayoutEditor / IDS.
   ActivateSearchResult(ToUtf8(item->text()));
 }
@@ -1695,10 +2104,15 @@ void CharacterComposerDialog::RunComponentSearch(const std::string &components,
   containing_edit_->setText(FromUtf8(components));
   OnFindContaining();
   if (result_index < 0 || results_list_ == nullptr) return;
-  if (result_index >= results_list_->count()) return;
-  QListWidgetItem *item = results_list_->item(result_index);
-  results_list_->setCurrentItem(item);
-  OnContainingPicked(item);
+  // |result_index| counts characters only, not the stroke-count headings.
+  for (int row = 0; row < results_list_->count(); ++row) {
+    QListWidgetItem *item = results_list_->item(row);
+    if (item->data(kHeadingRole).toBool()) continue;
+    if (result_index-- > 0) continue;
+    results_list_->setCurrentItem(item);
+    OnContainingPicked(item);
+    return;
+  }
 }
 
 }  // namespace gui

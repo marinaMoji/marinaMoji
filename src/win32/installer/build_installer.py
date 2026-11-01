@@ -130,7 +130,10 @@ def run_wix4(args) -> None:
   opencc_variants = pathlib.Path(args.opencc_variants).resolve()
   composer_ids = pathlib.Path(args.composer_ids).resolve()
   composer_forms = pathlib.Path(args.composer_forms).resolve()
+  composer_strokes = pathlib.Path(args.composer_strokes).resolve()
   composer_license = pathlib.Path(args.composer_license).resolve()
+  composer_unicode_license = pathlib.Path(
+      args.composer_unicode_license).resolve()
   composer_readme = pathlib.Path(args.composer_readme).resolve()
   kage_glyphs = pathlib.Path(args.kage_glyphs).resolve()
   kage_layout = pathlib.Path(args.kage_layout).resolve()
@@ -225,7 +228,9 @@ def run_wix4(args) -> None:
       '-define', f'OpenccVariantsPath={opencc_variants}',
       '-define', f'ComposerIdsPath={composer_ids}',
       '-define', f'ComposerFormsPath={composer_forms}',
+      '-define', f'ComposerStrokesPath={composer_strokes}',
       '-define', f'ComposerLicensePath={composer_license}',
+      '-define', f'ComposerUnicodeLicensePath={composer_unicode_license}',
       '-define', f'ComposerReadmePath={composer_readme}',
       '-define', f'KageGlyphsPath={kage_glyphs}',
       '-define', f'KageLayoutPath={kage_layout}',
@@ -289,7 +294,9 @@ def main():
   parser.add_argument('--opencc_variants', type=str)
   parser.add_argument('--composer_ids', type=str)
   parser.add_argument('--composer_forms', type=str)
+  parser.add_argument('--composer_strokes', type=str)
   parser.add_argument('--composer_license', type=str)
+  parser.add_argument('--composer_unicode_license', type=str)
   parser.add_argument('--composer_readme', type=str)
   parser.add_argument('--kage_glyphs', type=str)
   parser.add_argument('--kage_layout', type=str)

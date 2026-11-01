@@ -11,6 +11,7 @@
 #define MOZC_GUI_CHARACTER_COMPOSER_CHARACTER_COMPOSER_DIALOG_H_
 
 #include <QDialog>
+#include <QHash>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QSize>
@@ -28,6 +29,7 @@
 #include "gui/character_composer/composer_kage.h"
 
 class QButtonGroup;
+class QCheckBox;
 class QComboBox;
 class QEvent;
 class QGridLayout;
@@ -36,6 +38,7 @@ class QLabel;
 class QListWidget;
 class QListWidgetItem;
 class QPushButton;
+class QSpinBox;
 class QToolButton;
 class QVBoxLayout;
 
@@ -180,6 +183,42 @@ class LayoutEditor : public QWidget {
   const composer_ids::IdsTable *table_ = nullptr;
 };
 
+// The "Components…" window: common components grouped by stroke count. A
+// click toggles the component in the search field (through the dialog);
+// components that would leave no result can be greyed out.
+class ComponentsPopup : public QDialog {
+  Q_OBJECT
+
+ public:
+  explicit ComponentsPopup(QWidget *parent);
+
+  // Highlights the components currently in the search field, and disables
+  // those in |unavailable| (ignored unless "Grey out" is ticked).
+  void SetState(const std::vector<std::string> &selected,
+                const std::vector<std::string> &unavailable);
+  // Every component the window offers, as shown (variants included or not).
+  std::vector<std::string> ShownComponents() const;
+  bool grey_out_unavailable() const;
+
+ signals:
+  void componentToggled(const QString &component);
+  void clearRequested();
+  // "Show radical variants" or "Grey out" changed.
+  void optionsChanged();
+
+ private:
+  void Rebuild();
+
+  QGridLayout *grid_ = nullptr;
+  QWidget *grid_host_ = nullptr;
+  QCheckBox *variants_check_ = nullptr;
+  QCheckBox *grey_out_check_ = nullptr;
+  QLabel *selected_label_ = nullptr;
+  QHash<QString, QToolButton *> buttons_;
+  std::vector<std::string> selected_;
+  std::vector<std::string> unavailable_;
+};
+
 class CharacterComposerDialog : public QDialog {
   Q_OBJECT
 
@@ -224,6 +263,8 @@ class CharacterComposerDialog : public QDialog {
   void OnIdsInfoToggled(bool checked);
   void OnReturnToComposition();
   void OnClearSearchSelection();
+  void OnToggleComponentsPopup();
+  void OnComponentToggled(const QString &component);
 
  protected:
   void keyPressEvent(QKeyEvent *event) override;
@@ -254,6 +295,9 @@ class CharacterComposerDialog : public QDialog {
   // Writes DraftIds into the IDS entry box. Skips while the user is typing
   // there, unless |force|.
   void SyncIdsEditFromEditor(bool force = false);
+  // The query typed in the field, with the stroke boxes folded in.
+  composer_ids::LookupQuery CurrentQuery() const;
+  void UpdateComponentsPopup();
 
   std::unique_ptr<composer_ids::IdsTable> table_;
   std::unique_ptr<composer_ids::CharInfoTable> char_info_;  // Unihan display; may be null
@@ -293,6 +337,10 @@ class CharacterComposerDialog : public QDialog {
   QLineEdit *containing_edit_ = nullptr;
   QListWidget *results_list_ = nullptr;
   QLabel *results_status_ = nullptr;
+  QSpinBox *stroke_min_ = nullptr;
+  QSpinBox *stroke_max_ = nullptr;
+  QPushButton *components_button_ = nullptr;
+  ComponentsPopup *components_popup_ = nullptr;
   QPushButton *insert_button_ = nullptr;
   QPushButton *copy_button_ = nullptr;
   QPushButton *clear_button_ = nullptr;

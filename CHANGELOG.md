@@ -10,6 +10,38 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer: search by strokes, Components… pop-up, sorted results
+
+Discover → "Find by components" gains:
+
+- **Stroke filter.** "Strokes [from] to [to]" boxes ("any" leaves a bound
+  open; the same number in both for an exact count), or a count written among
+  the components: `木12` (exactly 12), `木<12` (fewer than 12), `木>8` (more than
+  8), `木9-12` (9 to 12); `<=` / `>=` make the bound inclusive. Full-width digits
+  and signs (`木９－１２`) work, and the filter can stand alone (`9-12`, capped at
+  500 results). Boxes and a typed count both apply. A character with several
+  regional counts matches if any one fits.
+- **Sorted results.** Results are sorted by stroke count, then by leading stroke
+  in the order 一 丨 丿 丶 乛, under stroke-count headings (which cannot be
+  picked). The leading stroke comes from a table of strokes, radicals and common
+  components written by hand for marinaMoji (BSD-3-Clause, in
+  `src/composer_ids/ids_table.cc`), and for any other character from the first
+  component of its IDS decomposition. Characters whose first stroke differs
+  between the Chinese and Japanese orders (馬, 長, 右 …) are left out of the
+  table on purpose. No KanjiVG data is used.
+- **Components… pop-up.** A tool window with components grouped by stroke
+  count; a click adds one to the search, a second click removes it. Components
+  that would find nothing are greyed out, and radical variants (亻 扌 氵 …) can
+  be hidden; both are options in the pop-up.
+
+Picking a result stays browse-only, as in rc5.
+
+Counts come from the new `stroke_counts.tsv` (Unihan `kTotalStrokes`, generated
+by `build_stroke_counts.py`), installed beside `ids_table.tsv` on Linux, macOS
+and Windows together with `LICENSE.Unicode`, the Unicode License v3 that covers
+it (see `src/data/character_composer/README.md`). Without the file the stroke
+filter says so instead of matching nothing.
+
 ### Release candidate 0.0.20-rc5
 
 Everything in 0.0.20-rc4 plus:

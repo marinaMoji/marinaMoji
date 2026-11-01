@@ -176,10 +176,6 @@
         <translation>これらの部品をすべて含む文字はありません。</translation>
     </message>
     <message>
-        <source>%1 characters found; showing the first %2. Add more components to narrow the search.</source>
-        <translation>%1 文字が見つかりました。先頭の %2 文字を表示しています。部品を増やして絞り込んでください。</translation>
-    </message>
-    <message>
         <source>%1 characters found. Click one to load its parts.</source>
         <translation>%1 文字が見つかりました。クリックすると部品を読み込みます。</translation>
     </message>
@@ -378,6 +374,82 @@
     <message>
         <source>%1 characters found. Click one to examine it.</source>
         <translation>%1 件見つかりました。クリックして確認できます。</translation>
+    </message>
+    <message>
+        <source>%1 characters found; showing the first %2. Add components or narrow the strokes.</source>
+        <translation>%1 文字が見つかりました。先頭の %2 文字を表示しています。部品を増やすか画数を絞り込んでください。</translation>
+    </message>
+    <message>
+        <source>%1 strokes, starts with %2</source>
+        <translation>%1 画、起筆 %2</translation>
+    </message>
+    <message>
+        <source>(none)</source>
+        <translation>(なし)</translation>
+    </message>
+    <message>
+        <source>Clear selection</source>
+        <translation>選択を解除</translation>
+    </message>
+    <message>
+        <source>Click a component to add it to the search; click again to remove it. Numbers are stroke counts.</source>
+        <translation>部品をクリックすると検索に加わり、もう一度クリックすると外れます。数字は画数です。</translation>
+    </message>
+    <message>
+        <source>Components…</source>
+        <translation>部品…</translation>
+    </message>
+    <message>
+        <source>Fewest strokes</source>
+        <translation>最小画数</translation>
+    </message>
+    <message>
+        <source>Grey out components that find nothing</source>
+        <translation>該当なしの部品を灰色にする</translation>
+    </message>
+    <message>
+        <source>Most strokes</source>
+        <translation>最大画数</translation>
+    </message>
+    <message>
+        <source>No character matches these components and stroke count.</source>
+        <translation>これらの部品と画数に合う文字はありません。</translation>
+    </message>
+    <message>
+        <source>Same number in both for an exact count.</source>
+        <translation>両方に同じ数を入れると、その画数ちょうどで探します。</translation>
+    </message>
+    <message>
+        <source>Selected:</source>
+        <translation>選択中:</translation>
+    </message>
+    <message>
+        <source>Show radical variants (亻 扌 氵 …)</source>
+        <translation>部首の変形も表示 (亻 扌 氵 …)</translation>
+    </message>
+    <message>
+        <source>Sorted by strokes, then leading stroke  一 丨 丿 丶 乛</source>
+        <translation>画数順、同じ画数は起筆順  一 丨 丿 丶 乛</translation>
+    </message>
+    <message>
+        <source>Stroke count unknown</source>
+        <translation>画数不明</translation>
+    </message>
+    <message>
+        <source>Stroke counts were not found in %1, so the stroke filter cannot be used.</source>
+        <translation>%1 に画数データがないため、画数による絞り込みは使えません。</translation>
+    </message>
+    <message>
+        <source>Type one or more components, or pick them with Components…. A stroke count typed here works too: 12 (exactly), &lt;12 (fewer), &gt;8 (more), 9-12 (between).</source>
+        <translation>部品を1つ以上入力するか、「部品…」から選びます。ここに画数を書いても絞り込めます: 12(ちょうど)、&lt;12(未満)、&gt;8(超)、9-12(範囲)。</translation>
+    </message>
+    <message>
+        <source>any</source>
+        <translation>指定なし</translation>
+    </message>
+    <message>
+        <source>to</source>
+        <translation>〜</translation>
     </message>
 </context>
 </TS>
