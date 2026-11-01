@@ -30,6 +30,7 @@
 class QButtonGroup;
 class QComboBox;
 class QEvent;
+class QGridLayout;
 class QHBoxLayout;
 class QLabel;
 class QListWidget;
@@ -203,6 +204,13 @@ class CharacterComposerDialog : public QDialog {
     on_svg_inserted_ = std::move(cb);
   }
 
+  // Demo / screenshot helpers (env-driven capture from RunCharacterComposer).
+  // Apply a full IDS expression to the composition without going through AX.
+  void ApplyIdsExpression(const std::string &ids);
+  // Run "Find by components" with |components| and optionally activate result
+  // |result_index| (0-based). Negative index leaves composition active.
+  void RunComponentSearch(const std::string &components, int result_index);
+
  private slots:
   void OnLayoutChanged();
   void OnPaletteClicked(int index);
@@ -214,18 +222,31 @@ class CharacterComposerDialog : public QDialog {
   void OnSubmitRequested();
   void OnIdsEdited(const QString &text);
   void OnIdsInfoToggled(bool checked);
+  void OnReturnToComposition();
+  void OnClearSearchSelection();
 
  protected:
   void keyPressEvent(QKeyEvent *event) override;
   void changeEvent(QEvent *event) override;
+  bool eventFilter(QObject *watched, QEvent *event) override;
 
  private:
+  enum class ActiveSource {
+    kComposition,
+    kSearchResult,
+  };
+
   void BuildUi(const QString &data_directory);
   void ApplyTheme();
-  void UpdateResult();
+  // Recompute composition lookup (found_ / pending_svg_) from LayoutEditor.
+  void UpdateCompositionState();
+  // Refresh specimen, Character Information, and Copy/Insert from active source.
+  void RefreshActiveView();
+  void ActivateComposition();
+  void ActivateSearchResult(const std::string &ch);
   void UpdateComponentRoles();
-  void UpdateCharInfoPanel(const composer_ids::CharInfo *info,
-                           const QString &ids_text, const QString &unicode_text);
+  void UpdateCharInfoTable(const composer_ids::CharInfo *info);
+  void SetInfoRow(QLabel *label, QLabel *value, const QString &text);
   // Insert if ready, after committing any IME preedit.
   void TryInsert();
   void UpdatePaletteHighlight();
@@ -241,38 +262,51 @@ class CharacterComposerDialog : public QDialog {
   QButtonGroup *palette_ = nullptr;
   QWidget *construct_panel_ = nullptr;
   QWidget *examine_panel_ = nullptr;
-  QWidget *explore_panel_ = nullptr;
+  QWidget *discover_panel_ = nullptr;
   QLabel *component_roles_label_ = nullptr;
   QLineEdit *ids_edit_ = nullptr;
   QToolButton *ids_info_button_ = nullptr;
   QLabel *ids_info_panel_ = nullptr;
+  QLabel *active_state_label_ = nullptr;
   QLabel *char_label_ = nullptr;
   QWidget *specimen_group_ = nullptr;
-  QLabel *specimen_caption_ = nullptr;
+  QPushButton *return_to_composition_ = nullptr;
   QLabel *status_heading_ = nullptr;
   QLabel *status_detail_ = nullptr;
-  QLabel *japanese_readings_value_ = nullptr;
-  QLabel *other_readings_value_ = nullptr;
+  QLabel *on_label_ = nullptr;
+  QLabel *on_value_ = nullptr;
+  QLabel *kun_label_ = nullptr;
+  QLabel *kun_value_ = nullptr;
+  QLabel *meaning_label_ = nullptr;
   QLabel *meaning_value_ = nullptr;
-  QLabel *classification_value_ = nullptr;
+  QLabel *variants_label_ = nullptr;
   QLabel *variants_value_ = nullptr;
-  QLabel *structure_value_ = nullptr;
-  QLabel *unicode_value_ = nullptr;
+  QLabel *strokes_label_ = nullptr;
+  QLabel *strokes_value_ = nullptr;
+  QLabel *radical_label_ = nullptr;
+  QLabel *radical_value_ = nullptr;
+  QLabel *other_label_ = nullptr;
+  QLabel *other_value_ = nullptr;
+  QWidget *info_table_ = nullptr;
   QLineEdit *break_apart_edit_ = nullptr;
   QComboBox *decomposition_combo_ = nullptr;
   QLineEdit *containing_edit_ = nullptr;
-  QListWidget *containing_list_ = nullptr;
+  QListWidget *results_list_ = nullptr;
+  QLabel *results_status_ = nullptr;
   QPushButton *insert_button_ = nullptr;
   QPushButton *copy_button_ = nullptr;
   QPushButton *clear_button_ = nullptr;
   QPushButton *close_button_ = nullptr;
   QPushButton *break_button_ = nullptr;
   QPushButton *find_button_ = nullptr;
+  QPushButton *clear_results_button_ = nullptr;
 
   QString note_;  // a one-off message that replaces the status line
   QString data_directory_;
   bool applying_ids_edit_ = false;  // true while OnIdsEdited updates the square
   bool applying_theme_ = false;     // guards ApplyTheme vs changeEvent re-entry
+  ActiveSource active_source_ = ActiveSource::kComposition;
+  std::string search_active_char_;  // UTF-8 when a search result is active
   std::string found_;       // the encoded character for the current layout, or ""
   std::string result_;      // Unicode Insert chose, or ""
   std::function<void(const std::string &)> on_svg_inserted_;

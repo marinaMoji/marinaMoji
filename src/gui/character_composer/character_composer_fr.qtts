@@ -327,5 +327,57 @@
         <source>Insert places a drawing on the clipboard for Word (Kaeriten → Insert composed character) or other office plugins.</source>
         <translation>Insérer place un dessin dans le presse-papiers pour Word (Kaeriten → Insérer le caractère composé) ou d’autres modules bureautiques.</translation>
     </message>
+    <message>
+        <source>COMPOSITION</source>
+        <translation>COMPOSITION</translation>
+    </message>
+    <message>
+        <source>SEARCH RESULT</source>
+        <translation>RÉSULTAT DE RECHERCHE</translation>
+    </message>
+    <message>
+        <source>← Return to composition</source>
+        <translation>← Retour à la composition</translation>
+    </message>
+    <message>
+        <source>On</source>
+        <translation>On</translation>
+    </message>
+    <message>
+        <source>Kun</source>
+        <translation>Kun</translation>
+    </message>
+    <message>
+        <source>Strokes</source>
+        <translation>Traits</translation>
+    </message>
+    <message>
+        <source>Radical</source>
+        <translation>Radical</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <translation>Autre</translation>
+    </message>
+    <message>
+        <source>Additional search</source>
+        <translation>Recherche supplémentaire</translation>
+    </message>
+    <message>
+        <source>Under construction</source>
+        <translation>En construction</translation>
+    </message>
+    <message>
+        <source>Results</source>
+        <translation>Résultats</translation>
+    </message>
+    <message>
+        <source>Clear results</source>
+        <translation>Effacer les résultats</translation>
+    </message>
+    <message>
+        <source>%1 characters found. Click one to examine it.</source>
+        <translation>%1 caractères trouvés. Cliquez pour examiner.</translation>
+    </message>
 </context>
 </TS>

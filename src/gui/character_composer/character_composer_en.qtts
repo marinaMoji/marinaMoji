@@ -327,5 +327,57 @@
         <source>Insert places a drawing on the clipboard for Word (Kaeriten → Insert composed character) or other office plugins.</source>
         <translation>Insert places a drawing on the clipboard for Word (Kaeriten → Insert composed character) or other office plugins.</translation>
     </message>
+    <message>
+        <source>COMPOSITION</source>
+        <translation>COMPOSITION</translation>
+    </message>
+    <message>
+        <source>SEARCH RESULT</source>
+        <translation>SEARCH RESULT</translation>
+    </message>
+    <message>
+        <source>← Return to composition</source>
+        <translation>← Return to composition</translation>
+    </message>
+    <message>
+        <source>On</source>
+        <translation>On</translation>
+    </message>
+    <message>
+        <source>Kun</source>
+        <translation>Kun</translation>
+    </message>
+    <message>
+        <source>Strokes</source>
+        <translation>Strokes</translation>
+    </message>
+    <message>
+        <source>Radical</source>
+        <translation>Radical</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <translation>Other</translation>
+    </message>
+    <message>
+        <source>Additional search</source>
+        <translation>Additional search</translation>
+    </message>
+    <message>
+        <source>Under construction</source>
+        <translation>Under construction</translation>
+    </message>
+    <message>
+        <source>Results</source>
+        <translation>Results</translation>
+    </message>
+    <message>
+        <source>Clear results</source>
+        <translation>Clear results</translation>
+    </message>
+    <message>
+        <source>%1 characters found. Click one to examine it.</source>
+        <translation>%1 characters found. Click one to examine it.</translation>
+    </message>
 </context>
 </TS>

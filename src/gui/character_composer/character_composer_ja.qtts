@@ -327,5 +327,57 @@
         <source>Insert places a drawing on the clipboard for Word (Kaeriten → Insert composed character) or other office plugins.</source>
         <translation>「挿入」は、Word（返り点 → 合成文字を挿入）やその他のオフィス用プラグイン向けに図形をクリップボードに置きます。</translation>
     </message>
+    <message>
+        <source>COMPOSITION</source>
+        <translation>合成中</translation>
+    </message>
+    <message>
+        <source>SEARCH RESULT</source>
+        <translation>検索結果</translation>
+    </message>
+    <message>
+        <source>← Return to composition</source>
+        <translation>← 合成に戻る</translation>
+    </message>
+    <message>
+        <source>On</source>
+        <translation>音</translation>
+    </message>
+    <message>
+        <source>Kun</source>
+        <translation>訓</translation>
+    </message>
+    <message>
+        <source>Strokes</source>
+        <translation>画数</translation>
+    </message>
+    <message>
+        <source>Radical</source>
+        <translation>部首</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <translation>その他</translation>
+    </message>
+    <message>
+        <source>Additional search</source>
+        <translation>その他の検索</translation>
+    </message>
+    <message>
+        <source>Under construction</source>
+        <translation>準備中</translation>
+    </message>
+    <message>
+        <source>Results</source>
+        <translation>結果</translation>
+    </message>
+    <message>
+        <source>Clear results</source>
+        <translation>結果を消去</translation>
+    </message>
+    <message>
+        <source>%1 characters found. Click one to examine it.</source>
+        <translation>%1 件見つかりました。クリックして確認できます。</translation>
+    </message>
 </context>
 </TS>

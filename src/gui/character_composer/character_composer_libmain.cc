@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <QGuiApplication>
+#include <QPixmap>
 #include <QSocketNotifier>
 #include <QString>
+#include <QTimer>
 #include <QtGui>
 #include <chrono>
 #include <cstdint>
@@ -252,6 +254,43 @@ int RunCharacterComposer(int argc, char *argv[]) {
   dialog.show();
   dialog.raise();
   dialog.activateWindow();
+
+  // Optional headless-ish demo capture for design validation:
+  //   MARINAMOJI_COMPOSER_SCREENSHOT=/path/out.png
+  //   MARINAMOJI_COMPOSER_DEMO_IDS=⿰日月
+  //   MARINAMOJI_COMPOSER_DEMO_SEARCH=日   (optional; selects first result)
+  //   MARINAMOJI_COMPOSER_DEMO_QUIT=1      (exit after saving)
+  if (const char *shot = std::getenv("MARINAMOJI_COMPOSER_SCREENSHOT");
+      shot != nullptr && shot[0] != '\0') {
+    const QString shot_path = QString::fromUtf8(shot);
+    const char *ids_env = std::getenv("MARINAMOJI_COMPOSER_DEMO_IDS");
+    const std::string demo_ids =
+        (ids_env != nullptr && ids_env[0] != '\0') ? ids_env : "⿰日月";
+    const char *search_env = std::getenv("MARINAMOJI_COMPOSER_DEMO_SEARCH");
+    const bool quit_after =
+        std::getenv("MARINAMOJI_COMPOSER_DEMO_QUIT") != nullptr;
+    QTimer::singleShot(250, &dialog, [&dialog, shot_path, demo_ids, search_env,
+                                      quit_after, app = app.get()]() {
+      dialog.ApplyIdsExpression(demo_ids);
+      if (search_env != nullptr && search_env[0] != '\0') {
+        dialog.RunComponentSearch(search_env, /*result_index=*/0);
+      }
+      QTimer::singleShot(400, &dialog, [&dialog, shot_path, quit_after, app]() {
+        const QPixmap grabbed = dialog.grab();
+        if (!grabbed.save(shot_path, "PNG")) {
+          LOG(ERROR) << "Cannot write screenshot to "
+                     << shot_path.toStdString();
+        } else {
+          LOG(INFO) << "Wrote composer screenshot to "
+                    << shot_path.toStdString();
+        }
+        if (quit_after) {
+          app->quit();
+        }
+      });
+    });
+  }
+
   app->exec();
 
 #if defined(__linux__) && !defined(__ANDROID__)
