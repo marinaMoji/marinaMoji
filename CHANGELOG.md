@@ -21,8 +21,6 @@ Everything in 0.0.20-rc4 plus:
   failed CI; it now checks the browse-only behaviour.
 - Composer translations: the committed `.qm` files were stale and are rebuilt
   from the `.qtts`.
-- **Toolbar logo**: the wordmark now keeps the header logo's thick/thin
-  contrast (lighter stroke than in rc4), tagline included.
 
 ### Release candidate 0.0.20-rc4
 
