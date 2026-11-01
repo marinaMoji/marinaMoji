@@ -10,6 +10,11 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.20-rc6
+
+Everything in 0.0.20-rc5 plus the character composer stroke search below.
+The Windows MSIs are unsigned until signed by hand.
+
 ### Character composer: search by strokes, Components… pop-up, sorted results
 
 Discover → "Find by components" gains:
