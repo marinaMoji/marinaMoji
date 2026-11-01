@@ -1371,7 +1371,7 @@ void CharacterComposerDialog::OnReturnToComposition() { ActivateComposition(); }
 void CharacterComposerDialog::OnClearSearchSelection() {
   if (results_list_ != nullptr) {
     results_list_->clear();
-    results_status_->clear();
+    if (results_status_ != nullptr) results_status_->clear();
   }
   if (clear_results_button_ != nullptr) clear_results_button_->setVisible(false);
   ActivateComposition();
