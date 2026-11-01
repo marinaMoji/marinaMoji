@@ -104,11 +104,13 @@ QRectF Scaled(const FRect &r, const QRectF &box) {
                 r.w * box.width(), r.h * box.height());
 }
 
-void DrawGeometry(QPainter *p, const OperatorGeometry &g, const QRectF &box) {
+void DrawGeometry(QPainter *p, const OperatorGeometry &g, const QRectF &box,
+                  bool dividers_only = false) {
   for (const FLine &line : g.dividers) {
     p->drawLine(QPointF(box.x() + line.x1 * box.width(), box.y() + line.y1 * box.height()),
                 QPointF(box.x() + line.x2 * box.width(), box.y() + line.y2 * box.height()));
   }
+  if (dividers_only) return;
   for (const FRect &frame : g.frames) {
     p->drawRect(Scaled(frame, box));
   }
@@ -239,7 +241,9 @@ void SplitJaKana(const QString &kana, QStringList *on, QStringList *kun) {
 }
 
 QString JoinDot(const QStringList &parts) {
-  return parts.join(QStringLiteral(" · "));
+  // Thin spaces around the middle dot keep readings distinct without the
+  // looser spacing of a full space on either side.
+  return parts.join(QStringLiteral("\u2009·\u2009"));
 }
 
 QString FormatVariants(const composer_ids::CharInfo &info) {
@@ -300,6 +304,7 @@ QString ComposerStylesheet(bool dark) {
       "QLabel#infoKey { color: @@SECONDARY@@; }"
       "QLabel#infoValue { color: @@TEXT@@; }"
       "QLabel#exploreSubhead { color: @@HEADING@@; }"
+      "QLabel#resultsStatus { color: @@SECONDARY@@; }"
       "QLabel#ids_info_panel {"
       "  color: @@TEXT@@; background: @@RAISED@@;"
       "  border: 1px solid @@BORDER_CONTROL@@; border-radius: 4px;"
@@ -307,7 +312,7 @@ QString ComposerStylesheet(bool dark) {
       "QLabel#specimenGlyph {"
       "  background: transparent; border: none; padding: 0; margin: 0; }"
       "QWidget#layoutEditor {"
-      "  background-color: @@RAISED@@;"
+      "  background-color: @@SIDEBAR@@;"
       "  border: 1px solid @@RULE@@; border-radius: 2px; }"
       "QWidget#specimenGroup {"
       "  background: transparent; border: none; }"
@@ -328,9 +333,10 @@ QString ComposerStylesheet(bool dark) {
       "  border: 1px solid @@ACCENT@@; }"
 
       "QToolButton#structureButton {"
-      "  background: @@RAISED@@; border: 1px solid @@BORDER_CONTROL@@;"
+      "  background: transparent; border: 1px solid @@RULE@@;"
       "  border-radius: 3px; padding: 1px; }"
-      "QToolButton#structureButton:hover { border-color: @@ACCENT@@; }"
+      "QToolButton#structureButton:hover {"
+      "  background: @@RAISED@@; border-color: @@ACCENT@@; }"
       "QToolButton#structureButton:checked {"
       "  background: @@ACCENT_SUBTLE@@; border: 1px solid @@ACCENT@@; }"
       "QToolButton#structureButton:focus {"
@@ -357,7 +363,8 @@ QString ComposerStylesheet(bool dark) {
       "  color: @@TEXT@@; background: transparent;"
       "  border: none; outline: none; padding: 0; }"
       "QListWidget#resultsList::item {"
-      "  border: 1px solid transparent; border-radius: 2px; }"
+      "  border: 1px solid transparent; border-radius: 2px;"
+      "  padding: 2px; }"
       "QListWidget#resultsList::item:selected {"
       "  background: @@ACCENT_SUBTLE@@; color: @@TEXT@@;"
       "  border: 1px solid @@ACCENT@@; }"
@@ -365,8 +372,10 @@ QString ComposerStylesheet(bool dark) {
       "  border: 1px solid @@FOCUS@@; }"
       "QPushButton#returnLink {"
       "  color: @@ACCENT@@; background: transparent; border: none;"
-      "  padding: 0 2px; text-align: center; min-height: 0; }"
+      "  padding: 2px 4px; text-align: center; min-height: 0; }"
       "QPushButton#returnLink:hover { color: @@HEADING@@; }"
+      "QPushButton#returnLink:disabled {"
+      "  color: transparent; border: none; background: transparent; }"
 
       "QPushButton {"
       "  color: @@TEXT@@; background: @@RAISED@@;"
@@ -378,18 +387,23 @@ QString ComposerStylesheet(bool dark) {
       "QPushButton:disabled { color: @@DISABLED@@; border-color: @@RULE@@; }"
       "QPushButton#primaryButton {"
       "  color: @@ON_ACCENT@@; background: @@PRIMARY@@;"
-      "  border: 1px solid @@PRIMARY@@; padding: 6px 16px; }"
+      "  border: 1px solid @@PRIMARY@@; padding: 6px 14px; }"
       "QPushButton#primaryButton:hover {"
       "  background: @@PRIMARY_HOVER@@; border-color: @@PRIMARY_HOVER@@; }"
       "QPushButton#primaryButton:pressed {"
       "  background: @@PRIMARY_PRESSED@@; border-color: @@PRIMARY_PRESSED@@; }"
       "QPushButton#primaryButton:disabled {"
       "  color: @@WINDOW@@; background: @@DISABLED@@; border-color: @@DISABLED@@; }"
-      "QPushButton#outlineButton, QPushButton#secondaryButton {"
+      "QPushButton#outlineButton {"
+      "  color: @@ACCENT@@; background: @@WINDOW@@;"
+      "  border: 1px solid @@BORDER_CONTROL@@; padding: 5px 12px; }"
+      "QPushButton#outlineButton:hover {"
+      "  border-color: @@ACCENT@@; background: @@ACCENT_SUBTLE@@; }"
+      "QPushButton#secondaryButton {"
       "  color: @@ACCENT@@; background: @@WINDOW@@;"
       "  border: 1px solid @@BORDER_CONTROL@@;"
-      "  min-width: 88px; padding: 5px 12px; }"
-      "QPushButton#outlineButton:hover, QPushButton#secondaryButton:hover {"
+      "  min-width: 72px; padding: 5px 12px; }"
+      "QPushButton#secondaryButton:hover {"
       "  border-color: @@ACCENT@@; background: @@ACCENT_SUBTLE@@; }"
       "QPushButton#textButton {"
       "  color: @@SECONDARY@@; background: transparent;"
@@ -630,14 +644,21 @@ void LayoutView::paintEvent(QPaintEvent *) {
   p.setBrush(Qt::NoBrush);
   const bool dark = config_dialog_theme::IsDark();
   const auto colors = config_dialog_theme::Colors(dark);
-  if (selected_) {
-    p.setPen(QPen(colors.accent, 1.5));
-  } else {
-    p.setPen(QPen(colors.rule, 1, Qt::SolidLine));
+  const bool root = path_.empty();
+  // LayoutEditor QSS owns the single outer edge. Nested views keep a light
+  // solid frame; the root only strokes when selected. Root geometry draws
+  // dividers only — full operator frames sit on the QSS border and read as a
+  // double outline.
+  if (!root || selected_) {
+    if (selected_) {
+      p.setPen(QPen(colors.accent, 1.5));
+    } else {
+      p.setPen(QPen(colors.rule, 1, Qt::SolidLine));
+    }
+    p.drawRect(box);
   }
-  p.drawRect(box);
   p.setPen(QPen(colors.rule, 1, Qt::DashLine));
-  DrawGeometry(&p, GeometryFor(op_), box);
+  DrawGeometry(&p, GeometryFor(op_), box, /*dividers_only=*/root);
 }
 
 void LayoutView::mousePressEvent(QMouseEvent *event) {
@@ -650,7 +671,7 @@ void LayoutView::mousePressEvent(QMouseEvent *event) {
 
 LayoutEditor::LayoutEditor(QWidget *parent) : QWidget(parent) {
   auto *layout = new QVBoxLayout(this);
-  layout->setContentsMargins(3, 3, 3, 3);
+  layout->setContentsMargins(2, 2, 2, 2);
   setObjectName(QStringLiteral("layoutEditor"));
   setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
   setFixedHeight(composer_dialog_metrics::kEditorHeight);
@@ -796,7 +817,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   palette_->setExclusive(false);
   auto *palette_grid = new QGridLayout;
   palette_grid->setHorizontalSpacing(8);
-  palette_grid->setVerticalSpacing(8);
+  palette_grid->setVerticalSpacing(5);
   palette_grid->setContentsMargins(0, 0, 0, 0);
   int index = 0;
   for (const auto &info : composer_ids::IdsOperators()) {
@@ -903,8 +924,9 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
 
   char_label_ = new QLabel(this);
   char_label_->setObjectName(QStringLiteral("specimenGlyph"));
-  char_label_->setAlignment(Qt::AlignCenter);
-  // Keep the glyph large; avoid a tall empty caption band under the character.
+  // Sit the glyph on the bottom of its band so the Unicode caption reads as
+  // belonging to the specimen rather than floating below a tall empty box.
+  char_label_->setAlignment(Qt::AlignHCenter | Qt::AlignBottom);
   char_label_->setMinimumWidth(kPreviewLogical);
   char_label_->setFixedHeight(128);
   char_label_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -918,8 +940,14 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   return_to_composition_->setFlat(true);
   return_to_composition_->setCursor(Qt::PointingHandCursor);
   return_to_composition_->setAutoDefault(false);
-  return_to_composition_->setVisible(false);
   return_to_composition_->setFont(theme::UiFont(11));
+  // Keep a stable-height slot so the metadata divider does not jump when the
+  // return action appears for a search result.
+  {
+    const QFontMetrics return_metrics(return_to_composition_->font());
+    return_to_composition_->setFixedHeight(return_metrics.height() + 2);
+  }
+  return_to_composition_->setEnabled(false);
   connect(return_to_composition_, &QPushButton::clicked, this,
           &CharacterComposerDialog::OnReturnToComposition);
 
@@ -939,10 +967,12 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   specimen_group_->setObjectName(QStringLiteral("specimenGroup"));
   auto *specimen_layout = new QVBoxLayout(specimen_group_);
   specimen_layout->setContentsMargins(0, 0, 0, 0);
-  specimen_layout->setSpacing(2);
+  specimen_layout->setSpacing(0);
   specimen_layout->addWidget(active_state_label_);
   specimen_layout->addWidget(char_label_, 0, Qt::AlignHCenter);
+  specimen_layout->addSpacing(1);
   specimen_layout->addWidget(status_heading_);
+  specimen_layout->addSpacing(2);
   specimen_layout->addWidget(return_to_composition_, 0, Qt::AlignHCenter);
   specimen_layout->addWidget(status_detail_);
 
@@ -951,8 +981,6 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
     label->setObjectName(QStringLiteral("infoKey"));
     label->setFont(theme::UiFont(13));
     label->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-    label->setMinimumWidth(62);
-    label->setMaximumWidth(72);
     return label;
   };
   auto make_val = [this]() {
@@ -984,7 +1012,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   info_table_->setObjectName(QStringLiteral("infoTable"));
   auto *grid = new QGridLayout(info_table_);
   grid->setContentsMargins(0, 0, 0, 0);
-  grid->setHorizontalSpacing(10);
+  grid->setHorizontalSpacing(8);
   grid->setVerticalSpacing(4);
   grid->setColumnStretch(1, 1);
   const struct {
@@ -996,6 +1024,19 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
       {strokes_label_, strokes_value_}, {radical_label_, radical_value_},
       {other_label_, other_value_},
   };
+  // One shared label-column width from the longest localised key.
+  {
+    const QFontMetrics metrics(theme::UiFont(13));
+    int label_width = 0;
+    for (const auto &row : rows) {
+      label_width =
+          std::max(label_width, metrics.horizontalAdvance(row.key->text()));
+    }
+    label_width += 2;
+    for (const auto &row : rows) {
+      row.key->setFixedWidth(label_width);
+    }
+  }
   for (int r = 0; r < 7; ++r) {
     grid->addWidget(rows[r].key, r, 0, Qt::AlignLeft | Qt::AlignTop);
     grid->addWidget(rows[r].val, r, 1);
@@ -1024,7 +1065,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   examine_panel_->setObjectName(QStringLiteral("examinePanel"));
   auto *examine = new QVBoxLayout(examine_panel_);
   examine->setContentsMargins(12, 10, 12, 8);
-  examine->setSpacing(6);
+  examine->setSpacing(3);
   examine->addWidget(specimen_group_, 0, Qt::AlignHCenter);
   examine->addWidget(info_rule);
   examine->addWidget(info_scroll, 1);
@@ -1076,15 +1117,15 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
 
   auto *decompose_label = new QLabel(Tr("Decompose a character"), this);
   decompose_label->setObjectName(QStringLiteral("exploreSubhead"));
-  decompose_label->setFont(theme::UiFont(14, QFont::DemiBold));
+  decompose_label->setFont(theme::UiFont(13, QFont::Medium));
   auto *find_label = new QLabel(Tr("Find by components"), this);
   find_label->setObjectName(QStringLiteral("exploreSubhead"));
-  find_label->setFont(theme::UiFont(14, QFont::DemiBold));
+  find_label->setFont(theme::UiFont(13, QFont::Medium));
 
   results_status_ = new QLabel(this);
-  results_status_->setObjectName(QStringLiteral("statusDetail"));
+  results_status_->setObjectName(QStringLiteral("resultsStatus"));
   results_status_->setWordWrap(true);
-  results_status_->setFont(theme::UiFont(11));
+  results_status_->setFont(theme::UiFont(10));
 
   results_list_ = new QListWidget(this);
   results_list_->setObjectName(QStringLiteral("resultsList"));
@@ -1092,7 +1133,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   results_list_->setResizeMode(QListView::Adjust);
   results_list_->setMovement(QListView::Static);
   results_list_->setUniformItemSizes(true);
-  results_list_->setGridSize(QSize(40, 40));
+  results_list_->setGridSize(QSize(42, 42));
   results_list_->setMinimumHeight(72);
   results_list_->setFrameShape(QFrame::NoFrame);
   results_list_->setAttribute(Qt::WA_MacShowFocusRect, false);
@@ -1219,8 +1260,22 @@ void CharacterComposerDialog::ApplyTheme() {
     theme::ApplySurfacePalette(discover_panel_, colors);
   }
   if (editor_ != nullptr) {
-    theme::ApplySurfacePalette(editor_, colors);
+    // Background/border come from the stylesheet; avoid a second surface frame.
     editor_->update();
+  }
+  if (copy_button_ != nullptr && insert_button_ != nullptr) {
+    copy_button_->setMinimumWidth(0);
+    insert_button_->setMinimumWidth(0);
+    copy_button_->setMaximumWidth(QWIDGETSIZE_MAX);
+    insert_button_->setMaximumWidth(QWIDGETSIZE_MAX);
+    style()->unpolish(copy_button_);
+    style()->unpolish(insert_button_);
+    style()->polish(copy_button_);
+    style()->polish(insert_button_);
+    const int action_width = std::max(copy_button_->sizeHint().width(),
+                                      insert_button_->sizeHint().width());
+    copy_button_->setFixedWidth(action_width);
+    insert_button_->setFixedWidth(action_width);
   }
   applying_theme_ = false;
 }
@@ -1293,8 +1348,9 @@ void CharacterComposerDialog::UpdateCharInfoTable(
 
 void CharacterComposerDialog::ActivateComposition() {
   if (active_source_ == ActiveSource::kComposition && search_active_char_.empty()) {
-    return_to_composition_->setVisible(false);
     active_state_label_->setText(Tr("COMPOSITION"));
+    return_to_composition_->setText(QString());
+    return_to_composition_->setEnabled(false);
     return;
   }
   active_source_ = ActiveSource::kComposition;
@@ -1406,7 +1462,9 @@ void CharacterComposerDialog::RefreshActiveView() {
                              !search_active_char_.empty();
   active_state_label_->setText(search_active ? Tr("SEARCH RESULT")
                                              : Tr("COMPOSITION"));
-  return_to_composition_->setVisible(search_active);
+  return_to_composition_->setText(search_active ? Tr("← Return to composition")
+                                                : QString());
+  return_to_composition_->setEnabled(search_active);
 
   QString status_heading;
   QString status_detail;
