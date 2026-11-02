@@ -28,9 +28,11 @@
 #include <QPaintEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QFontDatabase>
 #include <QFontMetricsF>
 #include <QPixmap>
 #include <QPushButton>
+#include <QRawFont>
 #include <QRegularExpression>
 #include <QResizeEvent>
 #include <QScrollArea>
@@ -95,6 +97,91 @@ std::string ToUtf8(const QString &s) {
   const QByteArray bytes = s.toUtf8();
   return std::string(bytes.constData(), bytes.size());
 }
+
+// Fonts that reach the CJK extension blocks, best coverage first. Qt's own
+// per-glyph fallback does not search user-installed fonts, so the tiles name
+// them. Only installed families are kept; any other installed family whose
+// name looks like a Han font is added after them.
+QStringList WideCoverageFamilies() {
+  static const QStringList families = [] {
+    static const char *const kPreferred[] = {
+        "HanaMinB",        "HanaMinA",       "Jigmo3",
+        "Jigmo2",          "Jigmo",          "BabelStone Han",
+        "Plangothic P2",   "Plangothic P1",  "Noto Serif CJK JP",
+        "Noto Serif CJK SC", "Noto Serif CJK TC", "Noto Sans CJK JP",
+        "Source Han Serif", "Source Han Sans", "SimSun-ExtB",
+        "MingLiU-ExtB",    "MingLiU_HKSCS-ExtB", "PingFang HK",
+        "PingFang TC",     "PingFang SC",    "Songti SC",
+        "Songti TC",       "TW-Sung-Ext-B",  "TW-Sung",
+    };
+    const QStringList installed = QFontDatabase::families();
+    QStringList out;
+    for (const char *name : kPreferred) {
+      const QString family = QString::fromLatin1(name);
+      if (installed.contains(family, Qt::CaseInsensitive) && !out.contains(family)) {
+        out.append(family);
+      }
+    }
+    static const QRegularExpression kHanLike(
+        QStringLiteral("Hana|Jigmo|CJK|\\bHan\\b|Sung|Ming|Song|Plangothic|Heiti"),
+        QRegularExpression::CaseInsensitiveOption);
+    for (const QString &family : installed) {
+      if (!out.contains(family) && kHanLike.match(family).hasMatch()) out.append(family);
+    }
+    return out;
+  }();
+  return families;
+}
+
+// |font| with the wide-coverage families appended to its own.
+QFont WithWideCoverage(QFont font) {
+  QStringList families = font.families();
+  if (families.isEmpty()) families.append(font.family());
+  for (const QString &family : WideCoverageFamilies()) {
+    if (!families.contains(family)) families.append(family);
+  }
+  font.setFamilies(families);
+  return font;
+}
+
+// Whether any of a font's installed families has a glyph for a character, so
+// that results the user could only see as boxes can be left out.
+class GlyphCoverage {
+ public:
+  explicit GlyphCoverage(const QFont &font) {
+    const QStringList installed = QFontDatabase::families();
+    for (const QString &family : font.families()) {
+      if (!installed.contains(family, Qt::CaseInsensitive)) continue;
+      QFont probe(family);
+      probe.setPixelSize(16);
+      const QRawFont raw = QRawFont::fromFont(probe);
+      if (raw.isValid()) fonts_.push_back(raw);
+    }
+  }
+
+  // False when no installed font draws even a common character (a machine with
+  // no CJK fonts, or a headless test run): nothing can be told apart then.
+  bool usable() const { return Covers(QStringLiteral("木")); }
+
+  bool Covers(const QString &text) const {
+    for (const char32_t cp : text.toUcs4()) {
+      // Variation selectors modify the glyph, they have none of their own.
+      if ((cp >= 0xFE00 && cp <= 0xFE0F) || (cp >= 0xE0100 && cp <= 0xE01EF)) continue;
+      bool found = false;
+      for (const QRawFont &raw : fonts_) {
+        if (raw.supportsCharacter(cp)) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) return false;
+    }
+    return true;
+  }
+
+ private:
+  std::vector<QRawFont> fonts_;
+};
 
 // What the Components… window offers: common components, by stroke count.
 struct ComponentGroup {
@@ -952,7 +1039,7 @@ void ComponentsPopup::Rebuild() {
 
   constexpr int kColumns = 13;
   const std::vector<std::string> variants = SplitChars(kVariantForms);
-  const QFont tile_font = theme::UiFont(18);
+  const QFont tile_font = WithWideCoverage(theme::UiFont(18));
   int cell = 0;
   for (const ComponentGroup &group : kComponentGroups) {
     std::vector<std::string> chars;
@@ -1423,7 +1510,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   results_list_->setAttribute(Qt::WA_MacShowFocusRect, false);
   QFont results_font = results_list_->font();
   results_font.setPointSize(results_font.pointSize() + 7);
-  results_list_->setFont(results_font);
+  results_list_->setFont(WithWideCoverage(results_font));
   connect(results_list_, &QListWidget::itemClicked, this,
           &CharacterComposerDialog::OnContainingPicked);
   connect(results_list_, &QListWidget::itemActivated, this,
@@ -1998,6 +2085,30 @@ void CharacterComposerDialog::OnFindContaining() {
     RefreshActiveView();
     return;
   }
+  // Leave out characters no installed font can draw: they would show as boxes.
+  static const GlyphCoverage coverage(results_list_->font());
+  size_t undrawable = 0;
+  if (coverage.usable()) {
+    const size_t before = matches.size();
+    matches.erase(std::remove_if(matches.begin(), matches.end(),
+                                 [](const std::string &ch) {
+                                   return !coverage.Covers(FromUtf8(ch));
+                                 }),
+                  matches.end());
+    undrawable = before - matches.size();
+  }
+  const QString undrawable_note =
+      undrawable == 0
+          ? QString()
+          : QStringLiteral(" ") +
+                Tr("%1 more are hidden because no installed font can draw them.")
+                    .arg(undrawable);
+  if (matches.empty()) {
+    results_status_->setText(
+        Tr("No installed font can draw the %1 characters found.").arg(undrawable));
+    RefreshActiveView();
+    return;
+  }
   table_->SortByStrokes(&matches);
 
   // The list is only a pick-list; a component like 一 matches thousands.
@@ -2050,19 +2161,22 @@ void CharacterComposerDialog::OnFindContaining() {
   if (clear_results_button_ != nullptr) clear_results_button_->setVisible(true);
   if (shown == matches.size()) {
     results_status_->setText(
-        Tr("%1 characters found. Click one to examine it.").arg(matches.size()));
+        Tr("%1 characters found. Click one to examine it.").arg(matches.size()) +
+        undrawable_note);
   } else if (headings) {
     results_status_->setText(
         Tr("%1 characters found; showing the first %2 of each stroke count. "
            "Add components or narrow the strokes.")
             .arg(matches.size())
-            .arg(limit));
+            .arg(limit) +
+        undrawable_note);
   } else {
     results_status_->setText(
         Tr("%1 characters found; showing the first %2. Add components or "
            "narrow the strokes.")
             .arg(matches.size())
-            .arg(kMaxShown));
+            .arg(kMaxShown) +
+        undrawable_note);
   }
 }
 
