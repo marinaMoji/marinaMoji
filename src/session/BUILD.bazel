@@ -673,6 +673,7 @@ mozc_cc_library(
         ":marina_number_row_bindings_util",
         "//base:config_file_stream",
         "//base:file_stream",
+        "//base:port",
         "//base:util",
         "//base/container:flat_map",
         "//base/protobuf:repeated_field",
