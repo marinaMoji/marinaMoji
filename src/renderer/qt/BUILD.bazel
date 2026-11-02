@@ -28,12 +28,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 load("@bazel_skylib//rules:build_test.bzl", "build_test")
-load("//:config.bzl", "IBUS_MOZC_INSTALL_DIR")
 load(
     "//:build_defs.bzl",
     "mozc_cc_binary",
     "mozc_cc_library",
 )
+load("//:config.bzl", "IBUS_MOZC_INSTALL_DIR")
 load(
     "//bazel:qt.bzl",
     "mozc_cc_qt_library",
@@ -128,12 +128,12 @@ mozc_cc_qt_library(
     srcs = [
         "qt_window_manager.cc",
     ],
+    hdrs = [
+        "qt_window_manager.h",
+    ],
     # Where the package installs the toolbar/logo SVGs (see build_package.py).
     local_defines = [
         'MOZC_QT_RENDERER_RESOURCE_DIR=\\"' + IBUS_MOZC_INSTALL_DIR + '\\"',
-    ],
-    hdrs = [
-        "qt_window_manager.h",
     ],
     deps = [
         "//base:coordinates",
