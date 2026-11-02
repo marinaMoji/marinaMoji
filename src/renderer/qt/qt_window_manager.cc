@@ -30,6 +30,12 @@
 #include "renderer/candidate_window_util.h"
 #include "renderer/qt/qt_window_manager.h"
 
+#ifdef __linux__
+#include <dlfcn.h>
+
+#include <QtGui/qguiapplication_platform.h>
+#endif  // __linux__
+
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -75,6 +81,16 @@ QString QStr(absl::string_view str) {
 
 QColor QColorFromColor(const RendererStyle::RGBAColor& rgba) {
   return QColor(rgba.r(), rgba.g(), rgba.b(), 255 * rgba.a());
+}
+
+// A color for a style sheet. QColor::name() drops the alpha channel, which
+// turns the style's translucent colors (e.g. rgba(0, 0, 0, 0.08)) solid black.
+QString CssColor(const QColor& color) {
+  return QStringLiteral("rgba(%1, %2, %3, %4)")
+      .arg(color.red())
+      .arg(color.green())
+      .arg(color.blue())
+      .arg(color.alphaF());
 }
 
 QBrush QBrushFromColor(const RendererStyle::RGBAColor& rgba) {
@@ -137,6 +153,59 @@ constexpr int kShadowMargin = 12;
 constexpr int kShadowBlurRadius = 16;
 constexpr int kShadowOffsetY = 4;
 constexpr int kShadowAlpha = 110;
+
+// Whether the desktop composites windows with alpha. The rounded corners and
+// the shadow live in a translucent margin, which without a compositor (bare
+// X11) paints as an opaque rectangle instead. On X11 a compositor announces
+// itself by owning the _NET_WM_CM_S<screen> selection (EWMH); Xlib is reached
+// through dlopen so the renderer gains no link dependency. Anything that
+// cannot be determined counts as "composited", which keeps the default look.
+bool DesktopHasCompositor() {
+#ifdef __linux__
+  if (QGuiApplication::platformName() != QLatin1String("xcb")) {
+    return true;  // Wayland and the like always composite.
+  }
+  auto* x11 = qGuiApp->nativeInterface<QNativeInterface::QX11Application>();
+  if (x11 == nullptr || x11->display() == nullptr) {
+    return true;
+  }
+  void* xlib = dlopen("libX11.so.6", RTLD_LAZY);
+  if (xlib == nullptr) {
+    return true;
+  }
+  using XInternAtomFn = unsigned long (*)(void*, const char*, int);
+  using XGetSelectionOwnerFn = unsigned long (*)(void*, unsigned long);
+  using XDefaultScreenFn = int (*)(void*);
+  const auto intern_atom =
+      reinterpret_cast<XInternAtomFn>(dlsym(xlib, "XInternAtom"));
+  const auto get_owner =
+      reinterpret_cast<XGetSelectionOwnerFn>(dlsym(xlib, "XGetSelectionOwner"));
+  const auto default_screen =
+      reinterpret_cast<XDefaultScreenFn>(dlsym(xlib, "XDefaultScreen"));
+  bool composited = true;
+  if (intern_atom != nullptr && get_owner != nullptr &&
+      default_screen != nullptr) {
+    void* display = x11->display();
+    const std::string name =
+        absl::StrCat("_NET_WM_CM_S", default_screen(display));
+    const unsigned long atom = intern_atom(display, name.c_str(), /*only_if_exists=*/0);
+    composited = atom != 0 && get_owner(display, atom) != 0;
+  }
+  dlclose(xlib);
+  return composited;
+#else   // !__linux__
+  return true;
+#endif  // __linux__
+}
+
+// Set once in QtWindowManager::Initialize(). Without a compositor the popups
+// are plain top-level windows: no shadow margin, no translucency, and the
+// corners are cut with a (jagged, 1-bit) window mask.
+bool g_plain_windows = false;
+int g_mask_radius = 0;
+
+int ShadowMargin() { return g_plain_windows ? 0 : kShadowMargin; }
+
 
 }  // namespace
 
@@ -225,7 +294,7 @@ QWidget* CreateShadowFrame(QWidget* content, RoundedCornerEffect** rounding) {
   // needs a compositor; every platform we ship on composites unconditionally
   // except bare X11 with no compositing manager, where the margin degrades to
   // an unpainted border rather than breaking the popup.
-  frame->setAttribute(Qt::WA_TranslucentBackground, true);
+  frame->setAttribute(Qt::WA_TranslucentBackground, !g_plain_windows);
 
   // Deliberately no layout: a QVBoxLayout would impose the table's
   // minimumSizeHint (90x90 for a QAbstractScrollArea) on the frame, and a
@@ -234,7 +303,7 @@ QWidget* CreateShadowFrame(QWidget* content, RoundedCornerEffect** rounding) {
   // silently inflate small candidate windows. Positioning the child by hand
   // keeps the size the caller asked for.
   auto* holder = new QWidget(frame);
-  holder->move(kShadowMargin, kShadowMargin);
+  holder->move(ShadowMargin(), ShadowMargin());
   content->setParent(holder);
   content->move(0, 0);
 
@@ -245,11 +314,13 @@ QWidget* CreateShadowFrame(QWidget* content, RoundedCornerEffect** rounding) {
   *rounding = new RoundedCornerEffect(content);
   content->setGraphicsEffect(*rounding);
 
-  auto* shadow = new QGraphicsDropShadowEffect(holder);
-  shadow->setBlurRadius(kShadowBlurRadius);
-  shadow->setOffset(0, kShadowOffsetY);
-  shadow->setColor(QColor(0, 0, 0, kShadowAlpha));
-  holder->setGraphicsEffect(shadow);
+  if (!g_plain_windows) {
+    auto* shadow = new QGraphicsDropShadowEffect(holder);
+    shadow->setBlurRadius(kShadowBlurRadius);
+    shadow->setOffset(0, kShadowOffsetY);
+    shadow->setColor(QColor(0, 0, 0, kShadowAlpha));
+    holder->setGraphicsEffect(shadow);
+  }
 
   return frame;
 }
@@ -258,7 +329,7 @@ QWidget* CreateShadowFrame(QWidget* content, RoundedCornerEffect** rounding) {
 // offsetting the frame by the margin.
 void MoveContent(QWidget* content, int x, int y) {
   QWidget* const frame = content->window();
-  frame->move(x - kShadowMargin, y - kShadowMargin);
+  frame->move(x - ShadowMargin(), y - ShadowMargin());
 }
 
 // Resizes `content` to exactly the given size and inflates its frame to
@@ -267,8 +338,20 @@ void MoveContent(QWidget* content, int x, int y) {
 void ResizeContent(QWidget* content, int width, int height) {
   content->resize(width, height);
   content->parentWidget()->resize(width, height);
-  content->window()->resize(width + 2 * kShadowMargin,
-                            height + 2 * kShadowMargin);
+  content->window()->resize(width + 2 * ShadowMargin(),
+                            height + 2 * ShadowMargin());
+  if (g_plain_windows && g_mask_radius > 0) {
+    // No alpha to round the corners with: cut them out of the window shape.
+    QBitmap mask(width, height);
+    mask.fill(Qt::color0);
+    QPainter painter(&mask);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(Qt::color1);
+    painter.drawRoundedRect(QRect(0, 0, width, height), g_mask_radius,
+                            g_mask_radius);
+    painter.end();
+    content->window()->setMask(mask);
+  }
 }
 
 // The content rect in global coordinates, excluding the shadow margin. This
@@ -377,6 +460,16 @@ void QtWindowManager::OnClicked(int row, int column) {
 }
 
 void QtWindowManager::Initialize() {
+  // MARINAMOJI_CANDIDATE_WINDOW=plain|composited overrides the detection, for
+  // desktops where it guesses wrong.
+  const QByteArray force = qgetenv("MARINAMOJI_CANDIDATE_WINDOW").toLower();
+  g_plain_windows = force == "plain"        ? true
+                    : force == "composited" ? false
+                                            : !DesktopHasCompositor();
+  if (g_plain_windows) {
+    LOG(INFO) << "No compositing manager: drawing plain candidate windows";
+  }
+
   const auto initialize_table = [](QTableWidget* table) {
     // Window flags live on the shadow frame created below, not here.
     table->setSelectionMode(QTableWidget::NoSelection);
@@ -452,10 +545,11 @@ void QtWindowManager::ApplyStyleToWidgets() {
   for (RoundedCornerEffect* rounding :
        {candidates_rounding_, infolist_rounding_}) {
     if (rounding != nullptr) {
-      rounding->SetRadius(style_.corner_radius());
+      rounding->SetRadius(g_plain_windows ? 0 : style_.corner_radius());
       rounding->SetOutlineColor(border);
     }
   }
+  g_mask_radius = static_cast<int>(style_.corner_radius());
   logo_ = LoadFooterLogo(style_);
   if (candidate_delegate_ != nullptr) {
     candidate_delegate_->SetLogo(logo_);
@@ -477,10 +571,10 @@ void QtWindowManager::ApplyStyleToWidgets() {
   if (vscroll_bar_ != nullptr) {
     vscroll_bar_->setStyleSheet(
         QString("background-color: %1;")
-            .arg(QColorFromColor(style_.scrollbar_background_color()).name()));
+            .arg(CssColor(QColorFromColor(style_.scrollbar_background_color()))));
     vscroll_indicator_->setStyleSheet(
         QString("background-color: %1;")
-            .arg(QColorFromColor(style_.scrollbar_indicator_color()).name()));
+            .arg(CssColor(QColorFromColor(style_.scrollbar_indicator_color()))));
   }
 }
 
