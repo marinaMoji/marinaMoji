@@ -21,6 +21,7 @@
 #include <QIcon>
 #include <QInputMethod>
 #include <QLabel>
+#include <QLineEdit>
 #include <QListView>
 #include <QListWidget>
 #include <QMimeData>
@@ -44,6 +45,7 @@
 #include <QVBoxLayout>
 #include <algorithm>
 #include <cstddef>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -188,7 +190,7 @@ struct ComponentGroup {
   int strokes;
   const char *components;  // UTF-8, one character each
 };
-constexpr ComponentGroup kComponentGroups[] = {
+constexpr ComponentGroup kCommonComponentGroups[] = {
     {1, "一丨丿丶乙亅"},
     {2, "二亠人亻𠆢儿入八冂冖冫几凵刀刂力勹匕匚十卜卩厂厶又廴"},
     {3, "口囗土士夂夕大女子宀寸小尸山川工己巾干广弓彡彳忄扌氵犭艹辶阝"},
@@ -203,6 +205,134 @@ constexpr ComponentGroup kComponentGroups[] = {
     {14, "鼻"},
     {16, "龍"},
 };
+// Components that are hard to type, from the order of zi.tools' table of difficult
+// components (the common ones above are left out): stroke count, first stroke
+// (1 橫, 2 豎, 3 撇, 4 點, 5 折, as in IdsTable::LeadingStroke), components.
+struct HardGroup {
+  int strokes;
+  int lead;
+  const char *components;
+};
+constexpr HardGroup kHardComponentGroups[] = {
+    {1, 4, "乀"},
+    {1, 5, "乛𠃍𠃌㇇㇈𠄎㇁乚𠃊㇄𠄌𠃑㇉𠃋𡿨㇂"},
+    {2, 1, "丅𬺰丆𠂇丂匸𠀁𫠠"},
+    {2, 2, "⺊丄𠃎〢リ"},
+    {2, 3, "𠂉𰀪𠂆乂㐅⺈𠂊𠤎⺆"},
+    {2, 4, "丷𬼀⺀讠"},
+    {2, 5, "コユ𰆊丩𠂈龴㔾巜𢎘"},
+    {3, 1, "亍𰀁𰀄亐卄𰀃廾尢𠆣𬺢夨㐄𠫓𠫔𡕒"},
+    {3, 2, "〣𡭔𰀠𣥂⺌𠔼𠀃"},
+    {3, 3, "乇𫶧𰃦𠂋亼亽𠓛饣夊亇𠂎𠚤𱍸"},
+    {3, 4, "丬䒑𭕄"},
+    {3, 5, "𫜹⺕彐卂卪屮𠃓亾乆彑𫝀纟巛"},
+    {4, 1, "龶龷卝廿𠮛帀朩𡭕丏厷旡𢆰"},
+    {4, 2, "攴龰𰀡𠔿⺝冄冃𫩏𦉪禸𦉫𠁣"},
+    {4, 3, "壬𡈼龵𠂒丯爫爻仌尣仒⺼𧘇𠂔厃卬卆𱼀"},
+    {4, 4, "冘㓁"},
+    {4, 5, "夬肀弔𢀳𠃜丮𠬝爿㞢刅𠬞丱㣺厸"},
+    {5, 1, "𠀎𡗗戋𰀉𫇦𣄼圥朮𤴓卌𪩲犮戊𡗜𬺻戉"},
+    {5, 2, "歺丗龸罒冋曳𠕁龱𪠲𠀐𦉰囙𮍌"},
+    {5, 3, "钅㐌㐱尒㕣氐卯夗刍𠂡夘𬼉"},
+    {5, 4, "𢆉宂𰃮"},
+    {5, 5, "㠯㞋𡰪氶𤴔癶𢀖𠬤氺弁"},
+    {6, 1, "耒幵㓞覀𢦏朿襾巩𤰔㐁𠀠"},
+    {6, 2, "尗吅𠕋"},
+    {6, 3, "𥫗𦥑𠂤囟甶𠂢𧰨乑𠇍𠂭𠫤舛𪧷夅𫥞"},
+    {6, 4, "𭤨㐫𣅀𰁜龹𦍌屰"},
+    {6, 5, "帇𢑑艸劦叒䏍厽𢆶"},
+    {7, 1, "孛𦣞𦔮耴𡉵𢦒尨𦣻丣巠𫠩"},
+    {7, 2, "镸𣦼𧾷邑肙圼冏囧甹"},
+    {7, 3, "𦈢𭻾攸䖝𦥔皃豸釆寽佥夆"},
+    {7, 4, "㐬"},
+    {7, 5, "𠬶𠃬戼夋矣𣧄"},
+    {8, 1, "忝枼夌𦭝𠦝臤坴亟叀𣏟豖㚔𡘆戔疌"},
+    {8, 2, "卥㡀𫩠咼㝵畀冐𦙃"},
+    {8, 3, "𥝢臾𨸏阜飠𠈌忩㸚㸒㑒㦰臽匊匋"},
+    {8, 4, "咅𣏋㐭斉㫄罙𢼄"},
+    {8, 5, "𡬠叕沓㣇甾"},
+    {9, 1, "畐壴垔荅㪅𠀷耎𲺋"},
+    {9, 2, "𠧪曷昜禺昷耑咢咠𬙙"},
+    {9, 3, "臿叟禹𣬉爰弇爯矦㲋"},
+    {9, 4, "㒸叜"},
+    {9, 5, "叚𢏚凾芔癸㚇彖𡿺𩠐"},
+    {10, 1, "冓尃㱿𤰇𡘤"},
+    {10, 2, "丵𧴪𦐇眔畟"},
+    {10, 3, "𠂹皋虒䍃奚芻𰮤"},
+    {10, 4, "竜𤇾𡨄隺冡"},
+    {10, 5, "圅鬯𣁋"},
+    {11, 1, "𠩺殸堇㒼埶𦰩桼䙴𢛳殹𮍏"},
+    {11, 2, "虘虖啚𠁁"},
+    {11, 3, "𬀷皐悤𣶒𡕩"},
+    {11, 4, "啇羕"},
+    {11, 5, "翏㕘"},
+    {12, 1, "賁棥尞𦓔厤畱朁"},
+    {12, 2, "菐黹戢𢽠"},
+    {12, 3, "𡍮敫雋衆舄翕㫺𤔔𦥯"},
+    {12, 4, "戠𰕎"},
+    {12, 5, "叅"},
+    {13, 1, "畺𣪠"},
+    {13, 2, "豦喿睘睪𥇡豊"},
+    {13, 3, "僉"},
+    {13, 4, "亶𣎆稟廌"},
+    {13, 5, "𡕰"},
+    {14, 1, "皷𰯲𡏳臧"},
+    {14, 2, "㬎"},
+    {14, 3, "㥯夐"},
+    {14, 4, "賔"},
+    {14, 5, "㡭"},
+    {15, 1, "賛奭𧶠韯"},
+    {15, 2, "畾嶲瞏"},
+    {15, 3, "臱䝿𢀩"},
+    {15, 4, "廛𦎫𦎧𬴘"},
+    {15, 5, "巤"},
+    {16, 1, "𤴡"},
+    {16, 2, "鬳"},
+    {16, 4, "褱𩫏"},
+    {17, 1, "雚霝"},
+    {17, 3, "龠韱毚"},
+    {17, 4, "襄"},
+    {18, 2, "巂瞿"},
+    {18, 3, "𤐫"},
+    {19, 1, "夒"},
+    {19, 5, "䜌"},
+    {21, 2, "𪉷"},
+};
+
+// The common groups with the harder ones appended to the row of the same
+// stroke count; the common ones come first.
+struct MergedGroup {
+  int strokes;
+  std::string components;
+};
+const std::vector<MergedGroup> &ComponentGroups() {
+  static const std::vector<MergedGroup> groups = [] {
+    std::map<int, std::string> by_strokes;
+    for (const ComponentGroup &g : kCommonComponentGroups) by_strokes[g.strokes] += g.components;
+    for (const HardGroup &g : kHardComponentGroups) by_strokes[g.strokes] += g.components;
+    std::vector<MergedGroup> merged;
+    for (auto &entry : by_strokes) merged.push_back({entry.first, std::move(entry.second)});
+    return merged;
+  }();
+  return groups;
+}
+
+// The first-stroke class of each hard component (zi.tools' own grouping).
+const std::map<std::string, int> &HardLeadingStrokes() {
+  static const std::map<std::string, int> leads = [] {
+    std::map<std::string, int> out;
+    for (const HardGroup &g : kHardComponentGroups) {
+      const QString text = QString::fromUtf8(g.components);
+      for (const uint cp : text.toUcs4()) {
+        out[QString::fromUcs4(reinterpret_cast<const char32_t *>(&cp), 1).toUtf8().toStdString()] =
+            g.lead;
+      }
+    }
+    return out;
+  }();
+  return leads;
+}
+
 // Positional forms hidden when "Show radical variants" is unticked. (王, 月
 // and 艹 stay: they are components in their own right too.)
 constexpr char kVariantForms[] = "亻𠆢刂忄扌氵犭礻衤⺮耂灬";
@@ -533,6 +663,13 @@ QString ComposerStylesheet(bool dark) {
       "  background: @@RAISED@@; border-color: @@ACCENT@@; }"
       "QToolButton#componentTile:checked {"
       "  background: @@ACCENT_SUBTLE@@; border: 1px solid @@ACCENT@@; color: @@ACCENT@@; }"
+      "QToolButton#firstStrokeTile {"
+      "  color: @@TEXT@@; background: transparent; border: 1px solid @@RULE@@;"
+      "  border-radius: 3px; padding: 0; }"
+      "QToolButton#firstStrokeTile:hover {"
+      "  background: @@RAISED@@; border-color: @@ACCENT@@; }"
+      "QToolButton#firstStrokeTile:checked {"
+      "  background: #003153; border: 1px solid #003153; color: #ffffff; }"
       "QToolButton#componentTile:disabled {"
       "  color: @@DISABLED@@; border-color: transparent; }"
       "QPushButton#returnLink {"
@@ -961,7 +1098,14 @@ ComponentsPopup::ComponentsPopup(QWidget *parent) : QDialog(parent) {
   grey_out_check_ = new QCheckBox(Tr("Grey out components that find nothing"), this);
   grey_out_check_->setChecked(true);
   grey_out_check_->setFont(theme::UiFont(12));
+  hard_check_ = new QCheckBox(Tr("Show difficult components"), this);
+  hard_check_->setChecked(false);
+  hard_check_->setFont(theme::UiFont(12));
   connect(variants_check_, &QCheckBox::toggled, this, [this]() {
+    Rebuild();
+    emit optionsChanged();
+  });
+  connect(hard_check_, &QCheckBox::toggled, this, [this]() {
     Rebuild();
     emit optionsChanged();
   });
@@ -972,6 +1116,61 @@ ComponentsPopup::ComponentsPopup(QWidget *parent) : QDialog(parent) {
   options->addWidget(grey_out_check_);
   options->addStretch(1);
 
+  // First stroke: pick none to see every component.
+  auto *first_stroke_row = new QHBoxLayout;
+  first_stroke_row->setSpacing(3);
+  first_stroke_row->addWidget(hard_check_);
+  first_stroke_row->addSpacing(13);
+  auto *first_stroke_key = new QLabel(Tr("First stroke:"), this);
+  first_stroke_key->setObjectName(QStringLiteral("infoKey"));
+  first_stroke_key->setFont(theme::UiFont(12));
+  first_stroke_row->addWidget(first_stroke_key);
+  first_stroke_row->addSpacing(5);
+  static const char *const kFirstStrokeNames[] = {"橫", "豎", "撇", "點", "折"};
+  static const char *const kFirstStrokeTips[] = {"horizontal 一", "vertical 丨",
+                                                 "left-falling 丿", "dot 丶", "turning 乛"};
+  for (int i = 0; i < 5; ++i) {
+    auto *button = new QToolButton(this);
+    button->setObjectName(QStringLiteral("firstStrokeTile"));
+    button->setText(QString::fromUtf8(kFirstStrokeNames[i]));
+    button->setFont(theme::UiFont(14));
+    button->setCheckable(true);
+    button->setFixedSize(34, 34);
+    button->setFocusPolicy(Qt::NoFocus);
+    button->setToolTip(Tr("First stroke: %1")
+                           .arg(QCoreApplication::translate(kContext, kFirstStrokeTips[i])));
+    connect(button, &QToolButton::toggled, this, [this]() {
+      Rebuild();
+      emit optionsChanged();
+    });
+    first_stroke_buttons_.push_back(button);
+    first_stroke_row->addWidget(button);
+  }
+  first_stroke_row->addSpacing(8);
+  // The same syntax as the search field: 12, 9-12, <12, >8, <=12, >=8.
+  stroke_edit_ = new QLineEdit(this);
+  stroke_edit_->setPlaceholderText(Tr("Strokes, e.g. 9-12"));
+  stroke_edit_->setToolTip(Tr("Strokes of the component: 12, 9-12, <12, >8, <=12, >=8"));
+  stroke_edit_->setFont(theme::UiFont(12));
+  stroke_edit_->setClearButtonEnabled(true);
+  stroke_edit_->setFixedWidth(140);
+  stroke_timer_ = new QTimer(this);
+  stroke_timer_->setSingleShot(true);
+  stroke_timer_->setInterval(250);
+  connect(stroke_timer_, &QTimer::timeout, this, [this]() {
+    Rebuild();
+    emit optionsChanged();
+  });
+  connect(stroke_edit_, &QLineEdit::textChanged, stroke_timer_,
+          qOverload<>(&QTimer::start));
+  connect(stroke_edit_, &QLineEdit::returnPressed, stroke_timer_, &QTimer::stop);
+  connect(stroke_edit_, &QLineEdit::returnPressed, this, [this]() {
+    Rebuild();
+    emit optionsChanged();
+  });
+  first_stroke_row->addWidget(stroke_edit_);
+  first_stroke_row->addStretch(1);
+
   grid_host_ = new QWidget(this);
   grid_ = new QGridLayout(grid_host_);
   grid_->setSpacing(3);
@@ -980,7 +1179,7 @@ ComponentsPopup::ComponentsPopup(QWidget *parent) : QDialog(parent) {
   scroll->setWidget(grid_host_);
   scroll->setWidgetResizable(true);
   scroll->setFrameShape(QFrame::NoFrame);
-  scroll->setMinimumSize(500, 460);
+  scroll->setMinimumSize(640, 460);
 
   selected_label_ = new QLabel(this);
   selected_label_->setFont(theme::UiFont(16));
@@ -1007,6 +1206,7 @@ ComponentsPopup::ComponentsPopup(QWidget *parent) : QDialog(parent) {
   root->setSpacing(8);
   root->addWidget(hint);
   root->addLayout(options);
+  root->addLayout(first_stroke_row);
   root->addWidget(scroll, 1);
   root->addLayout(footer);
 
@@ -1017,12 +1217,36 @@ bool ComponentsPopup::grey_out_unavailable() const {
   return grey_out_check_->isChecked();
 }
 
+bool ComponentsPopup::Wanted(const std::string &ch, int group_strokes) const {
+  const std::map<std::string, int> &hard = HardLeadingStrokes();
+  const auto hard_it = hard.find(ch);
+  const bool is_hard = hard_it != hard.end();
+  if (is_hard && !hard_check_->isChecked()) return false;
+  if (const auto range = composer_ids::ParseLookupQuery(
+          stroke_edit_->text().toStdString()).strokes;
+      range.has_value() && !range->Contains(group_strokes)) {
+    return false;
+  }
+  bool any_stroke = false;
+  bool stroke_matches = false;
+  for (size_t i = 0; i < first_stroke_buttons_.size(); ++i) {
+    if (!first_stroke_buttons_[i]->isChecked()) continue;
+    any_stroke = true;
+    const int lead = is_hard ? hard_it->second
+                             : (table_ != nullptr ? table_->LeadingStroke(ch) : 0);
+    // The button order 橫 豎 撇 點 折 is the order of the stroke classes.
+    if (lead == static_cast<int>(i) + 1) stroke_matches = true;
+  }
+  return !any_stroke || stroke_matches;
+}
+
 std::vector<std::string> ComponentsPopup::ShownComponents() const {
   const std::vector<std::string> variants = SplitChars(kVariantForms);
   std::vector<std::string> shown;
-  for (const ComponentGroup &group : kComponentGroups) {
-    for (std::string &ch : SplitChars(group.components)) {
+  for (const MergedGroup &group : ComponentGroups()) {
+    for (std::string &ch : SplitChars(group.components.c_str())) {
       if (!variants_check_->isChecked() && Contains(variants, ch)) continue;
+      if (!Wanted(ch, group.strokes)) continue;
       shown.push_back(std::move(ch));
     }
   }
@@ -1041,10 +1265,11 @@ void ComponentsPopup::Rebuild() {
   const std::vector<std::string> variants = SplitChars(kVariantForms);
   const QFont tile_font = WithWideCoverage(theme::UiFont(18));
   int cell = 0;
-  for (const ComponentGroup &group : kComponentGroups) {
+  for (const MergedGroup &group : ComponentGroups()) {
     std::vector<std::string> chars;
-    for (std::string &ch : SplitChars(group.components)) {
+    for (std::string &ch : SplitChars(group.components.c_str())) {
       if (!variants_check_->isChecked() && Contains(variants, ch)) continue;
+      if (!Wanted(ch, group.strokes)) continue;
       chars.push_back(std::move(ch));
     }
     if (chars.empty()) continue;
@@ -1517,6 +1742,10 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
           &CharacterComposerDialog::OnContainingPicked);
 
   components_popup_ = new ComponentsPopup(this);
+  components_popup_->set_table(table_.get());
+  // The pop-up is a tool window of its own: close it with the composer, so it
+  // does not stay on screen after Insert (or Cancel).
+  connect(this, &QDialog::finished, components_popup_, &QWidget::hide);
   connect(components_popup_, &ComponentsPopup::componentToggled, this,
           &CharacterComposerDialog::OnComponentToggled);
   connect(components_popup_, &ComponentsPopup::clearRequested, this, [this]() {

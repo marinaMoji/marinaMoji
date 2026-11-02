@@ -193,6 +193,11 @@ class ComponentsPopup : public QDialog {
  public:
   explicit ComponentsPopup(QWidget *parent);
 
+  // Where the first strokes of the common components come from (for the
+  // "First stroke" buttons); may be null, then those components are not
+  // matched by a first stroke. Not owned.
+  void set_table(const composer_ids::IdsTable *table) { table_ = table; }
+
   // Highlights the components currently in the search field, and disables
   // those in |unavailable| (ignored unless "Grey out" is ticked).
   void SetState(const std::vector<std::string> &selected,
@@ -204,16 +209,25 @@ class ComponentsPopup : public QDialog {
  signals:
   void componentToggled(const QString &component);
   void clearRequested();
-  // "Show radical variants" or "Grey out" changed.
+  // "Show radical variants", "Show difficult components", a first stroke or
+  // "Grey out" changed.
   void optionsChanged();
 
  private:
   void Rebuild();
+  // Whether |ch|, in the row of |group_strokes| strokes, passes "Show difficult
+  // components", the first-stroke buttons and the stroke box.
+  bool Wanted(const std::string &ch, int group_strokes) const;
 
+  const composer_ids::IdsTable *table_ = nullptr;
   QGridLayout *grid_ = nullptr;
   QWidget *grid_host_ = nullptr;
   QCheckBox *variants_check_ = nullptr;
   QCheckBox *grey_out_check_ = nullptr;
+  QCheckBox *hard_check_ = nullptr;
+  std::vector<QToolButton *> first_stroke_buttons_;  // 橫 豎 撇 點 折
+  QLineEdit *stroke_edit_ = nullptr;                // "12", "9-12", "<12" …
+  QTimer *stroke_timer_ = nullptr;                  // debounces the stroke box
   QLabel *selected_label_ = nullptr;
   QHash<QString, QToolButton *> buttons_;
   std::vector<std::string> selected_;
