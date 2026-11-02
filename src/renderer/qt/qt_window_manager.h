@@ -42,6 +42,8 @@
 namespace mozc {
 namespace renderer {
 
+class RoundedCornerEffect;
+
 // Item delegate of the candidate table, which draws the decorations that cannot
 // be expressed by the background brush of the items.
 //
@@ -164,6 +166,9 @@ class QtWindowManager {
   // `vscroll_indicator_` are child QObjects of `candidates_`, which is
   // responsible for destroying them.
   CandidateTableDelegate* candidate_delegate_ = nullptr;
+  // Owned by the tables they are installed on (see CreateShadowFrame()).
+  RoundedCornerEffect* candidates_rounding_ = nullptr;
+  RoundedCornerEffect* infolist_rounding_ = nullptr;
   QWidget* vscroll_bar_ = nullptr;
   QWidget* vscroll_indicator_ = nullptr;
 

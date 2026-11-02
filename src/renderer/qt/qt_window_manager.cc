@@ -138,9 +138,85 @@ constexpr int kShadowBlurRadius = 16;
 constexpr int kShadowOffsetY = 4;
 constexpr int kShadowAlpha = 110;
 
+}  // namespace
+
+// Rounds the corners of the widget it is installed on. A widget cannot clip
+// its children with an antialiased shape (QWidget::setMask is jagged), so the
+// widget is rendered to a pixmap and masked with an antialiased rounded
+// rectangle instead. The shadow is cast by the holder behind it, from the
+// rounded result.
+class RoundedCornerEffect : public QGraphicsEffect {
+ public:
+  explicit RoundedCornerEffect(QObject* parent) : QGraphicsEffect(parent) {}
+
+  void SetRadius(qreal radius) {
+    if (radius_ != radius) {
+      radius_ = radius;
+      update();
+    }
+  }
+
+  // A 1 pixel line drawn along the rounded edge, like the faint outline of the
+  // macOS candidate window.
+  void SetOutlineColor(const QColor& color) {
+    if (outline_ != color) {
+      outline_ = color;
+      update();
+    }
+  }
+
+ protected:
+  void draw(QPainter* painter) override {
+    QPoint offset;
+    const QPixmap source =
+        sourcePixmap(Qt::DeviceCoordinates, &offset, QGraphicsEffect::NoPad);
+    if (source.isNull()) {
+      return;
+    }
+    if (radius_ <= 0) {
+      painter->setWorldTransform(QTransform());
+      painter->drawPixmap(offset, source);
+      return;
+    }
+    const qreal ratio = source.devicePixelRatio();
+    QPixmap rounded(source.size());
+    rounded.setDevicePixelRatio(ratio);
+    rounded.fill(Qt::transparent);
+    {
+      QPainter p(&rounded);
+      p.setRenderHint(QPainter::Antialiasing, true);
+      p.setPen(Qt::NoPen);
+      p.setBrush(Qt::black);
+      p.drawRoundedRect(QRectF(QPointF(0, 0), source.size() / ratio), radius_,
+                        radius_);
+      p.setCompositionMode(QPainter::CompositionMode_SourceIn);
+      p.drawPixmap(0, 0, source);
+      if (outline_.alpha() > 0) {
+        p.setCompositionMode(QPainter::CompositionMode_SourceOver);
+        p.setPen(QPen(outline_, 1));
+        p.setBrush(Qt::NoBrush);
+        p.drawRoundedRect(
+            QRectF(QPointF(0, 0), source.size() / ratio).adjusted(0.5, 0.5, -0.5, -0.5),
+            radius_, radius_);
+      }
+    }
+    painter->setWorldTransform(QTransform());
+    painter->drawPixmap(offset, rounded);
+  }
+
+ private:
+  qreal radius_ = 0;
+  QColor outline_;
+};
+
+namespace {
+
 // Wraps `content` in that parent and returns it. The caller keeps using
-// `content` for everything except geometry and visibility.
-QWidget* CreateShadowFrame(QWidget* content) {
+// `content` for everything except geometry and visibility. The returned
+// frame holds a plain "holder" widget that casts the shadow, and `content`
+// sits inside the holder with a RoundedCornerEffect, which is returned
+// through `rounding` so the radius can follow the style.
+QWidget* CreateShadowFrame(QWidget* content, RoundedCornerEffect** rounding) {
   auto* frame = new QWidget();
   frame->setWindowFlags(Qt::ToolTip | Qt::FramelessWindowHint |
                         Qt::WindowStaysOnTopHint);
@@ -157,18 +233,23 @@ QWidget* CreateShadowFrame(QWidget* content) {
   // resize() was never clamped that way, so going through a layout would
   // silently inflate small candidate windows. Positioning the child by hand
   // keeps the size the caller asked for.
-  content->setParent(frame);
-  content->move(kShadowMargin, kShadowMargin);
+  auto* holder = new QWidget(frame);
+  holder->move(kShadowMargin, kShadowMargin);
+  content->setParent(holder);
+  content->move(0, 0);
 
   // The table is no longer a top-level window, so it has to paint its own
   // background rather than inheriting the (now transparent) window one.
   content->setAutoFillBackground(true);
 
-  auto* shadow = new QGraphicsDropShadowEffect(content);
+  *rounding = new RoundedCornerEffect(content);
+  content->setGraphicsEffect(*rounding);
+
+  auto* shadow = new QGraphicsDropShadowEffect(holder);
   shadow->setBlurRadius(kShadowBlurRadius);
   shadow->setOffset(0, kShadowOffsetY);
   shadow->setColor(QColor(0, 0, 0, kShadowAlpha));
-  content->setGraphicsEffect(shadow);
+  holder->setGraphicsEffect(shadow);
 
   return frame;
 }
@@ -185,6 +266,7 @@ void MoveContent(QWidget* content, int x, int y) {
 // they asked for.
 void ResizeContent(QWidget* content, int width, int height) {
   content->resize(width, height);
+  content->parentWidget()->resize(width, height);
   content->window()->resize(width + 2 * kShadowMargin,
                             height + 2 * kShadowMargin);
 }
@@ -313,7 +395,7 @@ void QtWindowManager::Initialize() {
 
   candidates_ = new QTableWidget();
   initialize_table(candidates_);
-  candidates_frame_ = CreateShadowFrame(candidates_);
+  candidates_frame_ = CreateShadowFrame(candidates_, &candidates_rounding_);
   candidate_delegate_ = new CandidateTableDelegate(candidates_);
   candidates_->setItemDelegate(candidate_delegate_);
   QObject::connect(candidates_, &QTableWidget::cellClicked,
@@ -328,7 +410,7 @@ void QtWindowManager::Initialize() {
 
   infolist_ = new QTableWidget();
   initialize_table(infolist_);
-  infolist_frame_ = CreateShadowFrame(infolist_);
+  infolist_frame_ = CreateShadowFrame(infolist_, &infolist_rounding_);
   infolist_->setColumnCount(1);
   infolist_->setRowCount(3);
   infolist_->setColumnWidth(0, kInfolistWidth);
@@ -349,11 +431,14 @@ void QtWindowManager::ApplyStyleToWidgets() {
   // are deliberately not applied via QWidget::setPalette: palette changes are
   // not reliably honored on widgets that have a style sheet, which would leave
   // stale colors behind when the theme changes at runtime.
+  // The inset around the rows is the window colour; the faint outline of the
+  // rounded edge is drawn by RoundedCornerEffect. (QColor::name() would drop
+  // the alpha of the style's border colour and give a solid black frame.)
   const QString sheet = QString(
                             "QTableWidget { border: %1px solid %2;"
                             " background-color: %3; color: %4; }")
                             .arg(style_.window_border())
-                            .arg(border.name())
+                            .arg(QColorFromColor(style_.window_background_color()).name())
                             .arg(background.name())
                             .arg(foreground.name());
 
@@ -364,6 +449,13 @@ void QtWindowManager::ApplyStyleToWidgets() {
     table->setStyleSheet(sheet);
   }
 
+  for (RoundedCornerEffect* rounding :
+       {candidates_rounding_, infolist_rounding_}) {
+    if (rounding != nullptr) {
+      rounding->SetRadius(style_.corner_radius());
+      rounding->SetOutlineColor(border);
+    }
+  }
   logo_ = LoadFooterLogo(style_);
   if (candidate_delegate_ != nullptr) {
     candidate_delegate_->SetLogo(logo_);
@@ -630,8 +722,12 @@ void FillCandidateHighlight(const commands::CandidateWindow& candidate_window,
   if (candidate_window.candidate(row).annotation().shortcut().empty()) {
     table->item(row, 0)->setBackground(background);
   } else {
+    // A style without a shortcut background (marinaMoji's light style) would
+    // otherwise get the proto's default of black.
     const QBrush shortcut_background =
-        QBrushFromColor(style.shortcut_style().background_color());
+        style.shortcut_style().has_background_color()
+            ? QBrushFromColor(style.shortcut_style().background_color())
+            : background;
     table->item(row, 0)->setBackground(shortcut_background);
   }
   table->item(row, 1)->setBackground(background);
