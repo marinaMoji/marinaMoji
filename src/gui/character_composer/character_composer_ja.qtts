@@ -531,5 +531,45 @@
         <source>finds nothing</source>
         <translation>該当なし</translation>
     </message>
+    <message>
+        <source>About the IDS box</source>
+        <translation>IDS 欄について</translation>
+    </message>
+    <message>
+        <source>About Decompose a character</source>
+        <translation>「文字を分解」について</translation>
+    </message>
+    <message>
+        <source>About Find by components</source>
+        <translation>「部品から探す」について</translation>
+    </message>
+    <message>
+        <source>IDS</source>
+        <translation>IDS</translation>
+    </message>
+    <message>
+        <source>IDS box</source>
+        <translation>IDS 欄</translation>
+    </message>
+    <message>
+        <source>View</source>
+        <translation>表示</translation>
+    </message>
+    <message>
+        <source>Type or paste one character and press Break apart (or Enter). Its parts fill the layout boxes on the left, where you can change them. When a character has more than one decomposition, a list lets you pick one.</source>
+        <translation>文字を一つ入力または貼り付けて「分解」（または Enter）を押します。部品が左側の配置の枠に入り、そこで変更できます。分解の仕方が複数ある文字では、一覧から選べます。</translation>
+    </message>
+    <message>
+        <source>Type components in the box, or click them in the Components tab: the results follow as you pick. Strokes limits the stroke count of the whole character: 12 (exactly), &amp;lt;12 (fewer), &amp;gt;8 (more), 9-12 (between). A count typed after the components works too.</source>
+        <translation>欄に部品を入力するか、「部品」タブで部品をクリックします。選ぶたびに結果が更新されます。「画数」は字全体の画数を絞り込みます：12（ちょうど）、&amp;lt;12（未満）、&amp;gt;8（超）、9-12（範囲）。部品の後に画数を入力しても同じです。</translation>
+    </message>
+    <message>
+        <source>Results are sorted by stroke count, then by first stroke 一 丨 丿 丶 乛. Click one to examine it.</source>
+        <translation>結果は画数順、次に第一画（一 丨 丿 丶 乛）の順に並びます。結果をクリックすると詳しく表示されます。</translation>
+    </message>
+    <message>
+        <source>木 and Strokes 8  →  林 松 枝 板 …</source>
+        <translation>木 と 画数 8  →  林 松 枝 板 …</translation>
+    </message>
 </context>
 </TS>

@@ -531,5 +531,45 @@
         <source>finds nothing</source>
         <translation>ne trouve rien</translation>
     </message>
+    <message>
+        <source>About the IDS box</source>
+        <translation>À propos de la zone IDS</translation>
+    </message>
+    <message>
+        <source>About Decompose a character</source>
+        <translation>À propos de Décomposer un caractère</translation>
+    </message>
+    <message>
+        <source>About Find by components</source>
+        <translation>À propos de Rechercher par composants</translation>
+    </message>
+    <message>
+        <source>IDS</source>
+        <translation>IDS</translation>
+    </message>
+    <message>
+        <source>IDS box</source>
+        <translation>Zone IDS</translation>
+    </message>
+    <message>
+        <source>View</source>
+        <translation>Affichage</translation>
+    </message>
+    <message>
+        <source>Type or paste one character and press Break apart (or Enter). Its parts fill the layout boxes on the left, where you can change them. When a character has more than one decomposition, a list lets you pick one.</source>
+        <translation>Saisissez ou collez un caractère, puis appuyez sur Décomposer (ou Entrée). Ses parties remplissent les cases de la disposition à gauche, où vous pouvez les modifier. Si un caractère a plusieurs décompositions, une liste vous permet d’en choisir une.</translation>
+    </message>
+    <message>
+        <source>Type components in the box, or click them in the Components tab: the results follow as you pick. Strokes limits the stroke count of the whole character: 12 (exactly), &amp;lt;12 (fewer), &amp;gt;8 (more), 9-12 (between). A count typed after the components works too.</source>
+        <translation>Saisissez des composants dans la zone, ou cliquez dessus dans l’onglet Composants : les résultats suivent vos choix. Traits limite le nombre de traits du caractère entier : 12 (exactement), &amp;lt;12 (moins), &amp;gt;8 (plus), 9-12 (entre). Un nombre saisi après les composants fonctionne aussi.</translation>
+    </message>
+    <message>
+        <source>Results are sorted by stroke count, then by first stroke 一 丨 丿 丶 乛. Click one to examine it.</source>
+        <translation>Les résultats sont triés par nombre de traits, puis par premier trait 一 丨 丿 丶 乛. Cliquez sur un résultat pour l’examiner.</translation>
+    </message>
+    <message>
+        <source>木 and Strokes 8  →  林 松 枝 板 …</source>
+        <translation>木 et Traits 8  →  林 松 枝 板 …</translation>
+    </message>
 </context>
 </TS>

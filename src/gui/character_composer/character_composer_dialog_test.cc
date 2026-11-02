@@ -6,8 +6,8 @@
 
 #include "gui/character_composer/character_composer_dialog.h"
 
+#include <QAction>
 #include <QApplication>
-#include <QCheckBox>
 #include <QCoreApplication>
 #include <QEvent>
 #include <QKeyEvent>
@@ -15,7 +15,6 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QPushButton>
-#include <QSpinBox>
 #include <QString>
 #include <QStringList>
 #include <QToolButton>
@@ -264,51 +263,51 @@ TEST_F(CharacterComposerDialogTest, FindContainingAcceptsAStrokeFilter) {
   EXPECT_EQ(list->count(), 0);
 }
 
-TEST_F(CharacterComposerDialogTest, StrokeBoxesNarrowTheSearch) {
+TEST_F(CharacterComposerDialogTest, StrokeFieldNarrowsTheSearch) {
   auto dialog = MakeDialogWithStrokes();
   auto *edit = dialog->findChild<QLineEdit *>(QStringLiteral("containing_edit"));
   auto *list = dialog->findChild<QListWidget *>();
-  auto *low = dialog->findChild<QSpinBox *>(QStringLiteral("stroke_min"));
-  auto *high = dialog->findChild<QSpinBox *>(QStringLiteral("stroke_max"));
-  ASSERT_NE(low, nullptr);
-  ASSERT_NE(high, nullptr);
+  auto *strokes = dialog->findChild<QLineEdit *>(QStringLiteral("stroke_filter"));
+  ASSERT_NE(strokes, nullptr);
   edit->setText(QStringLiteral("木"));
-  low->setValue(10);  // searches as the value changes
+  const auto set_strokes = [strokes](const QString &text) {
+    strokes->setText(text);
+    emit strokes->returnPressed();  // searches at once (typing waits a moment)
+  };
+  set_strokes(QStringLiteral(">9"));  // a minimum
   EXPECT_EQ(Characters(list), QStringList({QStringLiteral("謀")}));
-  low->setValue(9);
-  high->setValue(9);
+  set_strokes(QStringLiteral("9"));  // exactly
   EXPECT_EQ(Characters(list),
             QStringList({QStringLiteral("相"), QStringLiteral("某")}));
-  // Reversed bounds are swapped: 12 to 9 is 9 to 12.
-  low->setValue(12);
+  set_strokes(QStringLiteral("<12"));  // a maximum
   EXPECT_EQ(Characters(list).size(), 2);
-  // A count typed in the field must hold as well.
+  // A reversed range is read the right way round: 12-9 is 9 to 12.
+  set_strokes(QStringLiteral("12-9"));
+  EXPECT_EQ(Characters(list).size(), 2);
+  // A count typed in the search field must hold as well.
   edit->setText(QStringLiteral("木>9"));
   Button(dialog.get(), "Find")->click();
   EXPECT_TRUE(Characters(list).isEmpty());
-  // Both boxes back to "any": no stroke filter left.
+  // Field emptied: no stroke filter left.
   edit->setText(QStringLiteral("木"));
-  low->setValue(0);
-  high->setValue(0);
+  set_strokes(QString());
   EXPECT_EQ(Characters(list).size(), 3);
 }
 
-TEST_F(CharacterComposerDialogTest, EnterInAStrokeBoxSearchesInsteadOfInserting) {
+TEST_F(CharacterComposerDialogTest, EnterInTheStrokeFieldSearchesInsteadOfInserting) {
   auto dialog = MakeDialogWithStrokes();
   auto edits = Edits(dialog.get());
   Type(edits[0], QStringLiteral("言"));
   Type(edits[1], QStringLiteral("某"));
   ASSERT_TRUE(Button(dialog.get(), "Insert")->isEnabled());
-  auto *low = dialog->findChild<QSpinBox *>(QStringLiteral("stroke_min"));
+  auto *strokes = dialog->findChild<QLineEdit *>(QStringLiteral("stroke_filter"));
   auto *search = dialog->findChild<QLineEdit *>(QStringLiteral("containing_edit"));
   auto *list = dialog->findChild<QListWidget *>();
+  ASSERT_NE(strokes, nullptr);
   search->setText(QStringLiteral("木"));
-  // A spin box's focus is its inner line edit.
-  auto *inner = low->findChild<QLineEdit *>();
-  ASSERT_NE(inner, nullptr);
-  inner->setFocus();
+  strokes->setFocus();
   QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
-  QCoreApplication::sendEvent(inner, &enter);
+  QCoreApplication::sendEvent(strokes, &enter);
   EXPECT_TRUE(dialog->result().empty()) << "Enter must not insert";
   EXPECT_EQ(Characters(list).size(), 3) << "Enter runs the search";
 }
@@ -334,15 +333,17 @@ TEST_F(CharacterComposerDialogTest, ResultsAreSortedByStrokesThenLeadingStroke) 
   EXPECT_TRUE(editor->parts().empty() || editor->parts()[0].input.empty());
 }
 
-TEST_F(CharacterComposerDialogTest, ComponentsPopupTogglesComponentsInTheSearch) {
+TEST_F(CharacterComposerDialogTest, ComponentsTabTogglesComponentsInTheSearch) {
   auto dialog = MakeDialogWithStrokes();
   auto *edit = dialog->findChild<QLineEdit *>(QStringLiteral("containing_edit"));
   auto *list = dialog->findChild<QListWidget *>();
-  auto *popup = dialog->findChild<ComponentsPopup *>();
+  auto *popup = dialog->findChild<ComponentsPanel *>();
   ASSERT_NE(popup, nullptr);
   EXPECT_FALSE(popup->isVisible());
-  Button(dialog.get(), "Components…")->click();
+  Button(dialog.get(), "Components")->click();
   EXPECT_TRUE(popup->isVisible());
+  // The results stay in view beside the components.
+  EXPECT_TRUE(list->isVisible());
 
   popup->catalogue()->Activate(QStringLiteral("木"));
   EXPECT_EQ(edit->text(), QStringLiteral("木"));
@@ -360,46 +361,57 @@ TEST_F(CharacterComposerDialogTest, ComponentsPopupTogglesComponentsInTheSearch)
   EXPECT_EQ(edit->text(), QStringLiteral("目"));
   EXPECT_FALSE(popup->catalogue()->IsSelected(QStringLiteral("木")));
 
+  // Picking a result shows it on the Character tab.
+  ASSERT_EQ(Characters(list).size(), 1);
+  for (int i = 0; i < list->count(); ++i) {
+    if (list->item(i)->flags() & Qt::ItemIsEnabled) emit list->itemClicked(list->item(i));
+  }
+  EXPECT_FALSE(popup->isVisible());
+  EXPECT_EQ(dialog->findChild<QLabel *>(QStringLiteral("activeState"))->text(),
+            QStringLiteral("SEARCH RESULT"));
+
+  Button(dialog.get(), "Components")->click();
+  EXPECT_TRUE(popup->isVisible());
   edit->clear();
   Button(dialog.get(), "Find")->click();
   EXPECT_EQ(list->count(), 0);
 
-  Button(dialog.get(), "Components…")->click();
+  Button(dialog.get(), "Character")->click();
   EXPECT_FALSE(popup->isVisible());
 }
 
-TEST_F(CharacterComposerDialogTest, ComponentsPopupCanHideRadicalVariants) {
+TEST_F(CharacterComposerDialogTest, ComponentsPanelCanHideRadicalVariants) {
   auto dialog = MakeDialog();
-  auto *popup = dialog->findChild<ComponentsPopup *>();
+  auto *popup = dialog->findChild<ComponentsPanel *>();
   ASSERT_NE(popup, nullptr);
   EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("氵")));
-  for (QCheckBox *box : popup->findChildren<QCheckBox *>()) {
-    if (box->text() == QStringLiteral("Radical variants")) box->setChecked(false);
+  for (QAction *action : popup->findChildren<QAction *>()) {
+    if (action->text() == QStringLiteral("Radical variants")) action->setChecked(false);
   }
   QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
   EXPECT_FALSE(popup->catalogue()->Contains(QStringLiteral("氵")));
   EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("水")));
 }
 
-TEST_F(CharacterComposerDialogTest, ComponentsPopupShowsDifficultComponentsOnRequest) {
+TEST_F(CharacterComposerDialogTest, ComponentsPanelShowsDifficultComponentsOnRequest) {
   auto dialog = MakeDialog();
-  auto *popup = dialog->findChild<ComponentsPopup *>();
+  auto *popup = dialog->findChild<ComponentsPanel *>();
   ASSERT_NE(popup, nullptr);
   const QString hard = QStringLiteral("丅");  // from zi.tools' table, not a common one
   EXPECT_FALSE(popup->catalogue()->Contains(hard));
-  for (QCheckBox *box : popup->findChildren<QCheckBox *>()) {
-    if (box->text() == QStringLiteral("Difficult components")) box->setChecked(true);
+  for (QAction *action : popup->findChildren<QAction *>()) {
+    if (action->text() == QStringLiteral("Difficult components")) action->setChecked(true);
   }
   EXPECT_TRUE(popup->catalogue()->Contains(hard));
   EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("木")));
 }
 
-TEST_F(CharacterComposerDialogTest, ComponentsPopupFiltersByFirstStroke) {
+TEST_F(CharacterComposerDialogTest, ComponentsPanelFiltersByFirstStroke) {
   auto dialog = MakeDialog();
-  auto *popup = dialog->findChild<ComponentsPopup *>();
+  auto *popup = dialog->findChild<ComponentsPanel *>();
   ASSERT_NE(popup, nullptr);
-  for (QCheckBox *box : popup->findChildren<QCheckBox *>()) {
-    if (box->text() == QStringLiteral("Difficult components")) box->setChecked(true);
+  for (QAction *action : popup->findChildren<QAction *>()) {
+    if (action->text() == QStringLiteral("Difficult components")) action->setChecked(true);
   }
   // 丅 starts with a horizontal stroke and ⺊ with a vertical one (zi.tools).
   EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("丅")));
@@ -411,30 +423,29 @@ TEST_F(CharacterComposerDialogTest, ComponentsPopupFiltersByFirstStroke) {
   EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("⺊")));
 }
 
-TEST_F(CharacterComposerDialogTest, ComponentsPopupFiltersByStrokeCount) {
+TEST_F(CharacterComposerDialogTest, InfoButtonsOpenTheirExplanations) {
   auto dialog = MakeDialog();
-  auto *popup = dialog->findChild<ComponentsPopup *>();
-  ASSERT_NE(popup, nullptr);
-  auto *edit = popup->findChild<QLineEdit *>();
-  ASSERT_NE(edit, nullptr);
-  edit->setText(QStringLiteral("3"));
-  emit edit->returnPressed();
-  EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("口")));   // 3 strokes
-  EXPECT_FALSE(popup->catalogue()->Contains(QStringLiteral("木")));  // 4 strokes
-  edit->setText(QStringLiteral("<=4"));
-  emit edit->returnPressed();
-  EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("木")));
-  EXPECT_FALSE(popup->catalogue()->Contains(QStringLiteral("竹")));
+  auto *popover = dialog->findChild<ComposerInfoPopover *>();
+  ASSERT_NE(popover, nullptr);
+  EXPECT_FALSE(popover->isVisible());
+  QStringList titles;
+  for (ComposerInfoButton *button : dialog->findChildren<ComposerInfoButton *>()) {
+    button->click();
+    EXPECT_TRUE(popover->isVisible());
+    titles << popover->title();
+    popover->hide();
+  }
+  titles.sort();
+  EXPECT_EQ(titles, QStringList({QStringLiteral("Decompose a character"),
+                                 QStringLiteral("Find by components"),
+                                 QStringLiteral("IDS box")}));
 }
 
-TEST_F(CharacterComposerDialogTest, ComponentsPopupClosesWithTheComposer) {
+TEST_F(CharacterComposerDialogTest, StructureButtonsShowASampleCharacter) {
   auto dialog = MakeDialog();
-  auto *popup = dialog->findChild<ComponentsPopup *>();
-  ASSERT_NE(popup, nullptr);
-  Button(dialog.get(), "Components…")->click();
-  EXPECT_TRUE(popup->isVisible());
-  dialog->reject();
-  EXPECT_FALSE(popup->isVisible());
+  ASSERT_NE(PaletteButton(dialog.get(), QStringLiteral("⿰")), nullptr);
+  EXPECT_EQ(PaletteButton(dialog.get(), QStringLiteral("⿰"))->text(), QStringLiteral("明"));
+  EXPECT_EQ(PaletteButton(dialog.get(), QStringLiteral("⿺"))->text(), QStringLiteral("道"));
 }
 
 TEST_F(CharacterComposerDialogTest, StrokeFilterWithoutStrokeDataSaysSo) {

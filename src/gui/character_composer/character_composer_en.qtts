@@ -531,5 +531,45 @@
         <source>finds nothing</source>
         <translation>finds nothing</translation>
     </message>
+    <message>
+        <source>About the IDS box</source>
+        <translation>About the IDS box</translation>
+    </message>
+    <message>
+        <source>About Decompose a character</source>
+        <translation>About Decompose a character</translation>
+    </message>
+    <message>
+        <source>About Find by components</source>
+        <translation>About Find by components</translation>
+    </message>
+    <message>
+        <source>IDS</source>
+        <translation>IDS</translation>
+    </message>
+    <message>
+        <source>IDS box</source>
+        <translation>IDS box</translation>
+    </message>
+    <message>
+        <source>View</source>
+        <translation>View</translation>
+    </message>
+    <message>
+        <source>Type or paste one character and press Break apart (or Enter). Its parts fill the layout boxes on the left, where you can change them. When a character has more than one decomposition, a list lets you pick one.</source>
+        <translation>Type or paste one character and press Break apart (or Enter). Its parts fill the layout boxes on the left, where you can change them. When a character has more than one decomposition, a list lets you pick one.</translation>
+    </message>
+    <message>
+        <source>Type components in the box, or click them in the Components tab: the results follow as you pick. Strokes limits the stroke count of the whole character: 12 (exactly), &amp;lt;12 (fewer), &amp;gt;8 (more), 9-12 (between). A count typed after the components works too.</source>
+        <translation>Type components in the box, or click them in the Components tab: the results follow as you pick. Strokes limits the stroke count of the whole character: 12 (exactly), &amp;lt;12 (fewer), &amp;gt;8 (more), 9-12 (between). A count typed after the components works too.</translation>
+    </message>
+    <message>
+        <source>Results are sorted by stroke count, then by first stroke 一 丨 丿 丶 乛. Click one to examine it.</source>
+        <translation>Results are sorted by stroke count, then by first stroke 一 丨 丿 丶 乛. Click one to examine it.</translation>
+    </message>
+    <message>
+        <source>木 and Strokes 8  →  林 松 枝 板 …</source>
+        <translation>木 and Strokes 8  →  林 松 枝 板 …</translation>
+    </message>
 </context>
 </TS>

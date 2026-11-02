@@ -12,12 +12,14 @@
 
 #include <QAbstractScrollArea>
 #include <QDialog>
+#include <QFrame>
 #include <QHash>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QRect>
 #include <QSet>
 #include <QSize>
+#include <QToolButton>
 #include <QString>
 #include <QWidget>
 #include <memory>
@@ -31,6 +33,7 @@
 #include "composer_ids/ids_tree.h"
 #include "gui/character_composer/composer_kage.h"
 
+class QAction;
 class QButtonGroup;
 class QCheckBox;
 class QComboBox;
@@ -41,9 +44,8 @@ class QLabel;
 class QListWidget;
 class QListWidgetItem;
 class QPushButton;
-class QSpinBox;
+class QStackedWidget;
 class QTimer;
-class QToolButton;
 class QVBoxLayout;
 
 namespace mozc {
@@ -265,14 +267,47 @@ class ComponentCatalogue : public QAbstractScrollArea {
   QSet<QString> dimmed_;
 };
 
-// The "Components…" window: common components grouped by stroke count. A
-// click toggles the component in the search field (through the dialog);
-// components that would leave no result can be greyed out.
-class ComponentsPopup : public QDialog {
+// A small circled "i" (painted, like the info buttons in Preferences) that
+// opens a ComposerInfoPopover.
+class ComposerInfoButton : public QToolButton {
   Q_OBJECT
 
  public:
-  explicit ComponentsPopup(QWidget *parent);
+  ComposerInfoButton(const QString &accessible_name, QWidget *parent);
+
+ protected:
+  void paintEvent(QPaintEvent *event) override;
+};
+
+// The explanation an info button opens: a title, a body (rich text) and an
+// optional example line. Closes on Escape or a click elsewhere.
+class ComposerInfoPopover : public QFrame {
+  Q_OBJECT
+
+ public:
+  explicit ComposerInfoPopover(QWidget *parent);
+  void ShowFor(const QString &title, const QString &body, const QString &example,
+               const QRect &global_anchor);
+  QString title() const;
+
+ protected:
+  void keyPressEvent(QKeyEvent *event) override;
+
+ private:
+  QLabel *title_ = nullptr;
+  QLabel *body_ = nullptr;
+  QLabel *example_ = nullptr;
+};
+
+// The Components tab of the middle column: common components grouped by
+// stroke count. A click toggles the component in the search field (through
+// the dialog), so the results on the right update while the user picks;
+// components that would leave no result can be greyed out.
+class ComponentsPanel : public QWidget {
+  Q_OBJECT
+
+ public:
+  explicit ComponentsPanel(QWidget *parent);
 
   // Where the first strokes of the common components come from (for the
   // "First stroke" buttons); may be null, then those components are not
@@ -281,20 +316,20 @@ class ComponentsPopup : public QDialog {
   ComponentCatalogue *catalogue() const { return catalogue_; }
 
   // Highlights the components currently in the search field, and disables
-  // those in |unavailable| (ignored unless "Grey out" is ticked).
+  // those in |unavailable| (ignored unless "Dim unavailable" is ticked).
   void SetState(const std::vector<std::string> &selected,
                 const std::vector<std::string> &unavailable);
   // Every component the window offers, as shown (variants included or not).
   std::vector<std::string> ShownComponents() const;
   bool grey_out_unavailable() const;
-  // For screenshots: "Difficult components", the stroke box text, and the
-  // first-stroke buttons as a bit mask (bit 0 = 一 … bit 4 = 乛).
-  void SetFilters(bool difficult, const QString &strokes, int first_stroke_mask);
+  // For screenshots: "Difficult components" and the first-stroke buttons as
+  // a bit mask (bit 0 = 一 … bit 4 = 乛).
+  void SetFilters(bool difficult, int first_stroke_mask);
 
  signals:
   void componentToggled(const QString &component);
-  // "Show radical variants", "Show difficult components", a first stroke or
-  // "Grey out" changed.
+  // "Radical variants", "Difficult components", a first stroke or "Dim
+  // unavailable" changed.
   void optionsChanged();
 
  protected:
@@ -303,20 +338,17 @@ class ComponentsPopup : public QDialog {
  private:
   void ApplyTheme();
   void Rebuild(bool keep_position);
-  // Whether |ch|, in the row of |group_strokes| strokes, passes "Show difficult
-  // components", the first-stroke buttons and the stroke box.
-  bool Wanted(const std::string &ch, int group_strokes) const;
+  // Whether |ch| passes "Difficult components" and the first-stroke buttons.
+  bool Wanted(const std::string &ch) const;
 
   const composer_ids::IdsTable *table_ = nullptr;
   ComponentCatalogue *catalogue_ = nullptr;
-  QCheckBox *variants_check_ = nullptr;
-  QCheckBox *grey_out_check_ = nullptr;
-  QCheckBox *hard_check_ = nullptr;
+  // In the View menu.
+  QAction *variants_action_ = nullptr;
+  QAction *grey_out_action_ = nullptr;
+  QAction *hard_action_ = nullptr;
   bool applying_theme_ = false;
-  QWidget *controls_ = nullptr;
   std::vector<QToolButton *> first_stroke_buttons_;  // 一 丨 丿 丶 乛
-  QLineEdit *stroke_edit_ = nullptr;                // "12", "9-12", "<12" …
-  QTimer *stroke_timer_ = nullptr;                  // debounces the stroke box
   std::vector<std::string> selected_;
   std::vector<std::string> unavailable_;
 };
@@ -351,8 +383,9 @@ class CharacterComposerDialog : public QDialog {
   // Run "Find by components" with |components| and optionally activate result
   // |result_index| (0-based). Negative index leaves composition active.
   void RunComponentSearch(const std::string &components, int result_index);
-  // Opens the Components window at |size| with the given filters (see
-  // ComponentsPopup::SetFilters), and saves a picture of it to |path|.
+  // Resizes the composer to |size|, opens the Components tab with the given
+  // filters (see ComponentsPanel::SetFilters) and |strokes| in the Strokes
+  // field; SaveComponentsPicture saves a picture of the composer to |path|.
   void OpenComponentsForDemo(const QSize &size, bool difficult, const QString &strokes,
                              int first_stroke_mask);
   bool SaveComponentsPicture(const QString &path);
@@ -367,10 +400,10 @@ class CharacterComposerDialog : public QDialog {
   void OnContainingPicked(QListWidgetItem *item);
   void OnSubmitRequested();
   void OnIdsEdited(const QString &text);
-  void OnIdsInfoToggled(bool checked);
+  void ShowInfo(QWidget *anchor);
   void OnReturnToComposition();
   void OnClearSearchSelection();
-  void OnToggleComponentsPopup();
+  void OnShowComponentsTab();
   void OnComponentToggled(const QString &component);
 
  protected:
@@ -402,9 +435,11 @@ class CharacterComposerDialog : public QDialog {
   // Writes DraftIds into the IDS entry box. Skips while the user is typing
   // there, unless |force|.
   void SyncIdsEditFromEditor(bool force = false);
-  // The query typed in the field, with the stroke boxes folded in.
+  // The query typed in the field, with the Strokes field folded in.
   composer_ids::LookupQuery CurrentQuery() const;
-  void UpdateComponentsPopup();
+  void UpdateComponentsPanel();
+  // 0: the Character page of the middle column, 1: the Components page.
+  void ShowMiddlePage(int page);
 
   std::unique_ptr<composer_ids::IdsTable> table_;
   std::unique_ptr<composer_ids::CharInfoTable> char_info_;  // Unihan display; may be null
@@ -416,8 +451,13 @@ class CharacterComposerDialog : public QDialog {
   QWidget *discover_panel_ = nullptr;
   QLabel *component_roles_label_ = nullptr;
   QLineEdit *ids_edit_ = nullptr;
-  QToolButton *ids_info_button_ = nullptr;
-  QLabel *ids_info_panel_ = nullptr;
+  ComposerInfoButton *ids_info_button_ = nullptr;
+  ComposerInfoButton *decompose_info_button_ = nullptr;
+  ComposerInfoButton *find_info_button_ = nullptr;
+  ComposerInfoPopover *info_popover_ = nullptr;
+  QStackedWidget *middle_stack_ = nullptr;
+  QPushButton *character_tab_ = nullptr;
+  QPushButton *components_tab_ = nullptr;
   QLabel *active_state_label_ = nullptr;
   QLabel *char_label_ = nullptr;
   QWidget *specimen_group_ = nullptr;
@@ -444,11 +484,10 @@ class CharacterComposerDialog : public QDialog {
   QLineEdit *containing_edit_ = nullptr;
   QListWidget *results_list_ = nullptr;
   QLabel *results_status_ = nullptr;
-  QSpinBox *stroke_min_ = nullptr;
-  QSpinBox *stroke_max_ = nullptr;
-  QPushButton *components_button_ = nullptr;
-  ComponentsPopup *components_popup_ = nullptr;
-  QTimer *popup_timer_ = nullptr;
+  QLineEdit *stroke_edit_ = nullptr;  // "12", "<12", ">8", "9-12"; empty: any
+  QTimer *stroke_timer_ = nullptr;    // searches after a pause in typing
+  ComponentsPanel *components_panel_ = nullptr;
+  QTimer *panel_timer_ = nullptr;
   // Components that find nothing for the query in |unavailable_key_|.
   std::string unavailable_key_;
   std::vector<std::string> unavailable_cache_;

@@ -10,6 +10,20 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+Character composer layout changes since 0.0.20-rc7:
+
+- **Components tab beside the results:** the components picker is no longer
+  a separate window but a Components tab next to the Character tab in the
+  middle column. Its own stroke filter is gone, and Radical variants,
+  Difficult components and Dim unavailable moved to a View menu.
+- **One Strokes field** (`12`, `<12`, `>8`, `9-12`) replaces the from/to stroke
+  boxes.
+- **Info buttons:** circled ⓘ buttons explain the IDS box, Decompose and Find
+  by components.
+- The **Construct column** is narrower and lighter (fixed width, no tinted
+  background), and each structure button shows a sample character under its
+  icon.
+
 ### Release candidate 0.0.20-rc7
 
 Everything in 0.0.20-rc6 plus changes to the character composer's Components…
