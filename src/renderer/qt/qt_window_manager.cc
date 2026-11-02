@@ -81,6 +81,50 @@ QBrush QBrushFromColor(const RendererStyle::RGBAColor& rgba) {
   return QBrush(QColorFromColor(rgba));
 }
 
+// Gaps around the footer logo, in pixels.
+constexpr int kLogoLeftMargin = 4;
+constexpr int kLogoRightMargin = 8;
+
+#ifndef MOZC_QT_RENDERER_RESOURCE_DIR
+#define MOZC_QT_RENDERER_RESOURCE_DIR ""
+#endif  // MOZC_QT_RENDERER_RESOURCE_DIR
+
+// Loads the footer logo named by the style (an SVG next to the toolbar icons),
+// scaled to fit the footer the way the macOS candidate window does: at most
+// 120x24 at the 14 pt reference size, rasterised at the screen's pixel ratio
+// so the thin strokes of the wordmark stay sharp. Returns a null pixmap when
+// the style names no logo or Qt has no SVG image plugin.
+QPixmap LoadFooterLogo(const RendererStyle& style) {
+  if (!style.has_logo_svg_file_name()) {
+    return QPixmap();
+  }
+  // The package installs the toolbar SVGs flat into the resource directory,
+  // so only the file name of the style's (bundle-relative) path is used.
+  const QString path =
+      QString::fromUtf8(MOZC_QT_RENDERER_RESOURCE_DIR) + QStringLiteral("/") +
+      QFileInfo(QString::fromStdString(style.logo_svg_file_name())).fileName();
+  QImageReader reader(path);
+  const QSize natural = reader.size();
+  if (!natural.isValid() || natural.isEmpty()) {
+    return QPixmap();
+  }
+  const double font_scale = style.candidate_style().font_size() / 14.0;
+  const double scale = std::min(120.0 * font_scale / natural.width(),
+                                24.0 * font_scale / natural.height());
+  const QSize logical(std::max(1, static_cast<int>(natural.width() * scale)),
+                      std::max(1, static_cast<int>(natural.height() * scale)));
+  const QScreen* screen = QGuiApplication::primaryScreen();
+  const qreal ratio = screen != nullptr ? screen->devicePixelRatio() : 1.0;
+  reader.setScaledSize(logical * ratio);
+  QImage image = reader.read();
+  if (image.isNull()) {
+    return QPixmap();
+  }
+  QPixmap pixmap = QPixmap::fromImage(std::move(image));
+  pixmap.setDevicePixelRatio(ratio);
+  return pixmap;
+}
+
 // Frameless popups get no shadow from any window manager -- there is nothing
 // for one to decorate -- so the candidate and infolist windows used to sit on
 // whatever was behind them with no visible edge. Qt clips a
@@ -187,6 +231,21 @@ void CandidateTableDelegate::paint(QPainter* painter,
     painter->fillRect(rect, gradient);
   }
   QStyledItemDelegate::paint(painter, option, index);
+
+  // The logo spans several columns, so it is drawn with the last cell of the
+  // footer row, after every cell has painted its own background.
+  if (!logo_.isNull() && index.row() == index.model()->rowCount() - 1 &&
+      index.column() == index.model()->columnCount() - 1) {
+    const auto* view = qobject_cast<const QAbstractItemView*>(option.widget);
+    if (view != nullptr) {
+      const QSizeF size = logo_.deviceIndependentSize();
+      const int content_top =
+          option.rect.top() + separator_colors_.size();
+      const qreal y = content_top + (option.rect.bottom() + 1 - content_top -
+                                     size.height()) / 2;
+      painter->drawPixmap(QPointF(kLogoLeftMargin, std::round(y)), logo_);
+    }
+  }
 
   // The focused row is surrounded by a 1-pixel frame, as in the Windows
   // renderer. Each cell draws its own part of the frame.
@@ -305,7 +364,9 @@ void QtWindowManager::ApplyStyleToWidgets() {
     table->setStyleSheet(sheet);
   }
 
+  logo_ = LoadFooterLogo(style_);
   if (candidate_delegate_ != nullptr) {
+    candidate_delegate_->SetLogo(logo_);
     candidate_delegate_->SetGradientColors(
         QColorFromColor(style_.footer_top_color()),
         QColorFromColor(style_.footer_bottom_color()));
@@ -579,7 +640,8 @@ void FillCandidateHighlight(const commands::CandidateWindow& candidate_window,
 }
 
 void FillCandidateWindow(const commands::CandidateWindow& candidate_window,
-                         const RendererStyle& style, QTableWidget* table) {
+                         const RendererStyle& style, const QPixmap& logo,
+                         QTableWidget* table) {
   const size_t cands_size = candidate_window.candidate_size();
   table->clear();
   table->setRowCount(cands_size + 1);  // +1 is for footer.
@@ -682,11 +744,39 @@ void FillCandidateWindow(const commands::CandidateWindow& candidate_window,
       max_width1 = std::max(max_width1, label_width);
     }
   }
+  // The logo sits at the left of the footer, so the window has to be wide
+  // enough for it next to the index guide, and the label (centred in the
+  // remaining columns) has to start after it.
+  int logo_height = 0;
+  if (!logo.isNull()) {
+    const QSizeF logo_size = logo.deviceIndependentSize();
+    logo_height = static_cast<int>(std::ceil(logo_size.height()));
+    const int reserved =
+        kLogoLeftMargin + static_cast<int>(std::ceil(logo_size.width())) +
+        kLogoRightMargin;
+    max_width1 = std::max(max_width1, reserved - kColumn0Width);
+    if (label_style != nullptr) {
+      const int label_width = GetItemWidth(*table->item(
+          cands_size, index_guide.empty() ? 0 : 1));
+      if (index_guide.empty()) {
+        // Centred across the whole width: needs the reserved space twice.
+        const int deficit = label_width + 2 * reserved -
+                            (kColumn0Width + max_width1 + max_width2 +
+                             kColumn3Width);
+        max_width1 += std::max(deficit, 0);
+      } else {
+        max_width1 = std::max(
+            max_width1, label_width + 2 * std::max(reserved - kColumn0Width, 0));
+      }
+    }
+  }
+
   // The separator lines drawn by CandidateTableDelegate consume the top
   // pixels of the footer cell; enlarge the row so that the visible footer
   // content area keeps its height.
   const int footer_height =
-      GetItemHeight(*footer2) + style.footer_border_colors_size();
+      std::max(GetItemHeight(*footer2), logo_height + kMarginHeight) +
+      style.footer_border_colors_size();
   table->setRowHeight(cands_size, footer_height);
   total_height += footer_height;
 
@@ -784,7 +874,7 @@ Rect QtWindowManager::UpdateCandidateWindow(
       command.output().candidate_window();
 
   if (IsUpdated(prev_command_, command)) {
-    FillCandidateWindow(candidate_window, style_, candidates_);
+    FillCandidateWindow(candidate_window, style_, logo_, candidates_);
     const Size win_size(candidates_->width(), candidates_->height());
     const Point win_pos = GetWindowPosition(command, win_size);
     MoveContent(candidates_, win_pos.x, win_pos.y);

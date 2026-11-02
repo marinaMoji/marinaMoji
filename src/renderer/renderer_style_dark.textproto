@@ -70,6 +70,7 @@ footer_border_colors { r: 74 g: 74 b: 74 }
 footer_top_color { r: 33 g: 33 b: 33 }
 footer_bottom_color { r: 33 g: 33 b: 33 }
 logo_file_name: "candidate_window_logo.tiff"
+logo_svg_file_name: "toolbar_icons/logo_long_dark.svg"
 focused_background_color { r: 61 g: 61 b: 61 }
 focused_border_color { r: 85 g: 85 b: 85 }
 scrollbar_background_color { r: 53 g: 53 b: 53 }

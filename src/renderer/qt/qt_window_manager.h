@@ -76,10 +76,15 @@ class CandidateTableDelegate : public QStyledItemDelegate {
     infolist_marker_color_ = color;
   }
 
+  // The brand logo drawn at the left of the footer row. A null pixmap draws
+  // nothing.
+  void SetLogo(QPixmap logo) { logo_ = std::move(logo); }
+
   void paint(QPainter* painter, const QStyleOptionViewItem& option,
              const QModelIndex& index) const override;
 
  private:
+  QPixmap logo_;
   QColor top_;
   QColor bottom_;
   QList<QColor> separator_colors_;
@@ -165,6 +170,8 @@ class QtWindowManager {
   RendererStyleHandler::ColorTheme color_theme_ =
       RendererStyleHandler::ColorTheme::kLight;
   RendererStyle style_;
+  // Footer logo for the current theme; null when the SVG cannot be loaded.
+  QPixmap logo_;
   commands::RendererCommand prev_command_;
   client::SendCommandInterface *send_command_interface_ = nullptr;
 };
