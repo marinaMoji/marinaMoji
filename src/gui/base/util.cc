@@ -129,6 +129,9 @@ void SyncFusionColorSchemeFromSystem() {
     return;
   }
 #ifdef __APPLE__
+  // A running process caches preferences; without this a switch made after
+  // launch is never seen.
+  CFPreferencesAppSynchronize(kCFPreferencesAnyApplication);
   CFPropertyListRef ref = CFPreferencesCopyAppValue(
       CFSTR("AppleInterfaceStyle"), kCFPreferencesAnyApplication);
   if (ref == nullptr) {
@@ -148,6 +151,20 @@ void SyncFusionColorSchemeFromSystem() {
   QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Unknown);
 #endif  // __APPLE__
 }
+
+#ifdef __APPLE__
+// SyncFusionColorSchemeFromSystem() pins Qt's colour scheme, so Qt no longer
+// follows the system by itself: re-run it when macOS announces a light/dark
+// switch (this also fires the colorSchemeChanged() windows listen to).
+void InstallAppearanceChangeObserver() {
+  CFNotificationCenterAddObserver(
+      CFNotificationCenterGetDistributedCenter(), nullptr,
+      [](CFNotificationCenterRef, void *, CFNotificationName, const void *,
+         CFDictionaryRef) { SyncFusionColorSchemeFromSystem(); },
+      CFSTR("AppleInterfaceThemeChangedNotification"), nullptr,
+      CFNotificationSuspensionBehaviorDeliverImmediately);
+}
+#endif  // __APPLE__
 #endif  // Qt >= 6.5
 
 // static
@@ -161,6 +178,9 @@ std::unique_ptr<QApplication> GuiUtil::InitQt(int &argc, char *argv[]) {
 #endif  // __APPLE__
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
   SyncFusionColorSchemeFromSystem();
+#ifdef __APPLE__
+  InstallAppearanceChangeObserver();
+#endif  // __APPLE__
 #endif  // Qt >= 6.5
 
   InstallEventFilter();
