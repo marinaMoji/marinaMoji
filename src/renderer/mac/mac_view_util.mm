@@ -190,7 +190,10 @@ NSImage *RasterizeLogoAtDisplaySize(NSImage *source, NSSize point_size, CGFloat 
               hints:nil];
   [NSGraphicsContext restoreGraphicsState];
 
-  NSImage *result = [[NSImage alloc] initWithSize:point_size];
+  // Declare the rep's size in points so AppKit treats it as a |scale|x image
+  // and draws it 1 pixel to 1 pixel instead of resampling.
+  bitmap.size = NSMakeSize(static_cast<CGFloat>(px) / scale, static_cast<CGFloat>(py) / scale);
+  NSImage *result = [[NSImage alloc] initWithSize:bitmap.size];
   [result addRepresentation:bitmap];
   return result;
 }

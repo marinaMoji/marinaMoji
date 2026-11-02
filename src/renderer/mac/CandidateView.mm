@@ -467,7 +467,13 @@ using mozc::renderer::mac::MacViewUtil;
     NSPoint logoPoint = footerRect.origin;
     logoPoint.x += 4.0 * font_scale;
     logoPoint.y += (footerRect.size.height - logoSize.height) / 2;
-    const NSRect logoRect = NSMakeRect(logoPoint.x, logoPoint.y, logoSize.width, logoSize.height);
+    NSRect logoRect = NSMakeRect(logoPoint.x, logoPoint.y, logoSize.width, logoSize.height);
+    // Snap to device pixels: a half-pixel origin resamples the bitmap and
+    // blurs the thin strokes of the wordmark.
+    NSRect backingRect = [self convertRectToBacking:logoRect];
+    backingRect.origin.x = round(backingRect.origin.x);
+    backingRect.origin.y = round(backingRect.origin.y);
+    logoRect = [self convertRectFromBacking:backingRect];
     [logoImage_ drawInRect:logoRect
                     fromRect:NSZeroRect   // Draw the entire image
                   operation:NSCompositingOperationSourceOver
