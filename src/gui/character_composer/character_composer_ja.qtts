@@ -455,5 +455,81 @@
         <source>to</source>
         <translation>〜</translation>
     </message>
+    <message>
+        <source>%1 more are hidden because no installed font can draw them.</source>
+        <translation>%1 字は、表示できるフォントがインストールされていないため非表示です。</translation>
+    </message>
+    <message>
+        <source>No installed font can draw the %1 characters found.</source>
+        <translation>見つかった %1 字を表示できるフォントがインストールされていません。</translation>
+    </message>
+    <message>
+        <source>Show difficult components</source>
+        <translation>難しい部品を表示</translation>
+    </message>
+    <message>
+        <source>First stroke:</source>
+        <translation>第一画：</translation>
+    </message>
+    <message>
+        <source>First stroke: %1</source>
+        <translation>第一画：%1</translation>
+    </message>
+    <message>
+        <source>horizontal 一</source>
+        <translation>横画 一</translation>
+    </message>
+    <message>
+        <source>vertical 丨</source>
+        <translation>縦画 丨</translation>
+    </message>
+    <message>
+        <source>left-falling 丿</source>
+        <translation>左払い 丿</translation>
+    </message>
+    <message>
+        <source>dot 丶</source>
+        <translation>点 丶</translation>
+    </message>
+    <message>
+        <source>turning 乛</source>
+        <translation>折れ 乛</translation>
+    </message>
+    <message>
+        <source>Strokes of the component: 12, 9-12, &lt;12, &gt;8, &lt;=12, &gt;=8</source>
+        <translation>部品の画数：12、9-12、&lt;12、&gt;8、&lt;=12、&gt;=8</translation>
+    </message>
+    <message>
+        <source>First stroke</source>
+        <translation>第一画</translation>
+    </message>
+    <message>
+        <source>Radical variants</source>
+        <translation>部首の異体</translation>
+    </message>
+    <message>
+        <source>Difficult components</source>
+        <translation>難しい部品</translation>
+    </message>
+    <message>
+        <source>Dim unavailable</source>
+        <translation>該当なしを淡色表示</translation>
+    </message>
+    <message>
+        <source>%1 stroke</source>
+        <translation>%1画</translation>
+    </message>
+    <message>
+        <source>%1 strokes</source>
+        <translation>%1画</translation>
+    </message>
+    <message>
+        <source>selected</source>
+        <translation>選択中</translation>
+    </message>
+    <message>
+        <source>finds nothing</source>
+        <translation>該当なし</translation>
+    </message>
 </context>
 </TS>

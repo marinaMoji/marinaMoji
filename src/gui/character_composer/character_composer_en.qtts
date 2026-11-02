@@ -455,5 +455,81 @@
         <source>to</source>
         <translation>to</translation>
     </message>
+    <message>
+        <source>%1 more are hidden because no installed font can draw them.</source>
+        <translation>%1 more are hidden because no installed font can draw them.</translation>
+    </message>
+    <message>
+        <source>No installed font can draw the %1 characters found.</source>
+        <translation>No installed font can draw the %1 characters found.</translation>
+    </message>
+    <message>
+        <source>Show difficult components</source>
+        <translation>Show difficult components</translation>
+    </message>
+    <message>
+        <source>First stroke:</source>
+        <translation>First stroke:</translation>
+    </message>
+    <message>
+        <source>First stroke: %1</source>
+        <translation>First stroke: %1</translation>
+    </message>
+    <message>
+        <source>horizontal 一</source>
+        <translation>horizontal 一</translation>
+    </message>
+    <message>
+        <source>vertical 丨</source>
+        <translation>vertical 丨</translation>
+    </message>
+    <message>
+        <source>left-falling 丿</source>
+        <translation>left-falling 丿</translation>
+    </message>
+    <message>
+        <source>dot 丶</source>
+        <translation>dot 丶</translation>
+    </message>
+    <message>
+        <source>turning 乛</source>
+        <translation>turning 乛</translation>
+    </message>
+    <message>
+        <source>Strokes of the component: 12, 9-12, &lt;12, &gt;8, &lt;=12, &gt;=8</source>
+        <translation>Strokes of the component: 12, 9-12, &lt;12, &gt;8, &lt;=12, &gt;=8</translation>
+    </message>
+    <message>
+        <source>First stroke</source>
+        <translation>First stroke</translation>
+    </message>
+    <message>
+        <source>Radical variants</source>
+        <translation>Radical variants</translation>
+    </message>
+    <message>
+        <source>Difficult components</source>
+        <translation>Difficult components</translation>
+    </message>
+    <message>
+        <source>Dim unavailable</source>
+        <translation>Dim unavailable</translation>
+    </message>
+    <message>
+        <source>%1 stroke</source>
+        <translation>%1 stroke</translation>
+    </message>
+    <message>
+        <source>%1 strokes</source>
+        <translation>%1 strokes</translation>
+    </message>
+    <message>
+        <source>selected</source>
+        <translation>selected</translation>
+    </message>
+    <message>
+        <source>finds nothing</source>
+        <translation>finds nothing</translation>
+    </message>
 </context>
 </TS>

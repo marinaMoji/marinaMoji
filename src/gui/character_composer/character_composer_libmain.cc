@@ -307,6 +307,42 @@ int RunCharacterComposer(int argc, char *argv[]) {
     });
   }
 
+  // Optional capture of the Components window:
+  //   MARINAMOJI_COMPONENTS_SCREENSHOT=/path/out.png
+  //   MARINAMOJI_COMPOSER_DEMO_SEARCH=木     (components to select; dims the rest)
+  //   MARINAMOJI_COMPONENTS_SIZE=660x640     (optional)
+  //   MARINAMOJI_COMPONENTS_DIFFICULT=1      (optional)
+  //   MARINAMOJI_COMPONENTS_STROKES=9-12     (optional)
+  //   MARINAMOJI_COMPONENTS_FIRST=3          (optional bit mask: 1=一 … 16=乛)
+  if (const char *shot = std::getenv("MARINAMOJI_COMPONENTS_SCREENSHOT");
+      shot != nullptr && shot[0] != '\0') {
+    const QString shot_path = QString::fromUtf8(shot);
+    auto env = [](const char *name) {
+      const char *value = std::getenv(name);
+      return value != nullptr ? QString::fromUtf8(value) : QString();
+    };
+    QSize size(660, 640);
+    const QStringList parts = env("MARINAMOJI_COMPONENTS_SIZE").toLower().split(
+        QLatin1Char('x'), Qt::SkipEmptyParts);
+    if (parts.size() == 2 && parts[0].toInt() > 200 && parts[1].toInt() > 200) {
+      size = QSize(parts[0].toInt(), parts[1].toInt());
+    }
+    const bool difficult = !env("MARINAMOJI_COMPONENTS_DIFFICULT").isEmpty();
+    const QString strokes = env("MARINAMOJI_COMPONENTS_STROKES");
+    const int first_mask = env("MARINAMOJI_COMPONENTS_FIRST").toInt();
+    const QString search = env("MARINAMOJI_COMPOSER_DEMO_SEARCH");
+    QTimer::singleShot(250, &dialog, [&dialog, size, difficult, strokes, first_mask, search]() {
+      if (!search.isEmpty()) dialog.RunComponentSearch(search.toStdString(), -1);
+      dialog.OpenComponentsForDemo(size, difficult, strokes, first_mask);
+    });
+    QTimer::singleShot(1200, &dialog, [&dialog, shot_path, app = app.get()]() {
+      if (!dialog.SaveComponentsPicture(shot_path)) {
+        LOG(ERROR) << "Cannot write screenshot to " << shot_path.toStdString();
+      }
+      app->quit();
+    });
+  }
+
   app->exec();
 
 #if defined(__linux__) && !defined(__ANDROID__)

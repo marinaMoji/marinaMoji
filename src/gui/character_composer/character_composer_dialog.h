@@ -10,10 +10,13 @@
 #ifndef MOZC_GUI_CHARACTER_COMPOSER_CHARACTER_COMPOSER_DIALOG_H_
 #define MOZC_GUI_CHARACTER_COMPOSER_CHARACTER_COMPOSER_DIALOG_H_
 
+#include <QAbstractScrollArea>
 #include <QDialog>
 #include <QHash>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QRect>
+#include <QSet>
 #include <QSize>
 #include <QString>
 #include <QWidget>
@@ -184,6 +187,84 @@ class LayoutEditor : public QWidget {
   const composer_ids::IdsTable *table_ = nullptr;
 };
 
+// The scrolling catalogue inside the Components window: borderless components
+// in a grid under one heading per stroke count (1 STROKE, 2 STROKES …), drawn
+// directly rather than as hundreds of buttons. The columns follow the width;
+// the glyphs keep their size.
+class ComponentCatalogue : public QAbstractScrollArea {
+  Q_OBJECT
+
+ public:
+  struct Section {
+    int strokes = 0;
+    std::vector<QString> components;
+  };
+
+  explicit ComponentCatalogue(QWidget *parent);
+
+  // Replaces the sections. With |keep_position| the view stays at the section
+  // that was at the top (or the next one if it is gone); otherwise it goes to
+  // the start.
+  void SetSections(std::vector<Section> sections, bool keep_position);
+  // |selected| components are marked; |dimmed| ones are drawn faint and cannot
+  // be clicked.
+  void SetState(const QSet<QString> &selected, const QSet<QString> &dimmed);
+
+  // For tests: what the catalogue shows, and the same toggle a click makes.
+  bool Contains(const QString &component) const;
+  bool IsSelected(const QString &component) const { return selected_.contains(component); }
+  bool IsDimmed(const QString &component) const;
+  bool Activate(const QString &component);
+
+  QSize sizeHint() const override { return QSize(640, 520); }
+  QSize minimumSizeHint() const override { return QSize(300, 200); }
+
+ signals:
+  void componentClicked(const QString &component);
+
+ protected:
+  void paintEvent(QPaintEvent *event) override;
+  void resizeEvent(QResizeEvent *event) override;
+  void mouseMoveEvent(QMouseEvent *event) override;
+  void mousePressEvent(QMouseEvent *event) override;
+  void mouseReleaseEvent(QMouseEvent *event) override;
+  void leaveEvent(QEvent *event) override;
+  void keyPressEvent(QKeyEvent *event) override;
+  void focusInEvent(QFocusEvent *event) override;
+  void focusOutEvent(QFocusEvent *event) override;
+
+ private:
+  struct Cell {
+    QString text;
+    int strokes = 0;
+    QRect rect;  // in content coordinates (before scrolling)
+  };
+  struct Heading {
+    int strokes = 0;
+    QRect rect;
+  };
+
+  void Relayout();
+  int CellAt(const QPoint &viewport_pos) const;
+  void EnsureVisible(int cell);
+  void MoveCurrent(int cell);
+  bool Dimmed(int cell) const;
+  QString AccessibleText(int cell) const;
+
+  std::vector<Section> sections_;
+  std::vector<Cell> cells_;
+  std::vector<Heading> headings_;
+  std::vector<std::vector<int>> rows_;  // cell indices of each grid row
+  int content_height_ = 0;
+  int hover_ = -1;
+  int current_ = -1;  // the keyboard cursor
+  int pressed_ = -1;
+  bool show_focus_ring_ = false;  // keyboard focus only, not after a click
+  QFont glyph_font_;
+  QSet<QString> selected_;
+  QSet<QString> dimmed_;
+};
+
 // The "Components…" window: common components grouped by stroke count. A
 // click toggles the component in the search field (through the dialog);
 // components that would leave no result can be greyed out.
@@ -197,6 +278,7 @@ class ComponentsPopup : public QDialog {
   // "First stroke" buttons); may be null, then those components are not
   // matched by a first stroke. Not owned.
   void set_table(const composer_ids::IdsTable *table) { table_ = table; }
+  ComponentCatalogue *catalogue() const { return catalogue_; }
 
   // Highlights the components currently in the search field, and disables
   // those in |unavailable| (ignored unless "Grey out" is ticked).
@@ -205,31 +287,36 @@ class ComponentsPopup : public QDialog {
   // Every component the window offers, as shown (variants included or not).
   std::vector<std::string> ShownComponents() const;
   bool grey_out_unavailable() const;
+  // For screenshots: "Difficult components", the stroke box text, and the
+  // first-stroke buttons as a bit mask (bit 0 = 一 … bit 4 = 乛).
+  void SetFilters(bool difficult, const QString &strokes, int first_stroke_mask);
 
  signals:
   void componentToggled(const QString &component);
-  void clearRequested();
   // "Show radical variants", "Show difficult components", a first stroke or
   // "Grey out" changed.
   void optionsChanged();
 
+ protected:
+  void changeEvent(QEvent *event) override;
+
  private:
-  void Rebuild();
+  void ApplyTheme();
+  void Rebuild(bool keep_position);
   // Whether |ch|, in the row of |group_strokes| strokes, passes "Show difficult
   // components", the first-stroke buttons and the stroke box.
   bool Wanted(const std::string &ch, int group_strokes) const;
 
   const composer_ids::IdsTable *table_ = nullptr;
-  QGridLayout *grid_ = nullptr;
-  QWidget *grid_host_ = nullptr;
+  ComponentCatalogue *catalogue_ = nullptr;
   QCheckBox *variants_check_ = nullptr;
   QCheckBox *grey_out_check_ = nullptr;
   QCheckBox *hard_check_ = nullptr;
-  std::vector<QToolButton *> first_stroke_buttons_;  // 橫 豎 撇 點 折
+  bool applying_theme_ = false;
+  QWidget *controls_ = nullptr;
+  std::vector<QToolButton *> first_stroke_buttons_;  // 一 丨 丿 丶 乛
   QLineEdit *stroke_edit_ = nullptr;                // "12", "9-12", "<12" …
   QTimer *stroke_timer_ = nullptr;                  // debounces the stroke box
-  QLabel *selected_label_ = nullptr;
-  QHash<QString, QToolButton *> buttons_;
   std::vector<std::string> selected_;
   std::vector<std::string> unavailable_;
 };
@@ -264,6 +351,11 @@ class CharacterComposerDialog : public QDialog {
   // Run "Find by components" with |components| and optionally activate result
   // |result_index| (0-based). Negative index leaves composition active.
   void RunComponentSearch(const std::string &components, int result_index);
+  // Opens the Components window at |size| with the given filters (see
+  // ComponentsPopup::SetFilters), and saves a picture of it to |path|.
+  void OpenComponentsForDemo(const QSize &size, bool difficult, const QString &strokes,
+                             int first_stroke_mask);
+  bool SaveComponentsPicture(const QString &path);
 
  private slots:
   void OnLayoutChanged();

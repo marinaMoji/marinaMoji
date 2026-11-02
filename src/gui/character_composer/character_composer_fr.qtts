@@ -455,5 +455,81 @@
         <source>to</source>
         <translation>à</translation>
     </message>
+    <message>
+        <source>%1 more are hidden because no installed font can draw them.</source>
+        <translation>%1 de plus sont masqués, car aucune police installée ne peut les afficher.</translation>
+    </message>
+    <message>
+        <source>No installed font can draw the %1 characters found.</source>
+        <translation>Aucune police installée ne peut afficher les %1 caractères trouvés.</translation>
+    </message>
+    <message>
+        <source>Show difficult components</source>
+        <translation>Afficher les composants difficiles</translation>
+    </message>
+    <message>
+        <source>First stroke:</source>
+        <translation>Premier trait :</translation>
+    </message>
+    <message>
+        <source>First stroke: %1</source>
+        <translation>Premier trait : %1</translation>
+    </message>
+    <message>
+        <source>horizontal 一</source>
+        <translation>horizontal 一</translation>
+    </message>
+    <message>
+        <source>vertical 丨</source>
+        <translation>vertical 丨</translation>
+    </message>
+    <message>
+        <source>left-falling 丿</source>
+        <translation>oblique vers la gauche 丿</translation>
+    </message>
+    <message>
+        <source>dot 丶</source>
+        <translation>point 丶</translation>
+    </message>
+    <message>
+        <source>turning 乛</source>
+        <translation>coudé 乛</translation>
+    </message>
+    <message>
+        <source>Strokes of the component: 12, 9-12, &lt;12, &gt;8, &lt;=12, &gt;=8</source>
+        <translation>Nombre de traits du composant : 12, 9-12, &lt;12, &gt;8, &lt;=12, &gt;=8</translation>
+    </message>
+    <message>
+        <source>First stroke</source>
+        <translation>Premier trait</translation>
+    </message>
+    <message>
+        <source>Radical variants</source>
+        <translation>Variantes des radicaux</translation>
+    </message>
+    <message>
+        <source>Difficult components</source>
+        <translation>Composants difficiles</translation>
+    </message>
+    <message>
+        <source>Dim unavailable</source>
+        <translation>Griser les indisponibles</translation>
+    </message>
+    <message>
+        <source>%1 stroke</source>
+        <translation>%1 trait</translation>
+    </message>
+    <message>
+        <source>%1 strokes</source>
+        <translation>%1 traits</translation>
+    </message>
+    <message>
+        <source>selected</source>
+        <translation>sélectionné</translation>
+    </message>
+    <message>
+        <source>finds nothing</source>
+        <translation>ne trouve rien</translation>
+    </message>
 </context>
 </TS>

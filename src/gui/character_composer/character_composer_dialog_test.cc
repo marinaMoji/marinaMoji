@@ -106,13 +106,6 @@ class CharacterComposerDialogTest : public ::testing::Test {
     return dialog;
   }
 
-  static QToolButton *ComponentButton(QWidget *popup, const QString &text) {
-    for (QToolButton *b : popup->findChildren<QToolButton *>()) {
-      if (b->text() == text) return b;
-    }
-    return nullptr;
-  }
-
   static QApplication *app_;
 };
 
@@ -351,24 +344,24 @@ TEST_F(CharacterComposerDialogTest, ComponentsPopupTogglesComponentsInTheSearch)
   Button(dialog.get(), "Components…")->click();
   EXPECT_TRUE(popup->isVisible());
 
-  ComponentButton(popup, QStringLiteral("木"))->click();
+  popup->catalogue()->Activate(QStringLiteral("木"));
   EXPECT_EQ(edit->text(), QStringLiteral("木"));
   EXPECT_EQ(Characters(list).size(), 3);
-  EXPECT_TRUE(ComponentButton(popup, QStringLiteral("木"))->isChecked());
+  EXPECT_TRUE(popup->catalogue()->IsSelected(QStringLiteral("木")));
 
-  ComponentButton(popup, QStringLiteral("目"))->click();
+  popup->catalogue()->Activate(QStringLiteral("目"));
   EXPECT_EQ(edit->text(), QStringLiteral("木 目"));
   EXPECT_EQ(Characters(list), QStringList({QStringLiteral("相")}));
   // Nothing holds 木, 目 and 言 together, so 言 is greyed out.
-  EXPECT_FALSE(ComponentButton(popup, QStringLiteral("言"))->isEnabled());
-  EXPECT_TRUE(ComponentButton(popup, QStringLiteral("目"))->isEnabled());
+  EXPECT_TRUE(popup->catalogue()->IsDimmed(QStringLiteral("言")));
+  EXPECT_FALSE(popup->catalogue()->IsDimmed(QStringLiteral("目")));
 
-  ComponentButton(popup, QStringLiteral("木"))->click();  // off again
+  popup->catalogue()->Activate(QStringLiteral("木"));  // off again
   EXPECT_EQ(edit->text(), QStringLiteral("目"));
-  EXPECT_FALSE(ComponentButton(popup, QStringLiteral("木"))->isChecked());
+  EXPECT_FALSE(popup->catalogue()->IsSelected(QStringLiteral("木")));
 
-  Button(popup, "Clear selection")->click();
-  EXPECT_TRUE(edit->text().isEmpty());
+  edit->clear();
+  Button(dialog.get(), "Find")->click();
   EXPECT_EQ(list->count(), 0);
 
   Button(dialog.get(), "Components…")->click();
@@ -379,13 +372,69 @@ TEST_F(CharacterComposerDialogTest, ComponentsPopupCanHideRadicalVariants) {
   auto dialog = MakeDialog();
   auto *popup = dialog->findChild<ComponentsPopup *>();
   ASSERT_NE(popup, nullptr);
-  EXPECT_NE(ComponentButton(popup, QStringLiteral("氵")), nullptr);
+  EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("氵")));
   for (QCheckBox *box : popup->findChildren<QCheckBox *>()) {
-    if (box->text().startsWith(QStringLiteral("Show radical variants"))) box->setChecked(false);
+    if (box->text() == QStringLiteral("Radical variants")) box->setChecked(false);
   }
   QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-  EXPECT_EQ(ComponentButton(popup, QStringLiteral("氵")), nullptr);
-  EXPECT_NE(ComponentButton(popup, QStringLiteral("水")), nullptr);
+  EXPECT_FALSE(popup->catalogue()->Contains(QStringLiteral("氵")));
+  EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("水")));
+}
+
+TEST_F(CharacterComposerDialogTest, ComponentsPopupShowsDifficultComponentsOnRequest) {
+  auto dialog = MakeDialog();
+  auto *popup = dialog->findChild<ComponentsPopup *>();
+  ASSERT_NE(popup, nullptr);
+  const QString hard = QStringLiteral("丅");  // from zi.tools' table, not a common one
+  EXPECT_FALSE(popup->catalogue()->Contains(hard));
+  for (QCheckBox *box : popup->findChildren<QCheckBox *>()) {
+    if (box->text() == QStringLiteral("Difficult components")) box->setChecked(true);
+  }
+  EXPECT_TRUE(popup->catalogue()->Contains(hard));
+  EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("木")));
+}
+
+TEST_F(CharacterComposerDialogTest, ComponentsPopupFiltersByFirstStroke) {
+  auto dialog = MakeDialog();
+  auto *popup = dialog->findChild<ComponentsPopup *>();
+  ASSERT_NE(popup, nullptr);
+  for (QCheckBox *box : popup->findChildren<QCheckBox *>()) {
+    if (box->text() == QStringLiteral("Difficult components")) box->setChecked(true);
+  }
+  // 丅 starts with a horizontal stroke and ⺊ with a vertical one (zi.tools).
+  EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("丅")));
+  EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("⺊")));
+  for (QToolButton *b : popup->findChildren<QToolButton *>(QStringLiteral("firstStrokeTile"))) {
+    if (b->text() == QStringLiteral("丨")) b->setChecked(true);
+  }
+  EXPECT_FALSE(popup->catalogue()->Contains(QStringLiteral("丅")));
+  EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("⺊")));
+}
+
+TEST_F(CharacterComposerDialogTest, ComponentsPopupFiltersByStrokeCount) {
+  auto dialog = MakeDialog();
+  auto *popup = dialog->findChild<ComponentsPopup *>();
+  ASSERT_NE(popup, nullptr);
+  auto *edit = popup->findChild<QLineEdit *>();
+  ASSERT_NE(edit, nullptr);
+  edit->setText(QStringLiteral("3"));
+  emit edit->returnPressed();
+  EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("口")));   // 3 strokes
+  EXPECT_FALSE(popup->catalogue()->Contains(QStringLiteral("木")));  // 4 strokes
+  edit->setText(QStringLiteral("<=4"));
+  emit edit->returnPressed();
+  EXPECT_TRUE(popup->catalogue()->Contains(QStringLiteral("木")));
+  EXPECT_FALSE(popup->catalogue()->Contains(QStringLiteral("竹")));
+}
+
+TEST_F(CharacterComposerDialogTest, ComponentsPopupClosesWithTheComposer) {
+  auto dialog = MakeDialog();
+  auto *popup = dialog->findChild<ComponentsPopup *>();
+  ASSERT_NE(popup, nullptr);
+  Button(dialog.get(), "Components…")->click();
+  EXPECT_TRUE(popup->isVisible());
+  dialog->reject();
+  EXPECT_FALSE(popup->isVisible());
 }
 
 TEST_F(CharacterComposerDialogTest, StrokeFilterWithoutStrokeDataSaysSo) {

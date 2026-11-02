@@ -37,6 +37,7 @@
 #include <QRegularExpression>
 #include <QResizeEvent>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSpinBox>
 #include <QSizePolicy>
 #include <QStyle>
@@ -1075,6 +1076,350 @@ std::string LayoutEditor::SelectedLayoutOp() const {
                                                                       : std::string();
 }
 
+// --- ComponentCatalogue -----------------------------------------------------
+
+namespace {
+
+constexpr int kCatCell = 32;          // cell width and height
+constexpr int kCatGap = 3;            // between cells, both ways
+constexpr int kCatMarginX = 16;
+constexpr int kCatTop = 8;
+constexpr int kCatHeading = 26;       // height of a stroke-count heading row
+constexpr int kCatSectionGap = 14;    // after the last row of a section
+constexpr int kCatBottom = 16;
+constexpr int kCatScrollbar = 13;     // always left free, so no reflow loop
+
+QString StrokeHeading(int strokes) {
+  const QString text = strokes == 1 ? Tr("%1 stroke") : Tr("%1 strokes");
+  return text.arg(strokes).toUpper();
+}
+
+QColor Mix(const QColor &a, const QColor &b, qreal amount_of_a) {
+  return QColor::fromRgbF(a.redF() * amount_of_a + b.redF() * (1 - amount_of_a),
+                          a.greenF() * amount_of_a + b.greenF() * (1 - amount_of_a),
+                          a.blueF() * amount_of_a + b.blueF() * (1 - amount_of_a));
+}
+
+}  // namespace
+
+ComponentCatalogue::ComponentCatalogue(QWidget *parent) : QAbstractScrollArea(parent) {
+  setObjectName(QStringLiteral("componentCatalogue"));
+  setFrameShape(QFrame::NoFrame);
+  setFocusPolicy(Qt::StrongFocus);
+  setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  setAccessibleName(Tr("Components"));
+  viewport()->setMouseTracking(true);
+  verticalScrollBar()->setSingleStep(kCatCell + kCatGap);
+  glyph_font_ = WithWideCoverage(theme::UiFont(18));  // 1.5x the 12 px controls
+}
+
+void ComponentCatalogue::SetSections(std::vector<Section> sections, bool keep_position) {
+  // The section at the top of the view, to come back to.
+  int anchor = -1;
+  if (keep_position) {
+    const int top = verticalScrollBar()->value();
+    for (const Heading &h : headings_) {
+      if (h.rect.top() - kCatTop <= top) anchor = h.strokes;
+    }
+  }
+  const QString current_text =
+      current_ >= 0 && current_ < static_cast<int>(cells_.size()) ? cells_[current_].text
+                                                                  : QString();
+  sections_ = std::move(sections);
+  hover_ = pressed_ = -1;
+  current_ = -1;
+  Relayout();
+  for (size_t i = 0; i < cells_.size(); ++i) {
+    if (cells_[i].text == current_text) current_ = static_cast<int>(i);
+  }
+  int target = 0;
+  if (anchor >= 0) {
+    for (const Heading &h : headings_) {
+      if (h.strokes >= anchor) {
+        target = std::max(0, h.rect.top() - kCatTop);
+        break;
+      }
+    }
+  }
+  verticalScrollBar()->setValue(target);
+  viewport()->update();
+}
+
+void ComponentCatalogue::SetState(const QSet<QString> &selected, const QSet<QString> &dimmed) {
+  selected_ = selected;
+  dimmed_ = dimmed;
+  viewport()->update();
+}
+
+void ComponentCatalogue::Relayout() {
+  cells_.clear();
+  headings_.clear();
+  rows_.clear();
+  const int usable = std::max(kCatCell, width() - 2 * kCatMarginX - kCatScrollbar);
+  const int columns = std::max(1, (usable + kCatGap) / (kCatCell + kCatGap));
+  int y = kCatTop;
+  for (const Section &section : sections_) {
+    if (section.components.empty()) continue;
+    headings_.push_back({section.strokes, QRect(kCatMarginX, y, usable, kCatHeading)});
+    y += kCatHeading;
+    int column = 0;
+    for (const QString &text : section.components) {
+      if (column == 0) rows_.emplace_back();
+      Cell cell;
+      cell.text = text;
+      cell.strokes = section.strokes;
+      cell.rect = QRect(kCatMarginX + column * (kCatCell + kCatGap), y, kCatCell, kCatCell);
+      rows_.back().push_back(static_cast<int>(cells_.size()));
+      cells_.push_back(std::move(cell));
+      if (++column == columns) {
+        column = 0;
+        y += kCatCell + kCatGap;
+      }
+    }
+    if (column != 0) y += kCatCell + kCatGap;
+    y += kCatSectionGap - kCatGap;
+  }
+  content_height_ = y + kCatBottom;
+  QScrollBar *bar = verticalScrollBar();
+  bar->setPageStep(viewport()->height());
+  bar->setRange(0, std::max(0, content_height_ - viewport()->height()));
+  if (current_ >= static_cast<int>(cells_.size())) current_ = -1;
+  viewport()->update();
+}
+
+void ComponentCatalogue::resizeEvent(QResizeEvent *event) {
+  QAbstractScrollArea::resizeEvent(event);
+  hover_ = -1;
+  Relayout();
+}
+
+bool ComponentCatalogue::Dimmed(int cell) const {
+  return cell >= 0 && dimmed_.contains(cells_[cell].text) && !selected_.contains(cells_[cell].text);
+}
+
+bool ComponentCatalogue::Contains(const QString &component) const {
+  for (const Cell &cell : cells_) {
+    if (cell.text == component) return true;
+  }
+  return false;
+}
+
+bool ComponentCatalogue::IsDimmed(const QString &component) const {
+  for (size_t i = 0; i < cells_.size(); ++i) {
+    if (cells_[i].text == component) return Dimmed(static_cast<int>(i));
+  }
+  return false;
+}
+
+bool ComponentCatalogue::Activate(const QString &component) {
+  for (size_t i = 0; i < cells_.size(); ++i) {
+    if (cells_[i].text != component) continue;
+    if (Dimmed(static_cast<int>(i))) return false;
+    emit componentClicked(component);
+    return true;
+  }
+  return false;
+}
+
+int ComponentCatalogue::CellAt(const QPoint &viewport_pos) const {
+  const QPoint content = viewport_pos + QPoint(0, verticalScrollBar()->value());
+  for (size_t i = 0; i < cells_.size(); ++i) {
+    if (cells_[i].rect.contains(content)) return static_cast<int>(i);
+  }
+  return -1;
+}
+
+QString ComponentCatalogue::AccessibleText(int cell) const {
+  if (cell < 0 || cell >= static_cast<int>(cells_.size())) return QString();
+  QString text = QStringLiteral("%1, %2").arg(cells_[cell].text, Tr("Strokes: %1").arg(cells_[cell].strokes));
+  if (selected_.contains(cells_[cell].text)) text += QStringLiteral(", ") + Tr("selected");
+  if (Dimmed(cell)) text += QStringLiteral(", ") + Tr("finds nothing");
+  return text;
+}
+
+void ComponentCatalogue::EnsureVisible(int cell) {
+  if (cell < 0 || cell >= static_cast<int>(cells_.size())) return;
+  const QRect rect = cells_[cell].rect;
+  QScrollBar *bar = verticalScrollBar();
+  if (rect.top() - kCatHeading - kCatTop < bar->value()) {
+    bar->setValue(std::max(0, rect.top() - kCatHeading - kCatTop));
+  } else if (rect.bottom() + kCatBottom > bar->value() + viewport()->height()) {
+    bar->setValue(rect.bottom() + kCatBottom - viewport()->height());
+  }
+}
+
+void ComponentCatalogue::MoveCurrent(int cell) {
+  if (cell < 0 || cell >= static_cast<int>(cells_.size())) return;
+  current_ = cell;
+  show_focus_ring_ = true;
+  EnsureVisible(cell);
+  setAccessibleDescription(AccessibleText(cell));
+  viewport()->update();
+}
+
+void ComponentCatalogue::paintEvent(QPaintEvent *) {
+  QPainter p(viewport());
+  const theme::Palette c = theme::Colors(theme::IsDark());
+  p.fillRect(viewport()->rect(), c.window);
+  p.setRenderHint(QPainter::Antialiasing);
+  p.setRenderHint(QPainter::TextAntialiasing);
+  const int offset = verticalScrollBar()->value();
+  p.translate(0, -offset);
+  const QRect visible(0, offset, viewport()->width(), viewport()->height());
+
+  QFont heading_font = theme::UiFont(13, QFont::DemiBold);
+  heading_font.setLetterSpacing(QFont::PercentageSpacing, 106.0);
+  const QFontMetrics heading_metrics(heading_font);
+  const QColor heading_color = Mix(c.accent, c.window, 0.78);
+  for (const Heading &h : headings_) {
+    if (!h.rect.intersects(visible)) continue;
+    const QString text = StrokeHeading(h.strokes);
+    p.setFont(heading_font);
+    p.setPen(heading_color);
+    const QRect text_rect(h.rect.left() + 2, h.rect.top(), heading_metrics.horizontalAdvance(text) + 6,
+                          h.rect.height());
+    p.drawText(text_rect, Qt::AlignLeft | Qt::AlignVCenter, text);
+    const int y = h.rect.center().y();
+    p.setPen(QPen(c.rule, 1));
+    p.drawLine(text_rect.right() + 8, y, h.rect.right(), y);
+  }
+
+  p.setFont(glyph_font_);
+  for (size_t i = 0; i < cells_.size(); ++i) {
+    const Cell &cell = cells_[i];
+    if (!cell.rect.intersects(visible)) continue;
+    const int index = static_cast<int>(i);
+    const bool selected = selected_.contains(cell.text);
+    const bool dimmed = Dimmed(index);
+    const bool hovered = index == hover_ && !dimmed;
+    const QRectF box = QRectF(cell.rect).adjusted(0.5, 0.5, -0.5, -0.5);
+    if (selected) {
+      p.setPen(QPen(c.accent, 1));
+      p.setBrush(c.accent_subtle);
+      p.drawRoundedRect(box, 3, 3);
+    } else if (hovered) {
+      QColor wash = c.accent_subtle;
+      wash.setAlphaF(0.7);
+      p.setPen(Qt::NoPen);
+      p.setBrush(wash);
+      p.drawRoundedRect(box, 3, 3);
+    }
+    p.setBrush(Qt::NoBrush);
+    p.setOpacity(dimmed ? 0.3 : 1.0);
+    p.setPen(selected ? c.accent : c.text);
+    p.drawText(cell.rect, Qt::AlignCenter, cell.text);
+    p.setOpacity(1.0);
+    if (show_focus_ring_ && hasFocus() && index == current_) {
+      p.setPen(QPen(c.focus, 2));
+      p.drawRoundedRect(QRectF(cell.rect).adjusted(1, 1, -1, -1), 4, 4);
+    }
+  }
+}
+
+void ComponentCatalogue::mouseMoveEvent(QMouseEvent *event) {
+  const int cell = CellAt(event->position().toPoint());
+  if (cell != hover_) {
+    hover_ = cell;
+    viewport()->setToolTip(cell < 0 ? QString()
+                                    : QStringLiteral("%1  %2").arg(
+                                          cells_[cell].text,
+                                          Tr("Strokes: %1").arg(cells_[cell].strokes)));
+    viewport()->setCursor(cell >= 0 && !Dimmed(cell) ? Qt::PointingHandCursor : Qt::ArrowCursor);
+    viewport()->update();
+  }
+}
+
+void ComponentCatalogue::leaveEvent(QEvent *event) {
+  QAbstractScrollArea::leaveEvent(event);
+  hover_ = -1;
+  viewport()->update();
+}
+
+void ComponentCatalogue::mousePressEvent(QMouseEvent *event) {
+  QAbstractScrollArea::mousePressEvent(event);
+  if (event->button() != Qt::LeftButton) return;
+  pressed_ = CellAt(event->position().toPoint());
+  if (pressed_ >= 0) {
+    current_ = pressed_;
+    show_focus_ring_ = false;
+    viewport()->update();
+  }
+}
+
+void ComponentCatalogue::mouseReleaseEvent(QMouseEvent *event) {
+  QAbstractScrollArea::mouseReleaseEvent(event);
+  if (event->button() != Qt::LeftButton) return;
+  const int cell = CellAt(event->position().toPoint());
+  const int pressed = pressed_;
+  pressed_ = -1;
+  if (cell >= 0 && cell == pressed && !Dimmed(cell)) {
+    emit componentClicked(cells_[cell].text);
+  }
+}
+
+void ComponentCatalogue::keyPressEvent(QKeyEvent *event) {
+  if (cells_.empty()) {
+    QAbstractScrollArea::keyPressEvent(event);
+    return;
+  }
+  const int count = static_cast<int>(cells_.size());
+  const int cur = current_ < 0 ? 0 : current_;
+  switch (event->key()) {
+    case Qt::Key_Left:
+      MoveCurrent(std::max(0, cur - 1));
+      return;
+    case Qt::Key_Right:
+      MoveCurrent(std::min(count - 1, cur + 1));
+      return;
+    case Qt::Key_Home:
+      MoveCurrent(0);
+      return;
+    case Qt::Key_End:
+      MoveCurrent(count - 1);
+      return;
+    case Qt::Key_Up:
+    case Qt::Key_Down: {
+      const int step = event->key() == Qt::Key_Up ? -1 : 1;
+      for (size_t r = 0; r < rows_.size(); ++r) {
+        if (std::find(rows_[r].begin(), rows_[r].end(), cur) == rows_[r].end()) continue;
+        const int target_row = static_cast<int>(r) + step;
+        if (target_row < 0 || target_row >= static_cast<int>(rows_.size())) return;
+        const int x = cells_[cur].rect.center().x();
+        int best = rows_[target_row].front();
+        for (int candidate : rows_[target_row]) {
+          if (std::abs(cells_[candidate].rect.center().x() - x) <
+              std::abs(cells_[best].rect.center().x() - x)) {
+            best = candidate;
+          }
+        }
+        MoveCurrent(best);
+        return;
+      }
+      return;
+    }
+    case Qt::Key_Space:
+    case Qt::Key_Return:
+    case Qt::Key_Enter:
+      if (current_ >= 0 && !Dimmed(current_)) emit componentClicked(cells_[current_].text);
+      return;
+    default:
+      QAbstractScrollArea::keyPressEvent(event);
+  }
+}
+
+void ComponentCatalogue::focusInEvent(QFocusEvent *event) {
+  QAbstractScrollArea::focusInEvent(event);
+  if (current_ < 0 && !cells_.empty()) current_ = 0;
+  show_focus_ring_ = event->reason() != Qt::MouseFocusReason;
+  if (current_ >= 0) setAccessibleDescription(AccessibleText(current_));
+  viewport()->update();
+}
+
+void ComponentCatalogue::focusOutEvent(QFocusEvent *event) {
+  QAbstractScrollArea::focusOutEvent(event);
+  viewport()->update();
+}
+
 // --- ComponentsPopup ---------------------------------------------------------
 
 ComponentsPopup::ComponentsPopup(QWidget *parent) : QDialog(parent) {
@@ -1083,134 +1428,171 @@ ComponentsPopup::ComponentsPopup(QWidget *parent) : QDialog(parent) {
   // A tool window: stays above the composer, never takes it over.
   setWindowFlags(Qt::Tool | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
   setModal(false);
+  resize(660, 640);
+  setMinimumSize(460, 340);
 
-  auto *hint = new QLabel(
-      Tr("Click a component to add it to the search; click again to remove it. "
-         "Numbers are stroke counts."),
-      this);
-  hint->setObjectName(QStringLiteral("resultsStatus"));
-  hint->setWordWrap(true);
-  hint->setFont(theme::UiFont(11));
+  // Discovery controls: row 1 finds components, row 2 sets how they are shown.
+  QFont caption_font = theme::UiFont(11, QFont::DemiBold);
+  caption_font.setLetterSpacing(QFont::PercentageSpacing, 110.0);
+  auto *first_stroke_key = new QLabel(Tr("First stroke").toUpper(), this);
+  first_stroke_key->setObjectName(QStringLiteral("componentsCaption"));
+  first_stroke_key->setFont(caption_font);
 
-  variants_check_ = new QCheckBox(Tr("Show radical variants (亻 扌 氵 …)"), this);
-  variants_check_->setChecked(true);
-  variants_check_->setFont(theme::UiFont(12));
-  grey_out_check_ = new QCheckBox(Tr("Grey out components that find nothing"), this);
-  grey_out_check_->setChecked(true);
-  grey_out_check_->setFont(theme::UiFont(12));
-  hard_check_ = new QCheckBox(Tr("Show difficult components"), this);
-  hard_check_->setChecked(false);
-  hard_check_->setFont(theme::UiFont(12));
-  connect(variants_check_, &QCheckBox::toggled, this, [this]() {
-    Rebuild();
-    emit optionsChanged();
-  });
-  connect(hard_check_, &QCheckBox::toggled, this, [this]() {
-    Rebuild();
-    emit optionsChanged();
-  });
-  connect(grey_out_check_, &QCheckBox::toggled, this, &ComponentsPopup::optionsChanged);
-  auto *options = new QHBoxLayout;
-  options->setSpacing(16);
-  options->addWidget(variants_check_);
-  options->addWidget(grey_out_check_);
-  options->addStretch(1);
-
-  // First stroke: pick none to see every component.
-  auto *first_stroke_row = new QHBoxLayout;
-  first_stroke_row->setSpacing(3);
-  first_stroke_row->addWidget(hard_check_);
-  first_stroke_row->addSpacing(13);
-  auto *first_stroke_key = new QLabel(Tr("First stroke:"), this);
-  first_stroke_key->setObjectName(QStringLiteral("infoKey"));
-  first_stroke_key->setFont(theme::UiFont(12));
-  first_stroke_row->addWidget(first_stroke_key);
-  first_stroke_row->addSpacing(5);
-  static const char *const kFirstStrokeNames[] = {"橫", "豎", "撇", "點", "折"};
+  auto *row1 = new QHBoxLayout;
+  row1->setSpacing(4);
+  row1->addWidget(first_stroke_key);
+  row1->addSpacing(8);
+  static const char *const kFirstStrokeNames[] = {"一", "丨", "丿", "丶", "乛"};
   static const char *const kFirstStrokeTips[] = {"horizontal 一", "vertical 丨",
                                                  "left-falling 丿", "dot 丶", "turning 乛"};
   for (int i = 0; i < 5; ++i) {
     auto *button = new QToolButton(this);
     button->setObjectName(QStringLiteral("firstStrokeTile"));
     button->setText(QString::fromUtf8(kFirstStrokeNames[i]));
-    button->setFont(theme::UiFont(14));
+    button->setFont(theme::UiFont(16));
     button->setCheckable(true);
-    button->setFixedSize(34, 34);
-    button->setFocusPolicy(Qt::NoFocus);
-    button->setToolTip(Tr("First stroke: %1")
-                           .arg(QCoreApplication::translate(kContext, kFirstStrokeTips[i])));
+    button->setFixedSize(30, 30);
+    const QString name = Tr("First stroke: %1")
+                             .arg(QCoreApplication::translate(kContext, kFirstStrokeTips[i]));
+    button->setToolTip(name);
+    button->setAccessibleName(name);
     connect(button, &QToolButton::toggled, this, [this]() {
-      Rebuild();
+      Rebuild(/*keep_position=*/false);
       emit optionsChanged();
     });
     first_stroke_buttons_.push_back(button);
-    first_stroke_row->addWidget(button);
+    row1->addWidget(button);
   }
-  first_stroke_row->addSpacing(8);
+  row1->addStretch(1);
+  auto *strokes_key = new QLabel(Tr("Strokes").toUpper(), this);
+  strokes_key->setObjectName(QStringLiteral("componentsCaption"));
+  strokes_key->setFont(caption_font);
+  row1->addWidget(strokes_key);
+  row1->addSpacing(4);
   // The same syntax as the search field: 12, 9-12, <12, >8, <=12, >=8.
   stroke_edit_ = new QLineEdit(this);
-  stroke_edit_->setPlaceholderText(Tr("Strokes, e.g. 9-12"));
   stroke_edit_->setToolTip(Tr("Strokes of the component: 12, 9-12, <12, >8, <=12, >=8"));
+  stroke_edit_->setAccessibleName(Tr("Strokes"));
   stroke_edit_->setFont(theme::UiFont(12));
-  stroke_edit_->setClearButtonEnabled(true);
-  stroke_edit_->setFixedWidth(140);
+  stroke_edit_->setFixedWidth(72);
   stroke_timer_ = new QTimer(this);
   stroke_timer_->setSingleShot(true);
   stroke_timer_->setInterval(250);
   connect(stroke_timer_, &QTimer::timeout, this, [this]() {
-    Rebuild();
+    Rebuild(/*keep_position=*/false);
     emit optionsChanged();
   });
-  connect(stroke_edit_, &QLineEdit::textChanged, stroke_timer_,
-          qOverload<>(&QTimer::start));
+  connect(stroke_edit_, &QLineEdit::textChanged, stroke_timer_, qOverload<>(&QTimer::start));
   connect(stroke_edit_, &QLineEdit::returnPressed, stroke_timer_, &QTimer::stop);
   connect(stroke_edit_, &QLineEdit::returnPressed, this, [this]() {
-    Rebuild();
+    Rebuild(/*keep_position=*/false);
     emit optionsChanged();
   });
-  first_stroke_row->addWidget(stroke_edit_);
-  first_stroke_row->addStretch(1);
+  row1->addWidget(stroke_edit_);
 
-  grid_host_ = new QWidget(this);
-  grid_ = new QGridLayout(grid_host_);
-  grid_->setSpacing(3);
-  grid_->setContentsMargins(0, 0, 0, 0);
-  auto *scroll = new QScrollArea(this);
-  scroll->setWidget(grid_host_);
-  scroll->setWidgetResizable(true);
-  scroll->setFrameShape(QFrame::NoFrame);
-  scroll->setMinimumSize(640, 460);
+  variants_check_ = new QCheckBox(Tr("Radical variants"), this);
+  variants_check_->setChecked(true);
+  variants_check_->setToolTip(Tr("Show radical variants (亻 扌 氵 …)"));
+  hard_check_ = new QCheckBox(Tr("Difficult components"), this);
+  hard_check_->setChecked(false);
+  hard_check_->setToolTip(Tr("Show difficult components"));
+  grey_out_check_ = new QCheckBox(Tr("Dim unavailable"), this);
+  grey_out_check_->setChecked(true);
+  grey_out_check_->setToolTip(Tr("Grey out components that find nothing"));
+  for (QCheckBox *check : {variants_check_, hard_check_, grey_out_check_}) {
+    check->setFont(theme::UiFont(12));
+  }
+  connect(variants_check_, &QCheckBox::toggled, this, [this]() {
+    Rebuild(/*keep_position=*/true);
+    emit optionsChanged();
+  });
+  connect(hard_check_, &QCheckBox::toggled, this, [this]() {
+    Rebuild(/*keep_position=*/true);
+    emit optionsChanged();
+  });
+  connect(grey_out_check_, &QCheckBox::toggled, this, &ComponentsPopup::optionsChanged);
+  auto *row2 = new QHBoxLayout;
+  row2->setSpacing(18);
+  row2->addWidget(variants_check_);
+  row2->addWidget(hard_check_);
+  row2->addWidget(grey_out_check_);
+  row2->addStretch(1);
 
-  selected_label_ = new QLabel(this);
-  selected_label_->setFont(theme::UiFont(16));
-  auto *selected_key = new QLabel(Tr("Selected:"), this);
-  selected_key->setObjectName(QStringLiteral("infoKey"));
-  selected_key->setFont(theme::UiFont(12));
-  auto *clear_button = new QPushButton(Tr("Clear selection"), this);
-  clear_button->setObjectName(QStringLiteral("textButton"));
-  clear_button->setAutoDefault(false);
-  auto *close_button = new QPushButton(Tr("Close"), this);
-  close_button->setObjectName(QStringLiteral("secondaryButton"));
-  close_button->setAutoDefault(false);
-  connect(clear_button, &QPushButton::clicked, this, &ComponentsPopup::clearRequested);
-  connect(close_button, &QPushButton::clicked, this, &QDialog::hide);
-  auto *footer = new QHBoxLayout;
-  footer->setSpacing(8);
-  footer->addWidget(selected_key);
-  footer->addWidget(selected_label_, 1);
-  footer->addWidget(clear_button);
-  footer->addWidget(close_button);
+  auto *controls = new QWidget(this);
+  controls->setObjectName(QStringLiteral("componentsControls"));
+  auto *controls_layout = new QVBoxLayout(controls);
+  controls_layout->setContentsMargins(16, 12, 16, 12);
+  controls_layout->setSpacing(10);
+  controls_layout->addLayout(row1);
+  controls_layout->addLayout(row2);
+  controls_ = controls;
+
+  auto *rule = new QFrame(this);
+  rule->setObjectName(QStringLiteral("componentsRule"));
+  rule->setFixedHeight(1);
+
+  catalogue_ = new ComponentCatalogue(this);
+  connect(catalogue_, &ComponentCatalogue::componentClicked, this,
+          &ComponentsPopup::componentToggled);
 
   auto *root = new QVBoxLayout(this);
-  root->setContentsMargins(12, 10, 12, 10);
-  root->setSpacing(8);
-  root->addWidget(hint);
-  root->addLayout(options);
-  root->addLayout(first_stroke_row);
-  root->addWidget(scroll, 1);
-  root->addLayout(footer);
+  root->setContentsMargins(0, 0, 0, 0);
+  root->setSpacing(0);
+  root->addWidget(controls);
+  root->addWidget(rule);
+  root->addWidget(catalogue_, 1);
 
-  Rebuild();
+  setTabOrder(stroke_edit_, variants_check_);
+  ApplyTheme();
+  Rebuild(/*keep_position=*/false);
+}
+
+void ComponentsPopup::ApplyTheme() {
+  if (applying_theme_) return;
+  applying_theme_ = true;
+  const bool dark = theme::IsDark();
+  const theme::Palette colors = theme::Colors(dark);
+  setStyleSheet(theme::ApplyPaletteTokens(
+      ComposerStylesheet(dark) +
+          QStringLiteral(
+              "QDialog#componentsPopup { background-color: @@WINDOW@@; }"
+              "QWidget#componentsControls { background-color: @@SIDEBAR@@; }"
+              "QFrame#componentsRule {"
+              "  border: none; background-color: @@RULE@@; }"
+              "QLabel#componentsCaption { color: @@SECONDARY@@; background: transparent; }"
+              "QCheckBox { color: @@TEXT@@; background: transparent; spacing: 8px; }"
+              "QCheckBox::indicator {"
+              "  width: 15px; height: 15px; background: @@WINDOW@@;"
+              "  border: 1px solid @@CHECK_BORDER@@; border-radius: 2px; }"
+              "QCheckBox::indicator:hover { border-color: @@ACCENT@@; }"
+              "QCheckBox::indicator:checked {"
+              "  background: @@ACCENT@@; border-color: @@ACCENT@@; }"),
+      colors));
+  theme::ApplySurfacePalette(this, colors);
+  if (controls_ != nullptr) {
+    theme::ApplySurfacePalette(controls_, colors, /*sidebar_surface=*/true);
+  }
+  if (catalogue_ != nullptr) catalogue_->viewport()->update();
+  applying_theme_ = false;
+}
+
+void ComponentsPopup::changeEvent(QEvent *event) {
+  QDialog::changeEvent(event);
+  if (event->type() == QEvent::PaletteChange ||
+      event->type() == QEvent::ApplicationPaletteChange ||
+      event->type() == QEvent::StyleChange) {
+    ApplyTheme();
+  }
+}
+
+void ComponentsPopup::SetFilters(bool difficult, const QString &strokes, int first_stroke_mask) {
+  hard_check_->setChecked(difficult);
+  stroke_edit_->setText(strokes);
+  for (size_t i = 0; i < first_stroke_buttons_.size(); ++i) {
+    first_stroke_buttons_[i]->setChecked((first_stroke_mask >> i) & 1);
+  }
+  stroke_timer_->stop();
+  Rebuild(/*keep_position=*/false);
 }
 
 bool ComponentsPopup::grey_out_unavailable() const {
@@ -1253,52 +1635,20 @@ std::vector<std::string> ComponentsPopup::ShownComponents() const {
   return shown;
 }
 
-void ComponentsPopup::Rebuild() {
-  // Drop the old cells; the grid is small, so rebuilding is simplest.
-  while (QLayoutItem *item = grid_->takeAt(0)) {
-    delete item->widget();
-    delete item;
-  }
-  buttons_.clear();
-
-  constexpr int kColumns = 13;
+void ComponentsPopup::Rebuild(bool keep_position) {
   const std::vector<std::string> variants = SplitChars(kVariantForms);
-  const QFont tile_font = WithWideCoverage(theme::UiFont(18));
-  int cell = 0;
+  std::vector<ComponentCatalogue::Section> sections;
   for (const MergedGroup &group : ComponentGroups()) {
-    std::vector<std::string> chars;
+    ComponentCatalogue::Section section;
+    section.strokes = group.strokes;
     for (std::string &ch : SplitChars(group.components.c_str())) {
       if (!variants_check_->isChecked() && Contains(variants, ch)) continue;
       if (!Wanted(ch, group.strokes)) continue;
-      chars.push_back(std::move(ch));
+      section.components.push_back(FromUtf8(ch));
     }
-    if (chars.empty()) continue;
-    auto *number = new QLabel(QString::number(group.strokes), grid_host_);
-    number->setObjectName(QStringLiteral("strokeHeading"));
-    number->setFont(theme::UiFont(12, QFont::DemiBold));
-    number->setAlignment(Qt::AlignCenter);
-    number->setFixedSize(34, 34);
-    number->setToolTip(Tr("Strokes: %1").arg(group.strokes));
-    grid_->addWidget(number, cell / kColumns, cell % kColumns);
-    ++cell;
-    for (const std::string &ch : chars) {
-      const QString text = FromUtf8(ch);
-      auto *button = new QToolButton(grid_host_);
-      button->setObjectName(QStringLiteral("componentTile"));
-      button->setText(text);
-      button->setFont(tile_font);
-      button->setCheckable(true);
-      button->setFixedSize(34, 34);
-      button->setFocusPolicy(Qt::NoFocus);
-      button->setToolTip(QStringLiteral("%1  %2").arg(text, Tr("Strokes: %1").arg(group.strokes)));
-      connect(button, &QToolButton::clicked, this,
-              [this, text]() { emit componentToggled(text); });
-      grid_->addWidget(button, cell / kColumns, cell % kColumns);
-      buttons_.insert(text, button);
-      ++cell;
-    }
+    if (!section.components.empty()) sections.push_back(std::move(section));
   }
-  grid_->setRowStretch(cell / kColumns + 1, 1);
+  catalogue_->SetSections(std::move(sections), keep_position);
   SetState(selected_, unavailable_);
 }
 
@@ -1306,16 +1656,16 @@ void ComponentsPopup::SetState(const std::vector<std::string> &selected,
                                const std::vector<std::string> &unavailable) {
   selected_ = selected;
   unavailable_ = unavailable;
-  const bool grey_out = grey_out_check_->isChecked();
-  for (auto it = buttons_.begin(); it != buttons_.end(); ++it) {
-    const std::string ch = ToUtf8(it.key());
-    const bool is_selected = Contains(selected_, ch);
-    it.value()->setChecked(is_selected);
-    it.value()->setEnabled(is_selected || !grey_out || !Contains(unavailable_, ch));
+  QSet<QString> marked;
+  QSet<QString> dimmed;
+  for (const std::string &ch : selected_) marked.insert(FromUtf8(ch));
+  if (grey_out_check_->isChecked()) {
+    for (const std::string &ch : unavailable_) {
+      const QString text = FromUtf8(ch);
+      if (!marked.contains(text)) dimmed.insert(text);
+    }
   }
-  QStringList shown;
-  for (const std::string &ch : selected_) shown << FromUtf8(ch);
-  selected_label_->setText(shown.isEmpty() ? Tr("(none)") : shown.join(QLatin1Char(' ')));
+  catalogue_->SetState(marked, dimmed);
 }
 
 // --- CharacterComposerDialog ------------------------------------------------
@@ -1748,10 +2098,6 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   connect(this, &QDialog::finished, components_popup_, &QWidget::hide);
   connect(components_popup_, &ComponentsPopup::componentToggled, this,
           &CharacterComposerDialog::OnComponentToggled);
-  connect(components_popup_, &ComponentsPopup::clearRequested, this, [this]() {
-    containing_edit_->clear();
-    OnFindContaining();
-  });
   connect(components_popup_, &ComponentsPopup::optionsChanged, this,
           &CharacterComposerDialog::UpdateComponentsPopup);
   connect(components_popup_, &QDialog::finished, this,
@@ -2418,7 +2764,6 @@ void CharacterComposerDialog::OnToggleComponentsPopup() {
   UpdateComponentsPopup();
   // Beside the composer, where it does not cover the results.
   const QRect frame = frameGeometry();
-  components_popup_->adjustSize();
   components_popup_->move(frame.right() + 8, frame.top());
   components_popup_->show();
   components_popup_->raise();
@@ -2508,6 +2853,21 @@ void CharacterComposerDialog::RunComponentSearch(const std::string &components,
     OnContainingPicked(item);
     return;
   }
+}
+
+void CharacterComposerDialog::OpenComponentsForDemo(const QSize &size, bool difficult,
+                                                    const QString &strokes,
+                                                    int first_stroke_mask) {
+  if (components_popup_ == nullptr) return;
+  if (!components_popup_->isVisible()) OnToggleComponentsPopup();
+  components_popup_->resize(size);
+  components_popup_->SetFilters(difficult, strokes, first_stroke_mask);
+  UpdateComponentsPopup();
+}
+
+bool CharacterComposerDialog::SaveComponentsPicture(const QString &path) {
+  if (components_popup_ == nullptr) return false;
+  return components_popup_->grab().save(path, "PNG");
 }
 
 }  // namespace gui
