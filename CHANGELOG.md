@@ -10,6 +10,33 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.20-rc7
+
+Everything in 0.0.20-rc6 plus changes to the character composer's Components…
+window and result display:
+
+- **Components… window redesigned** as a borderless catalogue: no cell borders,
+  a hover wash, a Prussian-blue selected state, a separate keyboard focus ring
+  and faint unavailable cells. Stroke counts are full-width headings (1 STROKE,
+  2 STROKES …), the columns follow the window width, and the window is
+  resizable and remembers its size.
+- **Filters in the Components… window:** first-stroke buttons (一 丨 丿 丶 乛)
+  and a stroke box that takes the search field's syntax (`12`, `9-12`, `<12`,
+  `>8`, `<=12`, `>=8`), next to Radical variants, Difficult components and Dim
+  unavailable.
+- **Difficult components** (off by default): about 500 more components from
+  zi.tools' table, shown in the same stroke-count rows.
+- **Fonts:** result tiles and the Components… window fall back to installed
+  wide-coverage CJK fonts (Hanazono, Jigmo, BabelStone Han, Plangothic,
+  Noto/Source Han CJK, the system Han fonts). Find by components leaves out
+  characters no installed font can draw and says how many it hid; the filter
+  turns itself off when no installed font draws even a common character.
+- The Components… window closes with the composer, so it no longer stays on
+  screen after Insert.
+
+Not verified in real use on any platform. The Windows MSIs are unsigned until
+signed by hand.
+
 ### Release candidate 0.0.20-rc6
 
 Everything in 0.0.20-rc5 plus the character composer stroke search below.
