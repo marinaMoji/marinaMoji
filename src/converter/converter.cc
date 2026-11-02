@@ -740,6 +740,24 @@ void Converter::PopulatePredictionResultsToSegments(
       return;
     }
 
+    // marinaMoji: a user-history result covering several default segments with
+    // fewer inner segments (e.g. a phrase committed as one unit) must not
+    // collapse them into one whole-string segment: that segment's candidates
+    // are n-best combinations over the entire key, mostly nonsense. Keep the
+    // default segmentation and attach the result as a multi-segment candidate.
+    if (is_default_multi_segment &&
+        (top_result.attributes & Attribute::USER_HISTORY_PREDICTION) &&
+        top_result.inner_segments().size() <
+            segments->conversion_segments_size()) {
+      const size_t start = top_is_same_as_default ? 1 : 0;
+      const size_t max_results = std::min<size_t>(results.size(), 5);
+      for (size_t i = start; i < max_results; ++i) {
+        ApplyResultToSegmentsMultiSegment(results[i], /*target_pos=*/i,
+                                          *segments);
+      }
+      return;
+    }
+
     // 1. Resize segments if needed to match top_result's inner segment
     // boundaries.
     if (!ResizeSegmentsByResult(request, top_result, segments)) {

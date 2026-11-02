@@ -4055,6 +4055,45 @@ TEST_F(ConverterTest,
                                     segments.conversion_segment(0)));
 }
 
+// marinaMoji: a user-history phrase committed as one unit must not collapse the
+// default segmentation into a single whole-string segment.
+TEST_F(ConverterTest, PopulatePredictionResultsToSegmentsHistoryKeepsSegments) {
+  std::unique_ptr<Converter> converter = CreateStubbedConverter();
+  ConverterTestPeer converter_peer(*converter);
+
+  prediction::Result default_result;
+  default_result.key = "とうこうのけん";
+  default_result.value = "投稿の件";
+  default_result.inner_segment_boundary = BuildInnerSegmentBoundary(
+      {{12, 9, 12, 6}, {6, 3, 6, 3}}, default_result.key, default_result.value);
+
+  prediction::Result history;
+  history.key = "とうこうのけん";
+  history.value = "投稿の間";
+  history.attributes = Attribute::USER_HISTORY_PREDICTION;
+  history.inner_segment_boundary = BuildInnerSegmentBoundary(
+      {{21, 12, 21, 12}}, history.key, history.value);
+
+  Segments segments;
+  Segment* s0 = segments.add_segment();
+  s0->set_key("とうこうの");
+  Candidate* c0 = s0->add_candidate();
+  c0->key = "とうこうの";
+  c0->value = "投稿の";
+  Segment* s1 = segments.add_segment();
+  s1->set_key("けん");
+  Candidate* c1 = s1->add_candidate();
+  c1->key = "けん";
+  c1->value = "件";
+
+  const std::vector<prediction::Result> results = {history};
+  const ConversionRequest request = ConversionRequestBuilder().Build();
+  converter_peer.PopulatePredictionResultsToSegments(request, default_result,
+                                                     results, &segments);
+
+  EXPECT_EQ(segments.conversion_segments_size(), 2);
+}
+
 TEST_F(ConverterTest,
        PopulatePredictionResultsToSegmentsSingleSegmentWithEmptyResult) {
   std::unique_ptr<Converter> converter = CreateStubbedConverter();
