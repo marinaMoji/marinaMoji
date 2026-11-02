@@ -10,19 +10,36 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
-Character composer layout changes since 0.0.20-rc7:
+### Release candidate 0.0.20-rc8
 
-- **Components tab beside the results:** the components picker is no longer
-  a separate window but a Components tab next to the Character tab in the
-  middle column. Its own stroke filter is gone, and Radical variants,
-  Difficult components and Dim unavailable moved to a View menu.
-- **One Strokes field** (`12`, `<12`, `>8`, `9-12`) replaces the from/to stroke
-  boxes.
-- **Info buttons:** circled ⓘ buttons explain the IDS box, Decompose and Find
-  by components.
-- The **Construct column** is narrower and lighter (fixed width, no tinted
-  background), and each structure button shows a sample character under its
-  icon.
+Everything in 0.0.20-rc7 plus:
+
+- **Converter:** a user-history entry committed as one whole phrase no longer
+  collapses the conversion into a single segment whose candidates were n-best
+  combinations over the whole key; it is attached as a multi-segment
+  candidate, so the default segmentation stays (#106).
+- **macOS:** the candidate list's footer logo is rendered pixel-sharp on Retina
+  displays (#110). Settings windows follow light/dark switches made while they
+  are open (#111).
+- **Linux candidate window:** draws the marinaMoji logo in the footer, as on
+  macOS; has rounded corners, a faint outline and a shadow that follows the
+  shape; and falls back to plain windows with cut corners when no compositing
+  manager runs (bare X11). `MARINAMOJI_CANDIDATE_WINDOW=plain|composited`
+  overrides the detection. Style-sheet colours keep their alpha (scrollbar
+  background and indicator were turning solid black).
+- **Character composer** layout:
+
+  - **Components tab beside the results:** the components picker is no longer
+    a separate window but a Components tab next to the Character tab in the
+    middle column. Its own stroke filter is gone, and Radical variants,
+    Difficult components and Dim unavailable moved to a View menu.
+  - **One Strokes field** (`12`, `<12`, `>8`, `9-12`) replaces the from/to stroke
+    boxes.
+  - **Info buttons:** circled ⓘ buttons explain the IDS box, Decompose and Find
+    by components.
+  - The **Construct column** is narrower and lighter (fixed width, no tinted
+    background), and each structure button shows a sample character under its
+    icon.
 
 ### Release candidate 0.0.20-rc7
 
