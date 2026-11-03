@@ -10,333 +10,203 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
-Changes since 0.0.20-rc9:
+## v0.0.20 (2026-11-03)
 
-- **Dictionary tool, export:** an exported dictionary now gets a `.txt`
-  extension when none is typed, so **Import as new dictionary...** /
-  **Import to current dictionary...** list it again; the import file picker
-  shows only `*.txt *.tsv` by default, and exports used to keep whatever bare
-  name was typed. The save dialog sets `txt` as its default suffix, and
+The first stable release since v0.0.19. Its release candidates (rc1 to rc9)
+are rolled into this section, which is everything since v0.0.19, grouped by
+area.
+
+Main changes: a redesigned Preferences window that saves as you change things
+(no Cancel/Apply/OK), a redesigned character composer with search by strokes,
+a new toolbar logo, a converter fix for user-history phrases, and a
+restyled Linux candidate window.
+
+### Preferences, About and tools
+
+- **Preferences** has a sidebar layout. Its pages are Writing, Dictionaries,
+  Keyboard, Suggestions, Privacy & Sync and Application, with optional
+  explanations under each setting (English, French, Japanese; no config keys
+  or defaults changed).
+- **Behaviour change: there is no Cancel, Apply or OK any more.** A change is
+  saved about 0.2 s after you make it, and again when the window closes, so
+  Esc or the close button cannot drop the last edit. There is no undo; "Reset
+  to defaults" (which asks first) is the way back. Successful saves show
+  nothing.
+- Problems are shown in a banner at the top of the page, not in a dialog, and
+  the banner disappears as soon as the problem is resolved:
+  - **"Not saved yet: …"** (muted): the settings are incomplete, for example
+    Custom keymap with an empty table or an invalid number-row shortcut.
+    Nothing is written until it is fixed.
+  - **"Could not save settings. …"** (amber): the settings are valid but could
+    not be persisted, for example the converter is not running. The next
+    change, or closing the window, retries.
+- Closing the window with something still unsaved does show a dialog, because
+  the banner would disappear with the window. Platform side effects (the IBus
+  candidate-window file, the Windows IME hotkey, the macOS login item and
+  `sync.conf`) are applied only when their own setting changes, not on every
+  save.
+- The autosave logic is a separate, Qt-free class (`autosave_controller`) with
+  16 unit tests. For visual testing, `MARINAMOJI_PREFS_UI_PREVIEW=1` runs the
+  dialog without saving anything and `MARINAMOJI_PREFS_UI_PREVIEW_DARK=1`
+  forces dark chrome; any other value, including an empty one, is ignored.
+- **About** lives on Preferences → Application. The About menu item and
+  dialog open Preferences on that page (raising it if it is already running)
+  instead of showing the old separate window.
+- **Add Word** and **Dictionary** tools are restyled to match Preferences.
+- **Dictionary tool, export:** an exported dictionary gets a `.txt` extension
+  when none is typed, so **Import as new dictionary...** / **Import to current
+  dictionary...** list it again (the import file picker shows only
+  `*.txt *.tsv` by default, and exports used to keep whatever bare name was
+  typed). The save dialog sets `txt` as its default suffix, and
   `AddDefaultExportExtension()` (`gui/dictionary_tool/export_file_name.{h,cc}`,
   with tests) adds it afterwards for native dialogs that ignore that, asking
   before replacing an existing `.txt`. A name that already has an extension
-  (`.tsv`, `.csv`, ...) is kept as typed.
-  - The import dialog's format list calls the native format **marinaMoji**
-    instead of upstream's "Google" (en/fr/ja `.qtts` updated, `.qm`
-    regenerated with `lrelease`).
+  (`.tsv`, `.csv` …) is kept as typed. The import dialog's format list calls
+  the native format **marinaMoji** instead of upstream's "Google".
+- **Symbols palette** is restyled on macOS, Windows and Linux/IBus, with
+  updated French and Japanese strings.
+- **Toolbar logo:** the new long logo (icon, wordmark, tagline) in light and
+  dark, with a heavier wordmark (0.4 stroke) so its hairlines stay visible at
+  24 px. The Windows PNGs (24/36/48 px) are re-rendered, and on Linux the logo
+  is drawn at the screen's scale factor (it was a fixed 1x bitmap).
 
-- **Character composer, characters no font can draw:** the check behind
-  "N more are hidden because no installed font can draw them" now asks what
-  Qt can really draw. It used to look only at the fonts the result tiles name
-  (the wide-coverage list), so a character that only an unlisted font has,
-  such as IPAmj Mincho, Yu Gothic, MS Gothic, Microsoft YaHei, Hiragino or
-  Unifont, was hidden even though it displays. A character now counts as
-  drawable when a listed font has it, when any other installed Japanese,
-  Chinese or Korean font has it (that font is then named for that tile), or
-  when Qt finds a glyph for it through the system's own font fallback
-  (fontconfig, Core Text, DirectWrite). Answers are cached for the session, so
-  a broad search such as 一 pays the cost once. The check lives in
-  `gui/character_composer/glyph_coverage.{h,cc}`.
-  - The same filter now applies to the **Variants** row of the middle
-    column (old and new forms included). A tooltip on the row says how many
-    variants were left out.
-  - The specimen uses the same fonts as the tiles, so a result picked there no
-    longer turns into a box.
-  - The **Components tab** leaves out components no installed font can draw
-    (radical variants and difficult components included), and names the extra
-    font for those only an unlisted font has.
-  - **Dim unavailable** on the Components tab also dims a component whose
-    matches are all hidden, instead of leading to an empty result list.
-  - Singular wording for one hidden character ("1 more is hidden…").
+### Character composer
 
-- **Windows candidate window:** shows the marinaMoji logo in the footer, as on
-  macOS and Linux. The footer logo bitmaps
+- **Three panels:** construct, examine and discover. Picking a search result
+  only browses it: the composition in the editor is left alone, and "Return to
+  composition" goes back.
+- **Editor:** IVS sequence entry box, editable IDS box with zi.tools layout
+  codes, and GlyphWiki positional forms so left/top parts draw narrowed.
+  Circled ⓘ buttons explain the IDS box, Decompose and Find by components.
+- **Character info** under the preview: Unihan data with Japanese readings in
+  kana (on in katakana, kun in hiragana; 23,959 characters, against about
+  13,000 before), 旧字体/新字体 ("old form"/"new form") lines, and variants
+  that link to their GlyphWiki itaiji pages. `char_info.tsv` is rebuilt from
+  Unicode 18.0 Unihan; older files without the new columns still load.
+  `variants` also takes the pairs in two cjkvi-variants tables
+  (`cjkvi-variants.txt`, `hydzd-variants.txt`), in both directions: 10,948
+  characters had variants, now 21,417. That repository has no licence file,
+  so this is recorded in `data/character_info/README.md` as a maintainer
+  decision; its `twedu-variants.txt` is deliberately not used.
+- **Search by strokes** (Discover → "Find by components"):
+  - One **Strokes** field takes `12` (exactly 12), `<12` (fewer), `>8` (more),
+    `9-12` (a range); `<=` and `>=` make the bound inclusive. A count can also
+    be written among the components (`木12`, `木<12`, `木9-12`), full-width
+    digits and signs work (`木９－１２`), and the filter can stand alone
+    (`9-12`). Several filters all apply (`木>3 <9` is 4 to 8). A character
+    with several regional counts matches if any one fits. A long result list
+    is limited per stroke count, so a broad range still reaches its high end.
+    Pressing Enter in the Strokes field runs the search.
+  - **Sorted results:** by stroke count, then by leading stroke in the order
+    一 丨 丿 丶 乛, under stroke-count headings (which cannot be picked). The
+    leading stroke comes from a table of strokes, radicals and common
+    components written by hand for marinaMoji (BSD-3-Clause, in
+    `src/composer_ids/ids_table.cc`), and for any other character from the
+    first component of its IDS decomposition. Characters whose first stroke
+    differs between the Chinese and Japanese orders (馬, 長, 右 …) are left
+    out of the table on purpose. No KanjiVG data is used.
+  - Counts come from `stroke_counts.tsv` (Unihan `kTotalStrokes`, generated by
+    `build_stroke_counts.py`), installed beside `ids_table.tsv` on Linux,
+    macOS and Windows together with `LICENSE.Unicode`, the Unicode License v3
+    that covers it (see `src/data/character_composer/README.md`). Without the
+    file the stroke filter says so instead of matching nothing.
+  - **Fonts and hidden characters:** result tiles and the Components tab fall
+    back to installed wide-coverage CJK fonts (Hanazono, Jigmo, BabelStone Han,
+    Plangothic, Noto/Source Han CJK, the system Han fonts). Find by components
+    leaves out characters nothing installed can draw and says how many it hid
+    ("N more are hidden because no installed font can draw them"). The check
+    asks what Qt can really draw: a character counts as drawable when a listed
+    font has it, when any other installed Japanese, Chinese or Korean font has
+    it (that font is then named for that tile; IPAmj Mincho, Yu Gothic, MS
+    Gothic, Microsoft YaHei, Hiragino, Unifont …), or when Qt finds a glyph
+    through the system's own font fallback (fontconfig, Core Text,
+    DirectWrite). Answers are cached for the session. The same filter applies
+    to the Variants row (a tooltip says how many were left out) and to the
+    Components tab (radical variants and difficult components included), and
+    the specimen uses the same fonts as the tiles, so a picked result no
+    longer turns into a box. The filter turns itself off when no installed
+    font draws even a common character. The check lives in
+    `gui/character_composer/glyph_coverage.{h,cc}`.
+- **Components tab:** components grouped under full-width stroke-count
+  headings (1 STROKE, 2 STROKES …) in a borderless catalogue (hover wash,
+  Prussian-blue selected state, separate keyboard focus ring, faint
+  unavailable cells), beside the results in the middle column. A click adds a
+  component to the search, a second click removes it, and the columns follow
+  the window width. First-stroke buttons (一 丨 丿 丶 乛) filter it. The View
+  menu holds Radical variants (亻 扌 氵 …), Difficult components (off by
+  default; about 500 more components from zi.tools' table) and Dim
+  unavailable (components that would find nothing, or whose matches are all
+  hidden, are greyed out).
+- **Layout:** the Construct column is narrower, with a pale blue-grey
+  background (the component editor and IDS field stay white), and each
+  structure button shows a sample character under its icon. Structure and
+  Components use the same serif headings as Explore characters and Results.
+  An incomplete composition shows one line, "Complete the composition to
+  preview the character.", and no metadata divider is drawn under an empty
+  specimen.
+- The translations are rebuilt from the `.qtts` (the committed `.qm` files
+  were stale).
+
+### Converter
+
+- A user-history entry committed as one whole phrase no longer collapses the
+  conversion into a single segment whose candidates were n-best combinations
+  over the whole key; it is attached as a multi-segment candidate, so the
+  default segmentation stays (#106).
+
+### Windows
+
+- **Candidate window:** shows the marinaMoji logo in the footer, as on macOS
+  and Linux. The footer logo bitmaps
   (`data/images/win/candidate_window_logo_PBGRA32_*.bmp`) inherited from Mozc
   were fully transparent, so Windows drew an empty gap where the logo goes.
   They are now rendered from `logo_long_light.svg` by
   `generate_toolbar_icons.py` (24 px tall at 100%, 30/36/48 px at
-  125/150/200%), and the logo gets the same 4 px / 8 px side gaps as the
-  other platforms. Light theme only, like the Windows candidate window itself.
+  125/150/200%), with the same 4 px / 8 px side gaps as the other platforms.
+  Light theme only, like the Windows candidate window itself.
+- The IME starts in hiragana instead of direct input when it activates on a
+  closed thread with no kana mode, so the character composer window (its own
+  process) takes kana. Not verified on a real Windows machine.
+- The Windows MSIs come out of CI unsigned and are signed by hand with
+  `scripts/sign-windows-release.mjs`.
 
-### Release candidate 0.0.20-rc9
+### macOS
 
-Everything in 0.0.20-rc8 plus:
-
-- **Character composer:** the Construct column has its pale blue-grey
-  background back (the component editor and IDS field stay white), and
-  Structure and Components use the same serif headings as Explore characters
-  and Results. The sample characters on the structure buttons are smaller and
-  muted. An incomplete composition shows one line, "Complete the composition
-  to preview the character.", and no metadata divider is drawn under an empty
-  specimen.
-- **Character info:** variants link to their GlyphWiki itaiji pages.
-- **Linux:** fixed a crash of the Mozc candidate window and invisible
-  candidates on GNOME.
-- **macOS:** GUI tools wait for `AppleInterfaceStyle` before re-syncing the
-  colour scheme. CI runs on macos-15 and retries `xcodebuild` when it aborts
-  while pinning the Xcode config.
-
-### Release candidate 0.0.20-rc8
-
-Everything in 0.0.20-rc7 plus:
-
-- **Converter:** a user-history entry committed as one whole phrase no longer
-  collapses the conversion into a single segment whose candidates were n-best
-  combinations over the whole key; it is attached as a multi-segment
-  candidate, so the default segmentation stays (#106).
-- **macOS:** the candidate list's footer logo is rendered pixel-sharp on Retina
-  displays (#110). Settings windows follow light/dark switches made while they
-  are open (#111).
-- **Linux candidate window:** draws the marinaMoji logo in the footer, as on
-  macOS; has rounded corners, a faint outline and a shadow that follows the
-  shape; and falls back to plain windows with cut corners when no compositing
-  manager runs (bare X11). `MARINAMOJI_CANDIDATE_WINDOW=plain|composited`
-  overrides the detection. Style-sheet colours keep their alpha (scrollbar
-  background and indicator were turning solid black).
-- **Character composer** layout:
-
-  - **Components tab beside the results:** the components picker is no longer
-    a separate window but a Components tab next to the Character tab in the
-    middle column. Its own stroke filter is gone, and Radical variants,
-    Difficult components and Dim unavailable moved to a View menu.
-  - **One Strokes field** (`12`, `<12`, `>8`, `9-12`) replaces the from/to stroke
-    boxes.
-  - **Info buttons:** circled ⓘ buttons explain the IDS box, Decompose and Find
-    by components.
-  - The **Construct column** is narrower and lighter (fixed width, no tinted
-    background), and each structure button shows a sample character under its
-    icon.
-
-### Release candidate 0.0.20-rc7
-
-Everything in 0.0.20-rc6 plus changes to the character composer's Components…
-window and result display:
-
-- **Components… window redesigned** as a borderless catalogue: no cell borders,
-  a hover wash, a Prussian-blue selected state, a separate keyboard focus ring
-  and faint unavailable cells. Stroke counts are full-width headings (1 STROKE,
-  2 STROKES …), the columns follow the window width, and the window is
-  resizable and remembers its size.
-- **Filters in the Components… window:** first-stroke buttons (一 丨 丿 丶 乛)
-  and a stroke box that takes the search field's syntax (`12`, `9-12`, `<12`,
-  `>8`, `<=12`, `>=8`), next to Radical variants, Difficult components and Dim
-  unavailable.
-- **Difficult components** (off by default): about 500 more components from
-  zi.tools' table, shown in the same stroke-count rows.
-- **Fonts:** result tiles and the Components… window fall back to installed
-  wide-coverage CJK fonts (Hanazono, Jigmo, BabelStone Han, Plangothic,
-  Noto/Source Han CJK, the system Han fonts). Find by components leaves out
-  characters no installed font can draw and says how many it hid; the filter
-  turns itself off when no installed font draws even a common character.
-- The Components… window closes with the composer, so it no longer stays on
-  screen after Insert.
-
-Not verified in real use on any platform. The Windows MSIs are unsigned until
-signed by hand.
-
-### Release candidate 0.0.20-rc6
-
-Everything in 0.0.20-rc5 plus the character composer stroke search below.
-The Windows MSIs are unsigned until signed by hand.
-
-### Character composer: search by strokes, Components… pop-up, sorted results
-
-Discover → "Find by components" gains:
-
-- **Stroke filter.** "Strokes [from] to [to]" boxes ("any" leaves a bound
-  open; the same number in both for an exact count), or a count written among
-  the components: `木12` (exactly 12), `木<12` (fewer than 12), `木>8` (more than
-  8), `木9-12` (9 to 12); `<=` / `>=` make the bound inclusive. Full-width digits
-  and signs (`木９－１２`) work, and the filter can stand alone (`9-12`). Boxes
-  and every typed count all apply together (`木>3 <9` is 4 to 8). A character
-  with several regional counts matches if any one fits. A long result list is
-  limited per stroke count, so a broad range still reaches its high end.
-  Pressing Enter in a stroke box runs the search.
-- **Sorted results.** Results are sorted by stroke count, then by leading stroke
-  in the order 一 丨 丿 丶 乛, under stroke-count headings (which cannot be
-  picked). The leading stroke comes from a table of strokes, radicals and common
-  components written by hand for marinaMoji (BSD-3-Clause, in
-  `src/composer_ids/ids_table.cc`), and for any other character from the first
-  component of its IDS decomposition. Characters whose first stroke differs
-  between the Chinese and Japanese orders (馬, 長, 右 …) are left out of the
-  table on purpose. No KanjiVG data is used.
-- **Components… pop-up.** A tool window with components grouped by stroke
-  count; a click adds one to the search, a second click removes it. Components
-  that would find nothing are greyed out, and radical variants (亻 扌 氵 …) can
-  be hidden; both are options in the pop-up.
-
-Picking a result stays browse-only, as in rc5.
-
-Counts come from the new `stroke_counts.tsv` (Unihan `kTotalStrokes`, generated
-by `build_stroke_counts.py`), installed beside `ids_table.tsv` on Linux, macOS
-and Windows together with `LICENSE.Unicode`, the Unicode License v3 that covers
-it (see `src/data/character_composer/README.md`). Without the file the stroke
-filter says so instead of matching nothing.
-
-### Release candidate 0.0.20-rc5
-
-Everything in 0.0.20-rc4 plus:
-
-- **Character composer** redesign (construct / examine / discover panels).
-  Picking a search result now only browses it: the composition in the editor is
-  left alone, and "Return to composition" goes back. The Linux unit test still
-  expected the old behaviour (picking loaded the result into the editor) and
-  failed CI; it now checks the browse-only behaviour.
-- Composer translations: the committed `.qm` files were stale and are rebuilt
-  from the `.qtts`.
-
-### Release candidate 0.0.20-rc4
-
-Interface redesign. Everything in 0.0.20-rc3 plus the entries below, and:
-
-- **Preferences** has the new sidebar layout and saves as you change things
-  (no Cancel/Apply/OK; problems show in a banner), described under
-  "Preferences: new layout, settings save as you change them" below. Validation
-  steps are in #103.
-- **About** now lives on Preferences → Application. The About menu item and
-  dialog open Preferences on that page (raising it if it is already running)
-  instead of showing the old separate About window.
-- **Add Word** and **Dictionary** tools restyled to match Preferences.
-- **Symbols palette** restyled on macOS, Windows and Linux/IBus, with updated
-  French and Japanese strings.
-- **Toolbar logo**: heavier wordmark, sharp on HiDPI (below).
-- **macOS CI** now generates the Bazel Xcode pin from the runner
-  (`mac/write_local_xcode_config.sh`); the committed `tools/local_xcode/BUILD`
+- The candidate list's footer logo is rendered pixel-sharp on Retina displays
+  (#110).
+- Settings windows follow light/dark switches made while they are open (#111).
+  GUI tools wait for `AppleInterfaceStyle` before re-syncing the colour
+  scheme.
+- CI generates the Bazel Xcode pin from the runner
+  (`mac/write_local_xcode_config.sh`), retries `xcodebuild` when it aborts
+  while pinning, and runs on macos-15. The committed `tools/local_xcode/BUILD`
   had a SDK version from a developer Mac, which broke every macOS job.
 
-Not verified in real use: the redesigned windows and the palette have been
-built by CI but not walked through on Windows, Linux or macOS. CI on the
-commit before the palette restyle (`25f62af`) was green on all four jobs; the
-palette commit had not been built by CI when this was written. As with every
-release, the Windows MSIs come out of CI unsigned and need
-`scripts/sign-windows-release.mjs`.
+### Linux
 
-### Toolbar logo: heavier wordmark, sharp on HiDPI
-
-The long logo looked soft next to the other toolbar icons on every OS. The
-wordmark is Cormorant Garamond Light, whose hairlines shrink to ~0.2 px at the
-24 px toolbar height. The toolbar copies of the SVG (`logo_long_{light,dark}.svg`)
-now carry a 0.4 stroke on the wordmark (keeps the Didot thick/thin contrast) (the tagline is kept); `header_logo.svg`
-is untouched. Windows PNGs regenerated. On Linux the logo is also rendered at
-the screen's scale factor (it was a fixed 1x bitmap). Not built or checked on
-Linux/Windows yet.
-
-### Release candidate 0.0.20-rc3
-
-Everything in 0.0.20-rc2 plus the entries below, and:
-
-- Character composer: Japanese readings in kana, 旧字体/新字体 lines, and
-  cjkvi-variants/hydzd variants in the Unihan info under the preview. The C++
-  parser and dialog changes were not built or run before CI.
-- Toolbar: the new long logo (icon, wordmark, tagline) in light and dark.
-- Preferences: the autosave timer and preview flags are compiled on every
-  platform; they were inside the macOS-only block, which broke the Linux build
-  (and would break Windows).
-- Not changed: the Windows IME hiragana-on-activation change from rc2 is still
-  unverified on a real Windows machine.
-
-### Toolbar: new long logo
-
-The toolbar logo is now `header_logo.svg` from the visual style folder: icon,
-wordmark and a "JAPANESE INPUT METHOD" tagline, in light and dark versions
-(`logo_long_light.svg` / `logo_long_dark.svg`, same names and 1441x321 shape as
-before, so no layout code changed). The Windows PNGs (24/36/48 px) are
-re-rendered from them. The tagline is only a few pixels tall at 24 px. Looked at
-as rendered files on both toolbar backgrounds; not run in the real toolbar.
-
-### Preferences: new layout, settings save as you change them
-
-The Preferences window has a new sidebar layout. Its pages are Writing,
-Dictionaries, Keyboard, Suggestions, Privacy & Sync and Application, with
-optional explanations under each setting (English, French, Japanese; no config
-keys or defaults changed).
-
-**Behaviour change: there is no Cancel, Apply or OK any more.** A change is
-saved about 0.2 s after you make it, and again when the window closes, so Esc
-or the close button cannot drop the last edit. There is no undo; "Reset to
-defaults" (which asks first) is the way back. Successful saves show nothing.
-
-Problems are shown in a banner at the top of the page, not in a dialog, and the
-banner disappears as soon as the problem is resolved:
-
-- **"Not saved yet: …"** (muted): the settings are incomplete, for example
-  Custom keymap with an empty table or an invalid number-row shortcut. Nothing
-  is written until it is fixed.
-- **"Could not save settings. …"** (amber): the settings are valid but could not
-  be persisted, for example the converter is not running. The next change, or
-  closing the window, retries.
-
-Closing the window with something still unsaved does show a dialog, because the
-banner would disappear with the window. Platform side effects (the IBus
-candidate-window file, the Windows IME hotkey, the macOS login item and
-`sync.conf`) are now applied only when their own setting changes, not on every
-save.
-
-The autosave logic is a separate, Qt-free class (`autosave_controller`) with 16
-unit tests covering debounce, rapid changes, re-entrancy, failed saves, retry
-and closing with pending changes. The dialog itself has not been run on any
-platform since these changes: see #103. For visual testing, `MARINAMOJI_PREFS_UI_PREVIEW=1`
-runs the dialog without saving anything and `MARINAMOJI_PREFS_UI_PREVIEW_DARK=1`
-forces dark chrome; any other value, including an empty one, is ignored.
-
-### Character composer: Japanese readings in kana, 旧字体/新字体 links
-
-`char_info.tsv` is rebuilt from Unicode 18.0 Unihan with three more columns:
-`kJapanese` (on in katakana, kun in hiragana; 23,959 characters, against about
-13,000 with the romanised `kJapaneseOn`/`kJapaneseKun`), and the directional
-`kJapaneseOldVariant`/`kJapaneseNewVariant`. The Unihan info under the preview
-shows the kana reading when there is one and adds "old form" and "new form"
-lines. Older `char_info.tsv` files without the columns still load. Not built or
-run on Windows or macOS here; the C++ test is Linux-only.
-
-`variants` also takes the pairs in two tables from cjkvi-variants
-(`cjkvi-variants.txt`, `hydzd-variants.txt`), in both directions, for characters
-that already have a row: 10,948 characters had variants, now 21,417, and 鐧 lists
-锏 鐗 𨰓. That repository has no licence file, so this is recorded in
-`data/character_info/README.md` as a maintainer decision; its
-`twedu-variants.txt` (from the Taiwanese MOE dictionary) is deliberately not used.
-
-Checked and not used: KANJIDIC2 would add readings to only 79 more characters
-(CC BY-SA); the MJ character table (CC BY-SA 2.1 JP) has no 鐧 row. 鐧 (U+9427)
-itself has no Japanese reading in Unihan, KANJIDIC2 or MJ.
-
-### Release candidate 0.0.20-rc2
-
-Everything in 0.0.20-rc1 plus the entries below, and:
-
-- Windows: the IME starts in hiragana instead of direct input when it
-  activates on a closed thread with no kana mode, so the character composer
-  window (its own process) takes kana. Unverified on Windows.
-- Character composer: IVS sequence entry box, editable IDS box with zi.tools
-  layout codes, Unihan info under the preview, and GlyphWiki positional forms
-  so left/top parts draw narrowed.
-
-macOS CI had not completed for this commit when it was tagged: the build jobs
-were cancelled waiting for a runner.
-
-### Linux: character composer result is removed once the IBus engine commits it
-The composer writes the chosen Unicode character to `character_composer_result.txt`
-as a fallback for the LibreOffice extension, and the IBus engine also commits it.
-Both worked on a healthy setup, so Writer got the character twice (issue #102).
-The engine now deletes the file after the commit; the extension inserts only a
-file that is still there after a short grace period (the input method could not
-deliver it). macOS and Windows already delete the file when they read it.
-
-### Linux apt: RC packages sort before the final release
-
-Debian treats a hyphen in the package Version as starting the debian
-revision, so `0.0.19-rc3` sorted *newer* than final `0.0.19` and
-`apt upgrade` on the unstable channel would not move RC testers onto the
-release. `.deb` builds now use `0.0.19~rc3` (tilde), and the apt publisher
-rewrites historical hyphen-form RCs the same way, bumping matching finals
-to `X.Y.Z+1` so already-installed `-rc` packages can upgrade.
-
-Caveats: a machine already on `0.0.19-rcN` gets no further RCs through apt
-(`0.0.19~rc3` sorts older than the installed `-rc1`) and only moves on when
-the final is published, as `0.0.19+1`. Anyone who installed plain `0.0.19`
-from apt earlier gets a same-contents upgrade to `0.0.19+1`. The `~` in new
-`.deb` file names has not been checked against GitHub's release-asset naming
-or `SHA256SUMS`; verify on the next tag build.
+- **Candidate window:** draws the marinaMoji logo in the footer, as on macOS;
+  has rounded corners, a faint outline and a shadow that follows the shape;
+  and falls back to plain windows with cut corners when no compositing
+  manager runs (bare X11). `MARINAMOJI_CANDIDATE_WINDOW=plain|composited`
+  overrides the detection. Style-sheet colours keep their alpha (scrollbar
+  background and indicator were turning solid black). Fixed a crash of the
+  Mozc candidate window and invisible candidates on GNOME.
+- **Character composer result file:** the IBus engine deletes
+  `character_composer_result.txt` after committing the character. The
+  LibreOffice extension inserts only a file that is still there after a short
+  grace period (the input method could not deliver it), so Writer no longer
+  gets the character twice (#102). macOS and Windows already delete the file
+  when they read it.
+- **IBus id** changed to avoid a collision with Mozc.
+- **apt:** RC packages sort before the final release. Debian treats a hyphen
+  in the package Version as starting the debian revision, so `0.0.19-rc3`
+  sorted *newer* than final `0.0.19`. `.deb` builds now use `0.0.19~rc3`
+  (tilde), and the apt publisher rewrites historical hyphen-form RCs the same
+  way, bumping matching finals to `X.Y.Z+1` so already-installed `-rc`
+  packages can upgrade. A machine already on `0.0.19-rcN` gets no further RCs
+  through apt and only moves on when the final is published, as `0.0.19+1`.
+  Anyone who installed plain `0.0.19` from apt earlier gets a same-contents
+  upgrade to `0.0.19+1`.
 
 ## v0.0.19 (2026-10-29)
 
