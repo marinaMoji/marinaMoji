@@ -22,8 +22,23 @@ if ! command -v xcodebuild >/dev/null; then
   exit 1
 fi
 
-XCODE_VERSION="$(xcodebuild -version 2>/dev/null | awk '/^Xcode / { print $2; exit }')"
-SDKS="$(xcodebuild -version -sdk 2>/dev/null || true)"
+# xcodebuild occasionally aborts (exit 134) on a freshly provisioned CI runner,
+# so retry it instead of failing the whole job on the first crash.
+run_xcodebuild() {
+  local out attempt
+  for attempt in 1 2 3 4 5; do
+    if out="$(xcodebuild "$@" 2>&1)"; then
+      printf '%s\n' "${out}"
+      return 0
+    fi
+    echo "xcodebuild $* failed (attempt ${attempt}); retrying" >&2
+    sleep 3
+  done
+  return 1
+}
+
+XCODE_VERSION="$(run_xcodebuild -version | awk '/^Xcode / { print $2 }' | head -1)"
+SDKS="$(run_xcodebuild -version -sdk || true)"
 # Lines look like: "macOS27.2.sdk - macOS 27.2 (macosx27.2)".
 sdk() { echo "${SDKS}" | sed -n "s/.*($1\([0-9.][0-9.]*\)).*/\1/p" | head -1; }
 
