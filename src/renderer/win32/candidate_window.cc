@@ -61,6 +61,10 @@ namespace {
 
 // layout size constants in pixel unit in the default DPI.
 constexpr int kIndicatorWidthInDefaultDPI = 4;
+// Gaps around the footer logo, matching the macOS and Linux candidate windows
+// (renderer/mac/CandidateView.mm, renderer/qt/qt_window_manager.cc).
+constexpr int kFooterLogoLeftMarginInDefaultDPI = 4;
+constexpr int kFooterLogoRightMarginInDefaultDPI = 8;
 
 // usage type for each column.
 enum COLUMN_TYPE {
@@ -557,7 +561,11 @@ void CandidateWindow::UpdateLayout(
     // Calculate the size to display a Footer logo.
     if (footer_logo_.is_valid()) {
       if (candidate_window_->footer().logo_visible()) {
-        footer_size.width += footer_logo_display_size_.width;
+        const double scale_factor = GetDPIScalingFactor(dpi_);
+        footer_size.width +=
+            static_cast<int>(kFooterLogoLeftMarginInDefaultDPI * scale_factor) +
+            footer_logo_display_size_.width +
+            static_cast<int>(kFooterLogoRightMarginInDefaultDPI * scale_factor);
         footer_size.height =
             std::max(footer_size.height, footer_logo_display_size_.height);
       } else if (footer_size.height > 0) {
@@ -819,6 +827,11 @@ void CandidateWindow::DrawFooter(HDC dc) {
   int left_used = 0;
 
   if (candidate_window_->footer().logo_visible() && footer_logo_.is_valid()) {
+    const double scale_factor = GetDPIScalingFactor(dpi_);
+    const int left_margin =
+        static_cast<int>(kFooterLogoLeftMarginInDefaultDPI * scale_factor);
+    const int right_margin =
+        static_cast<int>(kFooterLogoRightMarginInDefaultDPI * scale_factor);
     const int top_offset =
         (footer_content_rect.Height() - footer_logo_display_size_.height) / 2;
     wil::unique_hdc src_dc(::CreateCompatibleDC(dc));
@@ -832,11 +845,13 @@ void CandidateWindow::DrawFooter(HDC dc) {
     // NOTE: AC_SRC_ALPHA requires PBGRA (pre-multiplied alpha) DIB.
     const BLENDFUNCTION bf = {AC_SRC_OVER, 0, 255, AC_SRC_ALPHA};
     ::AlphaBlend(
-        dc, footer_content_rect.Left(), footer_content_rect.Top() + top_offset,
+        dc, footer_content_rect.Left() + left_margin,
+        footer_content_rect.Top() + top_offset,
         footer_logo_display_size_.width, footer_logo_display_size_.height,
         src_dc.get(), 0, 0, src_size.cx, src_size.cy, bf);
 
-    left_used = footer_content_rect.Left() + footer_logo_display_size_.width;
+    left_used = footer_content_rect.Left() + left_margin +
+                footer_logo_display_size_.width + right_margin;
   }
 
   int right_used = 0;

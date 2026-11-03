@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Generate Windows toolbar PNG icons from the shared marinaMoji SVG source
-files in src/unix/ibus/toolbar_icons/.
+files in src/unix/ibus/toolbar_icons/, plus the candidate window footer logo
+bitmaps (candidate_window_logo_PBGRA32_*.bmp) that mozc_renderer.rc embeds.
 
 The Windows renderer has no SVG (or, before this script, PNG) decoding
 capability at all, so icons are pre-rendered here at build time and shipped
@@ -131,6 +132,61 @@ def generate_logo_icons() -> None:
         print(f"  {svg_path.name} -> {name}_{{{','.join(map(str, SIZES))}}}.png")
 
 
+# Candidate window footer logo, embedded as BITMAP resources by
+# src/renderer/win32/mozc_renderer.rc and picked by DPI in
+# CandidateWindow::UpdateDpiDependentResources(). The macOS and Linux
+# candidate windows fit logo_long_light.svg into 120x24 at the 14 pt
+# reference size; for the wide wordmark the height is the binding limit, so
+# the logo is 24 px tall at 100% and scales with DPI from there.
+CANDIDATE_LOGO_SVG = "logo_long_light"
+CANDIDATE_LOGO_SCALES = {100: 24, 125: 30, 150: 36, 200: 48}
+
+
+def _write_pbgra32_bmp(image: Image.Image, out_path: Path) -> None:
+    """Writes |image| as a bottom-up 32 bpp BI_RGB DIB with premultiplied
+    alpha, the layout AlphaBlend(AC_SRC_ALPHA) needs and LoadImage
+    (LR_CREATEDIBSECTION) loads unchanged."""
+    import struct
+
+    image = image.convert("RGBA")
+    width, height = image.size
+    pixels = image.load()
+    rows = []
+    for y in range(height - 1, -1, -1):
+        row = bytearray()
+        for x in range(width):
+            r, g, b, a = pixels[x, y]
+            row += bytes((b * a // 255, g * a // 255, r * a // 255, a))
+        rows.append(bytes(row))
+    bits = b"".join(rows)
+    info_header = struct.pack("<IiiHHIIiiII", 40, width, height, 1, 32, 0,
+                              len(bits), 0, 0, 0, 0)
+    file_header = struct.pack("<2sIHHI", b"BM", 14 + 40 + len(bits), 0, 0,
+                              14 + 40)
+    out_path.write_bytes(file_header + info_header + bits)
+
+
+def generate_candidate_window_logo() -> None:
+    print("Generating candidate window logo bitmaps...")
+    svg_path = SRC_ICON_DIR / f"{CANDIDATE_LOGO_SVG}.svg"
+    if not svg_path.exists():
+        sys.exit(f"ERROR: {svg_path} not found")
+    natural_w, natural_h = _svg_natural_size(
+        _strip_mm_units(svg_path.read_text(encoding="utf-8"))
+    )
+    aspect = natural_w / natural_h
+    for scale, height in CANDIDATE_LOGO_SCALES.items():
+        width = round(height * aspect)
+        png_bytes = render_svg(svg_path, width * LOGO_SUPERSAMPLE,
+                               height * LOGO_SUPERSAMPLE)
+        with Image.open(io.BytesIO(png_bytes)) as im:
+            im.load()
+            logo = im.convert("RGBA").resize((width, height), Image.LANCZOS)
+        out_path = SCRIPT_DIR / f"candidate_window_logo_PBGRA32_{scale}.bmp"
+        _write_pbgra32_bmp(logo, out_path)
+        print(f"  {svg_path.name} -> {out_path.name} ({width}x{height})")
+
+
 def verify_pngs() -> None:
     print("Verifying generated PNGs...")
     count = 0
@@ -161,6 +217,7 @@ def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     generate_square_icons()
     generate_logo_icons()
+    generate_candidate_window_logo()
     verify_pngs()
     print("\nDone.")
 

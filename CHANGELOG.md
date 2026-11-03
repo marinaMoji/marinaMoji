@@ -10,6 +10,17 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+Changes since 0.0.20-rc9:
+
+- **Windows candidate window:** shows the marinaMoji logo in the footer, as on
+  macOS and Linux. The footer logo bitmaps
+  (`data/images/win/candidate_window_logo_PBGRA32_*.bmp`) inherited from Mozc
+  were fully transparent, so Windows drew an empty gap where the logo goes.
+  They are now rendered from `logo_long_light.svg` by
+  `generate_toolbar_icons.py` (24 px tall at 100%, 30/36/48 px at
+  125/150/200%), and the logo gets the same 4 px / 8 px side gaps as the
+  other platforms. Light theme only, like the Windows candidate window itself.
+
 ### Release candidate 0.0.20-rc9
 
 Everything in 0.0.20-rc8 plus:
