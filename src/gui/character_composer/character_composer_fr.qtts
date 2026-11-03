@@ -456,6 +456,22 @@
         <translation>Aucune police installée ne peut afficher les %1 caractères trouvés.</translation>
     </message>
     <message>
+        <source>1 more is hidden because no installed font can draw it.</source>
+        <translation>1 de plus est masqué, car aucune police installée ne peut l’afficher.</translation>
+    </message>
+    <message>
+        <source>No installed font can draw the character found.</source>
+        <translation>Aucune police installée ne peut afficher le caractère trouvé.</translation>
+    </message>
+    <message>
+        <source>1 more variant is hidden because no installed font can draw it.</source>
+        <translation>1 variante de plus est masquée, car aucune police installée ne peut l’afficher.</translation>
+    </message>
+    <message>
+        <source>%1 more variants are hidden because no installed font can draw them.</source>
+        <translation>%1 variantes de plus sont masquées, car aucune police installée ne peut les afficher.</translation>
+    </message>
+    <message>
         <source>Show difficult components</source>
         <translation>Afficher les composants difficiles</translation>
     </message>

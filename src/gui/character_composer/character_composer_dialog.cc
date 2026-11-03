@@ -36,7 +36,6 @@
 #include <QFontMetricsF>
 #include <QPixmap>
 #include <QPushButton>
-#include <QRawFont>
 #include <QRegularExpression>
 #include <QResizeEvent>
 #include <QScrollArea>
@@ -63,6 +62,7 @@
 #include "composer_ids/ids_tree.h"
 #include "gui/character_composer/composer_kage.h"
 #include "gui/character_composer/composer_svg.h"
+#include "gui/character_composer/glyph_coverage.h"
 #include "gui/character_composer/layout_geometry.h"
 #include "gui/config_dialog/config_dialog_theme.h"
 
@@ -156,44 +156,14 @@ QFont WithWideCoverage(QFont font) {
   return font;
 }
 
-// Whether any of a font's installed families has a glyph for a character, so
-// that results the user could only see as boxes can be left out.
-class GlyphCoverage {
- public:
-  explicit GlyphCoverage(const QFont &font) {
-    const QStringList installed = QFontDatabase::families();
-    for (const QString &family : font.families()) {
-      if (!installed.contains(family, Qt::CaseInsensitive)) continue;
-      QFont probe(family);
-      probe.setPixelSize(16);
-      const QRawFont raw = QRawFont::fromFont(probe);
-      if (raw.isValid()) fonts_.push_back(raw);
-    }
-  }
-
-  // False when no installed font draws even a common character (a machine with
-  // no CJK fonts, or a headless test run): nothing can be told apart then.
-  bool usable() const { return Covers(QStringLiteral("木")); }
-
-  bool Covers(const QString &text) const {
-    for (const char32_t cp : text.toUcs4()) {
-      // Variation selectors modify the glyph, they have none of their own.
-      if ((cp >= 0xFE00 && cp <= 0xFE0F) || (cp >= 0xE0100 && cp <= 0xE01EF)) continue;
-      bool found = false;
-      for (const QRawFont &raw : fonts_) {
-        if (raw.supportsCharacter(cp)) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) return false;
-    }
-    return true;
-  }
-
- private:
-  std::vector<QRawFont> fonts_;
-};
+// The coverage of the composer's character tiles, shared by the results,
+// the specimen and the variants row. Left alive to the end: QRawFont must not
+// outlive the application object.
+GlyphCoverage &Coverage() {
+  static GlyphCoverage *const coverage =
+      new GlyphCoverage(WithWideCoverage(QApplication::font()));
+  return *coverage;
+}
 
 // What the Components… window offers: common components, by stroke count.
 struct ComponentGroup {
@@ -545,23 +515,41 @@ QString JoinDot(const QStringList &parts) {
   return parts.join(QStringLiteral("\u2009·\u2009"));
 }
 
-QString FormatVariants(const composer_ids::CharInfo &info) {
+// The Variants row. Variants no installed font can draw are left out and
+// counted; |font| gains the extra families the others need.
+struct VariantsRow {
+  QString text;
+  int hidden = 0;
+};
+
+VariantsRow FormatVariants(const composer_ids::CharInfo &info, QFont *font) {
+  GlyphCoverage &coverage = Coverage();
+  VariantsRow row;
   QStringList parts;
+  auto keep = [&](const QString &ch) {
+    if (!coverage.Drawable(ch)) {
+      ++row.hidden;
+      return false;
+    }
+    *font = coverage.FontFor(*font, ch);
+    return true;
+  };
   if (!info.variants.empty()) {
     const QString raw = FromUtf8(info.variants);
     for (const QString &token :
          raw.split(QRegularExpression(QStringLiteral("\\s+")),
                    Qt::SkipEmptyParts)) {
-      parts << token;
+      if (keep(token)) parts << token;
     }
   }
-  if (!info.old_form.empty()) {
+  if (!info.old_form.empty() && keep(FromUtf8(info.old_form))) {
     parts << Tr("old form: %1").arg(FromUtf8(info.old_form));
   }
-  if (!info.new_form.empty()) {
+  if (!info.new_form.empty() && keep(FromUtf8(info.new_form))) {
     parts << Tr("new form: %1").arg(FromUtf8(info.new_form));
   }
-  return parts.isEmpty() ? QString() : parts.join(QStringLiteral("  "));
+  if (!parts.isEmpty()) row.text = parts.join(QStringLiteral("  "));
+  return row;
 }
 
 QString ComponentRolesFor(const std::string &op) {
@@ -1354,6 +1342,8 @@ void ComponentCatalogue::paintEvent(QPaintEvent *) {
     p.setBrush(Qt::NoBrush);
     p.setOpacity(dimmed ? 0.3 : 1.0);
     p.setPen(selected ? c.accent : c.text);
+    // A component only an unnamed installed font has: name that font.
+    p.setFont(Coverage().FontFor(glyph_font_, cell.text));
     p.drawText(cell.rect, Qt::AlignCenter, cell.text);
     p.setOpacity(1.0);
     if (show_focus_ring_ && hasFocus() && index == current_) {
@@ -1709,6 +1699,8 @@ bool ComponentsPanel::grey_out_unavailable() const {
 }
 
 bool ComponentsPanel::Wanted(const std::string &ch) const {
+  // A component no installed font can draw would only show as a box.
+  if (!Coverage().Drawable(FromUtf8(ch))) return false;
   const std::map<std::string, int> &hard = HardLeadingStrokes();
   const auto hard_it = hard.find(ch);
   const bool is_hard = hard_it != hard.end();
@@ -2420,7 +2412,18 @@ void CharacterComposerDialog::UpdateCharInfoTable(
   SetInfoRow(kun_label_, kun_value_, kun.isEmpty() ? QString() : JoinDot(kun));
   SetInfoRow(meaning_label_, meaning_value_,
              info->definition.empty() ? QString() : FromUtf8(info->definition));
-  SetInfoRow(variants_label_, variants_value_, FormatVariants(*info));
+  QFont variants_font = WithWideCoverage(theme::UiFont(13));
+  const VariantsRow variants = FormatVariants(*info, &variants_font);
+  variants_value_->setFont(variants_font);
+  SetInfoRow(variants_label_, variants_value_, variants.text);
+  variants_value_->setToolTip(
+      variants.hidden == 0 ? QString()
+      : variants.hidden == 1
+          ? Tr("1 more variant is hidden because no installed font can draw "
+               "it.")
+          : Tr("%1 more variants are hidden because no installed font can "
+               "draw them.")
+                .arg(variants.hidden));
   SetInfoRow(strokes_label_, strokes_value_,
              info->strokes.empty() ? QString() : FromUtf8(info->strokes));
   SetInfoRow(radical_label_, radical_value_,
@@ -2598,10 +2601,10 @@ void CharacterComposerDialog::RefreshActiveView() {
   const composer_ids::CharInfo *info = nullptr;
 
   if (search_active) {
-    QFont char_font = theme::DisplayFont(108);
-    char_label_->setFont(char_font);
-    char_label_->setPixmap(QPixmap());
     const QString text = FromUtf8(search_active_char_);
+    char_label_->setFont(
+        Coverage().FontFor(WithWideCoverage(theme::DisplayFont(108)), text));
+    char_label_->setPixmap(QPixmap());
     char_label_->setText(text);
     const QList<uint> cps = text.toUcs4();
     status_heading =
@@ -2620,10 +2623,10 @@ void CharacterComposerDialog::RefreshActiveView() {
               .arg(data_directory_);
     }
     if (!found_.empty()) {
-      QFont char_font = theme::DisplayFont(108);
-      char_label_->setFont(char_font);
-      char_label_->setPixmap(QPixmap());
       const QString text = FromUtf8(found_);
+      char_label_->setFont(
+          Coverage().FontFor(WithWideCoverage(theme::DisplayFont(108)), text));
+      char_label_->setPixmap(QPixmap());
       char_label_->setText(text);
       const QList<uint> cps = text.toUcs4();
       status_heading =
@@ -2827,26 +2830,29 @@ void CharacterComposerDialog::OnFindContaining() {
     return;
   }
   // Leave out characters no installed font can draw: they would show as boxes.
-  static const GlyphCoverage coverage(results_list_->font());
-  size_t undrawable = 0;
-  if (coverage.usable()) {
-    const size_t before = matches.size();
-    matches.erase(std::remove_if(matches.begin(), matches.end(),
-                                 [](const std::string &ch) {
-                                   return !coverage.Covers(FromUtf8(ch));
-                                 }),
-                  matches.end());
-    undrawable = before - matches.size();
-  }
+  GlyphCoverage &coverage = Coverage();
+  const size_t before = matches.size();
+  matches.erase(std::remove_if(matches.begin(), matches.end(),
+                               [&coverage](const std::string &ch) {
+                                 return !coverage.Drawable(FromUtf8(ch));
+                               }),
+                matches.end());
+  const size_t undrawable = before - matches.size();
   const QString undrawable_note =
-      undrawable == 0
-          ? QString()
+      undrawable == 0 ? QString()
+      : undrawable == 1
+          ? QStringLiteral(" ") +
+                Tr("1 more is hidden because no installed font can draw it.")
           : QStringLiteral(" ") +
-                Tr("%1 more are hidden because no installed font can draw them.")
+                Tr("%1 more are hidden because no installed font can draw "
+                   "them.")
                     .arg(undrawable);
   if (matches.empty()) {
     results_status_->setText(
-        Tr("No installed font can draw the %1 characters found.").arg(undrawable));
+        undrawable == 1
+            ? Tr("No installed font can draw the character found.")
+            : Tr("No installed font can draw the %1 characters found.")
+                  .arg(undrawable));
     RefreshActiveView();
     return;
   }
@@ -2889,8 +2895,13 @@ void CharacterComposerDialog::OnFindContaining() {
     }
     if (in_group++ >= limit) continue;
     ++shown;
-    auto *item = new QListWidgetItem(FromUtf8(matches[i]), results_list_);
+    const QString text = FromUtf8(matches[i]);
+    auto *item = new QListWidgetItem(text, results_list_);
     item->setTextAlignment(Qt::AlignCenter);
+    // A character only an unnamed installed font has: name that font.
+    if (!coverage.Check(text).extra_family.isEmpty()) {
+      item->setFont(coverage.FontFor(results_list_->font(), text));
+    }
     const QString leading = LeadingStrokeGlyph(table_->LeadingStroke(matches[i]));
     if (strokes && !leading.isEmpty()) {
       item->setToolTip(
@@ -2970,8 +2981,13 @@ void CharacterComposerDialog::UpdateComponentsPanel() {
       unavailable_cache_.clear();
       for (const std::string &ch : shown) {
         if (Contains(selected, ch)) continue;
-        if (table_->FindContaining(query.components + ch, query.strokes)
-                .empty()) {
+        // Unavailable also when every match is hidden as undrawable.
+        const std::vector<std::string> found =
+            table_->FindContaining(query.components + ch, query.strokes);
+        if (std::none_of(found.begin(), found.end(),
+                         [](const std::string &match) {
+                           return Coverage().Drawable(FromUtf8(match));
+                         })) {
           unavailable_cache_.push_back(ch);
         }
       }

@@ -12,6 +12,30 @@ changed and, where it isn't obvious, why.
 
 Changes since 0.0.20-rc9:
 
+- **Character composer, characters no font can draw:** the check behind
+  "N more are hidden because no installed font can draw them" now asks what
+  Qt can really draw. It used to look only at the fonts the result tiles name
+  (the wide-coverage list), so a character that only an unlisted font has,
+  such as IPAmj Mincho, Yu Gothic, MS Gothic, Microsoft YaHei, Hiragino or
+  Unifont, was hidden even though it displays. A character now counts as
+  drawable when a listed font has it, when any other installed Japanese,
+  Chinese or Korean font has it (that font is then named for that tile), or
+  when Qt finds a glyph for it through the system's own font fallback
+  (fontconfig, Core Text, DirectWrite). Answers are cached for the session, so
+  a broad search such as 一 pays the cost once. The check lives in
+  `gui/character_composer/glyph_coverage.{h,cc}`.
+  - The same filter now applies to the **Variants** row of the middle
+    column (old and new forms included). A tooltip on the row says how many
+    variants were left out.
+  - The specimen uses the same fonts as the tiles, so a result picked there no
+    longer turns into a box.
+  - The **Components tab** leaves out components no installed font can draw
+    (radical variants and difficult components included), and names the extra
+    font for those only an unlisted font has.
+  - **Dim unavailable** on the Components tab also dims a component whose
+    matches are all hidden, instead of leading to an empty result list.
+  - Singular wording for one hidden character ("1 more is hidden…").
+
 - **Windows candidate window:** shows the marinaMoji logo in the footer, as on
   macOS and Linux. The footer logo bitmaps
   (`data/images/win/candidate_window_logo_PBGRA32_*.bmp`) inherited from Mozc

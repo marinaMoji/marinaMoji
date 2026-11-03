@@ -141,10 +141,14 @@ mozc_cc_qt_library(
     srcs = [
         "character_composer_dialog.cc",
         "character_composer_libmain.cc",
+        "glyph_coverage.cc",
         ":moc_character_composer_dialog",
         ":qrc_character_composer",
     ],
-    hdrs = ["character_composer_dialog.h"],
+    hdrs = [
+        "character_composer_dialog.h",
+        "glyph_coverage.h",
+    ],
     local_defines = ["MARINAMOJI"],
     deps = [
         ":composer_kage",

@@ -456,6 +456,22 @@
         <translation>No installed font can draw the %1 characters found.</translation>
     </message>
     <message>
+        <source>1 more is hidden because no installed font can draw it.</source>
+        <translation>1 more is hidden because no installed font can draw it.</translation>
+    </message>
+    <message>
+        <source>No installed font can draw the character found.</source>
+        <translation>No installed font can draw the character found.</translation>
+    </message>
+    <message>
+        <source>1 more variant is hidden because no installed font can draw it.</source>
+        <translation>1 more variant is hidden because no installed font can draw it.</translation>
+    </message>
+    <message>
+        <source>%1 more variants are hidden because no installed font can draw them.</source>
+        <translation>%1 more variants are hidden because no installed font can draw them.</translation>
+    </message>
+    <message>
         <source>Show difficult components</source>
         <translation>Show difficult components</translation>
     </message>

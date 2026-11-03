@@ -10,6 +10,7 @@
 #include <QApplication>
 #include <QCoreApplication>
 #include <QEvent>
+#include <QFont>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
@@ -23,7 +24,9 @@
 #include <vector>
 
 #include "base/file_util.h"
+#include "composer_ids/char_info.h"
 #include "composer_ids/ids_table.h"
+#include "gui/character_composer/glyph_coverage.h"
 #include "testing/gunit.h"
 #include "testing/mozctest.h"
 
@@ -501,6 +504,106 @@ TEST_F(CharacterComposerDialogTest, RadicalFormsAppearInsideTheBoxAndCanBePicked
   base->click();
   EXPECT_EQ(Edits(dialog.get())[0]->text(), QStringLiteral("言"));
   EXPECT_EQ(dialog->findChild<LayoutEditor *>()->parts()[0].input, "言");
+}
+
+
+// U+2FFFD is unassigned, so no font has a glyph for it.
+const QString kUndrawable = QString::fromUcs4(U"\U0002FFFD", 1);
+
+TEST_F(CharacterComposerDialogTest, GlyphCoverageTellsMissingGlyphsApart) {
+  GlyphCoverage coverage(QApplication::font());
+  if (!coverage.usable()) GTEST_SKIP() << "no installed font draws 木";
+  EXPECT_TRUE(coverage.Drawable(QStringLiteral("木")));
+  EXPECT_TRUE(coverage.Drawable(QStringLiteral("木︀")))
+      << "a variation selector has no glyph of its own";
+  EXPECT_FALSE(coverage.Drawable(kUndrawable));
+  EXPECT_FALSE(coverage.Drawable(kUndrawable)) << "cached answer";
+  EXPECT_FALSE(GlyphCoverage::QtDraws(QApplication::font(), kUndrawable));
+}
+
+TEST_F(CharacterComposerDialogTest, ResultsLeaveOutCharactersNoFontDraws) {
+  if (!GlyphCoverage(QApplication::font()).usable()) {
+    GTEST_SKIP() << "no installed font draws 木";
+  }
+  auto table = composer_ids::IdsTable::FromTsv(
+      "⿱廿木\t某\n⿰木目\t相\n⿰木龠\t" + kUndrawable.toStdString() + "\n", "");
+  ASSERT_TRUE(table.ok());
+  auto dialog = std::make_unique<CharacterComposerDialog>(
+      std::make_unique<composer_ids::IdsTable>(*std::move(table)), QString());
+  dialog->show();
+  auto *edit = dialog->findChild<QLineEdit *>(QStringLiteral("containing_edit"));
+  auto *list = dialog->findChild<QListWidget *>();
+  auto *status = dialog->findChild<QLabel *>(QStringLiteral("resultsStatus"));
+  ASSERT_NE(status, nullptr);
+  edit->setText(QStringLiteral("木"));
+  Button(dialog.get(), "Find")->click();
+  QStringList found = Characters(list);
+  found.sort();
+  QStringList expected = {QStringLiteral("某"), QStringLiteral("相")};
+  expected.sort();
+  EXPECT_EQ(found, expected);
+  EXPECT_TRUE(status->text().startsWith(QStringLiteral("2 characters found")))
+      << status->text().toStdString();
+  EXPECT_TRUE(status->text().endsWith(
+      QStringLiteral("1 more is hidden because no installed font can draw it.")))
+      << status->text().toStdString();
+
+  // Only the undrawable character contains 龠.
+  edit->setText(QStringLiteral("龠"));
+  Button(dialog.get(), "Find")->click();
+  EXPECT_EQ(list->count(), 0);
+  EXPECT_EQ(status->text(),
+            QStringLiteral("No installed font can draw the character found."));
+}
+
+TEST_F(CharacterComposerDialogTest, VariantsLeaveOutCharactersNoFontDraws) {
+  if (!GlyphCoverage(QApplication::font()).usable()) {
+    GTEST_SKIP() << "no installed font draws 木";
+  }
+  auto table = composer_ids::IdsTable::FromTsv("⿱廿木\t某\n", "");
+  ASSERT_TRUE(table.ok());
+  // char cp strokes pinyin ja_on ja_kun rs definition variants
+  auto info = composer_ids::CharInfoTable::FromTsv(
+      "某\tU+67D0\t9\t\t\t\t\t\t" + (QStringLiteral("相 ") + kUndrawable).toStdString() + "\n");
+  ASSERT_TRUE(info.ok());
+  auto dialog = std::make_unique<CharacterComposerDialog>(
+      std::make_unique<composer_ids::IdsTable>(*std::move(table)), QString(),
+      nullptr,
+      std::make_unique<composer_ids::CharInfoTable>(*std::move(info)));
+  dialog->show();
+  auto *edit = dialog->findChild<QLineEdit *>(QStringLiteral("containing_edit"));
+  auto *list = dialog->findChild<QListWidget *>();
+  edit->setText(QStringLiteral("木"));
+  Button(dialog.get(), "Find")->click();
+  ASSERT_EQ(Characters(list), QStringList({QStringLiteral("某")}));
+  emit list->itemClicked(list->item(0));
+  QLabel *variants = nullptr;
+  for (QLabel *label : dialog->findChildren<QLabel *>(QStringLiteral("infoValue"))) {
+    if (label->text().contains(QStringLiteral("相"))) variants = label;
+  }
+  ASSERT_NE(variants, nullptr);
+  EXPECT_EQ(variants->text(), QStringLiteral("相"));
+  EXPECT_EQ(variants->toolTip(),
+            QStringLiteral("1 more variant is hidden because no installed font "
+                           "can draw it."));
+}
+
+
+TEST_F(CharacterComposerDialogTest, ComponentsPanelLeavesOutComponentsNoFontDraws) {
+  GlyphCoverage coverage(QApplication::font());
+  if (!coverage.usable()) GTEST_SKIP() << "no installed font draws 木";
+  auto dialog = MakeDialog();
+  auto *panel = dialog->findChild<ComponentsPanel *>();
+  ASSERT_NE(panel, nullptr);
+  // The difficult components include rare ones; none may be a box.
+  panel->SetFilters(/*difficult=*/true, /*first_stroke_mask=*/0);
+  const std::vector<std::string> shown = panel->ShownComponents();
+  ASSERT_FALSE(shown.empty());
+  for (const std::string &ch : shown) {
+    const QString text = QString::fromStdString(ch);
+    EXPECT_TRUE(coverage.Drawable(text)) << ch;
+    EXPECT_TRUE(panel->catalogue()->Contains(text)) << ch;
+  }
 }
 
 }  // namespace

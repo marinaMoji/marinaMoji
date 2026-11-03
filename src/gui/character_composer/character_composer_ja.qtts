@@ -456,6 +456,22 @@
         <translation>見つかった %1 字を表示できるフォントがインストールされていません。</translation>
     </message>
     <message>
+        <source>1 more is hidden because no installed font can draw it.</source>
+        <translation>1 字は、表示できるフォントがインストールされていないため非表示です。</translation>
+    </message>
+    <message>
+        <source>No installed font can draw the character found.</source>
+        <translation>見つかった字を表示できるフォントがインストールされていません。</translation>
+    </message>
+    <message>
+        <source>1 more variant is hidden because no installed font can draw it.</source>
+        <translation>異体字 1 字は、表示できるフォントがインストールされていないため非表示です。</translation>
+    </message>
+    <message>
+        <source>%1 more variants are hidden because no installed font can draw them.</source>
+        <translation>異体字 %1 字は、表示できるフォントがインストールされていないため非表示です。</translation>
+    </message>
+    <message>
         <source>Show difficult components</source>
         <translation>難しい部品を表示</translation>
     </message>
