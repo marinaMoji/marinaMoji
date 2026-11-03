@@ -72,6 +72,27 @@ class BuildCharInfoTest(unittest.TestCase):
       self.assertNotIn(0x28C13, rows)
       self.assertEqual(added, 3)
 
+  def test_glyphwiki_itaiji_aliases_link_existing_rows_both_ways(self):
+    with tempfile.TemporaryDirectory() as tmp:
+      dump = pathlib.Path(tmp) / 'dump_newest_only.txt'
+      dump.write_text(
+          ' name | related | data\n'
+          '------+---------+-----\n'
+          ' u58fc-itaiji-001 | u58fc | 99:0:0:0:0:200:200:u58f7\n'
+          ' u58fc-itaiji-002 | u58fc | 99:0:0:0:0:200:200:u58f7-02@3\n'
+          ' u6765-itaiji-001 | u6765 | 99:0:0:0:0:200:200:u8012$1:0:0:0:0:1:1\n'
+          ' u58fc-var-001 | u58fc | 99:0:0:0:0:200:200:u6765\n'
+          ' u58fc-itaiji-003 | u58fc | 99:0:0:0:0:200:200:u2b740\n',
+          encoding='utf-8')
+      rows = {0x58FC: {}, 0x58F7: {'variants': 'x'}, 0x6765: {}}
+      added = b.add_glyphwiki_itaiji(rows, dump)
+      self.assertEqual(rows[0x58FC]['variants'], chr(0x58F7))
+      self.assertEqual(rows[0x58F7]['variants'], 'x ' + chr(0x58FC))
+      self.assertEqual(rows[0x6765], {})
+      self.assertEqual(added, 2)
+      rows = {0x58FC: {}, 0x2B740: {}}
+      self.assertEqual(b.add_glyphwiki_itaiji(rows, dump), 0)
+
 
 if __name__ == '__main__':
   unittest.main()

@@ -146,6 +146,49 @@ def add_cjkvi_variants(rows: dict[int, dict[str, str]],
     return added
 
 
+# GlyphWiki names a hand-made 異体字 glyph uXXXX-itaiji-NNN. When its data is
+# only the placement of another character, that character is an itaiji of XXXX.
+ITAIJI_NAME_RE = re.compile(r'^u([0-9a-f]{4,5})-itaiji-\d+$')
+ALIAS_RE = re.compile(r'^99:0:0:0:0:200:200:u([0-9a-f]{4,5})(?:-[^:$@]*)?(?:@\d+)?$')
+
+
+def add_glyphwiki_itaiji(rows: dict[int, dict[str, str]],
+                         dump: pathlib.Path) -> int:
+    """Adds GlyphWiki itaiji aliases from |dump| to |rows|, both ways.
+
+    |dump| is dump_newest_only.txt. Only characters that already have a row
+    get a link, and only when both lie in the composer's blocks: the rarer
+    extension characters it reaches are mostly components, not variants.
+    Returns the number of (character, variant) links added.
+    """
+    added = 0
+    with dump.open(encoding='utf-8') as f:
+        for line in f:
+            parts = line.split('|', 2)
+            if len(parts) < 3:
+                continue
+            m = ITAIJI_NAME_RE.match(parts[0].strip())
+            if not m:
+                continue
+            target = ALIAS_RE.match(parts[2].strip())
+            if not target:
+                continue
+            a, b = int(m.group(1), 16), int(target.group(1), 16)
+            if a == b:
+                continue
+            for x, y in ((a, b), (b, a)):
+                row = rows.get(x)
+                if (row is None or rows.get(y) is None
+                        or not in_composer_blocks(x)
+                        or not in_composer_blocks(y)):
+                    continue
+                have = row.get('variants', '').split()
+                if chr(y) not in have:
+                    row['variants'] = ' '.join(have + [chr(y)])
+                    added += 1
+    return added
+
+
 def first_strokes(raw: str) -> str:
     # kTotalStrokes can be "10" or "10 11" (source disagreement); take the first.
     return raw.split()[0] if raw else ''
@@ -204,12 +247,17 @@ def main() -> None:
     ap.add_argument('--cjkvi-variants', type=pathlib.Path,
                     help='directory with cjkvi-variants.txt and '
                          'hydzd-variants.txt (see README.md)')
+    ap.add_argument('--glyphwiki-itaiji', type=pathlib.Path,
+                    help='GlyphWiki dump_newest_only.txt (see README.md)')
     args = ap.parse_args()
 
     rows = load_unihan(args.unihan)
     if args.cjkvi_variants:
         added = add_cjkvi_variants(rows, args.cjkvi_variants)
         print(f'{added} cjkvi variant links added', file=sys.stderr)
+    if args.glyphwiki_itaiji:
+        added = add_glyphwiki_itaiji(rows, args.glyphwiki_itaiji)
+        print(f'{added} GlyphWiki itaiji links added', file=sys.stderr)
     n = write_tsv(rows, args.out, args.composer_blocks)
     print(f'{n} characters -> {args.out}', file=sys.stderr)
 

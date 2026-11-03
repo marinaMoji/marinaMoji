@@ -57,7 +57,7 @@
 㐵	U+3435	5	rú			9.3	Confucianism; scholar	儒 𠆬			
 㐶	U+3436	5				9.3					
 㐷	U+3437	5	mǎ			9.3	a kind of punishment in Han Dynasty, name of chessmen in Chinese chess game (simplified form, a variant 罵) to curse; to revile; to abuse, to scold	傌			
-㐸	U+3438	6	qiàn			9.4	(non-classical form of 欠) to owe money, deficient, to yawn, last name	欠	ケン		
+㐸	U+3438	6	qiàn			9.4	(non-classical form of 欠) to owe money, deficient, to yawn, last name	欠 歉	ケン		
 㐹	U+3439	6	yì			9.4	(standard form of 仡) strong; valiant, a minority ethnic group in China	㑶 仡	キツ		
 㐺	U+343A	6	yín			9.4	(standard form of 眾) all; the whole of; a multitude, a crowd (three or more)	衆	ギン シュウ		
 㐻	U+343B	6	nèi			9.4	name of a person		ダイ ネ		
@@ -72,7 +72,7 @@
 㑄	U+3444	7	wǔ			9.5	(ancient form of 侮) to insult, to ridicule	侮	ブ		
 㑅	U+3445	7	zuò			9.5	(same as 作) to make; to do; to act, to write; to compose; to rise, work	作	サク		
 㑆	U+3446	7				9.5					
-㑇	U+3447	7	zhòu			9.5	clever, ingenious; cute; pretty	㑳			
+㑇	U+3447	7	zhòu			9.5	clever, ingenious; cute; pretty	㑳 伋			
 㑈	U+3448	7	dòng			9.5	(simplified form) rude; barbarous, stupid; dull, last name	倲			
 㑉	U+3449	8	sù			9.6	cannot straighten up		シュク		
 㑊	U+344A	8	yì			9.6	a kind of disease		エキ ヤク		
@@ -320,7 +320,7 @@
 㔼	U+353C	13	sǔn			24.11	(non-classical form of 榫) to fit into, a tenon, connected	榫	ジュン		
 㔽	U+353D	8	yào			25.6	(non-classical form of 卣) a kind of wine pot or jar used in ancient time	卣	ユウ		
 㔾	U+353E	2	xiān			26.1	(same as 筄) last name; Kangxi radical 26; a joint, a seal, (ancient form of 節)	卩 𢎘 巳	セツ		
-㔿	U+353F	3	zòu			26.1	a tally, like fitting the two halves of a tally, to petition the emperor that ..., to play music; to beat time	奏	ソウ		
+㔿	U+353F	3	zòu			26.1	a tally, like fitting the two halves of a tally, to petition the emperor that ..., to play music; to beat time	奏 耳	ソウ		
 㕀	U+3540	7				26.5		㽕			
 㕁	U+3541	8	què			26.6	(non-classical form of 卻) still; but; yet; etc., to refuse to accept, to retreat; to withdraw	卻	キャク しりぞく		
 㕂	U+3542	6	yín			27.4	(ancient form of 吟) to hum; to intone, to moan, to sigh, high ridges of cliffs, pebble ground	㕋 吟 崟	ギン		
@@ -366,7 +366,7 @@
 㕪	U+356A	7	dǎn			30.4	birds' chirps; gabbling, sound in high pitch; to roar; aloud		タン トン		
 㕫	U+356B	7	fǎng			30.4	(same as 仿 方) to imitate, like; resembling; according to, a measurement for sound effect	方	ホウ		
 㕬	U+356C	7	gōng			30.4	public opinion, (same as 訟) to go to law, to dispute, to demand justice; (Cant.) classifier for ears of corn	訟	コウ ク ショウ シュ ジュ		
-㕭	U+356D	7	āo			30.4	(same as 咬) to bark as a dog, obscene expressions, an interjection; implying surprise		オウ ヨウ		
+㕭	U+356D	7	āo			30.4	(same as 咬) to bark as a dog, obscene expressions, an interjection; implying surprise	㕹	オウ ヨウ		
 㕮	U+356E	7	fǔ			30.4	to chew; to masticate, to dwell on, Chinese medicine term	哺	フ かむ		
 㕯	U+356F	7	nè			30.4	slow-tongued; to stammer, to shout in triumph; the noise of shouting in battle	訥	トツ どもる		
 㕰	U+3570	7	xuè			30.4	sound angrily; roaring with rage, (same as 嘛) (a dialect) what; the tone implying to remind	嘛	カク		
@@ -378,7 +378,7 @@
 㕶	U+3576	7	ň			30.4	(Cant.) an expletive, exclamation	嗯	ボク		
 㕷	U+3577	8	huà			30.5	(corrupted form 咟) to call, to yell, anxious, dazed, image sound, an exclamation expressing sound (such as clap hands; to fire a gun; to strike; sound of firecracker etc.)	啪 㗲			
 㕸	U+3578	8	lì			30.5	sound of rolling a boat		リュウ		
-㕹	U+3579	8	fá			30.5	a buckler; a shield	瞂	ハツ ボチ バチ		
+㕹	U+3579	8	fá			30.5	a buckler; a shield	瞂 㕭	ハツ ボチ バチ		
 㕺	U+357A	8	xiāo			30.5	(corrupted form of 囂) looks big outside but empty inside, to yell; voice of anger, hubbub; clamour	囂	キョウ		
 㕻	U+357B	8	pǒu			30.5	to refuse, to repel	咅	トウ ツ ホウ フ		
 㕼	U+357C	8				30.5	to brawl; to scold, noise from a crowd; hubbub; noisy; loud noise	哅	コウ		
@@ -658,7 +658,7 @@
 㚎	U+368E	5				37.2		𠚀			
 㚏	U+368F	6	gǎo			37.3	(corrupted form) to scatter; to disperse, to give the reins to; to allow to run wild; unstable; light; featherbrained				
 㚐	U+3690	6	tào			37.3	(same as 套) a case; a wrapper; a covering; a snare, to encase; to slip over	套	トウ		
-㚑	U+3691	6				37.3			レイ リョウ みたま たま くし		
+㚑	U+3691	6				37.3		靈	レイ リョウ みたま たま くし		
 㚒	U+3692	7	shǎn			37.4	concealed the stolen goods in one's dress	夾 𡙩	セン セキ シャク		
 㚓	U+3693	7	lǎi			37.4	tie-beams of a small boat		ライ		
 㚔	U+3694	8	niè			37.5	instrument of torture used in ancient times, loud, an evil doer all the times, (same as 幸) to rejoice, fortunate; prosperous	幸	ジョウ ニョウ ニュウ コウ		
@@ -716,7 +716,7 @@
 㛈	U+36C8	9				38.6					
 㛉	U+36C9	9				38.6					
 㛊	U+36CA	9	duǒ			38.6	to speculate; to conjecture; to assume; to make an intelligent guess; to fathom, (of a woman) beautiful, used in girl's name	㛆 媣			
-㛋	U+36CB	9				38.6		嬭			
+㛋	U+36CB	9				38.6		嬭 奶			
 㛌	U+36CC	9				38.6					
 㛍	U+36CD	10	qiè			38.7	to have one's ambition fulfilled; to be successful in one's career; (same as 愜) pleasing; satisfying; to gratify or be gratified, undignified; improper	𮰿 𡞡 愜	キョウ ショウ		
 㛎	U+36CE	10	lǚ			38.7	an ugly woman	𡜅	リョ ロ		
@@ -843,7 +843,7 @@
 㝇	U+3747	16	chún			39.13	(same as 鶉) quail	鶉	ジュン		
 㝈	U+3748	25	luán			39.22	(same as 孿) twin	孿	サン セン		
 㝉	U+3749	4	zhù			40.1	(same as 宁) space between the throne and the retiring room behind it, to store up; to save up, peaceful, used as a term of comparison				
-㝊	U+374A	5	shǒu			40.2	(same as 守) to guide; to watch, to wait, to keep	守	シュ		
+㝊	U+374A	5	shǒu			40.2	(same as 守) to guide; to watch, to wait, to keep	守 最	シュ		
 㝋	U+374B	5	liǎo			40.2			リョウ		
 㝌	U+374C	6	jiù			40.3	(same as 疚) prolonged illness, mental discomfort, to stay in one place for a long period	疚	キュウ ク ユウ ユ		
 㝍	U+374D	6	xiě			40.3	(simplified form of 寫) to write; to draw		シャ うつす		
@@ -910,7 +910,7 @@
 㞊	U+378A	13	xù			43.10	unable to walk	𥚋 𡰇	シュツ		
 㞋	U+378B	5	niǎn			44.2	soft and meek, weak, to arrange, to regulate	𠬝 𡰫	ショク シキ デン ネン		
 㞌	U+378C	6	yùn			44.3	(same as 孕) to be pregnant; to conceive	孕	ヨウ		
-㞍	U+378D	6				44.3			コウ しり		
+㞍	U+378D	6				44.3		尻	コウ しり		
 㞎	U+378E	7	bǎ			44.4	(baby talk) body waste, (a dialect) weight measurement				
 㞏	U+378F	8	zhé			44.5	small; to store up or pile in order, to follow; to trace, a short step	𡰹	チュウ ジュウ キョウ ギョウ		
 㞐	U+3790	8	jū			44.5	(an ancient form of 居), to dwell; to remain, to be in (various states and conditions), to occupy, the course of one's life	居	キョ		
@@ -943,7 +943,7 @@
 㞫	U+37AB	6	jù			46.3	(non-classical form of 走) to walk, to run, to leave	走	ソウ		
 㞬	U+37AC	6	qìn			46.3	close or near		キン		
 㞭	U+37AD	6	dài			46.3	name of an island	𡗡	タイ		
-㞮	U+37AE	6		SHUTSU SUI	DERU DASU	46.3	(non-standard Japanese variant of 出), to go out, send out; to stand; to produce		シュツ スイ デ シュチ でる だす		
+㞮	U+37AE	6		SHUTSU SUI	DERU DASU	46.3	(non-standard Japanese variant of 出), to go out, send out; to stand; to produce	出	シュツ スイ デ シュチ でる だす		
 㞯	U+37AF	6	jié			46.3	(same as 岊) the turning area of a mountain, mountain top; summit, a high mountain, a bare (of bald) mountain or hill	𡵒	キ		
 㞰	U+37B0	7	xǔ			46.4	name of a mountain		キョ		
 㞱	U+37B1	7	cōng			46.4	dusk; twilight		ショウ シュ		
@@ -952,7 +952,7 @@
 㞴	U+37B4	7	chí			46.4	name of a mountain, (non-classical form of 岷) the Min River (in Sichuan), Mt. Min (in Sichuan), name of a county (in old China)	岷	チ ジ		
 㞵	U+37B5	7				46.4	(corrupted form) frivolous; flippant; capricious; playful; sportive, cunning				
 㞶	U+37B6	7	mǐn			46.4	(same as 岷) the Min River (in Sichuan), Mt. Min (in Sichuan), name of a county (in old China)	岷	ビン		
-㞷	U+37B7	7	huáng			45.4	luxuriant; lush; flourishing	𡉚 𡴍			
+㞷	U+37B7	7	huáng			45.4	luxuriant; lush; flourishing	𡉚 𡴍 徴			
 㞸	U+37B8	7	suì			46.4	(same as 呡) (simplified form of 歲) a year; age (of a person), harvest	歲			
 㞹	U+37B9	8	kě			46.5	(same as 岢) name of a mountain in Shanxi province	岢	カ		
 㞺	U+37BA	8	zú			46.5	(ancient form of 族) a tribe; a clan; relatives, race (of people), a class; a family (of animals)	族	ゾク		
@@ -1142,7 +1142,7 @@
 㡲	U+3872	7	huán			53.4	tiles (laid upside down) on a roof, ropes, to hold fast		カン ゲン		
 㡳	U+3873	7	zhǐ			53.4	mountain, (corrupted form of 底) underside; bottom; basis; foundation	底	テイ		
 㡴	U+3874	8	lā			53.5	sound		ロウ		
-㡵	U+3875	8	líng			53.5	roof of the house connected		レイ リョウ		
+㡵	U+3875	8	líng			53.5	roof of the house connected	廉	レイ リョウ		
 㡶	U+3876	8	zhǐ			53.5	dwell, to live in a depraved (crude; vulgar; inferior) place		シ		
 㡷	U+3877	8	běn			53.5	a family name		ホン		
 㡸	U+3878	8	zhà			53.5	a house; an unfinished house, uneven; irregular; unsuitable; ill-matched, tenon	厏	サ シャ ジャ		
@@ -1293,7 +1293,7 @@
 㤉	U+3909	7	qiā			61.4	fear; dread; fright; scare, crafty; low cunning	𢗬 愘	カ ケ ガ ゲ ゴウ ギョウ ジ		
 㤊	U+390A	7	xiào			61.4	(same as 恔) cheerful and exuberant; spiritually elevated	恔	コウ ゴウ		
 㤋	U+390B	7	fēn			61.4	confusion; confused or disorderly; chaotic		フン		
-㤌	U+390C	8	gān			61.5	(same as 甘) to have one's heart own; to submit, admire, etc. sincerely and willingly		カン		
+㤌	U+390C	8	gān			61.5	(same as 甘) to have one's heart own; to submit, admire, etc. sincerely and willingly	感	カン		
 㤍	U+390D	9	qiāo			61.5	never reveal one's feeling or emotion, (same as 巧) false, artificial, illegal, clever; artful, pretty cute	巧	コウ キョウ		
 㤎	U+390E	9	gē			61.5	a model or typical example; technique of standard handwriting, knowledge, to know; to feel; to understand		カ		
 㤏	U+390F	8	tóng			61.5	grievous; mournful; melancholy		トウ ズ		
@@ -1306,7 +1306,7 @@
 㤖	U+3916	8	zhù			61.5	to have wisdom; intelligent	懧 詝	チョ		
 㤗	U+3917	9				61.5			タイ やす		
 㤘	U+3918	8	zhòu			61.5	(simplified form of 㥮) obstinate; stubborn; opinionated; obstinacy; stubbornness; intransigent, truculent; savage, ferocious; fierce	㥮			
-㤙	U+3919	9				61.5	(same as 恩) grace, favour, kindness, mercy	恩	オン		
+㤙	U+3919	9				61.5	(same as 恩) grace, favour, kindness, mercy	恩 思	オン		
 㤚	U+391A	9	háng			61.6	joy; delight; gratification		コウ ゴウ よろこぶ		
 㤛	U+391B	9	nín			61.6	to remember (old days, friends, etc.); to recall, (a pronoun, a dialect) this; these; such, here, without restriction; at will, to trust; to show good faith, weak, (ancient form 飪) to cook, you, (dialect) so; that, than, that case, that (indicating degree)	恁	ジン		
 㤜	U+391C	9	jué			61.6	(corrupted form of 怴) crazy; mad, anger; angry, idiotic; silly; stupid, ill-will; enmity; animus	怴	キツ キチ ケツ ケチ		
@@ -1476,7 +1476,7 @@
 㧀	U+39C0	8	jí			63.4	the bolt of a door; door latch		キュウ ゴウ		
 㧁	U+39C1	9	qù			63.5	to close, shut the door with a bang, to soar, (ancient form 闔) a Chinese family name	𢈊	キョ コ コウ ゴウ		
 㧂	U+39C2	9	tián			63.5	(same as 屇) a cave a hold in the ground; a hole	屇	テン		
-㧃	U+39C3	5	shōu			64.2	(ancient form of 收) to receive what is due; to gather together, to harvest, to collect; to put away, to close, to bind, to restrain, to bring to the end, (same as 摎) entwined -- as branches of a tree; to tangle; to involve, to collaborate; to band together	收 摎	シュウ キュウ ク		
+㧃	U+39C3	5	shōu			64.2	(ancient form of 收) to receive what is due; to gather together, to harvest, to collect; to put away, to close, to bind, to restrain, to bring to the end, (same as 摎) entwined -- as branches of a tree; to tangle; to involve, to collaborate; to band together	收 摎 撬	シュウ キュウ ク		
 㧄	U+39C4	5	qiǎn			64.2	to take; to receive; to fetch; to take hold of		グ ケン コン キュウ		
 㧅	U+39C5	5	mù			64.2	to turn upside down; to exert a great deal; to pull and drag, to implicate or involve		ボク なた		
 㧆	U+39C6	6	jīn			64.3	to cover something with a piece of cloth, a kind of cloth used to cover something		キン コン		
@@ -1545,7 +1545,7 @@
 㨅	U+3A05	11	nèi			64.8	inside; within; inner, a family name, (corrupted form of 抐) to take from the top, to strip; to peel		ゼイ ネ ジ ニ ジョウ ニョウ		
 㨆	U+3A06	11	lǐn			64.8	to kill, to slaughter, to beat; to strike; to hit; to attack; (Cant.) to pile, stack		リン ラン		
 㨇	U+3A07	12	pó			64.8	(same as 搫) to sweep clean; to clean away, to eliminate	搫	ハン		
-㨈	U+3A08	11	jǐ			64.8	(abbreviated form of 擠) to crowd; to throng; to push; to squeeze	擠			
+㨈	U+3A08	11	jǐ			64.8	(abbreviated form of 擠) to crowd; to throng; to push; to squeeze	擠 挤			
 㨉	U+3A09	12	mín			64.9	(same as 抿) to smooth, to stroke; to pucker, to contract, to wipe away	抿 抆 捪	ビン ミン ブン モン		
 㨊	U+3A0A	12	wěi			64.9	to discard; to reject; to abandon, to feel; to stroke, to sort out the divining stalks, to drop; to lose; to fall off, to weigh; to measure weight	撱 𢸦	イ タ		
 㨋	U+3A0B	12	chě			64.9	to beat; to strike; to attach	擆	シャ		
@@ -2130,7 +2130,7 @@
 㱎	U+3C4E	25	kūn			76.21	cannot be known; agnostic	𧥊 𣤿	コン		
 㱏	U+3C4F	6	zhèng			77.2	(ancient form of 正) the right side, proper, pure, honest and virtuous, original, exactly	正	セイ		
 㱐	U+3C50	7				77.3					
-㱑	U+3C51	7				77.3					
+㱑	U+3C51	7				77.3		歲			
 㱒	U+3C52	9				77.5	(ancient form of 訶) to scold or blame in a loud voice	訶	カ		
 㱓	U+3C53	9				77.5					
 㱔	U+3C54	9	xiē			77.5	(same as 些) a small quantity or number; a little; a few; some	些			
@@ -2242,7 +2242,7 @@
 㲾	U+3CBE	7	yǔ			85.3	(same as 雨) rain, to rain down; to pour down	雨	ウ		
 㲿	U+3CBF	6	wǎng			85.3	extensive body of water; broad and deep of water; momentum of moving water deep and wide	瀇			
 㳀	U+3CC0	7	guò			85.4	a river in ancient times		カ		
-㳁	U+3CC1	7	zè			85.4	water flow; water current; momentum of moving water	汄	ショク シキ		
+㳁	U+3CC1	7	zè			85.4	water flow; water current; momentum of moving water	汄 测	ショク シキ		
 㳂	U+3CC2	7	yán			85.4	to follow a course; to go along; to coast, to hand down; to continue, to conserve; along or by, as a road or a coast	沿	エン そう		
 㳃	U+3CC3	7	cuì			85.4	(non-classical of 淬) to temper iron, or steel for making swords, etc. (also used figuratively), to dip into water; to soak; to dye	淬	サイ		
 㳄	U+3CC4	7	xián			85.4	(a variant of 涎) spittle, saliva	涎	セン		
@@ -2580,7 +2580,7 @@
 㸐	U+3E10	23	rán			86.19	(an ancient form of 然) to burn; to light a fire	𬊾 𤓉 然	ゼン		
 㸑	U+3E11	26	cuàn			86.22	(same as 爨) a cooking-stove; to cook, a mess, a kind of theatrical composition	爨	ソン		
 㸒	U+3E12	8	yín			87.4	to absurd pursuit or desire; to wish wildly; to desire to long for (usually more than one's rightful share), to knit; to weave		イン ジン ニン		
-㸓	U+3E13	8	mì			87.4 73.4	to have disappeared, avoid, not at all, not supporting by	㫘			
+㸓	U+3E13	8	mì			87.4 73.4	to have disappeared, avoid, not at all, not supporting by	㫘 舀			
 㸔	U+3E14	11				87.7			カン みる		
 㸕	U+3E15	14	jué			87.10	(same as 攫) to seize; to take hold of; to snatch	攫	カク		
 㸖	U+3E16	9	qū			88.5	hide or to keep in store the vegetable in cold winter days		ショ		
@@ -2732,7 +2732,7 @@
 㺨	U+3EA8	6	sī			96.2	fine stone like jade		シ		
 㺩	U+3EA9	6	jiù			96.2	jade articles, (same as 玌) a kind of jade	玌	シツ シチ キュウ グ		
 㺪	U+3EAA	6	pú			96.2	(same as 璞) an uncarved of unpolished jade or gem	璞	ハク		
-㺫	U+3EAB	6	qiú			96.2	(same as 玌) a kind of jade	玌	キュウ		
+㺫	U+3EAB	6	qiú			96.2	(same as 玌) a kind of jade	玌 理	キュウ		
 㺬	U+3EAC	7	gǒng			96.3	(same as 珙) a large piece of jade-stone	𤣲	キョウ ク シン		
 㺭	U+3EAD	7	zǐ			96.3	a kind of jade		シ		
 㺮	U+3EAE	7	yú			96.3	(same as 玗) fine stone like jade	玗	ウ		
@@ -2941,7 +2941,7 @@
 㽹	U+3F79	9	fǎn			104.4	to faint, to feel nausea, abuse; vilification		ハン ホン		
 㽺	U+3F7A	9	jí			104.4	to be weakened by disease; feeble; lean (a dialect) poor in quality		コウ ゴウ キュウ		
 㽻	U+3F7B	9	zhī			104.4	diseases; illness		シ		
-㽼	U+3F7C	9				104.4					
+㽼	U+3F7C	9				104.4		癮			
 㽽	U+3F7D	10	gù			104.5	(same as 痼) chronic disease, a sore in the mouth of a child	痼	コ ク		
 㽾	U+3F7E	10	wù			104.5	a kind of woman's disease, to cut apart, to break	𤴰	ゴツ ゴチ		
 㽿	U+3F7F	10				104.5	(same as 瘑) ulcer; sore; boil, illness; disease	𪽫 瘑	カ		
@@ -3106,7 +3106,7 @@
 䀞	U+401E	9	tāo			109.4	with heavy eyelids		トウ		
 䀟	U+401F	10	fán			109.5	sight blurred; unclear; dim	𥄱	ヒ		
 䀠	U+4020	10	jù			109.5	the timid look of a bird; nervous; surname	瞿	ク		
-䀡	U+4021	10	chàn			109.5	(same as 覘) to spy on; to see; to observe; to inspect, to cast the eyes down, the insight of the debauchee, to move the eyes; to look around	䦓 覘	テン セン タン		
+䀡	U+4021	10	chàn			109.5	(same as 覘) to spy on; to see; to observe; to inspect, to cast the eyes down, the insight of the debauchee, to move the eyes; to look around	䦓 覘 瞻	テン セン タン		
 䀢	U+4022	10	shùn			109.5	(same as 瞬) to glance; to blink; wink; (interchangeable 眴 瞚), to indicate one's wish or intention by expressions of the eyes	瞬	シュン シン シ		
 䀣	U+4023	10	bì			109.5	to look steadily at, ashamed, to look at ferocious	䀛	ヒ ビツ ミチ バツ マチ		
 䀤	U+4024	10	mào			109.5	insight (version) of jealousy		ボウ モ		
@@ -3137,7 +3137,7 @@
 䀽	U+403D	12	yán			109.7	to look at each other		エン セン		
 䀾	U+403E	12	dǔ			109.7	many; much, more than; over		ト ツ		
 䀿	U+403F	12	dì			109.7	(same as 䀸) to have a casual and short glance; to catch a glimpse of, pretty eyes, insight; vision, bright eyes	䀸	セイ シ		
-䁀	U+4040	12				109.7 72.8			セイ		
+䁀	U+4040	12				109.7 72.8		鼎	セイ		
 䁁	U+4041	13	liàng			109.8	(same as 䀶) strabismus; squint, to look askance; to ogle, (a dialect) bright; light; brilliant, bright eyes	䀶	リョウ		
 䁂	U+4042	13	xiàn			109.8	big eyes		カン ゲン		
 䁃	U+4043	13	biāo			109.8	to look attentively; to focus one's look at; to gaze at	𥋦 𥌜	ヒョウ		
@@ -3325,7 +3325,7 @@
 䃹	U+40F9	22	làn			112.17	jade and stone, fine jade	𥗺	ラン		
 䃺	U+40FA	24	mó			112.19	(a standard form of 磨) to grind, to rub, to sharpen	磨	マ バ みがく		
 䃻	U+40FB	26	bà			112.21	(same as 壩) an embankment; a dike; a levee; a dam; a bank of earth	壩	ハ ヘ		
-䃼	U+40FC	7				113.2					
+䃼	U+40FC	7				113.2		福			
 䃽	U+40FD	9	guǐ			113.4	name of a mountain (of warship), (same as 禔) happiness; good fortune; good luck; blessing, (same as standard form 祓) to exorcise; to remove evil; to cleanse; to clean; to wash away	祈 祓 禔	キ シ		
 䃾	U+40FE	9	bǐ			113.4	to offer a small pig as sacrifice when worshipping the god of life	肶 𥘇	ヒ ビ		
 䃿	U+40FF	9	fū			113.4	a rite or service, message offered to the gods in worship		フ チツ		
@@ -4136,7 +4136,7 @@
 䐤	U+4424	14	chāi			130.10	dried and seasoned meat, sound of the abdomen	肞	サイ セ サ シ ザ		
 䐥	U+4425	14	wěng			130.10	stinky; offensive-smelling; odorous, fat; plump	𦞡	オウ オ		
 䐦	U+4426	14	kē			130.10	sleepy		コウ		
-䐧	U+4427	14	kào			130.10	(same as 犒) to reward or cheer troops with food, money, gifts, etc., (same as 臛) meat broth	犒 𦞦	コウ		
+䐧	U+4427	14	kào			130.10	(same as 犒) to reward or cheer troops with food, money, gifts, etc., (same as 臛) meat broth	犒 𦞦 膏	コウ		
 䐨	U+4428	14	gǔ			130.10	back of the foot, the back feet of the animal, covering; shell, to strike; heat from the top		コク トク ドク カク		
 䐩	U+4429	14	gāi			130.10	fat; plump, the fetus of livestock, delicious meat		カイ ガイ ケ		
 䐪	U+442A	14	fàn			130.10	(same as standard form 臇) fat; rich, a stew of fish	臇			
@@ -4246,7 +4246,7 @@
 䒒	U+4492	6	tiáo			140.2	(same as 芀) name of a plant (much used for making brooms); a reed	苕	チョウ		
 䒓	U+4493	6	kǎi			140.2	to do violence, perverse; rebellious, calamities; tribulations; miseries; crime; sin	𦫼	カイ ケ		
 䒔	U+4494	6	bài			140.2	name of a variety of grass		ハイ		
-䒕	U+4495	7	xiǎo			140.3	a kind of herb medicine, luxuriant; flourishing of grass and trees		ショウ		
+䒕	U+4495	7	xiǎo			140.3	a kind of herb medicine, luxuriant; flourishing of grass and trees	萧	ショウ		
 䒖	U+4496	7	xìn			140.3	a kind of herb medicine (plants of the mugwort or artemisia family)	芃	シン		
 䒗	U+4497	7	qì			140.3	(same as 芞) fragrant herb, vanilla	芞	キツ		
 䒘	U+4498	7				140.3	(same as 荾) parsley, (same as 葰) ginger, pistil	荾	スイ		
@@ -4510,7 +4510,7 @@
 䖚	U+459A	18	wū			141.12	a tiger	𰲟	ウ		
 䖛	U+459B	18	suǒ			141.12	of tiger		サク		
 䖜	U+459C	19	yín			141.13	the fighting sound made by two tigers		ギン ゴン ジュ シュウ チツ		
-䖝	U+459D	7	chóng			142.1	(corrupted form of 虫 蟲) insects; worms		チュウ むし		
+䖝	U+459D	7	chóng			142.1	(corrupted form of 虫 蟲) insects; worms	重	チュウ むし		
 䖞	U+459E	9	zhǒu			142.3	a sea-insect; in the shape of a human's elbow		チュウ チュ		
 䖟	U+459F	9	mǎng			142.3	(non-classical form of 虻) a gadfly	蝱	ボウ		
 䖠	U+45A0	9	yuán			142.3	(non-classical form of 螈) a kind of lizard found in damp places; Diemyctylus pyrrhogaster, a kind of amphibious reptile	𬟵 螈	ガン		
@@ -4979,7 +4979,7 @@
 䝯	U+476F	12	yì			154.5	(same as 貤) to change hands; to shift, a series, steps; grades, to promote; to reward; ennobled; to bestow, to extend; to prolong	𬥵 貤	イ シ		
 䝰	U+4770	13	zhì			154.6	to store or to accumulate riches or valuables		チ ジ		
 䝱	U+4771	13	xié			154.6	to trouble; to worry; to vex; to annoy		キョウ ギョウ		
-䝲	U+4772	13	jìn			154.6	(abbreviated form 贐) farewell presents	贐			
+䝲	U+4772	13	jìn			154.6	(abbreviated form 贐) farewell presents	贐 赆			
 䝳	U+4773	14	cán			154.7	to kill for money; to commit murder for money, deeply meaningful; deep and profound; deep and thick		サン ザン		
 䝴	U+4774	14				154.7	(non-classical form of 齎) to present; to offer; to entertain; to have in one's mind	齎	セイ		
 䝵	U+4775	14	bù			154.7	to thank with money or gifts		ホ ブ		
@@ -5264,7 +5264,7 @@
 䢌	U+488C	8	bó			162.4	to walk, rapid marching or running	𧺡 𧺺 𨒠 迹	ハツ ハチ		
 䢍	U+488D	8	fǎng			162.4	to hasten; to hurry to		ホウ ボウ		
 䢎	U+488E	8				162.4	(same as 䢋) indicating exclamation	䢋	キ		
-䢏	U+488F	8				162.4					
+䢏	U+488F	8				162.4		透			
 䢐	U+4890	9	cú			162.5	(same as 徂) to go to; to go ahead; to advance	徂	ソ ゆく		
 䢑	U+4891	9	dǐ			162.5	angry; furious, frightened; terrified; terror-stricken		テイ タイ		
 䢒	U+4892	10	jiāo			162.6	to meet; to co-operate; interaction, to have friendly relations, interlocking; interchanging	𧻨	コウ キョウ		
@@ -5630,7 +5630,7 @@
 䧺	U+49FA	13	xióng			172.5	(same as 雄) the male of birds	雄	ユウ おす		
 䧻	U+49FB	14				172.6	(same as 鴿) dove; pigeon	鴿	コウ はと		
 䧼	U+49FC	15	hú			172.7	(same as 鵠) the snow goose; swan, standing erect; standing quietly, target; bull's-eye	鵠	コク		
-䧽	U+49FD	15	cuǐ			172.7	(corrupted form) small, thin and slim neck	𨿐	ガ スイ ア つね みやびやか		
+䧽	U+49FD	15	cuǐ			172.7	(corrupted form) small, thin and slim neck	𨿐 雅	ガ スイ ア つね みやびやか		
 䧾	U+49FE	16				172.8	a kind of bird; like wild duck	𪅰	ショ		
 䧿	U+49FF	16	què			172.8	(same as 鵲) the magpie	鵲	サク シャク セキ ジャク かささぎ		
 䨀	U+4A00	16	dí			119.10	(same as 籴 糴) to lay in grain; to buy grain	糴	テキ		
@@ -6598,7 +6598,7 @@
 丂	U+4E02	2	kǎo	KOU	SAMATAGERARERU	1.1	obstruction of breath (qi) as it seeks release; variant of other characters	于 考	コウ		
 七	U+4E03	2	qī	SHICHI SHITSU	NANATSU NANATABI	1.1	seven	柒 𠀁	シチ シツ なな ななつ なの		
 丄	U+4E04	2	shàng	SHOU	UE KAMI	1.1	above	上	ショウ		
-丅	U+4E05	2	xià	KA	SHIMO	1.1	under, underneath, below; down; inferior; bring down; used to transliterate the Latin letter 'T'	下	カ		
+丅	U+4E05	2	xià	KA	SHIMO	1.1	under, underneath, below; down; inferior; bring down; used to transliterate the Latin letter 'T'	下 黨	カ		
 丆	U+4E06	2	hǎn			1.1	kwukyel	厂			
 万	U+4E07	3	wàn mò	MAN BAN	YOROZU	1.2	ten thousand; innumerable	卍 萬 万 𢄏	マン バン ボク モク よろず	萬	
 丈	U+4E08	3	zhàng	JOU CHOU	TAKE DAKE	1.2	unit of length equal 3.3 meters; gentleman, man, husband	𠀋 杖	ジョウ チョウ たけ だけ		
@@ -6607,7 +6607,7 @@
 下	U+4E0B	3	xià	KA GE	SHITA SHIMO MOTO	1.2	under, underneath, below; down; inferior; bring down	𠄟 丅	カ ゲ ア した しも もと さげる さがる くだる くだす くださる おろす おりる		
 丌	U+4E0C	3	jī	KI GI	SONO SORE DAI	1.2	table	𬺢 兀 其	キ		
 不	U+4E0D	4	bù	FU BU FUTSU HI	SEZU NIARAZU INAYA	1.3	no, not; un-; negative prefix	𠀚 𠙐 否 柎	フ ブ フツ フウ ヒ ホツ ホチ ブチ いなや		
-与	U+4E0E	3	yǔ	YO	ATAERU KUMISURU TOMONI	1.3	and; with; to; for; give, grant	與	ヨ あたえる あずかる か くみ くみする ために と ともに より	與	
+与	U+4E0E	3	yǔ	YO	ATAERU KUMISURU TOMONI	1.3	and; with; to; for; give, grant	與 牙	ヨ あたえる あずかる か くみ くみする ために と ともに より	與	
 丏	U+4E0F	4	miǎn	BEN MEN	MIENU	1.3	parapet; invisible	丐	ベン メン		
 丐	U+4E10	4	gài	KAI KATSU	KOU	1.3	beggar; beg; give	匃 丏 匄	カイ カツ カチ こう		
 丑	U+4E11	4	chǒu	CHUU CHU	USHI	1.3	clown, comedian; second earthly branch	丑 醜 𠃠 魗	チュウ チュ うし		
@@ -6639,9 +6639,9 @@
 丫	U+4E2B	3	yā	A	HUTAMATA AGEMAKI	2.2	forked; bifurcation	亞 𩭯	ア		
 丬	U+4E2C	3	qiáng			90.0 90'.0	half of tree trunk; rad. no. 90	爿	ショウ ゾウ しょうへん		
 中	U+4E2D	4	zhōng	CHUU	NAKA UCHI ATARU	2.3	central; center, middle; in the midst of; hit (target); attain	塚 𠁧 𠁦 𠁩 𠔗 𠔈 仲	チュウ チュ なか あたる あてる うち		
-丮	U+4E2E	4	jǐ	KEKI KYAKU	MOTSU TORU	2.3	catch	𩰊 𠃨	ケキ キャク		
-丯	U+4E2F	4	jiè	KAI	SANRANSURU	2.3	dense		カイ		
-丰	U+4E30	4	fēng	HOU FU FUU BU	MIMEYOI SHIGERU	2.3	abundant, lush, bountiful, plenty	丰 豐 仹 𡴀 𡴇 䒠	フウ ホウ ボウ フ ブ みめよい		
+丮	U+4E2E	4	jǐ	KEKI KYAKU	MOTSU TORU	2.3	catch	𩰊 𠃨 卂	ケキ キャク		
+丯	U+4E2F	4	jiè	KAI	SANRANSURU	2.3	dense	丰	カイ		
+丰	U+4E30	4	fēng	HOU FU FUU BU	MIMEYOI SHIGERU	2.3	abundant, lush, bountiful, plenty	丰 豐 仹 𡴀 𡴇 䒠 丯 龵	フウ ホウ ボウ フ ブ みめよい		
 丱	U+4E31	5	guàn	KAN KOU KEN	AGEMAKI ARAGANE	2.4	child's hairstyle bound in two tufts; ore	礦	カン コウ ギョウ あげまき		
 串	U+4E32	7	chuàn	SEN KAN	KUSHI TSURANUKU	2.6	string; relatives; conspire	穿	カン セン ガン くし		
 丳	U+4E33	8	chǎn	SAN SEN	KUSHI	2.7	spit, grill; a skewer	𠁷	サン セン		
@@ -6670,11 +6670,11 @@
 乊	U+4E4A	3	yī			4.2	kwukyel				
 之	U+4E4B	4	zhī	SHI	YUKU KORE NO	4.3	marks preceding phrase as modifier of following phrase; it, him her, them; go to	𠔇 㞢	シ の これ ゆく おいて この		
 乌	U+4E4C	4	wū			4.3	crow, rook, raven; black, dark	烏			
-乍	U+4E4D	5	zhà	SAKU SA	TACHIMACHI NAGARA	4.4	first time, for the first time	𠆦 作	サ ジャ サク ながら たちまち		
+乍	U+4E4D	5	zhà	SAKU SA	TACHIMACHI NAGARA	4.4	first time, for the first time	𠆦 作 亡	サ ジャ サク ながら たちまち		
 乎	U+4E4E	5	hū	KO	YO KANA KA	4.4	interrogative or exclamatory final particle	𠂞 虖	コ オ ゴ を ああ か かな や よ		
 乏	U+4E4F	5	fá	BOU	TOBOSHII	4.4	lack; poor	𣥄 𠂜 𠓟 疺 貶	ボウ ホウ とぼしい		
 乐	U+4E50	5	lè			4.4	happy, glad; enjoyable; music	乐 樂			
-乑	U+4E51	6	yín	GIN GON	NARABITATSU	4.5	stand side by side	众 衆	ギン ゴン ハン シュウ		
+乑	U+4E51	6	yín	GIN GON	NARABITATSU	4.5	stand side by side	众 衆 聚	ギン ゴン ハン シュウ		
 乒	U+4E52	6	pīng	HEI		4.5	(used with 乓) “ping” of “ping pong”		ヘイ		
 乓	U+4E53	6	pāng	HAU		4.5 3.5	(used with 乒) “pong” of “ping pong”		ホウ		
 乔	U+4E54	6	qiáo			4.5	tall, lofty; proud, stately	喬 乔 𡗤			
@@ -6754,8 +6754,8 @@
 亞	U+4E9E	8	yà	A ATSU OU	TSUGU	7.6	Asia; second; used as a prefix to names	亚 亜 𠄮 𣉩 䢝 丫 堊 婭 椏 惡	ア アク オウ つぐ		亜
 亟	U+4E9F	9	jí	KYOKU KI	SUMIYAKA	7.6	urgently, immediately, extremely	𠄹 𠯉 𦱩 䓧 𦽯	キ キョク コキ すみやか		
 亠	U+4EA0	2	tóu	TOU ZU	KEISAN NABEBUTA	8.0	head; Kangxi radical 8		トウ ズ なべぶた		
-亡	U+4EA1	3	wáng	BOU MOU	NAI NAKUNARU HOROBIRU	8.1	death, destroyed; lose, perish	兦 亾 𠅁	ボウ モウ ブ ム ない うしなう なくなる にげる ほろびる		
-亢	U+4EA2	4	kàng	KOU	TAKABURU	8.2	high, proud; violent, excessive; skilled; name; 2nd lunar mansion, determinative star κ Virginis (Kang)	𪜠 𠕵 肮 頏	コウ キョウ たかぶる		
+亡	U+4EA1	3	wáng	BOU MOU	NAI NAKUNARU HOROBIRU	8.1	death, destroyed; lose, perish	兦 亾 𠅁 乍	ボウ モウ ブ ム ない うしなう なくなる にげる ほろびる		
+亢	U+4EA2	4	kàng	KOU	TAKABURU	8.2	high, proud; violent, excessive; skilled; name; 2nd lunar mansion, determinative star κ Virginis (Kang)	𪜠 𠕵 肮 頏 元	コウ キョウ たかぶる		
 亣	U+4EA3	4	dà			8.2		大	タイ		
 交	U+4EA4	6	jiāo	KOU KYOU	MAJIWARU MAJIRU KAU	8.4	mix; intersect; exchange, communicate; deliver	胶 跤	コウ キョウ まじわる まじえる まじる まざる まぜる かう かわす こもごも		
 亥	U+4EA5	6	hài	GAI KAI	I	8.4	twelfth earthly branch	㐪 𠀅 𠦇 𠅆 𢁓 𢁳	ガイ カイ い		
@@ -6763,7 +6763,7 @@
 产	U+4EA7	6	chǎn			8.4 117.1	give birth, bring forth, produce	產 産			
 亨	U+4EA8	7	hēng	KYOU KOU HOU	TATEMATSURU TOORU	8.5	smoothly, progressing, no trouble	享 烹	キョウ コウ ホウ ヒョウ とおる たてまつる		
 亩	U+4EA9	7	mǔ			8.5	Chinese land measure; fields	畝			
-亪	U+4EAA	7	ye			8.5	kwukyel				
+亪	U+4EAA	7	ye			8.5	kwukyel	气			
 享	U+4EAB	8	xiǎng	KYOU	SUSUMERU UKERU	8.6	enjoy	𦎫 𬙸 亨 亯 𠅖 𠅠 𠅷 𦕺 𦴒	キョウ コウ うける すすめる		
 京	U+4EAC	8	jīng	KYOU KEI KIN	MIYAKO	8.6	capital city	亰 𡬱 𢂋 𦣿	キョウ ケイ キン ゲン みやこ		
 亭	U+4EAD	9	tíng	TEI CHOU CHIN	AZUMAYA	8.7	pavilion; erect	𠅘 停	テイ チン チョウ あずまや		
@@ -6782,20 +6782,20 @@
 人	U+4EBA	2	rén	JIN NIN	HITO	9.0	man; people; mankind; someone else	亻 𦉫 𠔽 儿 𤯔	ジン ニン ひと		
 亻	U+4EBB	2	rén			9.0	radical number 9	人	イ にんべん		
 亼	U+4EBC	3	jí	SHUU JUU	ATSUMARU	9.1	to assemble. to gather together	集 𠓛	シュウ ジュウ		
-亽	U+4EBD	3	jí			9.1	kwukyel				
+亽	U+4EBD	3	jí			9.1	kwukyel	集			
 亾	U+4EBE	3	wáng	BOU MOU	NAI NAKUNARU HOROBIRU	9.1	death, destroyed; lose, perish	亡 兦	ボウ ない		
 亿	U+4EBF	3	yì			9.1	hundred million; many	億			
 什	U+4EC0	4	shén	SHUU JUU	KUMI TOU MAJIRU	9.2	file of ten soldiers; mixed, miscellaneous	十 䦹	ジュウ シュウ		
 仁	U+4EC1	4	rén	JIN NIN NI	HITO ITSUKUSHIMU	9.2	humaneness, benevolence, kindness	𡰥 忎	ジン ニ ニン		
 仂	U+4EC2	4	lè	ROKU RYOKU	AMARI TSUTOMERU	9.2	surplus or excess; remainder	㔹 力	ロク リョク リキ		
 仃	U+4EC3	4	dīng	TEI		9.2	lonely, solitary		テイ		
-仄	U+4EC4	4	zè	SOKU SHOKU SHIKI	KATAMUKU HONOKA	9.2	slanting, oblique; oblique tones	𠨮 𠨻 𠩩 側 庂 𤴩	ソク ショク シキ かたむく ほのか		
-仅	U+4EC5	4	jǐn	FU DO		9.2	only, merely, solely, just	仅 僅 付 奴	フ		
+仄	U+4EC4	4	zè	SOKU SHOKU SHIKI	KATAMUKU HONOKA	9.2	slanting, oblique; oblique tones	𠨮 𠨻 𠩩 側 庂 𤴩 廠	ソク ショク シキ かたむく ほのか		
+仅	U+4EC5	4	jǐn	FU DO		9.2	only, merely, solely, just	仅 僅 付 奴 儀	フ		
 仆	U+4EC6	4	pū	FU HOKU	TAORERU	9.2	fall forward; lie prostrate, prone; servant	仆 僕 掊 𧻳 䞳 踣	フ ホク たおれる		
 仇	U+4EC7	4	chóu	KYUU GU	ADA KATAKI	9.2	enemy, hate, hatred, enmity	讎 讐 㐜	キュウ ク あだ かたき あだする		
 仈	U+4EC8	4	bā	HATSU HACHI		9.2			ハツ ハチ		
 仉	U+4EC9	4	zhǎng	SHOU		9.2	surname of the mother of Mencius	㐳 𠆰 掌	ショウ		
-今	U+4ECA	4	jīn	KON KIN	IMA	9.2	now, today, modern era	𫝆	コン キン いま		
+今	U+4ECA	4	jīn	KON KIN	IMA	9.2	now, today, modern era	𫝆 仒	コン キン いま		
 介	U+4ECB	4	jiè	KAI	TASUKERU SUKE	9.2	forerunner, herald, harbinger; to lie between; sea shell; to wear armor	𡗟 𡗲 𡗦 㝏 界	カイ こうら たすける よろい すけ		
 仌	U+4ECC	4	bīng			9.2		冰 别	ヒョウ		
 仍	U+4ECD	4	réng	JOU NYOU	YORU SHIKIRINI NAO	9.2	yet, still, as ever; again; keep -ing, continuing		ジョウ なお よる		
@@ -6803,7 +6803,7 @@
 仏	U+4ECF	4	fó	BUTSU	HOTOKE	9.2	Buddha	佛	ブツ フツ ホツ ヒツ ボツ ほとけ	佛	
 仐	U+4ED0	4	sǎn	SAN	KASA	9.2	(non-standard Japanese variant of 傘) umbrella, parasol, parachute	𠓝	サン		
 仑	U+4ED1	4	lún			9.2	logical reasons, logical order	侖			
-仒	U+4ED2	4	bīng			9.2	kwukyel	𠓞			
+仒	U+4ED2	4	bīng			9.2	kwukyel	𠓞 今			
 仓	U+4ED3	4	cāng			9.2	granary; berth; sea	倉			
 仔	U+4ED4	5	zǐ	SHI SAI	TAERU	9.3	small thing, child; young animal	子	シ サイ こ		
 仕	U+4ED5	5	shì	SHI JI	TSUKAERU TSUKAMATSURU	9.3	official; serve government		シ ジ つかえる つかまつる		
@@ -6823,7 +6823,7 @@
 代	U+4EE3	5	dài	DAI TAI	KAWARU YO SHIRO	9.3	replace, replacement (of person or generation); era, generation		ダイ タイ かわる かえる よ しろ		
 令	U+4EE4	5	lìng	REI RYOU	IITSUKE OSA	9.3	command, order; 'commandant', magistrate; allow, cause	聆	レイ おさ しむ		
 以	U+4EE5	5	yǐ	I	OMOU YUENI MOTTE	9.3	by means of; thereby, therefore; consider as; in order to	㠯 𠙋 已	イ シ ジ おもう すでに はなはだ ひきいる もちいる もって ゆえに		
-仦	U+4EE6	5	chào			9.3		仯			
+仦	U+4EE6	5	chào			9.3		仯 疑			
 仧	U+4EE7	5	cháng			9.3		長	チョウ		
 仨	U+4EE8	5	sā	SA		9.3	(coll.) three (cannot be followed by a measure word)	𠫽	サ		
 仩	U+4EE9	5	cháng			9.3					
@@ -6860,7 +6860,7 @@
 伈	U+4F08	6	xǐn	SHIN	OSORERU	9.4	nervous, fearful	懔	シン		
 伉	U+4F09	6	kàng	KOU	TAGUI NARABU	9.4	compare, match; pair; spouse	抗	コウ たぐい ならぶ		
 伊	U+4F0A	6	yī	I	KORE KARE TADA	9.4	third person pronoun; he, she, this, that	𡭕 𠁼 𠈽 𦯴 𠜧 洢	イ かれ これ ただ		
-伋	U+4F0B	6	jí	KYUU	KIBISHII	9.4	deceptive	觙 急	キュウ ハ ゴウ		
+伋	U+4F0B	6	jí	KYUU	KIBISHII	9.4	deceptive	觙 急 㑇	キュウ ハ ゴウ		
 伌	U+4F0C	6	ài	AI A	KURUSHIMU	9.4		𠈊	アイ ア		
 伍	U+4F0D	6	wǔ	GO	KUMI ITSUTSU	9.4	five, company of five; troops	五	ゴ		
 伎	U+4F0E	6	jì	KI GI	WAZA	9.4	talent, skill, ability	𢺵	キ ギ シ わざ		
@@ -6983,7 +6983,7 @@
 侃	U+4F83	8	kǎn	KAN	TSUYOI	9.6	upright and strong; amiable	𠈉 偘	カン つよい		
 侄	U+4F84	8	zhí	SHITSU SHICHI TETSU	KATAI OROKA TODOMARU	9.6	nephew		シツ シチ テツ		
 侅	U+4F85	8	gāi	KAI	MUSEBU	9.6	to give; prepared for included in; embraced in	賅	ガイ カイ		
-來	U+4F86	8	lái	RAI	KURU	9.6	come, coming; return, returning	来 耒 倈 猍 𧼛 逨	ライ リョク リキ くる		来
+來	U+4F86	8	lái	RAI	KURU	9.6	come, coming; return, returning	来 耒 倈 猍 𧼛 逨 夾	ライ リョク リキ くる		来
 侇	U+4F87	8	yí	I	HITOSHII TSURANERU UTSURU	9.6	a class, a category a corpse	夷	イ		
 侈	U+4F88	8	chǐ	SHI I	OGORU	9.6	luxurious, extravagant	𠈎 奓 哆 𠕝	シ イ シャ セ おごる		
 侉	U+4F89	8	kuǎ	KA KE A	OGORU HOKORU	9.6	to speak with an accent; big and clumsy	𪝄	カ ケ ア		
@@ -7007,7 +7007,7 @@
 供	U+4F9B	8	gōng	KYOU KU	SONAERU TOMO SONAE	9.6	supply, provide for; offer in worship	共 𩛘 龔	キョウ ク グ そなえる とも ども		
 侜	U+4F9C	8	zhōu	CHUU CHU	OOIKAKUSU ITSUWARU	9.6	lies	譸	チュウ チュ		
 依	U+4F9D	8	yī	I E	YORU	9.6	rely on, be set in; consent, obey a wish		イ エ よる		
-侞	U+4F9E	8	rú	JO NYO	HITOSHII SHITAGAHENARASU	9.6			ジョ ニョ		
+侞	U+4F9E	8	rú	JO NYO	HITOSHII SHITAGAHENARASU	9.6		儒	ジョ ニョ		
 侟	U+4F9F	8	cún	SEN		9.6		存 薦	セン		
 侠	U+4FA0	8	xiá	KYOU	OTOKODATE KYAN	9.6	chivalrous person; knight-errant	侠 俠	キョウ きゃん		
 価	U+4FA1	8	sì	KA	ATAI	9.6	price, value	徆	カ あたい	價	
@@ -7361,7 +7361,7 @@
 僽	U+50FD	15	zhòu	SHUU	NONOSHIRU	9.13	haggard; sallow, pallid	偢	シュウ シュ ジュ		
 僾	U+50FE	15	ài	AI	HONOKA KAKURERU MUSEBU KANASHIMU	9.13	like	𫣊 𠎹 𢙸 懓	アイ イ		
 僿	U+50FF	15	sài	SHI SAI	USUI MAKOTOGANAI	9.13	small, minute; lacking sincerity		シ サイ		
-儀	U+5100	15	yí	GI	YOI NORI	9.13	ceremony, rites gifts; admire	仪 𪜧 𥫃 𥪺 義	ギ のり よい		
+儀	U+5100	15	yí	GI	YOI NORI	9.13	ceremony, rites gifts; admire	仪 𪜧 𥫃 𥪺 義 仅	ギ のり よい		
 儁	U+5101	14	jùn	SHUN	SUGURERU	9.13	outstanding, fine; superior; talented, capable; handsome	㑺 俊	シュン すぐれる		
 儂	U+5102	15	nóng	DOU NOU	WASHI	9.13	I; you; family name	侬	ドウ ヌ ノウ わし		
 儃	U+5103	15	chán	SEN ZEN TAN DAN	TATAZUMU YAUSU HOSHIIMAMA	9.13	manner, air; easy-going; to turn around; lame; unable to get on	但 僤 禪 䡀	セン タン ゼン ダン たたずむ		
@@ -7379,7 +7379,7 @@
 儏	U+510F	15	càn			9.13					
 儐	U+5110	16	bīn	HIN	SUSUMERU UYAMAU AISATSU	9.14	entertain guests	傧 擯	ヒン みちびく		
 儑	U+5111	16	án	GAN GON GOU	OSATSUKANAI OROKA TAWAREGOTO	9.14			ガン ゴン ゴウ		
-儒	U+5112	16	rú	JU	YAWARAKA URUOSU SHITAGAU	9.14	Confucian scholar	㐵 𪝥 偄 𠍶	ジュ ニュ		
+儒	U+5112	16	rú	JU	YAWARAKA URUOSU SHITAGAU	9.14	Confucian scholar	㐵 𪝥 偄 𠍶 侞	ジュ ニュ		
 儓	U+5113	16	tái	TAI	KERAI MINIKUI ATARU	9.14	servant	檯 枱 㒗 嬯	タイ		
 儔	U+5114	16	chóu	CHUU JU	TOMOGARA	9.14	companion, mate, colleague	俦 𠍻 𡕑 疇	チュウ ジュ トウ ドウ ともがら		
 儕	U+5115	16	chái	SEI SAI	TOMOGARA	9.14	a company, companion; together	侪	サイ セイ ザイ ともがら		
@@ -7428,7 +7428,7 @@
 兀	U+5140	3	wù	KOTSU GOTSU	TAKAI HAGERU ASHIKIRU	10.1	to cut off the feet	丌 几 㐳	コツ ゴツ ゴチ		
 允	U+5141	4	yǔn	IN	MAKOTO YURUSU JOU	10.2	to grant, to allow, to consent	𠃔 𠘭 𡻏 𡴞 㽙	イン エン じょう まこと まことに ゆるす		
 兂	U+5142	4	zān	SHIN SAN	KANZASHI	10.2	hairpin, clasp; wear in hair	旡 簪	シン		
-元	U+5143	4	yuán	GEN GAN	MOTO KOUBE	10.2	first; dollar; origin; head	亓 原 圓	ゲン ガン もと はじめ		
+元	U+5143	4	yuán	GEN GAN	MOTO KOUBE	10.2	first; dollar; origin; head	亓 原 圓 亢	ゲン ガン もと はじめ		
 兄	U+5144	5	xiōng	KEI KYOU	ANI E	10.3	elder brother	況	ケイ キョウ あに え		
 充	U+5145	6	chōng	JUU SHUU	ATERU MICHIRU MITASU	10.4	fill, be full, supply	𠘺	ジュウ シュウ あてる みたす みちる		
 兆	U+5146	6	zhào	CHOU JOU	KIZASU URANAI KIZASHI	10.4	omen; million; mega; also trillion. China = million; Japan and Taiwan = trillion	𠧞 𡉵 𡊥 垗	チョウ ジョウ きざす きざし うらない うらなう		
@@ -7484,7 +7484,7 @@
 典	U+5178	8	diǎn	TEN	NORI TSUKASADORU SAKAN	12.6	law, canon; documentation; classic, scripture	𠔓 𠔩 敟 𥮏 䓦	テン つかさどる のり ふみ さかん		
 兹	U+5179	9	zī	JI SHI	SHIGERU MASU MUSHIRO	12.7 52.6	now, here; this; time, year	玆 茲	ジ ここ ここに しげる		
 兺	U+517A	10	fēn			12.8					
-养	U+517B	9	yǎng			12.7 123.3	raise, rear, bring up; support	養	ビ うつくしい		
+养	U+517B	9	yǎng			12.7 123.3	raise, rear, bring up; support	養 奍	ビ うつくしい		
 兼	U+517C	10	jiān	KEN	KANERU KANETE	12.8	unite, combine; connect; and	傔 𠔥 𥡝	ケン かねる かねて		
 兽	U+517D	11	shòu			12.9 30.8	beast, animal; bestial	獸			
 兾	U+517E	13	jì	KI	KOINEGAU	12.11	(same as 冀) to hope for; to wish	冀	キ		
@@ -7611,7 +7611,7 @@
 凷	U+51F7	5	kuài	KAI KE	TSUCHIKURE	17.3	dirt clod; piece	𠙽	カイ ケ		
 凸	U+51F8	5	tū	TOTSU	DERU	17.3	protrude, bulge out, convex		トツ テツ でこ		
 凹	U+51F9	5	āo	OU	KUBOMU KUBOMI	17.3	concave, hollow, depressed; a pass, valley	𠕄 𢈈 𥑑 䆟	オウ ヨウ くぼむ へこむ ぼこ		
-出	U+51FA	5	chū	SHUTSU SUI	DERU DASU	17.3	go out, send out; stand; produce	岀 出 齣	シュツ スイ シュチ でる だす		
+出	U+51FA	5	chū	SHUTSU SUI	DERU DASU	17.3	go out, send out; stand; produce	岀 出 齣 㞮	シュツ スイ シュチ でる だす		
 击	U+51FB	5	jī			17.3	strike, hit, beat; attack, fight	擊			
 凼	U+51FC	6	dàng			17.4 85.2	ditch; pool	壋 氹			
 函	U+51FD	8	hán	KAN	IRERU HAKO	17.6	correspondence; a case; a box	凾 圅 𠚗 㮀 椷 肣 𦜆 𦞞 䤴	カン ゴン ゲン はこ いれる		
@@ -7792,7 +7792,7 @@
 劬	U+52AC	7	qú	KU	TSUKARERU	19.5	be diligent, toil, endeavor		ク グ つかれる		
 劭	U+52AD	7	shào	SHOU	TSUTOMERU	19.5	encourage; to excel; excellent		ショウ キョウ つとめる		
 劮	U+52AE	7	yì	ITSU ICHI	MIDARA TAWAMURERU TANOSHIMU	19.5		逸	イツ イチ		
-劯	U+52AF	7	zhū	SHO	TSUYOI	19.5			ショ リョク		
+劯	U+52AF	7	zhū	SHO	TSUYOI	19.5		砾	ショ リョク		
 劰	U+52B0	7	mò	BAKU MAKU	TSUTOMERU	19.5			バク マク		
 励	U+52B1	7	lì	REI	HAGEMU HAGEMASU	19.5	strive; encourage	励 勵	レイ はげむ はげます	勵	
 劲	U+52B2	7	jìn	KEI		19.5	strong, unyielding, tough, power	勁 𠡍			
@@ -7845,7 +7845,7 @@
 勡	U+52E1	13	piào	HEU	KASUMERU	19.11		剽	ヒョウ		
 勢	U+52E2	13	shì	SEI SE	IKIOI	19.11	power, force; tendency	势 埶	セイ いきおい		
 勣	U+52E3	13	jī	SEKI SHAKU	ISAO	19.11	achievements, conduct deserving	𪟝 績	セキ シャク いさお		
-勤	U+52E4	13	qín	KIN GON	TSUTOMERU TSUTOME	19.11	industrious, diligent, attentive	𠢄 廑 懃 懄 瘽	キン ゴン キ つとめる つとまる	勤	
+勤	U+52E4	13	qín	KIN GON	TSUTOMERU TSUTOME	19.11	industrious, diligent, attentive	𠢄 廑 懃 懄 瘽 勤	キン ゴン キ つとめる つとまる	勤	
 勥	U+52E5	14	jiàng	KYOU GOU	SEMARU TSUTOMERU	19.11	to force; tough	𠣀 𠣃	キョウ ゴウ		
 勦	U+52E6	13	chāo	SOU SHOU	TSUKARERU TSUKUSU	19.11	destroy, exterminate, annihilate	𠢶 𣩓 䜈 巢	ソウ ショウ ジョウ		
 勧	U+52E7	13	quàn	KAN	SUSUMERU	19.11	recommend, advise, urge	勸	カン ケン すすめる	勸	
@@ -7939,7 +7939,7 @@
 匿	U+533F	11	nì	TOKU	KAKURERU KAKUSU	23.9	hide; go into hiding	慝	トク ジョク ジ かくす かくれる		
 區	U+5340	11	qū	KU OU KOU	WAKERU SHIKIRU	23.9	area, district, region, ward; surname	区 塸 坵	ク オウ オ コウ キュウ		区
 十	U+5341	2	shí	JUU JITSU	TOU TOTABI	24.0	ten, tenth; complete; perfect	拾 𠂇 什	ジュウ ジッ シュウ シン とお と		
-卂	U+5342	3	xùn	SHIN	TOBU	24.1	to fly rapidly	迅	シン		
+卂	U+5342	3	xùn	SHIN	TOBU	24.1	to fly rapidly	迅 丮	シン		
 千	U+5343	3	qiān	SEN	CHI	24.1	thousand; many, numerous; very; (Cant.) a cheater, swindler	仟 千 韆 阡	セン ち		
 卄	U+5344	3	niàn	JUU NYUU	NIJUU	1.2 24.1	twenty, twentieth	廿	ジュウ にじゅう		
 卅	U+5345	4	sà	SOU	SANJUU	24.2	thirty, thirtieth	𠦃	ソウ さんじゅう		
@@ -7974,7 +7974,7 @@
 卢	U+5362	5	lú			25.3	cottage, hut; surname; black	盧 盥			
 卣	U+5363	7	yǒu	YUU YU	SAKETSUBO	25.5	wine pot	㔽 𠧪 脩	ユウ ユ		
 卤	U+5364	7	lǔ	SEI		25.5 197'.0	salt	滷 鹵 西	セイ		
-卥	U+5365	8	xī	SEI		25.6		西	セイ		
+卥	U+5365	8	xī	SEI		25.6		西 鹵	セイ		
 卦	U+5366	8	guà	KA KE	URAKATA	25.6	fortune telling; tell fortunes	𤌻	ケ カ カイ		
 卧	U+5367	8	wò			25.6 131.2	lie down; crouch	臥	ガ ふす		
 卨	U+5368	11	xiè	SETSU		25.9	used in old names; phonetic seol used in Korean names	𫧯 禼 契	セツ		
@@ -8059,15 +8059,15 @@
 厷	U+53B7	4	gōng	KOU	KAINA MARUI	28.2	the fore-arm; most Chinese-English dictionaries give the upper-arm; round	肱 右 宏	コウ ひじ		
 厸	U+53B8	4	lín	RIN	TONARU TONARI	28.2		鄰	リン		
 厹	U+53B9	4	róu	JIU NIYU KIU GU		28.2	spear; tribe	叴 㕤 蹂	ジュウ ニュウ キュウ グ		
-厺	U+53BA	5	qù	KYO KO	SARU	28.3	to go; depart	去	キョ さる		
+厺	U+53BA	5	qù	KYO KO	SARU	28.3	to go; depart	去 量	キョ さる		
 去	U+53BB	5	qù	KYO KO	SARU	28.3	go away, leave, depart	厺 𠫟 𠫥 𠬑 弆	キョ コ ク さる		
 厼	U+53BC	5	ěr			28.3 42.2	kwukyel				
-厽	U+53BD	6	lěi	RUI SAN	KABE	28.4			ルイ サン		
+厽	U+53BD	6	lěi	RUI SAN	KABE	28.4		参	ルイ サン		
 厾	U+53BE	6	dū			28.4	lightly tap; through away; drop; sentence final particle	𧰵	チュウ		
 县	U+53BF	7	xiàn			28.5	county, district, subdivision	縣			
 叀	U+53C0	8	zhuān	SEN	TSUTSUSHIMU KAKERU	28.6		𤰔 專 惠	セン		
 叁	U+53C1	8	sān	SAN	MITSU	28.6	bank form of numeral 'three'	三 叄	サン		
-参	U+53C2	8	cān	SAN SHIN	MAIRU MAJIWARU MITSU	28.6	take part in, intervene; ginseng; 21st lunar mansion, determinative star ζ Orionis (Alnitak)	参 參	サン シン まいる あずかる まじえる まじわる みつ	參	
+参	U+53C2	8	cān	SAN SHIN	MAIRU MAJIWARU MITSU	28.6	take part in, intervene; ginseng; 21st lunar mansion, determinative star ζ Orionis (Alnitak)	参 參 厽	サン シン まいる あずかる まじえる まじわる みつ	參	
 參	U+53C3	11	cān	SAN	MAIRU	28.9	take part in, intervene; ginseng	叅 参 薓 三 傪 𠫭 𠫵 𠫰 叄 㕘 𠻝 曑 摻 葠 蓡 蔘	サン シン まいる		参
 叄	U+53C4	11	cān	SAN SHIN	MAIRU MITSU MAJIWARU	28.9	take part in, intervene; ginseng	叁 參	サン		
 叅	U+53C5	12	cān	SAN	MAIRU	28.10	to counsel, to consult together; to take part in; to intervene	參	サン まいる		
@@ -8219,7 +8219,7 @@
 呗	U+5457	7	bei			30.4	final particle of assertion	唄			
 员	U+5458	7	yuán			30.4	member; personnel, staff member	員			
 呙	U+5459	7	guō			30.4	chat, jaw, gossip, talk; mouth	咼			
-呚	U+545A	7	qì			30.4			キ カツ ゲチ		
+呚	U+545A	7	qì			30.4		数	キ カツ ゲチ		
 呛	U+545B	7	qiāng			30.4	choke by smoke; irritates nose	嗆			
 呜	U+545C	7	wū			30.4	sound of crying, sobbing	嗚			
 呝	U+545D	8	è			30.5	belch; hiccup	呃	アク ヤク アイ ア		
@@ -8256,7 +8256,7 @@
 呼	U+547C	8	hū	KO	YOBU	30.5	breathe sigh, exhale; call, shout	𠰗 唿 嘑 𡀛 𢧶 虖 𧦝 謼 詨	コ カ ク コウ キョウ よぶ		
 命	U+547D	8	mìng	MEI MYOU	INOCHI OOSE MIKOTO	30.5	life; destiny, fate, luck; an order, instruction	名 𠇭 𠇮 𠋒	メイ ミョウ ベイ マン いのち おおせ みこと		
 呾	U+547E	8	dá	TATSU TACHI ATSU ECHI TECHI	SHIKARIAU YOBIAU	30.5		咀	タツ タチ アツ エチ テチ		
-呿	U+547F	8	qù	KA KYO KO KYOU KOU	HIRAKU AKUBISURU	30.5	to yawn	𠳷	キャ キョ キョウ カ コ コウ ヨウ ひらく		
+呿	U+547F	8	qù	KA KYO KO KYOU KOU	HIRAKU AKUBISURU	30.5	to yawn	𠳷 嘘	キャ キョ キョウ カ コ コウ ヨウ ひらく		
 咀	U+5480	8	jǔ	SO SHO	KAMU	30.5	suck; chew, masticate	觜 嘴 呾	ソ ショ ジョ かむ		
 咁	U+5481	8	hán	KAN GAN	HUKUMU	30.5	(Cant.) like this, in this way; so, to such an extent	𣵷 銜	カン ガン		
 咂	U+5482	8	zā	SOU	SUU	30.5	to suck, to smack the lips; (Cant.) to cheat	𠯗 匝 𠶴 𠴴 啑 噈	ソウ		
@@ -8285,7 +8285,7 @@
 咙	U+5499	8	lóng			30.5	throat	嚨			
 咚	U+549A	8	dōng			30.5	onomatopoetic, a thumping sound				
 咛	U+549B	8	níng			30.5	enjoin, instruct; charge	嚀			
-咜	U+549C	8	tuō	TA TO	SHIKARU	30.5	to scold		タ しかる		
+咜	U+549C	8	tuō	TA TO	SHIKARU	30.5	to scold	唾	タ しかる		
 咝	U+549D	8	sī			30.5	hiss; call to come; syllable	噝			
 咞	U+549E	7	xiàn			30.6		哯 蜆	ケン		
 咟	U+549F	9	huò	KAKU		30.6		㗲	カク		
@@ -8447,7 +8447,7 @@
 唻	U+553B	11	lài	RAI	UTAU	30.8		𫪁	ライ		
 唼	U+553C	11	shà	SAHU SEHU	KURAHU SUSURU TSUIBAMU HUMU	30.8	speaking evil; gobbling sound made by ducks	倢 𠸻	ソウ ショウ すする ふむ		
 唽	U+553D	11	xī	SEKI SHAKU		30.8	to twitter		セキ		
-唾	U+553E	11	tuò	DA	TSUBA	30.8 30.9	spit, spit on; saliva	涶 𠾊	ダ タ つば		
+唾	U+553E	11	tuò	DA	TSUBA	30.8 30.9	spit, spit on; saliva	涶 𠾊 咜	ダ タ つば		
 唿	U+553F	11	hū	KOTSU KOCHI	UREERU	30.8	sad; (Cant.) a bit, part	呼 啒	コツ コチ		
 啀	U+5540	11	ái	GAI	IGAMU	30.8	gnaw; (Cant.) to shout, yell, scold	𠺓 嘊 㹞	ガイ ゲ いがむ		
 啁	U+5541	11	zhāo	TOU CHOU CHUU SHUU	TAWAMURERU	30.8	chirp, twitter, twittering		トウ チョウ チュウ シュウ ジョウ		
@@ -8665,7 +8665,7 @@
 嘕	U+5615	14	xiān	KEN EN	TANOSHIMU	30.11			ケン エン		
 嘖	U+5616	14	zé	SAKU	SAKEBU	30.11	interjection of approval or admiration	啧 謮 㥽	サク ジャク さけぶ		
 嘗	U+5617	14	cháng	SHOU JOU	NAMERU KOKOROMIRU KATTE	30.11	taste; experience, experiment	甞 尝 𡮢 嚐 𠹉 𨡔 𨣛	ショウ ジョウ かつて なめる こころみる		
-嘘	U+5618	14	xū	KYO	FUKU USO	30.11	exhale; blow out; deep sigh; hiss; praise	噓 歔	キョ コ うそ		
+嘘	U+5618	14	xū	KYO	FUKU USO	30.11	exhale; blow out; deep sigh; hiss; praise	噓 歔 呿	キョ コ うそ		
 嘙	U+5619	14	pó	HA		30.11			ハ		
 嘚	U+561A	14	dē	TOKU		30.11			トク		
 嘛	U+561B	14	ma má	MA		30.11	final exclamatory particle	㕰	マ		
@@ -9400,12 +9400,12 @@
 壴	U+58F4	9	zhù	SHU CHU	TATERU	33.6		豈	シュ チュ		
 壵	U+58F5	9	zhuàng			33.6		垚 壯	ソウ		
 壶	U+58F6	10	hú			33.7	jar, pot, jug, vase; surname	壺			
-壷	U+58F7	11	hú	KO	TSUBO	33.8	jar, pot, jug, vase; surname	壺	コ つぼ		
+壷	U+58F7	11	hú	KO	TSUBO	33.8	jar, pot, jug, vase; surname	壺 壼	コ つぼ		
 壸	U+58F8	11	kǔn	KON	HEYANOTSURO OKU	33.8	palace corridor or passageway	壼			
 壹	U+58F9	12	yī	ICHI ITSU	HITOTSU	33.9	number one	一 弌 夁 𡔾 𡕄 𡕋 𡕍 𡕌 𡘵	イツ イン イチ ひとつ		壱
-壺	U+58FA	12	hú	KO	TSUBO	33.9	jar, pot, jug, vase; surname	壶 𡔥 𡔦 壷 𡔲 𡔳 𡐎 𠻭 𥁖	コ ゴ つぼ		
+壺	U+58FA	12	hú	KO	TSUBO	33.9	jar, pot, jug, vase; surname	壶 𡔥 𡔦 壷 𡔲 𡔳 𡐎 𠻭 𥁖 壼	コ ゴ つぼ		
 壻	U+58FB	12	xù	SEI	MUKO	33.9	son-in-law; husband	婿 𡎎 𡠸 湑 𦕓 𦖜 聟	サイ セイ むこ		
-壼	U+58FC	13	kǔn	KON	HEYANOTSURO OKU	33.10	palace corridor or passageway	壸 𡈋 𠁏 𠁐 𠁕 𠆊 𡔶 𡆵 閫 閸	コン キン		
+壼	U+58FC	13	kǔn	KON	HEYANOTSURO OKU	33.10	palace corridor or passageway	壸 𡈋 𠁏 𠁐 𠁕 𠆊 𡔶 𡆵 閫 閸 壷 壺	コン キン		
 壽	U+58FD	14	shòu	JU SU SHUU JUU	KOTOBUKI HISASHII KOTOOGU	33.11	old age, long life; lifespan	寿 夀 𡔽 𪤳 𠋮 𠭵 𡭏 𠷎 𤕋 𦓂 𦓆 𧈙	シュウ ジュ ことぶき		寿
 壾	U+58FE	13	mǎng	BOU MOU		33.11			ボウ モウ		
 壿	U+58FF	15	zūn	SHUN SON	MAU	33.12		墫	シュン ソン ゾン		
@@ -9471,7 +9471,7 @@
 夻	U+593B	6	huà			37.3 30.3	fish name				
 夼	U+593C	6	kuǎng			37.3	low or swampy land, most often used in place names				
 夽	U+593D	7	yǔn			37.4			グン		
-夾	U+593E	7	jiā	KOU KYOU	HASAMU	37.4	be wedged or inserted between	夹 㚒 俠 挾 袷 鋏	キョウ コウ はさむ		
+夾	U+593E	7	jiā	KOU KYOU	HASAMU	37.4	be wedged or inserted between	夹 㚒 俠 挾 袷 鋏 來	キョウ コウ はさむ		
 夿	U+593F	7	bā	HA HE	OOKII	37.4			ハ ヘ		
 奀	U+5940	7	ēn	BOU	YASERU	37.4	(Cant.) skinny, tiny; to jerk, dangle		ボウ		
 奁	U+5941	7	lián			37.4	lady's vanity case; trousseau	奩			
@@ -9486,7 +9486,7 @@
 奊	U+594A	9	xié			37.7			ケツ ゲチ レツ レチ ヘイ ヘ		
 奋	U+594B	8	fèn			37.5	strive, exert effort; arouse	奮 𡘒 㽘	コウ ホン		
 奌	U+594C	8	diǎn	TEN	BOCHI CHOBO TEN	37.5	dot, speck, spot; point, degree	点	テン ぼち		
-奍	U+594D	8	quān			37.5					
+奍	U+594D	8	quān			37.5		养			
 奎	U+594E	9	kuí	KEI KI	MATA	37.6	stride of man; 15th lunar mansion, determinative star η Andromedae	㚝 奞 𡌤 䖯 䠑	ケイ ケ キ		
 奏	U+594F	9	zòu	SOU	KANADERU SUSUMERU	37.6	memorialize emperor; report	𫝤 㔿 𠭕 𠭡 𡼘 𡲱 𡲯 𡳡 𡘶 𡴨 𡴝 𢽥 揍	ソウ シュ かなでる もうす		
 奐	U+5950	9	huàn	KAN	TORIKAERU OOKII SAKAN	37.6	be numerous, brilliant	奂	カン		
@@ -9527,7 +9527,7 @@
 女	U+5973	3	nǚ	JO NYO NYOU	ONNA ME MUSUME	38.0	woman, girl; feminine; Kangxi radical 38; 10th lunar mansion, determinative star ε Aquarii (Albali)	𠨰 𡚬 汝	ジョ ニョ ニョウ おんな め むすめ なんじ めあわせる		
 奴	U+5974	5	nú	DO NU	YAKKO YATSU ME	38.2	slave, servant	仅 㚢	ド ヌ やつ め やっこ		
 奵	U+5975	5	dǐng	TEI CHOU TEN		38.2			テイ チョウ テン		
-奶	U+5976	5	nǎi	DAI NE NAI	CHICHI HAGUKUMU	38.2	milk; woman's breasts; nurse	妳 嬭 𠂏	ダイ ネ		
+奶	U+5976	5	nǎi	DAI NE NAI	CHICHI HAGUKUMU	38.2	milk; woman's breasts; nurse	妳 嬭 𠂏 㛋	ダイ ネ		
 奷	U+5977	6	qiān	SEN		38.3			セン		
 奸	U+5978	6	jiān	KAN	OKASU	38.3	crafty, villainous, false	奸 姦 𡟗 𪙨	カン ケン おかす		
 她	U+5979	6	tā	CHI JI SHA TA I	AZARU	38.3	she, her	他 姐	チ ジ シャ タ イ		
@@ -10051,8 +10051,8 @@
 孿	U+5B7F	22	luán	SAN SEN REN	HUTAGO	39.19	twins	孪 㝈 𤲶	レン サン セン つながる つなぐ ふたご		
 宀	U+5B80	3	mián	BEN MEN	YANE IE	40.0	roof; Kangxi radical 40		ベン メン うかんむり		
 宁	U+5B81	5	níng	CHO	TAKUWAERU	40.2	calm, peaceful, serene; healthy	宁 寧 佇 貯	チョ たたずむ		
-宂	U+5B82	5	rǒng			40.2	scattered, mixed affairs; duties; occupation business	冗 穴	ジョウ ニュ		
-它	U+5B83	5	tā	TA SHA	HEBI	40.2	it; other	佗 牠 他 蛇	タ シャ ジャ へび		
+宂	U+5B82	5	rǒng			40.2	scattered, mixed affairs; duties; occupation business	冗 穴 空	ジョウ ニュ		
+它	U+5B83	5	tā	TA SHA	HEBI	40.2	it; other	佗 牠 他 蛇 審	タ シャ ジャ へび		
 宄	U+5B84	5	guǐ	KI	MIDARE MIKOSHIMA	40.2	a traitor; a villain	𠬚 𡧌 𡧫	キ		
 宅	U+5B85	6	zhái	TAKU	IE SUMAU YAKE	40.3	residence, dwelling, home; grave	度 厇 𡊾 㡯 𡧪	タク チャク ジャク ツ タ ト いえ おる やか やけ		
 宆	U+5B86	6	qióng	KYOU	SORA	40.3		穹	キュウ		
@@ -10154,7 +10154,7 @@
 實	U+5BE6	14	shí	JITSU SHITSU	MI MINORU	40.11	real, true, solid, honest	寔 实 囸 𡾍 宲 𡪲	ジツ ジチ シ シツ みのる		実
 寧	U+5BE7	14	níng	NEI NYOU	YASUI MUSHIRO NANZO	40.11	repose, serenity, peace; peaceful	寍 𡨴 宁 𪧟 𫳬 㝕 𡧾 寕 甯 寗 𡪕 𡬛	ネイ ニョウ いずくんぞ なんぞ むしろ やすい やすらか やすんじる		
 寨	U+5BE8	14	zhài	SAI	TORIDE	40.11	stockade, stronghold, outpost; brothel	砦 𣟋	サイ ゼ ソク とりで		
-審	U+5BE9	15	shěn	SHIN	TSUMABIRAKA	40.12	examine, investigate; judge	审 寀 𡩨 讅	シン ハン つまびらか		
+審	U+5BE9	15	shěn	SHIN	TSUMABIRAKA	40.12	examine, investigate; judge	审 寀 𡩨 讅 它	シン ハン つまびらか		
 寪	U+5BEA	15	wěi	I GI		40.9	surname	𰌷	イギ		
 寫	U+5BEB	15	xiě	SHA	UTSUSU	40.12	write; draw, sketch; compose	冩 写 䥱 瀉	シャ ソ うつす		写
 寬	U+5BEC	15	kuān	KAN	HIROI YURUYAKA KUTSUROGU	40.12	broad, wide; spacious, vast	宽 𡘚 𡙤 完 𡩖 寛	カン ひろい ゆるやか くつろぐ ひろし		寛
@@ -10180,7 +10180,7 @@
 尀	U+5C00	8	pǒ	HA	DEKINU	41.5	cannot; thereupon	叵 𡬡	ハ		
 封	U+5C01	9	fēng	FUU HOU	SAKAI TOJIRU PONDO	41.6	letter, envelope; feudal; one pound	𡉘 𡉚 𡊋 𡊽 𡎈 峯	フウ ホウ フ ヘン ポンド さかい とじる		
 専	U+5C02	9	zhuān	SEN	MOPPARA	41.6	monopolize, take sole possession		セン タン ダン もっぱら もっぱらにする	專	
-尃	U+5C03	10	fū	FU HO	SHIKU AMANESHI MOTO HARAU	41.7	to state to, to announce	旉 敷 佈	フ ホ		
+尃	U+5C03	10	fū	FU HO	SHIKU AMANESHI MOTO HARAU	41.7	to state to, to announce	旉 敷 佈 爻	フ ホ		
 射	U+5C04	10	shè	SHA SEKI	IRU ATERU SASU	41.7	shoot, eject, issue forth, emit	𡬤 𢎤 𨈡 䠶 𨉅 𨉛 榭	シャ ジャ ジャク セキ エキ ヤク ヤ いる あてる さす いとう		
 尅	U+5C05	10	kè	KOKU	KATSU	41.7	subdue, destroy, overcome	剋	コク かつ		
 将	U+5C06	10	jiāng	SHOU SOU	HIKIIRU MOTTE MASANI	41.6 90'.6	will, going to, future; general	𤕭 將	ショウ ソウ うける おこなう はた ひきいる まさに もって	將	
@@ -10236,7 +10236,7 @@
 尸	U+5C38	3	shī	SHI	SHIKABANE KATASHIRO	44.0	corpse; to impersonate the dead; to preside; Kangxi radical 44	屍 尸 𠃜 死	シ かたしろ しかばね しかばねかんむり		
 尹	U+5C39	4	yǐn	IN	OSA TADASU	4.3 44.1	govern; oversee; director	𢁨 𢂫 𢂬 𢂭 𢃁 𢃂 𢃹 𢃵	イン おさ ただす かみ		
 尺	U+5C3A	4	chǐ	SHAKU SEKI	MONOSASHI	44.1	Chinese measure approx. 'foot'		シャク セキ ものさし		
-尻	U+5C3B	5	kāo	KOU	SHIRI	44.2	end of spine; buttocks, sacrum	䯌 𡰼 𡱧 胒	コウ しり		
+尻	U+5C3B	5	kāo	KOU	SHIRI	44.2	end of spine; buttocks, sacrum	䯌 𡰼 𡱧 胒 㞍	コウ しり		
 尼	U+5C3C	5	ní	NI JITSU	AMA	44.2	Buddhist nun; transliteration	㞾 𡰱 𡲌 昵	ニ ジ ジツ デイ ニチ ナイ イ あま		
 尽	U+5C3D	6	jǐn	JIN	TSUKUSU TSUKIRU KOTOGOTOKU	44.3	exhaust, use up; deplete	盡 尽 儘	ジン つくす つきる つかす ことごとく	盡	
 尾	U+5C3E	7	wěi	BI	O	44.4	tail, extremity; end, stern; 6th lunar mansion, determinative star μ¹ Scorpii (Xamidimura)	㞑 𡱓 𡱕 𡱲 𡲵 𩜧	ビ ミ お		
@@ -10392,7 +10392,7 @@
 峔	U+5CD4	9	mǔ	BO MO		46.6		𡶰	ボ モ		
 峕	U+5CD5	9	shí	SHI		46.6					
 峖	U+5CD6	9	ān	AN ATSU ACHI		46.6			アン アツ アチ		
-峗	U+5CD7	9	wéi	GI GUWAI GE GUTSU GUCHI KI		46.6		硊	キ ガイ ゲ グツ グチ ギ		
+峗	U+5CD7	9	wéi	GI GUWAI GE GUTSU GUCHI KI		46.6		硊 巍	キ ガイ ゲ グツ グチ ギ		
 峘	U+5CD8	9	huán	KAN GUWAN KOU GOU		46.6		𡴿 𡵎 𡷆 𡷗	カン ガン コウ ゴウ		
 峙	U+5CD9	9	zhì	JI	SOBADATSU	46.6	stand erect, stand up; pile up	崻	ジ チ そばだつ		
 峚	U+5CDA	9	mì	BITSU MICHI		46.6			ビツ ミチ		
@@ -10504,7 +10504,7 @@
 嵄	U+5D44	12	měi			46.9			ビ ミ		
 嵅	U+5D45	12	hán	KAN KON		46.9			カン コン		
 嵆	U+5D46	12	jī	KEI GEI		46.9	mountain in Henan; surname	嵇	ケイ ゲイ		
-嵇	U+5D47	12	jī	KEI GEI		46.9	mountain in Henan; surname	嵆	ケイ		
+嵇	U+5D47	12	jī	KEI GEI		46.9	mountain in Henan; surname	嵆 稽	ケイ		
 嵈	U+5D48	12	huàn	KAN GAN		46.9			カン ガン		
 嵉	U+5D49	12	tíng	TEI CHAU		46.9		𡺣	テイ チョウ		
 嵊	U+5D4A	13	shèng	SHOU JOU		46.10	district in Shaohsing, Chekiang	𡹴 𡼺	ジョウ ショウ		
@@ -10638,7 +10638,7 @@
 巊	U+5DCA	20	yǐng			46.17		𪩎 𡾸	エイ ヨウ		
 巋	U+5DCB	21	kuī	KI GI	TSURANARU	46.17	grand, stately; secure, lasting	岿 嵬 𡿢	キ ギ		
 巌	U+5DCC	19	yán	GAN	KEWASHII IWAO	46.17	cliff, precipice; cave, grotto		ガン ゲン いわお けわしい いわ けわし		
-巍	U+5DCD	20	wēi	GI	TAKAI	46.18	high, lofty, majestic, eminent	魏 𡿁 𡿆	ギ ガイ ゲ たかい		
+巍	U+5DCD	20	wēi	GI	TAKAI	46.18	high, lofty, majestic, eminent	魏 𡿁 𡿆 峗	ギ ガイ ゲ たかい		
 巎	U+5DCE	22	náo	DOU		46.19	used in personal names	峱	ドウ		
 巏	U+5DCF	20	quán	KEN GEN KON		46.18		𡺟 𡺹	ケン ゲン カン		
 巐	U+5DD0	21	chǎo	CHOU	YAMANOSAMA	46.18			チョウ		
@@ -10816,7 +10816,7 @@
 幼	U+5E7C	5	yòu	YOU YUU	OSANAI	52.2	infant, young child; immature	𠣎 㓜 𢈗 𢆲 袎	ヨウ オウ イク ユウ おさない		
 幽	U+5E7D	9	yōu	YUU	KURAI KASUKA	52.6	quiet, secluded, tranquil; dark	𠫬 𡋢 𣾧 𤄘	ユウ ユ かすか くらい		
 幾	U+5E7E	12	jǐ	KI	IKU KIZASHI CHIKAI	52.9	how many? how much?; a few, some	几 𢆻 𢆼 𢇒 𢇓 𨗂 機	キ ケ ゲ いく ちかい ほとんど		
-广	U+5E7F	3	guǎng	GEN	IE	53.0	wide, extensive, broad; rad. 53	广 廣 庵	ゲン まだれ		
+广	U+5E7F	3	guǎng	GEN	IE	53.0	wide, extensive, broad; rad. 53	广 廣 庵 鷹	ゲン まだれ		
 庀	U+5E80	5	pǐ	HI HEI HAI	OSAMERU	53.2	to prepare; to regulate to hand up	庇 比 䚰 䚹	ヒ ヘイ		
 庁	U+5E81	5	tīng	CHOU TEI	YAKUSHO	53.2	hall, central room	廳 𥑈	チョウ テイ	廳	
 庂	U+5E82	5	zè	SHOKU SHIKI		53.2		仄	ショク シキ		
@@ -10890,7 +10890,7 @@
 廆	U+5EC6	12	wěi	KAI E GE KE	KAKI	53.10	a room; the wall of a house a man's name		カイ ガイ エ ケ ゲ		
 廇	U+5EC7	13	liù	RIU RU		53.10		𢊺 霤	リュウ ル		
 廈	U+5EC8	13	shà	KA SA	IE HISASHI	53.10	big building, mansion	厦 夏 𢇗 𢌂 𤹉	カ サ ゲ シャ		
-廉	U+5EC9	13	lián	REN	KADO YASUI	53.10	upright, honorable, honest	亷 𠪊 𢉧 㢘 𢋯 槏 𤎉 磏	レン かど やすい		
+廉	U+5EC9	13	lián	REN	KADO YASUI	53.10	upright, honorable, honest	亷 𠪊 𢉧 㢘 𢋯 槏 𤎉 磏 㡵	レン かど やすい		
 廊	U+5ECA	12	láng	ROU	WATADONO	53.9	corridor, porch, veranda		ロウ	廊	
 廋	U+5ECB	13	sōu	SHUU SHU SOU SU	KAKUSU	53.10	conceal, hide; search for, seek	廀	シュウ ソウ シュ かくす かくれる もとめる		
 廌	U+5ECC	13	zhì	CHI		53.10	unicorn	豸 𢊁	チ		
@@ -10913,7 +10913,7 @@
 廝	U+5EDD	15	sī	SHI	KOMONO	53.12	servant	㒋 厮 𤺊	シ		
 廞	U+5EDE	15	xīn	KIN KON GIN GON KAN KEN	TSURANERU OKOSU KEHASHIISAMA	53.12	to prepare horses and chariots for battle	𫷷 嵌 𢉄	キン ギン カン コン ケン ゴン		
 廟	U+5EDF	15	miào	BYOU	TAMAYA MITAMAYA YASHIRO	53.12	temple, shrine; imperial court	庙 庿 𤸠	ビョウ ミョウ		
-廠	U+5EE0	15	chǎng	SHOU	UMAYA	53.12	factory, plant, workshop, mill	厰 厂 𢉒	ショウ		
+廠	U+5EE0	15	chǎng	SHOU	UMAYA	53.12	factory, plant, workshop, mill	厰 厂 𢉒 仄	ショウ		
 廡	U+5EE1	15	wǔ	BU	HISASHI	53.12	corridor, hallway; luxuriant	庑 𢇜 𢋑 𢋰 𢌋 甒	ブ ム ひさし		
 廢	U+5EE2	15	fèi	HAI	SUTARERU FUSU OCHIRU	53.12	abrogate, terminate, discard	废	ハイ ヘ すたれる		廃
 廣	U+5EE3	15	guǎng	KOU	HIROI HIROBA HIROMERU	53.12	broad, wide, extensive	广	コウ ひろい		広
@@ -11125,7 +11125,7 @@
 徱	U+5FB1	14	piào	HYOU	KARUI SUBAYAI	60.11		𤡑	ヒョウ		
 徲	U+5FB2	15	tí			60.12		𠌬 𢔭 𢔦	チ ジ テイ ダイ		
 徳	U+5FB3	14	dé	TOKU	OSHIE	60.11	virtue; ethics	德	トク	德	
-徴	U+5FB4	14	zhēng	CHOU CHI	SHIRUSHI MESU	60.11	summon	徵	チョウ チ しるし めす	徵	
+徴	U+5FB4	14	zhēng	CHOU CHI	SHIRUSHI MESU	60.11	summon	徵 㞷	チョウ チ しるし めす	徵	
 徵	U+5FB5	15	zhǐ zhēng	CHOU CHI	SHIRUSHI MESU	60.12	summon, recruit; musical note	征 徵 壬 𧗲 徴 𢽠 𢿁 𢾷	チョウ チ しるし		徴
 徶	U+5FB6	14	bié			60.12		𠍯	ヘツ ベチ		
 德	U+5FB7	15	dé	TOKU	OSHIE	60.12	ethics, morality, virtue	悳 惪 徳 恴 㥁 𢜖 㥀 𢠀 𢤊 𨗤	トク チ		徳
@@ -11230,7 +11230,7 @@
 怚	U+601A	8	jù	SHO JO SO	OGORU	61.5	dull, stupid, suspicious	怛 𢚆	ショ シャ ソ ゾ		
 怛	U+601B	8	dá	DATSU TATSU	ITAMU	61.5	grieved, saddened; worried	怚 𢘇 𢛁	ダツ タツ タン ダン タチ いたむ		
 怜	U+601C	8	lián	REI RYOU REN	SATOI AWAREMU	61.5	pity, sympathize	怜 憐 㦭	レイ レン リョウ あわれむ さとい		
-思	U+601D	9	sī	SHI	OMOU OMOI	61.5	think, consider, ponder; final particle	𠂺 𠃼 𢍄 𡴓 楒 恖 䰄	シ サイ おもう おもい		
+思	U+601D	9	sī	SHI	OMOU OMOI	61.5	think, consider, ponder; final particle	𠂺 𠃼 𢍄 𡴓 楒 恖 䰄 㤙	シ サイ おもう おもい		
 怞	U+601E	8	chóu			61.5	to grieve; sorrowful	㾄	チュウ ユウ ユ ジュ		
 怟	U+601F	8	dì	TEI TAI	MODAERU	61.5			テイ タイ		
 怠	U+6020	9	dài	TAI	OKOTARU NAMAKERU	61.5	idle, remiss, negligent; neglect	𫺭	タイ ダイ イ おこたる なまける おこたり		
@@ -11305,7 +11305,7 @@
 恥	U+6065	10	chǐ	CHI	HAJIRU HAJI HAZUKASHII	61.6	shame, humiliation; ashamed	耻 𦔺	チ はじる はじ はじらう はずかしい		
 恦	U+6066	9	shàng			61.6			ショウ		
 恧	U+6067	10	nǜ	JIKU NIKU JOKU NYOKU	HAJIRU	61.6	ashamed	𠷼 𢟄 聏 𦗂	ジク ジョク ニク ニキ はじる		
-恨	U+6068	9	hèn	KON	URAMU URAMESHII URAMI	61.6	hatred, dislike; resent, hate	𢙃 𢚉	コン ゴン うらむ うらめしい うらみ うらむらくは		
+恨	U+6068	9	hèn	KON	URAMU URAMESHII URAMI	61.6	hatred, dislike; resent, hate	𢙃 𢚉 悢	コン ゴン うらむ うらめしい うらみ うらむらくは		
 恩	U+6069	10	ēn	ON	MEGUMU	61.6	kindness, mercy, charity	摁 㤙	オン いつくしむ		
 恪	U+606A	9	kè	KAKU	TSUTSUSHIMU	61.6	respectful, reverent	㤩 愙 愘	カク つつしむ		
 恫	U+606B	9	dòng	DOU TOU	ITAMU	61.6	in pain, sorrowful	挏 恿 痌	トウ ドウ ツ ヅ いたむ		
@@ -11363,7 +11363,7 @@
 悟	U+609F	10	wù	GO	SATORU SATORI	61.7	to apprehend, realize, become aware	𠵥 𠼘 忢 𢛤 𢤓 𥄪 𦤜	ゴ さとる さとり		
 悠	U+60A0	11	yōu	YUU	TOOI HARUKA	61.7	long, far, remote, distant; leisurely	滺 𢚐 𢥀 𢥙	ユウ とおい はるか		
 悡	U+60A1	11	lí			61.7		𢤂	リ		
-悢	U+60A2	10	liàng	RYOU KOU	KANASHIMU	61.7		惊 𢝋	リョウ ロウ かなしむ		
+悢	U+60A2	10	liàng	RYOU KOU	KANASHIMU	61.7		惊 𢝋 恨	リョウ ロウ かなしむ		
 患	U+60A3	11	huàn	KAN GEN	WAZURAU UREERU UREI	61.7	suffer, worry about; suffering	𢤒 𨴮 𢠶	カン ゲン わずらう うれい うれえる わずらい		
 悤	U+60A4	11	cōng	SOU	NIWAKA AWATERU	61.7	agitated, restless, hurried	匆 怱 囱 忩	ソウ ス		
 悥	U+60A5	11	yì	YOKU	MICHIRU	61.7		意	オク		
@@ -11488,7 +11488,7 @@
 愜	U+611C	12	qiè	KYOU	KOKOROYOI	61.9	be satisfied, be comfortable	惬 㛍 㥦	キョウ こころよい みちる かなう		
 愝	U+611D	12	yǎn			61.9			エン		
 愞	U+611E	12	nuò	ZEN NEN TA NA	YOWAI OSORERU	61.9	timid, apprehensive	𢘧 𢘎 䎠 懦	ダン ダ ゼン ネン ナ ジン ニン ジュ ニュ よわい		
-感	U+611F	13	gǎn	KAN	KANJIRU	61.9	feel, perceive, emotion	𢦡	カン コン ゴン		
+感	U+611F	13	gǎn	KAN	KANJIRU	61.9	feel, perceive, emotion	𢦡 㤌	カン コン ゴン		
 愠	U+6120	12	yùn	UN ON	URAMU IKARU	61.9	angry	慍 愠 怨 惌	ウン オン いかり いかる うらむ		
 愡	U+6121	12	zǒng	SOU SU		61.9	absent-minded, confused	憁	ソウ		
 愢	U+6122	12	sāi	SAI SHI	KOKOROGATAGAU SEMERU	61.9	hesitant; modest		サイ シ		
@@ -11558,7 +11558,7 @@
 慢	U+6162	14	màn	MAN	OKOTARU ANADORU OGORU	61.11	slow(ly), leisurely, sluggish	悗 僈 𢢔	マン バン ベン メン あなどる おこたる おごる		
 慣	U+6163	14	guàn	KAN	NARERU NARAWASHI NARASU	61.11	habit, custom; habitually, usually	惯 摜 貫	カン なれる ならす ならわし		
 慤	U+6164	15	què			61.11	sincerity, honesty; modest	悫 愨	カク つつしむ		
-慥	U+6165	13	zào	ZOU SOU	TASHIKA	61.11	sincere, earnest		ソウ ゾウ たしか		
+慥	U+6165	13	zào	ZOU SOU	TASHIKA	61.11	sincere, earnest	造	ソウ ゾウ たしか		
 慦	U+6166	15	jiù			61.11			キュウ ク		
 慧	U+6167	15	huì	KEI E	SATOI	61.11	bright, intelligent; intelligence	譿	ケイ エ さとい		
 慨	U+6168	12	kǎi	GAI KAI	NAGEKU	61.9	sigh, regret; generous	嘅	ガイ カイ なげく	慨	
@@ -11809,13 +11809,13 @@
 扝	U+625D	6	kū			64.3			ウ		
 扞	U+625E	6	hàn	KAN	FUSEGU	64.3	ward off, withstand, resist	捍 㪋 擀 悍 釬	カン ガン ふせぐ		
 扟	U+625F	6	shēn			64.4			シン		
-扠	U+6260	6	chā	SA	SASU SATE	64.3	pick up with fork or pincers	搋 𢹓	サ タイ サイ シャ テ セ さす さて やす		
+扠	U+6260	6	chā	SA	SASU SATE	64.3	pick up with fork or pincers	搋 𢹓 插	サ タイ サイ シャ テ セ さす さて やす		
 扡	U+6261	6	tuō			64.3	drag along	拖 搋 移	デ タイ イ タ シ ジ チ ダ ひく		
 扢	U+6262	6	gǔ			64.3	caper	㧉	コツ キツ ケツ ケチ クチ コチ		
 扣	U+6263	6	kòu	KOU	TATAKU HIKAERU UTSU	64.3	knock, strike, rap, tap; button	叩 敂	コウ ク たたく ひかえる うつ		
 扤	U+6264	6	wù	GOTSU GOCHI GETSU GACHI	UGOKU	64.3	to thrust; to move	𢩫 𢪨	ゴツ ガチ ゲツ ガツ ゴチ		
 扥	U+6265	6	dèn			64.3			トン		
-扦	U+6266	6	qiān			64.3	probe, poke, prick, pierce	𢳍 𢸯	セン		
+扦	U+6266	6	qiān			64.3	probe, poke, prick, pierce	𢳍 𢸯 插	セン		
 执	U+6267	6	zhí			64.3	hold in hand; keep; carry out	執 执 𢩾	シュウ		
 扨	U+6268	6	rèn		SATE	64.3	pick up with fork or pincers		さて		
 扩	U+6269	6	kuò			64.3	expand, enlarge, stretch	擴			
@@ -11871,7 +11871,7 @@
 抛	U+629B	7	pāo	HOU	NAGEUTSU	64.4	throw (away)	抛 拋 𢿏 抱 𢱹 摽 𥒙	ホウ なげうつ		
 抜	U+629C	7	bá	BATSU HATSU	NUKU	64.4	uproot, pull out		バツ ハイ ハツ ぬく ぬける ぬかす ぬかる	拔	
 抝	U+629D	7	ǎo			64.4	to bend, break; to argue	拗	オウ		
-択	U+629E	7	zé	TAKU	ERABU	64.4	select, choose, pick out		タク ジャク えらぶ	擇	
+択	U+629E	7	zé	TAKU	ERABU	64.4	select, choose, pick out	插	タク ジャク えらぶ	擇	
 抟	U+629F	7	tuán			64.4	roll around with hand; model	摶			
 抠	U+62A0	7	kōu			64.4	raise, lift up; tight-fisted	摳			
 抡	U+62A1	7	lūn			64.4	swing, brandish, flourish	掄			
@@ -12005,12 +12005,12 @@
 挡	U+6321	9	dǎng			64.6	obstruct, impede; stop; resist	挡 擋			
 挢	U+6322	9	jiǎo			64.6	correct	撟			
 挣	U+6323	9	zhēng			64.6	strive, endeavor, struggle	掙 𧶄 䦛			
-挤	U+6324	9	jǐ			64.6	crowd, squeeze, push against	擠			
+挤	U+6324	9	jǐ			64.6	crowd, squeeze, push against	擠 㨈			
 挥	U+6325	9	huī			64.6	direct; wipe away; squander	揮			
 挦	U+6326	9	xián			64.6	pull out, pluck; take hold of	撏			
 挧	U+6327	9	yǔ	KU		64.6					
 挨	U+6328	10	āi	AI	HIRAKU	64.7	near, close by, next to, towards, against; to wait; to lean on	剴 捱 𢰇 捽	アイ		
-挩	U+6329	10	tuō	TATSU TACHI SEI EI	TOKU	64.7		捝 𢬁 脱	エイ タツ タチ セイ セ とく ぬぐう		
+挩	U+6329	10	tuō	TATSU TACHI SEI EI	TOKU	64.7		捝 𢬁 脱 撮	エイ タツ タチ セイ セ とく ぬぐう		
 挪	U+632A	9	nuó	DA NA	MOMU	64.7	move, shift on one side	那 捼	ダ ナ		
 挫	U+632B	10	cuò	ZA SA	KUJIKU KUJIKERU	64.7	push down; chop down; grind	繲 剉 𢲖	ザ サ シャ くじく くじける		
 挬	U+632C	10	bó			64.7		𢰏	ホツ ボチ		
@@ -12179,7 +12179,7 @@
 描	U+63CF	11	miáo	BYOU	EGAKU	64.9	copy, trace, sketch; depict		ビョウ ボウ ミョウ えがく		
 提	U+63D0	12	tí	TEI DAI	SAGERU	64.9	hold in hand; lift in hand	椸	テイ ダイ チョウ シ ジ タイ さげる ひっさげる		
 揑	U+63D1	12	niē	GETSU GECHI NETSU	KONEAWASERU	64.9	to fabricate; to trump up	捏	ゲツ ケチ ネツ こねる		
-插	U+63D2	12	chā	SOU	SASU NINAI TORU	64.9	insert, stick into; plant	挿 揷 𢭉 捷 𢰔	ソウ ショウ さす		挿
+插	U+63D2	12	chā	SOU	SASU NINAI TORU	64.9	insert, stick into; plant	挿 揷 𢭉 捷 𢰔 扦 扠 択	ソウ ショウ さす		挿
 揓	U+63D3	12	shì	SHI	TORU	64.9		𢴨	シ		
 揔	U+63D4	12	zǒng	SOU SU	SUBE MINA HIKIIRU SUSUMERU	64.9	collect; overall, altogether	捴 𢷝 惣 總	ソウ ス		
 揕	U+63D5	12	zhèn	CHIN	UTSU SASU	64.9	roll up the sleeves; fight bare-fisted; strike, stab		チン		
@@ -12397,9 +12397,9 @@
 撩	U+64A9	15	liāo	RYOU ROU	OSAMERU IDOMU	64.12	lift up, raise; leave, depart	𢿞 撈	リョウ ロウ		
 撪	U+64AA	15	bèn			64.12		㨧	ホン		
 撫	U+64AB	15	fǔ	BU FU	NADERU	64.12	pat, console, comfort; pacify	捬 𨑟 抚 摹 橅 𢻲 𢻬 拊 𢸮 𨑑	ブ フ ボ モ なでる		
-撬	U+64AC	15	qiào	KYOU	AGERU	64.12	lift, raise; pry open		キョウ		
+撬	U+64AC	15	qiào	KYOU	AGERU	64.12	lift, raise; pry open	㧃	キョウ		
 播	U+64AD	15	bō	HA	MAKU	64.12	sow, spread; broadcast; cast away, reject	𠤻 𢿥 𥸨 𨤏 譒	ハ ハン バン まく		
-撮	U+64AE	15	cuō	SATSU SAI	TORU TSUMAMU TSUMAMI	64.12	little bit, small amount, pinch	最 𢲻 𤑧 𩯉	サツ サチ サイ セ サン セツ セチ とる つまむ		
+撮	U+64AE	15	cuō	SATSU SAI	TORU TSUMAMU TSUMAMI	64.12	little bit, small amount, pinch	最 𢲻 𤑧 𩯉 挩	サツ サチ サイ セ サン セツ セチ とる つまむ		
 撯	U+64AF	14	zhuó			64.12		擆	チャク		
 撰	U+64B0	15	zhuàn	SAN SEN	ERABU	64.12	compose, write, compile	𢰅 𥲻 籑 譔 算 選	セン サン ザン えらぶ		
 撱	U+64B1	14	wěi			64.12	to shorten, to clip; to throw away	㨊	キ タ イ		
@@ -12593,7 +12593,7 @@
 敭	U+656D	13	yáng	YOU		66.8	scatter, spread; praise; raise	𢾙 揚	ヨウ		
 敮	U+656E	13	xiá			66.9			コウ キ		
 敯	U+656F	13	mǐn	BIN MIN KON	OKASU TSUTOMERU	66.9	to defy, dare; strong; to suffocate	𢾞	ビン ミン コン		
-数	U+6570	13	shù	SUU SHU SU	KAZOERU KAZU SEMERU	66.9	number; several, count; fate	数 數	スウ ス ショ サク ソク ショク シュク かず かぞえる しばしば せめる	數	
+数	U+6570	13	shù	SUU SHU SU	KAZOERU KAZU SEMERU	66.9	number; several, count; fate	数 數 呚	スウ ス ショ サク ソク ショク シュク かず かぞえる しばしば せめる	數	
 敱	U+6571	14	ái			66.10		敳	ガイ カイ ケ ショク ソク		
 敲	U+6572	14	qiāo	KOU	TATAKU	66.10	strike, beat, pound, hammer; rap	㪣 𢻤 摮 搞 毃 𣫁 䯨 𩫈	コウ キョウ たたく		
 敳	U+6573	14	ái			66.10	to govern forcefully	𮲔 敱	ガイ カイ ショク		
@@ -12741,7 +12741,7 @@
 昁	U+6601	8	bèi			72.4		𥄔	ハイ		
 昂	U+6602	8	áng	KOU GOU	AGARU TAKAI	72.4	rise, raise; proud, bold; upright	昻 卬 枊	コウ ゴウ ギョウ あがる たかい		
 昃	U+6603	8	zè	SOKU SHOKU	KATAMUKU	72.4	afternoon; the sun in the afternoon sky; to decline	𣅛 𣅦 𣅔 昗 𣅳	ショク シキ ソク かたむく		
-昄	U+6604	8	bǎn	HAN BAN HEN	OOKII	72.4	big		ハン ヘン		
+昄	U+6604	8	bǎn	HAN BAN HEN	OOKII	72.4	big	暇	ハン ヘン		
 昅	U+6605	7	jié			72.4			キョウ ゴウ		
 昆	U+6606	8	kūn	KON	ANI	72.4	elder brother; descendants	㒭 晜 𣋥 罤 𥊽 𧲟	コン ゴン あに のち		
 昇	U+6607	8	shēng	SHOU	NOBORU	72.4	rise, ascent; peaceful; peace	升 陹	ショウ のぼる のぼせる		
@@ -12872,7 +12872,7 @@
 暄	U+6684	13	xuān	KEN	ATATAKAI	72.9	warm, comfortable; warm, genial	暖 𣇥 煖	ケン カン あたたかい		
 暅	U+6685	13	gèng			72.9		𣈶			
 暆	U+6686	13	yí			72.9			イ		
-暇	U+6687	13	xiá	KA	HIMA ITOMA	72.9	leisure, relaxation, spare time		カ ゲ ひま いとま		
+暇	U+6687	13	xiá	KA	HIMA ITOMA	72.9	leisure, relaxation, spare time	昄	カ ゲ ひま いとま		
 暈	U+6688	13	yūn	UN	KASA BOKASHI MEMAI	72.9	halo in sky; fog; dizzy, faint	晕 煇 䵴	ウン かさ ぼかし ぼかす めまい くま		
 暉	U+6689	13	huī	KI	KAGAYAKU	72.9	sunshine; light, bright, radiant	晖 輝	キ かがやく ひかり		
 暊	U+668A	13	xǔ			72.9		𮲟	フ		
@@ -12993,7 +12993,7 @@
 曽	U+66FD	11	cēng	ZO SOU SO	KATTE SUNAWACHI	72.7	already; sign of past		ソウ ソ かつて	曾	
 曾	U+66FE	12	céng	SO SOU ZOU	KATTE SUNAWACHI	73.8	already; sign of past		ソ ソウ ゾ ゾウ かつて すなわち なんぞ		曽
 替	U+66FF	12	tì	TAI TEI	KAERU SUTARERU KAWARU	73.8	change, replace, substitute for	㬱 𤽽 𤾕	タイ テイ テツ テチ かえる かわる		
-最	U+6700	12	zuì	SAI	MOTTOMO MO	13.10 73.8	most, extremely, exceedingly	冣 㝡 𣤜 𥦡 撮	サイ サツ もっとも も		
+最	U+6700	12	zuì	SAI	MOTTOMO MO	13.10 73.8	most, extremely, exceedingly	冣 㝡 𣤜 𥦡 撮 㝊	サイ サツ もっとも も		
 朁	U+6701	12	cǎn			73.8	if, supposing, nevertheless	㬱 僭	サン セン ゼン ソン		
 朂	U+6702	12	xù			73.8		勖	キョク コク つとめる		
 會	U+6703	13	huì	KAI E	AU	73.9	to assemble, meet together; a meeting; an organization	会 㑹 𠃐 㞧 㣛 𣥈 𣌭 鄶	カイ カツ エ カチ あう		会
@@ -13049,13 +13049,13 @@
 朵	U+6735	6	duǒ	DA TA	EDA	75.2	cluster of flowers; earlobe	朶 𣎾 杂 𣎿 𣏻 桗 挅 䒳	ダ タ えだ		
 朶	U+6736	6	duǒ	DA TA	EDA	75.2	cluster of flowers; earlobe	朵	ダ タ えだ		
 朷	U+6737	6	dāo	TOU BOKU MOKU		75.2			トウ チョウ ジョウ ボク モク		
-朸	U+6738	6	lì	RYOKU	OUGO	75.2			リョク リキ ロク キョク キン ゴン おうご		
+朸	U+6738	6	lì	RYOKU	OUGO	75.2		栎	リョク リキ ロク キョク キン ゴン おうご		
 朹	U+6739	6	guǐ			75.2		𣏒 簋	キュウ グ キ		
 机	U+673A	6	jī	KI	TSUKUE	75.2	desk; machine; moment	機 机 杌 榿	キ ガイ つくえ		
 朻	U+673B	6	jiū			75.2		𣎹 樛	キュウ ク キョウ グ		
 朼	U+673C	6	bǐ			75.2		枇	ヒ		
 朽	U+673D	6	xiǔ	KYUU	KUCHIRU	75.2	decayed, rotten; rot, decay	㱙 𣦿	キュウ ク くちる		
-朾	U+673E	6	chéng	TOU JOU TEI CHOU	TSUKU	75.2	to bump	檙 𢾊 𢿦 㨃 揨 檉	トウ ジョウ テイ チョウ		
+朾	U+673E	6	chéng	TOU JOU TEI CHOU	TSUKU	75.2	to bump	檙 𢾊 𢿦 㨃 揨 檉 橙	トウ ジョウ テイ チョウ		
 朿	U+673F	6	cì	SHI	TOGE	75.2	stab	莿 刺	シ キョク コキ とげ		
 杀	U+6740	6	shā			75.2	kill, slaughter, murder; hurt	殺 剎 𣏂	サツ		
 杁	U+6741	6	rù		EBURI IRI	75.2			いり		
@@ -13094,7 +13094,7 @@
 杢	U+6762	7	jié		MOKU	75.3	woodworker		もく		
 杣	U+6763	7	mián shān		SOMA	75.3	timber forest; timber, lumber; woodcutter		そま		
 杤	U+6764	7	wàn		TOCHI	75.3	type of oak; stable		とち		
-来	U+6765	7	lái	RAI	KURU KITARU	75.3 1.6	come, coming; return, returning	來	ライ くる きたる きたす	來	
+来	U+6765	7	lái	RAI	KURU KITARU	75.3 1.6	come, coming; return, returning	來 耒	ライ くる きたる きたす	來	
 杦	U+6766	7	jiǔ		SUGI	75.3			すぎ		
 杧	U+6767	7	máng	MAN		75.3	mango (Mangifera indica)	芒 𣙷			
 杨	U+6768	7	yáng			75.3	willow, poplar, aspen; surname	楊			
@@ -13126,7 +13126,7 @@
 枂	U+6782	8	wò			75.4			ガツ ガチ ゲツ		
 枃	U+6783	8	jìn			75.4			シン ウン イン		
 构	U+6784	8	gòu	KOU	KAMAAERU KAMAAU	75.4	frame, building, structure	构 構	コウ ク		
-枅	U+6785	8	jī	KEI KEN	TOGATA HIJIKI	75.4			ケイ		
+枅	U+6785	8	jī	KEI KEN	TOGATA HIJIKI	75.4		概	ケイ		
 枆	U+6786	8	máo			75.4		楙	ボウ モウ		
 枇	U+6787	8	pí	HI BI	SAJI KUSHI NARABERU	75.4	loquat	匕 朼 枈 篦	ビ ヒ ヘイ		
 枈	U+6788	8	bì			75.4		枇	ヒ ヘイ		
@@ -13182,11 +13182,11 @@
 枺	U+67BA	9	mò			75.5			バツ マチ		
 枻	U+67BB	9	yì	EI SETSU SECHI	KAI	75.5	long oar, sweep	栧	エイ セツ かい かじ		
 枼	U+67BC	9	yè	YOU	USUIKIFUDA MADO	75.5	a table, flat pieces of wood, a slip, a leaf	枽 楪 葉	ヨウ		
-枽	U+67BD	10	yè	SOU YOU	KUWA	75.5		枼	ソウ		
+枽	U+67BD	10	yè	SOU YOU	KUWA	75.5		枼 葉	ソウ		
 枾	U+67BE	9	shì	SHI	KAKI	75.5	persimmon	柹 柿	シ かき		
 枿	U+67BF	9	niè			75.5		蘖	ガチ ガツ ゲツ ひこばえ		
 柀	U+67C0	9	bǐ	HI	SUGI KAYA	75.5			ヒ かや すぎ		
-柁	U+67C1	9	tuó duò	TA DA	KAJI	75.5	large tie-beams	舵	ダ タ かじ		
+柁	U+67C1	9	tuó duò	TA DA	KAJI	75.5	large tie-beams	舵 橢	ダ タ かじ		
 柂	U+67C2	9	yí	I RI TA DA	KAJI	75.5	helm	杝 拖 舵	ダ かじ		
 柃	U+67C3	9	líng	REI RYOU		75.5			レイ リョウ ひさかき		
 柄	U+67C4	9	bǐng	HEI HYOU	E GARA TSUKA	75.5	handle, lever, knob; authority	棅 抦 秉 𥟱	ヘイ ヒョウ がら え つか		
@@ -13263,7 +13263,7 @@
 栋	U+680B	9	dòng			75.5	main beams supporting house	棟			
 栌	U+680C	9	lú			75.5	supporting block; sumac, loquat	櫨			
 栍	U+680D	9	shēng			75.5	a lot; a label; a slip of bamboo engraved with signs				
-栎	U+680E	9	lì			75.5	chestnut-leaved oak; oak	櫟			
+栎	U+680E	9	lì			75.5	chestnut-leaved oak; oak	櫟 朸			
 栏	U+680F	9	lán			75.5	railing, balustrade; animal pen	欄			
 栐	U+6810	9	yǒng			75.5		柡	エイ ヨウ		
 树	U+6811	9	shù			75.5	tree; plant; set up, establish	樹			
@@ -13635,7 +13635,7 @@
 楿	U+697F	13	xiāng		KATSURA	75.9			かつら		
 榀	U+6980	13	pǐn		KOMAI	75.9	classifier for roof beams		こまい		
 榁	U+6981	13	shǐ		MURO	75.9			むろ		
-概	U+6982	13	gài	GAI KAI	TOKAKI OOMUNE OMOMUKI	75.9	generally, approximately	槩 楬 㮣	ガイ カイ キ コツ おおむね おもむき とかき	槪	
+概	U+6982	13	gài	GAI KAI	TOKAKI OOMUNE OMOMUKI	75.9	generally, approximately	槩 楬 㮣 枅	ガイ カイ キ コツ おおむね おもむき とかき	槪	
 榃	U+6983	13	tán			75.9 102.8	raised path between fields				
 榄	U+6984	13	lǎn			75.9	olive	欖			
 榅	U+6985	13	wēn	OTSU OCHI UN	SUGI	75.9	pillar; Cryptomeria	榲 樢	オツ すぎ		
@@ -13698,7 +13698,7 @@
 榾	U+69BE	13	gǔ	KOTSU	HOTA	75.10	pieces of wood		コツ クチ ほた		
 榿	U+69BF	14	qī	KI KAI GAI	HANNOKI	75.10	alder	桤 机	キ カイ ガイ		
 槀	U+69C0	14	gǎo			75.10	draft, manuscript	稿 槁 犒 稾	コウ かれる		
-槁	U+69C1	14	gǎo	KOU	KARERU	75.10	wither; withered, rotten, dead	槀 稿 藁 𩫓 犒 笴	コウ かれる ねぎらう		
+槁	U+69C1	14	gǎo	KOU	KARERU	75.10	wither; withered, rotten, dead	槀 稿 藁 𩫓 犒 笴 橋	コウ かれる ねぎらう		
 槂	U+69C2	14	sūn			75.10			ソン		
 槃	U+69C3	14	pán	HAN BAN	TARAI	75.10	tray; turn, rotate; search	柈 盤	ハン バン たらい		
 槄	U+69C4	14	tāo			75.10			トウ		
@@ -13836,7 +13836,7 @@
 橈	U+6A48	16	ráo	DOU JOU NYOU	TAWAMU KAJI	75.12	bent or twisted piece of wood; a paddle	桡 𦪛	ドウ ニョウ ジョウ かじ たわむ たわめる		
 橉	U+6A49	16	lìn	RIN	SHIKIMI	75.12			リン		
 橊	U+6A4A	16	liú	RYOU RU	ZAKURO	75.12	(variant of 榴) pomegranate	榴	リュウ ル		
-橋	U+6A4B	16	qiáo	KYOU KOU	HASHI	75.12	bridge; beam, crosspiece	桥 橇 墧 槗 鞽	キョウ ギョウ コウ はし		
+橋	U+6A4B	16	qiáo	KYOU KOU	HASHI	75.12	bridge; beam, crosspiece	桥 橇 墧 槗 鞽 槁 穚	キョウ ギョウ コウ はし		
 橌	U+6A4C	16	xiàn			75.12		㯗 橺	カン ゲン		
 橍	U+6A4D	16	rùn			75.12		𣜝	ジュン ニン		
 橎	U+6A4E	16	fán	HAN BON		75.12			ハン ボン ホン ハ まく		
@@ -13850,7 +13850,7 @@
 橖	U+6A56	16	táng	TOU CHOU	KURUMAGI	75.12		樘	トウ チョウ ドウ		
 橗	U+6A57	15	méng			75.12			ボウ ミョウ		
 橘	U+6A58	16	jú	KITSU	TACHIBANA	75.12	orange, tangerine	桔	キツ キチ たちばな		
-橙	U+6A59	16	chéng	TOU	DAIDAI	75.12	orange	凳 䔲	トウ だいだい		
+橙	U+6A59	16	chéng	TOU	DAIDAI	75.12	orange	凳 䔲 朾	トウ だいだい		
 橚	U+6A5A	17	sù			75.12	tall tree	𰗹 楸 梢 櫹	ソウ ショウ シュ シュク シュウ		
 橛	U+6A5B	16	jué	KETSU KACHI KEI KE	KUI	75.12	a post, a stake; an axle	橜 嶡 厥 𣐍 氒 𦪘	カチ ケ ケイ ケツ きりかぶ くい くつわ		
 橜	U+6A5C	16	jué			75.12	a post, a stake; an axle	橛	ケツ くい		
@@ -13859,7 +13859,7 @@
 機	U+6A5F	16	jī	KI	HATA KARAKURI ORI	75.12	machine; moment, chance	机 幾	キ ケ はた おり からくり きざし はずみ		
 橠	U+6A60	16	nuǒ			75.12		㰙	ダ ナ ラ		
 橡	U+6A61	15	xiàng	SHOU ZOU	TOCHI KUNUGI	75.12	chestnut oak; rubber tree; rubber	樣	ショウ ゾウ とち くぬぎ つるばみ		
-橢	U+6A62	15	tuǒ	DA	KOBANGA	75.12	oval-shaped, elliptical, tubular	椭 楕 㯐 㰐	タ ダ		
+橢	U+6A62	15	tuǒ	DA	KOBANGA	75.12	oval-shaped, elliptical, tubular	椭 楕 㯐 㰐 柁	タ ダ		
 橣	U+6A63	16	nǐng			75.12		檸	デイ ニョウ		
 橤	U+6A64	16	ruǐ	ZUI NI	TARERU	75.12	stamen	𣛚 𦁞 蕊 繠	ズイ ニ しべ		
 橥	U+6A65	15	zhū			75.11	wooden peg, post or stick	櫫	チョ		
@@ -14090,7 +14090,7 @@
 歆	U+6B46	13	xīn	KIN KON	UKERU	76.9	like, admire; willingly, gladly; to quicken		キン コン うける むさぼる		
 歇	U+6B47	13	xiē	KETSU KAI	YAMERU TSUKIRU	76.9	rest, stop, lodge		ケツ カイ カツ コチ ケ カチ アツ エチ やめる いこう つきる やむ		
 歈	U+6B48	13	yú			76.9	songs	𣤏	ユ ズ トウ		
-歉	U+6B49	14	qiàn	KEN KAN	AKITARINAI	76.10	deficient, lacking, insufficient	䭑 慊	ケン カン あきたりない		
+歉	U+6B49	14	qiàn	KEN KAN	AKITARINAI	76.10	deficient, lacking, insufficient	䭑 慊 㐸	ケン カン あきたりない		
 歊	U+6B4A	14	xiāo	KYOU KOKU KAKU	NOBORU	76.10	sigh	歒 𣤙	コク カク キョウ あつい		
 歋	U+6B4B	14	yè			76.10		𣣢	イ ヤ		
 歌	U+6B4C	14	gē	KA	UTAU UTA	76.10	song, lyrics; sing, chant; praise	謌 可 哥 𡃭 𣤑 𣤒	カ うた うたう		
@@ -14131,7 +14131,7 @@
 歯	U+6B6F	12	chǐ	SHI	HA YOWAI YOWAISURU	77.8 211''.0	teeth; gears, cogs; age; a form of Kangxi radical 211	齒	シ ショウ は よわい よわいする	齒	
 歰	U+6B70	14	sè	SHUU SOU	SHIBURU SHIBUI	77.9	(Cant.) 歰氣 to argue, wrangle, disagree	𣥒 澀 翣	シュウ ソウ しぶい		
 歱	U+6B71	13	zhǒng			77.9	to visit; to imitate	踵 𣦟	ショウ シュ		
-歲	U+6B72	13	suì	SEI SAI	TOSHI YOWAI	77.9	year; age; harvest	亗 岁 嵗 歳 𡻕 㒸 㞸 𢧁 𢧡	サイ セイ サ セツ セチ とし		
+歲	U+6B72	13	suì	SEI SAI	TOSHI YOWAI	77.9	year; age; harvest	亗 岁 嵗 歳 𡻕 㒸 㞸 𢧁 𢧡 㱑	サイ セイ サ セツ セチ とし		
 歳	U+6B73	13	suì	SEI SAI	TOSHI YOWAI	77.9	year; age; harvest	歲	サイ セイ セツ サ とし		
 歴	U+6B74	14	lì	REKI RYAKU	HERU	77.10	take place, past, history	曆 歷	レキ リャク へる	歷	
 歵	U+6B75	15	zé	SAKU JAKU	TOTONOU MII TADASHII	77.11			サク ジャク		
@@ -14293,7 +14293,7 @@
 民	U+6C11	5	mín	MIN	TAMI	83.1	people, subjects, citizens	𠘽 𡻾	ミン ビン たみ		
 氒	U+6C12	6	jué	KETSU KACHI	NE	83.2		橛	ケツ カチ		
 氓	U+6C13	8	máng	BOU	TAMI	83.4	people; subjects; vassals	甿 𣱅 𦫋	ボウ ミョウ たみ		
-气	U+6C14	4	qì	KI KE	IKI	84.0	steam, vapor; Kangxi radical 84	气 氣 乞	キ ケ キツ コチ きがまえ		
+气	U+6C14	4	qì	KI KE	IKI	84.0	steam, vapor; Kangxi radical 84	气 氣 乞 亪	キ ケ キツ コチ きがまえ		
 氕	U+6C15	5	piē			84.1	hydrogen-1, protium	氣			
 氖	U+6C16	6	nǎi			84.2	neon (element 10, Ne)		ダイ		
 気	U+6C17	6	qì	KI KE	IKI	84.2	air, gas, steam, vapor; spirit		キ ケ き	氣	
@@ -14325,7 +14325,7 @@
 氱	U+6C31	13	yǎng			84.9		氧	ヨウ		
 氲	U+6C32	13	yūn	UN	SAKAN	84.10	life giving influences of nature; spirit of harmony; prosperity	氳	ウン オン		
 氳	U+6C33	14	yūn	UN	SAKAN	84.10	life giving influences of nature; spirit of harmony; prosperity	氲	ウン		
-水	U+6C34	4	shuǐ	SUI	MIZU	85.0	water, liquid, lotion, juice	氵 𬺧 氺 沝 𣸕	スイ みず かわ		
+水	U+6C34	4	shuǐ	SUI	MIZU	85.0	water, liquid, lotion, juice	氵 𬺧 氺 沝 𣸕 雨	スイ みず かわ		
 氵	U+6C35	3	shuǐ		SANZUI	85.0	water; radical number 85	水	さんずい		
 氶	U+6C36	5	zhěng	SHOU JOU	SUKUU	85.1	name of a river in Shandong	承 拯	ジョウ ショウ		
 氷	U+6C37	5	bīng	HYOU	KOORI HI	85.1	ice, frost, icicles; cold	冫 冰	ヒョウ ギョウ こおり ひ こおる		
@@ -14362,7 +14362,7 @@
 汖	U+6C56	7	pìn			85.3					
 汗	U+6C57	6	hàn	KAN	ASE	85.3	perspiration, sweat	𡊺 焊	カン ガン あせ あせする		
 汘	U+6C58	6	qiān			85.3			セン		
-汙	U+6C59	6	wū	O	KEGAASU KEGAARERU TOGOOSU KEGAARERUKEGAARUWASHII	85.3	filthy, dirty, impure, polluted	污 洿 汚 汅 𣴰 涴 𣽏 𥁡 䵦	オ ワ ウ くだる けがす けがらわしい けがれ けがれる ひくい		
+汙	U+6C59	6	wū	O	KEGAASU KEGAARERU TOGOOSU KEGAARERUKEGAARUWASHII	85.3	filthy, dirty, impure, polluted	污 洿 汚 汅 𣴰 涴 𣽏 𥁡 䵦 淤	オ ワ ウ くだる けがす けがらわしい けがれ けがれる ひくい		
 汚	U+6C5A	6	wū	O	KEGASU KEGARERU YOGOSU KITANAI	85.3	filthy, dirty, impure, polluted	汙 洿	オ ウ ワ けがす けがれる けがらわしい よごす よごれる きたない けがれ		
 汛	U+6C5B	6	xùn	SHIN SAN SHA	SOSOGU	85.3	high water, flood tides	𣲌 洒	ジン シン サイ セン セ		
 汜	U+6C5C	6	sì	SHI JI I	KAWA	85.3	a stream which leaves the main branch then later returns	𣲆	シ ジ イ		
@@ -14376,7 +14376,7 @@
 汤	U+6C64	6	tāng			85.3	hot water; soup, gravy, broth	湯			
 汥	U+6C65	7	zhī			85.4			シ キ ギ ヒ ビ		
 汦	U+6C66	7	zhǐ			85.4			チ ジ シ		
-汧	U+6C67	7	qiān	KEN KEI KYOU GEN	SAWA TADAYOU KIYOI	85.4	name of a river in Shangdong; marsh; float		ケン ケイ キョウ ゲン		
+汧	U+6C67	7	qiān	KEN KEI KYOU GEN	SAWA TADAYOU KIYOI	85.4	name of a river in Shangdong; marsh; float	溉	ケン ケイ キョウ ゲン		
 汨	U+6C68	7	mì	BEKI KOTSU	SHIZUMU	85.4	Mi(luo) river in Hunan province where Qu Yuan drowned himself; to sink; (used erroneously for 汩)	汩 漞 㵋	ベキ ミャク コツ コチ イツ イチ しずむ		
 汩	U+6C69	7	gǔ	ITSU GOCHI GOTSU	NAGARERU	85.4	run swiftly	汨 𡿯 淈	イツ コツ		
 汪	U+6C6A	7	wāng	OU	HIROI OOI IKE	85.4	vast, extensive, deep; surname	𣳫 𣷪 㳹 瀇 泓	オウ		
@@ -14412,7 +14412,7 @@
 沈	U+6C88	7	shěn chén	CHIN JIN SHIN	SHIZUMU SHIZUMERU	85.4	sink, submerge; addicted to; surname	沉 沈 瀋 湛 邥	チン シン ジン タン ドン しずむ しずめる		
 沉	U+6C89	7	chén	CHIN	SHIZUUMU SHIZUUMERU	85.4	sink, submerge; addicted to	沈 𣲽	チン しずむ		
 沊	U+6C8A	8	dàn			85.4	(Cant.) onomatopoetic		タン トン		
-沋	U+6C8B	7	yóu			85.4			ユウ ウ		
+沋	U+6C8B	7	yóu			85.4		游	ユウ ウ		
 沌	U+6C8C	7	dùn	TON	FUSAGARU KURAI OROKA	85.4	chaotic, confused; turbid, murky	坉 𣲃 忳 純	トン ドン シュン ジュン テン デン		
 沍	U+6C8D	7	hù	GO	KARERU	85.4	freezing; stopped up, closed off	冱 𠖱 𣲐	コ ゴ カク ガク ギャク		
 沎	U+6C8E	7	huò			85.4			カ		
@@ -14455,7 +14455,7 @@
 河	U+6CB3	8	hé	KA	KAWA	85.5	river; stream; the Yellow River	𢀎	カ ガ かわ		
 沴	U+6CB4	8	lì	REI RAI TEN DEN	MOKONAU	85.5	foul and poisonous in confusion; out of harmony	𣳅 沵 𤄽	レイ ライ テン デン デツ ネチ シン リ		
 沵	U+6CB5	8	mǐ	DEI NAI		85.5		沴	レイ シ		
-沶	U+6CB6	8	yí			85.5		坻	イ チ ジ シ		
+沶	U+6CB6	8	yí			85.5		坻 漂	イ チ ジ シ		
 沷	U+6CB7	8	fā			85.5	to remove evil; to cleanse; to wash away		ハツ ホチ フツ フチ		
 沸	U+6CB8	8	fèi	FUTSU	WAKU WAKASU	85.5	boil, bubble up, gush	㵒 𣲴 𩰾 𩱎 𩱣	フツ ヒ フチ ハイ ヘ わく わかす		
 油	U+6CB9	8	yóu	YU YUU	ABURA	85.5	oil, fat, grease, lard; paints	釉	ユ ユウ あぶら		
@@ -14604,7 +14604,7 @@
 浈	U+6D48	9	zhēn			85.6	river in Guangdong province	湞			
 浉	U+6D49	9	shī			85.6	river in Henan province	溮			
 浊	U+6D4A	9	zhuó			85.6	muddy, turbid, dirty, filthy	濁	ダク にごる		
-测	U+6D4B	9	cè			85.6	measure, estimate, conjecture	測			
+测	U+6D4B	9	cè			85.6	measure, estimate, conjecture	測 㳁			
 浌	U+6D4C	9	fá			85.6					
 浍	U+6D4D	9	huì			85.6	irrigation ditch, trench; river	澮			
 济	U+6D4E	9	jì			85.6	help, aid, relieve; ferry, cross	濟			
@@ -14660,7 +14660,7 @@
 涀	U+6D80	10	xiàn			85.7			ケン ゲン ケイ ゲイ		
 涁	U+6D81	10	shèn			85.7		滲	シン		
 涂	U+6D82	10	tú	TO ZU CHO JO	MICHI	85.7	surname; name of certain rivers	涂 塗 凃 𡌘 滁 途	チョ ト ヤ ズ ジョ タ ダ みち		
-涃	U+6D83	10	kùn			85.7			コン		
+涃	U+6D83	10	kùn			85.7		滚	コン		
 涄	U+6D84	10	pīng			85.7			ヘイ ヒョウ		
 涅	U+6D85	10	niè	NETSU DETSU	SOMERU	85.7	blacken; black mud, slime	湼 㘿 𣵀	ネツ ネ デツ ネチ ケン ゲン そめる		
 涆	U+6D86	10	hàn			85.7			カン		
@@ -14700,7 +14700,7 @@
 涨	U+6DA8	10	zhǎng			85.7	rise in price	漲			
 涩	U+6DA9	10	sè			85.7	astringent; harsh; uneven, rough	澀			
 涪	U+6DAA	11	fú	FUU BU HOU		85.8	river in Sichuan province	𣷧	フ フウ ブ ホウ		
-涫	U+6DAB	11	guàn			85.8			カン		
+涫	U+6DAB	11	guàn			85.8		灌	カン		
 涬	U+6DAC	11	xìng	KEI GYOU		85.8	watery expanse	𣷟 𣸖	ケイ ギョウ		
 涭	U+6DAD	11	shòu			85.8		濤	シュウ ジュ トウ		
 涮	U+6DAE	11	shuàn			85.8	rinse; cook or boil in juice		サン セン セツ セチ すすぐ		
@@ -14757,7 +14757,7 @@
 淡	U+6DE1	11	dàn	TAN EN	AWAI USUI	85.8	weak, watery; insipid, tasteless	澹 𣷇 灩 氮 痰	タン ダン エン あわい うすい		
 淢	U+6DE2	11	yù	YOKU IKI ITSU ICHI	HAYAI	85.8	ditch	𡿯 洫 𣴤 㳼 惐	イツ イチ イク ヨク イキ キョク ケキ		
 淣	U+6DE3	11	ní			85.8		倪	ゲイ ガイ ゲ		
-淤	U+6DE4	11	yū	YO O	DORO	85.8	mud, sediment; clog up, silt up	𡌧 瘀	オ ヨ どろ		
+淤	U+6DE4	11	yū	YO O	DORO	85.8	mud, sediment; clog up, silt up	𡌧 瘀 汙	オ ヨ どろ		
 淥	U+6DE5	11	lù	ROKU RYOKU	KOSU	85.8	strain; (Cant.) to scald	渌	ロク リョク		
 淦	U+6DE6	11	gàn	KAN KON	AKA DORO	85.8	river in Jiangxi province; water leaking into a boat	汵 浛 涵	カン コン ゴン		
 淧	U+6DE7	11	mì			85.8		㴵	ヒツ		
@@ -14841,7 +14841,7 @@
 渵	U+6E35	11	máo			85.9			ボウ ミョウ		
 渶	U+6E36	11	yīng	EI YOU		85.9			エイ ヨウ		
 渷	U+6E37	12	yǎn			85.9		沇	エン		
-游	U+6E38	12	yóu	YUU RYUU	OYOGU ASOBU ASOBI	85.9	to swim; float, drift; wander, roam	𠾈 汓 㳺 𨒣 𨒰 旒 遊	ユウ ユ ル シュウ ジュ リュウ あそび あそぶ およぐ		
+游	U+6E38	12	yóu	YUU RYUU	OYOGU ASOBU ASOBI	85.9	to swim; float, drift; wander, roam	𠾈 汓 㳺 𨒣 𨒰 旒 遊 沋	ユウ ユ ル シュウ ジュ リュウ あそび あそぶ およぐ		
 渹	U+6E39	12	hōng	KOU SEI SHOU		85.9	roar, crash	𢕐 𥔀 訇 𤃫 㵾	ショウ コウ セイ		
 渺	U+6E3A	12	miǎo	BYOU	HIROI HARUKA	85.9	endlessly long, boundless, vast	𡙎 淼 𢡾	ビョウ ミョウ		
 渻	U+6E3B	12	shěng	SEI SHOU		85.9		𣹴 𨜜 省	セイ ショウ		
@@ -14922,7 +14922,7 @@
 溆	U+6E86	12	xù			85.9	river in Húnán	漵			
 溇	U+6E87	12	lóu			85.9	river in Hubei province	漊			
 溈	U+6E88	12	wéi	KI I		85.9	name of a river in Hunan	沩 潙			
-溉	U+6E89	12	gài	GAI KAI	SOSOGU	85.9	water, irrigate, flood; wash	摡 瀣	ガイ カイ そそぐ すすぐ		
+溉	U+6E89	12	gài	GAI KAI	SOSOGU	85.9	water, irrigate, flood; wash	摡 瀣 汧	ガイ カイ そそぐ すすぐ		
 溊	U+6E8A	12	bō			85.9					
 溋	U+6E8B	12	yíng			85.9					
 溌	U+6E8C	12	pō	HATSU	MORU TOBICHIRU SOSOGU	85.9	pour, splash, water, sprinkle		ハツ		
@@ -15003,7 +15003,7 @@
 滗	U+6ED7	13	bì			85.10	drain	潷	ヒツ		
 滘	U+6ED8	13	jiào			85.10	a branching river (used in place names)		キョウ		
 滙	U+6ED9	13	huì			85.10	waters converging to one spot; whirling waters; to remit money	匯 𪞩	カイ ワイ めぐる		
-滚	U+6EDA	13	gǔn	KON	TAGIRU	85.11	turn	𬺤 滚 滾 𣽙	コン		
+滚	U+6EDA	13	gǔn	KON	TAGIRU	85.11	turn	𬺤 滚 滾 𣽙 涃	コン		
 滛	U+6EDB	13	yín			85.10			イン		
 滜	U+6EDC	13	gāo			85.10		𣽎	コウ		
 滝	U+6EDD	13	lóng	SOU ROU	TAKI	85.10	onomatopoeic for the sound of falling rain; an ancient name for Wu Shui; a place in Guangdong	瀧	ソウ ロウ リョウ たき	瀧	
@@ -15043,7 +15043,7 @@
 滿	U+6EFF	14	mǎn	MAN BAN	MICHIRU MITASU	85.11	fill; full, satisfied	满 𠐎 𡈪 𣼛	バン マン ボン モン みちる		満
 漀	U+6F00	15	qǐng			85.11			ケイ キョウ		
 漁	U+6F01	14	yú	RYOU GYO	SUNADORU ISARU SUNADORI	85.11	to fish; seize; pursue; surname	䱷 渔 𣿡 𤀯 𩼪 魚 𩵎 䰻	ギョ リョウ ゴ あさる いさる すなどり すなどる		
-漂	U+6F02	14	piào	HYOU	TADAYOU	85.11	float, drift; tossed about	𠷻 𣻔 潎 𣿖 𤄚 飄	ヒョウ ただよう		
+漂	U+6F02	14	piào	HYOU	TADAYOU	85.11	float, drift; tossed about	𠷻 𣻔 潎 𣿖 𤄚 飄 沶	ヒョウ ただよう		
 漃	U+6F03	14	jì			85.11		寂	セキ ジャク		
 漄	U+6F04	14	yá	GAI	HATE	85.11		涯	ガイ		
 漅	U+6F05	14	cháo			85.11		巢	ショウ ソウ ゾウ サ		
@@ -15373,7 +15373,7 @@
 灉	U+7049	21	yōng	YOU YU		85.18	a river in Shandong province; a sluice	㴩 澭	ヨウ ユ		
 灊	U+704A	21	qián	SEN ZEN SHIN JIN		85.18		𤅬	シン セン ゼン ジン		
 灋	U+704B	21	fǎ	HOU HATSU HOTSU	NORI	85.18	law	法	ホウ のり		
-灌	U+704C	21	guàn	KAN	SOSOGU	85.18	pour; water; irrigate, flood	樌 權 潅 𤂦 盥	カン		
+灌	U+704C	21	guàn	KAN	SOSOGU	85.18	pour; water; irrigate, flood	樌 權 潅 𤂦 盥 涫	カン		
 灍	U+704D	21	jué			85.18		𫞝 㵐	ケツ		
 灎	U+704E	26	yàn	EN	NAMI	85.23	movement of water; overflowing, billowing; wavy	灩	エン		
 灏	U+704F	21	hào			85.18	vast, large, grand, expansive	灝			
@@ -15410,11 +15410,11 @@
 灮	U+706E	6	guāng	KOU	HIKAARU HIKARI	86.2		光	コウ		
 灯	U+706F	6	dēng	TOU TEI CHOU	HI	86.2	lantern, lamp	燈 灯	トウ テイ チン チョウ ひ ともしび	燈	
 灰	U+7070	6	huī	KAI	HAI	86.2	ashes; dust; lime, mortar	灰	カイ ケ はい		
-灱	U+7071	6	xiāo			86.2		灲 熇	コウ キョウ トウ チョウ		
+灱	U+7071	6	xiāo			86.2		灲 熇 灵	コウ キョウ トウ チョウ		
 灲	U+7072	6	xiāo			86.2		灱	コウ		
 灳	U+7073	6	huī			86.2		輝	キ		
 灴	U+7074	7	hōng			86.3	to bake, to roast; to dry at a fire	烘	コウ グ		
-灵	U+7075	7	líng	REI RYOU	TAMA	86.3 58.4	spirit, soul; spiritual world	靈	レイ リョウ たま		
+灵	U+7075	7	líng	REI RYOU	TAMA	86.3 58.4	spirit, soul; spiritual world	靈 灱	レイ リョウ たま		
 灶	U+7076	7	zào	SOU	KAMA KAMADO HETSUTSUI	86.3	kitchen stove, cooking stove	竈 灶 𤆧	ソウ かまど		
 灷	U+7077	7	zhuàn			86.3		𤆽	セン ゼン		
 灸	U+7078	7	jiǔ	KYUU	YAITO	86.3	cauterize with moxa; moxibustion	𤆐 久 㡱	キュウ やいと		
@@ -15868,7 +15868,7 @@
 爸	U+7238	8	bà	HA BA		88.4	father, papa	𤕕	ハ バ ヘ ちち		
 爹	U+7239	10	diē	TA DA		88.6	father, daddy		タ ダ チャ テ ちち		
 爺	U+723A	13	yé	YA	CHICHI JIJI OYAJI	88.9	father, grandfather	爷 𨈺 𤕓 耶	ヤ じじ		
-爻	U+723B	4	yáo	KOU	MAJIWARU	89.0	diagrams for divination	效	コウ ギョウ まじわる めめ		
+爻	U+723B	4	yáo	KOU	MAJIWARU	89.0	diagrams for divination	效 尃	コウ ギョウ まじわる めめ		
 爼	U+723C	9	zǔ	SHO SO	MANAITA	89.5	a small table or tiered stand filled with meat offerings	俎	ショ ソ まないた		
 爽	U+723D	11	shuǎng	SOU	AKIRAKA SAWAYAKA TAGAU	89.7	happy, cheerful; refreshing	𡙁 塽 𠁊 𠙠 𠎛 𤕤 𡑽 𠷹 慡 𦄍	ソウ ショウ さわやか たがう		
 爾	U+723E	14	ěr	JI NI	NANJI SONO SHIKARI	89.10	you; that, those; final particle	尒 尔 𠇍 𤕨 𠑂 尓 𣙡 濔 薾 邇	ジ ニ デイ ナイ しかり なんじ のみ その		
@@ -15898,7 +15898,7 @@
 牖	U+7256	15	yǒu	YUU YU	MADO	91.11	window; lead enlightenment	𤗱	ユウ ユ まど		
 牗	U+7257	15	yǒu			91.11			ユウ ユ まど		
 牘	U+7258	19	dú	TOKU	FUDA KAKIMONO	91.15	writing tablet; documents, books	牍	トク ドク ふだ		
-牙	U+7259	4	yá	GA GE	KIBA HA	92.0	tooth, molars, teeth; serrated	伢 衙 𤘉 𤘈 𨈏 齖 芽	ガ ゲ きば きばへん は		
+牙	U+7259	4	yá	GA GE	KIBA HA	92.0	tooth, molars, teeth; serrated	伢 衙 𤘉 𤘈 𨈏 齖 芽 与	ガ ゲ きば きばへん は		
 牚	U+725A	12	chèng chēng	TOU CHOU	HASHIRA	92.8			トウ チョウ		
 牛	U+725B	4	niú	GYUU	USHI	93.0	cow, ox, bull; Kangxi radical 93; 9th lunar mansion, determinative star β Capricorni (Dabih)	牜	ギュウ ゴ うし		
 牜	U+725C	4	niú		USHIHEN	93.0	an ox, a cow Radical 93	牛	うしへん		
@@ -16327,7 +16327,7 @@
 球	U+7403	11	qiú	KYUU GU	TAMA	96.7	ball, sphere, globe; round	𤥲 璆 毬	キュウ グ たま		
 琄	U+7404	11	xuàn	KEN KEI GYOU	TAMA	96.7	scabbard; traces, reins	鞙 㻆	ケン ケイ ギョウ		
 琅	U+7405	11	láng	ROU		96.7	a variety of white carnelian; pure	瑯 𤦴 𤨜	ロウ		
-理	U+7406	11	lǐ	RI	SUJI KOTOWARI OSAMERU	96.7	reason, logic; manage		リ おさまる おさめる ことわり さとる すじ		
+理	U+7406	11	lǐ	RI	SUJI KOTOWARI OSAMERU	96.7	reason, logic; manage	㺫	リ おさまる おさめる ことわり さとる すじ		
 琇	U+7407	11	xiù	SHUU SHU YUU U		96.7	coarse variety of jasper or jade	璓 秀	シュウ ユウ ウ シュ		
 琈	U+7408	11	fú			96.7		孚 姇 璷	フウ ブ フ		
 琉	U+7409	11	liú	RYUU RU		96.6 96.7	sparkling stone; glazed, opaque	瑠 璢 𤥗	リュウ ル		
@@ -16625,13 +16625,13 @@
 甭	U+752D	9	béng			101.4	there is no need	棄	ホウ		
 甮	U+752E	9	fèng			101.4	unnecessary, unneeded				
 甯	U+752F	12	níng	NEI NYOU	NEGAI	101.7	peaceful	寗 寧	ネイ デイ ニョウ むしろ やすい		
-田	U+7530	5	tián	DEN TEN	TA KARI	102.0	field, arable land, cultivated	毌 佃 畋	デン テン チン ジン た		
+田	U+7530	5	tián	DEN TEN	TA KARI	102.0	field, arable land, cultivated	毌 佃 畋 龱	デン テン チン ジン た		
 由	U+7531	5	yóu	YUU YU YUI	YOSHI YORU YORI	102.0	cause, reason; from	𠙹 𣓐 𥛅 𠙽 逌 㽕	ユ ユウ ユイ ヨウ よし より よる		
 甲	U+7532	5	jiǎ	KOU KAN	YOROI TSUME KINOE	102.0	armor, shell; fingernails; 1st heavenly stem	胛 𠇚 呷 𡴌 鉀	コウ カン きのえ よろい かぶと		
-申	U+7533	5	shēn	SHIN	MOUSU NOBIRU SARU	102.0	to state to a superior, report; extend; ninth earthly branch	𦥔 伸 𠭙 𠭜 𢑚 𤰶 𤱓 𦦀	シン もうす かさねる さる のびる のべる		
+申	U+7533	5	shēn	SHIN	MOUSU NOBIRU SARU	102.0	to state to a superior, report; extend; ninth earthly branch	𦥔 伸 𠭙 𠭜 𢑚 𤰶 𤱓 𦦀 电	シン もうす かさねる さる のびる のべる		
 甴	U+7534	5	zhá	SOU		102.0	(Cant.) cockroach		ソウ		
-电	U+7535	5	diàn			102.0	electricity; electric; lightning	电 電 曳			
-甶	U+7536	6	fú	FUTSU FUCHI HI		102.1			フツ フチ ヒ		
+电	U+7535	5	diàn			102.0	electricity; electric; lightning	电 電 曳 申			
+甶	U+7536	6	fú	FUTSU FUCHI HI		102.1		鬼	フツ フチ ヒ		
 男	U+7537	7	nán	DAN NAN	OTOKO	102.2	male, man; son; baron; surname	㑲 侽 㽖 𧇙	ダン ナン おとこ		
 甸	U+7538	7	diàn	TEN DEN	KARI	102.2	suburbs of capital; govern; crops	畋	デン テン ジョウ ショウ ヨウ セイ かり		
 甹	U+7539	7	pīng	HEI BYOU	SEWASHII	102.2		俜	ヘイ ビョウ		
@@ -16699,7 +16699,7 @@
 畷	U+7577	13	zhuì	TETSU	NAWATE	102.8	raised path between fields	𤲹	テツ テチ テイ テ セイ セ なわて		
 畸	U+7578	13	jī	KI	HASHITA MEZURASHII KATAWA	102.8	odd, fractional, remainder, odds	奇	キ		
 畹	U+7579	13	wǎn			102.8	a unit of area, thirty mou	㽜	エン オン		
-畺	U+757A	13	jiāng	KYOU KOU	SAKAI	102.8	boundary, border	疆 將	キョウ コウ さかい		
+畺	U+757A	13	jiāng	KYOU KOU	SAKAI	102.8	boundary, border	疆 將 虽	キョウ コウ さかい		
 畻	U+757B	14	chéng	SHOU JOU	AZE	102.9		塍	ショウ あぜ		
 畼	U+757C	14	chàng	CHOU JOU	NOBIRU NAGAI NIWA	102.9		暢 𤲘	チョウ ジョウ のびる		
 畽	U+757D	14	tǔn	TON TAN TOU TSU	SOROWANAI	102.9	ground	疃 䵯	トン タン ツ トウ		
@@ -16722,7 +16722,7 @@
 疎	U+758E	12	shū	SO	UTOI	103.7	neglect; careless, lax	疏	ソ ショ うとい うとむ あらい まばら うとんじる		
 疏	U+758F	12	shū	SO SHO	TOORU UTOI MABARA	103.7	neglect; careless, lax	疎 梳 疋 𤕟 𥿇 蔬	ソ ショ あらい うとい うとむ うとんじる とおる まばら さかん		
 疐	U+7590	14	zhì	CHI SHI TEI TAI	TSUMAZUKU	103.9	fall, stumble, falter; hindered	𤴡 嚔 𢷐 𤴛 𤴝 𧀶 𨇈 𨆫 躓	チ シ テイ タイ		
-疑	U+7591	14	yí	GI KYOU	UTAGAU UTAGAI UTAGAWASHI	103.9	doubt, question, suspect	儗 𠤗 𠤘 𥎲 𦬦 𩉏	ギ キ ゴチ ゴキ ギョウ ギツ ギョク うたがう うたがい うたがうらくは うたがわしい		
+疑	U+7591	14	yí	GI KYOU	UTAGAU UTAGAI UTAGAWASHI	103.9	doubt, question, suspect	儗 𠤗 𠤘 𥎲 𦬦 𩉏 仦	ギ キ ゴチ ゴキ ギョウ ギツ ギョク うたがう うたがい うたがうらくは うたがわしい		
 疒	U+7592	5	nè	DAKU NYAKU SOU JOU SHITSU	YAMAIDARE YAMU	104.0	sick; Kangxi radical 104	𤴫 疔	ダク ソウ ニャク ジョウ		
 疓	U+7593	7	nǎi	ZAI NAI DAI NE KIU	YAMU YAMAI HOTSUSU	104.2	fatigued; (Cant.) paralysis of the foot		ザイ ナイ ダイ キュウ		
 疔	U+7594	7	dīng	CHOU	KASA	104.2	carbuncle, boil, ulcer	疒	チョウ テイ		
@@ -16943,7 +16943,7 @@
 癫	U+766B	21	diān			104.16	crazy, mad; madness, mania, insane	癲			
 癬	U+766C	22	xuǎn	SEN	TAMUSHI	104.17	ringworms	癣 㾌 㿅	セン たむし		
 癭	U+766D	22	yǐng	EI YOU	KOBU	104.17	swelling, goiter	瘿 𦡺 䑍 𩖍	エイ ヨウ こぶ		
-癮	U+766E	21	yǐn	IN ON	HAREMONO	104.17	rash; addiction, craving, habit	瘾 𤻘	イン オン かざほろし		
+癮	U+766E	21	yǐn	IN ON	HAREMONO	104.17	rash; addiction, craving, habit	瘾 𤻘 㽼	イン オン かざほろし		
 癯	U+766F	23	qú	KU GU	YASERU	104.18	thin, emaciated; worn, tired	臞	ク グ やせる		
 癰	U+7670	23	yōng	YOU	HAREMONO	104.18	carbuncle, sore, ulcer, abscess	痈 臃 㿈 癕 𤻕 𤼟 𦡈	ヨウ ユ はれもの		
 癱	U+7671	24	tān	TAN	SHIBIRERU	104.19	paralysis, palsy, numbness	瘫	タン		
@@ -17276,7 +17276,7 @@
 瞸	U+77B8	17	yè			109.13		䁋 䁯	ヨウ キョウ		
 瞹	U+77B9	18	ài	AI	KAKURERU	109.13	clouded, obscure	曖	アイ		
 瞺	U+77BA	18	huì			109.13			カイ エ		
-瞻	U+77BB	18	zhān	SEN	MIRU	109.13	look; look out for; respect	聸	セン みる		
+瞻	U+77BB	18	zhān	SEN	MIRU	109.13	look; look out for; respect	聸 䀡	セン みる		
 瞼	U+77BC	18	jiǎn	KEN	MABUTA	109.13	eyelid	睑	ケン まぶた		
 瞽	U+77BD	18	gǔ	KO	MESHII	109.13	blind; blind musician; stupid	𥌕	コ ク めしい		
 瞾	U+77BE	18	zhào	SHOU	TEERU TERASU TEERERU	109.13		照	ショウ		
@@ -17394,7 +17394,7 @@
 砮	U+782E	10	nǔ	DO NU	YAJIRI	112.5	arrow-tip	𠩨 𠪓 𢊨 𥑌	ド ヌ		
 砯	U+782F	10	pīng			112.5	to make a loud sound	砰 𥒜	ヒョウ		
 砰	U+7830	10	pēng	HOU HYOU		112.5	sound of crashing stones, bang!	硑 𥕱 𨺀 砯	ホウ ヒョウ ビョウ		
-砱	U+7831	10	líng			112.5		𥖟 𥘃	レイ リョウ		
+砱	U+7831	10	líng			112.5		𥖟 𥘃 磷	レイ リョウ		
 砲	U+7832	10	pào	HOU	OOZUTSU TSUTSU	112.5	gun, cannon	炮 礮 𥓴	ホウ ホク ハク ヒョウ バク おおづつ		
 砳	U+7833	10	lè			112.5	rocky		ラク リャク		
 破	U+7834	10	pò	HA	YABURU YABURERU	112.5	break, ruin, destroy; rout	𡲠	ハ ヒ やぶる やぶれる		
@@ -17407,7 +17407,7 @@
 砻	U+783B	10	lóng			112.5	grind, sharpen; mill	礱			
 砼	U+783C	10	tóng			112.5	concrete				
 砽	U+783D	10	yòng			112.5					
-砾	U+783E	10	lì			112.5	gravel, pebbles	礫			
+砾	U+783E	10	lì			112.5	gravel, pebbles	礫 劯			
 砿	U+783F	10	kuàng	KOU	ARAGANE	112.5	mine; mineral, ore		コウ あらがね		
 础	U+7840	10	chǔ			112.5	foundation stone, plinth	礎			
 硁	U+7841	10	kēng			112.5	the sound of stones knocking together	硜 𥑋			
@@ -17592,7 +17592,7 @@
 磴	U+78F4	17	dèng	TOU	ISHIZAKA ISHIBASHI MASU	112.12	steps on ledge, cliff, or hill	嶝 隥	トウ		
 磵	U+78F5	17	jiàn			112.12	brook, mountain stream	澗 𰧃 礀 㵎	カン ケン たに		
 磶	U+78F6	17	xì	SEKI SHAKU	ISHIZUE	112.12		𥖽	セキ シャク		
-磷	U+78F7	17	lín	RIN ROU RYOU	NAGARERU	112.12	phosphorus (element 15, P)	㷠 𥒣 粦	リン ロウ リョウ うすい うすらぐ きらら		
+磷	U+78F7	17	lín	RIN ROU RYOU	NAGARERU	112.12	phosphorus (element 15, P)	㷠 𥒣 粦 砱	リン ロウ リョウ うすい うすらぐ きらら		
 磸	U+78F8	17	dìng			112.12		碇	テイ		
 磹	U+78F9	17	tán			112.12		簟	テン デン タン ドン		
 磺	U+78FA	16	huáng	KOU	ARAGANE	112.12	sulphur; brimstone	礦	コウ オウ		
@@ -17660,7 +17660,7 @@
 礸	U+7938	24	cǎ			112.19		礤	サツ サチ		
 礹	U+7939	24	yán			112.20		𰦾 巖	ガン ゲン		
 示	U+793A	5	shì	SHI JI KI	SHIMESU SHIMESHI	113.0	show, manifest; demonstrate; Kangxi radical 113	礻 𥘅 𡭕 眎 𧵋 祇	ジ シ キ ギ しめす		
-礻	U+793B	5	shì	SHI	SHIMESUHEN	113.0	cult; radical number 113	示	シ		
+礻	U+793B	5	shì	SHI	SHIMESUHEN	113.0	cult; radical number 113	示 衤	シ		
 礼	U+793C	6	lǐ	REI RAI	UYA	113.1	social custom; manners; courtesy; rites	礼 禮 礼	レイ ライ リ いや	禮	
 礽	U+793D	6	réng	JOU NYOU	SAIWAI	113.2	blessings, happiness		ジョウ ニョウ		
 社	U+793E	8	shè	SHA JA	YASHIRO KUMIAI KOSO	113.3	god of the soil and altars to him; group of families; company, society	土 𡉹 𣒮 𣴳 𥙭 𥙲 䄕	シャ ジャ やしろ こそ	社	
@@ -17695,7 +17695,7 @@
 祛	U+795B	9	qū	KYO KO	HARAU	113.5	expel, disperse, exorcise	佉	キョ コ おう さる ちらす はらう やる		
 祜	U+795C	9	hù	KO GO	SAIWAI	113.5	blessing, happiness, prosperity		コ ゴ さいわい		
 祝	U+795D	10	zhù	SHUKU SHUU CHO	IWAU HAFURI NORITO	113.5	pray for happiness or blessings	𥘱 祩 𩚶	シュク シュウ シュ チョ いわう いわい	祝	
-神	U+795E	10	shén	SHIN JIN	KAMI KOU TAMASHII	113.5	spirit, god, supernatural being	𥚞 𥙍 𥛠 𥛃 𥜩	シン ジン かみ かん こう	神	
+神	U+795E	10	shén	SHIN JIN	KAMI KOU TAMASHII	113.5	spirit, god, supernatural being	𥚞 𥙍 𥛠 𥛃 𥜩 神	シン ジン かみ かん こう	神	
 祟	U+795F	10	suì	SUI	TATARI TATARU	113.5	evil spirit; evil influence	𣦅 𥘣 𥜱 𥚢	スイ シュツ シュチ たたり たたる		
 祠	U+7960	9	cí	SHI	HOKORA MATSURU	113.5	ancestral temple; offer sacrifice	祀	シ ジ ほこら まつる		
 祡	U+7961	11	chái			113.5		柴 𥚨	サイ		
@@ -17744,7 +17744,7 @@
 禌	U+798C	13	zī	SHI	IKOU	113.9			シ		
 禍	U+798D	12	huò	KA	WAZAWAI	113.9	misfortune, calamity, disaster	祸 𣨱 𣨷 𢢸 䄀 𥙯 𥚁 𥚟 𥚍 𥚣 𥚽 𥛔 𧙹 𧛂 𧜓 𨉒 𨉵 𨊇	カ わざわい	禍	
 禎	U+798E	13	zhēn	TEI	SAIWAI TADASHII	113.9	lucky, auspicious, good omen	祯	テイ		
-福	U+798F	14	fú	FUKU	SAIWAI HIMOROGI	113.9	happiness, good fortune, blessing	褔 副 𤔜 福 畗	フク フウ さいわい	福	
+福	U+798F	14	fú	FUKU	SAIWAI HIMOROGI	113.9	happiness, good fortune, blessing	褔 副 𤔜 福 畗 䃼	フク フウ さいわい	福	
 禐	U+7990	13	yuàn			113.9			エン		
 禑	U+7991	13	wú	GU GO	SAIWAI	113.9	happy; used in historical names	祦	グ ゴ さいわい		
 禒	U+7992	13	xiǎn			113.9			セン ロク		
@@ -17918,7 +17918,7 @@
 稺	U+7A3A	15	zhì	CHI JI	OKUTE OSANAI ODERU	115.10	(variant of 穉) young grain; young, tender	稚	チ ジ おさない		
 稻	U+7A3B	15	dào	TOU	INE	115.10	rice growing in field, rice plant	稲	トウ ドウ いね		稲
 稼	U+7A3C	15	jià	KA	MINORI UERU KASEGU	115.10	sow grain; sheaves of grain		カ ケ かせぐ		
-稽	U+7A3D	15	jī	KEI	TODOMERU KANGAERU	115.10	examine, investigate; delay	𥡴 乩 卟 𥞞 𥟵 𥠻 𥡞 䭫 䭬 𩠜 𩠥 𩠦 𩠨	ケイ かんがえる とどめる		
+稽	U+7A3D	15	jī	KEI	TODOMERU KANGAERU	115.10	examine, investigate; delay	𥡴 乩 卟 𥞞 𥟵 𥠻 𥡞 䭫 䭬 𩠜 𩠥 𩠦 𩠨 嵇	ケイ かんがえる とどめる		
 稾	U+7A3E	15	gǎo	KOU	WARA	115.10	draft, manuscript, rough copy	稿 槀 稁 蒿 藁 藳	コウ キョウ わら		
 稿	U+7A3F	15	gǎo	KOU	WARA	115.10	draft, manuscript, rough copy	槀 稾 槁	コウ わら		
 穀	U+7A40	15	gǔ	KOKU	TANATSUMOTSU	115.10	corn, grain, cereal; lucky	糓 谷 㯏 𣫋 𥝻 𥞤 𥡛 䅽	コク コウ ドウ ヌ たなつもの	穀	
@@ -17947,7 +17947,7 @@
 穗	U+7A57	17	suì	SUI	HO	115.12	ear of grain; tassel; Guangzhou	𥝩 穟 𥣼	スイ ズイ ほ		穂
 穘	U+7A58	17	xiāo			115.12		藃	コウ キョウ ジョウ ニョウ		
 穙	U+7A59	17	pú	HOKU BOKU	SHIGERU	115.12		𥣜	ホク ボク		
-穚	U+7A5A	17	jiāo			115.12			キョウ ギョウ コウ はし		
+穚	U+7A5A	17	jiāo			115.12		橋	キョウ ギョウ コウ はし		
 穛	U+7A5B	17	zhuō			115.12		穱 𥼚	サク		
 穜	U+7A5C	17	tóng	TOU ZU SHOU SHU	OKUTE	115.12	rice	腫 種	トウ ズ ショウ シュ チョウ ジュ おくて		
 穝	U+7A5D	17	zuō	SAI	SAI	115.12			さい		
@@ -17979,7 +17979,7 @@
 穷	U+7A77	7	qióng			116.2 19.5	poor, destitute, impoverished	穷 窮	キュウ グ きわめる		
 穸	U+7A78	8	xī	SEKI JOKU KYUU	YORU	116.3	the gloom of the grave; a tomb or grave; death	夕	セキ ジャク キュウ		
 穹	U+7A79	8	qióng	KYUU	SORA AME	116.3	high and vast; elevated; arched	𠫙 宆	キュウ ク コウ あめ そら		
-空	U+7A7A	8	kōng	KUU	KARA AKU SORA	116.3	empty, hollow, bare, deserted	𥤧 孔 𢦉	クウ コウ ク そら あく あける から むなしい すく		
+空	U+7A7A	8	kōng	KUU	KARA AKU SORA	116.3	empty, hollow, bare, deserted	𥤧 孔 𢦉 宂	クウ コウ ク そら あく あける から むなしい すく		
 穻	U+7A7B	8	yū			116.3		宇	ウ		
 穼	U+7A7C	9	shēn			116.4		𥥿	シン		
 穽	U+7A7D	9	jǐng	SEI	OTOSHIANA	116.4	hole; pitfall, trap	阱	セイ ジョウ おとしあな		
@@ -18133,7 +18133,7 @@
 笑	U+7B11	10	xiào	SHOU	WARAU EMU WARAI	118.4	smile, laugh, giggle; snicker	咲 㗛 𠺑 𥬇	ショウ わらう えむ わらい		
 笒	U+7B12	10	cén			118.4			シン キン ゴン カン		
 笓	U+7B13	10	bì			118.4	to comb; a fine-toothed comb	篦 𦊁	ヘイ ベイ ヒ ビ ビチ ヒツ		
-笔	U+7B14	10	bǐ	HITSU	HUDE	118.4	writing brush; write; stroke	筆 笔	ヒツ ふで		
+笔	U+7B14	10	bǐ	HITSU	HUDE	118.4	writing brush; write; stroke	筆 笔 芼	ヒツ ふで		
 笕	U+7B15	10	jiǎn			118.4	bamboo water pipe	筧			
 笖	U+7B16	10	yǐ			118.5			イ スイ		
 笗	U+7B17	11	dōng			118.5			トウ ツ		
@@ -18199,7 +18199,7 @@
 筓	U+7B53	12	jī			118.6	a hairpin; fifteen-year-old girl	𥬆 䈕	ケイ こうがい		
 答	U+7B54	12	dá	TOU	KOTAERU KOTAE	118.6	answer, reply; return; assent to	荅 嗒 𣌭 畗 畣	トウ こたえる こたえ		
 筕	U+7B55	12	háng	KOU GYOU GUU	TAKEMUSHIRO	118.6			コウ ギョウ ゴウ		
-策	U+7B56	12	cè	SAKU	MUCHI TSUE KAZUTORI	118.6	scheme, plan; to whip; urge	䇿 册 𠞁 𠞦 𠷽 𢄆 敕 𥫪 笧 𥬰 筴 筞 𥯻 𥮮 箣 𥳯 赦	サク シャク かずとり つえ はかりごと ふだ むち むちうつ		
+策	U+7B56	12	cè	SAKU	MUCHI TSUE KAZUTORI	118.6	scheme, plan; to whip; urge	䇿 册 𠞁 𠞦 𠷽 𢄆 敕 𥫪 笧 𥬰 筴 筞 𥯻 𥮮 箣 𥳯 赦 荣	サク シャク かずとり つえ はかりごと ふだ むち むちうつ		
 筗	U+7B57	12	zhòng			118.6			チュウ ジュ		
 筘	U+7B58	12	kòu			118.6	a reed tool used in weaving to push the weft to the weaving mouth		コウ ク		
 筙	U+7B59	12	lái			118.6					
@@ -18701,7 +18701,7 @@
 絉	U+7D49	11	shù			120.5			ジュツ		
 絊	U+7D4A	11	zuì			120.5			サイ		
 絋	U+7D4B	11	kuàng	KOU	WATA WATAIRE	120.5			ゲン コウ ひろし ひろむ ひろ わた わたいれ		
-経	U+7D4C	11	jīng	KEI KYOU	HERU TATEITO TSUNE	120.5	classic works; pass through		ケイ キョウ キン へる たつ たていと つね のり はかる	經	
+経	U+7D4C	11	jīng	KEI KYOU	HERU TATEITO TSUNE	120.5	classic works; pass through	经	ケイ キョウ キン へる たつ たていと つね のり はかる	經	
 絍	U+7D4D	12	rèn	JIN NIN	HATAITO	120.6	to lay the warp; to weave	𫟃 紝	ジン		
 絎	U+7D4E	12	háng	KOU	KUKERU	120.6	baste	绗	コウ ギョウ くける		
 絏	U+7D4F	12	xiè	SETSU SECHI EI	KIZUNA SHIBARU SODE	120.6	rope, cable; reins; to tie up, bind	袣	セツ セチ エイ		
@@ -18908,7 +18908,7 @@
 縘	U+7E18	16	xī			120.10		繫	ケイ		
 縙	U+7E19	15	róng			120.10			ジョウ ニュ		
 縚	U+7E1A	16	tāo			120.10	band	絛 𬘺 𦁵 韜	トウ		
-縛	U+7E1B	16	fù	BAKU HAKU	SHIBARU	120.10	to tie	缚 紨	バク ハク ハ しばる		
+縛	U+7E1B	16	fù	BAKU HAKU	SHIBARU	120.10	to tie	缚 紨 縳	バク ハク ハ しばる		
 縜	U+7E1C	16	yún	IN UN	HOSOHIMO	120.10		𰬚 絹	イン ウン		
 縝	U+7E1D	16	chēn	SHIN CHIN	ASAITO	120.10	detailed, fine; closely woven	缜 𣞟 𦁄	シン チン くろい くろかみ こまか		
 縞	U+7E1E	16	gǎo	KOU	SHIROGINU SHIMA	120.10	white raw silk	缟	コウ しま		
@@ -18932,7 +18932,7 @@
 縰	U+7E30	17	xǐ			120.11	band for the hair	𫄳 纚	シ		
 縱	U+7E31	17	zòng	JUU SHOU	TATE	120.11	indulge in, give free reign to	纵 从 𥾺 𦂵 縦 𦄚 𦆬	ジュウ ショウ シュ ソウ ス ズ たて		縦
 縲	U+7E32	17	léi	RUI	SHIBARU KASANERU SHIKIRINI	120.11	a chain or rope used bind criminals	缧 累 𦅍 纍 纝	ルイ ラ かさねる		
-縳	U+7E33	17	juàn	TEN DEN SEN KEN	SHIROGINU	120.11	wrap	䌸 𦁆	テン デン セン ケン		
+縳	U+7E33	17	juàn	TEN DEN SEN KEN	SHIROGINU	120.11	wrap	䌸 𦁆 縛	テン デン セン ケン		
 縴	U+7E34	17	qiàn	KEN	WATA	120.11	tow line	纤 𰬮 牽 撁	ケン デン ネン		
 縵	U+7E35	17	màn	BAN MAN	YURUYAKA TSUREBIKI	120.11	plain silk; simple, plain	缦 曼 幕 𦆅	マン バン		
 縶	U+7E36	17	zhí	CHUU SHOU	TSUNAGU	120.11	confine, tie up; imprison, shackle	絷 執 𡈊 𦅬 馽	チュウ ショウ		
@@ -18995,7 +18995,7 @@
 繯	U+7E6F	19	huán	KEN GEN KAN	KARAMU	120.13	noose; death by hanging; tie, bind	缳 環 𦇏	ケン ゲン カン		
 繰	U+7E70	19	zǎo	SOU	KURU	120.13	to reel silk from cocoons	繅 缲 璪	ソウ ショウ くる くり		
 繱	U+7E71	18	cōng			120.12		𦇎	ソウ ス		
-繲	U+7E72	19	xiè			120.13	to work as a tailor, and do washing-for a living	挫 𰬽	カイ ケ		
+繲	U+7E72	19	xiè			120.13	to work as a tailor, and do washing-for a living	挫 𰬽 解	カイ ケ		
 繳	U+7E73	19	jiǎo	SHAKU KYOU KAKU GYAKU	KAESU	120.13	deliver, submit; hand over	缴 𥐊 𧝳 𦅾	カク キョウ ギャク シャク あらそう いと おさめる かえす まつわる まとう むかばき もとる		
 繴	U+7E74	19	bì			120.13	a kind of fishing-net	𦌠	ヘキ ヒャク ハク ビャク		
 繵	U+7E75	19	dàn			120.13		𬙉 纏	テン デン タン ダン		
@@ -19088,7 +19088,7 @@
 绌	U+7ECC	8	chù			120'.5	sew, stitch; insufficient	絀			
 绍	U+7ECD	8	shào			120'.5	continue, carry on; join	紹			
 绎	U+7ECE	8	yì			120'.5	to unravel or unreel silk; to interpret	繹			
-经	U+7ECF	8	jīng			120'.5	classic works; pass through	經			
+经	U+7ECF	8	jīng			120'.5	classic works; pass through	經 経			
 绐	U+7ED0	8	dài			120'.5	cheat, fool, pretend	紿			
 绑	U+7ED1	9	bǎng			120'.6	bind, tie, fasten	綁			
 绒	U+7ED2	9	róng			120'.6	silk, cotton, or woolen fabric	絨			
@@ -19411,7 +19411,7 @@
 耏	U+800F	9	nài	JI NI DAI NAI	HOOHIGE	126.3	whiskers	耐 而 𦓎 𦓘	ジ ニ ダイ ナイ		
 耐	U+8010	9	nài	TAI DOU	TAERU	126.3	endure, bear; resist; patient	耏 奈 能 𡬪	タイ ダイ ナイ ドウ ノウ ジ ニ たえる		
 耑	U+8011	9	duān	TAN SEN	HASHI	126.3	specialized; concentrated	專 端 𦓝	タン セン		
-耒	U+8012	6	lěi	RAI RUI	SUKI	127.0	handle of plow; plow; Kangxi radical 127	來	ライ ルイ レ すき らいすき		
+耒	U+8012	6	lěi	RAI RUI	SUKI	127.0	handle of plow; plow; Kangxi radical 127	來 来	ライ ルイ レ すき らいすき		
 耓	U+8013	8	tīng	TEI CHOU	SUKINOHA	127.2			テイ チョウ		
 耔	U+8014	9	zǐ	SHI	TSUCHIKAU	127.3	to hoe up the earth around plants	秄	シ		
 耕	U+8015	10	gēng	KOU	TAGAYASU	127.4	plow, cultivate	畊 簡 𠛝 𣚣 𥝷 𦓮	コウ たがやす		
@@ -19444,8 +19444,8 @@
 耰	U+8030	21	yōu	YUU U	NARASU	127.15	toothless rake for drawing earth over newly sown grain	櫌	ユウ ユ		
 耱	U+8031	22	mò			127.16	a kind of farm tool		バ マ		
 耲	U+8032	22	huái			127.16	a tool used in northeast China for overturning soil				
-耳	U+8033	6	ěr	JI JOU	MIMI NOMI	128.0	ear; merely, only; handle; Kangxi radical 128		ジ ニ ジョウ ニョウ みみ のみ		
-耴	U+8034	7	yì zhé	CHOU JOU NYOU		128.1	ear lobe; lobule		チョウ ジョウ ニョウ		
+耳	U+8033	6	ěr	JI JOU	MIMI NOMI	128.0	ear; merely, only; handle; Kangxi radical 128	㔿	ジ ニ ジョウ ニョウ みみ のみ		
+耴	U+8034	7	yì zhé	CHOU JOU NYOU		128.1	ear lobe; lobule	聂	チョウ ジョウ ニョウ		
 耵	U+8035	8	dīng	TEI CHOU	MIMIKUSO	128.2	earwax		テイ チョウ		
 耶	U+8036	9	yé	YA JA	YA KA	128.3	used in transliteration	爺 邪	ヤ シャ ジャ や か		
 耷	U+8037	9	dā	TOU CHOU		128.3	ears hanging down	𦔮	トウ チョウ		
@@ -19459,7 +19459,7 @@
 耿	U+803F	10	gěng	KOU	HIKARI	128.4	bright, shining; have guts	𤓐	コウ キョウ ケイ ひかり		
 聀	U+8040	10	zhí	SHOKU		128.4		職	ショク		
 聁	U+8041	10	pàn			128.4					
-聂	U+8042	10	niè			128.4	whisper; surname	聶			
+聂	U+8042	10	niè			128.4	whisper; surname	聶 耴			
 聃	U+8043	11	dān			128.5	ears without rims; a personal name	耼 耽 冉 𦕐 𨈜 𨈭	タン		
 聄	U+8044	11	zhěn	SHIN		128.5		畛 𦕇 𦕗 𦕑	シン		
 聅	U+8045	11	chè			128.5			テツ テチ タン ダン エツ エチ		
@@ -19483,13 +19483,13 @@
 聗	U+8057	13	liè			128.7		𦖩	リョウ		
 聘	U+8058	13	pìn	HEI	TOU MESU	128.7	engage, employ; betroth	𡞐 𦕊 𨉂 𨉯 𨊀	ヘイ ヒョウ とう めす		
 聙	U+8059	14	jīng			128.8			セイ ショウ		
-聚	U+805A	14	jù	SHUU SHU JU	ATSUMARU	128.8	assemble, meet together, collect	冣 焣 𦖏 𧅞 𨛿 𨞮 鄹	シュ ジュ シュウ あつまる あつめる		
+聚	U+805A	14	jù	SHUU SHU JU	ATSUMARU	128.8	assemble, meet together, collect	冣 焣 𦖏 𧅞 𨛿 𨞮 鄹 乑	シュ ジュ シュウ あつまる あつめる		
 聛	U+805B	14	bǐ			128.8			ヒ		
 聜	U+805C	14	dǐ			128.8		䏄	テイ タイ		
 聝	U+805D	14	guó			128.8	to cut the left ears of the slain	馘 𢦛 䤋	カク みみきる		
 聞	U+805E	14	wén	BUN MON	KIKU KIKOERU KIKOE	128.8	hear; smell; make known; news	闻 𦔴 𦔵 𦕌 𦕁 䎹 䎽 𦖞 𦖫 𥹢	ブン モン きく きこえる		
 聟	U+805F	14	xù	SEI	MUKO	128.8	son-in-law; husband	壻	セイ むこ		
-聠	U+8060	12	pīng	HEI HYOU	TOJIRU	128.6			ヘイ		
+聠	U+8060	12	pīng	HEI HYOU	TOJIRU	128.6		聯	ヘイ		
 聡	U+8061	14	cōng	SOU	SATOI	128.8	intelligent, clever, bright	聪 聰	ソウ さとい		
 聢	U+8062	14	dìng		SHIKATO	128.8	certainly, definitely		テイ しかと		
 聣	U+8063	14	ní			128.8		𬚠			
@@ -19504,7 +19504,7 @@
 聬	U+806C	16	wěng			128.10			オウ オ		
 聭	U+806D	15	kuì	KI	HAJIRU	128.10		愧 𩲽	キ		
 聮	U+806E	16	lián	REN	TSURANARU TSURANERU	128.12	connect, join; associate, ally	聯	レン		
-聯	U+806F	17	lián	REN	TSURANARU TSURANERU	128.11	connect, join; associate, ally	联 𦕱 𦖹 聫 聮 䏈 𦘈	レン つらなる つらねる		
+聯	U+806F	17	lián	REN	TSURANARU TSURANERU	128.11	connect, join; associate, ally	联 𦕱 𦖹 聫 聮 䏈 𦘈 聠	レン つらなる つらねる		
 聰	U+8070	17	cōng	SOU	SATOI	128.11	intelligent, clever, bright	聦 聪 怱 𦕻 聡 𦖟	ソウ ス		
 聱	U+8071	16	áo	GOU GYOU	KIKANAI	128.11	bent and twisted; too complicated	𦗷	ギュウ ギョウ グ ゴウ		
 聲	U+8072	17	shēng	SEI SHOU	KOE	128.11	sound, voice, noise; tone; music	声 殸	セイ ショウ こえ		声
@@ -19792,7 +19792,7 @@
 膌	U+818C	14	jí	SEKI		130.10	to become emaciated	瘠	セキ シャク ジャク		
 膍	U+818D	14	pí			130.10	(Cant.) 膍胵, gizzard and liver of domestic animals	肶	ヒ ビ ヘイ ベイ		
 膎	U+818E	14	xié	KAI GE	HOJISHI NIKU SAKANA HADAHE	130.10			カイ ゲ		
-膏	U+818F	14	gāo	KOU	ABURA	130.10	grease, fat; paste, ointment		コウ あぶら こえる		
+膏	U+818F	14	gāo	KOU	ABURA	130.10	grease, fat; paste, ointment	䐧	コウ あぶら こえる		
 膐	U+8190	16	lǚ	RYO RO	SEBONE CHIKARU	130.10		膂	リョ		
 膑	U+8191	14	bìn			130.10	the kneecap	膑 臏			
 膒	U+8192	15	ōu			130.11		𬁵 𦟾	オウ オ		
@@ -19905,7 +19905,7 @@
 臽	U+81FD	8	xiàn	KAN GEN KON	OTOSHIANA	134.2	a pit, a hole	𥦶 陷	カン ゲン コン		
 臾	U+81FE	9	yú	YU YOU KI	KUBOMI SUSUMERU AJIKA	134.2	moment, instant, short while	㬰 𠒍 蕢	ユ ヨウ ヨ キ ギ		
 臿	U+81FF	9	chā	SOU SHOU	USUJIKU	134.3	to separate the grain from the husk	鍤 𦥛 𢆍 𠚏 𦦈 𦦱	ソウ ショウ		
-舀	U+8200	10	yǎo	YOU	KUMU	134.4	dip, ladle; ladle	抌 外 抭 𤔘 𦥝 𦥞 𦥟 𥦶 𦥵	ヨウ ユ ユウ		
+舀	U+8200	10	yǎo	YOU	KUMU	134.4	dip, ladle; ladle	抌 外 抭 𤔘 𦥝 𦥞 𦥟 𥦶 𦥵 㸓	ヨウ ユ ユウ		
 舁	U+8201	10	yú	YO	KAKU	134.4	carry on one's shoulder	輿	ヨ キョ コ かく		
 舂	U+8202	11	chōng	SHOU SOU	USUZUKU TSUKU	134.5	grind in mortar	𦥴	ショウ シュ ソウ つく うすづく		
 舃	U+8203	12	xì	SHAKU SAKU SEKI TAKU	KASASAGI	134.6	a shoe; the sole of a shoe; magpie	舄	シャク サク セキ タク くつ		
@@ -20082,7 +20082,7 @@
 芮	U+82AE	8	ruì	ZEI NEI ZETSU NECHI		140.4	tiny, small; water's edge		ゼイ ネ ゼツ ネチ ダイ みずぎわ		
 芯	U+82AF	7	xīn	SHIN	HOSOI TOUSHINGU	140.4	pith from rush (Juncus effusus)		シン		
 芰	U+82B0	7	jì	KI GI	HISHI	140.4	water caltrop	茤 𦼽	キ ギ ひし		
-花	U+82B1	8	huā	KA	HANA	140.4	flower; blossoms	芲 蘤 化 𠌶 華	カ はな		
+花	U+82B1	8	huā	KA	HANA	140.4	flower; blossoms	芲 蘤 化 𠌶 華 苝	カ はな		
 芲	U+82B2	7	huā	KUWA KA	HANA	140.4	flower	花	カ はな		
 芳	U+82B3	8	fāng	HOU	KANBASHII KAORI	140.4	fragrant; virtuous; beautiful	𥫳	ホウ かんばしい かおり		
 芴	U+82B4	7	wù	BUTSU MOCHI KOTSU KOCHI		140.4			ブツ モチ コツ コチ		
@@ -20093,7 +20093,7 @@
 芹	U+82B9	7	qín	KIN	SERI	140.4	celery	斳 䓅 菦 𧁲	キン キ せり		
 芺	U+82BA	8	ǎo	OU YOU	AZAMI	140.4			オウ ヨウ フ はす		
 芻	U+82BB	10	chú	SUU SU SHUU	MAGUSA	140.4	mow, cut grass; hay, fodder	蒭 𦷝 刍 𦭍 𦱪 𦱻	ス スウ シュ シュウ まぐさ		
-芼	U+82BC	7	mào	BOU MOU	HABIKORU	140.4	to choose; to select; greens	㧌 𥟪 𦯮 𦳁	ボウ モウ		
+芼	U+82BC	7	mào	BOU MOU	HABIKORU	140.4	to choose; to select; greens	㧌 𥟪 𦯮 𦳁 笔	ボウ モウ		
 芽	U+82BD	8	yá	GA GE	ME MEGUMU	140.4	bud, sprout, shoot	牙 䄰	ガ ゲ め めぐむ		
 芾	U+82BE	7	fèi	HI HAI FUTSU FUCHI		140.4	flower; small; little; lush	市 𦬝	ヒ ハイ フツ ブチ バチ ハツ		
 芿	U+82BF	8	rèng	JOU NYOU		140.5	grass which has been cut and regrown; wild grass		ジョウ ニョウ くさ		
@@ -20126,7 +20126,7 @@
 苚	U+82DA	8	yòng	YOU YU		140.5			ヨウ ユ		
 苛	U+82DB	8	kē	KA GA	KOMAKAI KARAI IRADATSU	140.5	small, petty; harsh, rigorous	哼	カ ガ ケ いらだつ からい こまかい いじめる		
 苜	U+82DC	9	mù	BOKU MOKU		140.5	clover	𥄕 𦭝 荍 𦴄	モク ボク		
-苝	U+82DD	8	bèi			140.5			ハイ ベ		
+苝	U+82DD	8	bèi			140.5		花	ハイ ベ		
 苞	U+82DE	9	bāo	HOU HYOU	TSUTO	140.5	a variety of rush; firm, enduring; to burst forth	包 藨	ホウ ヒョウ つと		
 苟	U+82DF	9	gǒu	KOU KU	IYASHIKUMO	140.5	careless, frivolous; illicit; grammatical particle: if, but, if only; surname; grass name	茍 𠷜 芶 𦯗 𦰶 𦴆	コウ ク いやしくも かりそめ		
 苠	U+82E0	8	mín	BIN MIN	OOI	140.5	grow and ripen slowly		ビン ミン		
@@ -20260,7 +20260,7 @@
 荠	U+8360	9	jì			140.6	water-chestnuts; caltrop	薺			
 荡	U+8361	9	dàng			140.6	pond, pool; wash away, cleanse	盪 蕩			
 荢	U+8362	9	zì			140.6			ウ		
-荣	U+8363	10	róng			140.6 75.5	glory, honor; flourish, prosper	榮 荣	エイ さかえる		
+荣	U+8363	10	róng			140.6 75.5	glory, honor; flourish, prosper	榮 荣 策	エイ さかえる		
 荤	U+8364	9	hūn			140.6	meat diet; strong smelling	葷			
 荥	U+8365	10	xíng			140.6 85.6	a county in Henan; the rising and dashing of waves	滎			
 荦	U+8366	10	luò			140.6 93.6	brindled ox; brindled in color	犖			
@@ -20456,7 +20456,7 @@
 萤	U+8424	11	yíng			140.8 142.6	glow-worm, luminous insect	螢	ケイ ギョウ エイ ヨウ ほたる		
 营	U+8425	13	yíng			140.8	encampment, barracks; manage	營 𦵡	エイ いとなむ		
 萦	U+8426	12	yíng			140.8 120.6	entangle, entwine, coil	縈			
-萧	U+8427	12	xiāo			140.8	common artemisia; dejected	蕭			
+萧	U+8427	12	xiāo			140.8	common artemisia; dejected	蕭 䒕			
 萨	U+8428	11	sà			140.8	Buddhist gods or immortals	薩			
 萩	U+8429	12	qiū	SHUU	HAGI	140.9	scandent hop; tree	蘒 𦵒	ショウ シュウ シュ はぎ		
 萪	U+842A	12	kē	KUWA		140.9			カ		
@@ -20490,7 +20490,7 @@
 葆	U+8446	12	bǎo	HO HOU	MOTO HIKOBAE HANEKAZARI	140.9	reserve, preserve; conceal	堡 𦬽	ホ ホウ		
 葇	U+8447	12	róu	JUU NYU		140.9		𦺤	ジュウ ニュ ニュウ		
 葈	U+8448	12	xǐ	SHI	KARAMUSHI	140.9	Xanthium strumarium	枲	シ		
-葉	U+8449	13	yè	YOU SHOU	HA	140.9	leaf, petal; page of book; period	叶 枼 𥮧 䈎 𦯲 𦯧 𦹁	ヨウ ショウ は		
+葉	U+8449	13	yè	YOU SHOU	HA	140.9	leaf, petal; page of book; period	叶 枼 𥮧 䈎 𦯲 𦯧 𦹁 枽	ヨウ ショウ は		
 葊	U+844A	12	ān	AN	IORI	140.9	cottage	菴	アン いおり		
 葋	U+844B	12	qú			140.9		朐 𦮿 𦶔	ク グ		
 葌	U+844C	12	jiān			140.9		菅 蕑	カン ケン		
@@ -21054,7 +21054,7 @@
 虺	U+867A	9	huǐ	KI KAI KE	MAMUSHI	142.3	large poisonous snake	𠙍 虫 𧉇 螝 𩗝	カイ キ ケ まむし		
 虻	U+867B	9	méng	BOU	ABU	142.3	horsefly, gadfly	𧌦 蝱	ボウ あぶ		
 虼	U+867C	9	gè			142.3	a flea; species of beetle	𫊨	コツ		
-虽	U+867D	9	suī			142.3 30.6	although, even if	雖 𧈧	スイ		
+虽	U+867D	9	suī			142.3 30.6	although, even if	雖 𧈧 畺	スイ		
 虾	U+867E	9	xiā			142.3	shrimp, prawn	虾 蝦			
 虿	U+867F	9	chài			142.3	a kind of scorpion	蠆			
 蚀	U+8680	9	shí			142.3	nibble away; erode; eclipse	蝕			
@@ -21541,7 +21541,7 @@
 衡	U+8861	16	héng	KOU	HAKARI HAKARU	144.10	measure, weigh, judge, consider	𢖍 𠧲 𠧽 𡘻 𡙉 𪉗 𧗣 𢔖 𨏎	コウ ギョウ オウ はかり はかる		
 衢	U+8862	24	qú	KU	MICHI	144.18	highway; thoroughfare, intersection	𧗪 𧘆 𩇐	ク グ みち		
 衣	U+8863	6	yī	I E	KOROMO KIRU	145.0	clothes, clothing; cover, skin; Kangxi radical 145	衤	イ エ ころも きぬ きる		
-衤	U+8864	6	yī		KOROMOHEN	145.0	clothes; radical number 145	衣	ころも		
+衤	U+8864	6	yī		KOROMOHEN	145.0	clothes; radical number 145	衣 礻	ころも		
 补	U+8865	8	bǔ			145.2	mend, patch, fix, repair, restore	补 補			
 衦	U+8866	8	gǎn	KAN	NOBASU	145.3	smooth out the clothes		カン		
 衧	U+8867	8	yú			145.3		𧘘 𧘚	ウ		
@@ -21924,7 +21924,7 @@
 觠	U+89E0	13	quán			148.6		𩓫	ケン ゲン		
 觡	U+89E1	13	gé			148.6	antlers		カク キャク		
 觢	U+89E2	13	shì			148.6		㸷 𤙲 挈 𧣯	セイ ゼイ		
-解	U+89E3	13	jiě	KAI GE	TOKU TOKERU SATORU	148.6	loosen, unfasten, untie; explain; hexagram ䷧	觧 懈 𦴘	カイ ゲ とく とかす とける さとる		
+解	U+89E3	13	jiě	KAI GE	TOKU TOKERU SATORU	148.6	loosen, unfasten, untie; explain; hexagram ䷧	觧 懈 𦴘 繲	カイ ゲ とく とかす とける さとる		
 觤	U+89E4	13	guǐ			148.6		䍯	キ		
 觥	U+89E5	13	gōng	KOU	TSUNOSAKAZUKI	148.6	a cup made of horn; obstinate	觵	コウ つのさかずき		
 触	U+89E6	13	chù	SHOKU SOKU	FURERU SAWARU FURE	148.6	butt, ram, gore; touch	觸	ショク コウ グ ソク シュ ふれる さわる	觸	
@@ -22638,7 +22638,7 @@
 貪	U+8CAA	11	tān	DON TON	MUSABORU	154.4	greedy, covet; covetous	贪	タン トン ドン むさぼる		
 貫	U+8CAB	11	guàn	KAN WAN	TSURANUKU HIKU	154.4	a string of 1000 coins; to go through	贯 慣 𢿒 毌 䝺	カン ワン つらぬく ひく		
 責	U+8CAC	11	zé	SEKI SAI	SEMERU SEME	154.4	one's responsibility, duty	责 拆 債 㥽 𧵩 𧶌 謮	セキ サク シャク サイ シン せめる せめ		
-貭	U+8CAD	11	zhì	SHITSU SHICHI CHI	MOTO MOCHIMAE SUNAO	154.4	matter, material, substance	質	シツ		
+貭	U+8CAD	11	zhì	SHITSU SHICHI CHI	MOTO MOCHIMAE SUNAO	154.4	matter, material, substance	質 质	シツ		
 貮	U+8CAE	11	èr	NI JI	FUTATSU	154.4	number two		ニ ジ ふたつ		
 貯	U+8CAF	12	zhù	CHO	TAKUWAERU	154.5	store, stockpile, hoard	𮷍 贮 𫎓 宁 𡪄 𧵤	チョ たくわえる		
 貰	U+8CB0	12	shì	SEI SHA	MORAU MORAI	154.5	borrow; pardon; loan	贳 𧴹 𧶚	セイ シャ もらい もらう おぎのる		
@@ -22671,7 +22671,7 @@
 賋	U+8CCB	13	jiǎo	KOU	AKIRUKA	154.6		皎	コウ		
 賌	U+8CCC	13	gāi			154.6		賅	カイ		
 賍	U+8CCD	13	zāng	SOU ZOU	KAKUSU	154.6	booty, loot, stolen goods; bribe	贓 贜 賘	ゾウ ソウ かくす		
-賎	U+8CCE	13	jiàn	SEN ZEN	IYASHI	154.6	mean, low; cheap, worthless		セン いやしい		
+賎	U+8CCE	13	jiàn	SEN ZEN	IYASHI	154.6	mean, low; cheap, worthless	贱	セン いやしい		
 賏	U+8CCF	14	yīng	EI YOU OU	KUBIKAZARI	154.7	pearls or shells strung together	𲂻	エイ ヨウ オウ		
 賐	U+8CD0	14	xùn			154.7		𧸩	シュン		
 賑	U+8CD1	14	zhèn	SHIN	NIGIWAU NIGYAKA NIGIWAI	154.7	relieve, aid distressed; rich	赈 挋 䝩 𧵉	シン チン にぎわい にぎやか にぎわす すくう にぎわう		
@@ -22753,7 +22753,7 @@
 贝	U+8D1D	4	bèi			154'.0	sea shell; money, currency	貝			
 贞	U+8D1E	6	zhēn			154'.2	virtuous, chaste, pure; loyal	貞			
 负	U+8D1F	6	fù			154'.2	load, burden; carry, bear	負			
-贠	U+8D20	6	yuán			154'.2	member; personnel, staff member	貟			
+贠	U+8D20	6	yuán			154'.2	member; personnel, staff member	貟 费			
 贡	U+8D21	7	gòng			154'.3	offer tribute; tribute, gifts	貢			
 财	U+8D22	7	cái			154'.3	wealth, valuables, riches	財			
 责	U+8D23	8	zé			154'.4	one's responsibility, duty	責			
@@ -22761,7 +22761,7 @@
 败	U+8D25	8	bài			154'.4	be defeated, decline, fail	敗			
 账	U+8D26	8	zhàng			154'.4	accounts; bill, debt; credit	賬			
 货	U+8D27	8	huò			154'.4	goods, commodities, products	貨			
-质	U+8D28	8	zhì			154'.4	matter, material, substance	質			
+质	U+8D28	8	zhì			154'.4	matter, material, substance	質 貭			
 贩	U+8D29	8	fàn			154'.4	peddler, hawker, street merchant	販			
 贪	U+8D2A	8	tān			154'.4	be greedy, covet; covetous	貪			
 贫	U+8D2B	8	pín			154'.4	poor, impoverished, needy	貧			
@@ -22770,7 +22770,7 @@
 贮	U+8D2E	8	zhù			154'.4	store, stockpile, hoard	𮷍 貯			
 贯	U+8D2F	8	guàn			154'.4	a string of 1000 coins; to go through	貫			
 贰	U+8D30	9	èr			154'.5	number two	貳			
-贱	U+8D31	9	jiàn			154'.5	mean, low; cheap, worthless	賤			
+贱	U+8D31	9	jiàn			154'.5	mean, low; cheap, worthless	賤 賎			
 贲	U+8D32	9	bēn			154'.5	forge ahead; energetic; surname	賁			
 贳	U+8D33	9	shì			154'.5	borrow; pardon; loan	貰			
 贴	U+8D34	9	tiē			154'.5	paste to, stick on; attached to	貼			
@@ -22778,7 +22778,7 @@
 贶	U+8D36	9	kuàng			154'.5	give, grant, bestow; surname	貺			
 贷	U+8D37	9	dài			154'.5	lend; borrow; pardon	貸			
 贸	U+8D38	9	mào			154'.5	trade, barter; mixed; rashly	貿			
-费	U+8D39	9	fèi			154'.5	expenses, expenditures, fee	費			
+费	U+8D39	9	fèi			154'.5	expenses, expenditures, fee	費 贠			
 贺	U+8D3A	9	hè			154'.5	congratulate; send present	賀			
 贻	U+8D3B	9	yí			154'.5	give to, hand down, bequeath	貽			
 贼	U+8D3C	10	zéi			154'.6	thief, traitor; kill	賊			
@@ -22791,7 +22791,7 @@
 赃	U+8D43	10	zāng			154'.6	booty, loot, stolen goods; bribe	贓 贜			
 资	U+8D44	10	zī			154'.6	property; wealth; capital	資			
 赅	U+8D45	10	gāi			154'.6	prepared for; inclusive	賅			
-赆	U+8D46	10	jìn			154'.6	farewell present	贐			
+赆	U+8D46	10	jìn			154'.6	farewell present	贐 䝲			
 赇	U+8D47	11	qiú			154'.7	bribe	賕			
 赈	U+8D48	11	zhèn			154'.7	relieve, aid distressed; rich	賑			
 赉	U+8D49	11	lài			154'.7	give, present, confer; surname	賚			
@@ -22859,7 +22859,7 @@
 趇	U+8D87	12	xì			156.5			シュウ		
 趈	U+8D88	12	zhān	TAN KEN		156.5		站 䠨	タン テン		
 趉	U+8D89	12	jué			156.5		䞷 𧾣 𧿺	チュツ ジュチ ガチ クツ グチ キツ ギチ クチ		
-越	U+8D8A	12	yuè	ETSU OCHI KATSU	KOERU KOSU	156.5	exceed, go beyond; the more ...	𧻂 𦈭 趏 䟠 𨒋	エツ オチ カツ ガチ こす こえる ここに こし		
+越	U+8D8A	12	yuè	ETSU OCHI KATSU	KOERU KOSU	156.5	exceed, go beyond; the more ...	𧻂 𦈭 趏 䟠 𨒋 迌	エツ オチ カツ ガチ こす こえる ここに こし		
 趋	U+8D8B	12	qū			156.5	hasten, hurry; be attracted to	趨 趋	スウ		
 趌	U+8D8C	13	jí			156.6	(Cant.) to order someone to leave		キツ キチ ケツ ケチ		
 趍	U+8D8D	13	chí	CHI JI SHU SU	HISASHII	156.6		遲 趨	チ ジ シュ		
@@ -23437,7 +23437,7 @@
 迉	U+8FC9	6	qī			162.3					
 迊	U+8FCA	7	zā	SOU	MEGURU	162.4	to go round, to make a circuit, to make a revolution, to turn round	匝 帀	ソウ		
 迋	U+8FCB	7	wàng	OU	YUKU AZAMUKU	162.4	travel, go to; deceive; scare	𨑳	オウ ゴウ キャク キョウ コウ ガク		
-迌	U+8FCC	7	tù			162.4			トツ トチ		
+迌	U+8FCC	7	tù			162.4		越	トツ トチ		
 迍	U+8FCD	7	zhūn	CHUN TON DON		162.4	falter, hesitate	𨑞	チュン トン ドン たちもとおる		
 迎	U+8FCE	8	yíng	GEI	MUKAERU	162.4	receive, welcome, greet	𨒖	ゲイ ギョウ むかえる		
 迏	U+8FCF	8	dá			162.4		达	テイ		
@@ -23445,7 +23445,7 @@
 近	U+8FD1	8	jìn	KIN KON	CHIKAI	162.4	near, close; approach; intimate	𠧣 𢆌 𣥍 𣥪 𣂠	キン ゴン コン ちかい ちかづく		
 迒	U+8FD2	7	háng	KOU GOU	ASHIATO	162.4	footprints of passing animals; a road	𨁈 䢚	コウ ゴウ		
 迓	U+8FD3	7	yà	GA GE GYO GO	MUKAERU	162.4	to go to meet, to receive, as a guest	𨓃 訝	ガ ギョ ゲ ゴ むかえる		
-返	U+8FD4	7	fǎn	HEN HAN HON	KAESU KAERU	162.4	return, revert to, restore	反 𢓉	ヘン ハン ホン かえす かえる		
+返	U+8FD4	7	fǎn	HEN HAN HON	KAESU KAERU	162.4	return, revert to, restore	反 𢓉 遐	ヘン ハン ホン かえす かえる		
 迕	U+8FD5	7	wǔ	GO	DEAU	162.4	obstinate, perverse	忤 俉 逜	ゴ さからう		
 迖	U+8FD6	7	dá			162.4					
 迗	U+8FD7	7	é			162.4			ガ		
@@ -23504,7 +23504,7 @@
 逌	U+900C	10	yōu	YUU YU	YURUYAKA	162.7	please; smiling; complacent	攸 由 𠧠 𠧴 𨓘 𨔖 𨔟	ユ ユウ くつろぐ ゆるやか		
 逍	U+900D	10	xiāo	SHOU	SAMAYOU TACHIMOTOORU	162.7	ramble, stroll, jaunt, loiter	消	ショウ		
 逎	U+900E	10	qiú	SHUU	SEMARU TSUYOI	162.7	strong, unyielding, forceful	遒	シュウ せまる		
-透	U+900F	10	tòu	TOU	SUKU SUKASU TOORU	162.7	penetrate, pass through	埱 䞬	トウ シュク すく すかす すける とおす とおる		
+透	U+900F	10	tòu	TOU	SUKU SUKASU TOORU	162.7	penetrate, pass through	埱 䞬 䢏	トウ シュク すく すかす すける とおす とおる		
 逐	U+9010	11	zhú	CHIKU JIKU	OU	162.7	chase, expel; one by one	豚 𢄘	チク ジク テキ トン チュウ おう		
 逑	U+9011	10	qiú	KYUU GU	ATSUMERU AU TAGUI	162.7	collect, unite; match, pair	訄	キュウ グ ジュツ つれあい のべる		
 递	U+9012	10	dì			162.7	hand over, deliver; substitute	递 遞	テイ		
@@ -23521,7 +23521,7 @@
 逝	U+901D	10	shì	SEI SETSU	YUKU	162.7	pass away; die	䠠 遞 遰	セイ ゆく		
 逞	U+901E	10	chěng	TEI	TAKUMASHII TOORU HAYAI	162.7	indulge oneself; brag, show off	期 徎	テイ たくましい		
 速	U+901F	11	sù	SOKU	HAYAI SUMIYAKA	162.7	quick, prompt, speedy	跡 蹟 迹 遬 𧫷	ソク はやい はやめる すみやか		
-造	U+9020	11	zào	ZOU	TSUKURU ITARU NARU	162.7	construct, build, make, begin; prepare	艁 䒃 𧻰 𨒽 𨕡	ゾウ ソウ つくる いたる なる はじめる みやつこ		
+造	U+9020	11	zào	ZOU	TSUKURU ITARU NARU	162.7	construct, build, make, begin; prepare	艁 䒃 𧻰 𨒽 𨕡 慥	ゾウ ソウ つくる いたる なる はじめる みやつこ		
 逡	U+9021	10	qūn	SHUN	SHIRIZOKU	162.7	retreat, withdraw, fall back	𠣟 𢓭 夋 遁	シュン しりぞく		
 逢	U+9022	11	féng	HOU BU	AU MUKAU AI	162.7	come upon, happen meet; flatter	夆 逄	ホウ ブ あい あう むかえる		
 連	U+9023	11	lián	REN	TSURANARU TSURERU SHIKIRINI	162.7	join, connect; continuous; even	连 槤 㜕 璉 𨘑	レン ラン つらなる つらねる つれる しきりに むらじ		
@@ -23569,7 +23569,7 @@
 遍	U+904D	12	biàn	HEN	AMANESHI	162.9	everywhere, all over, throughout	徧 𨖠	ヘン あまねし		
 過	U+904E	13	guò	KA	SUGIRU AYAMATSU TOGA	162.9	pass, pass through, go across	过 輠 𨒵 𨓺	カ すぎる すごす あやまつ あやまち とが よぎる		
 遏	U+904F	12	è	ATSU	TODOMERU	162.9	stop, suppress, curb, check; a bar		アツ アチ カツ カチ とどめる とめる		
-遐	U+9050	12	xiá	KA	TOOI NANZO	162.9	afar, distant; old, advanced in	徦	カ ゲ とおい なんぞ		
+遐	U+9050	12	xiá	KA	TOOI NANZO	162.9	afar, distant; old, advanced in	徦 返	カ ゲ とおい なんぞ		
 遑	U+9051	12	huáng	KOU	ITOMA HIMA	162.9	leisure, leisurely; hurry about	徨 偟	コウ オウ いとま ひま		
 遒	U+9052	12	qiú	SHUU	SEMARU TSUYOI	162.9	strong, unyielding, forceful	逎	シュウ ジュ せまる つよい		
 道	U+9053	13	dào	DOU TOU	MICHI IU MICHIBIKU	162.9	path, road, street; method, way	𡬹 噵 衜 衟 𨔞 𨖁 𨕥 𨗓	ドウ トウ みち いう みちびく		
@@ -23635,7 +23635,7 @@
 邏	U+908F	22	luó	RA	MEGURU	162.19	patrol; inspect; watch	逻 羅	ラ めぐる		
 邐	U+9090	22	lǐ	RI	TSUZUKU	162.19	meandering, winding	逦 𨓦	リ つづく つらなる		
 邑	U+9091	7	yì	YUU OU	KUNI MURA UREERU	163.0	area; district; city; state; Kangxi radical 163	𡇃 𨙨	ユウ オウ むら おおざと うれえる くに みやこ		
-邒	U+9092	4	tíng			163.2			テイ ジョウ		
+邒	U+9092	4	tíng			163.2		鄧	テイ ジョウ		
 邓	U+9093	5	dèng			163.2	surname	鄧	サン		
 邔	U+9094	5	qǐ			163.3					
 邕	U+9095	10	yōng	YOU YU		163.3	former or literary name for Nanning (in Guangxi)	雍 𪪝 𡿷	ユ ヨウ やわらぐ		
@@ -23784,7 +23784,7 @@
 鄤	U+9124	13	màn			163.11	place in Henan province	𨞼	バン マン		
 鄥	U+9125	13	qiāo	KYOU		163.11		𪁗	キョウ		
 鄦	U+9126	14	xǔ			163.12		𰻡 𨝬 許	キョ コ		
-鄧	U+9127	15	dèng	TOU DOU		163.12	a county in Henan; surname	邓	トウ ドウ		
+鄧	U+9127	15	dèng	TOU DOU		163.12	a county in Henan; surname	邓 邒	トウ ドウ		
 鄨	U+9128	18	bì			163.12			ヘイ ヘツ ヘチ		
 鄩	U+9129	14	xún	SHIN JIN		163.12	county in Shandong province	𬩽 𨟌	シン ジン		
 鄪	U+912A	14	bì			163.12		𰻳 費 𨚭	ヒ		
@@ -23950,9 +23950,9 @@
 释	U+91CA	12	shì			165.5	interpret, elucidate; release	釋			
 釋	U+91CB	20	shì	SHAKU SEKI EKI	TOKU SUTERU YURUSU	165.13	interpret, elucidate; release	释 𨤟 醳	セキ シャク ヤク エキ とく		釈
 里	U+91CC	7	lǐ	RI	SATO	166.0	unit of distance; village; lane; Kangxi radical 166	里 裏 裡	リ さと		
-重	U+91CD	9	zhòng	CHOU JUU	OMOI KASANERU E	166.2	heavy, weighty; double	𡍴 𡒀 𡔅 𡔌 𧝎 緟 𨤣	ジュウ チョウ ジュ ズ トウ シュウ シュ え おもい かさねる かさなる おもんじる はばかる		
+重	U+91CD	9	zhòng	CHOU JUU	OMOI KASANERU E	166.2	heavy, weighty; double	𡍴 𡒀 𡔅 𡔌 𧝎 緟 𨤣 䖝	ジュウ チョウ ジュ ズ トウ シュウ シュ え おもい かさねる かさなる おもんじる はばかる		
 野	U+91CE	11	yě	YA SHO	NO	166.4	open country, field; wilderness	埜 墅 㙒 𡑀 𡐨 壄	ヤ ヨ ショ ジョ の		
-量	U+91CF	12	liàng	RYOU	HAKARU	166.5	measure, quantity, capacity	𣊹 𨤥 𨤦	リョウ はかる かさ		
+量	U+91CF	12	liàng	RYOU	HAKARU	166.5	measure, quantity, capacity	𣊹 𨤥 𨤦 厺	リョウ はかる かさ		
 釐	U+91D0	18	xī lí	RI KI RAI	OSAMERU	166.11	manage, control; thousandth part of tael	𭀖 厘 萊 𡪂 𨤺 氂 𨤭 𨤲	リ キ ライ タイ りん おさめる さいわい		
 金	U+91D1	8	jīn	KIN KON	KANE	167.0	gold; metals in general; money; Kangxi radical 167	釒 𠉓 𠊍 𨥄	キン コン ゴン かね かな		
 釒	U+91D2	8	jīn			167.0	Kangxi radical 167	金 钅			
@@ -24008,7 +24008,7 @@
 鈄	U+9204	12	dǒu	TOU ZU		167.4	a wine flagon	钭	トウ ズ		
 鈅	U+9205	12	yuè	GETSU GACHI		167.4			ゲツ ガチ		
 鈆	U+9206	12	qiān	EN	NAMARI	167.4	lead	鉛 𫓪	エン ショウ シュ なまり		
-鈇	U+9207	12	fū	FU	ONO	167.4	an ax; a hatchet	𫓧 斧	フ セン テツ おの まぐさきり まさかり		
+鈇	U+9207	12	fū	FU	ONO	167.4	an ax; a hatchet	𫓧 斧 鉄	フ セン テツ おの まぐさきり まさかり		
 鈈	U+9208	12	bù			167.4	plutonium (Pu)	钚 鉟	ヒ		
 鈉	U+9209	12	nà	DOU NOU	KITAERU	167.4	sodium (Na); sharpen wood	钠 枘 𨧨	ドウ ノウ ゼイ ネ		
 鈊	U+920A	12	xīn	SHIN	KANE	167.4	gadolinium (element 64, Gd)	𲇴	シン		
@@ -24069,7 +24069,7 @@
 鉁	U+9241	13	zhēn			167.5		𨱅 珍 鎮	チン		
 鉂	U+9242	13	shǐ	SHI	KANAWA SASU	167.5			シ		
 鉃	U+9243	13	shì	SHI JI SOKU	YAJIRI YANONE TOI SURUDOI	167.5		鉄 鏃	シ ジ ソク セン テツ おの		
-鉄	U+9244	13	tiě	TETSU	KUROGANE	167.5	iron; strong, solid, firm	鐵 銕 鉃	テツ チツ テチ くろがね	鐵	
+鉄	U+9244	13	tiě	TETSU	KUROGANE	167.5	iron; strong, solid, firm	鐵 銕 鉃 鈇	テツ チツ テチ くろがね	鐵	
 鉅	U+9245	13	jù	KYO	HAGANE	167.5	steel, iron; great	钜 巨	キョ ゴ はがね		
 鉆	U+9246	13	chān	TEN KEN GEN CHITSU	KANABASAMI	167.5	tweezers	鉗 鑽	ゲン ゴン ケン チン キン テン チョウ		
 鉇	U+9247	13	shī	SHI	HOKO	167.5		匜 鍦	シ		
@@ -24174,7 +24174,7 @@
 銪	U+92AA	14	yǒu			167.6	europium (element 63, Eu)	铕	ユウ		
 銫	U+92AB	14	sè	SHOKU	SESHUUMU	167.6	caesium/cesium (element 55, Cs)	铯	ショク		
 銬	U+92AC	14	kào			167.6	shackles, manacle	铐 𨯕	コウ		
-銭	U+92AD	14	qián	SEN ZEN	ZENI SUKI	167.6	money, currency, coins	錢	セン ゼン ぜに すき	錢	
+銭	U+92AD	14	qián	SEN ZEN	ZENI SUKI	167.6	money, currency, coins	錢 钱	セン ゼン ぜに すき	錢	
 銮	U+92AE	14	luán			167.6	bells hung on horse; bells hung	銮 鑾	ラン		
 銯	U+92AF	14	sī		KASUGAI	167.6			かすがい		
 銰	U+92B0	14	āi			167.6					
@@ -24546,7 +24546,7 @@
 鐞	U+941E	20	nòu			167.12		鎒	ドウ		
 鐟	U+941F	20	zān	TEI	CHITANYUUMU	167.12		𨯩 鐕	テイ		
 鐠	U+9420	20	pǔ			167.12	praseodymium (element 59, Pr)	镨	フ		
-鐡	U+9421	20	tiě	TETSU TECHI	KUROGANE KURO	167.12	iron; strong, solid, firm		テツ くろがね		
+鐡	U+9421	20	tiě	TETSU TECHI	KUROGANE KURO	167.12	iron; strong, solid, firm	鐵	テツ くろがね		
 鐢	U+9422	20	fán			167.12					
 鐣	U+9423	20	chēng			167.12		𳇲			
 鐤	U+9424	20	dǐng			167.12	huge tripod of bronze with two ears; sacrificial vessel	𰾸 鼎			
@@ -24566,7 +24566,7 @@
 鐲	U+9432	21	zhuó	TAKU DAKU SHOKU ZOKU	HURIGANE	167.13	bracelet, armband; small bell	镯 鉵	ショク タク ジョク チョク ゾク かね		
 鐳	U+9433	21	léi	RAI	KAME RAJUUMU	167.13	radium (element 88, Ra)	镭	ライ レ		
 鐴	U+9434	21	bì	HEKI HIYAKU HEI BEI	KARASUKINOMIMI MIGAKU	167.13		𬭽 鐾	ヘキ ヒャク ヘイ ベイ		
-鐵	U+9435	21	tiě	TETSU TECHI	KUROGANE	167.13	iron (element 26, Fe); strong, solid, firm	鉄 銕 铁 鋨 𨫓 𨬿 䥫 𨮯	テツ テチ デチ くろがね		鉄
+鐵	U+9435	21	tiě	TETSU TECHI	KUROGANE	167.13	iron (element 26, Fe); strong, solid, firm	鉄 銕 铁 鋨 𨫓 𨬿 䥫 𨮯 鐡	テツ テチ デチ くろがね		鉄
 鐶	U+9436	21	huán	KAN	WA	167.13	metal ring; measure of currency	鍰 镮 梋 𨫑 𩍡	カン ゲン セン ゼン わ		
 鐷	U+9437	20	yè			167.13		鍱	キョウ		
 鐸	U+9438	21	duó	TAKU	SUZU	167.13	bell; surname	铎	タク ダク すず		
@@ -24690,7 +24690,7 @@
 钮	U+94AE	9	niǔ			167'.4	button, knob; surname	鈕			
 钯	U+94AF	9	bǎ			167'.4	palladium (element 46, Pd)	鈀			
 钰	U+94B0	10	yù			167'.5	rare treasure	鈺			
-钱	U+94B1	10	qián			167'.5	money, currency, coins	錢			
+钱	U+94B1	10	qián			167'.5	money, currency, coins	錢 銭			
 钲	U+94B2	10	zhēng			167'.5	kind of gong used in ancient times by troops on the march	鉦			
 钳	U+94B3	10	qián			167'.5	pincers, pliers, tongs; to compress	鉗			
 钴	U+94B4	10	gǔ			167'.5	cobalt; household iron	鈷			
@@ -25215,15 +25215,15 @@
 隻	U+96BB	10	zhī	SEKI	HITOTSU	172.2	single, one of pair, lone; measure word	只 獲 𨾏	セキ シャク ひとつ		
 隼	U+96BC	10	sǔn	JUN SHUN	HAYABUSA	172.2	aquiline (nose); a falcon	鶽 鵻	ジュン シュン はやぶさ		
 隽	U+96BD	10	juàn			172.2	superior, outstanding, talented	雋 隽	シュン セン すぐれる		
-难	U+96BE	10	nán			172.2 29.8	difficult, arduous, hard; unable	難 难			
+难	U+96BE	10	nán			172.2 29.8	difficult, arduous, hard; unable	難 难 雅			
 隿	U+96BF	11	yì			172.3		弋	ヨク ヨキ		
 雀	U+96C0	11	què	JAKU SAKU	SUZUME	172.3	sparrow	𠋓 𩾟 䲵	ジャク シャク サク すずめ		
 雁	U+96C1	12	yàn	GAN	KARI	172.4	wild goose	鴈 𪁡 贋 鳫 𩿫	ガン ゲン かり		
 雂	U+96C2	12	qín			172.4		鳹	ケン ゲン キン ゴン カン コン ガン		
 雃	U+96C3	12	qiān			172.4			ケン ガク ゲン ギャク ガン コウ キョウ		
 雄	U+96C4	12	xióng	YUU	OSU O	172.4	male of species; hero; manly	䧺 𩿅	ユウ キュウ グ ユ お おす		
-雅	U+96C5	12	yǎ	GA A	MIYABIYAKA TSUNE	172.4	elegant, graceful, refined	伢 疋 𤴓 鴉	ガ ア つね みやびやか		
-集	U+96C6	12	jí	SHUU JUU	ATSUMARU TSUDOU ATSUMERU	172.4	assemble, collect together	亼 𫡤 𠓛 𠍱 輯 雦 雧	シュウ ジュウ あつまる あつめる つどう		
+雅	U+96C5	12	yǎ	GA A	MIYABIYAKA TSUNE	172.4	elegant, graceful, refined	伢 疋 𤴓 鴉 难 䧽	ガ ア つね みやびやか		
+集	U+96C6	12	jí	SHUU JUU	ATSUMARU TSUDOU ATSUMERU	172.4	assemble, collect together	亼 𫡤 𠓛 𠍱 輯 雦 雧 亽	シュウ ジュウ あつまる あつめる つどう		
 雇	U+96C7	12	gù	KO	YATOU YATOI	172.4	employ, to hire	僱 故 𪄮 顧	コ ゴ やとう		
 雈	U+96C8	12	huán	KAN GAN	MIMIZUKU	172.4		萑	カン ガン		
 雉	U+96C9	13	zhì	CHI JI	KIJI	172.5	pheasant; crenellated wall	兕 垁 埃 搱 𨿘 鴙 𪁰 𪁩 鶨 𪅊	チ イ カイ シ ジ きじ		
@@ -25257,7 +25257,7 @@
 雥	U+96E5	24	zá			172.16		雜	ソウ ゾウ		
 雦	U+96E6	24	jí			172.16		集	シュウ		
 雧	U+96E7	28	jí			172.20		集	シュウ		
-雨	U+96E8	8	yǔ	U	AME AMA	173.0	rain; rainy; Kangxi radical 173	馭 𠕒 𠕘 𠕲 㲾 𩁼 𩗿	ウ あめ あま		
+雨	U+96E8	8	yǔ	U	AME AMA	173.0	rain; rainy; Kangxi radical 173	馭 𠕒 𠕘 𠕲 㲾 𩁼 𩗿 水	ウ あめ あま		
 雩	U+96E9	11	yú	U KU KYO KO	AMAGOI	173.3	offer sacrifice for rain	𩁹 𦏻	ウ オ キョ ク コ あまごい		
 雪	U+96EA	11	xuě	SETSU	YUKI SUSUGU	173.3	snow; wipe away shame, avenge	䨮	セツ ゆき すすぐ		
 雫	U+96EB	11	nǎ	DA DAN	SHIZUKU	173.3	a drop, trickle, dripping		ダ しずく		
@@ -25318,7 +25318,7 @@
 霢	U+9722	18	mài	BAKU MYAKU BEKI	KOSAME	173.10	dust	霡 䨫	バク ミャク ベキ		
 霣	U+9723	18	yǔn	IN KON UN	AME	173.10	fall	𫕥 䆬 𩆹	イン コン ウン おちる		
 霤	U+9724	18	liù	RYUU	AMADARE	173.10	drip; rain-water catcher	廇 溜 𩅸 𩅐 𩅑 𩆎 𩆞	リュウ あまだれ		
-霥	U+9725	18	mèng			173.10	drizzle, mist	濛	ボウ モ		
+霥	U+9725	18	mèng			173.10	drizzle, mist	濛 靀	ボウ モ		
 霦	U+9726	19	bīn			173.11			ヒン ハン		
 霧	U+9727	18	wù	MU BU	KIRI	173.11	fog, mist, vapor, fine spray	雾 雺 霚 𩄯 𩅗 霿	ム ブ ボウ モ きり		
 霨	U+9728	19	wèi	I		173.11	clouding		イ		
@@ -25345,7 +25345,7 @@
 霽	U+973D	22	jì	SEI SAI	HARERU	173.14	to clear up after rain; to cease to be angry	霁 𬰁 濟 䨖 𩃟 𩄄	セイ サイ ザイ はれる		
 霾	U+973E	22	mái	BAI	TSUCHIFURU TSUCHIGUMORI	173.14	misty, foggy; dust storm	貍 䨪 𩇁	バイ マイ メ		
 霿	U+973F	21	méng			173.14		霧 𠊮 𢝽 雺	ボウ ム モ ブ		
-靀	U+9740	21	méng			173.14	drizzling, fine rain; mist	濛 𩆬	ボウ モ		
+靀	U+9740	21	méng			173.14	drizzling, fine rain; mist	濛 𩆬 霥	ボウ モ		
 靁	U+9741	23	léi	RAI	KAMINARI	173.15	thick, strong	雷	ライ レ リュウ ル かみなり		
 靂	U+9742	24	lì	REKI RYAKU		173.16	thunderclap, crashing thunder	雳 𥕆 礰 𩆝	レキ リャク		
 靃	U+9743	24	huò	KAKU SUI	HAOTO	173.16		霍	カク スイ		
@@ -25353,7 +25353,7 @@
 靅	U+9745	24	fèi			173.16		𰷦 𠄴 𩃸	ヒ ハイ ヘ		
 靆	U+9746	23	dài	TAI		173.16	cloudy sky; not clear; dark	叇 𩃠 𩃷 霴	タイ ダイ		
 靇	U+9747	24	lóng			173.16		𩄱 隆 龗	ロウ ル レイ		
-靈	U+9748	24	líng	REI RYOU	TAMA	173.16	spirit, soul; spiritual world	灵 𠳄 𡀓 孁 𤫊 𢩙 𢩝 𤴤 𧈀 𧨈 𩁻 𩂳 霊 𩃏 𩃞 𩄀 𩄇 霛 䨩 𩅶 𩆕 𩆒 𩆮 𩇎 龗	レイ リョウ たま		霊
+靈	U+9748	24	líng	REI RYOU	TAMA	173.16	spirit, soul; spiritual world	灵 𠳄 𡀓 孁 𤫊 𢩙 𢩝 𤴤 𧈀 𧨈 𩁻 𩂳 霊 𩃏 𩃞 𩄀 𩄇 霛 䨩 𩅶 𩆕 𩆒 𩆮 𩇎 龗 㚑	レイ リョウ たま		霊
 靉	U+9749	25	ài	AI		173.17	cloudy sky; dark, obscure	叆 𨙤	アイ イ エ		
 靊	U+974A	26	fēng	FUU FU		173.18		霻	フウ フ		
 靋	U+974B	27	lì			173.19		𩄞 𩅩	レキ リャク		
@@ -26365,7 +26365,7 @@
 鬹	U+9B39	21	guī	KI GI KEI E	KAMA	193.11		鬶	ギ エ キ ケイ		
 鬺	U+9B3A	21	shāng	SHOU	NIRU	193.11		𱆌 𩰱 𩱐	ソウ ショウ にる		
 鬻	U+9B3B	22	yù	SHUKU IKU	KAYU HISAGU	193.12	sell; child, childish; nourish	𩱌 𩱱 粥 俼 㣃 𢑎 𩱙	シュク ビ ミ イク キク コク かゆ		
-鬼	U+9B3C	10	guǐ	KI	ONI	194.0	ghost; spirit of dead; devil; Kangxi radical 194; 23rd lunar mansion, determinative star θ Cancri	𢇼 𣆠 𩲡 𤱲 𩲚 𩲞 𩳉 𩳹 𩴿	キ おに		
+鬼	U+9B3C	10	guǐ	KI	ONI	194.0	ghost; spirit of dead; devil; Kangxi radical 194; 23rd lunar mansion, determinative star θ Cancri	𢇼 𣆠 𩲡 𤱲 𩲚 𩲞 𩳉 𩳹 𩴿 甶	キ おに		
 鬽	U+9B3D	12	mèi	BI MI	BAKEMONO	194.3	kind of forest demon, elf	魅	ビ ミ		
 鬾	U+9B3E	13	jì			194.4		𩳣	キ ギ		
 鬿	U+9B3F	13	qí			194.4			キ ゲ		
@@ -26799,7 +26799,7 @@
 鳫	U+9CEB	13	yàn	GAN	KARI	196.2	wild goose	雁 鴈	ガン		
 鳬	U+9CEC	9	fǔ	FU	KAMO KERI	196.2 16.7	wild duck, teal; swim	凫 𠒎 𣹋 鳧	フ かも		
 鳭	U+9CED	13	diāo			196.2		𱉈 𩾗	トウ チョウ		
-鳮	U+9CEE	13	jī	KEI	NIWATORI	196.2	chickens; domestic fowl	雞 鷄	ケイ		
+鳮	U+9CEE	13	jī	KEI	NIWATORI	196.2	chickens; domestic fowl	雞 鷄 鸡	ケイ		
 鳯	U+9CEF	13	fèng	HOU FUU	OOTORI HOUOU	196.2	male phoenix; symbol of joy	鳳	ホウ		
 鳰	U+9CF0	13	rù		NIO	196.2			にお		
 鳱	U+9CF1	14	gān			196.3		𱉊 䧲 𩾝 鴈	カン ガン ゲン		
@@ -27066,7 +27066,7 @@
 鷶	U+9DF6	23	mǎi			196.12		𱉳 𩀺 鸇	バイ メ		
 鷷	U+9DF7	23	zūn			196.12		𫜄 蹲	シュン ソン ゾン		
 鷸	U+9DF8	23	yù	ITSU	SHIGI	196.12	snipe, kingfisher; Tringa species (various)	鹬 𨙧 鶐 𪈄	イツ シュツ イチ ジュチ しぎ		
-鷹	U+9DF9	24	yīng	YOU OU	TAKA	196.13	eagle, falcon; Accipiter species (various)	鹰 𤸰 𤼡 䧹 𨿳 𪇿	オウ ヨウ たか		
+鷹	U+9DF9	24	yīng	YOU OU	TAKA	196.13	eagle, falcon; Accipiter species (various)	鹰 𤸰 𤼡 䧹 𨿳 𪇿 广	オウ ヨウ たか		
 鷺	U+9DFA	24	lù	RO RYO	SAGI	196.12	heron, egret; Ardea species (various)	鹭 𩁐 鴼 𪆽 𪇸	ロ リョ さぎ		
 鷻	U+9DFB	23	tuán			196.12		𳐓 鶉 𪆝 𪆃 𪈶	タイ デ タン ダン		
 鷼	U+9DFC	23	xián			196.12		𲍻 鷳	カン ゲン とび しろきじ		
@@ -27106,7 +27106,7 @@
 鸞	U+9E1E	30	luán	RAN		196.19	mythical bird related to the phoenix	鸾 鵉 鑾	ラン		
 鸟	U+9E1F	5	niǎo			196'.0	bird; Kangxi radical 196	鳥			
 鸠	U+9E20	7	jiū			196'.2	pigeon; collect, assemble	鳩			
-鸡	U+9E21	7	jī			196'.2	chicken	雞 鷄			
+鸡	U+9E21	7	jī			196'.2	chicken	雞 鷄 鳮			
 鸢	U+9E22	8	yuān			196'.3	kite; Milvus species (various)	鳶			
 鸣	U+9E23	8	míng			196'.3	cry of bird or animal; make sound	鳴			
 鸤	U+9E24	8	shī			196'.3	turtledove, cuckoo	鳲			
@@ -27190,7 +27190,7 @@
 鹲	U+9E72	18	méng			196'.14		鸏			
 鹳	U+9E73	22	guàn			196'.17	crane, Grus japonensis; stork; Ciconia species (various)	鸛			
 鹴	U+9E74	22	shuāng			196'.17	eagle	鸘			
-鹵	U+9E75	11	lǔ	RO	SHIO SHIOCHI TATE	197.0	saline soil; natural salt, rock salt; Kangxi radical 197	卤 鑪 𠧸 塷 瀂 𪉖	ロ しお しおち たて		
+鹵	U+9E75	11	lǔ	RO	SHIO SHIOCHI TATE	197.0	saline soil; natural salt, rock salt; Kangxi radical 197	卤 鑪 𠧸 塷 瀂 𪉖 卥	ロ しお しおち たて		
 鹶	U+9E76	15	jīn	KYOU	NIGAI	197.4	salty and bitter; pitiful		キョウ コウ ゴン キン		
 鹷	U+9E77	16	líng			197.5			レイ リョウ		
 鹸	U+9E78	19	jiǎn	KEN KAN SEN	AKU	197.8	alkaline, alkali, lye, salt		ケン カン ゲン セン あく		
@@ -27305,7 +27305,7 @@
 黥	U+9EE5	20	qíng	GEI KEI	IREZUMI	203.8	to tattoo; to brand the face of criminals	剠 䵞 𪐛	ゲイ ケイ ギョウ いれずみ		
 黦	U+9EE6	20	yuè			203.8		䵫 𪑦 𪑲	エツ ウツ ウチ エチ		
 黧	U+9EE7	20	lí	REI RAI RI	KUROI	203.8	a dark, yellowish colour	𩧋 䵩 𪑤 𪑢 𪒁 𪒅 𪒨 𪒚 𪒺 黎	リ レイ ライ きぐろ くろい まだら		
-黨	U+9EE8	20	dǎng	TOU	NAKAMA MURA	203.8	political party, gang, faction	党 儻 讜 䣊 攩	トウ なかま		党
+黨	U+9EE8	20	dǎng	TOU	NAKAMA MURA	203.8	political party, gang, faction	党 儻 讜 䣊 攩 丅	トウ なかま		党
 黩	U+9EE9	20	dú			203.8	to dishonor, defile, corrupt; soiled	黷			
 黪	U+9EEA	20	cǎn			203.8	grey black	黲			
 黫	U+9EEB	21	yān			203.9		黰	アン エン イン		
@@ -27343,7 +27343,7 @@
 鼋	U+9F0B	12	yuán			205'.4	large turtle, sea turtle	黿			
 鼌	U+9F0C	13	cháo			205'.5		鼂			
 鼍	U+9F0D	20	tuó			205'.12	large reptile, water lizard	鼉			
-鼎	U+9F0E	13	dǐng	TEI	KANAE MASANI	206.0	large, three-legged bronze caldron; Kangxi radical 206; hexagram ䷱	𪔂 㫀 𣂨 𣂰 𣃊 𣃒 𥅀 𥇴 鐤 鼑	テイ チョウ かなえ まさに		
+鼎	U+9F0E	13	dǐng	TEI	KANAE MASANI	206.0	large, three-legged bronze caldron; Kangxi radical 206; hexagram ䷱	𪔂 㫀 𣂨 𣂰 𣃊 𣃒 𥅀 𥇴 鐤 鼑 䁀	テイ チョウ かなえ まさに		
 鼏	U+9F0F	14	mì	BEKI MYAKU		206.2	cover of tripod caldron	冪 幂 𠕪	ベキ ミャク		
 鼐	U+9F10	14	nài	DAI NAI DOU NOU	KANAE	206.2	incense tripod		ダイ ナイ ドウ ノウ おおがなえ		
 鼑	U+9F11	14	dǐng	TEI	KANAE	206.2		鼎	テイ		
@@ -27485,7 +27485,7 @@
 龙	U+9F99	5	lóng			212'.0	dragon; symbolic of emperor	龍			
 龚	U+9F9A	11	gōng			212'.6	give, present; reverential	龔			
 龛	U+9F9B	11	kān			212'.6	niche, shrine	龕			
-龜	U+9F9C	16	guī	KI KYUU KIN	KAME	213.0	turtle or tortoise; cuckold; Kangxi radical 213	龟 亀 𪛉	キ キュウ ク キン コン かめ		亀
+龜	U+9F9C	16	guī	KI KYUU KIN	KAME	213.0	turtle or tortoise; cuckold; Kangxi radical 213	龟 亀 𪛉 龜	キ キュウ ク キン コン かめ		亀
 龝	U+9F9D	22	qiū	SHUU	AKI TOKI	213.5	autumn, fall; year	秋 𬓫 穐 䆋	シュウ あき		
 龞	U+9F9E	28	biē	BETSU HETSU	SUPPON	213.12	turtle	𱍈 鱉	ベツ		
 龟	U+9F9F	7	guī			213'.0	turtle or tortoise; cuckold	龟 龜			
@@ -27506,11 +27506,11 @@
 龮	U+9FAE	27				187.17		驥			
 龯	U+9FAF	13				167.5		𨱆 鉞			
 龰	U+9FB0	4	zǒu			77.0					
-龱	U+9FB1	5				31.2		四	ジュ シュウ とらえる		
+龱	U+9FB1	5				31.2		四 田	ジュ シュウ とらえる		
 龲	U+9FB2	18				167.10		𰾋			
 龳	U+9FB3	16				32.13					
 龴	U+9FB4	2				5.1					
-龵	U+9FB5	4	shǒu			64.0					
+龵	U+9FB5	4	shǒu			64.0		丰			
 龶	U+9FB6	4				32.1		主			
 龷	U+9FB7	4				140.1		廿			
 龸	U+9FB8	5				42.2					

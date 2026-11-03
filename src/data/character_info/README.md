@@ -15,7 +15,7 @@ Unihan files. Redistribution of Unihan data must follow the
 build script is BSD-3-Clause like the rest of marinaMoji tooling.
 
 `char_info.tsv` in this tree was built with `--composer-blocks` from Unihan
-(Unicode 18.0.0, 2026-07-31) and `--cjkvi-variants` (below).
+(Unicode 18.0.0, 2026-07-31), `--cjkvi-variants` and `--glyphwiki-itaiji` (below).
 
 ## Output
 
@@ -76,6 +76,17 @@ becomes a problem, rebuild without `--cjkvi-variants`.
 To rebuild with them, put the two files in one folder (fetched from
 `https://raw.githubusercontent.com/cjkvi/cjkvi-variants/master/<file>`) and add
 `--cjkvi-variants /that/folder`.
+
+## GlyphWiki itaiji
+
+`--glyphwiki-itaiji dump_newest_only.txt` (the GlyphWiki dump, see
+`../kage/README.kage.md`) adds a link, both ways, for each glyph named
+`uXXXX-itaiji-NNN` whose data is only another character `uYYYY`: GlyphWiki's
+editors made it as an 異体字 of XXXX. Only pairs where both characters lie in
+the composer blocks are kept; the rare extension characters it also reaches are
+mostly components, not variants. The links are unreviewed, so some are loose
+(for example 来 ↔ 耒). GlyphWiki's licence is in `../kage/LICENSE.GlyphWiki`.
+The checked-in file got 223 links from the 2026-11-02 dump.
 
 ## Drawing data (GlyphWiki)
 
