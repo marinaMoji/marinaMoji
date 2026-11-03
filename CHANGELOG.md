@@ -10,6 +10,24 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.20-rc9
+
+Everything in 0.0.20-rc8 plus:
+
+- **Character composer:** the Construct column has its pale blue-grey
+  background back (the component editor and IDS field stay white), and
+  Structure and Components use the same serif headings as Explore characters
+  and Results. The sample characters on the structure buttons are smaller and
+  muted. An incomplete composition shows one line, "Complete the composition
+  to preview the character.", and no metadata divider is drawn under an empty
+  specimen.
+- **Character info:** variants link to their GlyphWiki itaiji pages.
+- **Linux:** fixed a crash of the Mozc candidate window and invisible
+  candidates on GNOME.
+- **macOS:** GUI tools wait for `AppleInterfaceStyle` before re-syncing the
+  colour scheme. CI runs on macos-15 and retries `xcodebuild` when it aborts
+  while pinning the Xcode config.
+
 ### Release candidate 0.0.20-rc8
 
 Everything in 0.0.20-rc7 plus:
