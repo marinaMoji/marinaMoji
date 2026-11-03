@@ -316,6 +316,12 @@ Some imported words were not recognized by %3. Please check the original import 
         <translation></translation>
     </message>
     <message>
+        <location filename="dictionary_tool.cc" line="1200"/>
+        <source>%1 already exists.
+Do you want to replace it?</source>
+        <translation></translation>
+    </message>
+    <message>
         <location filename="dictionary_tool.cc" line="1038"/>
         <source>Do you want to delete this word?</source>
         <translation></translation>
@@ -425,7 +431,7 @@ The target dictionary can have maximum %1 entries.</source>
     </message>
     <message>
         <location filename="import_dialog.cc" line="29"/>
-        <source>Google</source>
+        <source>marinaMoji</source>
         <translation></translation>
     </message>
     <message>

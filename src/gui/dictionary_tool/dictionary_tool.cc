@@ -82,6 +82,7 @@
 #include "gui/base/util.h"
 #include "gui/config_dialog/combobox_delegate.h"
 #include "gui/config_dialog/config_dialog_theme.h"
+#include "gui/dictionary_tool/export_file_name.h"
 #include "gui/dictionary_tool/find_dialog.h"
 #include "gui/dictionary_tool/import_dialog.h"
 #include "protocol/commands.pb.h"
@@ -1167,10 +1168,31 @@ void DictionaryTool::ExportDictionary() {
     return;
   }
 
-  const QString file_name = QFileDialog::getSaveFileName(
-      this, tr("Export dictionary"), QDir::homePath(),
-      tr("Text Files (*.txt);;All Files (*)"));
-  if (file_name.isEmpty()) {
+  // Exported files get a .txt extension when the user types none, so that the
+  // import dialog's "Text Files (*.txt *.tsv)" filter finds them again.
+  // setDefaultSuffix covers the Qt dialog (and its overwrite prompt); native
+  // dialogs may ignore it, so AddDefaultExportExtension is applied after.
+  QFileDialog dialog(this, tr("Export dictionary"), QDir::homePath(),
+                     tr("Text Files (*.txt);;All Files (*)"));
+  dialog.setAcceptMode(QFileDialog::AcceptSave);
+  dialog.setFileMode(QFileDialog::AnyFile);
+  dialog.setDefaultSuffix(QUtf8(kDictionaryExportExtension));
+  if (dialog.exec() != QDialog::Accepted || dialog.selectedFiles().isEmpty()) {
+    return;
+  }
+  const QString selected_name = dialog.selectedFiles().constFirst();
+  if (selected_name.isEmpty()) {
+    return;
+  }
+  const QString file_name =
+      QUtf8(AddDefaultExportExtension(selected_name.toStdString()));
+  if (file_name != selected_name && QFileInfo::exists(file_name) &&
+      QMessageBox::question(
+          this, window_title_,
+          tr("%1 already exists.\nDo you want to replace it?")
+              .arg(QDir::toNativeSeparators(file_name)),
+          QMessageBox::Yes | QMessageBox::No,
+          QMessageBox::No) != QMessageBox::Yes) {
     return;
   }
 

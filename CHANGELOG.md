@@ -12,6 +12,19 @@ changed and, where it isn't obvious, why.
 
 Changes since 0.0.20-rc9:
 
+- **Dictionary tool, export:** an exported dictionary now gets a `.txt`
+  extension when none is typed, so **Import as new dictionary...** /
+  **Import to current dictionary...** list it again; the import file picker
+  shows only `*.txt *.tsv` by default, and exports used to keep whatever bare
+  name was typed. The save dialog sets `txt` as its default suffix, and
+  `AddDefaultExportExtension()` (`gui/dictionary_tool/export_file_name.{h,cc}`,
+  with tests) adds it afterwards for native dialogs that ignore that, asking
+  before replacing an existing `.txt`. A name that already has an extension
+  (`.tsv`, `.csv`, ...) is kept as typed.
+  - The import dialog's format list calls the native format **marinaMoji**
+    instead of upstream's "Google" (en/fr/ja `.qtts` updated, `.qm`
+    regenerated with `lrelease`).
+
 - **Character composer, characters no font can draw:** the check behind
   "N more are hidden because no installed font can draw them" now asks what
   Qt can really draw. It used to look only at the fonts the result tiles name

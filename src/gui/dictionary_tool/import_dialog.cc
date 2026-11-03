@@ -51,7 +51,8 @@ ImportDialog::ImportDialog(QWidget* parent)
   // Initialize combo boxes for lists of IMEs and character encodings.
   ime_combobox_->addItem(tr("Auto detection"),
                          static_cast<int>(user_dictionary::IME_AUTO_DETECT));
-  ime_combobox_->addItem(tr("Google"), static_cast<int>(user_dictionary::MOZC));
+  ime_combobox_->addItem(tr("marinaMoji"),
+                         static_cast<int>(user_dictionary::MOZC));
 
 #ifdef _WIN32
   ime_combobox_->addItem(tr("Microsoft IME"),

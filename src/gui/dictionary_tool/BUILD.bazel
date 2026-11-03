@@ -29,6 +29,8 @@
 
 load(
     "//:build_defs.bzl",
+    "mozc_cc_library",
+    "mozc_cc_test",
     "mozc_infoplist_strings",
     "mozc_select",
 )
@@ -123,6 +125,28 @@ mozc_qt_rcc(
     qrc_name = "qrc_dictionary_tool",
 )
 
+# Adds .txt to an export file name typed without an extension. No Qt, so it
+# can be tested without a display.
+mozc_cc_library(
+    name = "export_file_name",
+    srcs = ["export_file_name.cc"],
+    hdrs = ["export_file_name.h"],
+    deps = [
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+mozc_cc_test(
+    name = "export_file_name_test",
+    size = "small",
+    srcs = ["export_file_name_test.cc"],
+    deps = [
+        ":export_file_name",
+        "//testing:gunit_main",
+    ],
+)
+
 mozc_cc_qt_library(
     name = "dictionary_tool",
     srcs = [
@@ -150,6 +174,7 @@ mozc_cc_qt_library(
         ":uic_import_dialog",
     ],
     deps = [
+        ":export_file_name",
         "//base:file_stream",
         "//base:file_util",
         "//base:process",
