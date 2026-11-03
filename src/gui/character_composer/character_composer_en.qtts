@@ -96,8 +96,8 @@
         <translation>Drawing copied to the clipboard.</translation>
     </message>
     <message>
-        <source>Fill in every box to look up the character.</source>
-        <translation>Fill in every box to look up the character.</translation>
+        <source>Complete the composition to preview the character.</source>
+        <translation>Complete the composition to preview the character.</translation>
     </message>
     <message>
         <source>Copied to the clipboard.</source>
@@ -234,14 +234,6 @@
     <message>
         <source>Encoded character</source>
         <translation>Encoded character</translation>
-    </message>
-    <message>
-        <source>Incomplete composition</source>
-        <translation>Incomplete composition</translation>
-    </message>
-    <message>
-        <source>Enter a character in each component box.</source>
-        <translation>Enter a character in each component box.</translation>
     </message>
     <message>
         <source>Left / Right</source>

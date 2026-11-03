@@ -479,6 +479,7 @@ class CharacterComposerDialog : public QDialog {
   QLabel *other_label_ = nullptr;
   QLabel *other_value_ = nullptr;
   QWidget *info_table_ = nullptr;
+  QFrame *info_rule_ = nullptr;
   QLineEdit *break_apart_edit_ = nullptr;
   QComboBox *decomposition_combo_ = nullptr;
   QLineEdit *containing_edit_ = nullptr;

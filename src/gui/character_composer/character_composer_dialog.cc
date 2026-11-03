@@ -583,8 +583,9 @@ QString ComposerStylesheet(bool dark) {
   QString qss = QStringLiteral(
       "QDialog#CharacterComposerDialog {"
       "  background-color: @@WINDOW@@; }"
-      "QWidget#constructPanel, QWidget#examinePanel, QWidget#discoverPanel {"
+      "QWidget#examinePanel, QWidget#discoverPanel {"
       "  background-color: @@WINDOW@@; }"
+      "QWidget#constructPanel { background-color: @@SIDEBAR@@; }"
       "QScrollArea#examineScroll, QScrollArea#examineScroll > QWidget > QWidget {"
       "  background: transparent; border: none; }"
       "QFrame#columnRule, QFrame#footerRule {"
@@ -623,8 +624,9 @@ QString ComposerStylesheet(bool dark) {
       "QToolButton#viewMenuButton::menu-indicator { image: none; width: 0; }"
       "QLabel#specimenGlyph {"
       "  background: transparent; border: none; padding: 0; margin: 0; }"
+      "QLabel#specimenGlyph[prompt=\"true\"] { color: @@SECONDARY@@; }"
       "QWidget#layoutEditor {"
-      "  background-color: @@SIDEBAR@@;"
+      "  background-color: @@RAISED@@;"
       "  border: 1px solid @@RULE@@; border-radius: 2px; }"
       "QWidget#specimenGroup {"
       "  background: transparent; border: none; }"
@@ -654,7 +656,7 @@ QString ComposerStylesheet(bool dark) {
       "  border: 1px solid @@ACCENT@@; }"
 
       "QToolButton#structureButton {"
-      "  color: @@TEXT@@; background: transparent; border: 1px solid @@RULE@@;"
+      "  color: @@SECONDARY@@; background: transparent; border: 1px solid @@RULE@@;"
       "  border-radius: 3px; padding: 2px 0 1px 0; }"
       "QToolButton#structureButton:hover {"
       "  background: @@RAISED@@; border-color: @@ACCENT@@; }"
@@ -1827,7 +1829,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
     const QString example = StructureExample(std::string(info.op));
     button->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     button->setText(example);
-    button->setFont(theme::UiFont(12));
+    button->setFont(theme::UiFont(10));
     button->setToolTip(QStringLiteral("%1  %2  %3  ·  %4")
                            .arg(FromUtf8(std::string(info.op)),
                                 FromUtf8(std::string(info.abbr)),
@@ -1886,14 +1888,11 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   auto *construct = new QVBoxLayout(construct_panel_);
   construct->setContentsMargins(12, 12, 10, 8);
   construct->setSpacing(6);
-  construct->addWidget(MakeCaption(Tr("Structure"), construct_panel_));
+  construct->addWidget(MakeSectionHeading(Tr("Structure"), construct_panel_));
   construct->addLayout(palette_grid);
   construct->addSpacing(6);
-  auto *components_header = new QHBoxLayout;
-  components_header->setSpacing(8);
-  components_header->addWidget(MakeCaption(Tr("Components"), construct_panel_));
-  components_header->addWidget(component_roles_label_, 1);
-  construct->addLayout(components_header);
+  construct->addWidget(MakeSectionHeading(Tr("Components"), construct_panel_,
+                                          component_roles_label_));
   construct->addWidget(editor_, 0);
   construct->addSpacing(6);
   construct->addLayout(ids_header);
@@ -2027,7 +2026,8 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
     grid->addWidget(rows[r].val, r, 1);
   }
 
-  auto *info_rule = new QFrame(this);
+  info_rule_ = new QFrame(this);
+  auto *info_rule = info_rule_;
   info_rule->setObjectName(QStringLiteral("sectionRule"));
   info_rule->setFrameShape(QFrame::HLine);
   info_rule->setFixedHeight(1);
@@ -2395,8 +2395,10 @@ void CharacterComposerDialog::UpdateCharInfoTable(
     SetInfoRow(strokes_label_, strokes_value_, QString());
     SetInfoRow(radical_label_, radical_value_, QString());
     SetInfoRow(other_label_, other_value_, QString());
+    info_rule_->setVisible(false);
     return;
   }
+  info_rule_->setVisible(true);
 
   QStringList on;
   QStringList kun;
@@ -2592,6 +2594,7 @@ void CharacterComposerDialog::RefreshActiveView() {
   QString status_heading;
   QString status_detail;
   bool insertable = false;
+  bool prompt_shown = false;
   const composer_ids::CharInfo *info = nullptr;
 
   if (search_active) {
@@ -2648,15 +2651,20 @@ void CharacterComposerDialog::RefreshActiveView() {
              "(Kaeriten → Insert composed character) or other office plugins.");
       insertable = true;
     } else {
-      QFont prompt = theme::UiFont(13);
-      char_label_->setFont(prompt);
+      char_label_->setFont(theme::UiFont(13));
       char_label_->setPixmap(QPixmap());
-      char_label_->setText(Tr("Fill in every box to look up the character."));
-      status_heading = Tr("Incomplete composition");
-      if (status_detail.isEmpty()) {
-        status_detail = Tr("Enter a character in each component box.");
-      }
+      char_label_->setText(Tr("Complete the composition to preview the character."));
+      prompt_shown = true;
     }
+  }
+  if (char_label_->property("prompt").toBool() != prompt_shown) {
+    char_label_->setProperty("prompt", prompt_shown);
+    char_label_->setWordWrap(prompt_shown);
+    char_label_->setAlignment(prompt_shown
+                                  ? Qt::AlignHCenter | Qt::AlignVCenter
+                                  : Qt::AlignHCenter | Qt::AlignBottom);
+    char_label_->style()->unpolish(char_label_);
+    char_label_->style()->polish(char_label_);
   }
 
   if (!note_.isEmpty()) status_detail = note_;
