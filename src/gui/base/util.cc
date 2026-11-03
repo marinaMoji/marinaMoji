@@ -48,6 +48,7 @@
 #include <QStringList>
 #include <QStyleFactory>
 #include <QStyleHints>
+#include <QTimer>
 #include <QtGui>
 #include <memory>
 #include <string>
@@ -160,7 +161,11 @@ void InstallAppearanceChangeObserver() {
   CFNotificationCenterAddObserver(
       CFNotificationCenterGetDistributedCenter(), nullptr,
       [](CFNotificationCenterRef, void *, CFNotificationName, const void *,
-         CFDictionaryRef) { SyncFusionColorSchemeFromSystem(); },
+         CFDictionaryRef) {
+        // The notification arrives before AppleInterfaceStyle is rewritten,
+        // so reading it now gives the previous mode. Wait a moment.
+        QTimer::singleShot(300, [] { SyncFusionColorSchemeFromSystem(); });
+      },
       CFSTR("AppleInterfaceThemeChangedNotification"), nullptr,
       CFNotificationSuspensionBehaviorDeliverImmediately);
 }
