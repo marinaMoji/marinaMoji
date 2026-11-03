@@ -31,6 +31,7 @@
 #define MOZC_RENDERER_QT_QT_WINDOW_MANAGER_H_
 
 #include <QtWidgets>
+#include <optional>
 #include <utility>
 
 #include "base/coordinates.h"
@@ -175,8 +176,10 @@ class QtWindowManager {
   RendererStyleHandler::ColorTheme color_theme_ =
       RendererStyleHandler::ColorTheme::kLight;
   RendererStyle style_;
-  // Footer logo for the current theme; null when the SVG cannot be loaded.
-  QPixmap logo_;
+  // Footer logo for the current theme. Must stay optional: QtServer constructs
+  // QtWindowManager before QApplication, and a default QPixmap() aborts on
+  // Qt 6 ("Must construct a QGuiApplication before a QPixmap").
+  std::optional<QPixmap> logo_;
   commands::RendererCommand prev_command_;
   client::SendCommandInterface *send_command_interface_ = nullptr;
 };

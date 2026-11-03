@@ -552,7 +552,7 @@ void QtWindowManager::ApplyStyleToWidgets() {
   g_mask_radius = static_cast<int>(style_.corner_radius());
   logo_ = LoadFooterLogo(style_);
   if (candidate_delegate_ != nullptr) {
-    candidate_delegate_->SetLogo(logo_);
+    candidate_delegate_->SetLogo(logo_.value_or(QPixmap()));
     candidate_delegate_->SetGradientColors(
         QColorFromColor(style_.footer_top_color()),
         QColorFromColor(style_.footer_bottom_color()));
@@ -1064,7 +1064,8 @@ Rect QtWindowManager::UpdateCandidateWindow(
       command.output().candidate_window();
 
   if (IsUpdated(prev_command_, command)) {
-    FillCandidateWindow(candidate_window, style_, logo_, candidates_);
+    FillCandidateWindow(candidate_window, style_, logo_.value_or(QPixmap()),
+                        candidates_);
     const Size win_size(candidates_->width(), candidates_->height());
     const Point win_pos = GetWindowPosition(command, win_size);
     MoveContent(candidates_, win_pos.x, win_pos.y);

@@ -1482,11 +1482,16 @@ void MozcEngine::RevertSession(IbusEngineWrapper* engine) {
 bool MozcEngine::IsUsableCursorArea(
     const IbusEngineWrapper::Rectangle& area) {
   // An all-zero rect is what the engine holds before any app has reported a
-  // caret, and what some toolkits report while a menu owns the focus. A
-  // zero-sized one is just as useless: the renderer places the window under
-  // the rect's bottom-left, so both land in the top-left corner of the
-  // screen.
-  if (area.width <= 0 || area.height <= 0) {
+  // caret, and what some toolkits report while a menu owns the focus.
+  // Reject that so we do not paint the candidate window in the top-left
+  // corner (issue #25).
+  //
+  // Caret rectangles often have width 0 (a vertical I-beam) with a positive
+  // line height. Requiring width > 0 used to treat those as unusable, so
+  // every Mozc candidate draw was deferred forever on GNOME/Wayland apps
+  // that report w=0 (e.g. x=504 y=490 w=0 h=44). Height and a non-(0,0)
+  // origin are enough to place the window under the caret.
+  if (area.height <= 0) {
     return false;
   }
   return area.x != 0 || area.y != 0;
