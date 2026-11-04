@@ -4388,6 +4388,32 @@ TEST_F(UserHistoryPredictorTest, JoinedSegmentsTestDesktop) {
   segments_proxy.Clear();
 }
 
+// marinaMoji (#106): two entries committed separately (linked, but not
+// together) must not be appended to each other into a phrase nobody committed.
+TEST_F(UserHistoryPredictorTest, NoSynthesizedPhraseFromSeparateCommits) {
+  UserHistoryPredictor* predictor = GetUserHistoryPredictorWithClearedHistory();
+  ScopedClockMock clock(absl::FromUnixSeconds(1000));
+  SegmentsProxy segments_proxy;
+
+  const ConversionRequest convreq1 =
+      SetUpInputForConversion("さん", &composer_, &segments_proxy);
+  segments_proxy.AddCandidate(0, "産");
+  predictor->Finish(convreq1, segments_proxy.MakeLearningResults(), kRevertId);
+
+  clock->Advance(absl::Hours(48));
+  segments_proxy.Clear();
+  const ConversionRequest convreq2 = SetUpInputForConversionWithHistory(
+      "わか", "さん", "産", &composer_, &segments_proxy);
+  segments_proxy.AddCandidate(1, "和歌");
+  predictor->Finish(convreq2, segments_proxy.MakeLearningResults(), kRevertId);
+
+  segments_proxy.Clear();
+  const ConversionRequest convreq3 =
+      SetUpInputForSuggestion("さんわか", &composer_, &segments_proxy);
+  const std::vector<Result> results = predictor->Predict(convreq3);
+  EXPECT_FALSE(FindCandidateByValue("産和歌", results));
+}
+
 TEST_F(UserHistoryPredictorTest, PunctuationLink) {
   UserHistoryPredictor* predictor = GetUserHistoryPredictorWithClearedHistory();
   request_test_util::FillMobileRequest(&request_);

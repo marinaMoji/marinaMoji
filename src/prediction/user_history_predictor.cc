@@ -898,6 +898,17 @@ bool UserHistoryPredictor::GetKeyValueForExactAndRightPrefixMatch(
     }
     if (next_entry == nullptr) {
       next_entry = latest_entry;
+      // marinaMoji (#106): the most recent link of any age was not necessarily
+      // chosen together with this entry; appending it would synthesize a phrase
+      // from unrelated historical choices (e.g. 産 + 和歌). Trust it only when
+      // it was committed right after the current entry (typed in sequence).
+      constexpr int64_t kMaxSequentialLinkSeconds = 10;
+      if (next_entry != nullptr &&
+          std::abs(static_cast<int64_t>(next_entry->last_access_time()) -
+                   static_cast<int64_t>(current_entry->last_access_time())) >
+              kMaxSequentialLinkSeconds) {
+        break;
+      }
     }
 
     // Don't predict the next phrase if it starts with punctuation.
