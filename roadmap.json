@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-05T14:03:30+00:00",
+  "generated": "2026-11-05T19:33:32+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -499,7 +499,7 @@
       "description_en": "After Milestone 2, run a lab beta with a small group for roughly six months. Collect and triage feedback from real use, then summarize unresolved issues and recommendations before Milestone 3. Completing this period is a prerequisite for Milestone 3.",
       "description_fr": "Après le jalon 2, organiser une bêta de laboratoire avec un petit groupe pendant environ six mois. Recueillir et trier les retours issus d’usages réels, puis résumer les problèmes non résolus et les recommandations avant le jalon 3. Cette période est un prérequis au jalon 3.",
       "description_ja": "マイルストーン2の後、小グループで約6か月間ラボベータを実施します。実際の利用からフィードバックを収集・整理し、マイルストーン3の前に未解決の問題と提案をまとめます。この期間の完了はマイルストーン3の前提条件です。",
-      "depends_on": "issue-129"
+      "depends_on": "issue-149,issue-129"
     },
     {
       "id": "issue-139",
@@ -620,6 +620,26 @@
       "description_fr": "Tester le plugin LibreOffice soumis, corriger les problèmes bloquants et consigner les problèmes restants avant le jalon 2.",
       "description_ja": "申請したLibreOfficeプラグインをテストし、公開を妨げる不具合を修正して、マイルストーン2までに残る問題を記録します。",
       "depends_on": "plugin-15"
+    },
+    {
+      "id": "issue-149",
+      "ref": "marinaMoji/marinaMoji#149",
+      "github_url": "https://github.com/marinaMoji/marinaMoji/issues/149",
+      "state": "OPEN",
+      "status": "planned",
+      "milestone": "Laboratory beta",
+      "assignee": null,
+      "progress": null,
+      "category": null,
+      "type": "capability",
+      "layer": null,
+      "title_en": "Plugins: Windows QA for the Word add-in",
+      "title_fr": "Plugins: Windows QA for the Word add-in",
+      "title_ja": "Plugins: Windows QA for the Word add-in",
+      "description_en": null,
+      "description_fr": null,
+      "description_ja": null,
+      "depends_on": null
     },
     {
       "id": "issue-153",
