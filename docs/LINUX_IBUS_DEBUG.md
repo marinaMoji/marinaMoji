@@ -125,6 +125,8 @@ Key tags:
 | `engine.lifecycle surround_stale_after_echo_back set` | Declined Return may have left surrounding text stale |
 | `engine.lifecycle set_cursor_location … surround_stale_cleared=1` | Client reported a new caret; stale flag cleared |
 | `engine.lifecycle surround_stale_after_echo_back cleared` | Stale flag cleared (`reason=consumed_key` or cursor update) |
+| `engine.selection resolved source=surrounding\|primary\|atspi\|caret` | How related/components/reconvert got its text (Wayland fallbacks) |
+| `engine.selection resolve_failed` | No usable text from surrounding, primary, AT-SPI, or caret |
 
 If Return fails in the app but the log shows `return_output_consumed consumed=0`,
 the bug is **after** the engine (IBus GTK module or the application), not inside

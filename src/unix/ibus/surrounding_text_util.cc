@@ -33,6 +33,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/strings/string_view.h"
@@ -175,6 +176,109 @@ bool SurroundingTextUtil::GetAnchorPosFromSelection(
 
   return SearchAnchorPosBackward(surrounding_text, selected_text,
                                  selected_chars_len, cursor_pos, anchor_pos);
+}
+
+namespace {
+
+bool IsWordBreakingSpace(char32_t cp) {
+  return cp == ' ' || cp == u'\u3000' || cp == '\n' || cp == '\r' || cp == '\t';
+}
+
+}  // namespace
+
+std::string SurroundingTextUtil::CharsBeforeCursor(
+    absl::string_view surrounding_text, size_t cursor_pos, size_t max_chars) {
+  if (cursor_pos == 0 || max_chars == 0) {
+    return "";
+  }
+  const size_t surrounding_chars = Util::CharsLen(surrounding_text);
+  if (cursor_pos > surrounding_chars) {
+    return "";
+  }
+  const size_t take = std::min(cursor_pos, max_chars);
+  std::string out;
+  Util::Utf8SubString(surrounding_text, cursor_pos - take, take, &out);
+  return out;
+}
+
+std::string SurroundingTextUtil::CharsAfterCursor(
+    absl::string_view surrounding_text, size_t cursor_pos, size_t max_chars) {
+  if (max_chars == 0) {
+    return "";
+  }
+  const size_t surrounding_chars = Util::CharsLen(surrounding_text);
+  if (cursor_pos >= surrounding_chars) {
+    return "";
+  }
+  const size_t take = std::min(surrounding_chars - cursor_pos, max_chars);
+  std::string out;
+  Util::Utf8SubString(surrounding_text, cursor_pos, take, &out);
+  return out;
+}
+
+std::string SurroundingTextUtil::WordBeforeCursor(
+    absl::string_view surrounding_text, size_t cursor_pos, size_t max_chars) {
+  const std::string before =
+      CharsBeforeCursor(surrounding_text, cursor_pos, max_chars);
+  if (before.empty()) {
+    return "";
+  }
+  // Walk code points from the end; stop at the first whitespace.
+  std::vector<std::string> chars;
+  for (ConstChar32Iterator iter(before); !iter.Done(); iter.Next()) {
+    chars.emplace_back(Util::CodepointToUtf8(iter.Get()));
+  }
+  std::string word;
+  for (auto it = chars.rbegin(); it != chars.rend(); ++it) {
+    const char32_t cp = Util::Utf8ToCodepoint(*it);
+    if (IsWordBreakingSpace(cp)) {
+      break;
+    }
+    word.insert(0, *it);
+  }
+  return word;
+}
+
+std::string SurroundingTextUtil::WordAfterCursor(
+    absl::string_view surrounding_text, size_t cursor_pos, size_t max_chars) {
+  const std::string after =
+      CharsAfterCursor(surrounding_text, cursor_pos, max_chars);
+  if (after.empty()) {
+    return "";
+  }
+  std::string word;
+  for (ConstChar32Iterator iter(after); !iter.Done(); iter.Next()) {
+    const char32_t cp = iter.Get();
+    if (IsWordBreakingSpace(cp)) {
+      break;
+    }
+    Util::CodepointToUtf8Append(cp, &word);
+  }
+  return word;
+}
+
+bool SurroundingTextUtil::SelectionEndsAtCursor(
+    absl::string_view surrounding_text, size_t cursor_pos,
+    absl::string_view needle, int32_t* deletion_offset,
+    int32_t* deletion_length) {
+  DCHECK(deletion_offset);
+  DCHECK(deletion_length);
+  const size_t needle_len = Util::CharsLen(needle);
+  if (needle_len == 0 || cursor_pos < needle_len) {
+    return false;
+  }
+  if (cursor_pos > Util::CharsLen(surrounding_text)) {
+    return false;
+  }
+  std::string slice;
+  Util::Utf8SubString(surrounding_text, cursor_pos - needle_len, needle_len,
+                      &slice);
+  if (slice != needle) {
+    return false;
+  }
+  *deletion_offset = -static_cast<int32_t>(needle_len);
+  *deletion_length = static_cast<int32_t>(needle_len);
+  return true;
 }
 
 }  // namespace ibus

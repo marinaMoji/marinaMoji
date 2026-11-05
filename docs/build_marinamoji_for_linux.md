@@ -23,6 +23,7 @@ bazelisk build package --config oss_linux --config release_build \
 
 ```sh
 sudo unzip -o bazel-bin/unix/mozc.zip -d /
+sudo apt install -y wl-clipboard   # Wayland selection fallback (wl-paste)
 ibus write-cache && ibus restart
 ```
 

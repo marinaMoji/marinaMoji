@@ -168,9 +168,12 @@ From the **`marinaMoji/src`** directory:
 
 ```bash
 sudo unzip -o bazel-bin/unix/mozc.zip -d /
+sudo apt install -y wl-clipboard
 ```
 
 This unpacks the engine, server, icons, sync daemon, and IBus component into system directories (e.g. `/usr/lib/marinamoji/`, `/usr/lib/ibus-marinamoji/`, `/usr/share/ibus/component/marinamoji.xml`).
+
+`wl-clipboard` is a **runtime** dependency (not needed to compile). It provides `wl-paste`, which the IBus engine uses on Wayland to read a mouse selection for related characters, component search, and reconvert. The `.deb` / Arch packages pull it in automatically; zip installs need this apt line.
 
 ### 4.2 Enable the sync daemon (optional but recommended)
 
@@ -346,7 +349,9 @@ bazelisk build package --config oss_linux --config release_build
 2. **Bazelisk:** Download the Linux binary from GitHub, put it in `PATH` as `bazelisk`, and run `bazelisk version`.
 3. **Clone:** `git clone ... marinaMoji --recursive` and `cd marinaMoji/src`.
 4. **Build:** `bazelisk build package --config oss_linux --config release_build`.
-5. **Install:** `sudo unzip -o bazel-bin/unix/mozc.zip -d /`.
+5. **Install:** `sudo unzip -o bazel-bin/unix/mozc.zip -d /`, then
+   `sudo apt install -y wl-clipboard` (runtime; pulled in automatically by the
+   `.deb` / Arch packages).
 6. **Reload:** `ibus write-cache` and `ibus restart`.
 7. **Add input method:** In Settings, add **Japanese → marinaMoji**.
 

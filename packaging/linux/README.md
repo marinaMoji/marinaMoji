@@ -76,6 +76,7 @@ Packaging-only checks after building or downloading a `.deb`. For IME
 behaviour, use the project’s WP7 testing checklist.
 
 1. Install with `sudo apt install ./marinamoji_*.deb` (or from the apt repo).
+   apt should pull in `wl-clipboard` (Wayland selection via `wl-paste`).
 2. Confirm `/usr/share/ibus/component/marinamoji.xml` exists.
 3. If marinaMoji is missing from input sources, run `ibus write-cache` and
    `ibus restart` (or re-login), then add **marinaMoji** in Settings.

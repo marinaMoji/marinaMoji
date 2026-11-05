@@ -76,6 +76,7 @@
 #include "unix/ibus/mozc_toolbar.h"
 #include "unix/ibus/preedit_handler.h"
 #include "unix/ibus/property_handler.h"
+#include "unix/ibus/selection_text_resolver.h"
 #include "unix/ibus/surrounding_text_util.h"
 #include "unix/ibus/sync_overlay.h"
 #include "sync/sync_activity.h"
@@ -146,6 +147,11 @@ struct SurroundingTextInfo {
   std::string preceding_text;
   std::string selection_text;
   std::string following_text;
+  // Full surrounding string and caret (character offsets). Used by the Wayland
+  // selection fallbacks when cursor_pos == anchor_pos.
+  std::string surrounding_text;
+  uint cursor_pos = 0;
+  uint anchor_pos = 0;
 };
 
 bool GetSurroundingText(IbusEngineWrapper* engine, SurroundingTextInfo* info) {
@@ -188,12 +194,30 @@ bool GetSurroundingText(IbusEngineWrapper* engine, SurroundingTextInfo* info) {
     return false;
   }
 
+  info->surrounding_text = std::string(surrounding_text);
+  info->cursor_pos = cursor_pos;
+  info->anchor_pos = anchor_pos;
   Util::Utf8SubString(surrounding_text, 0, pos1, &(info->preceding_text));
   Util::Utf8SubString(surrounding_text, pos1, selection_length,
                       &(info->selection_text));
   Util::Utf8SubString(surrounding_text, pos2, text_length - pos2,
                       &(info->following_text));
   return true;
+}
+
+SurroundingSnapshot ToSurroundingSnapshot(const SurroundingTextInfo& info,
+                                          bool available) {
+  SurroundingSnapshot snapshot;
+  snapshot.available = available;
+  if (!available) {
+    return snapshot;
+  }
+  snapshot.cursor_pos = info.cursor_pos;
+  snapshot.anchor_pos = info.anchor_pos;
+  snapshot.relative_selected_length = info.relative_selected_length;
+  snapshot.surrounding_text = info.surrounding_text;
+  snapshot.selection_text = info.selection_text;
+  return snapshot;
 }
 
 std::unique_ptr<client::ClientInterface> CreateAndConfigureClient() {
@@ -1328,7 +1352,12 @@ bool MozcEngine::UpdateAll(IbusEngineWrapper* engine,
 
 bool MozcEngine::UpdateDeletionRange(IbusEngineWrapper* engine,
                                      const commands::Output& output) {
-  if (!output.has_deletion_range() || output.deletion_range().offset() >= 0 ||
+  // offset < 0: delete characters before the caret (classic reconvert).
+  // offset == 0 with length > 0: delete forward from the caret (Wayland caret
+  // fallback when the caret sits at the start of the former selection).
+  // offset > 0 is unused and rejected.
+  if (!output.has_deletion_range() || output.deletion_range().length() <= 0 ||
+      output.deletion_range().offset() > 0 ||
       output.deletion_range().offset() + output.deletion_range().length() < 0) {
     return true;
   }
@@ -1636,6 +1665,7 @@ bool MozcEngine::ExecuteCallback(IbusEngineWrapper* engine,
   // because you cannot safely use |-relative_selected_length| nor
   // |abs(relative_selected_length)| in this case due to integer overflow.
   SurroundingTextInfo surrounding_text_info;
+  ResolvedSelection resolved_selection;
 
   switch (callback_command.type()) {
     case commands::SessionCommand::UNDO:
@@ -1649,10 +1679,30 @@ bool MozcEngine::ExecuteCallback(IbusEngineWrapper* engine,
     case commands::SessionCommand::CONVERT_REVERSE:
     case commands::SessionCommand::CONVERT_RELATED:
     case commands::SessionCommand::CONVERT_COMPONENTS: {
-      if (!GetSurroundingText(engine, &surrounding_text_info)) {
+      // Surrounding selection is preferred, but on GNOME Wayland cursor and
+      // anchor are often equal (ibus#2760). Fall back to primary selection,
+      // AT-SPI, then characters left of the caret.
+      const bool surrounding_ok =
+          GetSurroundingText(engine, &surrounding_text_info);
+      resolved_selection = ResolveSelectionForCommand(
+          callback_command.type(),
+          ToSurroundingSnapshot(surrounding_text_info, surrounding_ok));
+      if (resolved_selection.text.empty()) {
+        MaybeLogIbusDebug(
+            "engine.selection",
+            "resolve_failed type=%d surrounding=%d cursor=%u chars=%zu",
+            static_cast<int>(callback_command.type()), surrounding_ok ? 1 : 0,
+            surrounding_text_info.cursor_pos,
+            Util::CharsLen(surrounding_text_info.surrounding_text));
         return false;
       }
-      session_command.set_text(surrounding_text_info.selection_text);
+      MaybeLogIbusDebug(
+          "engine.selection",
+          "resolved source=%s chars=%zu can_delete=%d",
+          SelectionSourceName(resolved_selection.source),
+          Util::CharsLen(resolved_selection.text),
+          resolved_selection.can_delete ? 1 : 0);
+      session_command.set_text(resolved_selection.text);
       break;
     }
     default:
@@ -1671,22 +1721,13 @@ bool MozcEngine::ExecuteCallback(IbusEngineWrapper* engine,
         callback_command.type() ==
             commands::SessionCommand::CONVERT_COMPONENTS) &&
        (new_output.has_preedit() || new_output.has_candidate_window()));
-  if (replace_selection) {
-    // We need to remove selected text as a first step of reconversion /
-    // related-character conversion.
+  if (replace_selection && resolved_selection.can_delete &&
+      resolved_selection.deletion_offset <= 0 &&
+      resolved_selection.deletion_length > 0) {
+    // Remove the text we are converting so the candidate can replace it.
     commands::DeletionRange* range = new_output.mutable_deletion_range();
-    // Use DeletionRange field to remove the selected text.
-    // For forward selection (that is, |relative_selected_length > 0|), the
-    // offset should be a negative value to delete preceding text.
-    // For backward selection (that is, |relative_selected_length < 0|),
-    // IBus and/or some applications seem to expect |offset == 0| somehow.
-    const int32_t offset =
-        surrounding_text_info.relative_selected_length > 0
-            ? -surrounding_text_info
-                   .relative_selected_length  // forward selection
-            : 0;                              // backward selection
-    range->set_offset(offset);
-    range->set_length(abs(surrounding_text_info.relative_selected_length));
+    range->set_offset(resolved_selection.deletion_offset);
+    range->set_length(resolved_selection.deletion_length);
   }
 
   // Here uses recursion of UpdateAll but it's okay because the converter

@@ -31,6 +31,7 @@
 #define MOZC_UNIX_IBUS_SURROUNDING_TEXT_UTIL_H_
 
 #include <cstdint>
+#include <string>
 
 #include "absl/strings/string_view.h"
 #include "unix/ibus/ibus_header.h"
@@ -65,6 +66,35 @@ class SurroundingTextUtil {
   static bool GetAnchorPosFromSelection(absl::string_view surrounding_text,
                                         absl::string_view selected_text,
                                         uint cursor_pos, uint* anchor_pos);
+
+  // Returns up to |max_chars| Unicode characters immediately before
+  // |cursor_pos| in |surrounding_text|. |cursor_pos| is a character offset.
+  static std::string CharsBeforeCursor(absl::string_view surrounding_text,
+                                       size_t cursor_pos, size_t max_chars);
+
+  // Returns up to |max_chars| Unicode characters immediately after
+  // |cursor_pos|. Useful when Wayland collapses a selection and leaves the
+  // caret at the start of the former range.
+  static std::string CharsAfterCursor(absl::string_view surrounding_text,
+                                      size_t cursor_pos, size_t max_chars);
+
+  // Trailing non-whitespace run before |cursor_pos|, capped at |max_chars|.
+  // Used as a reconvert caret fallback when Wayland hides the selection.
+  static std::string WordBeforeCursor(absl::string_view surrounding_text,
+                                      size_t cursor_pos, size_t max_chars);
+
+  // Leading non-whitespace run after |cursor_pos|, capped at |max_chars|.
+  static std::string WordAfterCursor(absl::string_view surrounding_text,
+                                     size_t cursor_pos, size_t max_chars);
+
+  // True when |needle| is the character slice of |surrounding_text| that ends
+  // at |cursor_pos|. On success fills a DeleteSurroundingText-compatible range
+  // (negative offset, positive length).
+  static bool SelectionEndsAtCursor(absl::string_view surrounding_text,
+                                    size_t cursor_pos,
+                                    absl::string_view needle,
+                                    int32_t* deletion_offset,
+                                    int32_t* deletion_length);
 };
 
 }  // namespace ibus

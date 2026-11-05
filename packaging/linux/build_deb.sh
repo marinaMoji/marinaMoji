@@ -116,6 +116,11 @@ SHLIB_DEPS="$(echo "$SHLIB_DEPS" | awk -F', ' '{
 #   hicolor-icon-theme  owns /usr/share/icons/hicolor, where we install the
 #                       application icons, so the directory and its
 #                       index.theme must exist.
+#   wl-clipboard         provides `wl-paste -p` for the Wayland selection
+#                       fallback used by related characters, component search,
+#                       and reconvert when IBus surrounding text hides the
+#                       highlight (ibus#2760). Harmless on X11; without it the
+#                       engine still tries AT-SPI and caret fallbacks.
 #   shlibs:Depends      the exact libraries the binaries link against, from
 #                       dpkg-shlibdeps (Qt, protobuf, ...), with t64 aliases.
 #   libqt6svg6          Qt's SVG image-format plugin. The candidate window
@@ -124,10 +129,9 @@ SHLIB_DEPS="$(echo "$SHLIB_DEPS" | awk -F', ' '{
 #                       dpkg-shlibdeps never sees it. Without it the logo is
 #                       silently missing.
 # Nothing is Recommends/Suggests: the GUI tools, renderer and Emacs helper
-# are part of this package, and no optional package improves it. The
-# postinst only calls `ibus write-cache` if ibus is present, so a broken
-# ibus never fails an install.
-DEPS="ibus (>= 1.5.0), hicolor-icon-theme, libqt6svg6${SHLIB_DEPS:+, $SHLIB_DEPS}"
+# are part of this package. The postinst only calls `ibus write-cache` if
+# ibus is present, so a broken ibus never fails an install.
+DEPS="ibus (>= 1.5.0), hicolor-icon-theme, wl-clipboard, libqt6svg6${SHLIB_DEPS:+, $SHLIB_DEPS}"
 
 INSTALLED_SIZE="$(du -sk "$ROOT" | cut -f1)"
 

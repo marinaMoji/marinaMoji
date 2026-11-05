@@ -10,6 +10,22 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Linux Wayland: related / components / reconvert selection
+
+- On GNOME Wayland, IBus surrounding text often reports no selection
+  (`cursor == anchor`, [ibus#2760](https://github.com/ibus/ibus/issues/2760)),
+  so Ctrl+Shift+7/8 and reconvert silently did nothing in gedit even though
+  Ctrl+Shift+1–6 worked. The ibus engine now resolves text in order:
+  surrounding selection → primary selection (`wl-paste -p`) → AT-SPI focused
+  selection → characters/word left of the caret. Primary/AT-SPI are accepted
+  only when they match the surrounding text at the caret (avoids a stale
+  primary). Deletion uses a negative surrounding-text offset when the match is
+  at the caret.   Runtime dependency: `wl-clipboard` (`wl-paste -p` for the
+  primary fallback); declared in the `.deb` / Arch packages and in the Linux
+  install docs. `wl-paste` is run under `timeout 0.2s` so a missing primary
+  cannot freeze the engine; when surrounding text is present the caret
+  fallback runs before primary/AT-SPI. Debug tag: `engine.selection`.
+
 ### Character composer / GlyphWiki comparison
 
 - **Licence and data policy for comparison work** documented in
