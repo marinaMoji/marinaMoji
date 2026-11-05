@@ -10,6 +10,10 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.21-rc1
+
+Everything in 0.0.20 plus the changes below.
+
 ### Character composer
 
 - **Prefer GlyphWiki drawings** (Preferences → Writing, off by default): when a
