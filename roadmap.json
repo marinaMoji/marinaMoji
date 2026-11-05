@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-05T12:49:57+00:00",
+  "generated": "2026-11-05T13:20:52+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -319,7 +319,7 @@
       "description_en": "Publish the tested beta binaries on GitHub and the project website with installation instructions, known issues, and a feedback channel. Keep the beta label.",
       "description_fr": "Publier les binaires de la bêta testés sur GitHub et le site du projet, avec des instructions d’installation, les problèmes connus et un moyen de transmettre des retours. Conserver la mention bêta.",
       "description_ja": "テスト済みのベータ版バイナリを、インストール手順、既知の問題、フィードバック窓口とともにGitHubとプロジェクトのウェブサイトで公開します。ベータ表記を維持します。",
-      "depends_on": "issue-144,issue-137,issue-121,plugin-12,issue-125,plugin-4"
+      "depends_on": "issue-115,issue-144,issue-137,issue-121,plugin-12,issue-125,plugin-4"
     },
     {
       "id": "issue-130",
@@ -519,7 +519,7 @@
       "description_en": "Begin Milestone 3 after the lab beta, dictionary modules, Composer plugin, and professional website design feedback are complete.",
       "description_fr": null,
       "description_ja": null,
-      "depends_on": "issue-116,issue-131,plugin-13,issue-138"
+      "depends_on": "issue-154,issue-116,issue-131,plugin-13,issue-138"
     },
     {
       "id": "issue-140",
