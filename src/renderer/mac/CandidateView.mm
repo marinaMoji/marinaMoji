@@ -88,18 +88,45 @@ using mozc::renderer::mac::MacViewUtil;
 
 namespace {
 
-// True when the candidate font has a glyph for every UTF-16 code unit.
+// True when the text can be drawn with |font| or with the fallback fonts
+// macOS cascades to. The candidate font is the system UI font, which has no
+// CJK glyphs of its own, so asking only that font (as
+// CTFontGetGlyphsForCharacters does) would report every kanji as missing.
+// CTFontCreateForString returns the font that will actually draw each
+// character, and Apple's "LastResort" font stands for "no font has it".
 bool MacCandidateValueDrawable(NSString *text, NSFont *font) {
   if (text == nil || [text length] == 0) {
     return true;
   }
-  CTFontRef ct_font = (__bridge CTFontRef)font;
+  CTFontRef base = (__bridge CTFontRef)font;
+  NSUInteger index = 0;
   const NSUInteger length = [text length];
-  std::vector<UniChar> chars(length);
-  std::vector<CGGlyph> glyphs(length);
-  [text getCharacters:chars.data() range:NSMakeRange(0, length)];
-  return CTFontGetGlyphsForCharacters(ct_font, chars.data(), glyphs.data(),
-                                      static_cast<CFIndex>(length));
+  while (index < length) {
+    // One user-visible character at a time, so surrogate pairs and
+    // variation-selector sequences stay together.
+    const NSRange range = [text rangeOfComposedCharacterSequenceAtIndex:index];
+    CTFontRef used = CTFontCreateForString(
+        base, (__bridge CFStringRef)text,
+        CFRangeMake(static_cast<CFIndex>(range.location),
+                    static_cast<CFIndex>(range.length)));
+    bool last_resort = true;
+    if (used != nullptr) {
+      CFStringRef name = CTFontCopyPostScriptName(used);
+      if (name != nullptr) {
+        last_resort = CFStringCompare(name, CFSTR("LastResort"), 0) ==
+                      kCFCompareEqualTo;
+        CFRelease(name);
+      } else {
+        last_resort = false;
+      }
+      CFRelease(used);
+    }
+    if (last_resort) {
+      return false;
+    }
+    index = range.location + range.length;
+  }
+  return true;
 }
 
 NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind) {
