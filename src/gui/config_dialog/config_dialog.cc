@@ -1707,6 +1707,11 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
       tr("Prefer GlyphWiki drawings when a matching glyph exists"), writing);
   prefer_glyphwiki_drawings_checkbox_->setObjectName(
       QStringLiteral("preferGlyphwikiDrawingsCheckBox"));
+  // This page is built after the constructor's blanket checkbox -> autosave
+  // hookup, so the checkbox must be connected here or the change is never
+  // saved.
+  connect(prefer_glyphwiki_drawings_checkbox_, &QCheckBox::toggled, this,
+          &ConfigDialog::EnableApplyButton);
   AddToPage(writing_layout,
             MakeExplainedControlRow(prefer_glyphwiki_drawings_checkbox_, writing,
                                     explanations,
