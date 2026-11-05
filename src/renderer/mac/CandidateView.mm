@@ -132,10 +132,10 @@ bool MacCandidateValueDrawable(NSString *text, NSFont *font) {
 }
 
 // Draws the components of an unencoded composition (the Ctrl+2 "drawing" row)
-// in their cells inside |square|, white on the plate. Each component is drawn
+// in their cells inside |square|, in |ink| on the plate. Each component is drawn
 // as the exported SVG draws it: a serif glyph in a square, squeezed to the
 // width or height of its cell.
-void DrawIdsPreview(const mozc::composer_ids::IdsPreview &preview, NSRect square) {
+void DrawIdsPreview(const mozc::composer_ids::IdsPreview &preview, NSRect square, NSColor *ink) {
   const CGFloat side = square.size.width;
   NSFont *font = [NSFont fontWithName:@"HiraMinProN-W3" size:side * 0.88];
   if (font == nil) {
@@ -143,7 +143,7 @@ void DrawIdsPreview(const mozc::composer_ids::IdsPreview &preview, NSRect square
   }
   NSDictionary *attrs = @{
     NSFontAttributeName : font,
-    NSForegroundColorAttributeName : [NSColor whiteColor],
+    NSForegroundColorAttributeName : ink,
   };
   for (size_t i = 0; i < preview.parts.size(); ++i) {
     const mozc::composer_ids::PreviewCell &cell = preview.cells[i];
@@ -164,9 +164,16 @@ void DrawIdsPreview(const mozc::composer_ids::IdsPreview &preview, NSRect square
   }
 }
 
-NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind) {
+// The colour of a character drawn on a plate (see base/specimen_kind.h).
+NSColor *SpecimenInkColor(bool dark) {
   uint8_t r = 0, g = 0, b = 0;
-  if (!mozc::specimen_kind::PlateRgb(kind, &r, &g, &b)) {
+  mozc::specimen_kind::PlateInkRgb(dark, &r, &g, &b);
+  return [NSColor colorWithCalibratedRed:r / 255.0 green:g / 255.0 blue:b / 255.0 alpha:1.0];
+}
+
+NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind, bool dark) {
+  uint8_t r = 0, g = 0, b = 0;
+  if (!mozc::specimen_kind::PlateRgb(kind, dark, &r, &g, &b)) {
     return nil;
   }
   return [NSColor colorWithCalibratedRed:r / 255.0
@@ -526,7 +533,11 @@ NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind) {
   const mozc::specimen_kind::Kind kind =
       mozc::renderer::SpecimenKindForCandidate(candidate_window_.candidate(row),
                                                drawable);
-  NSColor *plate = SpecimenPlateColor(kind);
+  NSAppearanceName appearance = [[self effectiveAppearance]
+      bestMatchFromAppearancesWithNames:@[ NSAppearanceNameAqua, NSAppearanceNameDarkAqua ]];
+  const bool darkPlates = [appearance isEqualToString:NSAppearanceNameDarkAqua];
+  NSColor *plate = SpecimenPlateColor(kind, darkPlates);
+  NSColor *plateInk = SpecimenInkColor(darkPlates);
   if (plate != nil) {
     const mozc::Rect rowRect = tableLayout_.GetRowRect(row);
     mozc::Rect cellRect = tableLayout_.GetCellRect(row, kColumnCandidate);
@@ -547,7 +558,7 @@ NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind) {
       const CGFloat side = rowRect.size.height - 2;
       const NSRect square = NSMakeRect(
           cell.origin.x + style_.candidate_style().left_padding(), rowRect.origin.y + 1, side, side);
-      DrawIdsPreview(*preview, square);
+      DrawIdsPreview(*preview, square, plateInk);
       drawnPreview = true;
     }
   }
@@ -566,7 +577,7 @@ NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind) {
       NSMutableAttributedString *white = [[NSMutableAttributedString alloc]
           initWithAttributedString:(NSAttributedString *)text];
       [white addAttribute:NSForegroundColorAttributeName
-                    value:[NSColor whiteColor]
+                    value:plateInk
                     range:NSMakeRange(0, [white length])];
       [white drawAtPoint:position];
     } else {

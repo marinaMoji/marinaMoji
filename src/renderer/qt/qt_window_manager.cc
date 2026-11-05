@@ -138,12 +138,17 @@ bool CandidateValueDrawable(const QFont& font, const QString& text) {
 
 void ApplySpecimenValueStyle(QTableWidgetItem* item,
                              specimen_kind::Kind kind) {
+  // Dark mode: a light plate with dark ink (base/specimen_kind.h).
+  const bool dark =
+      QGuiApplication::palette().color(QPalette::Window).lightness() < 128;
   uint8_t r = 0, g = 0, b = 0;
-  if (!specimen_kind::PlateRgb(kind, &r, &g, &b)) {
+  if (!specimen_kind::PlateRgb(kind, dark, &r, &g, &b)) {
     return;
   }
+  uint8_t ir = 0, ig = 0, ib = 0;
+  specimen_kind::PlateInkRgb(dark, &ir, &ig, &ib);
   item->setBackground(QColor(r, g, b));
-  item->setForeground(Qt::white);
+  item->setForeground(QColor(ir, ig, ib));
 }
 
 // Gaps around the footer logo, in pixels.
@@ -469,7 +474,8 @@ void CandidateTableDelegate::paint(QPainter* painter,
       painter->setRenderHint(QPainter::Antialiasing, true);
       painter->setRenderHint(QPainter::TextAntialiasing, true);
       painter->setFont(font);
-      painter->setPen(Qt::white);
+      painter->setPen(
+          qvariant_cast<QBrush>(index.data(Qt::ForegroundRole)).color());
       for (size_t i = 0; i < preview->parts.size(); ++i) {
         const composer_ids::PreviewCell& cell = preview->cells[i];
         painter->save();

@@ -587,5 +587,17 @@
         <source>木 and Strokes 8  →  林 松 枝 板 …</source>
         <translation>木 と 画数 8  →  林 松 枝 板 …</translation>
     </message>
+    <message>
+        <source>Click to choose this character. Right-click to copy.</source>
+        <translation>クリックでこの文字を選択。右クリックでコピー。</translation>
+    </message>
+    <message>
+        <source>Copy %1</source>
+        <translation>%1 をコピー</translation>
+    </message>
+    <message>
+        <source>Copy all variants</source>
+        <translation>異体字をすべてコピー</translation>
+    </message>
 </context>
 </TS>

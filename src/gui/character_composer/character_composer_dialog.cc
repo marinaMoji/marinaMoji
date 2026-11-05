@@ -9,6 +9,7 @@
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QClipboard>
+#include <QContextMenuEvent>
 #include <QColor>
 #include <QComboBox>
 #include <QCoreApplication>
@@ -618,6 +619,24 @@ QString ComponentRolesFor(const std::string &op) {
   return QString();
 }
 
+// Specimen plate colours, light or dark (base/specimen_kind.h).
+QColor PlateColor(specimen_kind::Kind kind, bool dark) {
+  uint8_t r = 0, g = 0, b = 0;
+  specimen_kind::PlateRgb(kind, dark, &r, &g, &b);
+  return QColor(r, g, b);
+}
+
+QString PlateCss(specimen_kind::Kind kind, bool dark) {
+  return PlateColor(kind, dark).name();
+}
+
+// The colour of a character drawn on a plate.
+QColor PlateInkColor(bool dark) {
+  uint8_t r = 0, g = 0, b = 0;
+  specimen_kind::PlateInkRgb(dark, &r, &g, &b);
+  return QColor(r, g, b);
+}
+
 QString ComposerStylesheet(bool dark) {
   const theme::Palette palette = theme::Colors(dark);
   QString qss = QStringLiteral(
@@ -668,20 +687,20 @@ QString ComposerStylesheet(bool dark) {
       // Rounded plates mark drawings that are not ordinary system text.
       // Colours: base/specimen_kind.h (Prussian blue SVG, amber missingFont).
       "QLabel#specimenGlyph[specimenKind=\"svg\"] {"
-      "  background: #003153; border: none; border-radius: 12px;"
-      "  padding: 8px; color: #ffffff; }"
+      "  background: @@SVG_PLATE@@; border: none; border-radius: 12px;"
+      "  padding: 8px; color: @@PLATE_INK@@; }"
       "QLabel#specimenGlyph[specimenKind=\"missingFont\"] {"
-      "  background: #7A6418; border: none; border-radius: 12px;"
-      "  padding: 8px; color: #ffffff; }"
+      "  background: @@WARN_PLATE@@; border: none; border-radius: 12px;"
+      "  padding: 8px; color: @@PLATE_INK@@; }"
       "QLabel#variantChip {"
       "  background: transparent; border: none; border-radius: 6px;"
-      "  padding: 2px 6px; margin: 0 2px; }"
+      "  padding: 2px 6px; margin: 0 4px 0 0; }"
       "QLabel#variantChip[specimenKind=\"plain\"] {"
-      "  background: transparent; color: @@TEXT@@; }"
+      "  background: transparent; color: @@TEXT@@; padding: 2px 4px 2px 0; }"
       "QLabel#variantChip[specimenKind=\"svg\"] {"
-      "  background: #003153; color: #ffffff; }"
+      "  background: @@SVG_PLATE@@; color: @@PLATE_INK@@; }"
       "QLabel#variantChip[specimenKind=\"missingFont\"] {"
-      "  background: #7A6418; color: #ffffff; }"
+      "  background: @@WARN_PLATE@@; color: @@PLATE_INK@@; }"
       "QWidget#layoutEditor {"
       "  background-color: @@RAISED@@;"
       "  border: 1px solid @@RULE@@; border-radius: 2px; }"
@@ -827,6 +846,12 @@ QString ComposerStylesheet(bool dark) {
       "  height: 0; background: none; border: none; }"
       "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {"
       "  background: none; }");
+  // Plate colours: base/specimen_kind.h (a different pair in dark mode).
+  qss.replace(QStringLiteral("@@SVG_PLATE@@"),
+              PlateCss(specimen_kind::Kind::kSvg, dark));
+  qss.replace(QStringLiteral("@@WARN_PLATE@@"),
+              PlateCss(specimen_kind::Kind::kMissingFont, dark));
+  qss.replace(QStringLiteral("@@PLATE_INK@@"), PlateInkColor(dark).name());
   return theme::ApplyPaletteTokens(qss, palette);
 }
 
@@ -2119,7 +2144,10 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   auto *examine = new QVBoxLayout(character_page);
   examine->setContentsMargins(0, 0, 0, 0);
   examine->setSpacing(3);
-  examine->addWidget(specimen_group_, 0, Qt::AlignHCenter);
+  // Full width, not AlignHCenter: an aligned group is laid out at its narrow
+  // size hint, but the height of its word-wrapped status text was worked out
+  // for the full column, so the text ran into the character above it.
+  examine->addWidget(specimen_group_);
   examine->addWidget(info_rule);
   examine->addWidget(info_scroll, 1);
 
@@ -2428,6 +2456,11 @@ void CharacterComposerDialog::ApplyTheme() {
     insert_button_->setFixedWidth(action_width);
   }
   applying_theme_ = false;
+  // The drawings on the plates take their colour from the mode.
+  if (char_label_ != nullptr && status_heading_ != nullptr &&
+      info_rule_ != nullptr && editor_ != nullptr) {
+    RefreshActiveView();
+  }
 }
 
 void CharacterComposerDialog::RefreshPaletteIcons() {
@@ -2494,7 +2527,14 @@ void CharacterComposerDialog::SetVariantsChips(
         chip.kind.isEmpty() ? QString::fromUtf8(specimen_kind::kPlainName)
                             : chip.kind);
     label->setAttribute(Qt::WA_StyledBackground, true);
-    if (!chip.tip.isEmpty()) label->setToolTip(chip.tip);
+    // Click to make this variant the chosen character; right-click to copy
+    // it or the whole row (see eventFilter).
+    label->setCursor(Qt::PointingHandCursor);
+    label->installEventFilter(this);
+    QString tip = chip.tip;
+    tip += (tip.isEmpty() ? QString() : QStringLiteral("\n")) +
+           Tr("Click to choose this character. Right-click to copy.");
+    label->setToolTip(tip);
     if (chip.kind == QLatin1String(specimen_kind::kMissingFontName)) {
       ++missing;
     }
@@ -2589,6 +2629,40 @@ void CharacterComposerDialog::OnClearSearchSelection() {
 bool CharacterComposerDialog::eventFilter(QObject *watched, QEvent *event) {
   if (watched == ids_edit_ && event->type() == QEvent::FocusIn) {
     ActivateComposition();
+  }
+  // A chip in the Variants row.
+  if (auto *chip = qobject_cast<QLabel *>(watched);
+      chip != nullptr && chip->objectName() == QLatin1String("variantChip")) {
+    if (event->type() == QEvent::MouseButtonRelease &&
+        static_cast<QMouseEvent *>(event)->button() == Qt::LeftButton) {
+      const QString text = chip->text();
+      // Rebuilds the row (this chip is deleted later), so nothing here may
+      // touch |chip| afterwards.
+      ActivateSearchResult(ToUtf8(text));
+      return true;
+    }
+    if (event->type() == QEvent::ContextMenu) {
+      QString all;
+      if (variants_value_ != nullptr) {
+        for (const QLabel *other :
+             variants_value_->findChildren<QLabel *>(
+                 QStringLiteral("variantChip"), Qt::FindDirectChildrenOnly)) {
+          all += other->text();
+        }
+      }
+      QMenu menu(chip);
+      QAction *copy_one = menu.addAction(Tr("Copy %1").arg(chip->text()));
+      QAction *copy_all = menu.addAction(Tr("Copy all variants"));
+      copy_all->setEnabled(!all.isEmpty());
+      const QPoint where = static_cast<QContextMenuEvent *>(event)->globalPos();
+      QAction *chosen = menu.exec(where);
+      if (chosen == copy_one) {
+        QApplication::clipboard()->setText(chip->text());
+      } else if (chosen == copy_all) {
+        QApplication::clipboard()->setText(all);
+      }
+      return true;
+    }
   }
   return QDialog::eventFilter(watched, event);
 }
@@ -2723,7 +2797,7 @@ void CharacterComposerDialog::RefreshActiveView() {
   bool prompt_shown = false;
   QString specimen_kind = QStringLiteral("plain");
   const composer_ids::CharInfo *info = nullptr;
-  const QColor plate_ink(Qt::white);
+  const QColor plate_ink = PlateInkColor(theme::IsDark());
 
   auto show_unicode_text = [&](const QString &text) {
     char_label_->setFont(
@@ -3038,10 +3112,10 @@ void CharacterComposerDialog::OnFindContaining() {
       item->setFont(coverage.FontFor(results_list_->font(), text));
     }
     if (!drawable) {
-      item->setBackground(QColor(specimen_kind::kMissingFontR,
-                                 specimen_kind::kMissingFontG,
-                                 specimen_kind::kMissingFontB));
-      item->setForeground(Qt::white);
+      const bool dark_plates = theme::IsDark();
+      item->setBackground(
+          PlateColor(specimen_kind::Kind::kMissingFont, dark_plates));
+      item->setForeground(PlateInkColor(dark_plates));
       item->setData(kSpecimenKindRole,
                     QString::fromUtf8(specimen_kind::kMissingFontName));
     } else {

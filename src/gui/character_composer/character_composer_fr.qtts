@@ -587,5 +587,17 @@
         <source>木 and Strokes 8  →  林 松 枝 板 …</source>
         <translation>木 et Traits 8  →  林 松 枝 板 …</translation>
     </message>
+    <message>
+        <source>Click to choose this character. Right-click to copy.</source>
+        <translation>Cliquez pour choisir ce caractère. Clic droit pour copier.</translation>
+    </message>
+    <message>
+        <source>Copy %1</source>
+        <translation>Copier %1</translation>
+    </message>
+    <message>
+        <source>Copy all variants</source>
+        <translation>Copier toutes les variantes</translation>
+    </message>
 </context>
 </TS>

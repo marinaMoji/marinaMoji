@@ -42,6 +42,29 @@ changed and, where it isn't obvious, why.
   nested mean IoU rose from ~0.38 to ~0.48 (侃 0.33→0.90, 侯 0.46→0.79); remaining
   weak spots are deep nests GlyphWiki draws as stroke data or unusual ops.
 
+### After 0.0.21-rc2
+
+- **Candidate windows**: the missing-font check on macOS now asks CoreText for
+  a fallback font per character, so characters any installed font can draw are
+  no longer all shown yellow. Unencoded Ctrl+2 results show their layout (a
+  drawing of the parts) instead of the IDS text. "About marinaMoji" is gone from
+  the macOS and Linux input-method menus.
+- **Dark mode**: in the composer and in the macOS and Qt candidate windows,
+  SVG-drawn characters sit on a white rounded plate and missing-font characters
+  on a light warning-yellow plate, both with the character in the window's dark
+  navy. The Windows candidate window is unchanged.
+- **Composer Variants row**: click a variant to make it the chosen character;
+  right-click to copy it or the whole row. The row is left-aligned with the
+  other data lines.
+- **Composer fixes**: the specimen plate is no longer hidden by
+  `WA_TranslucentBackground`, and the status text no longer overlaps the
+  composed glyph in dark mode.
+- **Preferences**: "Prefer GlyphWiki drawings" and the Sync tab's settings are
+  now autosaved; they were built after the autosave hookup and never saved.
+- **Releases**: the macOS release job runs on `macos-15`, and
+  `auto_rerun.yaml` re-runs jobs that stalled for lack of a runner (up to six
+  attempts).
+
 ### Release candidate 0.0.21-rc2
 
 Everything in 0.0.21-rc1 (which was tagged but never published: its macOS
