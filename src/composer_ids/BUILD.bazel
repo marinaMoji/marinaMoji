@@ -41,8 +41,8 @@ mozc_cc_library(
     srcs = ["ids_tree.cc"],
     hdrs = ["ids_tree.h"],
     visibility = [
-        "//gui/character_composer:__pkg__",
         "//composer_ids:__pkg__",
+        "//gui/character_composer:__pkg__",
     ],
     deps = [
         ":ids_operator",
