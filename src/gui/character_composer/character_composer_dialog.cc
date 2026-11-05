@@ -196,9 +196,10 @@ void ApplySpecimenPresentation(QLabel *label, const QString &kind, bool prompt) 
   if (prev_kind == kind && prev_prompt == prompt) return;
   label->setProperty("specimenKind", kind);
   label->setProperty("prompt", prompt);
-  const bool plated = kind == QLatin1String("svg") ||
-                      kind == QLatin1String("missingFont");
-  label->setAttribute(Qt::WA_TranslucentBackground, !plated);
+  // Do not touch Qt::WA_TranslucentBackground here: once a widget has had it
+  // set, its stylesheet background (the amber / Prussian-blue plate) is never
+  // painted again, even if the attribute is cleared. Plain specimens are
+  // transparent through the stylesheet instead.
   label->setWordWrap(prompt);
   label->setAlignment(prompt ? Qt::AlignHCenter | Qt::AlignVCenter
                              : Qt::AlignHCenter | Qt::AlignBottom);
@@ -1841,9 +1842,7 @@ CharacterComposerDialog::CharacterComposerDialog(
       table_(std::move(table)),
       char_info_(std::move(char_info)),
       data_directory_(data_directory) {
-  if (auto resources = KageResources::LoadFromDirectory(data_directory_.toStdString())) {
-    kage_ = std::make_unique<KageResources>(*std::move(resources));
-  }
+  kage_ = KageResources::LoadFromDirectory(data_directory_.toStdString());
   BuildUi(data_directory);
   ApplyTheme();
   OnLayoutChanged();
@@ -1976,8 +1975,8 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   char_label_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
   char_label_->setFrameShape(QFrame::NoFrame);
   char_label_->setAutoFillBackground(false);
-  char_label_->setAttribute(Qt::WA_TranslucentBackground, true);
-  // So specimenKind plate backgrounds from the stylesheet actually paint.
+  // So specimenKind plate backgrounds from the stylesheet actually paint. Not
+  // Qt::WA_TranslucentBackground: that stops them painting at all.
   char_label_->setAttribute(Qt::WA_StyledBackground, true);
   char_label_->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
