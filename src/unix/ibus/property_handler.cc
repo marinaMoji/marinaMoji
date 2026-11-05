@@ -136,16 +136,6 @@ constexpr MozcEngineToolProperty kMozcEngineToolProperties[] = {
         "Add Word",
         "word_register.png",
     },
-    {
-        "Tool.AboutDialog",
-        "about_dialog",
-#ifdef MARINAMOJI
-        "About marinaMoji",
-#else
-        "About Mozc",
-#endif  // MARINAMOJI
-        nullptr,
-    },
 };
 
 constexpr commands::CompositionMode kImeOffCompositionMode = commands::DIRECT;

@@ -36,12 +36,6 @@
                         <action selector="dictionaryToolClicked:" target="-2" id="20"/>
                     </connections>
                 </menuItem>
-                <menuItem title="About marinaMoji" id="28">
-                    <modifierMask key="keyEquivalentModifierMask"/>
-                    <connections>
-                        <action selector="aboutDialogClicked:" target="-2" id="29"/>
-                    </connections>
-                </menuItem>
             </items>
             <point key="canvasLocation" x="90" y="151"/>
         </menu>

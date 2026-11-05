@@ -801,13 +801,6 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
       keyEquivalent:@""];
   dictTool.target = self;
   [menu_ addItem:dictTool];
-
-  NSMenuItem *about = [[NSMenuItem alloc]
-      initWithTitle:MarinaLocalizedString(@"MM.About")
-             action:@selector(aboutDialogClicked:)
-      keyEquivalent:@""];
-  about.target = self;
-  [menu_ addItem:about];
 }
 
 - (void)applyLocalizedImeMenuTitles {
@@ -822,7 +815,6 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
       {@selector(configClicked:), @"MM.Preferences"},
       {@selector(registerWordClicked:), @"MM.AddWord"},
       {@selector(dictionaryToolClicked:), @"MM.DictionaryTool"},
-      {@selector(aboutDialogClicked:), @"MM.About"},
       {@selector(traditionalKanjiMenuClicked:), @"MM.TraditionalKanji"},
       {@selector(odorijiPaletteMenuClicked:), @"MM.Odoriji"},
       {@selector(toolbarVisibilityMenuClicked:), @"MM.Toolbar"},
