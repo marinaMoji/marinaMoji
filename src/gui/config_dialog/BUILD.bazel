@@ -64,6 +64,27 @@ mozc_cc_test(
     ],
 )
 
+# Drives the real Preferences window against a fake converter (autosave
+# wiring, problem banner, preview hooks). Needs Qt to link, which only the
+# Linux test job provides (see character_composer_dialog_test).
+mozc_cc_test(
+    name = "config_dialog_autosave_test",
+    size = "medium",
+    srcs = ["config_dialog_autosave_test.cc"],
+    env = {"QT_QPA_PLATFORM": "offscreen"},
+    target_compatible_with = ["@platforms//os:linux"],
+    deps = [
+        ":config_dialog",
+        "//client",
+        "//client:client_interface",
+        "//client:client_mock",
+        "//config:config_handler",
+        "//protocol:config_cc_proto",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+    ],
+)
+
 mozc_qt_moc(
     name = "moc_character_form_editor",
     srcs = [
