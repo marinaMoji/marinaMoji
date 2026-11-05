@@ -137,6 +137,7 @@ def run_wix4(args) -> None:
   composer_readme = pathlib.Path(args.composer_readme).resolve()
   kage_glyphs = pathlib.Path(args.kage_glyphs).resolve()
   kage_layout = pathlib.Path(args.kage_layout).resolve()
+  kage_subtrees = pathlib.Path(args.kage_subtrees).resolve()
   kage_license = pathlib.Path(args.kage_license).resolve()
   kage_readme = pathlib.Path(args.kage_readme).resolve()
   char_info = pathlib.Path(args.char_info).resolve()
@@ -234,6 +235,7 @@ def run_wix4(args) -> None:
       '-define', f'ComposerReadmePath={composer_readme}',
       '-define', f'KageGlyphsPath={kage_glyphs}',
       '-define', f'KageLayoutPath={kage_layout}',
+      '-define', f'KageSubtreesPath={kage_subtrees}',
       '-define', f'KageLicensePath={kage_license}',
       '-define', f'KageReadmePath={kage_readme}',
       '-define', f'CharInfoPath={char_info}',
@@ -300,6 +302,7 @@ def main():
   parser.add_argument('--composer_readme', type=str)
   parser.add_argument('--kage_glyphs', type=str)
   parser.add_argument('--kage_layout', type=str)
+  parser.add_argument('--kage_subtrees', type=str)
   parser.add_argument('--kage_license', type=str)
   parser.add_argument('--kage_readme', type=str)
   parser.add_argument('--char_info', type=str)

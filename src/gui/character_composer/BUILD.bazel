@@ -7,6 +7,7 @@
 
 load(
     "//:build_defs.bzl",
+    "mozc_cc_binary",
     "mozc_cc_library",
     "mozc_cc_test",
 )
@@ -128,7 +129,10 @@ mozc_cc_test(
     name = "composer_kage_test",
     size = "small",
     srcs = ["composer_kage_test.cc"],
-    data = ["//kage:testdata/kage_test_data.tsv"],
+    data = [
+        "//data/kage:kage_data",
+        "//kage:testdata/kage_test_data.tsv",
+    ],
     deps = [
         ":composer_kage",
         ":composer_svg",
@@ -162,6 +166,63 @@ mozc_cc_test(
         ":composer_svg",
         "//composer_ids:ids_tree",
         "//testing:gunit_main",
+    ],
+)
+
+# Test-time GlyphWiki vs composer overlap (see docs/GLYPHWIKI_COMPARISON.md).
+# Links //kage, so distributed under GPL-3.0 like the rest of this package's
+# drawing code. Not shipped in user installs.
+mozc_cc_library(
+    name = "glyphwiki_compare",
+    srcs = ["glyphwiki_compare.cc"],
+    hdrs = ["glyphwiki_compare.h"],
+    deps = [
+        ":composer_kage",
+        "//base/strings:unicode",
+        "//composer_ids:ids_operator",
+        "//composer_ids:ids_table",
+        "//composer_ids:ids_tree",
+        "//kage",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_test(
+    name = "glyphwiki_compare_test",
+    size = "medium",
+    srcs = ["glyphwiki_compare_test.cc"],
+    data = [
+        "testdata/glyphwiki_compare_baseline.tsv",
+        "//data/character_composer:character_composer_data",
+        "//data/kage:kage_data",
+    ],
+    deps = [
+        ":glyphwiki_compare",
+        "//base:file_util",
+        "//composer_ids:ids_table",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+    ],
+)
+
+# Developer / CI tool only (testonly): finds bundled data via //testing:mozctest.
+mozc_cc_binary(
+    name = "glyphwiki_compare_main",
+    testonly = True,
+    srcs = ["glyphwiki_compare_main.cc"],
+    data = [
+        "//data/character_composer:character_composer_data",
+        "//data/kage:kage_data",
+    ],
+    deps = [
+        ":glyphwiki_compare",
+        "//base:file_util",
+        "//base:init_mozc",
+        "//composer_ids:ids_table",
+        "//testing:mozctest",
+        "@com_google_absl//absl/flags:flag",
     ],
 )
 

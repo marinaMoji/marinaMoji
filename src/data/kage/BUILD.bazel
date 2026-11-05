@@ -12,6 +12,7 @@ exports_files([
     "README.kage.md",
     "kage_glyphs.tsv",
     "kage_layout.tsv",
+    "kage_subtrees.tsv",
 ])
 
 filegroup(
@@ -21,5 +22,6 @@ filegroup(
         "README.kage.md",
         "kage_glyphs.tsv",
         "kage_layout.tsv",
+        "kage_subtrees.tsv",
     ],
 )

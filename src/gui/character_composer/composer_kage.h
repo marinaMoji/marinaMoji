@@ -13,6 +13,7 @@
 #define MOZC_GUI_CHARACTER_COMPOSER_COMPOSER_KAGE_H_
 
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -36,12 +37,16 @@ class ComposerLayout {
   };
 
   // Parses the table: "operator<TAB>position<TAB>component<TAB>variant<TAB>
-  // l t r b<TAB>count" per line; '#' lines are comments.
+  // l t r b<TAB>count[<TAB>sibling]" per line; '#' lines are comments. An
+  // optional sibling is the other leaf of a two-part IDS (so 目 next to 木 can
+  // differ from 目 next to 金).
   static ComposerLayout Parse(std::string_view contents);
 
-  // The entry for |component| at |position| (0-based) of |op|, or nullptr.
+  // The entry for |component| at |position| (0-based) of |op|. When |sibling|
+  // is non-empty, a context-specific row wins over the global one.
   const Entry *Find(std::string_view op, int position,
-                    std::string_view component) const;
+                    std::string_view component,
+                    std::string_view sibling = "") const;
   size_t size() const { return entries_.size(); }
 
   // The box GlyphWiki most often gives whatever stands at |position| of |op|
@@ -54,14 +59,32 @@ class ComposerLayout {
   std::map<std::string, Entry> defaults_;
 };
 
+// Nested IDS fragments → a ready-made GlyphWiki glyph (data/kage/kage_subtrees.tsv).
+// So ⿰亻⿱口𫶧 can place GlyphWiki's u2ff1-u53e3-… for the right slot instead of
+// synthesizing a nested layout.
+class ComposerSubtrees {
+ public:
+  // Parses "IDS<TAB>glyph name<TAB>count" lines; '#' lines are comments.
+  static ComposerSubtrees Parse(std::string_view contents);
+
+  // The GlyphWiki name for |ids|, or nullptr if unknown.
+  const std::string *Find(std::string_view ids) const;
+  size_t size() const { return entries_.size(); }
+
+ private:
+  std::map<std::string, std::string> entries_;
+};
+
 // What the composer needs to draw a glyph: GlyphWiki's strokes and its layouts.
 struct KageResources {
   kage::Buhin glyphs;
   ComposerLayout layout;
+  ComposerSubtrees subtrees;
 
-  // Reads kage_glyphs.tsv (required) and kage_layout.tsv (optional) from
-  // |directory|; nullopt if there are no glyphs.
-  static std::optional<KageResources> LoadFromDirectory(std::string_view directory);
+  // Reads kage_glyphs.tsv (required) and kage_layout.tsv / kage_subtrees.tsv
+  // (optional) from |directory|; nullptr if there are no glyphs.
+  static std::unique_ptr<KageResources> LoadFromDirectory(
+      std::string_view directory);
 };
 
 // Closed outlines in a square of side |view_box| user units, y down. Fill them
@@ -75,11 +98,14 @@ using Contour = std::vector<std::pair<double, double>>;
 //
 // With |layout|, a component is drawn in the variant and box GlyphWiki uses for
 // it in that position when the table knows one (and |nested|, which sits on the
-// glyph table, holds the variant); otherwise by the defaults.
+// glyph table, holds the variant); otherwise by the defaults. With |subtrees|, a
+// nested slot whose IDS is known is drawn as that GlyphWiki glyph instead of a
+// synthesized __nestedN.
 std::string ComposeKageData(std::string_view op,
                             const std::vector<composer_ids::ComposerSlot> &parts,
                             kage::Buhin *nested,
-                            const ComposerLayout *layout = nullptr);
+                            const ComposerLayout *layout = nullptr,
+                            const ComposerSubtrees *subtrees = nullptr);
 
 // The outlines of the composed glyph, or nullopt when the layout is incomplete
 // or a component has no KAGE data (then the caller falls back to plain text).

@@ -59,6 +59,7 @@ CHARACTER_COMPOSER_FILES = (
     # GlyphWiki stroke data for drawing composed glyphs (data/kage).
     'kage_glyphs.tsv',
     'kage_layout.tsv',
+    'kage_subtrees.tsv',
     'LICENSE.GlyphWiki',
     'README.kage.md',
     # Unihan display metadata (data/character_info).

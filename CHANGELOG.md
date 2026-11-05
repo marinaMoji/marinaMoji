@@ -10,6 +10,38 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer / GlyphWiki comparison
+
+- **Licence and data policy for comparison work** documented in
+  [`docs/GLYPHWIKI_COMPARISON.md`](docs/GLYPHWIKI_COMPARISON.md) (#150 / #154):
+  GlyphWiki dump terms (free, no attribution), KAGE engine GPL-3.0, no new
+  GlyphWiki data shipped for the harness, harness is developer-only so it needs
+  no privacy-policy entry.
+- **Render-and-diff harness** (#151): `glyphwiki_compare` rasterises the
+  composer's IDS drawing and GlyphWiki's registered glyph with the same KAGE
+  engine, scores IoU, and prints a ranked report
+  (`bazel run //gui/character_composer:glyphwiki_compare_main`). A reviewed
+  baseline of ten characters fails
+  `//gui/character_composer:glyphwiki_compare_test` if a score drops by more
+  than 0.05.
+- **Drawing geometry closer to GlyphWiki** (#152): default ⿰/⿱ boxes now use
+  GlyphWiki's median overlap (not clean halves), and positional forms
+  (`-01`/`-02`/`-03`/`-04`) get wider placement boxes so their built-in
+  narrowing is not applied twice. Right-side overhang is scaled by how narrow
+  the left is. The layout table gains optional sibling-context rows (rebuilt
+  with `build_kage_data.py --layout-only`), and PreferPositionalVariant no
+  longer overrides a chosen `-j` form with `-02`. The compare report tags each
+  row `layout` vs `style`. 相 rose from 0.56 to 0.72 IoU; 休 stays at 0.57.
+- **Complex operators** (#152): ⿲/⿳ defaults use GlyphWiki's overlapping
+  thirds (not clean strips); enclosure inners (⿴–⿺) and ⿻ follow learned
+  medians; vertical overlap is harmonised for ⿱/⿳ the way ⿰ already was.
+- **Nested IDS** (#152): `kage_subtrees.tsv` maps nested fragments to the
+  GlyphWiki glyph used for them (`cdp-…`, `u2ff1-…`, …). ComposeLayout prefers
+  that ready-made glyph (or the systematic compound name when it is in the
+  dump) over synthesizing `__nestedN`. On a 500-character sample, layout-tagged
+  nested mean IoU rose from ~0.38 to ~0.48 (侃 0.33→0.90, 侯 0.46→0.79); remaining
+  weak spots are deep nests GlyphWiki draws as stroke data or unusual ops.
+
 ### Release candidate 0.0.21-rc2
 
 Everything in 0.0.21-rc1 (which was tagged but never published: its macOS

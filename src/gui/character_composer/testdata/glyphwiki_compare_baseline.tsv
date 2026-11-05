@@ -1,0 +1,15 @@
+# Reviewed IoU baseline for GlyphWiki comparison (#151 / #152).
+# character<TAB>iou — recorded against the bundled kage_glyphs / kage_layout /
+# kage_subtrees (bitmap 64, view_box 1000) after nested-subtree lookup.
+# All ten are pure 99: GlyphWiki compositions (layout sentinels).
+# Tolerance in the test is 0.05.
+休	0.5660
+相	0.7230
+明	0.3730
+昌	0.1751
+岩	0.7450
+困	1.0000
+付	0.3408
+他	0.4720
+仰	0.5335
+位	0.5474

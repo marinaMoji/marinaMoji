@@ -14,6 +14,21 @@ by `build_kage_data.py` from the characters whose IDS is one operator over
 single components, so a composed glyph gets the same narrowed 木 and flattened 心
 as the real ones. A component it does not know is placed by plain defaults.
 
+Some rows carry a seventh column, the *sibling* component. Those are context
+overrides: 目 next to 金 may be `u76ee-02`, while the global 目-on-the-right
+entry is `u76ee-j`.
+
+`kage_subtrees.tsv` maps a nested IDS fragment to the GlyphWiki glyph used for
+it (often a `cdp-…` piece or a compound such as `u2ff1-u53e3-u2bda7`). When the
+composer meets that nested slot, it draws the ready-made glyph instead of
+synthesizing one. Rebuild layout and/or subtrees (no glyph rewrite) with:
+
+```bash
+python3 build_kage_data.py --glyphs kage_glyphs.tsv --layout-only \
+    --layout-out kage_layout.tsv --subtrees-out kage_subtrees.tsv \
+    --ids ../character_composer/ids_table.tsv
+```
+
 ## Licence
 
 The data is from [GlyphWiki](https://glyphwiki.org/)'s public dump, which its
@@ -41,7 +56,8 @@ Needs a GlyphWiki dump (`dump_newest_only.txt` from
 
 ```bash
 python3 build_kage_data.py --glyphs dump_newest_only.txt --out kage_glyphs.tsv \
-    --layout-out kage_layout.tsv --ids ../character_composer/ids_table.tsv
+    --layout-out kage_layout.tsv --subtrees-out kage_subtrees.tsv \
+    --ids ../character_composer/ids_table.tsv
 ```
 
 The checked-in file was built from the 2026-09-23 dump through the Grognard
