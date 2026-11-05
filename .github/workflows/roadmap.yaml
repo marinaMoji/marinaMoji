@@ -1,0 +1,59 @@
+name: Roadmap
+
+# Builds the website roadmap from issues labelled `roadmap` (this repo and
+# marinaMoji/plugin) and publishes roadmap.json to the `roadmap-data` branch.
+# The website fetches it from raw.githubusercontent.com. See scripts/roadmap/.
+# Dependency (blocked-by) changes fire no event, so the hourly run catches them.
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  issues:
+    types: [opened, edited, closed, reopened, labeled, unlabeled, deleted, transferred]
+  push:
+    branches: [master]
+    paths: ['scripts/roadmap/**', '.github/workflows/roadmap.yaml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: roadmap
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # The exporter exits non-zero (and writes nothing) if GitHub returns no
+      # issues or fails, so a bad run never replaces the published snapshot.
+      - name: Export roadmap
+        run: python3 scripts/roadmap/export_roadmap.py --out "$RUNNER_TEMP/roadmap.json"
+
+      - name: Publish to roadmap-data
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin roadmap-data >/dev/null; then
+            git fetch --depth=1 origin roadmap-data
+            git worktree add "$RUNNER_TEMP/data" FETCH_HEAD
+            cd "$RUNNER_TEMP/data" && git checkout -B roadmap-data
+          else
+            git worktree add --detach "$RUNNER_TEMP/data"
+            cd "$RUNNER_TEMP/data" && git checkout --orphan roadmap-data && git rm -rf . >/dev/null
+          fi
+          # Ignore the timestamp when deciding whether anything changed.
+          if [ -f roadmap.json ] && \
+             [ "$(jq -S 'del(.generated)' roadmap.json)" = "$(jq -S 'del(.generated)' "$RUNNER_TEMP/roadmap.json")" ]; then
+            echo "Roadmap unchanged."; exit 0
+          fi
+          cp "$RUNNER_TEMP/roadmap.json" roadmap.json
+          git add roadmap.json
+          git commit -m "Roadmap snapshot"
+          git push origin roadmap-data

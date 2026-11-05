@@ -1,0 +1,323 @@
+{
+ "marinaMoji/marinaMoji#116": {
+  "title_en": "Website feedback from professional designer",
+  "title_fr": "Retour d'un designer professionnel sur le site web",
+  "title_ja": "プロのデザイナーによるウェブサイトへのフィードバック",
+  "description_en": "Review the project website with a professional designer and incorporate their feedback.",
+  "description_fr": "Examiner le site du projet avec un designer professionnel et intégrer ses retours.",
+  "description_ja": "プロのデザイナーとプロジェクトのウェブサイトを確認し、フィードバックを反映します。",
+  "category": "distribution",
+  "type": "technical",
+  "layer": 4
+ },
+ "marinaMoji/marinaMoji#117": {
+  "title_en": "Japanese pages",
+  "title_fr": "Pages en japonais",
+  "title_ja": "日本語ページ",
+  "category": "distribution",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#104": {
+  "title_en": "Screenshots",
+  "title_fr": "Captures d’écran",
+  "title_ja": "スクリーンショット",
+  "category": "distribution",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#118": {
+  "title_en": "Web site visitor stats",
+  "title_fr": "Statistiques de fréquentation du site",
+  "title_ja": "サイト訪問統計",
+  "category": "distribution",
+  "type": "technical",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#119": {
+  "title_en": "Zulip sponsorship",
+  "title_fr": "Parrainage Zulip",
+  "title_ja": "Zulipのスポンサーシップ",
+  "description_en": "Obtain free Zulip Cloud Standard sponsorship for marinaMoji, enabling web-public channels and long-term message retention without maintaining our own messaging server.\n\n- [x] Submit the sponsorship application, presenting marinaMoji as an open-source academic project.\n- [x] Receive confirmation of sponsorship and activation of the Standard plan.\n- [x] Verify that web-public channels and full message history are available.\n",
+  "category": "distribution",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#120": {
+  "title_en": "Zulip chat and public forum",
+  "title_fr": "Chat Zulip et forum public",
+  "title_ja": "Zulipチャットと公開フォーラム",
+  "description_en": "Establish Zulip as marinaMoji's public communication platform, combining internal development discussions with an open space for user questions, support, and feedback. Private and confidential exchanges remain separate.\n\n- [x] Give Marina equal administrative control of the organization.\n- [x] Create web-public channels: development, planning, design, outreach, feedback, and support.\n- [x] Configure posting, invitation, and moderation permissions.\n- [x] Publish a short welcome message and guidelines explaining public visibility and privacy.\n- [x] Invite Matthias and any initial collaborators.\n- [x] Test anonymous reading, account registration, posting, and mobile access.\n",
+  "category": "distribution",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#121": {
+  "title_en": "Website integration (links + archive)",
+  "title_fr": "Intégration au site web (liens + archives)",
+  "title_ja": "ウェブサイト連携（リンク＋アーカイブ）",
+  "description_en": "Make marinaMoji's public conversations accessible from the project website, providing clear entry points for community participation and a durable, independently hosted record of development.\n\n- [x] Create a Community / Communauté page consistent with the existing website design.\n- [x] Add direct links to the relevant Zulip channels for feedback, support, and development.\n- [x] Add a clear notice that public discussions are archived.\n- [x] Set up static HTML export of web-public Zulip conversations.\n- [x] Publish the archive under marinamoji.crcao.fr.\n- [x] Automate archive updates and verify links, readability, and mobile display.\n",
+  "category": "distribution",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#122": {
+  "title_en": "Debugging macOS",
+  "title_fr": "Débogage macOS",
+  "title_ja": "macOSデバッグ",
+  "description_en": "Test marinaMoji on supported macOS setups. Reproduce and resolve release-blocking issues with installation, input, and updates, and record any remaining issues before beta packaging.",
+  "description_fr": "Tester marinaMoji sur les configurations macOS prises en charge. Reproduire et corriger les problèmes bloquants liés à l’installation, à la saisie et aux mises à jour, puis consigner les problèmes restants avant la préparation de la bêta.",
+  "description_ja": "対応するmacOS環境でmarinaMojiをテストします。インストール、入力、更新に関するリリースを妨げる問題を再現・修正し、ベータ版のパッケージ作成前に残る問題を記録します。",
+  "category": "platform",
+  "type": "technical",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#123": {
+  "title_en": "Debugging Linux",
+  "title_fr": "Débogage Linux",
+  "title_ja": "Linuxデバッグ",
+  "description_en": "Test marinaMoji on supported Linux setups. Reproduce and resolve release-blocking issues with installation, input, and updates, and record any remaining issues before beta packaging.",
+  "description_fr": "Tester marinaMoji sur les configurations Linux prises en charge. Reproduire et corriger les problèmes bloquants liés à l’installation, à la saisie et aux mises à jour, puis consigner les problèmes restants avant la préparation de la bêta.",
+  "description_ja": "対応するLinux環境でmarinaMojiをテストします。インストール、入力、更新に関するリリースを妨げる問題を再現・修正し、ベータ版のパッケージ作成前に残る問題を記録します。",
+  "category": "platform",
+  "type": "technical",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#124": {
+  "title_en": "Windows debugging",
+  "title_fr": "Débogage Windows",
+  "title_ja": "Windowsデバッグ",
+  "description_en": "Test marinaMoji on supported Windows setups. Reproduce and resolve release-blocking issues with installation, input, and updates, and record any remaining issues before beta packaging.",
+  "description_fr": "Tester marinaMoji sur les configurations Windows prises en charge. Reproduire et corriger les problèmes bloquants liés à l’installation, à la saisie et aux mises à jour, puis consigner les problèmes restants avant la préparation de la bêta.",
+  "description_ja": "対応するWindows環境でmarinaMojiをテストします。インストール、入力、更新に関するリリースを妨げる問題を再現・修正し、ベータ版のパッケージ作成前に残る問題を記録します。",
+  "category": "platform",
+  "type": "technical",
+  "layer": 0
+ },
+ "marinaMoji/plugin#12": {
+  "title_en": "Debug Word plugin (Windows)",
+  "title_fr": "Débogage du plugin Word (Windows)",
+  "title_ja": "Windows版Wordプラグインのデバッグ",
+  "description_en": "Test and debug the Windows Word plugin in a supported Word environment, including installation and character insertion. Record the tested Word version and resolve release-blocking defects before distribution.",
+  "description_fr": "Tester et déboguer le plugin Word pour Windows dans un environnement Word pris en charge, notamment l’installation et l’insertion de caractères. Consigner la version testée et corriger les défauts bloquants avant la distribution.",
+  "description_ja": "対応するWord環境でWindows版Wordプラグインのインストールと文字挿入をテスト・デバッグし、配布前に重大な不具合を修正します。テストしたWordのバージョンも記録します。",
+  "category": "plugin-word",
+  "type": "technical",
+  "layer": 1
+ },
+ "marinaMoji/marinaMoji#125": {
+  "title_en": "Finish website on crcao.fr",
+  "title_fr": "Finalisation du site sur crcao.fr",
+  "title_ja": "crcao.frへのサイト完成",
+  "category": "distribution",
+  "type": "milestone",
+  "layer": 1
+ },
+ "marinaMoji/marinaMoji#126": {
+  "title_en": "Grognard demonstration",
+  "title_fr": "Démonstration Grognard",
+  "title_ja": "Grognardの実演",
+  "category": "historical",
+  "type": "capability",
+  "layer": 2
+ },
+ "marinaMoji/marinaMoji#127": {
+  "title_en": "AI coding training",
+  "title_fr": "Formation au codage assisté par IA",
+  "title_ja": "AIコーディング研修",
+  "category": "historical",
+  "type": "technical",
+  "layer": 2
+ },
+ "marinaMoji/marinaMoji#128": {
+  "title_en": "Character Composer",
+  "title_fr": "Composeur de caractères",
+  "title_ja": "文字構成ツール",
+  "category": "composition",
+  "type": "capability",
+  "layer": 3
+ },
+ "marinaMoji/plugin#13": {
+  "title_en": "Composer plugin",
+  "title_fr": "Plugin composeur",
+  "title_ja": "コンポーザープラグイン",
+  "description_en": "Ship the Character Composer as a plugin for office suites (Word, LibreOffice, ONLYOFFICE).",
+  "description_fr": "Publier le composeur de caractères sous forme de plugin pour les suites bureautiques (Word, LibreOffice, ONLYOFFICE).",
+  "description_ja": "文字構成ツールをオフィススイート（Word、LibreOffice、ONLYOFFICE）向けプラグインとして提供します。",
+  "category": "composition",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#129": {
+  "title_en": "Milestone 2: Public beta (GitHub + website)",
+  "title_fr": "Jalon 2 : bêta publique (GitHub + site web)",
+  "title_ja": "マイルストーン2：公開ベータ（GitHub＋ウェブサイト）",
+  "description_en": "Publish the tested beta binaries on GitHub and the project website with installation instructions, known issues, and a feedback channel. Keep the beta label.",
+  "description_fr": "Publier les binaires de la bêta testés sur GitHub et le site du projet, avec des instructions d’installation, les problèmes connus et un moyen de transmettre des retours. Conserver la mention bêta.",
+  "description_ja": "テスト済みのベータ版バイナリを、インストール手順、既知の問題、フィードバック窓口とともにGitHubとプロジェクトのウェブサイトで公開します。ベータ表記を維持します。",
+  "category": "distribution",
+  "type": "milestone",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#130": {
+  "title_en": "Grognard Japanese module development",
+  "title_fr": "Développement du module japonais Grognard",
+  "title_ja": "Grognard日本語モジュールの開発",
+  "category": "historical",
+  "type": "capability",
+  "layer": 3
+ },
+ "marinaMoji/marinaMoji#131": {
+  "title_en": "Dictionary modules",
+  "title_fr": "Modules dictionnaires",
+  "title_ja": "辞書モジュール",
+  "category": "historical",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#132": {
+  "title_en": "Historical kana dictionary integration",
+  "title_fr": "Intégration du dictionnaire de kana historiques",
+  "title_ja": "歴史的仮名辞書の統合",
+  "category": "historical",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#133": {
+  "title_en": "AUR distribution",
+  "title_fr": "Distribution AUR",
+  "title_ja": "AURでの配布",
+  "category": "distribution",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#134": {
+  "title_en": "apt repo distribution",
+  "title_fr": "Distribution via dépôt apt",
+  "title_ja": "aptリポジトリでの配布",
+  "category": "distribution",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#135": {
+  "title_en": "Write release article",
+  "title_fr": "Rédiger un article sur la version",
+  "title_ja": "リリース記事を書く",
+  "description_en": "Write an article after Milestone 3.\n\n- [ ] Email CRCAO.\n- [ ] Email concerned people.\n- [ ] Create a Windows Store listing only after SignPath, for visibility only and not as a signing path.\n- [ ] Social media?\n- [ ] YouTube tutorials?\n",
+  "category": "distribution",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#136": {
+  "title_en": "Publish beta on GitHub",
+  "title_fr": "Publier la bêta sur GitHub",
+  "title_ja": "GitHubでベータ版を公開",
+  "description_en": "Publish the beta release and binaries on GitHub, retaining the beta label.",
+  "category": "distribution",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#137": {
+  "title_en": "Publish beta on Microsoft Store",
+  "title_fr": "Publier la bêta sur le Microsoft Store",
+  "title_ja": "Microsoft Storeでベータ版を公開",
+  "category": "distribution",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#138": {
+  "title_en": "Lab beta testing",
+  "title_fr": "Bêta de laboratoire",
+  "title_ja": "研究室でのベータテスト",
+  "description_en": "After Milestone 2, run a lab beta with a small group for roughly six months. Collect and triage feedback from real use, then summarize unresolved issues and recommendations before Milestone 3. Completing this period is a prerequisite for Milestone 3.",
+  "description_fr": "Après le jalon 2, organiser une bêta de laboratoire avec un petit groupe pendant environ six mois. Recueillir et trier les retours issus d’usages réels, puis résumer les problèmes non résolus et les recommandations avant le jalon 3. Cette période est un prérequis au jalon 3.",
+  "description_ja": "マイルストーン2の後、小グループで約6か月間ラボベータを実施します。実際の利用からフィードバックを収集・整理し、マイルストーン3の前に未解決の問題と提案をまとめます。この期間の完了はマイルストーン3の前提条件です。",
+  "category": "distribution",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/plugin#4": {
+  "title_en": "ONLYOFFICE Plugin Marketplace publication",
+  "title_fr": "Publication sur ONLYOFFICE Plugin Marketplace",
+  "title_ja": "ONLYOFFICE Plugin Marketplaceでの公開",
+  "description_en": "List marinaMoji on the official ONLYOFFICE Plugin Marketplace (onlyoffice.github.io). Prep, export CI, and maintainer docs are in marinaMoji/plugin; remaining gates are screenshots, Desktop QA, then an authorized upstream PR.",
+  "description_fr": "Publier marinaMoji sur le Plugin Marketplace officiel ONLYOFFICE (onlyoffice.github.io). La préparation, l’export CI et la doc sont dans marinaMoji/plugin ; restent captures d’écran, QA Desktop, puis une PR amont autorisée.",
+  "description_ja": "公式ONLYOFFICE Plugin Marketplace（onlyoffice.github.io）にmarinaMojiを掲載する。準備・CIエクスポート・メンテナ向け文書はmarinaMoji/plugin済み。残作業はスクリーンショット、Desktop QA、許可後の上流PR。",
+  "category": "plugin-onlyoffice",
+  "type": "capability",
+  "layer": 1
+ },
+ "marinaMoji/plugin#14": {
+  "title_en": "Debug ONLYOFFICE plugin",
+  "title_fr": "Débogage du plugin ONLYOFFICE",
+  "title_ja": "ONLYOFFICEプラグインのデバッグ",
+  "description_en": "Test the ONLYOFFICE plugin, resolve release-blocking issues, and record remaining issues before publication.",
+  "description_fr": "Tester le plugin ONLYOFFICE, corriger les problèmes bloquants et consigner les problèmes restants avant sa publication.",
+  "description_ja": "ONLYOFFICEプラグインをテストし、公開を妨げる不具合を修正して、公開前に残る問題を記録します。",
+  "category": "plugin-onlyoffice",
+  "type": "technical",
+  "layer": 0
+ },
+ "marinaMoji/plugin#15": {
+  "title_en": "LibreOffice plugin store submission",
+  "title_fr": "Soumission du plugin LibreOffice en boutique",
+  "title_ja": "LibreOfficeプラグインをストアに申請",
+  "description_en": "Submit the LibreOffice plugin to its store to improve versioning, installation, and visibility.",
+  "category": "plugin-libreoffice",
+  "type": "capability",
+  "layer": 1
+ },
+ "marinaMoji/marinaMoji#139": {
+  "title_en": "Milestone 3: Product expansion and broader distribution",
+  "title_fr": "Jalon 3 : extension du produit et diffusion élargie",
+  "title_ja": "マイルストーン3：機能拡張と配布拡大",
+  "description_en": "Begin Milestone 3 after the lab beta, dictionary modules, Composer plugin, and professional website design feedback are complete.",
+  "category": "distribution",
+  "type": "milestone",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#140": {
+  "title_en": "Linux Fcitx implementation",
+  "title_fr": "Implémentation de Fcitx sous Linux",
+  "title_ja": "Linux版Fcitxの実装",
+  "category": "platform",
+  "type": "technical",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#141": {
+  "title_en": "Handwriting input",
+  "title_fr": "Saisie manuscrite",
+  "title_ja": "手書き入力",
+  "category": "composition",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#142": {
+  "title_en": "Kanbun mode",
+  "title_fr": "Mode kanbun",
+  "title_ja": "漢文モード",
+  "category": "historical",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#143": {
+  "title_en": "Integration of Historical Japanese linguistics (?)",
+  "title_fr": "Intégration de la linguistique japonaise historique (?)",
+  "title_ja": "歴史日本語学の統合（？）",
+  "category": "historical",
+  "type": "capability",
+  "layer": 0,
+  "provisional": true
+ },
+ "marinaMoji/marinaMoji#144": {
+  "title_en": "Debug LibreOffice plugin",
+  "title_fr": "Débogage du plugin LibreOffice",
+  "title_ja": "LibreOfficeプラグインのデバッグ",
+  "description_en": "Test the submitted LibreOffice plugin, resolve release-blocking issues, and record remaining issues before Milestone 2.",
+  "description_fr": "Tester le plugin LibreOffice soumis, corriger les problèmes bloquants et consigner les problèmes restants avant le jalon 2.",
+  "description_ja": "申請したLibreOfficeプラグインをテストし、公開を妨げる不具合を修正して、マイルストーン2までに残る問題を記録します。",
+  "category": "plugin-libreoffice",
+  "type": "technical",
+  "layer": 0
+ }
+}
