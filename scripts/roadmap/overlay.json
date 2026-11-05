@@ -319,5 +319,38 @@
   "category": "plugin-libreoffice",
   "type": "technical",
   "layer": 0
+ },
+ "marinaMoji/marinaMoji#115": {
+  "title_en": "Ctrl+2 compose from selection",
+  "title_fr": "Ctrl+2 : composer à partir de la sélection",
+  "title_ja": "Ctrl+2：選択範囲から文字を組み立てる",
+  "description_en": "Select several component characters, press a shortcut, and get composed characters from the character composer and dictionaries, as in Kotoeri.",
+  "description_fr": "Sélectionner plusieurs composants, appuyer sur un raccourci, et obtenir des caractères composés à partir du compositeur de caractères et des dictionnaires, comme dans Kotoeri.",
+  "description_ja": "複数の部品となる文字を選択してショートカットを押すと、文字の組み立てと辞書から、Kotoeriのように組み立てた文字の候補が表示されます。",
+  "category": "composition",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#153": {
+  "title_en": "Presentations, character images, ruby and warichū",
+  "title_fr": "Présentations, images de caractères, ruby et warichū",
+  "title_ja": "プレゼンテーション、文字画像、ルビ、割注",
+  "description_en": "Investigate PowerPoint, LibreOffice Impress and ONLYOFFICE Presentations, insert composed characters as images, and add ruby and warichū across the office plugins.",
+  "description_fr": "Étudier PowerPoint, LibreOffice Impress et ONLYOFFICE Presentations, insérer des caractères composés comme images, et ajouter ruby et warichū dans les plugins bureautiques.",
+  "description_ja": "PowerPoint、LibreOffice Impress、ONLYOFFICE Presentationsを調査し、組み立てた文字を画像として挿入し、各オフィスプラグインでルビと割注に対応します。",
+  "category": "composition",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#154": {
+  "title_en": "Refine composer drawings with GlyphWiki",
+  "title_fr": "Affiner les dessins du compositeur avec GlyphWiki",
+  "title_ja": "GlyphWikiとの比較による字形の改善",
+  "description_en": "Compare the character composer's drawings with GlyphWiki's registered glyphs to find and fix layout differences.",
+  "description_fr": "Comparer les dessins du compositeur de caractères aux glyphes enregistrés dans GlyphWiki pour repérer et corriger les différences de mise en page.",
+  "description_ja": "文字構成ツールの描画をGlyphWikiの登録字形と比較し、レイアウトの差異を見つけて修正します。",
+  "category": "composition",
+  "type": "capability",
+  "layer": 0
  }
 }
