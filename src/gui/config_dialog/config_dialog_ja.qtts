@@ -550,6 +550,14 @@
 <context>
     <name>QObject</name>
     <message>
+        <source>Prefer GlyphWiki drawings</source>
+        <translation>GlyphWikiの字形を優先する</translation>
+    </message>
+    <message>
+        <source>Off by default. When off, the character composer draws unencoded or font-missing characters by composing strokes from the structure you built, using the bundled GlyphWiki data offline. When on, if the structure matches a Unicode character and the glyph is in neither the bundled data nor your local cache, the composer asks glyphwiki.org for it. Only the glyph name (for example u6728) is sent, along with your IP address as with any web request; nothing you type and no dictionary data. Structures with no Unicode encoding always stay local. Fetched glyphs are cached in the glyphwiki_cache folder of your marinaMoji profile. See the privacy policy on marinamoji.crcao.fr.</source>
+        <translation>初期設定はオフです。オフのとき、文字の組み立ては、符号化されていない文字やフォントにない文字を、同梱のGlyphWikiデータを使い、オフラインで、組み立てた構造から筆画を合成して描きます。オンのとき、構造がUnicodeの文字に一致し、その字形が同梱データにもローカルキャッシュにもない場合に、glyphwiki.org へ問い合わせます。送信されるのは字形名（例：u6728）だけで、通常のウェブリクエストと同様にIPアドレスが伝わります。入力した文字や辞書データは送信されません。Unicodeに符号化されていない構造は常にローカルで描画されます。取得した字形は、marinaMojiプロファイルの glyphwiki_cache フォルダーに保存されます。詳しくは marinamoji.crcao.fr のプライバシーポリシーをご覧ください。</translation>
+    </message>
+    <message>
         <source>Mode switching</source>
         <translation>モード切替</translation>
     </message>
@@ -1259,6 +1267,14 @@ Kyū   國 學</source>
 </context>
 <context>
     <name>mozc::gui::ConfigDialog</name>
+    <message>
+        <source>Prefer GlyphWiki drawings when a matching glyph exists</source>
+        <translation>対応する字形があればGlyphWikiの字形を優先する</translation>
+    </message>
+    <message>
+        <source>Character composer</source>
+        <translation>文字の組み立て</translation>
+    </message>
     <message>
         <location filename="config_dialog.cc" line="701"/>
         <source>Preferences</source>

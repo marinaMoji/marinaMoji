@@ -116,14 +116,17 @@ std::vector<PreferencesExplanation> BuildCatalog() {
   add("writing.prefer_glyphwiki_drawings",
       QObject::tr("Prefer GlyphWiki drawings"),
       QObject::tr(
-          "When off (the default), the character composer draws unencoded or "
+          "Off by default. When off, the character composer draws unencoded or "
           "font-missing characters by composing strokes from the structure "
           "you built, using the bundled GlyphWiki data offline. When on, if "
-          "the structure matches a Unicode character, the composer shows "
-          "GlyphWiki’s registered glyph for that character instead (from the "
-          "local dump first, then a disk cache, then a short network fetch). "
-          "Structures with no Unicode encoding always stay local. Fetched "
-          "glyphs are cached under your marinaMoji profile."),
+          "the structure matches a Unicode character and the glyph is in "
+          "neither the bundled data nor your local cache, the composer asks "
+          "glyphwiki.org for it. Only the glyph name (for example u6728) is "
+          "sent, along with your IP address as with any web request; nothing "
+          "you type and no dictionary data. Structures with no Unicode "
+          "encoding always stay local. Fetched glyphs are cached in the "
+          "glyphwiki_cache folder of your marinaMoji profile. See the privacy "
+          "policy on marinamoji.crcao.fr."),
       QString(), QStringLiteral("section_character_composer"));
 
   add("writing.width_rules",

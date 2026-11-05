@@ -18,6 +18,18 @@ changed and, where it isn't obvious, why.
   first, then a disk cache under the user profile, then a short network fetch.
   Unencoded structures always compose locally.
 
+### Privacy
+
+- **Network features documented.** The website privacy policy (EN/FR/JA) now
+  has a section on the IME's two network features: the optional GlyphWiki
+  lookup (what is sent: only the glyph name plus the IP address any web
+  request reveals; what is cached; how to turn it off) and the update check.
+  The source text is in [`docs/PRIVACY.md`](docs/PRIVACY.md).
+- The **Prefer GlyphWiki drawings** explanation in Preferences now says what
+  is sent and points to the policy. That setting's labels and explanation
+  were previously untranslated; they now have English, French and Japanese
+  strings, as does the "Character composer" subhead.
+
 ### Related characters (Ctrl+1)
 
 - Selecting one committed character and pressing **Ctrl+1** opens the

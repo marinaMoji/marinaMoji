@@ -459,6 +459,14 @@
 <context>
     <name>QObject</name>
     <message>
+        <source>Prefer GlyphWiki drawings</source>
+        <translation>Prefer GlyphWiki drawings</translation>
+    </message>
+    <message>
+        <source>Off by default. When off, the character composer draws unencoded or font-missing characters by composing strokes from the structure you built, using the bundled GlyphWiki data offline. When on, if the structure matches a Unicode character and the glyph is in neither the bundled data nor your local cache, the composer asks glyphwiki.org for it. Only the glyph name (for example u6728) is sent, along with your IP address as with any web request; nothing you type and no dictionary data. Structures with no Unicode encoding always stay local. Fetched glyphs are cached in the glyphwiki_cache folder of your marinaMoji profile. See the privacy policy on marinamoji.crcao.fr.</source>
+        <translation>Off by default. When off, the character composer draws unencoded or font-missing characters by composing strokes from the structure you built, using the bundled GlyphWiki data offline. When on, if the structure matches a Unicode character and the glyph is in neither the bundled data nor your local cache, the composer asks glyphwiki.org for it. Only the glyph name (for example u6728) is sent, along with your IP address as with any web request; nothing you type and no dictionary data. Structures with no Unicode encoding always stay local. Fetched glyphs are cached in the glyphwiki_cache folder of your marinaMoji profile. See the privacy policy on marinamoji.crcao.fr.</translation>
+    </message>
+    <message>
         <location filename="character_form_editor.cc" line="20"/>
         <location filename="character_form_editor.cc" line="35"/>
         <source>Fullwidth</source>
@@ -779,6 +787,14 @@ Kyū   國 學</translation>
 </context>
 <context>
     <name>mozc::gui::ConfigDialog</name>
+    <message>
+        <source>Prefer GlyphWiki drawings when a matching glyph exists</source>
+        <translation>Prefer GlyphWiki drawings when a matching glyph exists</translation>
+    </message>
+    <message>
+        <source>Character composer</source>
+        <translation>Character composer</translation>
+    </message>
     <message>
         <location filename="config_dialog.cc" line="701"/>
         <source>Preferences</source>
