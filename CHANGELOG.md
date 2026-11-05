@@ -10,6 +10,14 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer
+
+- **Prefer GlyphWiki drawings** (Preferences → Writing, off by default): when a
+  composition matches a Unicode character, the specimen can show GlyphWiki’s
+  registered glyph instead of an IDS-composed drawing. Uses the bundled dump
+  first, then a disk cache under the user profile, then a short network fetch.
+  Unencoded structures always compose locally.
+
 ### Related characters (Ctrl+1)
 
 - Selecting one committed character and pressing **Ctrl+1** opens the

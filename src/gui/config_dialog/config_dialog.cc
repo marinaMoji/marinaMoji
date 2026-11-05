@@ -1702,6 +1702,16 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
     AddToPage(writing_layout, miscStartKanjiModeWidget);
   }
 
+  AddMinorSubhead(writing_layout, tr("Character composer"), writing);
+  prefer_glyphwiki_drawings_checkbox_ = new QCheckBox(
+      tr("Prefer GlyphWiki drawings when a matching glyph exists"), writing);
+  prefer_glyphwiki_drawings_checkbox_->setObjectName(
+      QStringLiteral("preferGlyphwikiDrawingsCheckBox"));
+  AddToPage(writing_layout,
+            MakeExplainedControlRow(prefer_glyphwiki_drawings_checkbox_, writing,
+                                    explanations,
+                                    "writing.prefer_glyphwiki_drawings"));
+
   AddMajorSection(writing_layout, tr("Detailed width rules"), writing,
                   &writing_first);
   if (explanations != nullptr) {
@@ -3222,6 +3232,10 @@ void ConfigDialog::ConvertFromProto(const config::Config& config) {
   startLiveModeComboBox->setCurrentIndex(config.use_live_conversion() ? 0 : 1);
 #endif
   SET_CHECKBOX(twoStepCommitCheckBox, use_two_step_commit);
+  if (prefer_glyphwiki_drawings_checkbox_ != nullptr) {
+    prefer_glyphwiki_drawings_checkbox_->setChecked(
+        config.prefer_glyphwiki_drawings());
+  }
   if (include_unstable_updates_checkbox_ != nullptr) {
     include_unstable_updates_checkbox_->setChecked(
         config.include_unstable_updates());
@@ -3384,6 +3398,10 @@ void ConfigDialog::ConvertToProto(config::Config* config) const {
   GET_COMBOBOX(yenSignComboBox, YenSignCharacter, yen_sign_character);
 #if defined(__linux__) || defined(__APPLE__)
   config->set_use_traditional_kanji(startKanjiModeComboBox->currentIndex() == 1);
+  if (prefer_glyphwiki_drawings_checkbox_ != nullptr) {
+    config->set_prefer_glyphwiki_drawings(
+        prefer_glyphwiki_drawings_checkbox_->isChecked());
+  }
   config->set_use_live_conversion(startLiveModeComboBox->currentIndex() == 0);
 #endif
   GET_CHECKBOX(twoStepCommitCheckBox, use_two_step_commit);

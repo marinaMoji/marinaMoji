@@ -87,6 +87,21 @@ std::optional<std::vector<Contour>> ComposerOutlines(
     std::string_view op, const std::vector<composer_ids::ComposerSlot> &parts,
     const KageResources &resources, int view_box = 1000);
 
+// GlyphWiki's name for a single character ("u4e00"), or empty if |ch| is not
+// exactly one code point.
+std::string GlyphWikiNameForCharacter(std::string_view ch);
+
+// Outlines of GlyphWiki's registered glyph for |ch| (via uXXXX in |resources|),
+// or nullopt when the character is unknown or has no strokes in the table.
+// Used when prefer_glyphwiki_drawings is on.
+std::optional<std::vector<Contour>> NamedGlyphOutlines(
+    std::string_view ch, const KageResources &resources, int view_box = 1000);
+
+// Same as NamedGlyphOutlines, but renders glyph |name| from |buhin| (which may
+// sit on top of the bundled table with fetched/cached entries).
+std::optional<std::vector<Contour>> NamedGlyphOutlinesFromBuhin(
+    std::string_view name, const kage::Buhin &buhin, int view_box = 1000);
+
 // "M x,y L x,y ... Z" for the outlines.
 std::string OutlinesToPathData(const std::vector<Contour> &outlines);
 

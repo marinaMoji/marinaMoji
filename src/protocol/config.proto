@@ -387,6 +387,13 @@ message Config {
   // works regardless of this setting.
   optional bool auto_check_for_updates = 75 [default = true];
 
+  // Character composer: when a structure maps to a Unicode character, prefer
+  // GlyphWiki's registered glyph (local dump, then disk cache / network) for
+  // the specimen drawing instead of composing strokes from the IDS. Default
+  // off keeps local IDS composition and avoids network use. Unencoded
+  // structures always compose locally.
+  optional bool prefer_glyphwiki_drawings = 76 [default = false];
+
   //////////////////////////////////////////////////////////////
   //
   // Dictionary (80-99)

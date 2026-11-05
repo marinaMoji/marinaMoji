@@ -61,12 +61,15 @@
 #include "composer_ids/ids_operator.h"
 #include "composer_ids/ids_table.h"
 #include "composer_ids/ids_tree.h"
-#include "gui/character_composer/composer_kage.h"
 #include "base/specimen_kind.h"
+#include "config/config_handler.h"
+#include "gui/character_composer/composer_kage.h"
 #include "gui/character_composer/composer_svg.h"
 #include "gui/character_composer/glyph_coverage.h"
+#include "gui/character_composer/glyphwiki_client.h"
 #include "gui/character_composer/layout_geometry.h"
 #include "gui/config_dialog/config_dialog_theme.h"
+#include "protocol/config.pb.h"
 
 namespace mozc {
 namespace gui {
@@ -2731,11 +2734,29 @@ void CharacterComposerDialog::RefreshActiveView() {
     status_heading = CodepointHeading(text);
   };
 
-  auto show_composition_drawing = [&](const QColor &ink) {
+  const bool prefer_glyphwiki =
+      config::ConfigHandler::GetSharedConfig()->prefer_glyphwiki_drawings();
+
+  // Prefer GlyphWiki's registered uXXXX glyph (local dump, then cache/network)
+  // when the setting is on and |unicode_ch| names a character; otherwise the
+  // IDS composition. Unencoded structures pass an empty |unicode_ch|.
+  auto show_composition_drawing = [&](const QColor &ink,
+                                      std::string_view unicode_ch = {}) {
     char_label_->setFont(font());
     char_label_->setText(QString());
     std::optional<std::vector<Contour>> outlines;
-    if (kage_ != nullptr) {
+    if (prefer_glyphwiki && kage_ != nullptr && !unicode_ch.empty()) {
+      outlines = NamedGlyphOutlines(unicode_ch, *kage_);
+      if (!outlines) {
+        const std::string name = GlyphWikiNameForCharacter(unicode_ch);
+        kage::Buhin scratch(&kage_->glyphs);
+        if (!name.empty() &&
+            EnsureGlyphWikiGlyph(name, &scratch, /*allow_network=*/true)) {
+          outlines = NamedGlyphOutlinesFromBuhin(name, scratch);
+        }
+      }
+    }
+    if (!outlines && kage_ != nullptr) {
       outlines = ComposerOutlines(editor_->op(), editor_->parts(), *kage_);
     }
     char_label_->setPixmap(
@@ -2746,10 +2767,16 @@ void CharacterComposerDialog::RefreshActiveView() {
 
   if (search_active) {
     const QString text = FromUtf8(search_active_char_);
-    show_unicode_text(text);
-    if (!Coverage().Drawable(text)) {
+    if (!Coverage().Drawable(text) && prefer_glyphwiki) {
       specimen_kind = QStringLiteral("missingFont");
+      show_composition_drawing(plate_ink, search_active_char_);
       status_detail = MissingFontDetail();
+    } else {
+      show_unicode_text(text);
+      if (!Coverage().Drawable(text)) {
+        specimen_kind = QStringLiteral("missingFont");
+        status_detail = MissingFontDetail();
+      }
     }
     insertable = true;
     if (char_info_ != nullptr) info = char_info_->Find(search_active_char_);
@@ -2768,14 +2795,15 @@ void CharacterComposerDialog::RefreshActiveView() {
       if (Coverage().Drawable(text)) {
         show_unicode_text(text);
       } else {
-        // Encoded, but nothing installed can draw it: show the composition
-        // drawing on the amber plate instead of a tofu box.
+        // Encoded, but nothing installed can draw it: show GlyphWiki's glyph
+        // when preferred, otherwise the IDS composition, on the amber plate.
         specimen_kind = QStringLiteral("missingFont");
-        show_composition_drawing(plate_ink);
+        show_composition_drawing(plate_ink, found_);
         status_detail = MissingFontDetail();
       }
     } else if (!pending_svg_.empty()) {
       specimen_kind = QStringLiteral("svg");
+      // Unencoded: always local IDS composition (never GlyphWiki fetch).
       show_composition_drawing(plate_ink);
       status_heading = Tr("Not encoded in Unicode");
       status_detail =

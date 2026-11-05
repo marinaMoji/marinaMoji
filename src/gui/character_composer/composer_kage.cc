@@ -64,6 +64,29 @@ std::string GlyphName(std::string_view ch) {
   return buf;
 }
 
+std::optional<std::vector<Contour>> OutlinesFromData(const kage::Kage &engine,
+                                                     std::string_view data,
+                                                     int view_box) {
+  if (data.empty() || !engine.UnresolvedComponents(data).empty()) {
+    return std::nullopt;
+  }
+  kage::Polygons polygons;
+  engine.MakeGlyphFromData(&polygons, data);
+  if (polygons.array().empty()) return std::nullopt;
+  polygons.NormalizeWinding(/*clockwise=*/true);
+
+  const double scale = view_box / 200.0;
+  std::vector<Contour> outlines;
+  for (const kage::Polygon &polygon : polygons.array()) {
+    Contour contour;
+    for (const kage::Point &p : polygon.Points()) {
+      contour.push_back({p.x * scale, p.y * scale});
+    }
+    outlines.push_back(std::move(contour));
+  }
+  return outlines;
+}
+
 // Bare "uXXXX" from a GlyphWiki name that may already carry a suffix.
 std::string CanonicalGlyphBase(std::string_view name) {
   if (name.size() < 5 || name[0] != 'u') return {};
@@ -261,24 +284,25 @@ std::optional<std::vector<Contour>> ComposerOutlines(
   kage::Buhin scratch(&resources.glyphs);
   const std::string data = ComposeKageData(op, parts, &scratch, &resources.layout);
   if (data.empty()) return std::nullopt;
+  return OutlinesFromData(kage::Kage(&scratch), data, view_box);
+}
 
-  const kage::Kage kage(&scratch);
-  if (!kage.UnresolvedComponents(data).empty()) return std::nullopt;
-  kage::Polygons polygons;
-  kage.MakeGlyphFromData(&polygons, data);
-  if (polygons.array().empty()) return std::nullopt;
-  polygons.NormalizeWinding(/*clockwise=*/true);
+std::string GlyphWikiNameForCharacter(std::string_view ch) {
+  return GlyphName(ch);
+}
 
-  const double scale = view_box / 200.0;
-  std::vector<Contour> outlines;
-  for (const kage::Polygon &polygon : polygons.array()) {
-    Contour contour;
-    for (const kage::Point &p : polygon.Points()) {
-      contour.push_back({p.x * scale, p.y * scale});
-    }
-    outlines.push_back(std::move(contour));
-  }
-  return outlines;
+std::optional<std::vector<Contour>> NamedGlyphOutlinesFromBuhin(
+    std::string_view name, const kage::Buhin &buhin, int view_box) {
+  if (name.empty()) return std::nullopt;
+  const kage::Kage engine(&buhin);
+  const std::string_view data = buhin.Search(name);
+  if (data.empty()) return std::nullopt;
+  return OutlinesFromData(engine, data, view_box);
+}
+
+std::optional<std::vector<Contour>> NamedGlyphOutlines(
+    std::string_view ch, const KageResources &resources, int view_box) {
+  return NamedGlyphOutlinesFromBuhin(GlyphName(ch), resources.glyphs, view_box);
 }
 
 std::string OutlinesToPathData(const std::vector<Contour> &outlines) {

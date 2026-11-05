@@ -96,6 +96,21 @@ mozc_cc_library(
     ],
 )
 
+# Disk cache + optional GlyphWiki API fetch (curl on PATH). GPL only via
+# //kage headers for Buhin; the fetch layer itself is BSD.
+mozc_cc_library(
+    name = "glyphwiki_client",
+    srcs = ["glyphwiki_client.cc"],
+    hdrs = ["glyphwiki_client.h"],
+    deps = [
+        "//base:file_util",
+        "//base:system_util",
+        "//kage",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 mozc_cc_library(
     name = "composer_svg",
     srcs = ["composer_svg.cc"],
@@ -119,6 +134,20 @@ mozc_cc_test(
         ":composer_svg",
         "//base:file_util",
         "//composer_ids:ids_tree",
+        "//kage",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+    ],
+)
+
+mozc_cc_test(
+    name = "glyphwiki_client_test",
+    size = "small",
+    srcs = ["glyphwiki_client_test.cc"],
+    deps = [
+        ":glyphwiki_client",
+        "//base:file_util",
+        "//base:system_util",
         "//kage",
         "//testing:gunit_main",
         "//testing:mozctest",
@@ -153,6 +182,7 @@ mozc_cc_qt_library(
     deps = [
         ":composer_kage",
         ":composer_svg",
+        ":glyphwiki_client",
         ":layout_geometry",
         ":word_insert",
         "//base:specimen_kind",
@@ -162,10 +192,12 @@ mozc_cc_qt_library(
         "//composer_ids:ids_operator",
         "//composer_ids:ids_table",
         "//composer_ids:ids_tree",
+        "//config:config_handler",
         "//gui/base:gui_base",
         "//gui/base:singleton_window_helper",
         "//gui/config_dialog:config_dialog_theme",
         "//kage",
+        "//protocol:config_cc_proto",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
     ],

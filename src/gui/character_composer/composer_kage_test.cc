@@ -148,6 +148,15 @@ TEST(ComposerKageTest, SvgIsAPathWhenGlyphsAreGivenAndTextWhenNot) {
   EXPECT_EQ(text.find("<path"), std::string::npos);
 }
 
+TEST(ComposerKageTest, NamedGlyphOutlinesUsesRegisteredUnicodeGlyph) {
+  const KageResources glyphs = LoadGlyphs();
+  EXPECT_EQ(GlyphWikiNameForCharacter("木"), "u6728");
+  const auto outlines = NamedGlyphOutlines("木", glyphs, 1000);
+  ASSERT_TRUE(outlines.has_value());
+  EXPECT_FALSE(outlines->empty());
+  EXPECT_FALSE(NamedGlyphOutlines("木巻", glyphs, 1000).has_value());
+}
+
 }  // namespace
 }  // namespace gui
 }  // namespace mozc

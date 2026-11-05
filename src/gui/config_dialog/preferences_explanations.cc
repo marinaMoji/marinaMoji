@@ -113,6 +113,19 @@ std::vector<PreferencesExplanation> BuildCatalog() {
       QObject::tr("Shin  国 学\nKyū   國 學"),
       QStringLiteral("section_kyujitai"));
 
+  add("writing.prefer_glyphwiki_drawings",
+      QObject::tr("Prefer GlyphWiki drawings"),
+      QObject::tr(
+          "When off (the default), the character composer draws unencoded or "
+          "font-missing characters by composing strokes from the structure "
+          "you built, using the bundled GlyphWiki data offline. When on, if "
+          "the structure matches a Unicode character, the composer shows "
+          "GlyphWiki’s registered glyph for that character instead (from the "
+          "local dump first, then a disk cache, then a short network fetch). "
+          "Structures with no Unicode encoding always stay local. Fetched "
+          "glyphs are cached under your marinaMoji profile."),
+      QString(), QStringLiteral("section_character_composer"));
+
   add("writing.width_rules",
       QObject::tr("Detailed width rules"),
       QObject::tr(
