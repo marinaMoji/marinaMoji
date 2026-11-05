@@ -424,6 +424,7 @@ mozc_objc_library(
         "//base:util",
         "//base/mac:mac_util",
         "//client:client_interface",
+        "//composer_ids:ids_preview",
         "//mac:common",
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",

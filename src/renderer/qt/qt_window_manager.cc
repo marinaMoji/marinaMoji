@@ -53,6 +53,7 @@
 #include "base/coordinates.h"
 #include "base/specimen_kind.h"
 #include "client/client_interface.h"
+#include "composer_ids/ids_preview.h"
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
 #include "protocol/renderer_style.pb.h"
@@ -80,6 +81,9 @@ enum CandidateItemRole {
   kIsFocusedRole,
   // specimen_kind::Kind as int; set on the value column.
   kSpecimenKindRole,
+  // The IDS string of a Ctrl+2 "drawing" row; set on the value column. The
+  // delegate draws its layout instead of the (blank) cell text.
+  kSvgIdsRole,
 };
 
 QString QStr(absl::string_view str) {
@@ -448,6 +452,36 @@ void CandidateTableDelegate::paint(QPainter* painter,
     painter->fillRect(rect, gradient);
   }
   QStyledItemDelegate::paint(painter, option, index);
+
+  // Ctrl+2 "drawing" row: draw the components of the IDS value in their cells
+  // of a square, white on the plate, as the exported SVG places them.
+  if (index.column() == 1 && index.data(kSvgIdsRole).isValid()) {
+    const auto preview = composer_ids::ParseIdsPreview(
+        index.data(kSvgIdsRole).toString().toStdString());
+    if (preview.has_value()) {
+      const double side = option.rect.height() - 2;
+      const double left = option.rect.left() + 4;
+      const double top = option.rect.top() + 1;
+      QFont font(QStringLiteral("Noto Serif CJK JP"));
+      font.setStyleHint(QFont::Serif);
+      font.setPixelSize(std::max(1, static_cast<int>(side * 0.88)));
+      painter->save();
+      painter->setRenderHint(QPainter::Antialiasing, true);
+      painter->setRenderHint(QPainter::TextAntialiasing, true);
+      painter->setFont(font);
+      painter->setPen(Qt::white);
+      for (size_t i = 0; i < preview->parts.size(); ++i) {
+        const composer_ids::PreviewCell& cell = preview->cells[i];
+        painter->save();
+        painter->translate(left + cell.x * side, top + cell.y * side);
+        painter->scale(cell.w, cell.h);
+        painter->drawText(QRectF(0, 0, side, side), Qt::AlignCenter,
+                          QString::fromStdString(preview->parts[i]));
+        painter->restore();
+      }
+      painter->restore();
+    }
+  }
 
   // The logo spans several columns, so it is drawn with the last cell of the
   // footer row, after every cell has painted its own background.
@@ -920,6 +954,12 @@ void FillCandidateWindow(const commands::CandidateWindow& candidate_window,
 
     // value
     auto item1 = new QTableWidgetItem(QStr(value));
+    if (HasUnencodedSvgAttribute(candidate) &&
+        composer_ids::ParseIdsPreview(value).has_value()) {
+      // The layout is drawn, not the text: reserve one character's width.
+      item1->setText(QString(QChar(0x3000)));
+      item1->setData(kSvgIdsRole, QStr(value));
+    }
     item1->setForeground(candidate_brush);
     const specimen_kind::Kind kind = SpecimenKindForCandidate(
         candidate, CandidateValueDrawable(table->font(), QStr(value)));

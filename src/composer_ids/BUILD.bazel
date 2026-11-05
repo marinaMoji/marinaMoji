@@ -109,6 +109,28 @@ mozc_cc_test(
 )
 
 mozc_cc_library(
+    name = "ids_preview",
+    srcs = ["ids_preview.cc"],
+    hdrs = ["ids_preview.h"],
+    visibility = [
+        "//renderer:__subpackages__",
+    ],
+    deps = [
+        "//base/strings:unicode",
+    ],
+)
+
+mozc_cc_test(
+    name = "ids_preview_test",
+    size = "small",
+    srcs = ["ids_preview_test.cc"],
+    deps = [
+        ":ids_preview",
+        "//testing:gunit_main",
+    ],
+)
+
+mozc_cc_library(
     name = "component_svg_handoff",
     srcs = ["component_svg_handoff.cc"],
     hdrs = ["component_svg_handoff.h"],

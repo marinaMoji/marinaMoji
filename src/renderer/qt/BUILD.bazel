@@ -139,6 +139,7 @@ mozc_cc_qt_library(
         "//base:coordinates",
         "//base:specimen_kind",
         "//client:client_interface",
+        "//composer_ids:ids_preview",
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",
         "//protocol:renderer_cc_proto",

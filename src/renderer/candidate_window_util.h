@@ -53,6 +53,18 @@ inline int FocusedDisplayRow(const commands::CandidateWindow& candidate_window) 
   return focused_index - candidate_window.candidate(0).index();
 }
 
+// True when |candidate| is the Ctrl+2 "unencoded drawing" row: its value is an
+// IDS string, and the window draws the layout instead of the text.
+inline bool HasUnencodedSvgAttribute(
+    const commands::CandidateWindow::Candidate& candidate) {
+  for (int i = 0; i < candidate.attributes_size(); ++i) {
+    if (candidate.attributes(i) == commands::UNENCODED_SVG) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Specimen plate kind for a candidate row. Attributes win; otherwise
 // |glyph_drawable| decides plain vs missingFont (amber).
 inline specimen_kind::Kind SpecimenKindForCandidate(

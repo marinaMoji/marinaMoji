@@ -34,10 +34,12 @@
 #include <algorithm>
 #include <cstdint>
 #include <set>
+#include <string>
 #include <vector>
 
 #include <CoreText/CoreText.h>
 
+#include "composer_ids/ids_preview.h"
 #include "absl/log/log.h"
 #include "absl/strings/str_format.h"
 #include "base/specimen_kind.h"
@@ -127,6 +129,39 @@ bool MacCandidateValueDrawable(NSString *text, NSFont *font) {
     index = range.location + range.length;
   }
   return true;
+}
+
+// Draws the components of an unencoded composition (the Ctrl+2 "drawing" row)
+// in their cells inside |square|, white on the plate. Each component is drawn
+// as the exported SVG draws it: a serif glyph in a square, squeezed to the
+// width or height of its cell.
+void DrawIdsPreview(const mozc::composer_ids::IdsPreview &preview, NSRect square) {
+  const CGFloat side = square.size.width;
+  NSFont *font = [NSFont fontWithName:@"HiraMinProN-W3" size:side * 0.88];
+  if (font == nil) {
+    font = [NSFont systemFontOfSize:side * 0.88];
+  }
+  NSDictionary *attrs = @{
+    NSFontAttributeName : font,
+    NSForegroundColorAttributeName : [NSColor whiteColor],
+  };
+  for (size_t i = 0; i < preview.parts.size(); ++i) {
+    const mozc::composer_ids::PreviewCell &cell = preview.cells[i];
+    NSString *glyph = [NSString stringWithUTF8String:preview.parts[i].c_str()];
+    if (glyph == nil) {
+      continue;
+    }
+    const NSSize size = [glyph sizeWithAttributes:attrs];
+    [NSGraphicsContext saveGraphicsState];
+    NSAffineTransform *transform = [NSAffineTransform transform];
+    [transform translateXBy:square.origin.x + cell.x * side
+                        yBy:square.origin.y + cell.y * side];
+    [transform scaleXBy:cell.w yBy:cell.h];
+    [transform concat];
+    [glyph drawAtPoint:NSMakePoint((side - size.width) / 2, (side - size.height) / 2)
+        withAttributes:attrs];
+    [NSGraphicsContext restoreGraphicsState];
+  }
 }
 
 NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind) {
@@ -364,6 +399,11 @@ NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind) {
     if (candidate.annotation().has_suffix()) {
       value.append(candidate.annotation().suffix());
     }
+    if (mozc::renderer::HasUnencodedSvgAttribute(candidate) &&
+        mozc::composer_ids::ParseIdsPreview(candidate.value()).has_value()) {
+      // The layout is drawn, not the text: reserve one character's width.
+      value = "\xE3\x80\x80";  // U+3000
+    }
     if (!value.empty()) {
       value.append("  ");
     }
@@ -496,6 +536,22 @@ NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind) {
     [NSBezierPath fillRect:MacViewUtil::ToNSRect(cellRect)];
   }
 
+  // Ctrl+2 "drawing" row: draw the layout of the IDS value in a square.
+  bool drawnPreview = false;
+  if (kind == mozc::specimen_kind::Kind::kSvg) {
+    const auto preview =
+        mozc::composer_ids::ParseIdsPreview(candidate_window_.candidate(row).value());
+    if (preview.has_value()) {
+      const mozc::Rect rowRect = tableLayout_.GetRowRect(row);
+      const NSRect cell = MacViewUtil::ToNSRect(tableLayout_.GetCellRect(row, kColumnCandidate));
+      const CGFloat side = rowRect.size.height - 2;
+      const NSRect square = NSMakeRect(
+          cell.origin.x + style_.candidate_style().left_padding(), rowRect.origin.y + 1, side, side);
+      DrawIdsPreview(*preview, square);
+      drawnPreview = true;
+    }
+  }
+
   auto drawText = [&](ColumnType type,
                       const mozc::renderer::RendererStyle::TextStyle& text_style) {
     const NSAttributedString *text = [candidate objectAtIndex:type];
@@ -503,6 +559,9 @@ NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind) {
     NSPoint position = cellRect.origin;
     position.x += text_style.left_padding();
     position.y += (cellRect.size.height - [text size].height) / 2;
+    if (type == kColumnCandidate && drawnPreview) {
+      return;  // the layout was drawn over the plate above
+    }
     if (type == kColumnCandidate && plate != nil) {
       NSMutableAttributedString *white = [[NSMutableAttributedString alloc]
           initWithAttributedString:(NSAttributedString *)text];
