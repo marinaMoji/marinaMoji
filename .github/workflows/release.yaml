@@ -43,7 +43,10 @@ concurrency:
 
 jobs:
   build_macos:
-    runs-on: macos-26
+    # macos-15, like macos.yaml: the macos-26 pool is small and jobs requesting
+    # it were cancelled after 15 minutes without ever getting a runner
+    # (v0.0.21-rc1, three attempts).
+    runs-on: macos-15
     timeout-minutes: 120
     environment: release
     strategy:

@@ -10,6 +10,14 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.21-rc2
+
+Everything in 0.0.21-rc1 (which was tagged but never published: its macOS
+jobs could not get a `macos-26` runner) plus:
+
+- **Release:** the macOS release jobs run on `macos-15`, as the CI does,
+  instead of `macos-26`.
+
 ### Release candidate 0.0.21-rc1
 
 Everything in 0.0.20 plus the changes below.
