@@ -67,13 +67,27 @@ jobs:
         run: |
           if exist third_party\qt_src rmdir third_party\qt_src /s /q
 
+      # Bazel's disk cache, so a run only compiles what changed. Each job saves
+      # under its own key (two jobs saving one key would lose one of the
+      # caches) and restores from the newest cache of any job on the same
+      # architecture, so the build and test jobs warm each other for the
+      # actions their flags share.
+      - name: Restore Bazel disk cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .bazel_disk_cache
+          key: bazel-disk-${{ runner.os }}-${{ runner.arch }}-build_on_x64-${{ github.sha }}
+          restore-keys: |
+            bazel-disk-${{ runner.os }}-${{ runner.arch }}-build_on_x64-
+            bazel-disk-${{ runner.os }}-${{ runner.arch }}-
+
       - name: build artifacts
         shell: cmd
         working-directory: .\src
         env:
           ANDROID_NDK_HOME: ""
         run: |
-          bazelisk build package --config release_build --config x86_simd
+          bazelisk build package --config release_build --config x86_simd --disk_cache=%GITHUB_WORKSPACE%\.bazel_disk_cache
 
       - name: upload marinaMoji-windows-x86_64
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
@@ -130,13 +144,27 @@ jobs:
         run: |
           if exist third_party\qt_src rmdir third_party\qt_src /s /q
 
+      # Bazel's disk cache, so a run only compiles what changed. Each job saves
+      # under its own key (two jobs saving one key would lose one of the
+      # caches) and restores from the newest cache of any job on the same
+      # architecture, so the build and test jobs warm each other for the
+      # actions their flags share.
+      - name: Restore Bazel disk cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .bazel_disk_cache
+          key: bazel-disk-${{ runner.os }}-${{ runner.arch }}-build_on_arm64-${{ github.sha }}
+          restore-keys: |
+            bazel-disk-${{ runner.os }}-${{ runner.arch }}-build_on_arm64-
+            bazel-disk-${{ runner.os }}-${{ runner.arch }}-
+
       - name: build artifacts
         shell: cmd
         working-directory: .\src
         env:
           ANDROID_NDK_HOME: ""
         run: |
-          bazelisk build package --config release_build
+          bazelisk build package --config release_build --disk_cache=%GITHUB_WORKSPACE%\.bazel_disk_cache
 
       - name: upload marinaMoji-windows-arm64
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
@@ -170,6 +198,20 @@ jobs:
         run: |
           python build_tools/update_deps.py
 
+      # Bazel's disk cache, so a run only compiles what changed. Each job saves
+      # under its own key (two jobs saving one key would lose one of the
+      # caches) and restores from the newest cache of any job on the same
+      # architecture, so the build and test jobs warm each other for the
+      # actions their flags share.
+      - name: Restore Bazel disk cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .bazel_disk_cache
+          key: bazel-disk-${{ runner.os }}-${{ runner.arch }}-test_on_x64-${{ github.sha }}
+          restore-keys: |
+            bazel-disk-${{ runner.os }}-${{ runner.arch }}-test_on_x64-
+            bazel-disk-${{ runner.os }}-${{ runner.arch }}-
+
       - name: runtests
         shell: cmd
         working-directory: .\src
@@ -177,7 +219,7 @@ jobs:
           ANDROID_NDK_HOME: ""
         run: |
           rem This job does not build Qt, so skip the Qt-based character composer.
-          bazelisk test -c dbg --config x86_simd --test_output=errors --build_tests_only --build_event_json_file=bep.jsonl -- ... -//gui/character_composer/...
+          bazelisk test -c dbg --config x86_simd --test_output=errors --build_tests_only --build_event_json_file=bep.jsonl --disk_cache=%GITHUB_WORKSPACE%\.bazel_disk_cache -- ... -//gui/character_composer/...
 
       - name: Collect failing test logs
         if: failure()
@@ -219,6 +261,20 @@ jobs:
         run: |
           python build_tools/update_deps.py
 
+      # Bazel's disk cache, so a run only compiles what changed. Each job saves
+      # under its own key (two jobs saving one key would lose one of the
+      # caches) and restores from the newest cache of any job on the same
+      # architecture, so the build and test jobs warm each other for the
+      # actions their flags share.
+      - name: Restore Bazel disk cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .bazel_disk_cache
+          key: bazel-disk-${{ runner.os }}-${{ runner.arch }}-test_on_arm64-${{ github.sha }}
+          restore-keys: |
+            bazel-disk-${{ runner.os }}-${{ runner.arch }}-test_on_arm64-
+            bazel-disk-${{ runner.os }}-${{ runner.arch }}-
+
       - name: runtests
         shell: cmd
         working-directory: .\src
@@ -226,7 +282,7 @@ jobs:
           ANDROID_NDK_HOME: ""
         run: |
           rem This job does not build Qt, so skip the Qt-based character composer.
-          bazelisk test -c dbg --test_output=errors --build_tests_only --build_event_json_file=bep.jsonl -- ... -//gui/character_composer/...
+          bazelisk test -c dbg --test_output=errors --build_tests_only --build_event_json_file=bep.jsonl --disk_cache=%GITHUB_WORKSPACE%\.bazel_disk_cache -- ... -//gui/character_composer/...
 
       - name: Collect failing test logs
         if: failure()
