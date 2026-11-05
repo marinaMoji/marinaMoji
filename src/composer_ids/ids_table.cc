@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cstdlib>
 #include <limits>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -209,6 +211,53 @@ std::string IdsTable::DefaultDirectory() {
   }
   return FileUtil::JoinPath(SystemUtil::GetServerDirectory(),
                             "character_composer");
+}
+
+namespace {
+
+struct IdsDefaultHolder {
+  std::mutex mutex;
+  std::unique_ptr<IdsTable> table;
+  bool attempted = false;
+  bool testing_override = false;
+};
+
+IdsDefaultHolder *GetIdsDefaultHolder() {
+  static IdsDefaultHolder *holder = new IdsDefaultHolder();
+  return holder;
+}
+
+}  // namespace
+
+const IdsTable *IdsTable::GetDefault() {
+  IdsDefaultHolder *holder = GetIdsDefaultHolder();
+  std::lock_guard<std::mutex> lock(holder->mutex);
+  if (holder->testing_override) {
+    return holder->table.get();
+  }
+  if (!holder->attempted) {
+    holder->attempted = true;
+    if (auto loaded = LoadFromDirectory(DefaultDirectory()); loaded.ok()) {
+      holder->table = std::make_unique<IdsTable>(*std::move(loaded));
+    }
+  }
+  return holder->table.get();
+}
+
+void IdsTable::SetDefaultForTesting(std::unique_ptr<IdsTable> table) {
+  IdsDefaultHolder *holder = GetIdsDefaultHolder();
+  std::lock_guard<std::mutex> lock(holder->mutex);
+  holder->testing_override = true;
+  holder->table = std::move(table);
+  holder->attempted = true;
+}
+
+void IdsTable::ClearDefaultForTesting() {
+  IdsDefaultHolder *holder = GetIdsDefaultHolder();
+  std::lock_guard<std::mutex> lock(holder->mutex);
+  holder->testing_override = false;
+  holder->table.reset();
+  holder->attempted = false;
 }
 
 std::vector<std::string> IdsTable::FormsOf(std::string_view ch) const {

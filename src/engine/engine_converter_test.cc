@@ -3255,6 +3255,31 @@ TEST_F(EngineConverterTest, StartRelatedConversion) {
   EXPECT_FALSE(converter.StartRelatedConversion("学", {}));
 }
 
+TEST_F(EngineConverterTest, StartRelatedConversionSpecimenKinds) {
+  auto mock_converter = std::make_shared<MockConverter>();
+  EngineConverter converter(mock_converter, request_, config_);
+
+  EXPECT_CALL(*mock_converter, ResetConversion(_)).Times(1);
+  const std::vector<std::string> candidates = {"相", "⿰牙齒"};
+  ASSERT_TRUE(converter.StartRelatedConversion("牙齒", candidates));
+  const uint8_t kinds[] = {0, 2};
+  converter.SetSpecimenKinds(kinds);
+
+  uint8_t kind = 0;
+  EXPECT_TRUE(converter.GetFocusedSpecimenKind(&kind));
+  EXPECT_EQ(kind, 0);
+
+  commands::Output output;
+  converter.FillOutput(*composer_, &output);
+  ASSERT_TRUE(output.has_candidate_window());
+  ASSERT_EQ(output.candidate_window().candidate_size(), 2);
+  EXPECT_EQ(output.candidate_window().candidate(0).value(), "相");
+  EXPECT_EQ(output.candidate_window().candidate(1).value(), "⿰牙齒");
+  ASSERT_GE(output.candidate_window().candidate(1).attributes_size(), 1);
+  EXPECT_EQ(output.candidate_window().candidate(1).attributes(0),
+            commands::UNENCODED_SVG);
+}
+
 TEST_F(EngineConverterTest, ZeroQuerySuggestion) {
   auto mock_converter = std::make_shared<MockConverter>();
   EngineConverter converter(mock_converter, request_, config_);

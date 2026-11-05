@@ -489,6 +489,8 @@ void KeyMapManager::InitCommandData() {
   }
   RegisterDirectCommand("Reconvert", DirectInputState::RECONVERT);
   RegisterDirectCommand("ConvertRelated", DirectInputState::CONVERT_RELATED);
+  RegisterDirectCommand("ConvertComponents",
+                        DirectInputState::CONVERT_COMPONENTS);
   RegisterDirectCommand("LaunchWordRegisterDialog",
                         DirectInputState::LAUNCH_WORD_REGISTER_DIALOG);
   RegisterDirectCommand("InsertMacronVowel", DirectInputState::INSERT_MACRON_VOWEL);
@@ -574,6 +576,8 @@ void KeyMapManager::InitCommandData() {
   RegisterPrecompositionCommand("Reconvert", PrecompositionState::RECONVERT);
   RegisterPrecompositionCommand("ConvertRelated",
                                 PrecompositionState::CONVERT_RELATED);
+  RegisterPrecompositionCommand("ConvertComponents",
+                                PrecompositionState::CONVERT_COMPONENTS);
 
   RegisterPrecompositionCommand("Cancel", PrecompositionState::CANCEL);
   RegisterPrecompositionCommand("CancelAndIMEOff",

@@ -58,6 +58,7 @@ struct DirectInputState {
     COMPOSITION_MODE_HALF_ALPHANUMERIC,
     RECONVERT,
     CONVERT_RELATED,  // Ctrl+1: related characters / 異体字 for selection
+    CONVERT_COMPONENTS,  // Ctrl+2: characters sharing selected components
     LAUNCH_WORD_REGISTER_DIALOG,
     INSERT_MACRON_VOWEL,  // Optional keymap / SessionCommand; default is Right Shift dead key
     SET_MACRON_DEAD_KEY,  // AltGr+umlaut (¨): next vowel → macron (ā ē ī ō ū)
@@ -99,6 +100,7 @@ struct PrecompositionState {
     UNDO,    // undo last operation (preedit is restored)
     RECONVERT,
     CONVERT_RELATED,  // Ctrl+1: related characters / 異体字 for selection
+    CONVERT_COMPONENTS,  // Ctrl+2: characters sharing selected components
 
     // For ZeroQuerySuggestion
     CANCEL,                   // Back to Composition status.

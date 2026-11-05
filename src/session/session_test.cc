@@ -51,6 +51,7 @@
 #include "composer/key_parser.h"
 #include "composer/table.h"
 #include "composer_ids/char_info.h"
+#include "composer_ids/ids_table.h"
 #include "config/config_handler.h"
 #include "converter/attribute.h"
 #include "converter/candidate.h"
@@ -8739,6 +8740,20 @@ TEST_F(SessionTest, RequestConvertRelated) {
             commands::SessionCommand::CONVERT_RELATED);
 }
 
+TEST_F(SessionTest, RequestConvertComponents) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  commands::Command command;
+  EXPECT_TRUE(session.RequestConvertComponents(&command));
+  EXPECT_TRUE(command.output().has_callback());
+  EXPECT_EQ(command.output().callback().session_command().type(),
+            commands::SessionCommand::CONVERT_COMPONENTS);
+}
+
 TEST_F(SessionTest, ConvertRelated) {
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
@@ -8796,6 +8811,81 @@ TEST_F(SessionTest, ConvertRelated) {
   }
 
   composer_ids::CharInfoTable::ClearDefaultForTesting();
+}
+
+TEST_F(SessionTest, ConvertComponents) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+
+  // Force no IDS table so ConvertComponents no-ops even if installed data
+  // exists under DefaultDirectory(). Merge behaviour is covered by
+  // composer_ids:component_candidates_test.
+  composer_ids::IdsTable::SetDefaultForTesting(nullptr);
+  {
+    Session session(engine);
+    InitSessionToPrecomposition(&session);
+    commands::Command command;
+    command.mutable_input()->set_type(commands::Input::SEND_COMMAND);
+    command.mutable_input()->mutable_command()->set_type(
+        commands::SessionCommand::CONVERT_COMPONENTS);
+    command.mutable_input()->mutable_command()->set_text("木目");
+    EXPECT_TRUE(session.SendCommand(&command));
+    EXPECT_FALSE(command.output().has_candidate_window());
+  }
+
+  {
+    // Cap at 4: five characters do nothing (even with a table).
+    constexpr char kIds[] = "⿰木目\t相\n";
+    auto table = composer_ids::IdsTable::FromTsv(kIds, "");
+    ASSERT_TRUE(table.ok());
+    composer_ids::IdsTable::SetDefaultForTesting(
+        std::make_unique<composer_ids::IdsTable>(std::move(*table)));
+    Session session(engine);
+    InitSessionToPrecomposition(&session);
+    commands::Command command;
+    command.mutable_input()->set_type(commands::Input::SEND_COMMAND);
+    command.mutable_input()->mutable_command()->set_type(
+        commands::SessionCommand::CONVERT_COMPONENTS);
+    command.mutable_input()->mutable_command()->set_text("一二三四五");
+    EXPECT_TRUE(session.SendCommand(&command));
+    EXPECT_FALSE(command.output().has_candidate_window());
+  }
+
+  composer_ids::IdsTable::ClearDefaultForTesting();
+}
+
+TEST_F(SessionTest, ConvertComponentsSvgCandidateRestoresSelectionOnCommit) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+
+  // 木目 has no encoded character in this table, so the only candidate is
+  // the unencoded-SVG one.
+  constexpr char kIds[] = "⿰日月\t明\n";
+  auto table = composer_ids::IdsTable::FromTsv(kIds, "");
+  ASSERT_TRUE(table.ok());
+  composer_ids::IdsTable::SetDefaultForTesting(
+      std::make_unique<composer_ids::IdsTable>(std::move(*table)));
+
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+  commands::Command command;
+  command.mutable_input()->set_type(commands::Input::SEND_COMMAND);
+  command.mutable_input()->mutable_command()->set_type(
+      commands::SessionCommand::CONVERT_COMPONENTS);
+  command.mutable_input()->mutable_command()->set_text("木目");
+  EXPECT_TRUE(session.SendCommand(&command));
+  ASSERT_TRUE(command.output().has_candidate_window());
+  ASSERT_EQ(command.output().candidate_window().candidate_size(), 1);
+  EXPECT_EQ(command.output().candidate_window().candidate(0).value(), "⿰木目");
+
+  // Choosing the drawing must not delete the selection the client removed
+  // when the palette opened: the original text comes back.
+  command.Clear();
+  EXPECT_TRUE(SendKey("Enter", &session, &command));
+  EXPECT_TRUE(command.output().has_result());
+  EXPECT_EQ(command.output().result().value(), "木目");
+
+  composer_ids::IdsTable::ClearDefaultForTesting();
 }
 
 TEST_F(SessionTest, ConvertReverseFails) {

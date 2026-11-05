@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -65,6 +66,15 @@ class IdsTable {
   // Where the installed data lives: $MARINAMOJI_CHARACTER_COMPOSER_DIR if set,
   // otherwise <server directory>/character_composer.
   static std::string DefaultDirectory();
+
+  // Lazy-loads from DefaultDirectory() (including stroke_counts.tsv when
+  // present). Returns nullptr if the table is missing or unreadable.
+  // Thread-safe; loaded once per process.
+  static const IdsTable *GetDefault();
+
+  // Test hooks: replace GetDefault()'s table, or restore lazy loading.
+  static void SetDefaultForTesting(std::unique_ptr<IdsTable> table);
+  static void ClearDefaultForTesting();
 
   // The encoded character this IDS describes ("⿰言某" -> "謀"), or nullopt
   // when the structure has no standard decomposition on record. An exact match

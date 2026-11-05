@@ -124,6 +124,13 @@ class Session {
   // Opens a candidate list of related characters for |command.text|.
   bool ConvertRelated(mozc::commands::Command* command);
 
+  // Fills Output::Callback with CONVERT_COMPONENTS (Kotoeri-style Ctrl+2).
+  bool RequestConvertComponents(mozc::commands::Command* command);
+
+  // Opens a candidate list for characters sharing the selected components
+  // (1–4 characters in |command.text|).
+  bool ConvertComponents(mozc::commands::Command* command);
+
   // Fills Output::Callback with the Undo SessionCommand to ask the
   // client to send back the SessionCommand to the server.
   // This function is called when the key event representing the
@@ -333,6 +340,9 @@ class Session {
   // captured from the live preedit so callers need not reverse-convert later.
   std::string last_committed_expression_;
   std::string last_committed_reading_;
+
+  // Default IDS operator from the last ConvertComponents (for SVG hand-off).
+  std::string component_svg_op_;
 
   // When true, next key that is a/e/i/o/u (or shifted) will insert macron vowel
   // (ā ē ī ō ū). Set by AltGr+umlaut (SetMacronDeadKey), cleared after use or

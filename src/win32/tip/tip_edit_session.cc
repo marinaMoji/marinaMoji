@@ -356,7 +356,8 @@ bool TurnOnImeAndTryToReconvertFromIme(
     return false;
   }
   if (command_type != SessionCommand::CONVERT_REVERSE &&
-      command_type != SessionCommand::CONVERT_RELATED) {
+      command_type != SessionCommand::CONVERT_RELATED &&
+      command_type != SessionCommand::CONVERT_COMPONENTS) {
     return false;
   }
 
@@ -541,6 +542,7 @@ bool OnOutputReceivedImpl(TipTextService* text_service, ITfContext* context,
     switch (type) {
       case SessionCommand::CONVERT_REVERSE:
       case SessionCommand::CONVERT_RELATED:
+      case SessionCommand::CONVERT_COMPONENTS:
         return TurnOnImeAndTryToReconvertFromIme(text_service, context, type);
       case SessionCommand::UNDO:
         return UndoCommint(text_service, context);

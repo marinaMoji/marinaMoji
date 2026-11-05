@@ -89,11 +89,18 @@ class EngineConverter : public EngineConverterInterface {
                       std::string* reading) override;
 
   // Builds a one-segment conversion from a fixed candidate list (Ctrl+1
-  // related characters). |selected| is the segment key; |candidates| are
-  // values in display order. Returns false if |candidates| is empty.
-  // Not on the interface: avoids changing the vtable layout.
+  // related characters / Ctrl+2 component search). |selected| is the segment
+  // key; |candidates| are values in display order. Returns false if
+  // |candidates| is empty. Not on the interface: avoids changing the vtable.
   bool StartRelatedConversion(absl::string_view selected,
                               absl::Span<const std::string> candidates);
+
+  // Tags conversion-segment candidates with specimen_kind (0 plain, 2 SVG).
+  // Applied by index up to candidates_size(). No-op when inactive.
+  void SetSpecimenKinds(absl::Span<const uint8_t> kinds);
+
+  // Writes the focused candidate's specimen_kind. Returns false if inactive.
+  bool GetFocusedSpecimenKind(uint8_t *kind) const;
 
   // Appends current conversion result (all segments' selected values) when in
   // CONVERSION state, or the focused candidate when in SUGGESTION/PREDICTION.

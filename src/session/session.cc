@@ -31,6 +31,7 @@
 
 #include "session/session.h"
 
+#include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 
 #include <algorithm>
@@ -60,6 +61,9 @@
 #include "composer/key_event_util.h"
 #include "composer/table.h"
 #include "composer_ids/char_info.h"
+#include "composer_ids/component_candidates.h"
+#include "composer_ids/component_svg_handoff.h"
+#include "composer_ids/ids_table.h"
 #include "engine/engine_converter.h"
 #include "engine/engine_converter_interface.h"
 #include "engine/engine_interface.h"
@@ -508,6 +512,9 @@ bool Session::SendCommand(commands::Command* command) {
       break;
     case commands::SessionCommand::CONVERT_RELATED:
       result = ConvertRelated(command);
+      break;
+    case commands::SessionCommand::CONVERT_COMPONENTS:
+      result = ConvertComponents(command);
       break;
     case commands::SessionCommand::UNDO:
       result = Undo(command);
@@ -1034,6 +1041,8 @@ bool Session::SendKeyDirectInputState(commands::Command* command) {
       return RequestConvertReverse(command);
     case keymap::DirectInputState::CONVERT_RELATED:
       return RequestConvertRelated(command);
+    case keymap::DirectInputState::CONVERT_COMPONENTS:
+      return RequestConvertComponents(command);
     case keymap::DirectInputState::LAUNCH_WORD_REGISTER_DIALOG:
       return LaunchWordRegisterDialog(command);
     case keymap::DirectInputState::INSERT_MACRON_VOWEL:
@@ -1153,6 +1162,8 @@ bool Session::SendKeyPrecompositionState(commands::Command* command) {
       return RequestConvertReverse(command);
     case keymap::PrecompositionState::CONVERT_RELATED:
       return RequestConvertRelated(command);
+    case keymap::PrecompositionState::CONVERT_COMPONENTS:
+      return RequestConvertComponents(command);
 
     case keymap::PrecompositionState::IME_ACTION:
       return ImeAction(command);
@@ -1826,6 +1837,86 @@ bool Session::ConvertRelated(commands::Command* command) {
   return true;
 }
 
+bool Session::RequestConvertComponents(commands::Command* command) {
+  if (context_->state() != ImeContext::PRECOMPOSITION &&
+      context_->state() != ImeContext::DIRECT) {
+    return DoNothing(command);
+  }
+  command->mutable_output()->set_consumed(true);
+  Output(command);
+
+  commands::SessionCommand* session_command =
+      command->mutable_output()->mutable_callback()->mutable_session_command();
+  session_command->set_type(commands::SessionCommand::CONVERT_COMPONENTS);
+  return true;
+}
+
+bool Session::ConvertComponents(commands::Command* command) {
+  if (context_->state() != ImeContext::PRECOMPOSITION &&
+      context_->state() != ImeContext::DIRECT) {
+    return DoNothing(command);
+  }
+
+  const std::string& selected = command->input().command().text();
+  const size_t char_len = Util::CharsLen(selected);
+  if (!Util::IsValidUtf8(selected) || char_len < 1 ||
+      char_len > composer_ids::kMaxComponentSelectionChars) {
+    return DoNothing(command);
+  }
+  for (ConstChar32Iterator iter(selected); !iter.Done(); iter.Next()) {
+    if (!Util::IsAcceptableCharacterAsCandidate(iter.Get())) {
+      return DoNothing(command);
+    }
+  }
+
+  const composer_ids::IdsTable* table = composer_ids::IdsTable::GetDefault();
+  if (table == nullptr) {
+    return DoNothing(command);
+  }
+
+  EngineConverter* converter = GetEngineConverter(context_->mutable_converter());
+  if (converter == nullptr) {
+    return DoNothing(command);
+  }
+
+  // Dictionary exact lookup needs Modules; session only has ConverterInterface.
+  // BuildComponentCandidates still merges IDS exact + FindContaining + SVG.
+  const composer_ids::ComponentSearchResult search =
+      composer_ids::BuildComponentCandidates(*table, selected,
+                                             /*dictionary_values=*/{});
+  if (search.candidates.empty()) {
+    return DoNothing(command);
+  }
+
+  std::vector<std::string> values;
+  std::vector<uint8_t> kinds;
+  values.reserve(search.candidates.size());
+  kinds.reserve(search.candidates.size());
+  for (const composer_ids::ComponentCandidate& c : search.candidates) {
+    values.push_back(c.value);
+    kinds.push_back(c.specimen_kind);
+  }
+
+  composer::Composer* composer = context_->mutable_composer();
+  composer->Reset();
+  ClearUndoContext();
+  composer->InsertCharacterPreedit(selected);
+  composer->set_source_text(selected);
+  component_svg_op_ = search.default_op;
+
+  if (!converter->StartRelatedConversion(selected, values)) {
+    component_svg_op_.clear();
+    return DoNothing(command);
+  }
+  converter->SetSpecimenKinds(kinds);
+
+  command->mutable_output()->set_consumed(true);
+  SetSessionState(ImeContext::CONVERSION, context_.get());
+  converter->SetCandidateListVisible(true);
+  Output(command);
+  return true;
+}
+
 bool Session::ConvertReverse(commands::Command* command) {
   if (context_->state() != ImeContext::PRECOMPOSITION &&
       context_->state() != ImeContext::DIRECT) {
@@ -2462,6 +2553,32 @@ bool Session::CommitInternal(commands::Command* command,
     return DoNothing(command);
   }
   command->mutable_output()->set_consumed(true);
+
+  // Ctrl+2 unencoded SVG: hand off a drawing; do not insert the IDS string.
+  if (context_->state() == ImeContext::CONVERSION) {
+    uint8_t specimen_kind = 0;
+    if (EngineConverter* converter =
+            GetEngineConverter(context_->mutable_converter());
+        converter != nullptr &&
+        converter->GetFocusedSpecimenKind(&specimen_kind) &&
+        specimen_kind == 2) {
+      const std::string selected =
+          std::string(context_->composer().source_text());
+      const std::string op = component_svg_op_;
+      component_svg_op_.clear();
+      if (absl::Status status =
+              composer_ids::HandOffComponentSvgFromSelection(op, selected);
+          !status.ok()) {
+        LOG(WARNING) << "Component SVG hand-off failed: " << status;
+      }
+      // The client removed the selection when the palette opened, so put the
+      // original text back (as Esc does). Otherwise choosing the drawing
+      // would delete the user's text and insert nothing.
+      CommitSourceTextDirectly(command);
+      return true;
+    }
+  }
+  component_svg_op_.clear();
 
   // Capture typed reading before Commit clears the composer.
   std::string reading_before_commit =

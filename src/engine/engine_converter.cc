@@ -234,6 +234,33 @@ bool EngineConverter::StartRelatedConversion(
   return true;
 }
 
+void EngineConverter::SetSpecimenKinds(absl::Span<const uint8_t> kinds) {
+  if (!CheckState(CONVERSION) || segments_.conversion_segments_size() == 0) {
+    return;
+  }
+  Segment* segment = segments_.mutable_conversion_segment(0);
+  const size_t n = std::min(kinds.size(), segment->candidates_size());
+  for (size_t i = 0; i < n; ++i) {
+    segment->mutable_candidate(i)->specimen_kind = kinds[i];
+  }
+}
+
+bool EngineConverter::GetFocusedSpecimenKind(uint8_t *kind) const {
+  DCHECK(kind);
+  if (!CheckState(CONVERSION | SUGGESTION | PREDICTION) ||
+      segment_index_ >= segments_.conversion_segments_size()) {
+    return false;
+  }
+  // Called from every commit, so tolerate segments without a real candidate
+  // (meta candidates, empty segments in tests) instead of indexing blindly.
+  const Segment& segment = segments_.conversion_segment(segment_index_);
+  const int id = GetCandidateIndexForConverter(segment_index_);
+  *kind = (id >= 0 && static_cast<size_t>(id) < segment.candidates_size())
+              ? segment.candidate(id).specimen_kind
+              : 0;
+  return true;
+}
+
 bool EngineConverter::GetReadingText(absl::string_view source_text,
                                      std::string* reading) {
   DCHECK(reading);

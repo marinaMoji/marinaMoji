@@ -1056,6 +1056,27 @@ TEST_F(KeyMapTest, Undo) {
   }
 }
 
+TEST_F(KeyMapTest, ConvertComponents) {
+  DirectInputState::Commands direct_command;
+  PrecompositionState::Commands precomposition_command;
+  commands::KeyEvent key_event;
+
+  for (const config::Config::SessionKeymap keymap :
+       {config::Config::ATOK, config::Config::MSIME, config::Config::KOTOERI,
+        config::Config::CHROMEOS}) {
+    KeyMapManager manager(GetDefaultConfig(keymap));
+    KeyParser::ParseKey("Ctrl 2", &key_event);
+    EXPECT_TRUE(manager.GetCommandDirect(key_event, &direct_command))
+        << keymap;
+    EXPECT_EQ(direct_command, DirectInputState::CONVERT_COMPONENTS) << keymap;
+    EXPECT_TRUE(
+        manager.GetCommandPrecomposition(key_event, &precomposition_command))
+        << keymap;
+    EXPECT_EQ(precomposition_command, PrecompositionState::CONVERT_COMPONENTS)
+        << keymap;
+  }
+}
+
 TEST_F(KeyMapTest, Reconvert) {
   DirectInputState::Commands direct_command;
   PrecompositionState::Commands precomposition_command;

@@ -154,6 +154,7 @@ DirectInput	Eisu	IMEOn
 DirectInput	F13	IMEOn
 DirectInput	Hankaku/Zenkaku	IMEOn
 DirectInput	Ctrl 1	ConvertRelated
+DirectInput	Ctrl 2	ConvertComponents
 DirectInput	Henkan	Reconvert
 DirectInput	Hiragana	IMEOn
 DirectInput	Kanji	IMEOn
@@ -179,6 +180,7 @@ Precomposition	Eisu	ToggleAlphanumericMode
 Precomposition	Hankaku/Zenkaku	IMEOff
 Precomposition	Hiragana	CompositionModeHiragana
 Precomposition	Ctrl 1	ConvertRelated
+Precomposition	Ctrl 2	ConvertComponents
 Precomposition	Henkan	Reconvert
 Precomposition	Kanji	IMEOff
 Precomposition	Katakana	CompositionModeFullKatakana

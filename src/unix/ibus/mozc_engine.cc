@@ -1647,7 +1647,8 @@ bool MozcEngine::ExecuteCallback(IbusEngineWrapper* engine,
       }
       break;
     case commands::SessionCommand::CONVERT_REVERSE:
-    case commands::SessionCommand::CONVERT_RELATED: {
+    case commands::SessionCommand::CONVERT_RELATED:
+    case commands::SessionCommand::CONVERT_COMPONENTS: {
       if (!GetSurroundingText(engine, &surrounding_text_info)) {
         return false;
       }
@@ -1666,7 +1667,9 @@ bool MozcEngine::ExecuteCallback(IbusEngineWrapper* engine,
 
   const bool replace_selection =
       callback_command.type() == commands::SessionCommand::CONVERT_REVERSE ||
-      (callback_command.type() == commands::SessionCommand::CONVERT_RELATED &&
+      ((callback_command.type() == commands::SessionCommand::CONVERT_RELATED ||
+        callback_command.type() ==
+            commands::SessionCommand::CONVERT_COMPONENTS) &&
        (new_output.has_preedit() || new_output.has_candidate_window()));
   if (replace_selection) {
     // We need to remove selected text as a first step of reconversion /

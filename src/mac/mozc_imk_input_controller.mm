@@ -1969,7 +1969,8 @@ bool IsConfigOnlySessionOutput(const Output &output) {
   if (output->has_callback() && output->callback().has_session_command()) {
     const SessionCommand &callback_command = output->callback().session_command();
     if (callback_command.type() == SessionCommand::CONVERT_REVERSE ||
-        callback_command.type() == SessionCommand::CONVERT_RELATED) {
+        callback_command.type() == SessionCommand::CONVERT_RELATED ||
+        callback_command.type() == SessionCommand::CONVERT_COMPONENTS) {
       [self invokeReconvert:&callback_command client:sender];
     } else if (callback_command.type() == SessionCommand::UNDO) {
       [self invokeUndo:sender];

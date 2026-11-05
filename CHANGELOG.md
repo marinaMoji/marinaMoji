@@ -30,23 +30,36 @@ changed and, where it isn't obvious, why.
   were previously untranslated; they now have English, French and Japanese
   strings, as does the "Character composer" subhead.
 
-### Related characters (Ctrl+1)
+### Related characters (Ctrl+1) and component search (Ctrl+2)
 
 - Selecting one committed character and pressing **Ctrl+1** opens the
   candidate window with related forms (異体字 / 旧字体 / 新字体) from
   `char_info.tsv`, like Kotoeri’s 関連文字に変換. Enter confirms; Esc
   cancels. Works on macOS, Windows and Linux through the same selection
   path as reconvert. Multi-character selections and characters with no
-  variants do nothing. **Ctrl+2** (search by shared components) is tracked
-  separately ([#115](https://github.com/marinaMoji/marinaMoji/issues/115)).
+  variants do nothing.
+- **Ctrl+2** ([#115](https://github.com/marinaMoji/marinaMoji/issues/115)):
+  select one to four committed characters to open a candidate list of IDS
+  exact encodes (with positional radical forms) and characters that contain
+  every selected component (`FindContaining`, treating 水/氵 and other
+  radical families as the same part). The merge helper also accepts
+  dictionary exact hits when the session can supply them. Longer selections
+  no-op. When the default layout has no Unicode character, a Prussian-blue
+  `UNENCODED_SVG` candidate is appended; committing it writes the drawing
+  via the composer SVG hand-off (profile file + ONLYOFFICE plugin) instead
+  of inserting IDS text, and the original selection is put back unchanged
+  (the client removes it when the palette opens, so without this choosing
+  the drawing would have deleted the user's text). The drawing is made of
+  text glyphs in a serif font stack, so it depends on installed fonts;
+  dictionary hits are not yet fed in.
 - Specimen colours: drawable Unicode is plain; Unicode that no installed
   font can draw (non-displaying) uses an amber plate; unencoded SVG drawings
   (when present) use a Prussian-blue plate. The kinds and colours live in
   `src/base/specimen_kind.h` and are shared by the character composer and the
   candidate-window renderers (macOS, Windows, Qt), so the same plates appear
-  on composer Variants chips, Discover results and Ctrl+1 candidates. Related
-  candidates carry the kind as new `MISSING_FONT` / `UNENCODED_SVG`
-  candidate attributes in the protocol.
+  on composer Variants chips, Discover results and Ctrl+1 / Ctrl+2
+  candidates. Related candidates carry the kind as new `MISSING_FONT` /
+  `UNENCODED_SVG` candidate attributes in the protocol.
 - The character composer's **Variants** row is now a palette of clickable
   specimen-coloured chips instead of plain text, in the manner of Kotoeri’s
   variant palette.

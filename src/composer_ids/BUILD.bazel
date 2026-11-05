@@ -19,7 +19,10 @@ exports_files(
         "testdata/ids_table.tsv",
         "testdata/radical_forms.tsv",
     ],
-    visibility = ["//gui/character_composer:__pkg__"],
+    visibility = [
+        "//gui/character_composer:__pkg__",
+        "//session:__pkg__",
+    ],
 )
 
 mozc_cc_library(
@@ -37,7 +40,10 @@ mozc_cc_library(
     name = "ids_tree",
     srcs = ["ids_tree.cc"],
     hdrs = ["ids_tree.h"],
-    visibility = ["//gui/character_composer:__pkg__"],
+    visibility = [
+        "//gui/character_composer:__pkg__",
+        "//composer_ids:__pkg__",
+    ],
     deps = [
         ":ids_operator",
         "//base/strings:unicode",
@@ -49,7 +55,11 @@ mozc_cc_library(
     name = "ids_table",
     srcs = ["ids_table.cc"],
     hdrs = ["ids_table.h"],
-    visibility = ["//gui/character_composer:__pkg__"],
+    visibility = [
+        "//engine:__pkg__",
+        "//gui/character_composer:__pkg__",
+        "//session:__pkg__",
+    ],
     deps = [
         ":ids_operator",
         "//base:file_util",
@@ -61,6 +71,71 @@ mozc_cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+    ],
+)
+
+mozc_cc_library(
+    name = "component_candidates",
+    srcs = ["component_candidates.cc"],
+    hdrs = ["component_candidates.h"],
+    visibility = [
+        "//engine:__pkg__",
+        "//session:__pkg__",
+    ],
+    deps = [
+        ":ids_table",
+        ":ids_tree",
+        "//base/strings:unicode",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+mozc_cc_test(
+    name = "component_candidates_test",
+    size = "small",
+    srcs = ["component_candidates_test.cc"],
+    data = [
+        "testdata/ids_table.tsv",
+        "testdata/radical_forms.tsv",
+    ],
+    deps = [
+        ":component_candidates",
+        ":ids_table",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+    ],
+)
+
+mozc_cc_library(
+    name = "component_svg_handoff",
+    srcs = ["component_svg_handoff.cc"],
+    hdrs = ["component_svg_handoff.h"],
+    visibility = [
+        "//session:__pkg__",
+    ],
+    deps = [
+        ":composer_result",
+        ":ids_tree",
+        "//base/strings:unicode",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+mozc_cc_test(
+    name = "component_svg_handoff_test",
+    size = "small",
+    srcs = ["component_svg_handoff_test.cc"],
+    deps = [
+        ":component_svg_handoff",
+        ":composer_result",
+        "//base:file_util",
+        "//base:system_util",
+        "//testing:gunit_main",
+        "//testing:mozctest",
     ],
 )
 
@@ -99,8 +174,10 @@ mozc_cc_library(
     srcs = ["composer_result.cc"],
     hdrs = ["composer_result.h"],
     visibility = [
+        "//composer_ids:__pkg__",
         "//gui/character_composer:__pkg__",
         "//mac:__pkg__",
+        "//session:__pkg__",
         "//unix/ibus:__pkg__",
         "//win32/tip:__pkg__",
     ],
