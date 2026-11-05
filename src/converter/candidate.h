@@ -158,6 +158,11 @@ class Candidate {
   // lengths of key, value, content key and content value.
   InnerSegmentBoundary inner_segment_boundary;
   // LINT.ThenChange(//converter/segments_matchers.h)
+
+  // marinaMoji: specimen plate kind for related-character candidates
+  // (Ctrl+1). 0 = plain, 1 = missingFont, 2 = svg. See base/specimen_kind.h.
+  uint8_t specimen_kind = 0;
+
 #ifdef MOZC_CANDIDATE_DEBUG
   void Dlog(absl::string_view filename, int line,
             absl::string_view message) const;

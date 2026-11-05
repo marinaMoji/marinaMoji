@@ -10,6 +10,27 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Related characters (Ctrl+1)
+
+- Selecting one committed character and pressing **Ctrl+1** opens the
+  candidate window with related forms (異体字 / 旧字体 / 新字体) from
+  `char_info.tsv`, like Kotoeri’s 関連文字に変換. Enter confirms; Esc
+  cancels. Works on macOS, Windows and Linux through the same selection
+  path as reconvert. Multi-character selections and characters with no
+  variants do nothing. **Ctrl+2** (search by shared components) is tracked
+  separately ([#115](https://github.com/marinaMoji/marinaMoji/issues/115)).
+- Specimen colours: drawable Unicode is plain; Unicode that no installed
+  font can draw (non-displaying) uses an amber plate; unencoded SVG drawings
+  (when present) use a Prussian-blue plate. The kinds and colours live in
+  `src/base/specimen_kind.h` and are shared by the character composer and the
+  candidate-window renderers (macOS, Windows, Qt), so the same plates appear
+  on composer Variants chips, Discover results and Ctrl+1 candidates. Related
+  candidates carry the kind as new `MISSING_FONT` / `UNENCODED_SVG`
+  candidate attributes in the protocol.
+- The character composer's **Variants** row is now a palette of clickable
+  specimen-coloured chips instead of plain text, in the manner of Kotoeri’s
+  variant palette.
+
 ## v0.0.20 (2026-11-03)
 
 The first stable release since v0.0.19. Its release candidates (rc1 to rc9)

@@ -521,7 +521,7 @@ TEST_F(CharacterComposerDialogTest, GlyphCoverageTellsMissingGlyphsApart) {
   EXPECT_FALSE(GlyphCoverage::QtDraws(QApplication::font(), kUndrawable));
 }
 
-TEST_F(CharacterComposerDialogTest, ResultsLeaveOutCharactersNoFontDraws) {
+TEST_F(CharacterComposerDialogTest, ResultsKeepUndrawableWithMissingFont) {
   if (!GlyphCoverage(QApplication::font()).usable()) {
     GTEST_SKIP() << "no installed font draws 木";
   }
@@ -539,24 +539,38 @@ TEST_F(CharacterComposerDialogTest, ResultsLeaveOutCharactersNoFontDraws) {
   Button(dialog.get(), "Find")->click();
   QStringList found = Characters(list);
   found.sort();
-  QStringList expected = {QStringLiteral("某"), QStringLiteral("相")};
+  QStringList expected = {QStringLiteral("某"), QStringLiteral("相"),
+                          kUndrawable};
   expected.sort();
   EXPECT_EQ(found, expected);
-  EXPECT_TRUE(status->text().startsWith(QStringLiteral("2 characters found")))
+  EXPECT_TRUE(status->text().startsWith(QStringLiteral("3 characters found")))
       << status->text().toStdString();
-  EXPECT_TRUE(status->text().endsWith(
-      QStringLiteral("1 more is hidden because no installed font can draw it.")))
+  EXPECT_TRUE(status->text().contains(
+      QStringLiteral("1 has no installed font (amber).")))
       << status->text().toStdString();
+  QListWidgetItem *undrawable_item = nullptr;
+  for (int i = 0; i < list->count(); ++i) {
+    if (list->item(i)->text() == kUndrawable) {
+      undrawable_item = list->item(i);
+      break;
+    }
+  }
+  ASSERT_NE(undrawable_item, nullptr);
+  EXPECT_EQ(undrawable_item->data(Qt::UserRole + 2).toString(),
+            QStringLiteral("missingFont"));
 
-  // Only the undrawable character contains 龠.
+  // Only the undrawable character contains 龠; it is still listed (amber).
   edit->setText(QStringLiteral("龠"));
   Button(dialog.get(), "Find")->click();
-  EXPECT_EQ(list->count(), 0);
-  EXPECT_EQ(status->text(),
-            QStringLiteral("No installed font can draw the character found."));
+  EXPECT_EQ(Characters(list), QStringList({kUndrawable}));
+  EXPECT_TRUE(status->text().contains(QStringLiteral("1 characters found")))
+      << status->text().toStdString();
+  EXPECT_TRUE(status->text().contains(
+      QStringLiteral("1 has no installed font (amber).")))
+      << status->text().toStdString();
 }
 
-TEST_F(CharacterComposerDialogTest, VariantsLeaveOutCharactersNoFontDraws) {
+TEST_F(CharacterComposerDialogTest, VariantsChipsIncludeUndrawable) {
   if (!GlyphCoverage(QApplication::font()).usable()) {
     GTEST_SKIP() << "no installed font draws 木";
   }
@@ -577,15 +591,17 @@ TEST_F(CharacterComposerDialogTest, VariantsLeaveOutCharactersNoFontDraws) {
   Button(dialog.get(), "Find")->click();
   ASSERT_EQ(Characters(list), QStringList({QStringLiteral("某")}));
   emit list->itemClicked(list->item(0));
-  QLabel *variants = nullptr;
-  for (QLabel *label : dialog->findChildren<QLabel *>(QStringLiteral("infoValue"))) {
-    if (label->text().contains(QStringLiteral("相"))) variants = label;
+  QLabel *plain = nullptr;
+  QLabel *missing = nullptr;
+  for (QLabel *chip : dialog->findChildren<QLabel *>(QStringLiteral("variantChip"))) {
+    if (chip->text() == QStringLiteral("相")) plain = chip;
+    if (chip->text() == kUndrawable) missing = chip;
   }
-  ASSERT_NE(variants, nullptr);
-  EXPECT_EQ(variants->text(), QStringLiteral("相"));
-  EXPECT_EQ(variants->toolTip(),
-            QStringLiteral("1 more variant is hidden because no installed font "
-                           "can draw it."));
+  ASSERT_NE(plain, nullptr);
+  ASSERT_NE(missing, nullptr);
+  EXPECT_EQ(plain->property("specimenKind").toString(), QStringLiteral("plain"));
+  EXPECT_EQ(missing->property("specimenKind").toString(),
+            QStringLiteral("missingFont"));
 }
 
 
@@ -604,6 +620,69 @@ TEST_F(CharacterComposerDialogTest, ComponentsPanelLeavesOutComponentsNoFontDraw
     EXPECT_TRUE(coverage.Drawable(text)) << ch;
     EXPECT_TRUE(panel->catalogue()->Contains(text)) << ch;
   }
+}
+
+TEST_F(CharacterComposerDialogTest, SpecimenShowsPlainUnicodeWhenDrawable) {
+  if (!GlyphCoverage(QApplication::font()).usable()) {
+    GTEST_SKIP() << "no installed font draws 木";
+  }
+  auto dialog = MakeDialog();
+  auto edits = Edits(dialog.get());
+  Type(edits[0], QStringLiteral("言"));
+  Type(edits[1], QStringLiteral("某"));
+  auto *specimen = dialog->findChild<QLabel *>(QStringLiteral("specimenGlyph"));
+  auto *heading = dialog->findChild<QLabel *>(QStringLiteral("statusHeading"));
+  ASSERT_NE(specimen, nullptr);
+  ASSERT_NE(heading, nullptr);
+  EXPECT_EQ(specimen->property("specimenKind").toString(), QStringLiteral("plain"));
+  EXPECT_EQ(specimen->text(), QStringLiteral("謀"));
+  EXPECT_TRUE(heading->text().startsWith(QStringLiteral("U+")));
+  EXPECT_TRUE(Button(dialog.get(), "Insert")->isEnabled());
+}
+
+TEST_F(CharacterComposerDialogTest, SpecimenMarksSvgOnlyCompositions) {
+  auto dialog = MakeDialog();
+  auto edits = Edits(dialog.get());
+  Type(edits[0], QStringLiteral("牙"));
+  Type(edits[1], QStringLiteral("齒"));
+  auto *specimen = dialog->findChild<QLabel *>(QStringLiteral("specimenGlyph"));
+  auto *heading = dialog->findChild<QLabel *>(QStringLiteral("statusHeading"));
+  ASSERT_NE(specimen, nullptr);
+  ASSERT_NE(heading, nullptr);
+  EXPECT_EQ(specimen->property("specimenKind").toString(), QStringLiteral("svg"));
+  EXPECT_TRUE(specimen->text().isEmpty());
+  EXPECT_EQ(heading->text(), QStringLiteral("Not encoded in Unicode"));
+  EXPECT_TRUE(Button(dialog.get(), "Insert")->isEnabled());
+}
+
+TEST_F(CharacterComposerDialogTest, SpecimenWarnsWhenUnicodeLacksAFont) {
+  if (!GlyphCoverage(QApplication::font()).usable()) {
+    GTEST_SKIP() << "no installed font draws 木";
+  }
+  auto table = composer_ids::IdsTable::FromTsv(
+      "⿰木龠\t" + kUndrawable.toStdString() + "\n", "");
+  ASSERT_TRUE(table.ok());
+  auto dialog = std::make_unique<CharacterComposerDialog>(
+      std::make_unique<composer_ids::IdsTable>(*std::move(table)), QString());
+  dialog->show();
+  auto edits = Edits(dialog.get());
+  Type(edits[0], QStringLiteral("木"));
+  Type(edits[1], QStringLiteral("龠"));
+  auto *specimen = dialog->findChild<QLabel *>(QStringLiteral("specimenGlyph"));
+  auto *heading = dialog->findChild<QLabel *>(QStringLiteral("statusHeading"));
+  auto *detail = dialog->findChild<QLabel *>(QStringLiteral("statusDetail"));
+  ASSERT_NE(specimen, nullptr);
+  ASSERT_NE(heading, nullptr);
+  ASSERT_NE(detail, nullptr);
+  EXPECT_EQ(specimen->property("specimenKind").toString(),
+            QStringLiteral("missingFont"));
+  EXPECT_TRUE(heading->text().startsWith(QStringLiteral("U+")));
+  EXPECT_TRUE(detail->text().contains(QStringLiteral("Suggested fonts")))
+      << detail->text().toStdString();
+  EXPECT_TRUE(detail->text().contains(
+      QStringLiteral("https://marinamoji.crcao.fr/guide#section_fonts")))
+      << detail->text().toStdString();
+  EXPECT_TRUE(Button(dialog.get(), "Insert")->isEnabled());
 }
 
 }  // namespace

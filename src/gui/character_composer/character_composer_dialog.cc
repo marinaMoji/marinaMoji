@@ -9,6 +9,7 @@
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QClipboard>
+#include <QColor>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QEvent>
@@ -61,6 +62,7 @@
 #include "composer_ids/ids_table.h"
 #include "composer_ids/ids_tree.h"
 #include "gui/character_composer/composer_kage.h"
+#include "base/specimen_kind.h"
 #include "gui/character_composer/composer_svg.h"
 #include "gui/character_composer/glyph_coverage.h"
 #include "gui/character_composer/layout_geometry.h"
@@ -163,6 +165,42 @@ GlyphCoverage &Coverage() {
   static GlyphCoverage *const coverage =
       new GlyphCoverage(WithWideCoverage(QApplication::font()));
   return *coverage;
+}
+
+constexpr char kFontsGuideUrl[] =
+    "https://marinamoji.crcao.fr/guide#section_fonts";
+
+QString CodepointHeading(const QString &text) {
+  const QList<uint> cps = text.toUcs4();
+  if (cps.isEmpty()) return QString();
+  return QStringLiteral("U+%1")
+      .arg(cps.first(), 4, 16, QLatin1Char('0'))
+      .toUpper();
+}
+
+QString MissingFontDetail() {
+  return Tr("This character exists in Unicode, but no installed font can draw "
+            "it. Insert can still place a drawing.") +
+         QStringLiteral(" <a href=\"%1\">%2</a>")
+             .arg(QString::fromUtf8(kFontsGuideUrl), Tr("Suggested fonts"));
+}
+
+// Applies the Character specimen plate kind (plain / missingFont / svg) and
+// the compose-prompt styling. Coloured plates need a real background paint.
+void ApplySpecimenPresentation(QLabel *label, const QString &kind, bool prompt) {
+  const QString prev_kind = label->property("specimenKind").toString();
+  const bool prev_prompt = label->property("prompt").toBool();
+  if (prev_kind == kind && prev_prompt == prompt) return;
+  label->setProperty("specimenKind", kind);
+  label->setProperty("prompt", prompt);
+  const bool plated = kind == QLatin1String("svg") ||
+                      kind == QLatin1String("missingFont");
+  label->setAttribute(Qt::WA_TranslucentBackground, !plated);
+  label->setWordWrap(prompt);
+  label->setAlignment(prompt ? Qt::AlignHCenter | Qt::AlignVCenter
+                             : Qt::AlignHCenter | Qt::AlignBottom);
+  label->style()->unpolish(label);
+  label->style()->polish(label);
 }
 
 // What the Components… window offers: common components, by stroke count.
@@ -339,6 +377,7 @@ QString LeadingStrokeGlyph(int stroke_class) {
 
 // Marks a stroke-count heading in the results list.
 constexpr int kHeadingRole = Qt::UserRole + 1;
+constexpr int kSpecimenKindRole = Qt::UserRole + 2;
 
 SlotPath Child(const SlotPath &path, int index) {
   SlotPath child = path;
@@ -363,7 +402,7 @@ void DrawGeometry(QPainter *p, const OperatorGeometry &g, const QRectF &box,
   }
 }
 
-QPixmap DrawingPreview(const std::vector<PlacedGlyph> &glyphs, const QPalette &palette,
+QPixmap DrawingPreview(const std::vector<PlacedGlyph> &glyphs, const QColor &ink,
                        qreal device_pixel_ratio) {
   const int kSize = kPreviewLogical;
   QPixmap pixmap(static_cast<int>(kSize * device_pixel_ratio),
@@ -373,7 +412,7 @@ QPixmap DrawingPreview(const std::vector<PlacedGlyph> &glyphs, const QPalette &p
   QPainter p(&pixmap);
   p.setRenderHint(QPainter::Antialiasing);
   p.setRenderHint(QPainter::TextAntialiasing);
-  p.setPen(palette.color(QPalette::Text));
+  p.setPen(ink);
   const double scale = kSize / 1000.0;
   for (const PlacedGlyph &g : glyphs) {
     QFont f;
@@ -393,7 +432,7 @@ QPixmap DrawingPreview(const std::vector<PlacedGlyph> &glyphs, const QPalette &p
   return pixmap;
 }
 
-QPixmap OutlinePreview(const std::vector<Contour> &outlines, const QPalette &palette,
+QPixmap OutlinePreview(const std::vector<Contour> &outlines, const QColor &ink,
                        qreal device_pixel_ratio) {
   const int kSize = kPreviewLogical;
   QPixmap pixmap(static_cast<int>(kSize * device_pixel_ratio),
@@ -414,7 +453,7 @@ QPixmap OutlinePreview(const std::vector<Contour> &outlines, const QPalette &pal
   QPainter p(&pixmap);
   p.setRenderHint(QPainter::Antialiasing);
   p.setPen(Qt::NoPen);
-  p.setBrush(palette.color(QPalette::Text));
+  p.setBrush(ink);
   p.drawPath(path);
   p.end();
   return pixmap;
@@ -515,41 +554,50 @@ QString JoinDot(const QStringList &parts) {
   return parts.join(QStringLiteral("\u2009·\u2009"));
 }
 
-// The Variants row. Variants no installed font can draw are left out and
-// counted; |font| gains the extra families the others need.
-struct VariantsRow {
+// One chip in the Variants row (character or "old form: …" label).
+struct VariantChip {
   QString text;
-  int hidden = 0;
+  QString kind;  // specimen_kind name: plain / missingFont / svg
+  QString tip;
 };
 
-VariantsRow FormatVariants(const composer_ids::CharInfo &info, QFont *font) {
+std::vector<VariantChip> FormatVariantChips(const composer_ids::CharInfo &info,
+                                            QFont *font) {
   GlyphCoverage &coverage = Coverage();
-  VariantsRow row;
-  QStringList parts;
-  auto keep = [&](const QString &ch) {
-    if (!coverage.Drawable(ch)) {
-      ++row.hidden;
-      return false;
+  std::vector<VariantChip> chips;
+  auto add_char = [&](const QString &ch, const QString &tip) {
+    if (ch.isEmpty()) return;
+    VariantChip chip;
+    chip.text = ch;
+    chip.tip = tip;
+    if (coverage.Drawable(ch)) {
+      chip.kind = QString::fromUtf8(specimen_kind::kPlainName);
+      *font = coverage.FontFor(*font, ch);
+    } else {
+      chip.kind = QString::fromUtf8(specimen_kind::kMissingFontName);
+      chip.tip =
+          tip.isEmpty()
+              ? Tr("No installed font can draw this character.")
+              : tip + QStringLiteral("\n") +
+                    Tr("No installed font can draw this character.");
     }
-    *font = coverage.FontFor(*font, ch);
-    return true;
+    chips.push_back(std::move(chip));
   };
   if (!info.variants.empty()) {
     const QString raw = FromUtf8(info.variants);
     for (const QString &token :
          raw.split(QRegularExpression(QStringLiteral("\\s+")),
                    Qt::SkipEmptyParts)) {
-      if (keep(token)) parts << token;
+      add_char(token, QString());
     }
   }
-  if (!info.old_form.empty() && keep(FromUtf8(info.old_form))) {
-    parts << Tr("old form: %1").arg(FromUtf8(info.old_form));
+  if (!info.old_form.empty()) {
+    add_char(FromUtf8(info.old_form), Tr("Old form"));
   }
-  if (!info.new_form.empty() && keep(FromUtf8(info.new_form))) {
-    parts << Tr("new form: %1").arg(FromUtf8(info.new_form));
+  if (!info.new_form.empty()) {
+    add_char(FromUtf8(info.new_form), Tr("New form"));
   }
-  if (!parts.isEmpty()) row.text = parts.join(QStringLiteral("  "));
-  return row;
+  return chips;
 }
 
 QString ComponentRolesFor(const std::string &op) {
@@ -613,6 +661,23 @@ QString ComposerStylesheet(bool dark) {
       "QLabel#specimenGlyph {"
       "  background: transparent; border: none; padding: 0; margin: 0; }"
       "QLabel#specimenGlyph[prompt=\"true\"] { color: @@SECONDARY@@; }"
+      // Rounded plates mark drawings that are not ordinary system text.
+      // Colours: base/specimen_kind.h (Prussian blue SVG, amber missingFont).
+      "QLabel#specimenGlyph[specimenKind=\"svg\"] {"
+      "  background: #003153; border: none; border-radius: 12px;"
+      "  padding: 8px; color: #ffffff; }"
+      "QLabel#specimenGlyph[specimenKind=\"missingFont\"] {"
+      "  background: #7A6418; border: none; border-radius: 12px;"
+      "  padding: 8px; color: #ffffff; }"
+      "QLabel#variantChip {"
+      "  background: transparent; border: none; border-radius: 6px;"
+      "  padding: 2px 6px; margin: 0 2px; }"
+      "QLabel#variantChip[specimenKind=\"plain\"] {"
+      "  background: transparent; color: @@TEXT@@; }"
+      "QLabel#variantChip[specimenKind=\"svg\"] {"
+      "  background: #003153; color: #ffffff; }"
+      "QLabel#variantChip[specimenKind=\"missingFont\"] {"
+      "  background: #7A6418; color: #ffffff; }"
       "QWidget#layoutEditor {"
       "  background-color: @@RAISED@@;"
       "  border: 1px solid @@RULE@@; border-radius: 2px; }"
@@ -1909,6 +1974,8 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   char_label_->setFrameShape(QFrame::NoFrame);
   char_label_->setAutoFillBackground(false);
   char_label_->setAttribute(Qt::WA_TranslucentBackground, true);
+  // So specimenKind plate backgrounds from the stylesheet actually paint.
+  char_label_->setAttribute(Qt::WA_StyledBackground, true);
   char_label_->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
   return_to_composition_ = new QPushButton(Tr("← Return to composition"), this);
@@ -1938,6 +2005,9 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   status_detail_->setAlignment(Qt::AlignCenter);
   status_detail_->setWordWrap(true);
   status_detail_->setFont(theme::UiFont(11));
+  status_detail_->setTextFormat(Qt::RichText);
+  status_detail_->setOpenExternalLinks(true);
+  status_detail_->setTextInteractionFlags(Qt::TextBrowserInteraction);
 
   specimen_group_ = new QWidget(this);
   specimen_group_->setObjectName(QStringLiteral("specimenGroup"));
@@ -1976,7 +2046,12 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   meaning_label_ = make_key(Tr("Meaning"));
   meaning_value_ = make_val();
   variants_label_ = make_key(Tr("Variants"));
-  variants_value_ = make_val();
+  variants_value_ = new QWidget(this);
+  variants_value_->setObjectName(QStringLiteral("variantsChips"));
+  auto *variants_layout = new QHBoxLayout(variants_value_);
+  variants_layout->setContentsMargins(0, 0, 0, 0);
+  variants_layout->setSpacing(2);
+  variants_layout->addStretch(1);
   strokes_label_ = make_key(Tr("Strokes"));
   strokes_value_ = make_val();
   radical_label_ = make_key(Tr("Radical"));
@@ -1993,7 +2068,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   grid->setColumnStretch(1, 1);
   const struct {
     QLabel *key;
-    QLabel *val;
+    QWidget *val;
   } rows[] = {
       {on_label_, on_value_},         {kun_label_, kun_value_},
       {meaning_label_, meaning_value_}, {variants_label_, variants_value_},
@@ -2369,12 +2444,69 @@ void CharacterComposerDialog::UpdateComponentRoles() {
   component_roles_label_->setText(ComponentRolesFor(editor_->SelectedLayoutOp()));
 }
 
-void CharacterComposerDialog::SetInfoRow(QLabel *label, QLabel *value,
+void CharacterComposerDialog::SetInfoRow(QLabel *label, QWidget *value,
                                           const QString &text) {
   const bool show = !text.isEmpty();
   label->setVisible(show);
   value->setVisible(show);
-  if (show) value->setText(text);
+  if (show) {
+    if (auto *as_label = qobject_cast<QLabel *>(value)) {
+      as_label->setText(text);
+    }
+  }
+}
+
+void CharacterComposerDialog::SetVariantsChips(
+    const composer_ids::CharInfo *info) {
+  if (variants_value_ == nullptr || variants_label_ == nullptr) return;
+  auto *layout = qobject_cast<QHBoxLayout *>(variants_value_->layout());
+  if (layout == nullptr) return;
+  while (QLayoutItem *child = layout->takeAt(0)) {
+    if (QWidget *w = child->widget()) w->deleteLater();
+    delete child;
+  }
+  if (info == nullptr) {
+    variants_label_->setVisible(false);
+    variants_value_->setVisible(false);
+    variants_value_->setToolTip(QString());
+    return;
+  }
+  QFont variants_font = WithWideCoverage(theme::UiFont(16));
+  const std::vector<VariantChip> chips =
+      FormatVariantChips(*info, &variants_font);
+  if (chips.empty()) {
+    variants_label_->setVisible(false);
+    variants_value_->setVisible(false);
+    variants_value_->setToolTip(QString());
+    return;
+  }
+  variants_label_->setVisible(true);
+  variants_value_->setVisible(true);
+  int missing = 0;
+  for (const VariantChip &chip : chips) {
+    auto *label = new QLabel(chip.text, variants_value_);
+    label->setObjectName(QStringLiteral("variantChip"));
+    label->setFont(variants_font);
+    label->setProperty(
+        "specimenKind",
+        chip.kind.isEmpty() ? QString::fromUtf8(specimen_kind::kPlainName)
+                            : chip.kind);
+    label->setAttribute(Qt::WA_StyledBackground, true);
+    if (!chip.tip.isEmpty()) label->setToolTip(chip.tip);
+    if (chip.kind == QLatin1String(specimen_kind::kMissingFontName)) {
+      ++missing;
+    }
+    label->style()->unpolish(label);
+    label->style()->polish(label);
+    layout->addWidget(label, 0, Qt::AlignVCenter);
+  }
+  layout->addStretch(1);
+  variants_value_->setToolTip(
+      missing == 0 ? QString()
+      : missing == 1
+          ? Tr("1 variant has no installed font that can draw it.")
+          : Tr("%1 variants have no installed font that can draw them.")
+                .arg(missing));
 }
 
 void CharacterComposerDialog::UpdateCharInfoTable(
@@ -2383,7 +2515,7 @@ void CharacterComposerDialog::UpdateCharInfoTable(
     SetInfoRow(on_label_, on_value_, QString());
     SetInfoRow(kun_label_, kun_value_, QString());
     SetInfoRow(meaning_label_, meaning_value_, QString());
-    SetInfoRow(variants_label_, variants_value_, QString());
+    SetVariantsChips(nullptr);
     SetInfoRow(strokes_label_, strokes_value_, QString());
     SetInfoRow(radical_label_, radical_value_, QString());
     SetInfoRow(other_label_, other_value_, QString());
@@ -2412,18 +2544,7 @@ void CharacterComposerDialog::UpdateCharInfoTable(
   SetInfoRow(kun_label_, kun_value_, kun.isEmpty() ? QString() : JoinDot(kun));
   SetInfoRow(meaning_label_, meaning_value_,
              info->definition.empty() ? QString() : FromUtf8(info->definition));
-  QFont variants_font = WithWideCoverage(theme::UiFont(13));
-  const VariantsRow variants = FormatVariants(*info, &variants_font);
-  variants_value_->setFont(variants_font);
-  SetInfoRow(variants_label_, variants_value_, variants.text);
-  variants_value_->setToolTip(
-      variants.hidden == 0 ? QString()
-      : variants.hidden == 1
-          ? Tr("1 more variant is hidden because no installed font can draw "
-               "it.")
-          : Tr("%1 more variants are hidden because no installed font can "
-               "draw them.")
-                .arg(variants.hidden));
+  SetVariantsChips(info);
   SetInfoRow(strokes_label_, strokes_value_,
              info->strokes.empty() ? QString() : FromUtf8(info->strokes));
   SetInfoRow(radical_label_, radical_value_,
@@ -2598,21 +2719,38 @@ void CharacterComposerDialog::RefreshActiveView() {
   QString status_detail;
   bool insertable = false;
   bool prompt_shown = false;
+  QString specimen_kind = QStringLiteral("plain");
   const composer_ids::CharInfo *info = nullptr;
+  const QColor plate_ink(Qt::white);
 
-  if (search_active) {
-    const QString text = FromUtf8(search_active_char_);
+  auto show_unicode_text = [&](const QString &text) {
     char_label_->setFont(
         Coverage().FontFor(WithWideCoverage(theme::DisplayFont(108)), text));
     char_label_->setPixmap(QPixmap());
     char_label_->setText(text);
-    const QList<uint> cps = text.toUcs4();
-    status_heading =
-        cps.isEmpty()
-            ? QString()
-            : QStringLiteral("U+%1")
-                  .arg(cps.first(), 4, 16, QLatin1Char('0'))
-                  .toUpper();
+    status_heading = CodepointHeading(text);
+  };
+
+  auto show_composition_drawing = [&](const QColor &ink) {
+    char_label_->setFont(font());
+    char_label_->setText(QString());
+    std::optional<std::vector<Contour>> outlines;
+    if (kage_ != nullptr) {
+      outlines = ComposerOutlines(editor_->op(), editor_->parts(), *kage_);
+    }
+    char_label_->setPixmap(
+        outlines ? OutlinePreview(*outlines, ink, devicePixelRatioF())
+                 : DrawingPreview(ComposerGlyphs(editor_->op(), editor_->parts()),
+                                  ink, devicePixelRatioF()));
+  };
+
+  if (search_active) {
+    const QString text = FromUtf8(search_active_char_);
+    show_unicode_text(text);
+    if (!Coverage().Drawable(text)) {
+      specimen_kind = QStringLiteral("missingFont");
+      status_detail = MissingFontDetail();
+    }
     insertable = true;
     if (char_info_ != nullptr) info = char_info_->Find(search_active_char_);
   } else {
@@ -2624,30 +2762,21 @@ void CharacterComposerDialog::RefreshActiveView() {
     }
     if (!found_.empty()) {
       const QString text = FromUtf8(found_);
-      char_label_->setFont(
-          Coverage().FontFor(WithWideCoverage(theme::DisplayFont(108)), text));
-      char_label_->setPixmap(QPixmap());
-      char_label_->setText(text);
-      const QList<uint> cps = text.toUcs4();
-      status_heading =
-          cps.isEmpty()
-              ? QString()
-              : QStringLiteral("U+%1")
-                    .arg(cps.first(), 4, 16, QLatin1Char('0'))
-                    .toUpper();
+      status_heading = CodepointHeading(text);
       insertable = true;
       if (char_info_ != nullptr) info = char_info_->Find(found_);
-    } else if (!pending_svg_.empty()) {
-      char_label_->setFont(font());
-      char_label_->setText(QString());
-      std::optional<std::vector<Contour>> outlines;
-      if (kage_ != nullptr) {
-        outlines = ComposerOutlines(editor_->op(), editor_->parts(), *kage_);
+      if (Coverage().Drawable(text)) {
+        show_unicode_text(text);
+      } else {
+        // Encoded, but nothing installed can draw it: show the composition
+        // drawing on the amber plate instead of a tofu box.
+        specimen_kind = QStringLiteral("missingFont");
+        show_composition_drawing(plate_ink);
+        status_detail = MissingFontDetail();
       }
-      char_label_->setPixmap(
-          outlines ? OutlinePreview(*outlines, palette(), devicePixelRatioF())
-                   : DrawingPreview(ComposerGlyphs(editor_->op(), editor_->parts()),
-                                    palette(), devicePixelRatioF()));
+    } else if (!pending_svg_.empty()) {
+      specimen_kind = QStringLiteral("svg");
+      show_composition_drawing(plate_ink);
       status_heading = Tr("Not encoded in Unicode");
       status_detail =
           Tr("Insert places a drawing on the clipboard for Word "
@@ -2658,17 +2787,10 @@ void CharacterComposerDialog::RefreshActiveView() {
       char_label_->setPixmap(QPixmap());
       char_label_->setText(Tr("Complete the composition to preview the character."));
       prompt_shown = true;
+      specimen_kind.clear();
     }
   }
-  if (char_label_->property("prompt").toBool() != prompt_shown) {
-    char_label_->setProperty("prompt", prompt_shown);
-    char_label_->setWordWrap(prompt_shown);
-    char_label_->setAlignment(prompt_shown
-                                  ? Qt::AlignHCenter | Qt::AlignVCenter
-                                  : Qt::AlignHCenter | Qt::AlignBottom);
-    char_label_->style()->unpolish(char_label_);
-    char_label_->style()->polish(char_label_);
-  }
+  ApplySpecimenPresentation(char_label_, specimen_kind, prompt_shown);
 
   if (!note_.isEmpty()) status_detail = note_;
 
@@ -2829,33 +2951,18 @@ void CharacterComposerDialog::OnFindContaining() {
     RefreshActiveView();
     return;
   }
-  // Leave out characters no installed font can draw: they would show as boxes.
   GlyphCoverage &coverage = Coverage();
-  const size_t before = matches.size();
-  matches.erase(std::remove_if(matches.begin(), matches.end(),
-                               [&coverage](const std::string &ch) {
-                                 return !coverage.Drawable(FromUtf8(ch));
-                               }),
-                matches.end());
-  const size_t undrawable = before - matches.size();
-  const QString undrawable_note =
-      undrawable == 0 ? QString()
-      : undrawable == 1
-          ? QStringLiteral(" ") +
-                Tr("1 more is hidden because no installed font can draw it.")
-          : QStringLiteral(" ") +
-                Tr("%1 more are hidden because no installed font can draw "
-                   "them.")
-                    .arg(undrawable);
-  if (matches.empty()) {
-    results_status_->setText(
-        undrawable == 1
-            ? Tr("No installed font can draw the character found.")
-            : Tr("No installed font can draw the %1 characters found.")
-                  .arg(undrawable));
-    RefreshActiveView();
-    return;
+  size_t missing_font = 0;
+  for (const std::string &ch : matches) {
+    if (!coverage.Drawable(FromUtf8(ch))) ++missing_font;
   }
+  const QString missing_note =
+      missing_font == 0 ? QString()
+      : missing_font == 1
+          ? QStringLiteral(" ") +
+                Tr("1 has no installed font (amber).")
+          : QStringLiteral(" ") +
+                Tr("%1 have no installed font (amber).").arg(missing_font);
   table_->SortByStrokes(&matches);
 
   // The list is only a pick-list; a component like 一 matches thousands.
@@ -2898,37 +3005,55 @@ void CharacterComposerDialog::OnFindContaining() {
     const QString text = FromUtf8(matches[i]);
     auto *item = new QListWidgetItem(text, results_list_);
     item->setTextAlignment(Qt::AlignCenter);
+    const bool drawable = coverage.Drawable(text);
     // A character only an unnamed installed font has: name that font.
-    if (!coverage.Check(text).extra_family.isEmpty()) {
+    if (drawable && !coverage.Check(text).extra_family.isEmpty()) {
       item->setFont(coverage.FontFor(results_list_->font(), text));
     }
-    const QString leading = LeadingStrokeGlyph(table_->LeadingStroke(matches[i]));
-    if (strokes && !leading.isEmpty()) {
-      item->setToolTip(
-          Tr("Strokes: %1, starts with %2").arg(*strokes).arg(leading));
-    } else if (strokes) {
-      item->setToolTip(Tr("Strokes: %1").arg(*strokes));
+    if (!drawable) {
+      item->setBackground(QColor(specimen_kind::kMissingFontR,
+                                 specimen_kind::kMissingFontG,
+                                 specimen_kind::kMissingFontB));
+      item->setForeground(Qt::white);
+      item->setData(kSpecimenKindRole,
+                    QString::fromUtf8(specimen_kind::kMissingFontName));
+    } else {
+      item->setData(kSpecimenKindRole,
+                    QString::fromUtf8(specimen_kind::kPlainName));
     }
+    const QString leading = LeadingStrokeGlyph(table_->LeadingStroke(matches[i]));
+    QString tip;
+    if (strokes && !leading.isEmpty()) {
+      tip = Tr("Strokes: %1, starts with %2").arg(*strokes).arg(leading);
+    } else if (strokes) {
+      tip = Tr("Strokes: %1").arg(*strokes);
+    }
+    if (!drawable) {
+      const QString missing =
+          Tr("No installed font can draw this character.");
+      tip = tip.isEmpty() ? missing : tip + QStringLiteral("\n") + missing;
+    }
+    if (!tip.isEmpty()) item->setToolTip(tip);
   }
   if (clear_results_button_ != nullptr) clear_results_button_->setVisible(true);
   if (shown == matches.size()) {
     results_status_->setText(
         Tr("%1 characters found. Click one to examine it.").arg(matches.size()) +
-        undrawable_note);
+        missing_note);
   } else if (headings) {
     results_status_->setText(
         Tr("%1 characters found; showing the first %2 of each stroke count. "
            "Add components or narrow the strokes.")
             .arg(matches.size())
             .arg(limit) +
-        undrawable_note);
+        missing_note);
   } else {
     results_status_->setText(
         Tr("%1 characters found; showing the first %2. Add components or "
            "narrow the strokes.")
             .arg(matches.size())
             .arg(kMaxShown) +
-        undrawable_note);
+        missing_note);
   }
 }
 

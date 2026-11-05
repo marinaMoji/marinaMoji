@@ -68,10 +68,16 @@ mozc_cc_library(
     name = "char_info",
     srcs = ["char_info.cc"],
     hdrs = ["char_info.h"],
-    visibility = ["//gui/character_composer:__pkg__"],
+    visibility = [
+        "//engine:__pkg__",
+        "//gui/character_composer:__pkg__",
+        "//session:__pkg__",
+    ],
     deps = [
         "//base:file_util",
+        "//base:system_util",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",

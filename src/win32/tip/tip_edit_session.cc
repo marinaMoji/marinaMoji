@@ -348,9 +348,15 @@ bool OnSessionCommandSync(TipTextService* text_service, ITfContext* context,
   return SUCCEEDED(hr) && SUCCEEDED(edit_session_result);
 }
 
-bool TurnOnImeAndTryToReconvertFromIme(TipTextService* text_service,
-                                       ITfContext* context) {
+bool TurnOnImeAndTryToReconvertFromIme(
+    TipTextService* text_service, ITfContext* context,
+    SessionCommand::CommandType command_type =
+        SessionCommand::CONVERT_REVERSE) {
   if (context == nullptr) {
+    return false;
+  }
+  if (command_type != SessionCommand::CONVERT_REVERSE &&
+      command_type != SessionCommand::CONVERT_RELATED) {
     return false;
   }
 
@@ -389,7 +395,7 @@ bool TurnOnImeAndTryToReconvertFromIme(TipTextService* text_service,
   Output output;
   {
     SessionCommand command;
-    command.set_type(SessionCommand::CONVERT_REVERSE);
+    command.set_type(command_type);
     command.set_text(text_utf8);
     if (!private_context->GetClient()->SendCommand(command, &output)) {
       return false;
@@ -534,7 +540,8 @@ bool OnOutputReceivedImpl(TipTextService* text_service, ITfContext* context,
         new_output.callback().session_command().type();
     switch (type) {
       case SessionCommand::CONVERT_REVERSE:
-        return TurnOnImeAndTryToReconvertFromIme(text_service, context);
+      case SessionCommand::CONVERT_RELATED:
+        return TurnOnImeAndTryToReconvertFromIme(text_service, context, type);
       case SessionCommand::UNDO:
         return UndoCommint(text_service, context);
       default:

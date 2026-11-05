@@ -312,6 +312,14 @@
         <translation>Unicodeに未収録</translation>
     </message>
     <message>
+        <source>This character exists in Unicode, but no installed font can draw it. Insert can still place a drawing.</source>
+        <translation>この文字はUnicodeにありますが、インストール済みのフォントでは表示できません。「挿入」では図形を置くこともできます。</translation>
+    </message>
+    <message>
+        <source>Suggested fonts</source>
+        <translation>推奨フォント</translation>
+    </message>
+    <message>
         <source>Insert places a drawing on the clipboard for Word (Kaeriten → Insert composed character) or other office plugins.</source>
         <translation>「挿入」は、Word（返り点 → 合成文字を挿入）やその他のオフィス用プラグイン向けに図形をクリップボードに置きます。</translation>
     </message>

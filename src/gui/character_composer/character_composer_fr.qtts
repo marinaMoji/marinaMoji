@@ -312,6 +312,14 @@
         <translation>Non encodé en Unicode</translation>
     </message>
     <message>
+        <source>This character exists in Unicode, but no installed font can draw it. Insert can still place a drawing.</source>
+        <translation>Ce caractère existe en Unicode, mais aucune police installée ne peut l’afficher. Insérer peut tout de même placer un dessin.</translation>
+    </message>
+    <message>
+        <source>Suggested fonts</source>
+        <translation>Polices suggérées</translation>
+    </message>
+    <message>
         <source>Insert places a drawing on the clipboard for Word (Kaeriten → Insert composed character) or other office plugins.</source>
         <translation>Insérer place un dessin dans le presse-papiers pour Word (Kaeriten → Insérer le caractère composé) ou d’autres modules bureautiques.</translation>
     </message>

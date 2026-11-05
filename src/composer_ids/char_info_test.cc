@@ -49,6 +49,29 @@ TEST(CharInfoTableTest, ParsesARow) {
   EXPECT_EQ(table->Find("木"), nullptr);
 }
 
+TEST(CharInfoTableTest, RelatedCandidatesOrderAndDedup) {
+  constexpr char kTsv[] =
+      "学\tU+5B66\t8\t\t\t\t\t\t學 斈 學\t\t學\t\n"
+      "學\tU+5B78\t16\t\t\t\t\t\t学\t\t\t学\n"
+      "的\tU+7684\t8\t\t\t\t\t\t\t\t\t\n";
+  auto table = CharInfoTable::FromTsv(kTsv);
+  ASSERT_TRUE(table.ok());
+
+  const std::vector<std::string> from_gaku = table->RelatedCandidates("学");
+  ASSERT_EQ(from_gaku.size(), 3);
+  EXPECT_EQ(from_gaku[0], "学");
+  EXPECT_EQ(from_gaku[1], "學");
+  EXPECT_EQ(from_gaku[2], "斈");
+
+  const std::vector<std::string> from_old = table->RelatedCandidates("學");
+  ASSERT_EQ(from_old.size(), 2);
+  EXPECT_EQ(from_old[0], "學");
+  EXPECT_EQ(from_old[1], "学");
+
+  EXPECT_TRUE(table->RelatedCandidates("的").empty());
+  EXPECT_TRUE(table->RelatedCandidates("木").empty());
+}
+
 }  // namespace
 }  // namespace composer_ids
 }  // namespace mozc

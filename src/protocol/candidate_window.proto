@@ -145,6 +145,10 @@ enum CandidateAttribute {
   SPELLING_CORRECTION = 3;  // "ふいんき"→"雰囲気"
   TYPING_CORRECTION = 4;    // "やんしょん"(with 12-key)→"マンション"
   DELETABLE = 5;
+  // marinaMoji: specimen plate kinds for related-character candidates
+  // (Ctrl+1). Renderers may also infer MISSING_FONT at paint time.
+  MISSING_FONT = 6;     // Unicode, no installed glyph (amber plate)
+  UNENCODED_SVG = 7;    // unencoded drawing (Prussian-blue plate)
 }
 
 message InformationList {
@@ -232,6 +236,8 @@ message CandidateWindow {
     optional int32 id = 9;  // Unique number specifing the candidate.
     optional Annotation annotation = 7;
     optional int32 information_id = 10;
+    // marinaMoji specimen plate kinds (Ctrl+1); see CandidateAttribute.
+    repeated CandidateAttribute attributes = 19;
   }
   // The position on the composition in character counted by Util::CharsLen.
   // The number represents the left edge of the candidate window.  For example,

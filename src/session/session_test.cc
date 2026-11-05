@@ -50,6 +50,7 @@
 #include "composer/composer.h"
 #include "composer/key_parser.h"
 #include "composer/table.h"
+#include "composer_ids/char_info.h"
 #include "config/config_handler.h"
 #include "converter/attribute.h"
 #include "converter/candidate.h"
@@ -8722,6 +8723,79 @@ TEST_F(SessionTest, RequestConvertReverse) {
   EXPECT_TRUE(command.output().callback().has_session_command());
   EXPECT_EQ(command.output().callback().session_command().type(),
             commands::SessionCommand::CONVERT_REVERSE);
+}
+
+TEST_F(SessionTest, RequestConvertRelated) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+
+  commands::Command command;
+  EXPECT_TRUE(session.RequestConvertRelated(&command));
+  EXPECT_TRUE(command.output().has_callback());
+  EXPECT_EQ(command.output().callback().session_command().type(),
+            commands::SessionCommand::CONVERT_RELATED);
+}
+
+TEST_F(SessionTest, ConvertRelated) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+  EXPECT_CALL(*converter, ResetConversion(_)).Times(1);
+
+  constexpr char kTsv[] =
+      "学\tU+5B66\t8\t\t\t\t\t\t學 斈\t\t學\t\n"
+      "的\tU+7684\t8\t\t\t\t\t\t\t\t\t\n";
+  auto table = composer_ids::CharInfoTable::FromTsv(kTsv);
+  ASSERT_TRUE(table.ok());
+  composer_ids::CharInfoTable::SetDefaultForTesting(
+      std::make_unique<composer_ids::CharInfoTable>(*std::move(table)));
+
+  {
+    Session session(engine);
+    InitSessionToPrecomposition(&session);
+    commands::Command command;
+    command.mutable_input()->set_type(commands::Input::SEND_COMMAND);
+    command.mutable_input()->mutable_command()->set_type(
+        commands::SessionCommand::CONVERT_RELATED);
+    command.mutable_input()->mutable_command()->set_text("学");
+    EXPECT_TRUE(session.SendCommand(&command));
+    EXPECT_TRUE(command.output().consumed());
+    ASSERT_TRUE(command.output().has_candidate_window());
+    ASSERT_GE(command.output().candidate_window().candidate_size(), 3);
+    EXPECT_EQ(command.output().candidate_window().candidate(0).value(), "学");
+    EXPECT_EQ(command.output().candidate_window().candidate(1).value(), "學");
+    EXPECT_EQ(command.output().candidate_window().candidate(2).value(), "斈");
+  }
+
+  {
+    // Multi-character selection: no-op.
+    Session session(engine);
+    InitSessionToPrecomposition(&session);
+    commands::Command command;
+    command.mutable_input()->set_type(commands::Input::SEND_COMMAND);
+    command.mutable_input()->mutable_command()->set_type(
+        commands::SessionCommand::CONVERT_RELATED);
+    command.mutable_input()->mutable_command()->set_text("学校");
+    EXPECT_TRUE(session.SendCommand(&command));
+    EXPECT_FALSE(command.output().has_candidate_window());
+  }
+
+  {
+    // Character with no variants: no-op.
+    Session session(engine);
+    InitSessionToPrecomposition(&session);
+    commands::Command command;
+    command.mutable_input()->set_type(commands::Input::SEND_COMMAND);
+    command.mutable_input()->mutable_command()->set_type(
+        commands::SessionCommand::CONVERT_RELATED);
+    command.mutable_input()->mutable_command()->set_text("的");
+    EXPECT_TRUE(session.SendCommand(&command));
+    EXPECT_FALSE(command.output().has_candidate_window());
+  }
+
+  composer_ids::CharInfoTable::ClearDefaultForTesting();
 }
 
 TEST_F(SessionTest, ConvertReverseFails) {

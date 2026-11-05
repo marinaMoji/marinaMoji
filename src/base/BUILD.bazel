@@ -49,6 +49,12 @@ load("//build_tools:embed_file.bzl", "mozc_embed_file")
 package(default_visibility = ["//:__subpackages__"])
 
 mozc_cc_library(
+    name = "specimen_kind",
+    hdrs = ["specimen_kind.h"],
+    visibility = ["//:__subpackages__"],
+)
+
+mozc_cc_library(
     name = "init_mozc_buildtool",
     srcs = ["init_mozc.cc"],
     hdrs = ["init_mozc.h"],

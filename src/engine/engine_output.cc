@@ -127,6 +127,12 @@ void FillCandidateWord(const converter::Candidate& segment_candidate,
   if (segment_candidate.attributes & converter::Attribute::TYPING_CORRECTION) {
     candidate_word_proto->add_attributes(commands::TYPING_CORRECTION);
   }
+  // marinaMoji specimen kinds (Ctrl+1 related characters).
+  if (segment_candidate.specimen_kind == 1) {
+    candidate_word_proto->add_attributes(commands::MISSING_FONT);
+  } else if (segment_candidate.specimen_kind == 2) {
+    candidate_word_proto->add_attributes(commands::UNENCODED_SVG);
+  }
 
   // number of segments
   candidate_word_proto->set_num_segments_in_candidate(1);
@@ -201,6 +207,13 @@ void FillCandidate(const Segment& segment, const Candidate& candidate,
 
   if (!candidate_value.usage_title.empty()) {
     candidate_proto->set_information_id(candidate_value.usage_id);
+  }
+
+  // marinaMoji specimen kinds (Ctrl+1 related characters).
+  if (candidate_value.specimen_kind == 1) {
+    candidate_proto->add_attributes(commands::MISSING_FONT);
+  } else if (candidate_value.specimen_kind == 2) {
+    candidate_proto->add_attributes(commands::UNENCODED_SVG);
   }
 }
 

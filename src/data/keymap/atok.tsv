@@ -112,6 +112,7 @@ DirectInput	Henkan	IMEOn
 DirectInput	Kanji	IMEOn
 DirectInput	Muhenkan	IMEOn
 DirectInput	ON	IMEOn
+DirectInput	Ctrl 1	ConvertRelated
 DirectInput	Shift Henkan	Reconvert
 DirectInput	RightAlt ¨	SetMacronDeadKey
 DirectInput	RightAlt ^	SetMacronDeadKey
@@ -134,6 +135,7 @@ Precomposition	Kanji	CancelAndIMEOff
 Precomposition	Muhenkan	CancelAndIMEOff
 Precomposition	OFF	CancelAndIMEOff
 Precomposition	ON	IMEOn
+Precomposition	Ctrl 1	ConvertRelated
 Precomposition	Shift Henkan	Reconvert
 Precomposition	Shift Muhenkan	ToggleAlphanumericMode
 Precomposition	Shift Space	InsertAlternateSpace

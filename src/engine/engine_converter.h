@@ -41,6 +41,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "converter/candidate.h"
 #include "converter/converter_interface.h"
 #include "converter/segments.h"
@@ -86,6 +87,13 @@ class EngineConverter : public EngineConverterInterface {
   // Gets reading text (e.g. from "猫" to "ねこ").
   bool GetReadingText(absl::string_view source_text,
                       std::string* reading) override;
+
+  // Builds a one-segment conversion from a fixed candidate list (Ctrl+1
+  // related characters). |selected| is the segment key; |candidates| are
+  // values in display order. Returns false if |candidates| is empty.
+  // Not on the interface: avoids changing the vtable layout.
+  bool StartRelatedConversion(absl::string_view selected,
+                              absl::Span<const std::string> candidates);
 
   // Appends current conversion result (all segments' selected values) when in
   // CONVERSION state, or the focused candidate when in SUGGESTION/PREDICTION.

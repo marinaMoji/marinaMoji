@@ -76,6 +76,7 @@ void Candidate::Clear() {
   style = NumberUtil::NumberString::DEFAULT_STYLE;
   command = DEFAULT_COMMAND;
   inner_segment_boundary.clear();
+  specimen_kind = 0;
 #ifdef MOZC_CANDIDATE_DEBUG
   log.clear();
 #endif  // MOZC_CANDIDATE_DEBUG

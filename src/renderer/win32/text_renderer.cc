@@ -255,15 +255,44 @@ class GdiTextRenderer : public TextRenderer {
   void RenderTextList(HDC dc,
                       const absl::Span<const TextRenderingInfo> display_list,
                       FONT_TYPE font_type) const override {
+    RenderTextListWithColor(dc, display_list, font_type,
+                            render_info_[font_type].color);
+  }
+
+  void RenderTextListWithColor(
+      HDC dc, const absl::Span<const TextRenderingInfo> display_list,
+      FONT_TYPE font_type, COLORREF color) const override {
     const auto& render_info = render_info_[font_type];
     const auto old_font = wil::SelectObject(dc, render_info.font.get());
-    const auto previous_color = ::SetTextColor(dc, render_info.color);
+    const auto previous_color = ::SetTextColor(dc, color);
     for (const TextRenderingInfo& info : display_list) {
       CRect rect = ToCRect(info.rect);
       ::DrawTextW(dc, info.text.data(), info.text.size(), &rect,
                   render_info.style);
     }
     ::SetTextColor(dc, previous_color);
+  }
+
+  bool FontCanDraw(FONT_TYPE font_type,
+                   std::wstring_view text) const override {
+    if (text.empty()) {
+      return true;
+    }
+    const auto old_font =
+        wil::SelectObject(mem_dc_.get(), render_info_[font_type].font.get());
+    std::vector<WORD> glyphs(text.size());
+    const DWORD result = ::GetGlyphIndicesW(
+        mem_dc_.get(), text.data(), static_cast<int>(text.size()),
+        glyphs.data(), GGI_MARK_NONEXISTING_GLYPHS);
+    if (result == GDI_ERROR) {
+      return true;
+    }
+    for (const WORD glyph : glyphs) {
+      if (glyph == 0xffff) {
+        return false;
+      }
+    }
+    return true;
   }
 
   std::vector<RenderInfo> render_info_;
@@ -376,6 +405,13 @@ class DirectWriteTextRenderer : public TextRenderer {
   void RenderTextList(HDC dc,
                       const absl::Span<const TextRenderingInfo> display_list,
                       FONT_TYPE font_type) const override {
+    RenderTextListWithColor(dc, display_list, font_type,
+                            render_info_[font_type].color);
+  }
+
+  void RenderTextListWithColor(
+      HDC dc, const absl::Span<const TextRenderingInfo> display_list,
+      FONT_TYPE font_type, COLORREF color) const override {
     constexpr size_t kMaxTrial = 3;
     size_t trial = 0;
     while (true) {
@@ -384,7 +420,8 @@ class DirectWriteTextRenderer : public TextRenderer {
         // This is not a recoverable error.
         return;
       }
-      const HRESULT hr = RenderTextListImpl(dc, display_list, font_type);
+      const HRESULT hr =
+          RenderTextListImpl(dc, display_list, font_type, color);
       if (hr == D2DERR_RECREATE_TARGET && trial < kMaxTrial) {
         // This is a recoverable error just by recreating the render target.
         dc_render_target_.reset();
@@ -397,9 +434,37 @@ class DirectWriteTextRenderer : public TextRenderer {
     }
   }
 
+  bool FontCanDraw(FONT_TYPE font_type,
+                   std::wstring_view text) const override {
+    if (text.empty()) {
+      return true;
+    }
+    // Probe with the same LOGFONT DirectWrite uses for this style.
+    const LOGFONTW log_font = GetLogFont(font_type, dpi_);
+    wil::unique_hfont font(::CreateFontIndirectW(&log_font));
+    if (!font) {
+      return true;
+    }
+    wil::unique_hdc mem_dc(::CreateCompatibleDC(nullptr));
+    const auto old_font = wil::SelectObject(mem_dc.get(), font.get());
+    std::vector<WORD> glyphs(text.size());
+    const DWORD result = ::GetGlyphIndicesW(
+        mem_dc.get(), text.data(), static_cast<int>(text.size()),
+        glyphs.data(), GGI_MARK_NONEXISTING_GLYPHS);
+    if (result == GDI_ERROR) {
+      return true;
+    }
+    for (const WORD glyph : glyphs) {
+      if (glyph == 0xffff) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   HRESULT RenderTextListImpl(
       HDC dc, const absl::Span<const TextRenderingInfo> display_list,
-      FONT_TYPE font_type) const {
+      FONT_TYPE font_type, COLORREF color) const {
     CRect total_rect;
     for (const auto& item : display_list) {
       const auto& item_rect = ToCRect(item.rect);
@@ -412,8 +477,8 @@ class DirectWriteTextRenderer : public TextRenderer {
       return hr;
     }
     wil::com_ptr_nothrow<ID2D1SolidColorBrush> brush;
-    hr = dc_render_target_->CreateSolidColorBrush(
-        ToD2DColor(render_info_[font_type].color), brush.put());
+    hr = dc_render_target_->CreateSolidColorBrush(ToD2DColor(color),
+                                                  brush.put());
     if (FAILED(hr)) {
       return hr;
     }

@@ -59,6 +59,7 @@
 #include "composer/composer.h"
 #include "composer/key_event_util.h"
 #include "composer/table.h"
+#include "composer_ids/char_info.h"
 #include "engine/engine_converter.h"
 #include "engine/engine_converter_interface.h"
 #include "engine/engine_interface.h"
@@ -504,6 +505,9 @@ bool Session::SendCommand(commands::Command* command) {
       break;
     case commands::SessionCommand::CONVERT_REVERSE:
       result = ConvertReverse(command);
+      break;
+    case commands::SessionCommand::CONVERT_RELATED:
+      result = ConvertRelated(command);
       break;
     case commands::SessionCommand::UNDO:
       result = Undo(command);
@@ -1028,6 +1032,8 @@ bool Session::SendKeyDirectInputState(commands::Command* command) {
       return EchoBackAndClearUndoContext(command);
     case keymap::DirectInputState::RECONVERT:
       return RequestConvertReverse(command);
+    case keymap::DirectInputState::CONVERT_RELATED:
+      return RequestConvertRelated(command);
     case keymap::DirectInputState::LAUNCH_WORD_REGISTER_DIALOG:
       return LaunchWordRegisterDialog(command);
     case keymap::DirectInputState::INSERT_MACRON_VOWEL:
@@ -1145,6 +1151,8 @@ bool Session::SendKeyPrecompositionState(commands::Command* command) {
       return EchoBackAndClearUndoContext(command);
     case keymap::PrecompositionState::RECONVERT:
       return RequestConvertReverse(command);
+    case keymap::PrecompositionState::CONVERT_RELATED:
+      return RequestConvertRelated(command);
 
     case keymap::PrecompositionState::IME_ACTION:
       return ImeAction(command);
@@ -1753,6 +1761,68 @@ bool Session::RequestConvertReverse(commands::Command* command) {
   commands::SessionCommand* session_command =
       command->mutable_output()->mutable_callback()->mutable_session_command();
   session_command->set_type(commands::SessionCommand::CONVERT_REVERSE);
+  return true;
+}
+
+bool Session::RequestConvertRelated(commands::Command* command) {
+  if (context_->state() != ImeContext::PRECOMPOSITION &&
+      context_->state() != ImeContext::DIRECT) {
+    return DoNothing(command);
+  }
+  command->mutable_output()->set_consumed(true);
+  Output(command);
+
+  commands::SessionCommand* session_command =
+      command->mutable_output()->mutable_callback()->mutable_session_command();
+  session_command->set_type(commands::SessionCommand::CONVERT_RELATED);
+  return true;
+}
+
+bool Session::ConvertRelated(commands::Command* command) {
+  if (context_->state() != ImeContext::PRECOMPOSITION &&
+      context_->state() != ImeContext::DIRECT) {
+    return DoNothing(command);
+  }
+
+  const std::string& selected = command->input().command().text();
+  if (!Util::IsValidUtf8(selected) || Util::CharsLen(selected) != 1) {
+    return DoNothing(command);
+  }
+  for (ConstChar32Iterator iter(selected); !iter.Done(); iter.Next()) {
+    if (!Util::IsAcceptableCharacterAsCandidate(iter.Get())) {
+      return DoNothing(command);
+    }
+  }
+
+  const composer_ids::CharInfoTable* table =
+      composer_ids::CharInfoTable::GetDefault();
+  if (table == nullptr) {
+    return DoNothing(command);
+  }
+  const std::vector<std::string> candidates = table->RelatedCandidates(selected);
+  if (candidates.empty()) {
+    return DoNothing(command);
+  }
+
+  EngineConverter* converter = GetEngineConverter(context_->mutable_converter());
+  if (converter == nullptr) {
+    return DoNothing(command);
+  }
+
+  composer::Composer* composer = context_->mutable_composer();
+  composer->Reset();
+  ClearUndoContext();
+  composer->InsertCharacterPreedit(selected);
+  composer->set_source_text(selected);
+
+  if (!converter->StartRelatedConversion(selected, candidates)) {
+    return DoNothing(command);
+  }
+
+  command->mutable_output()->set_consumed(true);
+  SetSessionState(ImeContext::CONVERSION, context_.get());
+  converter->SetCandidateListVisible(true);
+  Output(command);
   return true;
 }
 

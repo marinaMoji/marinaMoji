@@ -121,6 +121,7 @@ class CandidateWindow : public ATL::CWindowImpl<CandidateWindow, ATL::CWindow,
   void DoPaint(HDC dc);
 
   void DrawCells(HDC dc);
+  void DrawSpecimenValuePlates(HDC dc);
   void DrawVScrollBar(HDC dc);
   void DrawShortcutBackground(HDC dc);
   void DrawFooter(HDC dc);

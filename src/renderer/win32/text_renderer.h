@@ -99,6 +99,16 @@ class TextRenderer {
   virtual void RenderTextList(HDC dc,
                               absl::Span<const TextRenderingInfo> display_list,
                               FONT_TYPE font_type) const = 0;
+  // Like RenderTextList, but forces |color| instead of the themed colour.
+  // Used for white ink on specimen (amber/blue) candidate plates.
+  virtual void RenderTextListWithColor(
+      HDC dc, absl::Span<const TextRenderingInfo> display_list,
+      FONT_TYPE font_type, COLORREF color) const = 0;
+
+  // True when the font for |font_type| has a glyph for every code unit in
+  // |text| (no 0xffff missing markers). Used for specimen amber plates.
+  virtual bool FontCanDraw(FONT_TYPE font_type,
+                           std::wstring_view text) const = 0;
 };
 
 }  // namespace win32

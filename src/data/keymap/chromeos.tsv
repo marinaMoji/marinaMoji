@@ -132,10 +132,12 @@ Conversion	VirtualLeft	SegmentWidthShrink
 Conversion	VirtualRight	SegmentWidthExpand
 Conversion	VirtualEnter	CommitOnlyFirstSegment
 Conversion	Ctrl Shift )	LaunchWordRegisterDialog
+DirectInput	Ctrl 1	ConvertRelated
 DirectInput	Ctrl Shift )	LaunchWordRegisterDialog
 Precomposition	ASCII	InsertCharacter
 Precomposition	Backspace	Revert
 Precomposition	Ctrl Backspace	Undo
+Precomposition	Ctrl 1	ConvertRelated
 Precomposition	Ctrl Shift 3	ToggleFullHalfWidth
 Precomposition	Ctrl Shift #	ToggleFullHalfWidth
 Precomposition	RightShift	ToggleManyoshuHiragana

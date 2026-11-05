@@ -117,6 +117,13 @@ class Session {
   // is called when the CONVERT_REVERSE SessionCommand is called.
   bool ConvertReverse(mozc::commands::Command* command);
 
+  // Fills Output::Callback with CONVERT_RELATED so the client can send
+  // back the selected character (Kotoeri-style Ctrl+1).
+  bool RequestConvertRelated(mozc::commands::Command* command);
+
+  // Opens a candidate list of related characters for |command.text|.
+  bool ConvertRelated(mozc::commands::Command* command);
+
   // Fills Output::Callback with the Undo SessionCommand to ask the
   // client to send back the SessionCommand to the server.
   // This function is called when the key event representing the

@@ -110,6 +110,21 @@ TEST(EngineOutputTest, FillCandidate) {
   EXPECT_EQ(candidate_proto.annotation().description(), kDescription42);
   EXPECT_EQ(candidate_proto.annotation().display_value(), kDisplayValue42);
 
+  // Specimen attributes round-trip onto CandidateWindow::Candidate.
+  candidate.Clear();
+  candidate_proto.Clear();
+  segment.mutable_candidate(13)->specimen_kind = 1;
+  candidate.set_id(13);
+  output::FillCandidate(segment, candidate, &candidate_proto);
+  ASSERT_EQ(candidate_proto.attributes_size(), 1);
+  EXPECT_EQ(candidate_proto.attributes(0), commands::MISSING_FONT);
+  segment.mutable_candidate(13)->specimen_kind = 2;
+  candidate_proto.Clear();
+  output::FillCandidate(segment, candidate, &candidate_proto);
+  ASSERT_EQ(candidate_proto.attributes_size(), 1);
+  EXPECT_EQ(candidate_proto.attributes(0), commands::UNENCODED_SVG);
+  segment.mutable_candidate(13)->specimen_kind = 0;
+
   candidate.Clear();
   candidate_proto.Clear();
   CandidateList* candidate_list = candidate.mutable_subcandidate_list();
@@ -390,6 +405,8 @@ TEST(EngineOutputTest, FillAllCandidateWords_Attributes) {
   segment.mutable_candidate(5)->attributes =
       converter::Attribute::USER_HISTORY_PREDICTION |
       converter::Attribute::NO_DELETABLE;
+  segment.mutable_candidate(0)->specimen_kind = 1;  // missingFont
+  segment.mutable_candidate(1)->specimen_kind = 2;  // svg
 
   candidate_list.set_focused(true);
   candidate_list.MoveToId(0);
@@ -407,11 +424,15 @@ TEST(EngineOutputTest, FillAllCandidateWords_Attributes) {
   EXPECT_EQ(candidates_proto.category(), kCategory);
   EXPECT_EQ(candidates_proto.candidates_size(), kValueSize);
 
-  EXPECT_EQ(candidates_proto.candidates(0).attributes_size(), 0);
+  EXPECT_EQ(candidates_proto.candidates(0).attributes_size(), 1);
+  EXPECT_EQ(candidates_proto.candidates(0).attributes(0),
+            commands::CandidateAttribute::MISSING_FONT);
 
-  EXPECT_EQ(candidates_proto.candidates(1).attributes_size(), 1);
+  EXPECT_EQ(candidates_proto.candidates(1).attributes_size(), 2);
   EXPECT_EQ(candidates_proto.candidates(1).attributes(0),
             commands::CandidateAttribute::USER_DICTIONARY);
+  EXPECT_EQ(candidates_proto.candidates(1).attributes(1),
+            commands::CandidateAttribute::UNENCODED_SVG);
 
   EXPECT_EQ(candidates_proto.candidates(2).attributes_size(), 2);
   EXPECT_EQ(candidates_proto.candidates(2).attributes(0),

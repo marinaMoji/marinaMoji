@@ -32,10 +32,15 @@
 #import <Foundation/Foundation.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <set>
+#include <vector>
+
+#include <CoreText/CoreText.h>
 
 #include "absl/log/log.h"
 #include "absl/strings/str_format.h"
+#include "base/specimen_kind.h"
 #include "client/client_interface.h"
 #include "config/config_handler.h"
 #include "protocol/commands.pb.h"
@@ -80,6 +85,35 @@ using mozc::renderer::mac::MacViewUtil;
 // Draw scroll bar
 - (void)drawVScrollBar;
 @end
+
+namespace {
+
+// True when the candidate font has a glyph for every UTF-16 code unit.
+bool MacCandidateValueDrawable(NSString *text, NSFont *font) {
+  if (text == nil || [text length] == 0) {
+    return true;
+  }
+  CTFontRef ct_font = (__bridge CTFontRef)font;
+  const NSUInteger length = [text length];
+  std::vector<UniChar> chars(length);
+  std::vector<CGGlyph> glyphs(length);
+  [text getCharacters:chars.data() range:NSMakeRange(0, length)];
+  return CTFontGetGlyphsForCharacters(ct_font, chars.data(), glyphs.data(),
+                                      static_cast<CFIndex>(length));
+}
+
+NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind) {
+  uint8_t r = 0, g = 0, b = 0;
+  if (!mozc::specimen_kind::PlateRgb(kind, &r, &g, &b)) {
+    return nil;
+  }
+  return [NSColor colorWithCalibratedRed:r / 255.0
+                                   green:g / 255.0
+                                    blue:b / 255.0
+                                   alpha:1.0];
+}
+
+}  // namespace
 
 @implementation CandidateView {
   NSImage *logoImage_;
@@ -410,6 +444,30 @@ using mozc::renderer::mac::MacViewUtil;
   }
 
   NSArray<NSAttributedString *> *candidate = [candidateStringsCache_ objectAtIndex:row];
+  const NSAttributedString *candidateValue = [candidate objectAtIndex:kColumnCandidate];
+  NSFont *candidateFont = nil;
+  if ([candidateValue length] > 0) {
+    candidateFont = [candidateValue attribute:NSFontAttributeName
+                                      atIndex:0
+                               effectiveRange:nullptr];
+  }
+  if (candidateFont == nil) {
+    candidateFont = [NSFont messageFontOfSize:style_.candidate_style().font_size()];
+  }
+  const bool drawable =
+      MacCandidateValueDrawable([candidateValue string], candidateFont);
+  const mozc::specimen_kind::Kind kind =
+      mozc::renderer::SpecimenKindForCandidate(candidate_window_.candidate(row),
+                                               drawable);
+  NSColor *plate = SpecimenPlateColor(kind);
+  if (plate != nil) {
+    const mozc::Rect rowRect = tableLayout_.GetRowRect(row);
+    mozc::Rect cellRect = tableLayout_.GetCellRect(row, kColumnCandidate);
+    cellRect.origin.y = rowRect.origin.y;
+    cellRect.size.height = rowRect.size.height;
+    [plate set];
+    [NSBezierPath fillRect:MacViewUtil::ToNSRect(cellRect)];
+  }
 
   auto drawText = [&](ColumnType type,
                       const mozc::renderer::RendererStyle::TextStyle& text_style) {
@@ -418,7 +476,16 @@ using mozc::renderer::mac::MacViewUtil;
     NSPoint position = cellRect.origin;
     position.x += text_style.left_padding();
     position.y += (cellRect.size.height - [text size].height) / 2;
-    [text drawAtPoint:position];
+    if (type == kColumnCandidate && plate != nil) {
+      NSMutableAttributedString *white = [[NSMutableAttributedString alloc]
+          initWithAttributedString:(NSAttributedString *)text];
+      [white addAttribute:NSForegroundColorAttributeName
+                    value:[NSColor whiteColor]
+                    range:NSMakeRange(0, [white length])];
+      [white drawAtPoint:position];
+    } else {
+      [text drawAtPoint:position];
+    }
   };
 
   drawText(kColumnShortcut, style_.shortcut_style());

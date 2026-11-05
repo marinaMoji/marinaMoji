@@ -427,7 +427,8 @@ class CharacterComposerDialog : public QDialog {
   void ActivateSearchResult(const std::string &ch);
   void UpdateComponentRoles();
   void UpdateCharInfoTable(const composer_ids::CharInfo *info);
-  void SetInfoRow(QLabel *label, QLabel *value, const QString &text);
+  void SetInfoRow(QLabel *label, QWidget *value, const QString &text);
+  void SetVariantsChips(const composer_ids::CharInfo *info);
   // Insert if ready, after committing any IME preedit.
   void TryInsert();
   void UpdatePaletteHighlight();
@@ -471,7 +472,7 @@ class CharacterComposerDialog : public QDialog {
   QLabel *meaning_label_ = nullptr;
   QLabel *meaning_value_ = nullptr;
   QLabel *variants_label_ = nullptr;
-  QLabel *variants_value_ = nullptr;
+  QWidget *variants_value_ = nullptr;  // flow of specimen-coloured chips
   QLabel *strokes_label_ = nullptr;
   QLabel *strokes_value_ = nullptr;
   QLabel *radical_label_ = nullptr;

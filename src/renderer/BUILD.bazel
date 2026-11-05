@@ -193,7 +193,10 @@ mozc_cc_library(
     name = "candidate_window_util",
     hdrs = ["candidate_window_util.h"],
     visibility = ["//renderer:__subpackages__"],
-    deps = ["//protocol:commands_cc_proto"],
+    deps = [
+        "//base:specimen_kind",
+        "//protocol:commands_cc_proto",
+    ],
 )
 
 mozc_cc_library(
@@ -405,6 +408,7 @@ mozc_objc_library(
     sdk_frameworks = [
         "Carbon",
         "Cocoa",
+        "CoreText",
         "Foundation",
     ],
     deps = [
@@ -416,6 +420,7 @@ mozc_objc_library(
         ":window_util",
         "//base:const",
         "//base:coordinates",
+        "//base:specimen_kind",
         "//base:util",
         "//base/mac:mac_util",
         "//client:client_interface",

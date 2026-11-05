@@ -39,14 +39,19 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <utility>
+
+#include <QGlyphRun>
+#include <QTextLayout>
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "base/coordinates.h"
+#include "base/specimen_kind.h"
 #include "client/client_interface.h"
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
@@ -73,6 +78,8 @@ enum CandidateItemRole {
   kHasInformationRole = Qt::UserRole,
   // True when the row is focused.
   kIsFocusedRole,
+  // specimen_kind::Kind as int; set on the value column.
+  kSpecimenKindRole,
 };
 
 QString QStr(absl::string_view str) {
@@ -95,6 +102,44 @@ QString CssColor(const QColor& color) {
 
 QBrush QBrushFromColor(const RendererStyle::RGBAColor& rgba) {
   return QBrush(QColorFromColor(rgba));
+}
+
+// True when Qt's font merging finds a real glyph for every character (no
+// .notdef). Used to amber-plate Ctrl+1 values the platform cannot draw.
+bool CandidateValueDrawable(const QFont& font, const QString& text) {
+  if (text.isEmpty()) {
+    return true;
+  }
+  QTextLayout layout(text, font);
+  layout.beginLayout();
+  QTextLine line = layout.createLine();
+  if (line.isValid()) {
+    line.setLineWidth(1.0e6);
+  }
+  layout.endLayout();
+  if (!line.isValid()) {
+    return false;
+  }
+  bool any = false;
+  for (const QGlyphRun& run : layout.glyphRuns()) {
+    for (const quint32 glyph : run.glyphIndexes()) {
+      if (glyph == 0) {
+        return false;
+      }
+      any = true;
+    }
+  }
+  return any;
+}
+
+void ApplySpecimenValueStyle(QTableWidgetItem* item,
+                             specimen_kind::Kind kind) {
+  uint8_t r = 0, g = 0, b = 0;
+  if (!specimen_kind::PlateRgb(kind, &r, &g, &b)) {
+    return;
+  }
+  item->setBackground(QColor(r, g, b));
+  item->setForeground(Qt::white);
 }
 
 // Gaps around the footer logo, in pixels.
@@ -808,25 +853,29 @@ void FillCandidateHighlight(const commands::CandidateWindow& candidate_window,
     table->item(row, 1)->setBackground(highlight);
     table->item(row, 2)->setBackground(highlight);
     table->item(row, 3)->setBackground(highlight);
-    return;
+  } else {
+    const QBrush background =
+        QBrushFromColor(style.candidate_style().background_color());
+    if (candidate_window.candidate(row).annotation().shortcut().empty()) {
+      table->item(row, 0)->setBackground(background);
+    } else {
+      // A style without a shortcut background (marinaMoji's light style) would
+      // otherwise get the proto's default of black.
+      const QBrush shortcut_background =
+          style.shortcut_style().has_background_color()
+              ? QBrushFromColor(style.shortcut_style().background_color())
+              : background;
+      table->item(row, 0)->setBackground(shortcut_background);
+    }
+    table->item(row, 1)->setBackground(background);
+    table->item(row, 2)->setBackground(background);
+    table->item(row, 3)->setBackground(background);
   }
 
-  const QBrush background =
-      QBrushFromColor(style.candidate_style().background_color());
-  if (candidate_window.candidate(row).annotation().shortcut().empty()) {
-    table->item(row, 0)->setBackground(background);
-  } else {
-    // A style without a shortcut background (marinaMoji's light style) would
-    // otherwise get the proto's default of black.
-    const QBrush shortcut_background =
-        style.shortcut_style().has_background_color()
-            ? QBrushFromColor(style.shortcut_style().background_color())
-            : background;
-    table->item(row, 0)->setBackground(shortcut_background);
-  }
-  table->item(row, 1)->setBackground(background);
-  table->item(row, 2)->setBackground(background);
-  table->item(row, 3)->setBackground(background);
+  // Specimen plate on the value column wins over the default/focused fill.
+  const auto kind = static_cast<specimen_kind::Kind>(
+      table->item(row, 1)->data(kSpecimenKindRole).toInt());
+  ApplySpecimenValueStyle(table->item(row, 1), kind);
 }
 
 void FillCandidateWindow(const commands::CandidateWindow& candidate_window,
@@ -865,6 +914,9 @@ void FillCandidateWindow(const commands::CandidateWindow& candidate_window,
     // value
     auto item1 = new QTableWidgetItem(QStr(value));
     item1->setForeground(candidate_brush);
+    const specimen_kind::Kind kind = SpecimenKindForCandidate(
+        candidate, CandidateValueDrawable(table->font(), QStr(value)));
+    item1->setData(kSpecimenKindRole, static_cast<int>(kind));
     table->setItem(i, 1, item1);
 
     // description

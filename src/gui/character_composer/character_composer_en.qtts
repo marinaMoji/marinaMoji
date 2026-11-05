@@ -312,6 +312,14 @@
         <translation>Not encoded in Unicode</translation>
     </message>
     <message>
+        <source>This character exists in Unicode, but no installed font can draw it. Insert can still place a drawing.</source>
+        <translation>This character exists in Unicode, but no installed font can draw it. Insert can still place a drawing.</translation>
+    </message>
+    <message>
+        <source>Suggested fonts</source>
+        <translation>Suggested fonts</translation>
+    </message>
+    <message>
         <source>Insert places a drawing on the clipboard for Word (Kaeriten → Insert composed character) or other office plugins.</source>
         <translation>Insert places a drawing on the clipboard for Word (Kaeriten → Insert composed character) or other office plugins.</translation>
     </message>

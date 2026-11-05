@@ -8,9 +8,10 @@
 #ifndef MOZC_COMPOSER_IDS_CHAR_INFO_H_
 #define MOZC_COMPOSER_IDS_CHAR_INFO_H_
 
-#include <optional>
+#include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/statusor.h"
@@ -41,7 +42,23 @@ class CharInfoTable {
   static absl::StatusOr<CharInfoTable> LoadFromDirectory(
       std::string_view directory);
 
+  // Same directory resolution as IdsTable::DefaultDirectory():
+  // MARINAMOJI_CHARACTER_COMPOSER_DIR, else <server>/character_composer.
+  static std::string DefaultDirectory();
+
+  // Lazy-loads from DefaultDirectory(). Returns nullptr if the file is
+  // missing or unreadable. Thread-safe; loaded once per process.
+  static const CharInfoTable *GetDefault();
+
+  // Test hooks: replace GetDefault()'s table, or restore lazy loading.
+  static void SetDefaultForTesting(std::unique_ptr<CharInfoTable> table);
+  static void ClearDefaultForTesting();
+
   const CharInfo *Find(std::string_view ch) const;
+
+  // Selected character first, then unique variants, old_form, new_form.
+  // Empty when |ch| is unknown or has no related forms besides itself.
+  std::vector<std::string> RelatedCandidates(std::string_view ch) const;
 
   size_t size() const { return by_char_.size(); }
 

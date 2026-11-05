@@ -537,6 +537,11 @@ message SessionCommand {
     // (Windows TIP) without reaching the session; mac and Linux toolbars open
     // the URL themselves and never send it.
     OPEN_CHARACTER_COMPOSER = 45;
+
+    // marinaMoji: related-character (異体字) conversion for one selected
+    // character (Kotoeri-style Ctrl+1). Client fills |text| from the
+    // selection, same surrounding-text path as CONVERT_REVERSE.
+    CONVERT_RELATED = 46;
   }
   required CommandType type = 1;
 
@@ -548,7 +553,7 @@ message SessionCommand {
   // This is used with SWITCH_COMPOSITION_MODE, TURN_ON_IME and TURN_OFF_IME.
   optional CompositionMode composition_mode = 3;
 
-  // Text argument.  This is used by CONVERT_REVERSE at this moment.
+  // Text argument. Used by CONVERT_REVERSE and CONVERT_RELATED.
   optional string text = 4;
 
   // New cursor position in preedit. Used with MOVE_CURSOR.

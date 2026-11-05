@@ -3234,6 +3234,27 @@ TEST_F(EngineConverterTest, GetReadingText) {
   EXPECT_EQ(reading, kChars_Aiueo);
 }
 
+TEST_F(EngineConverterTest, StartRelatedConversion) {
+  auto mock_converter = std::make_shared<MockConverter>();
+  EngineConverter converter(mock_converter, request_, config_);
+
+  EXPECT_CALL(*mock_converter, ResetConversion(_)).Times(1);
+  const std::vector<std::string> candidates = {"学", "學", "斈"};
+  EXPECT_TRUE(converter.StartRelatedConversion("学", candidates));
+  EXPECT_TRUE(converter.IsActive());
+  EXPECT_TRUE(IsCandidateListVisible(converter));
+
+  commands::Output output;
+  converter.FillOutput(*composer_, &output);
+  ASSERT_TRUE(output.has_candidate_window());
+  ASSERT_EQ(output.candidate_window().candidate_size(), 3);
+  EXPECT_EQ(output.candidate_window().candidate(0).value(), "学");
+  EXPECT_EQ(output.candidate_window().candidate(1).value(), "學");
+  EXPECT_EQ(output.candidate_window().candidate(2).value(), "斈");
+
+  EXPECT_FALSE(converter.StartRelatedConversion("学", {}));
+}
+
 TEST_F(EngineConverterTest, ZeroQuerySuggestion) {
   auto mock_converter = std::make_shared<MockConverter>();
   EngineConverter converter(mock_converter, request_, config_);

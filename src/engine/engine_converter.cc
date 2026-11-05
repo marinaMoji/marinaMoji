@@ -206,6 +206,34 @@ bool EngineConverter::Convert(const composer::Composer& composer,
   return true;
 }
 
+bool EngineConverter::StartRelatedConversion(
+    absl::string_view selected, absl::Span<const std::string> candidates) {
+  if (selected.empty() || candidates.empty()) {
+    return false;
+  }
+
+  ResetResult();
+  converter_->ResetConversion(&segments_);
+  segments_.InitForConvert(selected);
+
+  Segment* segment = segments_.mutable_conversion_segment(0);
+  for (const std::string& value : candidates) {
+    converter::Candidate* candidate = segment->add_candidate();
+    candidate->key = std::string(selected);
+    candidate->content_key = std::string(selected);
+    candidate->value = value;
+    candidate->content_value = value;
+  }
+
+  segment_index_ = 0;
+  state_ = CONVERSION;
+  request_type_ = ConversionRequest::CONVERSION;
+  candidate_list_visible_ = true;
+  UpdateCandidateList();
+  InitializeSelectedCandidateIndices();
+  return true;
+}
+
 bool EngineConverter::GetReadingText(absl::string_view source_text,
                                      std::string* reading) {
   DCHECK(reading);

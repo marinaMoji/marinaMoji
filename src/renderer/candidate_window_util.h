@@ -30,6 +30,7 @@
 #ifndef MOZC_RENDERER_CANDIDATE_WINDOW_UTIL_H_
 #define MOZC_RENDERER_CANDIDATE_WINDOW_UTIL_H_
 
+#include "base/specimen_kind.h"
 #include "protocol/commands.pb.h"
 
 namespace mozc {
@@ -50,6 +51,24 @@ inline int FocusedDisplayRow(const commands::CandidateWindow& candidate_window) 
     }
   }
   return focused_index - candidate_window.candidate(0).index();
+}
+
+// Specimen plate kind for a candidate row. Attributes win; otherwise
+// |glyph_drawable| decides plain vs missingFont (amber).
+inline specimen_kind::Kind SpecimenKindForCandidate(
+    const commands::CandidateWindow::Candidate& candidate,
+    bool glyph_drawable) {
+  for (int i = 0; i < candidate.attributes_size(); ++i) {
+    const auto attr = candidate.attributes(i);
+    if (attr == commands::UNENCODED_SVG) {
+      return specimen_kind::Kind::kSvg;
+    }
+    if (attr == commands::MISSING_FONT) {
+      return specimen_kind::Kind::kMissingFont;
+    }
+  }
+  return glyph_drawable ? specimen_kind::Kind::kPlain
+                        : specimen_kind::Kind::kMissingFont;
 }
 
 }  // namespace renderer

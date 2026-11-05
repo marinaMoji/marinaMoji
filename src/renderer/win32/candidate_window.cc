@@ -35,19 +35,22 @@
 #include <wil/resource.h>
 #include <windows.h>
 
-#include <cstdint>
 #include <algorithm>
+#include <cstdint>
 #include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "base/coordinates.h"
+#include "base/specimen_kind.h"
 #include "base/win32/wide_char.h"
 #include "client/client_interface.h"
 #include "protocol/candidate_window.pb.h"
 #include "protocol/renderer_command.pb.h"
+#include "renderer/candidate_window_util.h"
 #include "renderer/renderer_style_handler.h"
 #include "renderer/table_layout.h"
 #include "renderer/win32/resource.h"
@@ -459,6 +462,7 @@ void CandidateWindow::DoPaint(HDC dc) {
   DrawBackground(dc);
   DrawShortcutBackground(dc);
   DrawSelectedRect(dc);
+  DrawSpecimenValuePlates(dc);
   DrawCells(dc);
   DrawInformationIcon(dc);
   DrawVScrollBar(dc);
@@ -697,6 +701,30 @@ Rect CandidateWindow::GetFirstRowInClientCord() const {
   return table_layout_->GetRowRect(0);
 }
 
+void CandidateWindow::DrawSpecimenValuePlates(HDC dc) {
+  DCHECK(table_layout_->IsLayoutFrozen()) << "Table layout is not frozen.";
+  for (size_t i = 0; i < candidate_window_->candidate_size(); ++i) {
+    const commands::CandidateWindow::Candidate& candidate =
+        candidate_window_->candidate(i);
+    const std::wstring value =
+        GetDisplayStringByColumn(candidate, COLUMN_CANDIDATE);
+    const bool drawable =
+        text_renderer_->FontCanDraw(TextRenderer::FONTSET_CANDIDATE, value);
+    const specimen_kind::Kind kind =
+        SpecimenKindForCandidate(candidate, drawable);
+    uint8_t r = 0, g = 0, b = 0;
+    if (!specimen_kind::PlateRgb(kind, &r, &g, &b)) {
+      continue;
+    }
+    const Rect row_rect = table_layout_->GetRowRect(i);
+    Rect cell_rect = table_layout_->GetCellRect(i, COLUMN_CANDIDATE);
+    cell_rect.origin.y = row_rect.origin.y;
+    cell_rect.size.height = row_rect.size.height;
+    const CRect crect = ToCRect(cell_rect);
+    FillSolidRect(dc, &crect, RGB(r, g, b));
+  }
+}
+
 void CandidateWindow::DrawCells(HDC dc) {
   COLUMN_TYPE kColumnTypes[] = {COLUMN_SHORTCUT, COLUMN_CANDIDATE,
                                 COLUMN_DESCRIPTION};
@@ -711,15 +739,34 @@ void CandidateWindow::DrawCells(HDC dc) {
     const TextRenderer::FONT_TYPE font_type = kFontTypes[type_index];
 
     std::vector<TextRenderingInfo> display_list;
+    std::vector<TextRenderingInfo> specimen_list;
     for (size_t i = 0; i < candidate_window_->candidate_size(); ++i) {
       const commands::CandidateWindow::Candidate& candidate =
           candidate_window_->candidate(i);
       const std::wstring display_string =
           GetDisplayStringByColumn(candidate, column_type);
       const Rect text_rect = table_layout_->GetCellRect(i, column_type);
+      if (column_type == COLUMN_CANDIDATE) {
+        const bool drawable = text_renderer_->FontCanDraw(
+            TextRenderer::FONTSET_CANDIDATE, display_string);
+        const specimen_kind::Kind kind =
+            SpecimenKindForCandidate(candidate, drawable);
+        uint8_t r = 0, g = 0, b = 0;
+        if (specimen_kind::PlateRgb(kind, &r, &g, &b)) {
+          specimen_list.push_back(
+              TextRenderingInfo(display_string, text_rect));
+          continue;
+        }
+      }
       display_list.push_back(TextRenderingInfo(display_string, text_rect));
     }
-    text_renderer_->RenderTextList(dc, display_list, font_type);
+    if (!display_list.empty()) {
+      text_renderer_->RenderTextList(dc, display_list, font_type);
+    }
+    if (!specimen_list.empty()) {
+      text_renderer_->RenderTextListWithColor(dc, specimen_list, font_type,
+                                              RGB(255, 255, 255));
+    }
   }
 }
 
