@@ -167,6 +167,11 @@ QPixmap LoadFooterLogo(const RendererStyle& style) {
   QImageReader reader(path);
   const QSize natural = reader.size();
   if (!natural.isValid() || natural.isEmpty()) {
+    // Usually the SVG image plugin (libqt6svg6 on Debian/Ubuntu) is missing,
+    // or the file is not installed. Say so instead of drawing no logo
+    // without a trace.
+    qWarning().noquote() << "marinaMoji: cannot load footer logo" << path
+                         << "-" << reader.errorString();
     return QPixmap();
   }
   const double font_scale = style.candidate_style().font_size() / 14.0;
@@ -179,6 +184,8 @@ QPixmap LoadFooterLogo(const RendererStyle& style) {
   reader.setScaledSize(logical * ratio);
   QImage image = reader.read();
   if (image.isNull()) {
+    qWarning().noquote() << "marinaMoji: cannot decode footer logo" << path
+                         << "-" << reader.errorString();
     return QPixmap();
   }
   QPixmap pixmap = QPixmap::fromImage(std::move(image));

@@ -118,11 +118,16 @@ SHLIB_DEPS="$(echo "$SHLIB_DEPS" | awk -F', ' '{
 #                       index.theme must exist.
 #   shlibs:Depends      the exact libraries the binaries link against, from
 #                       dpkg-shlibdeps (Qt, protobuf, ...), with t64 aliases.
+#   libqt6svg6          Qt's SVG image-format plugin. The candidate window
+#                       renderer reads the footer logo (an SVG) through
+#                       QImageReader, which loads the plugin at run time, so
+#                       dpkg-shlibdeps never sees it. Without it the logo is
+#                       silently missing.
 # Nothing is Recommends/Suggests: the GUI tools, renderer and Emacs helper
 # are part of this package, and no optional package improves it. The
 # postinst only calls `ibus write-cache` if ibus is present, so a broken
 # ibus never fails an install.
-DEPS="ibus (>= 1.5.0), hicolor-icon-theme${SHLIB_DEPS:+, $SHLIB_DEPS}"
+DEPS="ibus (>= 1.5.0), hicolor-icon-theme, libqt6svg6${SHLIB_DEPS:+, $SHLIB_DEPS}"
 
 INSTALLED_SIZE="$(du -sk "$ROOT" | cut -f1)"
 

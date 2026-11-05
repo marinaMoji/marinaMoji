@@ -79,6 +79,15 @@ changed and, where it isn't obvious, why.
   specimen-coloured chips instead of plain text, in the manner of Kotoeri’s
   variant palette.
 
+### Linux
+
+- The `.deb` now depends on `libqt6svg6`. The candidate window reads its
+  footer logo (an SVG) through Qt's SVG image plugin, which is loaded at run
+  time and so never appeared in the dependencies computed from linked
+  libraries; on a machine without it the logo was silently missing. The
+  renderer now logs a warning naming the file and Qt's error when the logo
+  cannot be loaded.
+
 ## v0.0.20 (2026-11-03)
 
 The first stable release since v0.0.19. Its release candidates (rc1 to rc9)
