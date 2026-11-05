@@ -1056,23 +1056,51 @@ TEST_F(KeyMapTest, Undo) {
   }
 }
 
-TEST_F(KeyMapTest, ConvertComponents) {
-  DirectInputState::Commands direct_command;
-  PrecompositionState::Commands precomposition_command;
-  commands::KeyEvent key_event;
+// Ctrl+1 / Ctrl+2 belong to the Kotoeri scheme only. In the other schemes
+// plain Ctrl+digit is left to applications; the same actions are reached
+// through the number-row bindings (Ctrl+Shift+7 / Ctrl+Shift+8).
+TEST_F(KeyMapTest, ConvertRelatedAndComponents) {
+  commands::KeyEvent ctrl_1;
+  commands::KeyEvent ctrl_2;
+  KeyParser::ParseKey("Ctrl 1", &ctrl_1);
+  KeyParser::ParseKey("Ctrl 2", &ctrl_2);
+
+  {
+    KeyMapManager manager(GetDefaultConfig(config::Config::KOTOERI));
+    DirectInputState::Commands direct_command;
+    PrecompositionState::Commands precomposition_command;
+    EXPECT_TRUE(manager.GetCommandDirect(ctrl_1, &direct_command));
+    EXPECT_EQ(direct_command, DirectInputState::CONVERT_RELATED);
+    EXPECT_TRUE(manager.GetCommandDirect(ctrl_2, &direct_command));
+    EXPECT_EQ(direct_command, DirectInputState::CONVERT_COMPONENTS);
+    EXPECT_TRUE(
+        manager.GetCommandPrecomposition(ctrl_1, &precomposition_command));
+    EXPECT_EQ(precomposition_command, PrecompositionState::CONVERT_RELATED);
+    EXPECT_TRUE(
+        manager.GetCommandPrecomposition(ctrl_2, &precomposition_command));
+    EXPECT_EQ(precomposition_command, PrecompositionState::CONVERT_COMPONENTS);
+  }
 
   for (const config::Config::SessionKeymap keymap :
-       {config::Config::ATOK, config::Config::MSIME, config::Config::KOTOERI,
+       {config::Config::ATOK, config::Config::MSIME,
         config::Config::CHROMEOS}) {
     KeyMapManager manager(GetDefaultConfig(keymap));
-    KeyParser::ParseKey("Ctrl 2", &key_event);
-    EXPECT_TRUE(manager.GetCommandDirect(key_event, &direct_command))
+    DirectInputState::Commands direct_command = DirectInputState::NONE;
+    PrecompositionState::Commands precomposition_command =
+        PrecompositionState::NONE;
+    // Some schemes answer true for any key (the catch-all ASCII rule), so
+    // assert on the command rather than on whether one was found.
+    manager.GetCommandDirect(ctrl_1, &direct_command);
+    EXPECT_NE(direct_command, DirectInputState::CONVERT_RELATED) << keymap;
+    direct_command = DirectInputState::NONE;
+    manager.GetCommandDirect(ctrl_2, &direct_command);
+    EXPECT_NE(direct_command, DirectInputState::CONVERT_COMPONENTS) << keymap;
+    manager.GetCommandPrecomposition(ctrl_1, &precomposition_command);
+    EXPECT_NE(precomposition_command, PrecompositionState::CONVERT_RELATED)
         << keymap;
-    EXPECT_EQ(direct_command, DirectInputState::CONVERT_COMPONENTS) << keymap;
-    EXPECT_TRUE(
-        manager.GetCommandPrecomposition(key_event, &precomposition_command))
-        << keymap;
-    EXPECT_EQ(precomposition_command, PrecompositionState::CONVERT_COMPONENTS)
+    precomposition_command = PrecompositionState::NONE;
+    manager.GetCommandPrecomposition(ctrl_2, &precomposition_command);
+    EXPECT_NE(precomposition_command, PrecompositionState::CONVERT_COMPONENTS)
         << keymap;
   }
 }

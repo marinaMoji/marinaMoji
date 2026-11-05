@@ -459,6 +459,14 @@
 <context>
     <name>QObject</name>
     <message>
+        <source>Related characters</source>
+        <translation>Related characters</translation>
+    </message>
+    <message>
+        <source>Characters from components</source>
+        <translation>Characters from components</translation>
+    </message>
+    <message>
         <source>Prefer GlyphWiki drawings</source>
         <translation>Prefer GlyphWiki drawings</translation>
     </message>

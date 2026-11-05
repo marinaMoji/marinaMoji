@@ -550,6 +550,14 @@
 <context>
     <name>QObject</name>
     <message>
+        <source>Related characters</source>
+        <translation>関連文字</translation>
+    </message>
+    <message>
+        <source>Characters from components</source>
+        <translation>部品から文字を探す</translation>
+    </message>
+    <message>
         <source>Prefer GlyphWiki drawings</source>
         <translation>GlyphWikiの字形を優先する</translation>
     </message>

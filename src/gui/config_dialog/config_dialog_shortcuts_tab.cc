@@ -37,6 +37,9 @@ constexpr int kColumnAction = 0;
 constexpr int kColumnModifier = 1;
 constexpr int kColumnSlot = 2;
 
+// One row per MarinaNumberRowAction (see GetDefaultMarinaNumberRowBindings).
+constexpr int kNumberRowCount = 9;
+
 MarinaNumberRowAction ActionForRow(int row) {
   static const MarinaNumberRowAction kActions[] = {
       MarinaNumberRowAction::MARINA_NR_ODORIJI_DEFAULT,
@@ -45,9 +48,11 @@ MarinaNumberRowAction ActionForRow(int row) {
       MarinaNumberRowAction::MARINA_NR_MANYOSHU_HIRAGANA,
       MarinaNumberRowAction::MARINA_NR_HIRAGANA_DIRECT,
       MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION,
+      MarinaNumberRowAction::MARINA_NR_RELATED_CHARACTERS,
+      MarinaNumberRowAction::MARINA_NR_COMPONENT_SEARCH,
       MarinaNumberRowAction::MARINA_NR_WORD_REGISTER,
   };
-  if (row < 0 || row >= 7) {
+  if (row < 0 || row >= kNumberRowCount) {
     return MarinaNumberRowAction::MARINA_NR_ODORIJI_DEFAULT;
   }
   return kActions[row];
@@ -114,6 +119,10 @@ QString ActionLabel(MarinaNumberRowAction action) {
       return QObject::tr("Japanese ↔ direct input");
     case MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION:
       return QObject::tr("Live conversion");
+    case MarinaNumberRowAction::MARINA_NR_RELATED_CHARACTERS:
+      return QObject::tr("Related characters");
+    case MarinaNumberRowAction::MARINA_NR_COMPONENT_SEARCH:
+      return QObject::tr("Characters from components");
     case MarinaNumberRowAction::MARINA_NR_WORD_REGISTER:
       return QObject::tr("Dictionary entry");
     default:
@@ -294,7 +303,7 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
                               : QObject::tr("How custom shortcuts work"));
                    });
 
-  number_row_table_ = new QTableWidget(7, 3, tab_);
+  number_row_table_ = new QTableWidget(kNumberRowCount, 3, tab_);
   number_row_table_->setHorizontalHeaderLabels(
       {QObject::tr("Action"), QObject::tr("Modifier"), QObject::tr("Key")});
   number_row_table_->verticalHeader()->setVisible(false);
@@ -303,7 +312,7 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
   number_row_table_->setShowGrid(false);
   number_row_table_->setAlternatingRowColors(false);
   number_row_table_->setFocusPolicy(Qt::StrongFocus);
-  for (int row = 0; row < 7; ++row) {
+  for (int row = 0; row < kNumberRowCount; ++row) {
     const MarinaNumberRowAction action = ActionForRow(row);
     auto* action_item = new QTableWidgetItem(ActionLabel(action));
     number_row_table_->setItem(row, kColumnAction, action_item);
@@ -344,7 +353,7 @@ ConfigDialogShortcutsTab::ConfigDialogShortcutsTab(QWidget* parent)
       2, QHeaderView::ResizeToContents);
   // Fixed height so a parent stretch can never collapse the table under the
   // Kaeriten section (which previously painted on top of the rows).
-  number_row_table_->setFixedHeight(row_h * 7 + 36);
+  number_row_table_->setFixedHeight(row_h * kNumberRowCount + 36);
   number_row_table_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
   layout->addWidget(number_row_table_);
 
@@ -370,7 +379,7 @@ void ConfigDialogShortcutsTab::LoadFromConfig(const config::Config& config) {
 
   const std::vector<MarinaNumberRowBinding> bindings =
       session::GetEffectiveMarinaNumberRowBindings(config);
-  for (int row = 0; row < 7; ++row) {
+  for (int row = 0; row < kNumberRowCount; ++row) {
     const MarinaNumberRowAction action = ActionForRow(row);
     MarinaNumberRowBinding binding;
     for (const auto& candidate : bindings) {
@@ -405,8 +414,8 @@ void ConfigDialogShortcutsTab::LoadFromConfig(const config::Config& config) {
 std::vector<MarinaNumberRowBinding>
 ConfigDialogShortcutsTab::CollectBindingsFromTable() const {
   std::vector<MarinaNumberRowBinding> bindings;
-  bindings.reserve(7);
-  for (int row = 0; row < 7; ++row) {
+  bindings.reserve(kNumberRowCount);
+  for (int row = 0; row < kNumberRowCount; ++row) {
     MarinaNumberRowBinding binding;
     binding.set_action(ActionForRow(row));
 
@@ -473,7 +482,7 @@ void ConfigDialogShortcutsTab::ConnectApplyButton(const QObject* receiver,
                                                   const char* slot) {
   QObject::connect(disable_left_shift_direct_toggle_, SIGNAL(clicked()),
                    receiver, slot);
-  for (int row = 0; row < 7; ++row) {
+  for (int row = 0; row < kNumberRowCount; ++row) {
     if (auto* modifier_combo = qobject_cast<QComboBox*>(
             number_row_table_->cellWidget(row, kColumnModifier))) {
       QObject::connect(modifier_combo, SIGNAL(currentIndexChanged(int)),

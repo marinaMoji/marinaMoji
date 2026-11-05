@@ -547,6 +547,14 @@ message SessionCommand {
     // (Kotoeri-style Ctrl+2). Client fills |text| from the selection (1–4
     // characters), same surrounding-text path as CONVERT_REVERSE.
     CONVERT_COMPONENTS = 47;
+
+    // marinaMoji: sent by the number-row shortcuts (default Ctrl+Shift+7 /
+    // Ctrl+Shift+8). The session answers with a CONVERT_RELATED /
+    // CONVERT_COMPONENTS callback, exactly as when the keymap's Ctrl+1 / Ctrl+2
+    // is pressed, so the client then reads the selection and sends that
+    // command back with |text| filled in.
+    REQUEST_CONVERT_RELATED = 48;
+    REQUEST_CONVERT_COMPONENTS = 49;
   }
   required CommandType type = 1;
 

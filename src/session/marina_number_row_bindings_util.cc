@@ -84,6 +84,42 @@ bool IsMarinaNumberRowCommandName(const std::string& command_name) {
          command_name == "ToggleLiveConversion";
 }
 
+void AddBindingIfMissing(MarinaNumberRowAction action,
+                         MarinaPhysicalSlot preferred_slot,
+                         std::vector<MarinaNumberRowBinding>* bindings) {
+  const bool present = std::any_of(
+      bindings->begin(), bindings->end(),
+      [action](const MarinaNumberRowBinding& b) { return b.action() == action; });
+  if (present) {
+    return;
+  }
+  const MarinaPhysicalSlot candidates[] = {
+      preferred_slot,
+      MarinaPhysicalSlot::MARINA_SLOT_6, MarinaPhysicalSlot::MARINA_SLOT_7,
+      MarinaPhysicalSlot::MARINA_SLOT_8, MarinaPhysicalSlot::MARINA_SLOT_9,
+      MarinaPhysicalSlot::MARINA_SLOT_0, MarinaPhysicalSlot::MARINA_SLOT_1,
+      MarinaPhysicalSlot::MARINA_SLOT_2, MarinaPhysicalSlot::MARINA_SLOT_3,
+      MarinaPhysicalSlot::MARINA_SLOT_4, MarinaPhysicalSlot::MARINA_SLOT_5,
+  };
+  for (const MarinaPhysicalSlot slot : candidates) {
+    if (IsMarinaNumberRowChordBlocked(
+            MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT, slot)) {
+      continue;
+    }
+    const bool taken = std::any_of(
+        bindings->begin(), bindings->end(),
+        [slot](const MarinaNumberRowBinding& b) {
+          return BindingMatchesPhysicalSlot(
+              b, MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT, slot);
+        });
+    if (!taken) {
+      bindings->push_back(MakeBinding(
+          action, MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT, slot));
+      return;
+    }
+  }
+}
+
 }  // namespace
 
 std::vector<MarinaNumberRowBinding> GetDefaultMarinaNumberRowBindings() {
@@ -115,6 +151,12 @@ std::vector<MarinaNumberRowBinding> GetDefaultMarinaNumberRowBindings() {
       MakeBinding(MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION,
                   MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
                   MarinaPhysicalSlot::MARINA_SLOT_6),
+      MakeBinding(MarinaNumberRowAction::MARINA_NR_RELATED_CHARACTERS,
+                  MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
+                  MarinaPhysicalSlot::MARINA_SLOT_7),
+      MakeBinding(MarinaNumberRowAction::MARINA_NR_COMPONENT_SEARCH,
+                  MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
+                  MarinaPhysicalSlot::MARINA_SLOT_8),
       MakeBinding(MarinaNumberRowAction::MARINA_NR_WORD_REGISTER,
                   MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT,
                   dictionary_slot),
@@ -185,40 +227,17 @@ std::vector<MarinaNumberRowBinding> GetEffectiveMarinaNumberRowBindings(
   }
 #endif  // _WIN32
 
-  // Profiles saved before live conversion existed store six bindings and would
-  // never pick up the new default. Add Ctrl+Shift+6 when that slot is free
-  // (or the first free number-row slot otherwise).
-  const bool has_live = std::any_of(
-      bindings.begin(), bindings.end(), [](const MarinaNumberRowBinding& b) {
-        return b.action() == MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION;
-      });
-  if (!has_live) {
-    static const MarinaPhysicalSlot kCandidates[] = {
-        MarinaPhysicalSlot::MARINA_SLOT_6, MarinaPhysicalSlot::MARINA_SLOT_7,
-        MarinaPhysicalSlot::MARINA_SLOT_8, MarinaPhysicalSlot::MARINA_SLOT_9,
-        MarinaPhysicalSlot::MARINA_SLOT_0, MarinaPhysicalSlot::MARINA_SLOT_1,
-        MarinaPhysicalSlot::MARINA_SLOT_2, MarinaPhysicalSlot::MARINA_SLOT_3,
-        MarinaPhysicalSlot::MARINA_SLOT_4, MarinaPhysicalSlot::MARINA_SLOT_5,
-    };
-    for (const MarinaPhysicalSlot slot : kCandidates) {
-      if (IsMarinaNumberRowChordBlocked(
-              MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT, slot)) {
-        continue;
-      }
-      const bool taken = std::any_of(
-          bindings.begin(), bindings.end(),
-          [slot](const MarinaNumberRowBinding& b) {
-            return BindingMatchesPhysicalSlot(
-                b, MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT, slot);
-          });
-      if (!taken) {
-        bindings.push_back(MakeBinding(
-            MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION,
-            MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT, slot));
-        break;
-      }
-    }
-  }
+  // Profiles saved before an action existed store fewer bindings and would
+  // never pick up its default. Add each missing action on its default slot
+  // when that chord is free (or on the first free number-row slot otherwise):
+  // live conversion on Ctrl+Shift+6, related characters on Ctrl+Shift+7 and
+  // component search on Ctrl+Shift+8.
+  AddBindingIfMissing(MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION,
+                      MarinaPhysicalSlot::MARINA_SLOT_6, &bindings);
+  AddBindingIfMissing(MarinaNumberRowAction::MARINA_NR_RELATED_CHARACTERS,
+                      MarinaPhysicalSlot::MARINA_SLOT_7, &bindings);
+  AddBindingIfMissing(MarinaNumberRowAction::MARINA_NR_COMPONENT_SEARCH,
+                      MarinaPhysicalSlot::MARINA_SLOT_8, &bindings);
   return bindings;
 }
 
@@ -239,9 +258,9 @@ bool IsMarinaNumberRowChordBlocked(MarinaShortcutModifier modifier,
 bool ValidateMarinaNumberRowBindings(
     const std::vector<MarinaNumberRowBinding>& bindings,
     std::string* error_message) {
-  if (bindings.size() != 7) {
+  if (bindings.size() != 9) {
     if (error_message != nullptr) {
-      *error_message = "Expected exactly seven shortcut bindings.";
+      *error_message = "Expected exactly nine shortcut bindings.";
     }
     return false;
   }
@@ -284,6 +303,8 @@ bool ValidateMarinaNumberRowBindings(
       MarinaNumberRowAction::MARINA_NR_MANYOSHU_HIRAGANA,
       MarinaNumberRowAction::MARINA_NR_HIRAGANA_DIRECT,
       MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION,
+      MarinaNumberRowAction::MARINA_NR_RELATED_CHARACTERS,
+      MarinaNumberRowAction::MARINA_NR_COMPONENT_SEARCH,
       MarinaNumberRowAction::MARINA_NR_WORD_REGISTER,
   };
   for (const MarinaNumberRowAction required : kRequired) {
@@ -363,6 +384,10 @@ const char* MarinaActionToKeymapCommandName(MarinaNumberRowAction action) {
       return "ToggleHiraganaDirect";
     case MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION:
       return "ToggleLiveConversion";
+    case MarinaNumberRowAction::MARINA_NR_RELATED_CHARACTERS:
+      return "ConvertRelated";
+    case MarinaNumberRowAction::MARINA_NR_COMPONENT_SEARCH:
+      return "ConvertComponents";
     case MarinaNumberRowAction::MARINA_NR_WORD_REGISTER:
       return "LaunchWordRegisterDialog";
     default:
@@ -579,6 +604,10 @@ const char* MarinaActionDisplayName(MarinaNumberRowAction action) {
       return "Japanese ↔ direct input";
     case MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION:
       return "Live conversion";
+    case MarinaNumberRowAction::MARINA_NR_RELATED_CHARACTERS:
+      return "Related characters";
+    case MarinaNumberRowAction::MARINA_NR_COMPONENT_SEARCH:
+      return "Characters from components";
     case MarinaNumberRowAction::MARINA_NR_WORD_REGISTER:
       return "Dictionary entry";
     default:

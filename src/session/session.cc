@@ -516,6 +516,12 @@ bool Session::SendCommand(commands::Command* command) {
     case commands::SessionCommand::CONVERT_COMPONENTS:
       result = ConvertComponents(command);
       break;
+    case commands::SessionCommand::REQUEST_CONVERT_RELATED:
+      result = RequestConvertRelated(command);
+      break;
+    case commands::SessionCommand::REQUEST_CONVERT_COMPONENTS:
+      result = RequestConvertComponents(command);
+      break;
     case commands::SessionCommand::UNDO:
       result = Undo(command);
       break;

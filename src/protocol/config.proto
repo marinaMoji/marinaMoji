@@ -46,6 +46,12 @@ enum MarinaNumberRowAction {
   // Apple-like live conversion (config.use_live_conversion). Default chord:
   // Ctrl+Shift+6.
   MARINA_NR_LIVE_CONVERSION = 7;
+  // Related characters (異体字) for the selection, like Kotoeri's Ctrl+1.
+  // Default chord: Ctrl+Shift+7.
+  MARINA_NR_RELATED_CHARACTERS = 8;
+  // Characters sharing the selected components, like Kotoeri's Ctrl+2.
+  // Default chord: Ctrl+Shift+8.
+  MARINA_NR_COMPONENT_SEARCH = 9;
 }
 
 enum MarinaShortcutModifier {

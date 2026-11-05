@@ -1352,6 +1352,16 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
       [self sendCommand:command];
       return YES;
 
+    case mozc::config::MARINA_NR_RELATED_CHARACTERS:
+      command.set_type(SessionCommand::REQUEST_CONVERT_RELATED);
+      [self sendCommand:command];
+      return YES;
+
+    case mozc::config::MARINA_NR_COMPONENT_SEARCH:
+      command.set_type(SessionCommand::REQUEST_CONVERT_COMPONENTS);
+      [self sendCommand:command];
+      return YES;
+
     case mozc::config::MARINA_NR_WORD_REGISTER:
       command.set_type(SessionCommand::LAUNCH_WORD_REGISTER_DIALOG);
       [self sendCommand:command];

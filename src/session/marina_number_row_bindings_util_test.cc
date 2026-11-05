@@ -60,7 +60,7 @@ constexpr const char* kDefaultDictionaryChord = "Ctrl Shift 0";
 
 TEST(MarinaNumberRowBindingsUtilTest, DefaultBindings) {
   const auto defaults = GetDefaultMarinaNumberRowBindings();
-  ASSERT_EQ(defaults.size(), 7u);
+  ASSERT_EQ(defaults.size(), 9u);
   EXPECT_EQ(defaults[0].action(),
             MarinaNumberRowAction::MARINA_NR_ODORIJI_DEFAULT);
   EXPECT_EQ(defaults[0].slot(), MarinaPhysicalSlot::MARINA_SLOT_1);
@@ -68,21 +68,31 @@ TEST(MarinaNumberRowBindingsUtilTest, DefaultBindings) {
             MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION);
   EXPECT_EQ(defaults[5].slot(), MarinaPhysicalSlot::MARINA_SLOT_6);
   EXPECT_EQ(defaults[6].action(),
-            MarinaNumberRowAction::MARINA_NR_WORD_REGISTER);
+            MarinaNumberRowAction::MARINA_NR_RELATED_CHARACTERS);
   EXPECT_EQ(defaults[6].modifier(),
             MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT);
-  EXPECT_EQ(defaults[6].slot(), kDefaultDictionarySlot);
+  EXPECT_EQ(defaults[6].slot(), MarinaPhysicalSlot::MARINA_SLOT_7);
+  EXPECT_EQ(defaults[7].action(),
+            MarinaNumberRowAction::MARINA_NR_COMPONENT_SEARCH);
+  EXPECT_EQ(defaults[7].modifier(),
+            MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT);
+  EXPECT_EQ(defaults[7].slot(), MarinaPhysicalSlot::MARINA_SLOT_8);
+  EXPECT_EQ(defaults[8].action(),
+            MarinaNumberRowAction::MARINA_NR_WORD_REGISTER);
+  EXPECT_EQ(defaults[8].modifier(),
+            MarinaShortcutModifier::MARINA_MOD_CTRL_SHIFT);
+  EXPECT_EQ(defaults[8].slot(), kDefaultDictionarySlot);
 }
 
 TEST(MarinaNumberRowBindingsUtilTest, EffectiveBindingsUsesDefaults) {
   config::Config config;
   const auto bindings = GetEffectiveMarinaNumberRowBindings(config);
-  EXPECT_EQ(bindings.size(), 7u);
+  EXPECT_EQ(bindings.size(), 9u);
 }
 
 // A profile saved through the Settings dialog while the shipped default for
 // the dictionary action was still Ctrl+0 (2026-06-11 .. 2026-07-24), with
-// other rows customised so that all seven bindings are stored.
+// other rows customised so that all of the bindings are stored.
 config::Config ConfigWithStaleCtrl0DictionaryBinding() {
   config::Config config;
   for (MarinaNumberRowBinding binding : GetDefaultMarinaNumberRowBindings()) {
@@ -91,7 +101,7 @@ config::Config ConfigWithStaleCtrl0DictionaryBinding() {
     } else if (binding.action() ==
                MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION) {
       // Keep Ctrl+Shift+6 free for the palette customisation under test.
-      binding.set_slot(MarinaPhysicalSlot::MARINA_SLOT_7);
+      binding.set_slot(MarinaPhysicalSlot::MARINA_SLOT_GRAVE);
     } else if (binding.action() ==
                MarinaNumberRowAction::MARINA_NR_WORD_REGISTER) {
       binding.set_modifier(MarinaShortcutModifier::MARINA_MOD_CTRL);
@@ -295,15 +305,69 @@ TEST(MarinaNumberRowBindingsUtilTest, EffectiveAddsLiveWhenMissing) {
     }
     *config.add_marina_number_row_bindings() = binding;
   }
-  ASSERT_EQ(config.marina_number_row_bindings_size(), 6);
+  ASSERT_EQ(config.marina_number_row_bindings_size(), 8);
 
   const auto bindings = GetEffectiveMarinaNumberRowBindings(config);
-  ASSERT_EQ(bindings.size(), 7u);
+  ASSERT_EQ(bindings.size(), 9u);
   KeyEvent live_key;
   ASSERT_TRUE(KeyParser::ParseKey("Ctrl Shift 6", &live_key));
   const auto live_action = FindMarinaActionForKeyEvent(config, live_key);
   ASSERT_TRUE(live_action.has_value());
   EXPECT_EQ(*live_action, MarinaNumberRowAction::MARINA_NR_LIVE_CONVERSION);
+}
+
+TEST(MarinaNumberRowBindingsUtilTest, EffectiveAddsRelatedAndComponentsWhenMissing) {
+  // Profiles saved before these two actions existed store seven bindings.
+  config::Config config;
+  for (MarinaNumberRowBinding binding : GetDefaultMarinaNumberRowBindings()) {
+    if (binding.action() ==
+            MarinaNumberRowAction::MARINA_NR_RELATED_CHARACTERS ||
+        binding.action() == MarinaNumberRowAction::MARINA_NR_COMPONENT_SEARCH) {
+      continue;
+    }
+    *config.add_marina_number_row_bindings() = binding;
+  }
+  ASSERT_EQ(config.marina_number_row_bindings_size(), 7);
+
+  const auto bindings = GetEffectiveMarinaNumberRowBindings(config);
+  ASSERT_EQ(bindings.size(), 9u);
+  std::string error;
+  EXPECT_TRUE(ValidateMarinaNumberRowBindings(bindings, &error)) << error;
+
+  KeyEvent related_key;
+  ASSERT_TRUE(KeyParser::ParseKey("Ctrl Shift 7", &related_key));
+  EXPECT_EQ(FindMarinaActionForKeyEvent(config, related_key),
+            MarinaNumberRowAction::MARINA_NR_RELATED_CHARACTERS);
+  KeyEvent components_key;
+  ASSERT_TRUE(KeyParser::ParseKey("Ctrl Shift 8", &components_key));
+  EXPECT_EQ(FindMarinaActionForKeyEvent(config, components_key),
+            MarinaNumberRowAction::MARINA_NR_COMPONENT_SEARCH);
+}
+
+TEST(MarinaNumberRowBindingsUtilTest, MissingActionsAvoidChordsTheUserUses) {
+  // The user already put the palette on Ctrl+Shift+7: related characters must
+  // not steal it, and takes the next free slot instead.
+  config::Config config;
+  for (MarinaNumberRowBinding binding : GetDefaultMarinaNumberRowBindings()) {
+    if (binding.action() ==
+            MarinaNumberRowAction::MARINA_NR_RELATED_CHARACTERS ||
+        binding.action() == MarinaNumberRowAction::MARINA_NR_COMPONENT_SEARCH) {
+      continue;
+    }
+    if (binding.action() == MarinaNumberRowAction::MARINA_NR_ODORIJI_PALETTE) {
+      binding.set_slot(MarinaPhysicalSlot::MARINA_SLOT_7);
+    }
+    *config.add_marina_number_row_bindings() = binding;
+  }
+
+  KeyEvent ctrl_shift_7;
+  ASSERT_TRUE(KeyParser::ParseKey("Ctrl Shift 7", &ctrl_shift_7));
+  EXPECT_EQ(FindMarinaActionForKeyEvent(config, ctrl_shift_7),
+            MarinaNumberRowAction::MARINA_NR_ODORIJI_PALETTE);
+  const auto bindings = GetEffectiveMarinaNumberRowBindings(config);
+  ASSERT_EQ(bindings.size(), 9u);
+  std::string error;
+  EXPECT_TRUE(ValidateMarinaNumberRowBindings(bindings, &error)) << error;
 }
 
 TEST(MarinaNumberRowBindingsUtilTest, ShortcutEntriesListDictionaryEntryOnce) {

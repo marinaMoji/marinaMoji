@@ -194,6 +194,14 @@ bool DispatchMarinaNumberRowShortcut(
       command.set_type(SessionCommand::TOGGLE_LIVE_CONVERSION);
       return SendSessionCommand(client, command, output);
 
+    case MarinaNumberRowAction::MARINA_NR_RELATED_CHARACTERS:
+      command.set_type(SessionCommand::REQUEST_CONVERT_RELATED);
+      return SendSessionCommand(client, command, output);
+
+    case MarinaNumberRowAction::MARINA_NR_COMPONENT_SEARCH:
+      command.set_type(SessionCommand::REQUEST_CONVERT_COMPONENTS);
+      return SendSessionCommand(client, command, output);
+
     case MarinaNumberRowAction::MARINA_NR_WORD_REGISTER:
       command.set_type(SessionCommand::LAUNCH_WORD_REGISTER_DIALOG);
       return SendSessionCommand(client, command, output);

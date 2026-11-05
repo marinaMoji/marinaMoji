@@ -32,6 +32,21 @@ changed and, where it isn't obvious, why.
 
 ### Related characters (Ctrl+1) and component search (Ctrl+2)
 
+- **Shortcuts on every system.** Plain Ctrl+1 and Ctrl+2 are bound only in the
+  Kotoeri keymap scheme (what macOS users expect); the ATOK, MS-IME and
+  ChromeOS schemes no longer bind them, because applications use Ctrl+digit
+  (browser tabs, Word line spacing). Both actions are instead number-row
+  shortcuts, like the other Ctrl+Shift+1…6 ones: **Ctrl+Shift+7** for related
+  characters and **Ctrl+Shift+8** for component search, on all platforms,
+  matched by physical key so French (AZERTY) keyboards work. They appear as
+  two new rows in Preferences → Shortcuts and can be rebound there. Profiles
+  saved before this get the two rows added on those chords, or on the next
+  free number-row slot if the user already uses them. New session commands
+  `REQUEST_CONVERT_RELATED` / `REQUEST_CONVERT_COMPONENTS` let the platform
+  dispatchers start the same selection-reading flow as the keymap. The
+  Windows and ibus dispatcher changes are not built or tested on this
+  machine.
+
 - Selecting one committed character and pressing **Ctrl+1** opens the
   candidate window with related forms (異体字 / 旧字体 / 新字体) from
   `char_info.tsv`, like Kotoeri’s 関連文字に変換. Enter confirms; Esc
