@@ -188,6 +188,23 @@ void ConfigDialogSyncTab::OnShowKey() {
   box.exec();
 }
 
+void ConfigDialogSyncTab::ConnectChanged(const QObject* receiver,
+                                         const char* slot) {
+  // The dialog's blanket autosave hookup runs before this tab exists, so none
+  // of these controls were ever connected to it. Load-time changes are
+  // covered by the dialog suppressing autosave during Reload().
+  QObject::connect(enabled_, SIGNAL(toggled(bool)), receiver, slot);
+  QObject::connect(file_path_, SIGNAL(textChanged(QString)), receiver, slot);
+  QObject::connect(sync_dictionary_, SIGNAL(toggled(bool)), receiver, slot);
+  QObject::connect(sync_history_, SIGNAL(toggled(bool)), receiver, slot);
+  QObject::connect(direction_, SIGNAL(currentIndexChanged(int)), receiver,
+                   slot);
+  QObject::connect(auto_sync_, SIGNAL(currentIndexChanged(int)), receiver,
+                   slot);
+  QObject::connect(interval_, SIGNAL(valueChanged(int)), receiver, slot);
+  QObject::connect(cooldown_, SIGNAL(valueChanged(int)), receiver, slot);
+}
+
 bool ConfigDialogSyncTab::SaveToServer() {
   config_.set_enabled(enabled_->isChecked());
   config_.set_sync_file_path(file_path_->text().toStdString());

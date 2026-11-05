@@ -27,6 +27,9 @@ class ConfigDialogSyncTab {
   QWidget* page() const { return tab_; }
   void LoadFromServer();
   bool SaveToServer();
+  // Calls |slot| on |receiver| whenever a control in this tab changes, so the
+  // Preferences autosave notices edits made here.
+  void ConnectChanged(const QObject* receiver, const char* slot);
 
  private:
   void UpdateUiState();

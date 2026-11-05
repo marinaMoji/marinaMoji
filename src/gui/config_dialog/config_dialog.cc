@@ -598,6 +598,7 @@ ConfigDialog::ConfigDialog()
   sync_tab_ = std::make_unique<ConfigDialogSyncTab>(
       static_cast<client::Client*>(client_.get()), this);
   sync_tab_->AddToTabWidget(configDialogTabWidget);
+  sync_tab_->ConnectChanged(this, SLOT(EnableApplyButton()));
 
 #if defined(MARINAMOJI) && (defined(_WIN32) || defined(__APPLE__))
   {
