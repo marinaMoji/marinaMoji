@@ -1,0 +1,72 @@
+name: Auto-rerun stalled jobs
+
+# GitHub-hosted macOS (and sometimes Windows ARM) runners occasionally never
+# get assigned: the job sits queued, then GitHub cancels it after 15 minutes.
+# The run then ends as "failure" with a cancelled job that never started.
+# This workflow re-runs the failed jobs of such a run, a few times, so a
+# release does not need someone to click "Re-run failed jobs".
+#
+# It deliberately does NOT retry:
+#   - a run that was cancelled by hand (its conclusion is "cancelled"), or
+#   - a run whose jobs all started and then failed (a real build or test
+#     failure -- retrying would only burn minutes).
+# A job counts as "stalled" when it was cancelled, or never got a runner.
+#
+# Note: workflow_run workflows always run from the default branch, so this
+# file only takes effect once it is on master.
+
+on:
+  workflow_run:
+    workflows:
+      - Release
+      - CI for macOS
+      - CI for Windows
+      - CI for Linux
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+env:
+  # Total attempts allowed, including the first one.
+  MAX_ATTEMPTS: 6
+
+jobs:
+  rerun:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Re-run failed jobs if a job stalled
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_NAME: ${{ github.event.workflow_run.name }}
+          ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+
+          if [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
+            echo "$RUN_NAME (run $RUN_ID) is at attempt $ATTEMPT of $MAX_ATTEMPTS; not retrying."
+            exit 0
+          fi
+
+          # Jobs of the attempt that just finished. A stalled job was
+          # cancelled, or has no runner assigned.
+          stalled=$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID/attempts/$ATTEMPT/jobs" \
+            --paginate \
+            --jq '.jobs[] | select(.conclusion == "cancelled" or .runner_id == null) | select(.conclusion != "skipped") | .name')
+
+          if [ -z "$stalled" ]; then
+            echo "No stalled jobs in $RUN_NAME (run $RUN_ID): a real failure. Not retrying."
+            exit 0
+          fi
+
+          echo "Stalled jobs in $RUN_NAME (run $RUN_ID), attempt $ATTEMPT:"
+          echo "$stalled"
+          gh run rerun "$RUN_ID" --failed
+          echo "Re-ran failed jobs; this will be attempt $((ATTEMPT + 1)) of $MAX_ATTEMPTS."
