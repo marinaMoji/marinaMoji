@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-06T14:12:27+00:00",
+  "generated": "2026-11-06T15:58:02+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -68,7 +68,7 @@
       "state": "OPEN",
       "status": "in-progress",
       "milestone": "Laboratory beta",
-      "assignee": null,
+      "assignee": "mpandolfino",
       "progress": null,
       "category": "distribution",
       "type": "capability",
@@ -634,7 +634,7 @@
       "state": "OPEN",
       "status": "planned",
       "milestone": "Laboratory beta",
-      "assignee": null,
+      "assignee": "mpandolfino",
       "progress": null,
       "category": null,
       "type": "capability",
