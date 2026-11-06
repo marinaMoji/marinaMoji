@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-06T13:11:01+00:00",
+  "generated": "2026-11-06T13:12:03+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -409,7 +409,10 @@
       "status": "blocked",
       "milestone": "Full public release",
       "assignee": null,
-      "progress": null,
+      "progress": {
+        "done": 2,
+        "total": 2
+      },
       "category": "distribution",
       "type": "capability",
       "layer": 0,
@@ -529,7 +532,10 @@
       "status": "blocked",
       "milestone": "Nebulous future",
       "assignee": null,
-      "progress": null,
+      "progress": {
+        "done": 0,
+        "total": 1
+      },
       "category": "platform",
       "type": "technical",
       "layer": 0,
@@ -713,8 +719,8 @@
       "milestone": "Linux Integration & Distribution",
       "assignee": null,
       "progress": {
-        "done": 1,
-        "total": 4
+        "done": 3,
+        "total": 8
       },
       "category": null,
       "type": "capability",
@@ -732,10 +738,13 @@
       "ref": "marinaMoji/marinaMoji#162",
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/162",
       "state": "OPEN",
-      "status": "planned",
+      "status": "blocked",
       "milestone": "Linux Integration & Distribution",
       "assignee": null,
-      "progress": null,
+      "progress": {
+        "done": 0,
+        "total": 4
+      },
       "category": null,
       "type": "capability",
       "layer": null,
@@ -745,7 +754,7 @@
       "description_en": null,
       "description_fr": null,
       "description_ja": null,
-      "depends_on": null
+      "depends_on": "issue-139"
     },
     {
       "id": "plugin-12",
