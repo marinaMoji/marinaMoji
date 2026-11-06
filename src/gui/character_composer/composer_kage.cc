@@ -293,12 +293,34 @@ InkMask InkMaskOf(const kage::Buhin &glyphs, const Box &box,
   return mask;
 }
 
-// Fraction of the smaller component's ink that the other's strokes cover.
-double InkCollision(const InkMask &a, const InkMask &b) {
+// |mask| grown by one cell (4 units) in every direction, so that strokes that
+// merely touch count as colliding: dense neighbours need a little air.
+InkMask Dilated(const InkMask &mask) {
+  InkMask out = mask;
+  for (int row = 0; row < kInkGrid; ++row) {
+    for (int col = 0; col < kInkGrid; ++col) {
+      if (!mask[row * kInkGrid + col]) continue;
+      for (int dr = -1; dr <= 1; ++dr) {
+        for (int dc = -1; dc <= 1; ++dc) {
+          const int r = row + dr, c = col + dc;
+          if (r >= 0 && r < kInkGrid && c >= 0 && c < kInkGrid) {
+            out[r * kInkGrid + c] = true;
+          }
+        }
+      }
+    }
+  }
+  return out;
+}
+
+// Fraction of the smaller component's ink that the other's (slightly grown)
+// strokes cover.
+double InkCollision(const InkMask &a, const InkMask &b_raw) {
+  const InkMask b = Dilated(b_raw);
   long both = 0, na = 0, nb = 0;
   for (size_t i = 0; i < a.size(); ++i) {
     na += a[i];
-    nb += b[i];
+    nb += b_raw[i];
     both += a[i] && b[i];
   }
   const long smaller = std::min(na, nb);
