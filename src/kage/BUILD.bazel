@@ -32,8 +32,8 @@ mozc_cc_library(
     ],
     visibility = [
         "//gui/character_composer:__pkg__",
-        # Qt candidate window draws missing-font rows from bundled KAGE data.
-        "//renderer/qt:__pkg__",
+        # Candidate windows draw GlyphWiki outlines from bundled KAGE data.
+        "//renderer:__subpackages__",
     ],
     deps = [
         "//base:file_util",

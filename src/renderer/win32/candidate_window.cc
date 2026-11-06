@@ -35,21 +35,29 @@
 #include <wil/resource.h>
 #include <windows.h>
 
+#include <gdiplus.h>  // NOLINT
+
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "absl/strings/string_view.h"
 #include "base/coordinates.h"
 #include "base/specimen_kind.h"
 #include "base/win32/wide_char.h"
 #include "client/client_interface.h"
+#include "composer_ids/ids_preview.h"
+#include "gui/character_composer/composer_kage.h"
 #include "protocol/candidate_window.pb.h"
 #include "protocol/renderer_command.pb.h"
+#include "renderer/candidate_kage.h"
 #include "renderer/candidate_window_util.h"
 #include "renderer/renderer_style_handler.h"
 #include "renderer/table_layout.h"
@@ -239,6 +247,111 @@ void FillSolidRect(HDC dc, const RECT* rect, COLORREF color) {
   if (old_color != CLR_INVALID) {
     ::ExtTextOut(dc, 0, 0, ETO_OPAQUE, rect, nullptr, 0, nullptr);
     ::SetBkColor(dc, old_color);
+  }
+}
+
+void EnsureGdiplus() {
+  static std::once_flag once;
+  std::call_once(once, [] {
+    static ULONG_PTR token = 0;
+    Gdiplus::GdiplusStartupInput input;
+    Gdiplus::GdiplusStartup(&token, &input, nullptr);
+  });
+}
+
+// True when the value column paints a GlyphWiki/KAGE outline or IDS preview
+// instead of the candidate text (Ctrl+2 SVG row, or amber tofu with strokes).
+bool CandidateUsesDrawnValue(
+    const commands::CandidateWindow::Candidate& candidate,
+    bool glyph_drawable) {
+  const specimen_kind::Kind kind =
+      SpecimenKindForCandidate(candidate, glyph_drawable);
+  if (kind == specimen_kind::Kind::kSvg) {
+    return HasKageOutlineForKey(candidate.value()) ||
+           composer_ids::ParseIdsPreview(candidate.value()).has_value();
+  }
+  if (kind == specimen_kind::Kind::kMissingFont) {
+    return HasKageOutlineForKey(candidate.value());
+  }
+  return false;
+}
+
+bool PaintKageOutlines(HDC dc, const Rect& cell, absl::string_view key,
+                       COLORREF ink) {
+  const auto* outlines = CachedKageOutlines(key);
+  if (outlines == nullptr || !outlines->has_value() || (*outlines)->empty()) {
+    return false;
+  }
+  EnsureGdiplus();
+  constexpr double kViewBox = 1000.0;
+  Gdiplus::Graphics graphics(dc);
+  graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+  // Contours are defined for the non-zero fill rule (composer_kage.h).
+  Gdiplus::GraphicsPath path(Gdiplus::FillModeWinding);
+  for (const gui::Contour& contour : **outlines) {
+    if (contour.size() < 2) {
+      continue;
+    }
+    path.StartFigure();
+    for (size_t i = 1; i < contour.size(); ++i) {
+      path.AddLine(static_cast<Gdiplus::REAL>(contour[i - 1].first),
+                   static_cast<Gdiplus::REAL>(contour[i - 1].second),
+                   static_cast<Gdiplus::REAL>(contour[i].first),
+                   static_cast<Gdiplus::REAL>(contour[i].second));
+    }
+    path.CloseFigure();
+  }
+  const double side =
+      std::min(static_cast<double>(cell.size.width),
+               static_cast<double>(cell.size.height));
+  if (side <= 0) {
+    return false;
+  }
+  Gdiplus::Matrix transform;
+  transform.Translate(
+      static_cast<Gdiplus::REAL>(cell.origin.x),
+      static_cast<Gdiplus::REAL>(cell.origin.y + (cell.size.height - side) / 2.0));
+  transform.Scale(static_cast<Gdiplus::REAL>(side / kViewBox),
+                  static_cast<Gdiplus::REAL>(side / kViewBox));
+  graphics.SetTransform(&transform);
+  Gdiplus::SolidBrush brush(Gdiplus::Color(255, GetRValue(ink), GetGValue(ink),
+                                           GetBValue(ink)));
+  graphics.FillPath(&brush, &path);
+  return true;
+}
+
+void PaintIdsPreview(HDC dc, const Rect& square,
+                     const composer_ids::IdsPreview& preview, COLORREF ink) {
+  EnsureGdiplus();
+  Gdiplus::Graphics graphics(dc);
+  graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
+  graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+  const double side = square.size.width;
+  Gdiplus::FontFamily family(L"Yu Mincho");
+  Gdiplus::Font font(&family, static_cast<Gdiplus::REAL>(side * 0.88),
+                     Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
+  Gdiplus::SolidBrush brush(Gdiplus::Color(255, GetRValue(ink), GetGValue(ink),
+                                           GetBValue(ink)));
+  for (size_t i = 0; i < preview.parts.size(); ++i) {
+    const composer_ids::PreviewCell& cell = preview.cells[i];
+    const std::wstring glyph = mozc::win32::Utf8ToWide(preview.parts[i]);
+    if (glyph.empty()) {
+      continue;
+    }
+    Gdiplus::GraphicsState state = graphics.Save();
+    graphics.TranslateTransform(
+        static_cast<Gdiplus::REAL>(square.origin.x + cell.x * side),
+        static_cast<Gdiplus::REAL>(square.origin.y + cell.y * side));
+    graphics.ScaleTransform(static_cast<Gdiplus::REAL>(cell.w),
+                            static_cast<Gdiplus::REAL>(cell.h));
+    Gdiplus::RectF layout(0, 0, static_cast<Gdiplus::REAL>(side),
+                          static_cast<Gdiplus::REAL>(side));
+    Gdiplus::StringFormat format;
+    format.SetAlignment(Gdiplus::StringAlignmentCenter);
+    format.SetLineAlignment(Gdiplus::StringAlignmentCenter);
+    graphics.DrawString(glyph.c_str(), static_cast<INT>(glyph.size()), &font,
+                        layout, &format, &brush);
+    graphics.Restore(state);
   }
 }
 
@@ -463,6 +576,7 @@ void CandidateWindow::DoPaint(HDC dc) {
   DrawShortcutBackground(dc);
   DrawSelectedRect(dc);
   DrawSpecimenValuePlates(dc);
+  DrawSpecimenDrawings(dc);
   DrawCells(dc);
   DrawInformationIcon(dc);
   DrawVScrollBar(dc);
@@ -617,8 +731,14 @@ void CandidateWindow::UpdateLayout(
         GetDisplayStringByColumn(candidate, COLUMN_SHORTCUT);
     const std::wstring description =
         GetDisplayStringByColumn(candidate, COLUMN_DESCRIPTION);
-    const std::wstring candidate_string =
+    std::wstring candidate_string =
         GetDisplayStringByColumn(candidate, COLUMN_CANDIDATE);
+    const bool drawable = text_renderer_->FontCanDraw(
+        TextRenderer::FONTSET_CANDIDATE, candidate_string);
+    if (CandidateUsesDrawnValue(candidate, drawable)) {
+      // KAGE / IDS preview is drawn instead of the string: one character wide.
+      candidate_string = L"\u3000";
+    }
 
     if (!shortcut.empty()) {
       std::wstring text;
@@ -725,6 +845,39 @@ void CandidateWindow::DrawSpecimenValuePlates(HDC dc) {
   }
 }
 
+void CandidateWindow::DrawSpecimenDrawings(HDC dc) {
+  DCHECK(table_layout_->IsLayoutFrozen()) << "Table layout is not frozen.";
+  constexpr COLORREF kPlateInk = RGB(255, 255, 255);
+  for (size_t i = 0; i < candidate_window_->candidate_size(); ++i) {
+    const commands::CandidateWindow::Candidate& candidate =
+        candidate_window_->candidate(i);
+    const std::wstring value =
+        GetDisplayStringByColumn(candidate, COLUMN_CANDIDATE);
+    const bool drawable =
+        text_renderer_->FontCanDraw(TextRenderer::FONTSET_CANDIDATE, value);
+    if (!CandidateUsesDrawnValue(candidate, drawable)) {
+      continue;
+    }
+    const specimen_kind::Kind kind =
+        SpecimenKindForCandidate(candidate, drawable);
+    const Rect row_rect = table_layout_->GetRowRect(i);
+    const Rect cell_rect = table_layout_->GetCellRect(i, COLUMN_CANDIDATE);
+    const int side = row_rect.size.height - 2;
+    Rect square(cell_rect.origin.x + style_.candidate_style().left_padding(),
+                row_rect.origin.y + 1, side, side);
+    if (PaintKageOutlines(dc, square, candidate.value(), kPlateInk)) {
+      continue;
+    }
+    if (kind == specimen_kind::Kind::kSvg) {
+      const auto preview =
+          composer_ids::ParseIdsPreview(candidate.value());
+      if (preview.has_value()) {
+        PaintIdsPreview(dc, square, *preview, kPlateInk);
+      }
+    }
+  }
+}
+
 void CandidateWindow::DrawCells(HDC dc) {
   COLUMN_TYPE kColumnTypes[] = {COLUMN_SHORTCUT, COLUMN_CANDIDATE,
                                 COLUMN_DESCRIPTION};
@@ -749,6 +902,10 @@ void CandidateWindow::DrawCells(HDC dc) {
       if (column_type == COLUMN_CANDIDATE) {
         const bool drawable = text_renderer_->FontCanDraw(
             TextRenderer::FONTSET_CANDIDATE, display_string);
+        if (CandidateUsesDrawnValue(candidate, drawable)) {
+          // Outline / IDS preview already painted in DrawSpecimenDrawings.
+          continue;
+        }
         const specimen_kind::Kind kind =
             SpecimenKindForCandidate(candidate, drawable);
         uint8_t r = 0, g = 0, b = 0;

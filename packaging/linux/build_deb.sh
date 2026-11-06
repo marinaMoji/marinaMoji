@@ -151,7 +151,7 @@ Depends: $DEPS
 Recommends: fonts-jigmo | fonts-babelstone-han | fonts-hanazono
 Conflicts: emacs-mozc, emacs-mozc-bin
 Replaces: emacs-mozc, emacs-mozc-bin
-Homepage: https://github.com/marinaMoji/marinaMoji
+Homepage: https://marinamoji.crcao.fr
 Description: Japanese input method for classical and literary Japanese
  marinaMoji is a fork of Mozc focused on classical, literary, and
  pre-reform Japanese. It provides an IBus engine that installs

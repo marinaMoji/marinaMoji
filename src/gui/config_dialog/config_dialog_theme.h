@@ -570,6 +570,11 @@ inline QString Stylesheet(bool dark) {
       "  selection-color: @@SELECTION_TEXT@@; }"
       "QLineEdit:hover { border-color: @@ACCENT@@; }"
       "QLineEdit:focus { border: 1px solid @@FOCUS@@; }"
+      // In-cell editors live in fixed-height rows: no padding or radius, or
+      // the text area collapses and the editor hides the cell.
+      "QAbstractItemView QLineEdit {"
+      "  padding: 0 6px; margin: 0; border-radius: 0; min-height: 0;"
+      "  border: 1px solid @@FOCUS@@; }"
 
       "QHeaderView::section {"
       "  color: @@HEADING@@; background: @@WINDOW@@;"

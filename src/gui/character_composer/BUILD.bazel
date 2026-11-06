@@ -22,8 +22,8 @@ load(
 
 package(default_visibility = [
     "//gui:__subpackages__",
-    # Linux/Qt candidate window uses NamedGlyphOutlines for missing-font rows.
-    "//renderer/qt:__pkg__",
+    # Candidate windows (Qt / macOS / Windows) draw GlyphWiki outlines.
+    "//renderer:__subpackages__",
 ])
 
 mozc_qt_moc(

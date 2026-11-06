@@ -35,6 +35,7 @@
     </p>
   </description>
 
+  <icon type="stock">io.github.marinamoji.marinaMoji</icon>
   <launchable type="desktop-id">io.github.marinamoji.marinaMoji.desktop</launchable>
 
   <provides>

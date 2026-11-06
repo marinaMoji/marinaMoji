@@ -199,6 +199,45 @@ mozc_cc_library(
     ],
 )
 
+# GlyphWiki/KAGE outline resolution for candidate windows. GPL-3.0 via //kage.
+mozc_cc_library(
+    name = "candidate_kage",
+    srcs = ["candidate_kage.cc"],
+    hdrs = ["candidate_kage.h"],
+    visibility = ["//renderer:__subpackages__"],
+    deps = [
+        "//base:file_util",
+        "//base:system_util",
+        "//base:util",
+        "//composer_ids:ids_table",
+        "//composer_ids:ids_tree",
+        "//gui/character_composer:composer_kage",
+        "//gui/character_composer:glyphwiki_client",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+mozc_cc_test(
+    name = "candidate_kage_test",
+    size = "small",
+    srcs = ["candidate_kage_test.cc"],
+    data = [
+        "//data/kage:kage_data",
+        "//kage:testdata/kage_test_data.tsv",
+    ],
+    deps = [
+        ":candidate_kage",
+        "//base:file_util",
+        "//gui/character_composer:composer_kage",
+        "//kage",
+        "//testing:gunit_main",
+        "//testing:mozctest",
+    ],
+)
+
 mozc_cc_library(
     name = "renderer_interface",
     hdrs = ["renderer_interface.h"],
@@ -412,6 +451,7 @@ mozc_objc_library(
         "Foundation",
     ],
     deps = [
+        ":candidate_kage",
         ":candidate_window_util",
         ":renderer_interface",
         ":renderer_server",
@@ -425,6 +465,7 @@ mozc_objc_library(
         "//base/mac:mac_util",
         "//client:client_interface",
         "//composer_ids:ids_preview",
+        "//gui/character_composer:composer_kage",
         "//mac:common",
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",

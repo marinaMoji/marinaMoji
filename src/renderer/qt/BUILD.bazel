@@ -143,23 +143,19 @@ mozc_cc_qt_library(
         "//base:util",
         "//client:client_interface",
         "//composer_ids:ids_preview",
-        "//composer_ids:ids_table",
-        "//composer_ids:ids_tree",
-        # GPL-3.0 via //kage: draws GlyphWiki outlines for tofu candidates.
         "//gui/character_composer:composer_kage",
         "//gui/character_composer:glyph_coverage",
-        "//gui/character_composer:glyphwiki_client",
         "//protocol:candidate_window_cc_proto",
         "//protocol:commands_cc_proto",
         "//protocol:renderer_cc_proto",
+        # GPL-3.0 via //kage: draws GlyphWiki outlines for tofu candidates.
+        "//renderer:candidate_kage",
         "//renderer:candidate_window_util",
         "//renderer:renderer_style_handler",
         "//renderer:window_util",
-        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/synchronization",
     ],
 )
 

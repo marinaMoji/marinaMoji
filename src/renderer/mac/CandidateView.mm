@@ -45,8 +45,10 @@
 #include "base/specimen_kind.h"
 #include "client/client_interface.h"
 #include "config/config_handler.h"
+#include "gui/character_composer/composer_kage.h"
 #include "protocol/commands.pb.h"
 #include "protocol/renderer_style.pb.h"
+#include "renderer/candidate_kage.h"
 #include "renderer/candidate_window_util.h"
 #include "renderer/mac/mac_view_util.h"
 #include "renderer/renderer_style_handler.h"
@@ -134,7 +136,7 @@ bool MacCandidateValueDrawable(NSString *text, NSFont *font) {
 // Draws the components of an unencoded composition (the Ctrl+2 "drawing" row)
 // in their cells inside |square|, in |ink| on the plate. Each component is drawn
 // as the exported SVG draws it: a serif glyph in a square, squeezed to the
-// width or height of its cell.
+// width or height of its cell. Last-resort fallback when KAGE has no strokes.
 void DrawIdsPreview(const mozc::composer_ids::IdsPreview &preview, NSRect square, NSColor *ink) {
   const CGFloat side = square.size.width;
   NSFont *font = [NSFont fontWithName:@"HiraMinProN-W3" size:side * 0.88];
@@ -162,6 +164,41 @@ void DrawIdsPreview(const mozc::composer_ids::IdsPreview &preview, NSRect square
         withAttributes:attrs];
     [NSGraphicsContext restoreGraphicsState];
   }
+}
+
+// Fills GlyphWiki/KAGE contours in |cell| (1000×1000 view box), left-aligned
+// and vertically centred — same geometry as the Qt candidate window.
+bool DrawKageOutlines(absl::string_view key, NSRect cell, NSColor *ink) {
+  const auto *outlines = mozc::renderer::CachedKageOutlines(key);
+  if (outlines == nullptr || !outlines->has_value() || (*outlines)->empty()) {
+    return false;
+  }
+  constexpr CGFloat kViewBox = 1000.0;
+  NSBezierPath *path = [NSBezierPath bezierPath];
+  for (const mozc::gui::Contour &contour : **outlines) {
+    if (contour.empty()) {
+      continue;
+    }
+    [path moveToPoint:NSMakePoint(contour[0].first, contour[0].second)];
+    for (size_t i = 1; i < contour.size(); ++i) {
+      [path lineToPoint:NSMakePoint(contour[i].first, contour[i].second)];
+    }
+    [path closePath];
+  }
+  if ([path isEmpty]) {
+    return false;
+  }
+  const CGFloat side = std::min(cell.size.width, cell.size.height);
+  [NSGraphicsContext saveGraphicsState];
+  NSAffineTransform *transform = [NSAffineTransform transform];
+  [transform translateXBy:cell.origin.x
+                      yBy:cell.origin.y + (cell.size.height - side) / 2.0];
+  [transform scaleXBy:side / kViewBox yBy:side / kViewBox];
+  [transform concat];
+  [ink set];
+  [path fill];
+  [NSGraphicsContext restoreGraphicsState];
+  return true;
 }
 
 // The colour of a character drawn on a plate (see base/specimen_kind.h).
@@ -408,8 +445,30 @@ NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind, bool dark) {
     }
     if (mozc::renderer::HasUnencodedSvgAttribute(candidate) &&
         mozc::composer_ids::ParseIdsPreview(candidate.value()).has_value()) {
-      // The layout is drawn, not the text: reserve one character's width.
+      // KAGE (or IDS font fallback) is drawn, not the text: one character wide.
       value = "\xE3\x80\x80";  // U+3000
+    } else {
+      // Amber missing-font with GlyphWiki strokes: same one-em reservation.
+      const NSAttributedString *probe =
+          MacViewUtil::ToNSAttributedString(value, style_.candidate_style());
+      NSFont *probeFont = nil;
+      if ([probe length] > 0) {
+        probeFont = [probe attribute:NSFontAttributeName
+                             atIndex:0
+                      effectiveRange:nullptr];
+      }
+      if (probeFont == nil) {
+        probeFont = [NSFont messageFontOfSize:style_.candidate_style().font_size()];
+      }
+      const bool drawable =
+          MacCandidateValueDrawable([NSString stringWithUTF8String:value.c_str()],
+                                    probeFont);
+      const mozc::specimen_kind::Kind kind =
+          mozc::renderer::SpecimenKindForCandidate(candidate, drawable);
+      if (kind == mozc::specimen_kind::Kind::kMissingFont &&
+          mozc::renderer::HasKageOutlineForCharacter(candidate.value())) {
+        value = "\xE3\x80\x80";  // U+3000
+      }
     }
     if (!value.empty()) {
       value.append("  ");
@@ -528,8 +587,14 @@ NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind, bool dark) {
   if (candidateFont == nil) {
     candidateFont = [NSFont messageFontOfSize:style_.candidate_style().font_size()];
   }
-  const bool drawable =
-      MacCandidateValueDrawable([candidateValue string], candidateFont);
+  // Use the real candidate value for coverage: the layout cache may hold U+3000
+  // when a KAGE / IDS drawing will cover the cell.
+  const std::string &rawValue = candidate_window_.candidate(row).value();
+  NSString *rawValueNS = [NSString stringWithUTF8String:rawValue.c_str()];
+  if (rawValueNS == nil) {
+    rawValueNS = [candidateValue string];
+  }
+  const bool drawable = MacCandidateValueDrawable(rawValueNS, candidateFont);
   const mozc::specimen_kind::Kind kind =
       mozc::renderer::SpecimenKindForCandidate(candidate_window_.candidate(row),
                                                drawable);
@@ -547,19 +612,24 @@ NSColor *SpecimenPlateColor(mozc::specimen_kind::Kind kind, bool dark) {
     [NSBezierPath fillRect:MacViewUtil::ToNSRect(cellRect)];
   }
 
-  // Ctrl+2 "drawing" row: draw the layout of the IDS value in a square.
+  // Prussian-blue unencoded IDS, or amber missing-font with KAGE strokes:
+  // prefer GlyphWiki outlines; fall back to the naive IDS font preview.
   bool drawnPreview = false;
-  if (kind == mozc::specimen_kind::Kind::kSvg) {
-    const auto preview =
-        mozc::composer_ids::ParseIdsPreview(candidate_window_.candidate(row).value());
-    if (preview.has_value()) {
-      const mozc::Rect rowRect = tableLayout_.GetRowRect(row);
-      const NSRect cell = MacViewUtil::ToNSRect(tableLayout_.GetCellRect(row, kColumnCandidate));
-      const CGFloat side = rowRect.size.height - 2;
-      const NSRect square = NSMakeRect(
-          cell.origin.x + style_.candidate_style().left_padding(), rowRect.origin.y + 1, side, side);
-      DrawIdsPreview(*preview, square, plateInk);
+  if (kind == mozc::specimen_kind::Kind::kSvg ||
+      kind == mozc::specimen_kind::Kind::kMissingFont) {
+    const mozc::Rect rowRect = tableLayout_.GetRowRect(row);
+    const NSRect cell = MacViewUtil::ToNSRect(tableLayout_.GetCellRect(row, kColumnCandidate));
+    const CGFloat side = rowRect.size.height - 2;
+    const NSRect square = NSMakeRect(
+        cell.origin.x + style_.candidate_style().left_padding(), rowRect.origin.y + 1, side, side);
+    if (DrawKageOutlines(rawValue, square, plateInk)) {
       drawnPreview = true;
+    } else if (kind == mozc::specimen_kind::Kind::kSvg) {
+      const auto preview = mozc::composer_ids::ParseIdsPreview(rawValue);
+      if (preview.has_value()) {
+        DrawIdsPreview(*preview, square, plateInk);
+        drawnPreview = true;
+      }
     }
   }
 

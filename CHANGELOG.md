@@ -73,6 +73,9 @@ Everything in 0.0.21-rc4 plus:
   use the same GlyphWiki/KAGE composition as the character composer
   (`ComposeKageData`), left-aligned like ordinary candidate text. The old
   font preview remains only if a component has no KAGE strokes.
+- **macOS and Windows** use the same shared resolver (`renderer/candidate_kage`)
+  and paint filled KAGE contours (NSBezierPath / GDI+). Amber missing-font rows
+  with bundled strokes also get a drawing. Matches Linux/Qt for Issue #158.
 
 ### Candidate window: left-align GlyphWiki drawings
 
