@@ -113,6 +113,15 @@ std::optional<std::vector<Contour>> ComposerOutlines(
     std::string_view op, const std::vector<composer_ids::ComposerSlot> &parts,
     const KageResources &resources, int view_box = 1000);
 
+// GlyphWiki's compound ("systematic") name for a structure: ⿰木馬 is
+// u2ff0-u6728-u99ac, and nested structures nest the same way
+// (u2ff1-u53e3-u2bda7). Empty if |op| or any character has no name. GlyphWiki
+// registers many unencoded structures under these names, so with
+// prefer_glyphwiki_drawings on they are looked up there instead of composed
+// locally. Most combinations are not registered.
+std::string GlyphWikiSystematicName(
+    std::string_view op, const std::vector<composer_ids::ComposerSlot> &parts);
+
 // GlyphWiki's name for a single character ("u4e00"), or empty if |ch| is not
 // exactly one code point.
 std::string GlyphWikiNameForCharacter(std::string_view ch);

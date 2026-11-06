@@ -231,6 +231,23 @@ TEST(ComposerKageTest, NamedGlyphOutlinesUsesRegisteredUnicodeGlyph) {
   EXPECT_FALSE(NamedGlyphOutlines("木巻", glyphs, 1000).has_value());
 }
 
+TEST(ComposerKageTest, GlyphWikiSystematicName) {
+  using composer_ids::ComposerSlot;
+  EXPECT_EQ(GlyphWikiSystematicName(
+                "⿰", {ComposerSlot::Leaf("木"), ComposerSlot::Leaf("馬")}),
+            "u2ff0-u6728-u99ac");
+  // Nested structures nest the same way GlyphWiki names them.
+  EXPECT_EQ(GlyphWikiSystematicName(
+                "⿱", {ComposerSlot::Leaf("口"),
+                       ComposerSlot::Nested("⿰", {ComposerSlot::Leaf("木"),
+                                                   ComposerSlot::Leaf("馬")})}),
+            "u2ff1-u53e3-u2ff0-u6728-u99ac");
+  // No name when a slot is empty.
+  EXPECT_EQ(GlyphWikiSystematicName(
+                "⿰", {ComposerSlot::Leaf("木"), ComposerSlot::Leaf("")}),
+            "");
+}
+
 }  // namespace
 }  // namespace gui
 }  // namespace mozc

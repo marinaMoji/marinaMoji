@@ -486,6 +486,11 @@ std::string GlyphWikiNameForCharacter(std::string_view ch) {
   return GlyphName(ch);
 }
 
+std::string GlyphWikiSystematicName(
+    std::string_view op, const std::vector<composer_ids::ComposerSlot> &parts) {
+  return SystematicGlyphName(composer_ids::ComposerSlot::Nested(op, parts));
+}
+
 std::optional<std::vector<Contour>> NamedGlyphOutlinesFromBuhin(
     std::string_view name, const kage::Buhin &buhin, int view_box) {
   if (name.empty()) return std::nullopt;

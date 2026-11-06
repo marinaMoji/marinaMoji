@@ -24,6 +24,7 @@
 #include <QWidget>
 #include <memory>
 #include <functional>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -512,6 +513,10 @@ class CharacterComposerDialog : public QDialog {
   std::function<void(const std::string &)> on_svg_inserted_;
   std::string result_svg_;  // SVG Insert chose for an unencoded layout, or ""
   std::string pending_svg_; // live SVG preview for the current filled layout
+  // GlyphWiki names already found not to exist online (this session), so a
+  // structure GlyphWiki does not register is not requested on every redraw.
+  std::set<std::string> glyphwiki_unregistered_;
+  bool glyphwiki_curl_warned_ = false;
 };
 
 }  // namespace gui

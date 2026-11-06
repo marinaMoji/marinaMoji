@@ -29,6 +29,7 @@
 #include <QListView>
 #include <QListWidget>
 #include <QMenu>
+#include <QMessageBox>
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QPaintEvent>
@@ -2780,14 +2781,43 @@ void CharacterComposerDialog::RefreshActiveView() {
     char_label_->setFont(font());
     char_label_->setText(QString());
     std::optional<std::vector<Contour>> outlines;
-    if (prefer_glyphwiki && kage_ != nullptr && !unicode_ch.empty()) {
-      outlines = NamedGlyphOutlines(unicode_ch, *kage_);
-      if (!outlines) {
-        const std::string name = GlyphWikiNameForCharacter(unicode_ch);
-        kage::Buhin scratch(&kage_->glyphs);
-        if (!name.empty() &&
-            EnsureGlyphWikiGlyph(name, &scratch, /*allow_network=*/true)) {
-          outlines = NamedGlyphOutlinesFromBuhin(name, scratch);
+    if (prefer_glyphwiki && kage_ != nullptr) {
+      // An encoded character is GlyphWiki's uXXXX; an unencoded structure is
+      // its compound name (u2ff0-u6728-u99ac), which GlyphWiki registers for
+      // many structures. A name GlyphWiki does not have is remembered for the
+      // session (it cannot tell "unknown" from "offline", so a failure is not
+      // retried until the composer is reopened) so that redrawing does not
+      // ask again, then the structure is composed locally below.
+      const std::string name =
+          unicode_ch.empty()
+              ? GlyphWikiSystematicName(editor_->op(), editor_->parts())
+              : GlyphWikiNameForCharacter(unicode_ch);
+      if (!name.empty()) {
+        outlines = NamedGlyphOutlinesFromBuhin(name, kage_->glyphs);
+        if (!outlines && !glyphwiki_unregistered_.contains(name) &&
+            !LoadGlyphWikiCache(name).has_value() &&
+            !GlyphWikiFetchAvailable()) {
+          // Not cached and no curl to fetch with: say so once, and do not
+          // remember the name as unregistered (the cause is local).
+          if (!glyphwiki_curl_warned_) {
+            glyphwiki_curl_warned_ = true;
+            QTimer::singleShot(0, this, [this] {
+              QMessageBox::warning(
+                  this, tr("GlyphWiki drawings"),
+                  tr("\"Prefer GlyphWiki drawings\" needs the curl program "
+                     "to download drawings, but curl was not found. "
+                     "Install curl to fetch drawings that are not already "
+                     "bundled or cached; the composer draws them locally "
+                     "meanwhile."));
+            });
+          }
+        } else if (!outlines && !glyphwiki_unregistered_.contains(name)) {
+          kage::Buhin scratch(&kage_->glyphs);
+          if (EnsureGlyphWikiGlyph(name, &scratch, /*allow_network=*/true)) {
+            outlines = NamedGlyphOutlinesFromBuhin(name, scratch);
+          } else {
+            glyphwiki_unregistered_.insert(name);
+          }
         }
       }
     }
@@ -2838,7 +2868,8 @@ void CharacterComposerDialog::RefreshActiveView() {
       }
     } else if (!pending_svg_.empty()) {
       specimen_kind = QStringLiteral("svg");
-      // Unencoded: always local IDS composition (never GlyphWiki fetch).
+      // Unencoded: GlyphWiki's compound-named glyph when preferred and
+      // registered, else local IDS composition.
       show_composition_drawing(plate_ink);
       status_heading = Tr("Not encoded in Unicode");
       status_detail =

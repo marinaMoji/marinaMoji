@@ -29,6 +29,10 @@ bool StoreGlyphWikiCache(std::string_view name, std::string_view data);
 // Parses the "data" field from a GlyphWiki /api/glyph JSON body.
 std::optional<std::string> ParseGlyphWikiApiData(std::string_view json);
 
+// True if the `curl` the fetch relies on can be started (checked once per
+// process). When false, FetchGlyphWikiKage() always fails.
+bool GlyphWikiFetchAvailable();
+
 // Fetches KAGE data for |name| from glyphwiki.org (blocking, short timeout).
 // Returns nullopt on network/parse failure. Does not touch the cache.
 std::optional<std::string> FetchGlyphWikiKage(std::string_view name);

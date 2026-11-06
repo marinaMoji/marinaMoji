@@ -116,8 +116,25 @@ std::optional<std::string> ParseGlyphWikiApiData(std::string_view json) {
   return std::nullopt;
 }
 
+bool GlyphWikiFetchAvailable() {
+  static const bool available = [] {
+#ifdef _WIN32
+    FILE *pipe = ::_popen("curl --version 2>NUL", "r");
+    if (pipe == nullptr) return false;
+    const int status = ::_pclose(pipe);
+#else
+    FILE *pipe = ::popen("curl --version 2>/dev/null", "r");
+    if (pipe == nullptr) return false;
+    const int status = ::pclose(pipe);
+#endif
+    return status == 0;
+  }();
+  return available;
+}
+
 std::optional<std::string> FetchGlyphWikiKage(std::string_view name) {
   if (!IsSafeGlyphName(name)) return std::nullopt;
+  if (!GlyphWikiFetchAvailable()) return std::nullopt;
 
   const std::string url =
       absl::StrCat("https://glyphwiki.org/api/glyph?name=", name);

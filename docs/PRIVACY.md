@@ -19,10 +19,12 @@ When this is on, the character composer can show the glyph that
 [GlyphWiki](https://glyphwiki.org) has registered for a character, instead of
 drawing it from the structure you built.
 
-- **When a request is made.** Only when the setting is on, the structure you
-  built matches a Unicode character, and neither the bundled data nor the
-  local cache already has that glyph. Structures with no Unicode encoding are
-  always drawn on your computer and never sent anywhere.
+- **When a request is made.** Only when the setting is on and neither the
+  bundled data nor the local cache already has the glyph. A structure that
+  matches a Unicode character is requested by that character; one that does
+  not is requested by its compound name (for example `u2ff0-u6728-u99ac`,
+  which is ⿰木馬). If GlyphWiki has no glyph under that name, the structure is
+  drawn on your computer.
 - **What is sent.** A request to `https://glyphwiki.org/api/glyph` containing
   the glyph name (for example `u6728`, or a component name such as
   `u6728-01`). The request identifies itself as
@@ -30,7 +32,8 @@ drawing it from the structure you built.
   IP address to GlyphWiki. Nothing else is sent: not the text you are typing,
   your dictionaries, or any identifier of you or your device.
 - **What this can reveal.** The glyph names reveal which characters you looked
-  up in the composer.
+  up or combined in the composer, including structures that have no Unicode
+  encoding.
 - **What is kept.** The glyph data GlyphWiki returns is stored in the
   `glyphwiki_cache` folder of your marinaMoji profile, so each glyph is
   requested at most once. You can delete that folder at any time.

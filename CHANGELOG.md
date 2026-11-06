@@ -128,6 +128,18 @@ changed and, where it isn't obvious, why.
   nested mean IoU rose from ~0.38 to ~0.48 (侃 0.33→0.90, 侯 0.46→0.79); remaining
   weak spots are deep nests GlyphWiki draws as stroke data or unusual ops.
 
+### Next
+
+- **GlyphWiki drawings now cover unencoded structures.** With "Prefer GlyphWiki
+  drawings" on, a structure with no Unicode encoding is looked up on GlyphWiki
+  by its compound name (⿰木馬 → `u2ff0-u6728-u99ac`) when the bundled data and
+  the local cache lack it, and drawn locally if GlyphWiki has no such glyph.
+  Before, only encoded characters were ever requested. This widens what the
+  setting sends (the names reveal structures you combined), so the in-app
+  explanation, `docs/PRIVACY.md` and the website privacy policy (EN/FR/JA, site
+  repo, not yet published) were updated. A name GlyphWiki lacks is not asked
+  for again until the composer is reopened.
+
 ### Release candidate 0.0.21-rc3
 
 Everything in 0.0.21-rc2 plus:
