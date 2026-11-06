@@ -352,5 +352,29 @@
   "category": "composition",
   "type": "capability",
   "layer": 0
+ },
+ "marinaMoji/marinaMoji#160": {
+  "title_en": "Linux desktop and display-server compatibility",
+  "title_fr": "Compatibilité des environnements de bureau Linux",
+  "title_ja": "Linuxデスクトップ環境・表示サーバー対応",
+  "category": "platform",
+  "type": "technical",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#161": {
+  "title_en": "Official Debian distribution",
+  "title_fr": "Distribution officielle Debian",
+  "title_ja": "Debian公式アーカイブでの配布",
+  "category": "distribution",
+  "type": "capability",
+  "layer": 0
+ },
+ "marinaMoji/marinaMoji#162": {
+  "title_en": "Linux release readiness",
+  "title_fr": "Préparation de la version Linux",
+  "title_ja": "Linux版リリース準備",
+  "category": "platform",
+  "type": "technical",
+  "layer": 0
  }
 }
