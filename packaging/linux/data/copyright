@@ -37,7 +37,6 @@ Comment: Material Design icons.
 
 Files: usr/lib/marinamoji/mozc_server
        usr/lib/marinamoji/mozc_tool
-       usr/lib/marinamoji/mozc_renderer
        usr/lib/marinamoji/mozc_sync
        usr/lib/ibus-marinamoji/ibus-engine-marinamoji
        usr/bin/mozc_emacs_helper
@@ -60,6 +59,28 @@ Comment:
  These binaries are statically linked and compiled from Bazel-fetched
  sources, so the licenses above are the union of what is built into them;
  not every license applies to every binary.
+
+Files: usr/lib/marinamoji/mozc_renderer
+Copyright: 2000-2003, Nara Institute of Science and Technology
+           Okinawa dictionary contributors
+           2010-2021, Google Inc.
+           2008, Google Inc. (Protocol Buffers)
+           Google Inc. (Abseil)
+           2008-2019, Susumu Yata (darts-clone, marisa-trie)
+           2011, Hiroyuki Komatsu, Shoji Ogura, Tsuyoshi Horo
+           2015, THL A29 Limited, a Tencent company, and Milo Yip
+           1995-2022, Jean-loup Gailly and Mark Adler
+           2010-2024, Carbo Kuo and OpenCC contributors
+           Unicode, Inc. (CLDR emoji names and annotations)
+           Japan Post Co., Ltd. (postal code data; no copyright asserted)
+           GlyphWiki contributors (KAGE stroke engine and data)
+           2024-2026, Marina Pandolfino and Daniel Patrick Morgan
+License: BSD-3-Clause and BSD-2-Clause and Apache-2.0 and MIT and Zlib and Unicode-3.0 and Japan-Post-Postal-Code-Data and IPAdic-NAIST and ICOT-Free-Software and Public-Domain and GPL-3.0-or-later
+Comment:
+ Same third-party stack as the other marinaMoji binaries, plus the KAGE
+ engine (GPL-3.0-or-later) used to draw GlyphWiki outlines for candidate
+ rows that no installed font can display. Bundled stroke tables under
+ character_composer/ remain separate run-time data (see that stanza).
  .
  Conversion data (mozc_server only): the open-source Mozc dictionary
  (IPAdic-derived vocabulary under NAIST terms, ICOT Free Software

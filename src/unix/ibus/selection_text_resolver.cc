@@ -110,7 +110,13 @@ bool TryAcceptCandidate(SessionCommand::CommandType type,
   if (surrounding.available && !surrounding.surrounding_text.empty()) {
     int32_t offset = 0;
     int32_t length = 0;
+    // Prefer "ends at caret" (caret after the highlight). Also accept
+    // "starts at caret": on Wayland a mouse selection often leaves the
+    // caret at the left edge of the range.
     if (SurroundingTextUtil::SelectionEndsAtCursor(
+            surrounding.surrounding_text, surrounding.cursor_pos, candidate,
+            &offset, &length) ||
+        SurroundingTextUtil::SelectionStartsAtCursor(
             surrounding.surrounding_text, surrounding.cursor_pos, candidate,
             &offset, &length)) {
       resolved.can_delete = true;
@@ -178,7 +184,6 @@ ResolvedSelection CaretFallback(SessionCommand::CommandType type,
       return empty;
   }
 
-  // Prefer text before the caret (usual "caret after the character" UX).
   const std::string before =
       want_word ? SurroundingTextUtil::WordBeforeCursor(
                       surrounding.surrounding_text, surrounding.cursor_pos,
@@ -186,14 +191,6 @@ ResolvedSelection CaretFallback(SessionCommand::CommandType type,
                 : SurroundingTextUtil::CharsBeforeCursor(
                       surrounding.surrounding_text, surrounding.cursor_pos,
                       max_chars);
-  if (ResolvedSelection resolved =
-          MakeCaretResolved(type, surrounding, before, /*before_cursor=*/true);
-      !resolved.text.empty()) {
-    return resolved;
-  }
-
-  // Wayland often collapses a mouse selection with the caret at the *start*
-  // of the former range (cursor_pos == 0 or at the left edge). Try after.
   const std::string after =
       want_word ? SurroundingTextUtil::WordAfterCursor(
                       surrounding.surrounding_text, surrounding.cursor_pos,
@@ -201,6 +198,28 @@ ResolvedSelection CaretFallback(SessionCommand::CommandType type,
                 : SurroundingTextUtil::CharsAfterCursor(
                       surrounding.surrounding_text, surrounding.cursor_pos,
                       max_chars);
+
+  // Related / components: prefer AFTER the caret. On Wayland a mouse
+  // highlight often collapses with the caret at the *start* of the range
+  // (select 際 → caret between 國 and 際); "before" then wrongly picks 國.
+  // At end-of-line, "after" is empty and we fall through to "before", which
+  // is why a trailing line-break made Ctrl+Shift+7/8 appear to work.
+  // Reconvert keeps the older "word before caret" preference.
+  if (!want_word) {
+    if (ResolvedSelection resolved = MakeCaretResolved(
+            type, surrounding, after, /*before_cursor=*/false);
+        !resolved.text.empty()) {
+      return resolved;
+    }
+    return MakeCaretResolved(type, surrounding, before,
+                             /*before_cursor=*/true);
+  }
+
+  if (ResolvedSelection resolved =
+          MakeCaretResolved(type, surrounding, before, /*before_cursor=*/true);
+      !resolved.text.empty()) {
+    return resolved;
+  }
   return MakeCaretResolved(type, surrounding, after, /*before_cursor=*/false);
 }
 
@@ -411,9 +430,8 @@ ResolvedSelection ResolveSelectionForCommandWithFallbacks(
       resolved.deletion_offset = -surrounding.relative_selected_length;
       resolved.deletion_length = surrounding.relative_selected_length;
     } else if (surrounding.relative_selected_length < 0) {
-      // UpdateDeletionRange ignores offset >= 0; still record length for
-      // debugging. Deletion will be skipped.
-      resolved.can_delete = false;
+      // Selection extends forward from the caret: delete with offset 0.
+      resolved.can_delete = true;
       resolved.deletion_offset = 0;
       resolved.deletion_length = -surrounding.relative_selected_length;
     }
@@ -440,16 +458,10 @@ ResolvedSelection ResolveSelectionForCommand(
     return ResolveSelectionForCommandWithFallbacks(type, surrounding, "", "");
   }
 
-  // When surrounding text is present (common on Wayland even without a
-  // reported selection), prefer the caret fallback before spawning wl-paste
-  // or walking AT-SPI. That covers "caret after the character" without a hang.
-  if (surrounding.available && !surrounding.surrounding_text.empty()) {
-    if (ResolvedSelection caret = CaretFallback(type, surrounding);
-        !caret.text.empty()) {
-      return caret;
-    }
-  }
-
+  // Primary (and AT-SPI) before the caret fallback. On Wayland a mouse
+  // selection often leaves cursor==anchor at the *start* of the range; the
+  // caret-before heuristic then picks the neighbour to the left. wl-paste is
+  // timeout-bounded, so this no longer hangs the engine.
   const std::string primary = ReadPrimarySelectionText();
   ResolvedSelection from_primary;
   if (TryAcceptCandidate(type, surrounding, primary, SelectionSource::kPrimary,

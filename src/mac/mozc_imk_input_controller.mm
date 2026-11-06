@@ -653,6 +653,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   }
   keyCodeMap_ = [[KeyCodeMap alloc] init];
   replacementRange_ = NSMakeRange(NSNotFound, 0);
+  pendingRelatedReplacementRange_ = NSMakeRange(NSNotFound, 0);
   originalString_ = [[NSMutableString alloc] init];
   composedString_ = [[NSMutableAttributedString alloc] init];
   cursorPosition_ = -1;
@@ -1609,6 +1610,12 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
     return;
   }
 
+  // Related/components deferred the selection replace until this commit.
+  if (replacementRange_.location == NSNotFound &&
+      pendingRelatedReplacementRange_.location != NSNotFound) {
+    replacementRange_ = pendingRelatedReplacementRange_;
+  }
+  pendingRelatedReplacementRange_ = NSMakeRange(NSNotFound, 0);
   [sender insertText:[NSString stringWithUTF8String:text] replacementRange:replacementRange_];
   replacementRange_ = NSMakeRange(NSNotFound, 0);
 }
@@ -1727,7 +1734,17 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   }
 
   if (mozcClient_->SendCommand(sending_command, &output)) {
-    replacementRange_ = selectedRange;
+    // Related/components keep the selection visible until a candidate is
+    // chosen. Do not set replacementRange_ (that would make setMarkedText
+    // hide the original); stash it for commitText instead.
+    if (sending_command.type() == SessionCommand::CONVERT_RELATED ||
+        sending_command.type() == SessionCommand::CONVERT_COMPONENTS) {
+      pendingRelatedReplacementRange_ = selectedRange;
+      replacementRange_ = NSMakeRange(NSNotFound, 0);
+    } else {
+      pendingRelatedReplacementRange_ = NSMakeRange(NSNotFound, 0);
+      replacementRange_ = selectedRange;
+    }
     [self processOutput:&output client:sender];
   }
 }
@@ -1914,6 +1931,14 @@ bool IsConfigOnlySessionOutput(const Output &output) {
   }
 
   [self syncCandidatesWithOutput:output];
+
+  // Related/components cancel: palette closed without a commit — drop the
+  // stashed selection range so a later insert does not replace by accident.
+  if (!output->has_result() &&
+      (!output->has_candidate_window() ||
+       output->candidate_window().candidate_size() == 0)) {
+    pendingRelatedReplacementRange_ = NSMakeRange(NSNotFound, 0);
+  }
 
   if (!launching_tool && (output->has_mode() || output->has_status())) {
     CompositionMode new_mode = NormalizeModeForEmptyHalfAscii(

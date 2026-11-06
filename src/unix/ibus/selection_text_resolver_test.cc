@@ -66,6 +66,17 @@ TEST(SurroundingTextUtilSelectionTest, SelectionEndsAtCursor) {
                                                           &offset, &length));
 }
 
+TEST(SurroundingTextUtilSelectionTest, SelectionStartsAtCursor) {
+  int32_t offset = 0;
+  int32_t length = 0;
+  EXPECT_TRUE(SurroundingTextUtil::SelectionStartsAtCursor("あいうえお", 1, "いう",
+                                                           &offset, &length));
+  EXPECT_EQ(offset, 0);
+  EXPECT_EQ(length, 2);
+  EXPECT_FALSE(SurroundingTextUtil::SelectionStartsAtCursor(
+      "あいうえお", 1, "あい", &offset, &length));
+}
+
 TEST(SelectionTextResolverTest, PrefersSurroundingSelection) {
   SurroundingSnapshot snap;
   snap.available = true;
@@ -97,6 +108,59 @@ TEST(SelectionTextResolverTest, PrimaryWhenSurroundingHasNoSelection) {
   EXPECT_EQ(resolved.source, SelectionSource::kPrimary);
   EXPECT_EQ(resolved.text, "字");
   EXPECT_TRUE(resolved.can_delete);
+  EXPECT_EQ(resolved.deletion_offset, -1);
+}
+
+// Wayland often collapses a mouse selection with the caret at the *start*
+// of the highlight. Primary holds "字"; caret-before would wrongly pick "漢".
+TEST(SelectionTextResolverTest, PrimaryWhenCaretAtStartOfSelection) {
+  SurroundingSnapshot snap;
+  snap.available = true;
+  snap.cursor_pos = 1;
+  snap.anchor_pos = 1;
+  snap.relative_selected_length = 0;
+  snap.surrounding_text = "漢字";
+  snap.selection_text = "";
+
+  const ResolvedSelection resolved = ResolveSelectionForCommandWithFallbacks(
+      commands::SessionCommand::CONVERT_RELATED, snap, "字", "");
+  EXPECT_EQ(resolved.source, SelectionSource::kPrimary);
+  EXPECT_EQ(resolved.text, "字");
+  EXPECT_TRUE(resolved.can_delete);
+  EXPECT_EQ(resolved.deletion_offset, 0);
+  EXPECT_EQ(resolved.deletion_length, 1);
+}
+
+// Without primary, related/components prefer the character AFTER the caret
+// (Wayland mouse-select leaves the caret at the start of the highlight).
+TEST(SelectionTextResolverTest, CaretAfterPreferredForRelated) {
+  SurroundingSnapshot snap;
+  snap.available = true;
+  snap.cursor_pos = 1;
+  snap.anchor_pos = 1;
+  snap.surrounding_text = "漢字";
+  snap.selection_text = "";
+
+  const ResolvedSelection resolved = ResolveSelectionForCommandWithFallbacks(
+      commands::SessionCommand::CONVERT_RELATED, snap, "", "");
+  EXPECT_EQ(resolved.source, SelectionSource::kCaretFallback);
+  EXPECT_EQ(resolved.text, "字");
+  EXPECT_TRUE(resolved.can_delete);
+  EXPECT_EQ(resolved.deletion_offset, 0);
+}
+
+TEST(SelectionTextResolverTest, CaretBeforeAtEndOfLine) {
+  SurroundingSnapshot snap;
+  snap.available = true;
+  snap.cursor_pos = 2;
+  snap.anchor_pos = 2;
+  snap.surrounding_text = "漢字";
+  snap.selection_text = "";
+
+  const ResolvedSelection resolved = ResolveSelectionForCommandWithFallbacks(
+      commands::SessionCommand::CONVERT_RELATED, snap, "", "");
+  EXPECT_EQ(resolved.source, SelectionSource::kCaretFallback);
+  EXPECT_EQ(resolved.text, "字");
   EXPECT_EQ(resolved.deletion_offset, -1);
 }
 
@@ -156,8 +220,10 @@ TEST(SelectionTextResolverTest, CaretFallbackAfterCursorWhenAtStart) {
   snap.surrounding_text = "龍";
   snap.selection_text = "";
 
-  const ResolvedSelection resolved = ResolveSelectionForCommand(
-      commands::SessionCommand::CONVERT_RELATED, snap);
+  // WithFallbacks: avoid the live ResolveSelectionForCommand path, which
+  // walks AT-SPI and can abort the process when no accessibility bus is up.
+  const ResolvedSelection resolved = ResolveSelectionForCommandWithFallbacks(
+      commands::SessionCommand::CONVERT_RELATED, snap, "", "");
   EXPECT_EQ(resolved.source, SelectionSource::kCaretFallback);
   EXPECT_EQ(resolved.text, "龍");
   EXPECT_TRUE(resolved.can_delete);

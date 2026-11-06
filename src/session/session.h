@@ -344,6 +344,12 @@ class Session {
   // Default IDS operator from the last ConvertComponents (for SVG hand-off).
   std::string component_svg_op_;
 
+  // Related/components (Ctrl+Shift+7/8): the application keeps the selected
+  // text until the user commits a candidate. Escape / cancel must not
+  // re-insert |source_text| (that would duplicate), and Output suppresses
+  // replacing preedit so clients do not hide the original.
+  bool keep_app_selection_ = false;
+
   // When true, next key that is a/e/i/o/u (or shifted) will insert macron vowel
   // (ā ē ī ō ū). Set by AltGr+umlaut (SetMacronDeadKey), cleared after use or
   // on non-vowel / ResetContext.

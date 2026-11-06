@@ -1708,6 +1708,8 @@ bool Session::Revert(commands::Command* command) {
 
   command->mutable_output()->set_consumed(true);
   ClearUndoContext();
+  keep_app_selection_ = false;
+  component_svg_op_.clear();
 
   SetStateToPredompositionAndCancel(context_.get());
   Output(command);
@@ -1729,6 +1731,8 @@ bool Session::ResetContext(commands::Command* command) {
   last_committed_expression_.clear();
   last_committed_reading_.clear();
   macron_dead_key_pending_ = false;
+  keep_app_selection_ = false;
+  component_svg_op_.clear();
 
   SetStateToPredompositionAndCancel(context_.get());
   Output(command);
@@ -1836,6 +1840,7 @@ bool Session::ConvertRelated(commands::Command* command) {
     return DoNothing(command);
   }
 
+  keep_app_selection_ = true;
   command->mutable_output()->set_consumed(true);
   SetSessionState(ImeContext::CONVERSION, context_.get());
   converter->SetCandidateListVisible(true);
@@ -1916,6 +1921,7 @@ bool Session::ConvertComponents(commands::Command* command) {
   }
   converter->SetSpecimenKinds(kinds);
 
+  keep_app_selection_ = true;
   command->mutable_output()->set_consumed(true);
   SetSessionState(ImeContext::CONVERSION, context_.get());
   converter->SetCandidateListVisible(true);
@@ -2115,6 +2121,8 @@ bool Session::CommitCandidate(commands::Command* command) {
     return false;
   }
   command->mutable_output()->set_consumed(true);
+  keep_app_selection_ = false;
+  component_svg_op_.clear();
 
   PushUndoContext();
 
@@ -2465,6 +2473,12 @@ bool Session::TryCancelConvertReverse(commands::Command* command) {
   if (context_->composer().source_text().empty()) {
     return false;
   }
+  // Related/components left the selection in the app; do not re-insert it.
+  if (keep_app_selection_) {
+    keep_app_selection_ = false;
+    context_->mutable_composer()->set_source_text("");
+    return true;
+  }
   CommitSourceTextDirectly(command);
   return true;
 }
@@ -2577,14 +2591,18 @@ bool Session::CommitInternal(commands::Command* command,
           !status.ok()) {
         LOG(WARNING) << "Component SVG hand-off failed: " << status;
       }
-      // The client removed the selection when the palette opened, so put the
-      // original text back (as Esc does). Otherwise choosing the drawing
-      // would delete the user's text and insert nothing.
-      CommitSourceTextDirectly(command);
+      // Selection stays in the app until commit; an SVG hand-off inserts
+      // nothing, so just dismiss. (Older clients that deleted on open used
+      // CommitSourceTextDirectly to put the text back.)
+      keep_app_selection_ = false;
+      context_->mutable_composer()->set_source_text("");
+      SetStateToPredompositionAndCancel(context_.get());
+      Output(command);
       return true;
     }
   }
   component_svg_op_.clear();
+  keep_app_selection_ = false;
 
   // Capture typed reading before Commit clears the composer.
   std::string reading_before_commit =
@@ -3999,6 +4017,17 @@ bool Session::ConvertPrevPage(commands::Command* command) {
 bool Session::ConvertCancel(commands::Command* command) {
   command->mutable_output()->set_consumed(true);
 
+  // Related/components: one Escape dismisses the palette and leaves the
+  // original selection in the application (no composition to fall back to).
+  if (keep_app_selection_) {
+    keep_app_selection_ = false;
+    component_svg_op_.clear();
+    context_->mutable_composer()->set_source_text("");
+    SetStateToPredompositionAndCancel(context_.get());
+    Output(command);
+    return true;
+  }
+
   SetSessionState(ImeContext::COMPOSITION, context_.get());
   context_->mutable_converter()->Cancel();
   if (Suggest(command->input())) {
@@ -4097,6 +4126,11 @@ void Session::Output(commands::Command* command) {
   // Skip when the odoriji palette is visible so we don't alter the palette's own list.
   if (!odoriji_palette_visible_) {
     ReplaceOdorijiInOutput(command->mutable_output(), odoriji_default_index_);
+  }
+  // Related/components: keep the document selection visible. A replacing
+  // preedit would hide or duplicate it; clients delete only on commit.
+  if (keep_app_selection_) {
+    command->mutable_output()->clear_preedit();
   }
 }
 

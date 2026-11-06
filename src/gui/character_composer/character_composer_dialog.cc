@@ -34,7 +34,6 @@
 #include <QPaintEvent>
 #include <QPainter>
 #include <QPainterPath>
-#include <QFontDatabase>
 #include <QFontMetricsF>
 #include <QPixmap>
 #include <QPushButton>
@@ -116,58 +115,13 @@ std::string ToUtf8(const QString &s) {
   return std::string(bytes.constData(), bytes.size());
 }
 
-// Fonts that reach the CJK extension blocks, best coverage first. Qt's own
-// per-glyph fallback does not search user-installed fonts, so the tiles name
-// them. Only installed families are kept; any other installed family whose
-// name looks like a Han font is added after them.
-QStringList WideCoverageFamilies() {
-  static const QStringList families = [] {
-    static const char *const kPreferred[] = {
-        "HanaMinB",        "HanaMinA",       "Jigmo3",
-        "Jigmo2",          "Jigmo",          "BabelStone Han",
-        "Plangothic P2",   "Plangothic P1",  "Noto Serif CJK JP",
-        "Noto Serif CJK SC", "Noto Serif CJK TC", "Noto Sans CJK JP",
-        "Source Han Serif", "Source Han Sans", "SimSun-ExtB",
-        "MingLiU-ExtB",    "MingLiU_HKSCS-ExtB", "PingFang HK",
-        "PingFang TC",     "PingFang SC",    "Songti SC",
-        "Songti TC",       "TW-Sung-Ext-B",  "TW-Sung",
-    };
-    const QStringList installed = QFontDatabase::families();
-    QStringList out;
-    for (const char *name : kPreferred) {
-      const QString family = QString::fromLatin1(name);
-      if (installed.contains(family, Qt::CaseInsensitive) && !out.contains(family)) {
-        out.append(family);
-      }
-    }
-    static const QRegularExpression kHanLike(
-        QStringLiteral("Hana|Jigmo|CJK|\\bHan\\b|Sung|Ming|Song|Plangothic|Heiti"),
-        QRegularExpression::CaseInsensitiveOption);
-    for (const QString &family : installed) {
-      if (!out.contains(family) && kHanLike.match(family).hasMatch()) out.append(family);
-    }
-    return out;
-  }();
-  return families;
-}
-
-// |font| with the wide-coverage families appended to its own.
-QFont WithWideCoverage(QFont font) {
-  QStringList families = font.families();
-  if (families.isEmpty()) families.append(font.family());
-  for (const QString &family : WideCoverageFamilies()) {
-    if (!families.contains(family)) families.append(family);
-  }
-  font.setFamilies(families);
-  return font;
-}
-
 // The coverage of the composer's character tiles, shared by the results,
 // the specimen and the variants row. Left alive to the end: QRawFont must not
-// outlive the application object.
+// outlive the application object. GlyphCoverage already appends ExtB fonts
+// (HanaMinB, …) that Qt would otherwise skip on Linux.
 GlyphCoverage &Coverage() {
   static GlyphCoverage *const coverage =
-      new GlyphCoverage(WithWideCoverage(QApplication::font()));
+      new GlyphCoverage(QApplication::font());
   return *coverage;
 }
 
@@ -681,6 +635,9 @@ QString ComposerStylesheet(bool dark) {
       "  padding: 3px 8px; }"
       "QToolButton#viewMenuButton:hover { border-color: @@ACCENT@@; }"
       "QToolButton#viewMenuButton::menu-indicator { image: none; width: 0; }"
+      // No padding: the label is exactly kPreviewLogical square and the
+      // preview pixmap / Unicode face are sized for that box. Padding used
+      // to shrink the content rect so drawings spilled past the plate.
       "QLabel#specimenGlyph {"
       "  background: transparent; border: none; padding: 0; margin: 0; }"
       "QLabel#specimenGlyph[prompt=\"true\"] { color: @@SECONDARY@@; }"
@@ -688,10 +645,10 @@ QString ComposerStylesheet(bool dark) {
       // Colours: base/specimen_kind.h (Prussian blue SVG, amber missingFont).
       "QLabel#specimenGlyph[specimenKind=\"svg\"] {"
       "  background: @@SVG_PLATE@@; border: none; border-radius: 12px;"
-      "  padding: 8px; color: @@PLATE_INK@@; }"
+      "  padding: 0; color: @@PLATE_INK@@; }"
       "QLabel#specimenGlyph[specimenKind=\"missingFont\"] {"
       "  background: @@WARN_PLATE@@; border: none; border-radius: 12px;"
-      "  padding: 8px; color: @@PLATE_INK@@; }"
+      "  padding: 0; color: @@PLATE_INK@@; }"
       "QLabel#variantChip {"
       "  background: transparent; border: none; border-radius: 6px;"
       "  padding: 2px 6px; margin: 0 4px 0 0; }"
@@ -1995,15 +1952,17 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   // Sit the glyph on the bottom of its band so the Unicode caption reads as
   // belonging to the specimen rather than floating below a tall empty box.
   char_label_->setAlignment(Qt::AlignHCenter | Qt::AlignBottom);
-  char_label_->setMinimumWidth(kPreviewLogical);
-  char_label_->setFixedHeight(128);
-  char_label_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+  // Match DrawingPreview / OutlinePreview (kPreviewLogical). A shorter band
+  // let 152px drawings and a ~108px Unicode face spill out of the plate.
+  char_label_->setFixedSize(kPreviewLogical, kPreviewLogical);
+  char_label_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
   char_label_->setFrameShape(QFrame::NoFrame);
   char_label_->setAutoFillBackground(false);
   // So specimenKind plate backgrounds from the stylesheet actually paint. Not
   // Qt::WA_TranslucentBackground: that stops them painting at all.
   char_label_->setAttribute(Qt::WA_StyledBackground, true);
   char_label_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+  char_label_->setScaledContents(false);
 
   return_to_composition_ = new QPushButton(Tr("← Return to composition"), this);
   return_to_composition_->setObjectName(QStringLiteral("returnLink"));
@@ -2800,8 +2759,11 @@ void CharacterComposerDialog::RefreshActiveView() {
   const QColor plate_ink = PlateInkColor(theme::IsDark());
 
   auto show_unicode_text = [&](const QString &text) {
-    char_label_->setFont(
-        Coverage().FontFor(WithWideCoverage(theme::DisplayFont(108)), text));
+    // Pixel size leaves room inside the kPreviewLogical plate for CJK
+    // ascent/descent (point-size 108 was ~full box height and overflowed).
+    QFont face = theme::DisplayFont(108);
+    face.setPixelSize(static_cast<int>(kPreviewLogical * 0.72));
+    char_label_->setFont(Coverage().FontFor(face, text));
     char_label_->setPixmap(QPixmap());
     char_label_->setText(text);
     status_heading = CodepointHeading(text);

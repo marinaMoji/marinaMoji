@@ -146,8 +146,12 @@ class MozcEngine : public EngineInterface {
   // based on the content of |output|.
   bool UpdateAll(IbusEngineWrapper* engine, const commands::Output& output);
   // Inserts a result text based on the content of |output|.
-  bool UpdateResult(IbusEngineWrapper* engine,
-                    const commands::Output& output) const;
+  bool UpdateResult(IbusEngineWrapper* engine, const commands::Output& output);
+
+  // marinaMoji: apply (or drop) a selection deletion deferred until a
+  // related/components candidate is committed.
+  void ApplyPendingSelectionDeletion(IbusEngineWrapper* engine);
+  void ClearPendingSelectionDeletion();
   // Updates |unique_candidate_ids_|.
   bool UpdateCandidateIDMapping(const commands::Output& output);
   // Updates the deletion range message based on the content of |output|.
@@ -285,6 +289,22 @@ class MozcEngine : public EngineInterface {
   // disappears until you press Space" bug. Suppresses that one Hide/Revert
   // if it lands within the debounce window below.
   absl::Time odoriji_property_show_time_;
+
+  // marinaMoji: set when Ctrl+Shift+7/8 just opened a candidate list. A brief
+  // FocusOut (candidate/toolbar) must not Hide/Revert or the preedit is
+  // PREEDIT_COMMIT'd into a buffer that already lost the selection.
+  absl::Time related_candidates_show_time_ = absl::InfinitePast();
+
+  // marinaMoji: related/components leave the selection in the document until
+  // the user picks a candidate. Deletion range is stored here and applied in
+  // UpdateResult; Escape clears it without deleting.
+  struct PendingSelectionDeletion {
+    bool active = false;
+    bool can_delete = false;
+    int32_t offset = 0;
+    int32_t length = 0;
+  };
+  PendingSelectionDeletion pending_selection_deletion_;
 
   // marinaMoji: set when the palette was opened from the ibus panel menu, and
   // cleared by the first FocusIn / set_cursor_location that follows. While the

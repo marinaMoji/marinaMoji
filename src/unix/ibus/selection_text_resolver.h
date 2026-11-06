@@ -63,21 +63,25 @@ enum class SelectionSource {
 struct ResolvedSelection {
   std::string text;
   SelectionSource source = SelectionSource::kNone;
-  // Only set when DeleteSurroundingText can safely remove |text| (negative
-  // offset). UpdateDeletionRange ignores non-negative offsets.
+  // Set when DeleteSurroundingText can remove |text|. Offset is negative
+  // when the text ends at the caret, or 0 when it starts at the caret
+  // (forward delete). Positive offsets are not used.
   bool can_delete = false;
   int32_t deletion_offset = 0;
   int32_t deletion_length = 0;
 };
 
 // Resolves the text to convert, trying in order:
-//   1. surrounding-text selection
-//   2. characters / word beside the caret (when surrounding text is present)
-//   3. Wayland primary selection (timeout-bounded wl-paste -p)
-//   4. AT-SPI focused-widget selection
+//   1. surrounding-text selection (cursor != anchor)
+//   2. Wayland primary selection (timeout-bounded wl-paste -p)
+//   3. AT-SPI focused-widget selection
+//   4. characters / word beside the caret
 // Primary and AT-SPI results are accepted only when they match the surrounding
-// text ending at the caret (guards against a stale primary), or when no
-// surrounding text is available at all (then deletion is skipped).
+// text at the caret — ending *or* starting there (Wayland often leaves the
+// caret at the left of a mouse highlight) — or when no surrounding text is
+// available at all (then deletion is skipped). Caret fallback runs last; for
+// related/components it prefers text *after* the caret (Wayland mouse
+// highlight) and only then text before (end-of-line / caret-after UX).
 ResolvedSelection ResolveSelectionForCommand(
     commands::SessionCommand::CommandType type,
     const SurroundingSnapshot& surrounding);

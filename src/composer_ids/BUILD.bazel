@@ -43,6 +43,7 @@ mozc_cc_library(
     visibility = [
         "//composer_ids:__pkg__",
         "//gui/character_composer:__pkg__",
+        "//renderer/qt:__pkg__",
     ],
     deps = [
         ":ids_operator",
@@ -58,6 +59,7 @@ mozc_cc_library(
     visibility = [
         "//engine:__pkg__",
         "//gui/character_composer:__pkg__",
+        "//renderer/qt:__pkg__",
         "//session:__pkg__",
     ],
     deps = [

@@ -40,20 +40,33 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <mutex>
+#include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
-#include <QGlyphRun>
-#include <QTextLayout>
+#include <QPainterPath>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "base/coordinates.h"
+#include "base/file_util.h"
 #include "base/specimen_kind.h"
+#include "base/system_util.h"
+#include "base/util.h"
 #include "client/client_interface.h"
 #include "composer_ids/ids_preview.h"
+#include "composer_ids/ids_table.h"
+#include "composer_ids/ids_tree.h"
+#include "gui/character_composer/composer_kage.h"
+#include "gui/character_composer/glyph_coverage.h"
+#include "gui/character_composer/glyphwiki_client.h"
 #include "protocol/candidate_window.pb.h"
 #include "protocol/commands.pb.h"
 #include "protocol/renderer_style.pb.h"
@@ -84,6 +97,9 @@ enum CandidateItemRole {
   // The IDS string of a Ctrl+2 "drawing" row; set on the value column. The
   // delegate draws its layout instead of the (blank) cell text.
   kSvgIdsRole,
+  // A single Unicode character whose KAGE/GlyphWiki outline should be drawn
+  // instead of tofu (missing-font row with bundled stroke data).
+  kKageCharRole,
 };
 
 QString QStr(absl::string_view str) {
@@ -108,32 +124,221 @@ QBrush QBrushFromColor(const RendererStyle::RGBAColor& rgba) {
   return QBrush(QColorFromColor(rgba));
 }
 
-// True when Qt's font merging finds a real glyph for every character (no
-// .notdef). Used to amber-plate Ctrl+1 values the platform cannot draw.
-bool CandidateValueDrawable(const QFont& font, const QString& text) {
-  if (text.isEmpty()) {
-    return true;
+// Shared coverage checker: includes ExtB fonts (HanaMinB, …) that Qt's
+// default merging skips on Linux even when gedit/fontconfig would use them.
+gui::GlyphCoverage& CandidateGlyphCoverage() {
+  static gui::GlyphCoverage* const coverage =
+      new gui::GlyphCoverage(QGuiApplication::font());
+  return *coverage;
+}
+
+// Bundled GlyphWiki stroke table next to mozc_server
+// (/usr/lib/marinamoji/character_composer/kage_glyphs.tsv).
+const gui::KageResources* GetCandidateKageResources() {
+  static std::once_flag once;
+  static std::unique_ptr<gui::KageResources> resources;
+  std::call_once(once, [] {
+    const std::string dir = FileUtil::JoinPath(
+        SystemUtil::GetServerDirectory(), "character_composer");
+    resources = gui::KageResources::LoadFromDirectory(dir);
+    if (resources == nullptr) {
+      LOG(WARNING) << "KAGE glyph table not found under " << dir
+                   << "; missing-font candidates stay as tofu";
+    }
+  });
+  return resources.get();
+}
+
+// Pull every leaf under |slot| into |scratch| from the disk cache (and
+// optionally GlyphWiki). Used so IDS compose can fill gaps the bundled dump
+// does not have (ExtB parts, rare strokes).
+void EnsureComposerLeavesInBuhin(const composer_ids::ComposerSlot& slot,
+                                 kage::Buhin* scratch, bool allow_network) {
+  if (slot.kind == composer_ids::ComposerSlot::Kind::kLeaf) {
+    const std::string leaf = gui::GlyphWikiNameForCharacter(slot.input);
+    if (!leaf.empty()) {
+      (void)gui::EnsureGlyphWikiGlyph(leaf, scratch, allow_network);
+    }
+    return;
   }
-  QTextLayout layout(text, font);
-  layout.beginLayout();
-  QTextLine line = layout.createLine();
-  if (line.isValid()) {
-    line.setLineWidth(1.0e6);
+  for (const composer_ids::ComposerSlot& part : slot.parts) {
+    EnsureComposerLeavesInBuhin(part, scratch, allow_network);
   }
-  layout.endLayout();
-  if (!line.isValid()) {
-    return false;
+}
+
+// Resolves outlines for one Unicode character (amber-plate drawings):
+//   1. bundled GlyphWiki dump (uXXXX)
+//   2. on-disk GlyphWiki cache
+//   3. IDS decomposition composed from parts (dump + disk-cached leaves)
+//   4. GlyphWiki network fetch for the character (cached to disk; can hitch
+//      ~3s the first time, then free)
+// Most Ctrl+2 yellow hits are ExtB with no bare uXXXX in the dump; steps 3–4
+// are what fill those cells.
+std::optional<std::vector<gui::Contour>> ResolveMissingFontOutlines(
+    absl::string_view ch, const gui::KageResources& resources) {
+  if (auto outlines = gui::NamedGlyphOutlines(ch, resources);
+      outlines.has_value() && !outlines->empty()) {
+    return outlines;
   }
-  bool any = false;
-  for (const QGlyphRun& run : layout.glyphRuns()) {
-    for (const quint32 glyph : run.glyphIndexes()) {
-      if (glyph == 0) {
-        return false;
-      }
-      any = true;
+
+  const std::string name = gui::GlyphWikiNameForCharacter(ch);
+  kage::Buhin scratch(&resources.glyphs);
+
+  if (!name.empty() &&
+      gui::EnsureGlyphWikiGlyph(name, &scratch, /*allow_network=*/false)) {
+    if (auto outlines = gui::NamedGlyphOutlinesFromBuhin(name, scratch);
+        outlines.has_value() && !outlines->empty()) {
+      return outlines;
     }
   }
-  return any;
+
+  if (const composer_ids::IdsTable* table =
+          composer_ids::IdsTable::GetDefault()) {
+    for (const std::string& ids : table->FindDecompositions(ch)) {
+      const auto parsed = composer_ids::ParseIdsToComposerTree(ids);
+      if (!parsed.has_value()) {
+        continue;
+      }
+      for (const composer_ids::ComposerSlot& part : parsed->parts) {
+        EnsureComposerLeavesInBuhin(part, &scratch, /*allow_network=*/false);
+      }
+      const std::string data = gui::ComposeKageData(
+          parsed->op, parsed->parts, &scratch, &resources.layout,
+          &resources.subtrees);
+      if (data.empty()) {
+        continue;
+      }
+      // Temporary name so NamedGlyphOutlinesFromBuhin can stroke the layout.
+      scratch.Set("mm-candidate", data);
+      if (auto outlines =
+              gui::NamedGlyphOutlinesFromBuhin("mm-candidate", scratch);
+          outlines.has_value() && !outlines->empty()) {
+        return outlines;
+      }
+    }
+  }
+
+  if (!name.empty() &&
+      gui::EnsureGlyphWikiGlyph(name, &scratch, /*allow_network=*/true)) {
+    if (auto outlines = gui::NamedGlyphOutlinesFromBuhin(name, scratch);
+        outlines.has_value() && !outlines->empty()) {
+      return outlines;
+    }
+  }
+  return std::nullopt;
+}
+
+// GlyphWiki composition for an unencoded IDS string (⿰亻国, …) — same path
+// the character composer uses, not the naive half/half font preview.
+std::optional<std::vector<gui::Contour>> ResolveIdsCompositionOutlines(
+    absl::string_view ids, const gui::KageResources& resources) {
+  const auto parsed = composer_ids::ParseIdsToComposerTree(ids);
+  if (!parsed.has_value()) {
+    return std::nullopt;
+  }
+  auto try_compose = [&](bool allow_network)
+      -> std::optional<std::vector<gui::Contour>> {
+    kage::Buhin scratch(&resources.glyphs);
+    for (const composer_ids::ComposerSlot& part : parsed->parts) {
+      EnsureComposerLeavesInBuhin(part, &scratch, allow_network);
+    }
+    const std::string data = gui::ComposeKageData(
+        parsed->op, parsed->parts, &scratch, &resources.layout,
+        &resources.subtrees);
+    if (data.empty()) {
+      return std::nullopt;
+    }
+    scratch.Set("mm-ids-candidate", data);
+    auto outlines =
+        gui::NamedGlyphOutlinesFromBuhin("mm-ids-candidate", scratch);
+    if (!outlines.has_value() || outlines->empty()) {
+      return std::nullopt;
+    }
+    return outlines;
+  };
+  if (auto outlines = try_compose(/*allow_network=*/false)) {
+    return outlines;
+  }
+  // Rare components: one GlyphWiki fetch (cached) then compose again.
+  return try_compose(/*allow_network=*/true);
+}
+
+// Cached outlines keyed by a Unicode character or a full IDS string.
+const std::optional<std::vector<gui::Contour>>* CachedKageOutlines(
+    absl::string_view key) {
+  if (key.empty()) {
+    return nullptr;
+  }
+  const gui::KageResources* resources = GetCandidateKageResources();
+  if (resources == nullptr) {
+    return nullptr;
+  }
+  static absl::Mutex mu;
+  static absl::flat_hash_map<std::string,
+                             std::optional<std::vector<gui::Contour>>>
+      cache;
+  absl::MutexLock lock(mu);
+  const std::string cache_key(key);
+  const auto it = cache.find(cache_key);
+  if (it != cache.end()) {
+    return &it->second;
+  }
+  std::optional<std::vector<gui::Contour>> outlines;
+  if (Util::CharsLen(key) == 1) {
+    outlines = ResolveMissingFontOutlines(cache_key, *resources);
+  } else {
+    outlines = ResolveIdsCompositionOutlines(cache_key, *resources);
+  }
+  auto [inserted, _] = cache.emplace(cache_key, std::move(outlines));
+  return &inserted->second;
+}
+
+bool HasKageOutlineForKey(absl::string_view key) {
+  const auto* outlines = CachedKageOutlines(key);
+  return outlines != nullptr && outlines->has_value() &&
+         !(*outlines)->empty();
+}
+
+bool HasKageOutlineForCharacter(absl::string_view ch) {
+  return Util::CharsLen(ch) == 1 && HasKageOutlineForKey(ch);
+}
+
+void PaintContourOutlines(QPainter* painter, const QRectF& cell,
+                          const std::vector<gui::Contour>& outlines,
+                          const QColor& fill) {
+  constexpr double kViewBox = 1000.0;
+  QPainterPath path;
+  for (const gui::Contour& contour : outlines) {
+    if (contour.empty()) {
+      continue;
+    }
+    path.moveTo(contour[0].first, contour[0].second);
+    for (size_t i = 1; i < contour.size(); ++i) {
+      path.lineTo(contour[i].first, contour[i].second);
+    }
+    path.closeSubpath();
+  }
+  if (path.isEmpty()) {
+    return;
+  }
+  // Left-aligned like ordinary candidate text; vertically centred in the row.
+  const double side = std::min(cell.width(), cell.height());
+  painter->save();
+  painter->setRenderHint(QPainter::Antialiasing, true);
+  painter->translate(cell.left(),
+                     cell.top() + (cell.height() - side) / 2.0);
+  painter->scale(side / kViewBox, side / kViewBox);
+  painter->fillPath(path, fill);
+  painter->restore();
+}
+
+void PaintKageOutlines(QPainter* painter, const QRectF& cell,
+                       absl::string_view key, const QColor& fill) {
+  const auto* outlines = CachedKageOutlines(key);
+  if (outlines == nullptr || !outlines->has_value()) {
+    return;
+  }
+  PaintContourOutlines(painter, cell, **outlines, fill);
 }
 
 void ApplySpecimenValueStyle(QTableWidgetItem* item,
@@ -348,8 +553,14 @@ namespace {
 // through `rounding` so the radius can follow the style.
 QWidget* CreateShadowFrame(QWidget* content, RoundedCornerEffect** rounding) {
   auto* frame = new QWidget();
+  // WindowDoesNotAcceptFocus / ShowWithoutActivating: on Wayland a plain
+  // ToolTip can still take focus from gedit. That FocusOut makes IBus
+  // PREEDIT_COMMIT the just-shown related/components preedit (and can leave
+  // a stray newline) while the character was already delete_surrounding'd.
   frame->setWindowFlags(Qt::ToolTip | Qt::FramelessWindowHint |
-                        Qt::WindowStaysOnTopHint);
+                        Qt::WindowStaysOnTopHint |
+                        Qt::WindowDoesNotAcceptFocus);
+  frame->setAttribute(Qt::WA_ShowWithoutActivating, true);
   // Without this the margin around the popup would paint as opaque
   // background instead of letting the shadow fade out over the desktop. It
   // needs a compositor; every platform we ship on composites unconditionally
@@ -363,10 +574,13 @@ QWidget* CreateShadowFrame(QWidget* content, RoundedCornerEffect** rounding) {
   // resize() was never clamped that way, so going through a layout would
   // silently inflate small candidate windows. Positioning the child by hand
   // keeps the size the caller asked for.
+  frame->setFocusPolicy(Qt::NoFocus);
   auto* holder = new QWidget(frame);
+  holder->setFocusPolicy(Qt::NoFocus);
   holder->move(ShadowMargin(), ShadowMargin());
   content->setParent(holder);
   content->move(0, 0);
+  content->setFocusPolicy(Qt::NoFocus);
 
   // The table is no longer a top-level window, so it has to paint its own
   // background rather than inheriting the (now transparent) window one.
@@ -458,34 +672,49 @@ void CandidateTableDelegate::paint(QPainter* painter,
   }
   QStyledItemDelegate::paint(painter, option, index);
 
-  // Ctrl+2 "drawing" row: draw the components of the IDS value in their cells
-  // of a square, white on the plate, as the exported SVG places them.
-  if (index.column() == 1 && index.data(kSvgIdsRole).isValid()) {
-    const auto preview = composer_ids::ParseIdsPreview(
-        index.data(kSvgIdsRole).toString().toStdString());
-    if (preview.has_value()) {
-      const double side = option.rect.height() - 2;
-      const double left = option.rect.left() + 4;
-      const double top = option.rect.top() + 1;
-      QFont font(QStringLiteral("Noto Serif CJK JP"));
-      font.setStyleHint(QFont::Serif);
-      font.setPixelSize(std::max(1, static_cast<int>(side * 0.88)));
-      painter->save();
-      painter->setRenderHint(QPainter::Antialiasing, true);
-      painter->setRenderHint(QPainter::TextAntialiasing, true);
-      painter->setFont(font);
-      painter->setPen(
-          qvariant_cast<QBrush>(index.data(Qt::ForegroundRole)).color());
-      for (size_t i = 0; i < preview->parts.size(); ++i) {
-        const composer_ids::PreviewCell& cell = preview->cells[i];
+  // Prussian-blue unencoded IDS row, or amber missing-font Unicode: paint a
+  // GlyphWiki/KAGE outline (same composition path as the character composer).
+  // IDS used to be a naive half/half font layout (亻|国); that is only a
+  // last-resort fallback when KAGE has no strokes for a component.
+  if (index.column() == 1 &&
+      (index.data(kSvgIdsRole).isValid() ||
+       index.data(kKageCharRole).isValid())) {
+    const QString key = index.data(kSvgIdsRole).isValid()
+                            ? index.data(kSvgIdsRole).toString()
+                            : index.data(kKageCharRole).toString();
+    const QColor fill =
+        qvariant_cast<QBrush>(index.data(Qt::ForegroundRole)).color();
+    const QRectF cell(option.rect.left() + 4, option.rect.top() + 1,
+                      option.rect.width() - 8, option.rect.height() - 2);
+    if (HasKageOutlineForKey(key.toStdString())) {
+      PaintKageOutlines(painter, cell, key.toStdString(), fill);
+    } else if (index.data(kSvgIdsRole).isValid()) {
+      const auto preview =
+          composer_ids::ParseIdsPreview(key.toStdString());
+      if (preview.has_value()) {
+        const double side = option.rect.height() - 2;
+        const double left = option.rect.left() + 4;
+        const double top = option.rect.top() + 1;
+        QFont font(QStringLiteral("Noto Serif CJK JP"));
+        font.setStyleHint(QFont::Serif);
+        font.setPixelSize(std::max(1, static_cast<int>(side * 0.88)));
         painter->save();
-        painter->translate(left + cell.x * side, top + cell.y * side);
-        painter->scale(cell.w, cell.h);
-        painter->drawText(QRectF(0, 0, side, side), Qt::AlignCenter,
-                          QString::fromStdString(preview->parts[i]));
+        painter->setRenderHint(QPainter::Antialiasing, true);
+        painter->setRenderHint(QPainter::TextAntialiasing, true);
+        painter->setFont(font);
+        painter->setPen(fill);
+        for (size_t i = 0; i < preview->parts.size(); ++i) {
+          const composer_ids::PreviewCell& part_cell = preview->cells[i];
+          painter->save();
+          painter->translate(left + part_cell.x * side,
+                             top + part_cell.y * side);
+          painter->scale(part_cell.w, part_cell.h);
+          painter->drawText(QRectF(0, 0, side, side), Qt::AlignCenter,
+                            QString::fromStdString(preview->parts[i]));
+          painter->restore();
+        }
         painter->restore();
       }
-      painter->restore();
     }
   }
 
@@ -961,14 +1190,35 @@ void FillCandidateWindow(const commands::CandidateWindow& candidate_window,
     // value
     auto item1 = new QTableWidgetItem(QStr(value));
     if (HasUnencodedSvgAttribute(candidate) &&
-        composer_ids::ParseIdsPreview(value).has_value()) {
-      // The layout is drawn, not the text: reserve one character's width.
+        composer_ids::ParseIdsToComposerTree(value).has_value()) {
+      // GlyphWiki/KAGE drawing (or IDS font fallback): reserve one cell.
       item1->setText(QString(QChar(0x3000)));
       item1->setData(kSvgIdsRole, QStr(value));
+      item1->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     }
     item1->setForeground(candidate_brush);
-    const specimen_kind::Kind kind = SpecimenKindForCandidate(
-        candidate, CandidateValueDrawable(table->font(), QStr(value)));
+    // Use the same ExtB-aware coverage as the composer. Checking only
+    // table->font() marked HanaMinB characters yellow even though gedit
+    // draws them — Qt does not auto-merge that family on Linux.
+    const QString value_q = QStr(value);
+    const bool drawable = CandidateGlyphCoverage().Drawable(value_q);
+    specimen_kind::Kind kind =
+        SpecimenKindForCandidate(candidate, drawable);
+    if (kind == specimen_kind::Kind::kPlain ||
+        (kind == specimen_kind::Kind::kMissingFont && drawable)) {
+      // Local fonts can draw it: show the real glyph (with ExtB families
+      // on the item font), not an amber plate.
+      kind = specimen_kind::Kind::kPlain;
+      item1->setFont(
+          CandidateGlyphCoverage().FontFor(table->font(), value_q));
+    } else if (kind == specimen_kind::Kind::kMissingFont &&
+               HasKageOutlineForCharacter(value)) {
+      // Truly missing: keep the amber plate and draw GlyphWiki/KAGE (or
+      // IDS-composed) outlines instead of tofu.
+      item1->setText(QString(QChar(0x3000)));
+      item1->setData(kKageCharRole, QStr(value));
+      item1->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    }
     item1->setData(kSpecimenKindRole, static_cast<int>(kind));
     table->setItem(i, 1, item1);
 

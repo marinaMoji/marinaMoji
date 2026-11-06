@@ -281,5 +281,30 @@ bool SurroundingTextUtil::SelectionEndsAtCursor(
   return true;
 }
 
+bool SurroundingTextUtil::SelectionStartsAtCursor(
+    absl::string_view surrounding_text, size_t cursor_pos,
+    absl::string_view needle, int32_t* deletion_offset,
+    int32_t* deletion_length) {
+  DCHECK(deletion_offset);
+  DCHECK(deletion_length);
+  const size_t needle_len = Util::CharsLen(needle);
+  if (needle_len == 0) {
+    return false;
+  }
+  const size_t surrounding_chars = Util::CharsLen(surrounding_text);
+  if (cursor_pos > surrounding_chars ||
+      cursor_pos + needle_len > surrounding_chars) {
+    return false;
+  }
+  std::string slice;
+  Util::Utf8SubString(surrounding_text, cursor_pos, needle_len, &slice);
+  if (slice != needle) {
+    return false;
+  }
+  *deletion_offset = 0;
+  *deletion_length = static_cast<int32_t>(needle_len);
+  return true;
+}
+
 }  // namespace ibus
 }  // namespace mozc

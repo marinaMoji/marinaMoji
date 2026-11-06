@@ -95,6 +95,15 @@ class SurroundingTextUtil {
                                     absl::string_view needle,
                                     int32_t* deletion_offset,
                                     int32_t* deletion_length);
+
+  // True when |needle| begins at |cursor_pos| (caret at the start of the
+  // selection — common on Wayland after a mouse highlight). Deletion uses
+  // offset 0 (forward from the caret).
+  static bool SelectionStartsAtCursor(absl::string_view surrounding_text,
+                                      size_t cursor_pos,
+                                      absl::string_view needle,
+                                      int32_t* deletion_offset,
+                                      int32_t* deletion_length);
 };
 
 }  // namespace ibus

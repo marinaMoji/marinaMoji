@@ -1,8 +1,9 @@
 // Copyright 2026 marinaMoji contributors.
 // SPDX-License-Identifier: BSD-3-Clause
 //
-// Which characters the composer can actually show, so that results and
-// variants the user could only see as empty boxes can be left out.
+// Which characters the composer (and Linux candidate window) can actually
+// show. Qt's automatic font fallback on Linux often misses ExtB fonts such as
+// HanaMinB that fontconfig/gedit find; we name those families ourselves.
 
 #ifndef MOZC_GUI_CHARACTER_COMPOSER_GLYPH_COVERAGE_H_
 #define MOZC_GUI_CHARACTER_COMPOSER_GLYPH_COVERAGE_H_
@@ -17,8 +18,17 @@
 namespace mozc {
 namespace gui {
 
+// Preferred CJK / ExtB families (HanaMin, Jigmo, Noto CJK, …), then any other
+// installed family whose name looks like Han. Only families present on this
+// machine are returned. Used so Qt lays text out in a font that actually has
+// the glyph — fontconfig would, but QTextLayout alone often will not.
+QStringList WideCoverageFamilies();
+
+// |font| with WideCoverageFamilies() appended after its own families.
+QFont WithWideCoverage(QFont font);
+
 // A character counts as drawable when, in this order:
-//  1. one of |font|'s own families has a glyph for it;
+//  1. one of |font|'s own families (after WithWideCoverage) has a glyph;
 //  2. another installed font made for Han text (Japanese first, then
 //     Traditional and Simplified Chinese, then Korean) has one. Qt's fallback
 //     may not reach that font, so Check() names it and FontFor() adds it;
@@ -35,6 +45,7 @@ class GlyphCoverage {
     QString extra_family;
   };
 
+  // Always widens |font| with WideCoverageFamilies() before checking.
   explicit GlyphCoverage(const QFont &font);
 
   // False when nothing draws even a common character (a machine with no CJK
@@ -45,7 +56,8 @@ class GlyphCoverage {
   Result Check(const QString &text);
   bool Drawable(const QString &text) { return Check(text).drawable; }
 
-  // |base| with the extra family Check(text) names, if any, appended.
+  // |base| with wide-coverage families and any extra family Check(text)
+  // names, so the glyph actually paints (not just avoids an amber plate).
   QFont FontFor(QFont base, const QString &text);
 
   // Case 3 alone: whether Qt lays |text| out in |font| without a missing

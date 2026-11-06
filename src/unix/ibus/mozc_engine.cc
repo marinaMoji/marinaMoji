@@ -102,6 +102,12 @@ const absl::Duration kSyncDataInterval = absl::Minutes(5);
 // rather than a genuine focus change. See odoriji_property_show_time_.
 const absl::Duration kOdorijiPropertyFocusOutGrace = absl::Milliseconds(500);
 
+// Ctrl+Shift+7/8: candidate window (or toolbar) can bounce focus for a beat
+// even with WindowDoesNotAcceptFocus. Suppress Hide/Revert so IBus does not
+// PREEDIT_COMMIT into a half-deleted buffer (stray newline).
+const absl::Duration kRelatedCandidatesFocusOutGrace =
+    absl::Milliseconds(600);
+
 // How long after the IME-menu "Odoriji" property is activated a FocusIn or
 // set_cursor_location is still taken as "focus came back from the menu", and
 // so as the cue to re-show the palette on the text surface. Longer than the
@@ -461,6 +467,32 @@ void MozcEngine::FocusIn(IbusEngineWrapper* engine) {
 void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
   LogLifecycle("focus_out", engine);
   engine_focused_ = false;
+
+  const absl::Duration since_odoriji_property =
+      Clock::GetAbslTime() - odoriji_property_show_time_;
+  const bool suppress_for_odoriji_menu =
+      since_odoriji_property < kOdorijiPropertyFocusOutGrace ||
+      (odoriji_show_pending_ &&
+       since_odoriji_property < kOdorijiPropertyReshowWindow);
+  const bool suppress_for_related_candidates =
+      related_candidates_show_time_ != absl::InfinitePast() &&
+      Clock::GetAbslTime() - related_candidates_show_time_ <
+          kRelatedCandidatesFocusOutGrace;
+
+  if (suppress_for_related_candidates) {
+    // Drop the IBus preedit *without* committing. Focus bounce after
+    // delete_surrounding(0) otherwise PREEDIT_COMMITs into the hole and can
+    // leave a stray newline; keeping the Mozc conversion + candidate list.
+    // Also skip the toolbar hide — that brief gear flash is what users see.
+    MaybeLogIbusDebug("engine.selection",
+                      "focus_out_suppress_related_candidates");
+    engine->ClearPreeditText();
+    engine->HidePreeditText();
+    property_handler_->ResetContentType(engine);
+    ReleaseTrackedModifiers(engine);
+    return;
+  }
+
   // Losing IME focus means the user clicked (or tabbed) into a different
   // text field or application -- treat that as "clicked outside" the
   // palette and close it, the same way Escape does. Left open, an unpinned
@@ -488,12 +520,6 @@ void MozcEngine::FocusOut(IbusEngineWrapper* engine) {
   // long as the palette is still waiting for focus (and a caret rect) to come
   // back from the menu -- on a slow compositor the bounce can outlast the
   // grace period below.
-  const absl::Duration since_odoriji_property =
-      Clock::GetAbslTime() - odoriji_property_show_time_;
-  const bool suppress_for_odoriji_menu =
-      since_odoriji_property < kOdorijiPropertyFocusOutGrace ||
-      (odoriji_show_pending_ &&
-       since_odoriji_property < kOdorijiPropertyReshowWindow);
   if (odoriji_show_pending_) {
     // Menu bounce (or genuine leave while pending): the timeout must not paint
     // while the panel may still own the caret rect.
@@ -1296,6 +1322,16 @@ bool MozcEngine::LaunchToolFromToolbar(const char* mode) {
 bool MozcEngine::UpdateAll(IbusEngineWrapper* engine,
                            const commands::Output& output) {
   UpdateDeletionRange(engine, output);
+  // Related/components: delete the selection only when committing a pick.
+  // Cancel (no result, no candidates) drops the deferred delete so Escape
+  // leaves the original character in place.
+  if (output.has_result()) {
+    ApplyPendingSelectionDeletion(engine);
+  } else if ((!output.has_candidate_window() ||
+              output.candidate_window().candidate_size() == 0) &&
+             !HasNonemptyPreedit(output)) {
+    ClearPendingSelectionDeletion();
+  }
   UpdateResult(engine, output);
   preedit_handler_->Update(engine, output);
 
@@ -1382,7 +1418,7 @@ bool MozcEngine::UpdateDeletionRange(IbusEngineWrapper* engine,
 }
 
 bool MozcEngine::UpdateResult(IbusEngineWrapper* engine,
-                              const commands::Output& output) const {
+                              const commands::Output& output) {
   if (!output.has_result()) {
     MOZC_VLOG(2) << "output doesn't contain result";
     return true;
@@ -1390,6 +1426,34 @@ bool MozcEngine::UpdateResult(IbusEngineWrapper* engine,
 
   engine->CommitText(output.result().value());
   return true;
+}
+
+void MozcEngine::ApplyPendingSelectionDeletion(IbusEngineWrapper* engine) {
+  if (!pending_selection_deletion_.active) {
+    return;
+  }
+  if (pending_selection_deletion_.can_delete &&
+      pending_selection_deletion_.offset <= 0 &&
+      pending_selection_deletion_.length > 0 &&
+      pending_selection_deletion_.offset +
+              pending_selection_deletion_.length >=
+          0 &&
+      engine->CheckCapabilities(IBUS_CAP_SURROUNDING_TEXT)) {
+    MaybeLogIbusDebug(
+        "engine.deletion",
+        "deferred_delete_surrounding offset=%d length=%d",
+        pending_selection_deletion_.offset,
+        pending_selection_deletion_.length);
+    engine->DeleteSurroundingText(pending_selection_deletion_.offset,
+                                  pending_selection_deletion_.length);
+  } else {
+    MaybeLogIbusDebug("engine.deletion", "deferred_delete_skipped");
+  }
+  ClearPendingSelectionDeletion();
+}
+
+void MozcEngine::ClearPendingSelectionDeletion() {
+  pending_selection_deletion_ = PendingSelectionDeletion();
 }
 
 bool MozcEngine::UpdateCandidateIDMapping(const commands::Output& output) {
@@ -1681,7 +1745,8 @@ bool MozcEngine::ExecuteCallback(IbusEngineWrapper* engine,
     case commands::SessionCommand::CONVERT_COMPONENTS: {
       // Surrounding selection is preferred, but on GNOME Wayland cursor and
       // anchor are often equal (ibus#2760). Fall back to primary selection,
-      // AT-SPI, then characters left of the caret.
+      // AT-SPI, then characters beside the caret (primary before caret so a
+      // caret at the start of a mouse highlight does not pick the neighbour).
       const bool surrounding_ok =
           GetSurroundingText(engine, &surrounding_text_info);
       resolved_selection = ResolveSelectionForCommand(
@@ -1715,19 +1780,40 @@ bool MozcEngine::ExecuteCallback(IbusEngineWrapper* engine,
     return false;
   }
 
+  const bool related_or_components =
+      callback_command.type() == commands::SessionCommand::CONVERT_RELATED ||
+      callback_command.type() == commands::SessionCommand::CONVERT_COMPONENTS;
   const bool replace_selection =
       callback_command.type() == commands::SessionCommand::CONVERT_REVERSE ||
-      ((callback_command.type() == commands::SessionCommand::CONVERT_RELATED ||
-        callback_command.type() ==
-            commands::SessionCommand::CONVERT_COMPONENTS) &&
+      (related_or_components &&
        (new_output.has_preedit() || new_output.has_candidate_window()));
+  // Preceding delete (offset < 0) is the well-tested path. Forward delete
+  // (offset == 0) is required when Wayland leaves the caret at the *start*
+  // of the highlight. Related/components defer the delete until a candidate
+  // is committed so Escape leaves the original character visible. CONVERT_
+  // REVERSE still deletes immediately (classic reconvert).
   if (replace_selection && resolved_selection.can_delete &&
       resolved_selection.deletion_offset <= 0 &&
       resolved_selection.deletion_length > 0) {
-    // Remove the text we are converting so the candidate can replace it.
-    commands::DeletionRange* range = new_output.mutable_deletion_range();
-    range->set_offset(resolved_selection.deletion_offset);
-    range->set_length(resolved_selection.deletion_length);
+    if (related_or_components) {
+      pending_selection_deletion_.active = true;
+      pending_selection_deletion_.can_delete = true;
+      pending_selection_deletion_.offset = resolved_selection.deletion_offset;
+      pending_selection_deletion_.length = resolved_selection.deletion_length;
+      MaybeLogIbusDebug(
+          "engine.deletion",
+          "defer_selection_delete offset=%d length=%d",
+          pending_selection_deletion_.offset,
+          pending_selection_deletion_.length);
+    } else {
+      commands::DeletionRange* range = new_output.mutable_deletion_range();
+      range->set_offset(resolved_selection.deletion_offset);
+      range->set_length(resolved_selection.deletion_length);
+    }
+  }
+
+  if (related_or_components) {
+    related_candidates_show_time_ = Clock::GetAbslTime();
   }
 
   // Here uses recursion of UpdateAll but it's okay because the converter

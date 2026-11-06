@@ -121,6 +121,11 @@
 
   NSRange replacementRange_;
 
+  // Related/components: selection stays visible until a candidate is
+  // committed. Stash the range here without setting |replacementRange_| so
+  // setMarkedText does not hide the original; commitText uses it to replace.
+  NSRange pendingRelatedReplacementRange_;
+
   /** |lastKeyDownTime_| and |lastKeyCode_| are used to handle double tapping. */
   NSTimeInterval lastKeyDownTime_;
   uint16_t lastKeyCode_;

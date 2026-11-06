@@ -6,6 +6,7 @@
 #include <QFontDatabase>
 #include <QGlyphRun>
 #include <QList>
+#include <QRegularExpression>
 #include <QTextLayout>
 #include <QTextLine>
 #include <algorithm>
@@ -44,8 +45,58 @@ std::vector<QRawFont> LoadRawFonts(const QStringList &families,
 
 }  // namespace
 
-GlyphCoverage::GlyphCoverage(const QFont &font) : font_(font) {
-  own_fonts_ = LoadRawFonts(FamiliesOf(font), nullptr);
+QStringList WideCoverageFamilies() {
+  static const QStringList families = [] {
+    // ExtB-capable fonts first. HanaMinB is not tagged as Japanese in
+    // fontconfig, so QFontDatabase::Japanese will not list it — Qt's default
+    // merging therefore skips it even when gedit/fontconfig would use it.
+    static const char *const kPreferred[] = {
+        "HanaMinB",          "HanaMinA",         "Jigmo3",
+        "Jigmo2",            "Jigmo",            "BabelStone Han",
+        "Plangothic P2",     "Plangothic P1",    "Noto Serif CJK JP",
+        "Noto Serif CJK SC", "Noto Serif CJK TC", "Noto Sans CJK JP",
+        "Source Han Serif",  "Source Han Sans",  "SimSun-ExtB",
+        "MingLiU-ExtB",      "MingLiU_HKSCS-ExtB", "PingFang HK",
+        "PingFang TC",       "PingFang SC",      "Songti SC",
+        "Songti TC",         "TW-Sung-Ext-B",    "TW-Sung",
+    };
+    const QStringList installed = QFontDatabase::families();
+    QStringList out;
+    for (const char *name : kPreferred) {
+      const QString family = QString::fromLatin1(name);
+      if (installed.contains(family, Qt::CaseInsensitive) &&
+          !out.contains(family)) {
+        out.append(family);
+      }
+    }
+    static const QRegularExpression kHanLike(
+        QStringLiteral(
+            "Hana|Jigmo|CJK|\\bHan\\b|Sung|Ming|Song|Plangothic|Heiti"),
+        QRegularExpression::CaseInsensitiveOption);
+    for (const QString &family : installed) {
+      if (!out.contains(family) && kHanLike.match(family).hasMatch()) {
+        out.append(family);
+      }
+    }
+    return out;
+  }();
+  return families;
+}
+
+QFont WithWideCoverage(QFont font) {
+  QStringList families = FamiliesOf(font);
+  for (const QString &family : WideCoverageFamilies()) {
+    if (!families.contains(family, Qt::CaseInsensitive)) {
+      families.append(family);
+    }
+  }
+  font.setFamilies(families);
+  return font;
+}
+
+GlyphCoverage::GlyphCoverage(const QFont &font)
+    : font_(WithWideCoverage(font)) {
+  own_fonts_ = LoadRawFonts(FamiliesOf(font_), nullptr);
   usable_ = Compute(QStringLiteral("木")).drawable;
 }
 
@@ -59,6 +110,7 @@ GlyphCoverage::Result GlyphCoverage::Check(const QString &text) {
 }
 
 QFont GlyphCoverage::FontFor(QFont base, const QString &text) {
+  base = WithWideCoverage(base);
   const Result result = Check(text);
   if (result.extra_family.isEmpty()) return base;
   QStringList families = FamiliesOf(base);
@@ -78,7 +130,8 @@ bool GlyphCoverage::QtDraws(const QFont &font, const QString &text) {
   if (!line.isValid()) return false;
   // Font merging puts each glyph in the first font, of |font|'s families and
   // then the system's fallbacks, that has it. Glyph 0 (.notdef) is what is
-  // left when none does.
+  // left when none does. On Linux, "system fallbacks" often miss ExtB fonts
+  // that are not in |font|'s family list — hence WithWideCoverage.
   bool any = false;
   for (const QGlyphRun &run : layout.glyphRuns()) {
     for (const quint32 glyph : run.glyphIndexes()) {
@@ -131,6 +184,9 @@ void GlyphCoverage::LoadExtraFonts() {
   extras_loaded_ = true;
   const QStringList own = FamiliesOf(font_);
   QStringList candidates;
+  // Writing-system lists miss some ExtB fonts (e.g. HanaMinB); those are
+  // already in |font_| via WideCoverageFamilies. Still scan JP/ZH/KO for
+  // anything else installed.
   for (const QFontDatabase::WritingSystem system :
        {QFontDatabase::Japanese, QFontDatabase::TraditionalChinese,
         QFontDatabase::SimplifiedChinese, QFontDatabase::Korean}) {

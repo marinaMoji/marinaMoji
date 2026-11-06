@@ -10,21 +10,78 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Ctrl+Shift+7/8: keep the selection until you pick a candidate
+
+- Related and components no longer delete the selected character when the
+  palette opens. Escape dismisses the list and leaves the original in place.
+  Choosing a candidate deletes and replaces only then. (Reconvert / 再変換
+  still removes the selection immediately, as before.)
+
+### Candidate window: GlyphWiki drawings for unencoded IDS (Ctrl+2)
+
+- Prussian-blue “SVG” rows used a naive half/half font layout (亻|国). They now
+  use the same GlyphWiki/KAGE composition as the character composer
+  (`ComposeKageData`), left-aligned like ordinary candidate text. The old
+  font preview remains only if a component has no KAGE strokes.
+
+### Candidate window: left-align GlyphWiki drawings
+
+- Amber-plate KAGE drawings sit on the left of the value cell, like ordinary
+  candidate text (they were centred).
+
+### Linux Wayland: Ctrl+Shift+7/8 no longer deletes then inserts a newline
+
+- Forward-delete (`delete_surrounding` offset 0) plus a focus-stealing
+  candidate window made IBus `PREEDIT_COMMIT` into the hole (often a stray
+  newline) while the toolbar gear flashed. The candidate popup now refuses
+  focus (`WindowDoesNotAcceptFocus`), and a short FocusOut grace keeps the
+  conversion alive without committing the preedit.
+
+### Linux Wayland: Ctrl+Shift+7/8 used the neighbour / only worked after newline
+
+- After a mouse selection, Wayland often reports no range and leaves the caret
+  at the *start* of the highlight (select 際 → caret between 國 and 際). The
+  caret fallback preferred “character before the caret,” so Ctrl+Shift+7
+  operated on 國 and Ctrl+Shift+8 on only the last component of a multi-char
+  selection. Related/components now prefer the character(s) *after* the caret
+  (end-of-line still falls back to “before,” which is why a line-break seemed
+  to fix it). Primary/AT-SPI are still tried first; a primary that starts at
+  the caret is accepted.
+
+### Linux: follow installed ExtB fonts (stop false yellow plates)
+
+- Qt’s default font merging on Linux often skips ExtB fonts such as
+  **HanaMinB** even when gedit/fontconfig draws the character. The candidate
+  window now uses the same `GlyphCoverage` / wide-coverage family list as the
+  composer, and sets that font on the cell so the real glyph paints instead of
+  an amber plate.
+
+### Character composer: specimen stays inside its plate
+
+- The middle specimen is a fixed `kPreviewLogical` square; Unicode face and
+  SVG/KAGE previews are sized for that box (no stylesheet padding that shrank
+  the content rect and let the glyph spill out).
+
+### Candidate window: GlyphWiki drawings for missing-font rows (Linux/Qt)
+
+- Yellow “tofu” candidates (Unicode the fonts cannot draw) keep the **amber
+  plate** and draw a GlyphWiki/KAGE outline in the cell when possible:
+  bundled `kage_glyphs.tsv`, on-disk GlyphWiki cache, IDS composition from
+  parts, then a GlyphWiki network fetch (cached under the user profile; the
+  first hit for a new character can take a couple of seconds). Prussian blue
+  remains only for unencoded IDS drawings. `mozc_renderer` links `//kage`
+  (GPL-3.0).
+
 ### Linux Wayland: related / components / reconvert selection
 
 - On GNOME Wayland, IBus surrounding text often reports no selection
   (`cursor == anchor`, [ibus#2760](https://github.com/ibus/ibus/issues/2760)),
   so Ctrl+Shift+7/8 and reconvert silently did nothing in gedit even though
   Ctrl+Shift+1–6 worked. The ibus engine now resolves text in order:
-  surrounding selection → primary selection (`wl-paste -p`) → AT-SPI focused
-  selection → characters/word left of the caret. Primary/AT-SPI are accepted
-  only when they match the surrounding text at the caret (avoids a stale
-  primary). Deletion uses a negative surrounding-text offset when the match is
-  at the caret.   Runtime dependency: `wl-clipboard` (`wl-paste -p` for the
-  primary fallback); declared in the `.deb` / Arch packages and in the Linux
-  install docs. `wl-paste` is run under `timeout 0.2s` so a missing primary
-  cannot freeze the engine; when surrounding text is present the caret
-  fallback runs before primary/AT-SPI. Debug tag: `engine.selection`.
+  surrounding selection → primary (`wl-paste -p`) → AT-SPI → caret fallback.
+  Primary/AT-SPI must match surrounding text ending *or* starting at the
+  caret (stale primary rejected). Runtime dependency: `wl-clipboard`.
+  `wl-paste` runs under `timeout 0.2s`. Debug tag: `engine.selection`.
 
 ### Character composer / GlyphWiki comparison
 
@@ -145,7 +202,9 @@ Everything in 0.0.20 plus the changes below.
   no-op. When the default layout has no Unicode character, a Prussian-blue
   `UNENCODED_SVG` candidate is appended; committing it writes the drawing
   via the composer SVG hand-off (profile file + ONLYOFFICE plugin) instead
-  of inserting IDS text, and the original selection is put back unchanged
+  of inserting IDS text; with keep-until-commit the selection was never
+  removed, so Escape/SVG hand-off simply dismisses (older builds put the
+  original back unchanged after deleting on open)
   (the client removes it when the palette opens, so without this choosing
   the drawing would have deleted the user's text). The drawing is made of
   text glyphs in a serif font stack, so it depends on installed fonts;

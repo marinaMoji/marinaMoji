@@ -8782,6 +8782,7 @@ TEST_F(SessionTest, ConvertRelated) {
     EXPECT_EQ(command.output().candidate_window().candidate(0).value(), "学");
     EXPECT_EQ(command.output().candidate_window().candidate(1).value(), "學");
     EXPECT_EQ(command.output().candidate_window().candidate(2).value(), "斈");
+    EXPECT_FALSE(command.output().has_preedit());
   }
 
   {
@@ -8854,7 +8855,7 @@ TEST_F(SessionTest, ConvertComponents) {
   composer_ids::IdsTable::ClearDefaultForTesting();
 }
 
-TEST_F(SessionTest, ConvertComponentsSvgCandidateRestoresSelectionOnCommit) {
+TEST_F(SessionTest, ConvertComponentsSvgCandidateLeavesSelectionOnCommit) {
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
 
@@ -8877,15 +8878,50 @@ TEST_F(SessionTest, ConvertComponentsSvgCandidateRestoresSelectionOnCommit) {
   ASSERT_TRUE(command.output().has_candidate_window());
   ASSERT_EQ(command.output().candidate_window().candidate_size(), 1);
   EXPECT_EQ(command.output().candidate_window().candidate(0).value(), "⿰木目");
+  // Selection stays in the app: no replacing preedit while the palette is open.
+  EXPECT_FALSE(command.output().has_preedit());
 
-  // Choosing the drawing must not delete the selection the client removed
-  // when the palette opened: the original text comes back.
+  // Choosing the drawing inserts nothing; the original selection was never
+  // removed, so there is no result to put back.
   command.Clear();
   EXPECT_TRUE(SendKey("Enter", &session, &command));
-  EXPECT_TRUE(command.output().has_result());
-  EXPECT_EQ(command.output().result().value(), "木目");
+  EXPECT_FALSE(command.output().has_result());
+  EXPECT_FALSE(command.output().has_candidate_window());
 
   composer_ids::IdsTable::ClearDefaultForTesting();
+}
+
+TEST_F(SessionTest, EscapeFromConvertRelatedLeavesSelection) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+  EXPECT_CALL(*converter, ResetConversion(_))
+      .Times(::testing::AtLeast(1));
+
+  constexpr char kTsv[] =
+      "学\tU+5B66\t8\t\t\t\t\t\t學 斈\t\t學\t\n";
+  auto table = composer_ids::CharInfoTable::FromTsv(kTsv);
+  ASSERT_TRUE(table.ok());
+  composer_ids::CharInfoTable::SetDefaultForTesting(
+      std::make_unique<composer_ids::CharInfoTable>(*std::move(table)));
+
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+  commands::Command command;
+  command.mutable_input()->set_type(commands::Input::SEND_COMMAND);
+  command.mutable_input()->mutable_command()->set_type(
+      commands::SessionCommand::CONVERT_RELATED);
+  command.mutable_input()->mutable_command()->set_text("学");
+  EXPECT_TRUE(session.SendCommand(&command));
+  ASSERT_TRUE(command.output().has_candidate_window());
+  EXPECT_FALSE(command.output().has_preedit());
+
+  // Escape dismisses without committing source_text (would duplicate).
+  SendKey("ESC", &session, &command);
+  EXPECT_FALSE(command.output().has_result());
+  EXPECT_FALSE(command.output().has_candidate_window());
+  EXPECT_FALSE(command.output().has_preedit());
+
+  composer_ids::CharInfoTable::ClearDefaultForTesting();
 }
 
 TEST_F(SessionTest, ConvertReverseFails) {

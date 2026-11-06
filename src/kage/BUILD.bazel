@@ -30,7 +30,11 @@ mozc_cc_library(
         "kage_engine.h",
         "kage_polygon.h",
     ],
-    visibility = ["//gui/character_composer:__pkg__"],
+    visibility = [
+        "//gui/character_composer:__pkg__",
+        # Qt candidate window draws missing-font rows from bundled KAGE data.
+        "//renderer/qt:__pkg__",
+    ],
     deps = [
         "//base:file_util",
         "@com_google_absl//absl/container:flat_hash_map",
