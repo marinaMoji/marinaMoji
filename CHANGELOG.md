@@ -115,7 +115,13 @@ changed and, where it isn't obvious, why.
   nested mean IoU rose from ~0.38 to ~0.48 (侃 0.33→0.90, 侯 0.46→0.79); remaining
   weak spots are deep nests GlyphWiki draws as stroke data or unusual ops.
 
-### After 0.0.21-rc2
+### Release candidate 0.0.21-rc3
+
+Everything in 0.0.21-rc2 plus:
+
+- **CI caching:** the Qt build is cached as soon as it is built (a cancelled
+  run no longer discards it), and the Windows Bazel caches no longer overflow
+  the repository's cache limit.
 
 - **Candidate windows**: the missing-font check on macOS now asks CoreText for
   a fallback font per character, so characters any installed font can draw are
