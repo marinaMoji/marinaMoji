@@ -46,9 +46,13 @@ jobs:
 
       # Qt is compiled from source (build_qt.py). Cache the installed result so it
       # is only rebuilt when the build script or the pinned Qt version changes.
+      # Restore and save are separate steps so the save happens right after
+      # the build. The combined action only saves in a post step, after every
+      # later step has succeeded, so a cancelled or failed run threw the
+      # 15-20 minute Qt build away.
       - name: Restore Qt build cache
         id: qt_cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: src/third_party/qt
           key: qt-${{ runner.os }}-${{ runner.arch }}-native-${{ hashFiles('src/build_tools/build_qt.py', 'src/build_tools/update_deps.py') }}
@@ -60,6 +64,13 @@ jobs:
         run: |
           python build_tools/build_qt.py --release --confirm_license
 
+      - name: Save Qt build cache
+        if: steps.qt_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: src/third_party/qt
+          key: ${{ steps.qt_cache.outputs.cache-primary-key }}
+
       # This is needed only for GitHub Actions where free disk space is quite limited.
       - name: Delete Qt src to save disk space
         shell: cmd
@@ -67,13 +78,14 @@ jobs:
         run: |
           if exist third_party\qt_src rmdir third_party\qt_src /s /q
 
-      # Bazel's disk cache, so a run only compiles what changed. Each job saves
-      # under its own key (two jobs saving one key would lose one of the
-      # caches) and restores from the newest cache of any job on the same
-      # architecture, so the build and test jobs warm each other for the
-      # actions their flags share.
+      # Bazel's disk cache, so a run only compiles what changed. Every job
+      # restores the newest cache for its architecture, but only the test job
+      # saves one, and only on master. The key includes the commit, so every
+      # save is a new multi-gigabyte entry; saving from all four jobs on every
+      # push overflowed the repository's 10 GB cache limit and evicted the Qt
+      # caches. Older entries are pruned after each save.
       - name: Restore Bazel disk cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: .bazel_disk_cache
           key: bazel-disk-${{ runner.os }}-${{ runner.arch }}-build_on_x64-${{ github.sha }}
@@ -123,9 +135,13 @@ jobs:
 
       # Qt is compiled from source (build_qt.py). Cache the installed result so it
       # is only rebuilt when the build script or the pinned Qt version changes.
+      # Restore and save are separate steps so the save happens right after
+      # the build. The combined action only saves in a post step, after every
+      # later step has succeeded, so a cancelled or failed run threw the
+      # 15-20 minute Qt build away.
       - name: Restore Qt build cache
         id: qt_cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: src/third_party/qt
           key: qt-${{ runner.os }}-${{ runner.arch }}-native-${{ hashFiles('src/build_tools/build_qt.py', 'src/build_tools/update_deps.py') }}
@@ -137,6 +153,13 @@ jobs:
         run: |
           python build_tools/build_qt.py --release --confirm_license
 
+      - name: Save Qt build cache
+        if: steps.qt_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: src/third_party/qt
+          key: ${{ steps.qt_cache.outputs.cache-primary-key }}
+
       # This is needed only for GitHub Actions where free disk space is quite limited.
       - name: Delete Qt src to save disk space
         shell: cmd
@@ -144,13 +167,14 @@ jobs:
         run: |
           if exist third_party\qt_src rmdir third_party\qt_src /s /q
 
-      # Bazel's disk cache, so a run only compiles what changed. Each job saves
-      # under its own key (two jobs saving one key would lose one of the
-      # caches) and restores from the newest cache of any job on the same
-      # architecture, so the build and test jobs warm each other for the
-      # actions their flags share.
+      # Bazel's disk cache, so a run only compiles what changed. Every job
+      # restores the newest cache for its architecture, but only the test job
+      # saves one, and only on master. The key includes the commit, so every
+      # save is a new multi-gigabyte entry; saving from all four jobs on every
+      # push overflowed the repository's 10 GB cache limit and evicted the Qt
+      # caches. Older entries are pruned after each save.
       - name: Restore Bazel disk cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: .bazel_disk_cache
           key: bazel-disk-${{ runner.os }}-${{ runner.arch }}-build_on_arm64-${{ github.sha }}
@@ -176,6 +200,9 @@ jobs:
   test_on_x64:
     # https://github.com/actions/runner-images/blob/main/images/windows/Windows2025-Readme.md
     runs-on: windows-2025
+    permissions:
+      contents: read
+      actions: write
     timeout-minutes: 120
 
     steps:
@@ -198,13 +225,14 @@ jobs:
         run: |
           python build_tools/update_deps.py
 
-      # Bazel's disk cache, so a run only compiles what changed. Each job saves
-      # under its own key (two jobs saving one key would lose one of the
-      # caches) and restores from the newest cache of any job on the same
-      # architecture, so the build and test jobs warm each other for the
-      # actions their flags share.
+      # Bazel's disk cache, so a run only compiles what changed. Every job
+      # restores the newest cache for its architecture, but only the test job
+      # saves one, and only on master. The key includes the commit, so every
+      # save is a new multi-gigabyte entry; saving from all four jobs on every
+      # push overflowed the repository's 10 GB cache limit and evicted the Qt
+      # caches. Older entries are pruned after each save.
       - name: Restore Bazel disk cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: .bazel_disk_cache
           key: bazel-disk-${{ runner.os }}-${{ runner.arch }}-test_on_x64-${{ github.sha }}
@@ -220,6 +248,26 @@ jobs:
         run: |
           rem This job does not build Qt, so skip the Qt-based character composer.
           bazelisk test -c dbg --config x86_simd --test_output=errors --build_tests_only --build_event_json_file=bep.jsonl --disk_cache=%GITHUB_WORKSPACE%\.bazel_disk_cache -- ... -//gui/character_composer/...
+
+      - name: Save Bazel disk cache
+        if: success() && github.ref == 'refs/heads/master'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .bazel_disk_cache
+          key: bazel-disk-${{ runner.os }}-${{ runner.arch }}-test_on_x64-${{ github.sha }}
+
+      # Keep only the newest cache of this job; the rest are dead weight
+      # against the repository's cache limit.
+      - name: Prune older Bazel disk caches
+        if: success() && github.ref == 'refs/heads/master'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          prefix="bazel-disk-${{ runner.os }}-${{ runner.arch }}-test_on_x64-"
+          gh cache list --key "$prefix" --sort created_at --order desc --limit 100 --json id --jq '.[1:][].id' |
+            while read -r id; do gh cache delete "$id" || true; done
 
       - name: Collect failing test logs
         if: failure()
@@ -239,6 +287,9 @@ jobs:
   test_on_arm64:
     # https://github.com/actions/runner-images/blob/main/images/windows/Windows11-Arm64-Readme.md
     runs-on: windows-11-arm
+    permissions:
+      contents: read
+      actions: write
     timeout-minutes: 120
 
     steps:
@@ -261,13 +312,14 @@ jobs:
         run: |
           python build_tools/update_deps.py
 
-      # Bazel's disk cache, so a run only compiles what changed. Each job saves
-      # under its own key (two jobs saving one key would lose one of the
-      # caches) and restores from the newest cache of any job on the same
-      # architecture, so the build and test jobs warm each other for the
-      # actions their flags share.
+      # Bazel's disk cache, so a run only compiles what changed. Every job
+      # restores the newest cache for its architecture, but only the test job
+      # saves one, and only on master. The key includes the commit, so every
+      # save is a new multi-gigabyte entry; saving from all four jobs on every
+      # push overflowed the repository's 10 GB cache limit and evicted the Qt
+      # caches. Older entries are pruned after each save.
       - name: Restore Bazel disk cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: .bazel_disk_cache
           key: bazel-disk-${{ runner.os }}-${{ runner.arch }}-test_on_arm64-${{ github.sha }}
@@ -283,6 +335,26 @@ jobs:
         run: |
           rem This job does not build Qt, so skip the Qt-based character composer.
           bazelisk test -c dbg --test_output=errors --build_tests_only --build_event_json_file=bep.jsonl --disk_cache=%GITHUB_WORKSPACE%\.bazel_disk_cache -- ... -//gui/character_composer/...
+
+      - name: Save Bazel disk cache
+        if: success() && github.ref == 'refs/heads/master'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: .bazel_disk_cache
+          key: bazel-disk-${{ runner.os }}-${{ runner.arch }}-test_on_arm64-${{ github.sha }}
+
+      # Keep only the newest cache of this job; the rest are dead weight
+      # against the repository's cache limit.
+      - name: Prune older Bazel disk caches
+        if: success() && github.ref == 'refs/heads/master'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          prefix="bazel-disk-${{ runner.os }}-${{ runner.arch }}-test_on_arm64-"
+          gh cache list --key "$prefix" --sort created_at --order desc --limit 100 --json id --jq '.[1:][].id' |
+            while read -r id; do gh cache delete "$id" || true; done
 
       - name: Collect failing test logs
         if: failure()
