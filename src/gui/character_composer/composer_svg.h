@@ -46,7 +46,8 @@ std::vector<PlacedGlyph> ComposerGlyphs(
 std::string RenderComposerSvg(std::string_view op,
                               const std::vector<composer_ids::ComposerSlot> &parts,
                               int view_box = 1000,
-                              const KageResources *kage = nullptr);
+                              const KageResources *kage = nullptr,
+                              const LayoutAdjustments *adjust = nullptr);
 
 }  // namespace gui
 }  // namespace mozc

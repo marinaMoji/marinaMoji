@@ -46,6 +46,48 @@ TEST(ComposerKageTest, PlacesPartsInTheirBoxes) {
             "99:0:0:0:4:200:130:u5973:0:0:0$99:0:0:0:50:200:195:u5fc3:0:0:0");
 }
 
+TEST(ComposerKageTest, AdjustedBoxReplacesTheAutomaticOne) {
+  kage::Buhin nested;
+  LayoutAdjustments adjust;
+  adjust[{1}] = {100, 20, 190, 180};
+  EXPECT_EQ(ComposeKageData("⿰", Parts("木", "巻"), &nested, nullptr, nullptr,
+                            true, &adjust),
+            "99:0:0:2:0:167:200:u6728:0:0:0$99:0:0:100:20:190:180:u5dfb:0:0:0");
+}
+
+TEST(ComposerKageTest, ReportsWhereEachComponentIsDrawn) {
+  const KageResources resources = LoadGlyphs();
+  LayoutAdjustments adjust;
+  adjust[{1}] = {120, 20, 190, 180};
+  const std::vector<PlacedBox> boxes =
+      ComposerBoxes("⿰", Parts("木", "巻"), resources, &adjust);
+  ASSERT_EQ(boxes.size(), 2);
+  EXPECT_EQ(boxes[0].path, composer_ids::SlotPath({0}));
+  EXPECT_EQ(boxes[0].text, "木");
+  EXPECT_EQ(boxes[0].box.left, 2);
+  EXPECT_GE(boxes[1].auto_box.left, 49);  // the strokes' overlap may push it
+  EXPECT_LT(boxes[1].auto_box.left, 120);
+  EXPECT_EQ(boxes[1].box.left, 120);
+  EXPECT_EQ(boxes[1].box.bottom, 180);
+  EXPECT_EQ(boxes[1].parent.right, 200);
+}
+
+TEST(ComposerKageTest, ReportsNestedComponentsInTheWholeGlyphsSpace) {
+  const KageResources resources = LoadGlyphs();
+  // ⿰木⿱女心: the right box is the nested layout's frame.
+  const std::vector<ComposerSlot> parts = {
+      ComposerSlot::Leaf("木"),
+      ComposerSlot::Nested("⿱", Parts("女", "心"))};
+  const std::vector<PlacedBox> boxes = ComposerBoxes("⿰", parts, resources);
+  ASSERT_EQ(boxes.size(), 3);
+  EXPECT_EQ(boxes[1].path, composer_ids::SlotPath({1, 0}));
+  EXPECT_EQ(boxes[2].path, composer_ids::SlotPath({1, 1}));
+  // The nested layout's own box, in the whole glyph's space.
+  EXPECT_GE(boxes[1].parent.left, 49);
+  EXPECT_LE(boxes[1].parent.right, 200);
+  EXPECT_LT(boxes[1].parent.left, boxes[1].parent.right);
+}
+
 TEST(ComposerKageTest, ParsesTheLayoutTable) {
   const ComposerLayout layout = ComposerLayout::Parse(
       "# comment\n"

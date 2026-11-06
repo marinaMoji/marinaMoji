@@ -422,6 +422,10 @@ class CharacterComposerDialog : public QDialog {
   void ApplyTheme();
   // Recompute composition lookup (found_ / pending_svg_) from LayoutEditor.
   void UpdateCompositionState();
+  // Opens the hand-adjustment window for the current composition.
+  void OnAdjustLayout();
+  // The user's boxes while they still fit the composition; null otherwise.
+  const LayoutAdjustments *ActiveAdjustments() const;
   // Refresh specimen, Character Information, and Copy/Insert from active source.
   void RefreshActiveView();
   void ActivateComposition();
@@ -496,6 +500,11 @@ class CharacterComposerDialog : public QDialog {
   std::vector<std::string> unavailable_cache_;
   QPushButton *insert_button_ = nullptr;
   QPushButton *copy_button_ = nullptr;
+  QPushButton *adjust_button_ = nullptr;
+  // Components moved or resized by hand, for the IDS in |adjustments_ids_|
+  // (dropped as soon as the composition changes).
+  LayoutAdjustments adjustments_;
+  std::string adjustments_ids_;
   QPushButton *clear_button_ = nullptr;
   QPushButton *close_button_ = nullptr;
   QPushButton *break_button_ = nullptr;

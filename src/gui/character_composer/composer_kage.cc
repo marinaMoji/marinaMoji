@@ -27,6 +27,7 @@ namespace gui {
 namespace {
 
 using composer_ids::ComposerSlot;
+using composer_ids::SlotPath;
 
 struct Box {
   int left, top, right, bottom;
@@ -390,21 +391,58 @@ std::string ReadyMadeNestedGlyph(const ComposerSlot &slot, const kage::Buhin &gl
   return {};
 }
 
+// A box given in the space of a cell (0..200) as seen from the whole glyph.
+BoxRect ToFrame(const BoxRect &frame, const BoxRect &box) {
+  const double sx = (frame.right - frame.left) / 200.0;
+  const double sy = (frame.bottom - frame.top) / 200.0;
+  return {frame.left + box.left * sx, frame.top + box.top * sy,
+          frame.left + box.right * sx, frame.top + box.bottom * sy};
+}
+
+// |adjust| holds the user's boxes for slots of this layout (keys relative to
+// it), |frame| is where this layout sits in the whole glyph's 0..200 space and
+// |prefix| its path; when |report| is set, every slot that is drawn as one
+// piece (a leaf, or a ready-made nested glyph) is listed there.
 std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &parts,
                           kage::Buhin *nested, const ComposerLayout *layout,
                           const ComposerSubtrees *subtrees,
-                          bool limit_ink_overlap) {
+                          bool limit_ink_overlap,
+                          const LayoutAdjustments *adjust = nullptr,
+                          const BoxRect &frame = {0, 0, 200, 200},
+                          const SlotPath &prefix = {},
+                          std::vector<PlacedBox> *report = nullptr) {
   const std::vector<Box> boxes = BoxesFor(op);
   struct Placement {
     std::string name;
     Box box;
+    bool piece = true;  // drawn as one glyph (not a layout composed here)
+    std::string text;
   };
   std::vector<Placement> placements;
   placements.reserve(parts.size());
+  // The user's boxes: [i] for slot i itself, deeper ones for its inside. They
+  // are applied last, so they win over every automatic adjustment below.
+  std::vector<LayoutAdjustments> inner(parts.size());
+  std::vector<const BoxRect *> own(parts.size(), nullptr);
+  if (adjust != nullptr) {
+    for (const auto &[path, box] : *adjust) {
+      if (path.empty() || path[0] < 0 || path[0] >= static_cast<int>(parts.size())) {
+        continue;
+      }
+      if (path.size() == 1) {
+        own[path[0]] = &box;
+      } else {
+        inner[path[0]][SlotPath(path.begin() + 1, path.end())] = box;
+      }
+    }
+  }
   for (size_t i = 0; i < parts.size(); ++i) {
     Box box = boxes[std::min(i, boxes.size() - 1)];
     std::string name;
+    bool piece = true;
+    std::string text;
     if (parts[i].kind == ComposerSlot::Kind::kLeaf) {
+      text = parts[i].input;
       name = GlyphName(parts[i].input);
       if (layout != nullptr) {
         const std::string sibling = SiblingLeaf(parts, i);
@@ -428,19 +466,20 @@ std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &
     } else {
       name = ReadyMadeNestedGlyph(parts[i], *nested, subtrees);
       if (name.empty()) {
-        const std::string inner = ComposeLayout(parts[i].op, parts[i].parts,
-                                                nested, layout, subtrees,
-                                                limit_ink_overlap);
-        if (inner.empty()) return {};
+        const std::string inner_data = ComposeLayout(
+            parts[i].op, parts[i].parts, nested, layout, subtrees,
+            limit_ink_overlap, &inner[i]);
+        if (inner_data.empty()) return {};
         name = absl::StrCat("__nested", nested->size());
-        nested->Set(name, inner);
+        nested->Set(name, inner_data);
+        piece = false;
       }
       // Nested slots have no leaf character in the layout table. Keep the
       // operator default box (BoxesFor); DefaultFor's median can be a near-
       // full frame that then fights HarmonizeHorizontalOverlap.
     }
     if (name.empty()) return {};
-    placements.push_back({std::move(name), box});
+    placements.push_back({std::move(name), box, piece, std::move(text)});
   }
   if (op == "⿰" && placements.size() >= 2) {
     HarmonizeHorizontalOverlap(&placements[0].box, &placements[1].box);
@@ -457,6 +496,46 @@ std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &
   if (limit_ink_overlap && (horizontal || op == "⿱" || op == "⿳")) {
     for (size_t i = 0; i + 1 < placements.size(); ++i) {
       LimitInkOverlap(horizontal, *nested, &placements[i], &placements[i + 1]);
+    }
+  }
+  // Automatic boxes are final here; report them, then let the user's win.
+  std::vector<BoxRect> auto_boxes;
+  for (const Placement &p : placements) {
+    auto_boxes.push_back({double(p.box.left), double(p.box.top),
+                          double(p.box.right), double(p.box.bottom)});
+  }
+  for (size_t i = 0; i < placements.size(); ++i) {
+    if (own[i] == nullptr) continue;
+    placements[i].box = {static_cast<int>(std::lround(own[i]->left)),
+                         static_cast<int>(std::lround(own[i]->top)),
+                         static_cast<int>(std::lround(own[i]->right)),
+                         static_cast<int>(std::lround(own[i]->bottom))};
+  }
+  if (report != nullptr) {
+    for (size_t i = 0; i < placements.size(); ++i) {
+      if (placements[i].piece) {
+        PlacedBox pb;
+        pb.path = prefix;
+        pb.path.push_back(static_cast<int>(i));
+        pb.text = placements[i].text;
+        pb.auto_box = auto_boxes[i];
+        const Box &b = placements[i].box;
+        pb.box = {double(b.left), double(b.top), double(b.right), double(b.bottom)};
+        pb.parent = frame;
+        report->push_back(std::move(pb));
+      } else {
+        // A composed nested layout: its pieces are the handles. Compose it
+        // again against its final box to learn where they sit.
+        SlotPath child_prefix = prefix;
+        child_prefix.push_back(static_cast<int>(i));
+        const Box &b = placements[i].box;
+        kage::Buhin scratch(nested);
+        ComposeLayout(parts[i].op, parts[i].parts, &scratch, layout, subtrees,
+                      limit_ink_overlap, &inner[i],
+                      ToFrame(frame, {double(b.left), double(b.top),
+                                      double(b.right), double(b.bottom)}),
+                      child_prefix, report);
+      }
     }
   }
   std::vector<std::string> records;
@@ -591,19 +670,33 @@ std::string ComposeKageData(std::string_view op,
                             const std::vector<ComposerSlot> &parts,
                             kage::Buhin *nested, const ComposerLayout *layout,
                             const ComposerSubtrees *subtrees,
-                            bool limit_ink_overlap) {
+                            bool limit_ink_overlap,
+                            const LayoutAdjustments *adjust) {
   if (!composer_ids::ComposeIds(op, parts)) return {};
-  return ComposeLayout(op, parts, nested, layout, subtrees, limit_ink_overlap);
+  return ComposeLayout(op, parts, nested, layout, subtrees, limit_ink_overlap,
+                       adjust);
+}
+
+std::vector<PlacedBox> ComposerBoxes(
+    std::string_view op, const std::vector<ComposerSlot> &parts,
+    const KageResources &resources, const LayoutAdjustments *adjust) {
+  std::vector<PlacedBox> boxes;
+  if (!composer_ids::ComposeIds(op, parts)) return boxes;
+  kage::Buhin scratch(&resources.glyphs);
+  ComposeLayout(op, parts, &scratch, &resources.layout, &resources.subtrees,
+                /*limit_ink_overlap=*/true, adjust, {0, 0, 200, 200}, {}, &boxes);
+  return boxes;
 }
 
 std::optional<std::vector<Contour>> ComposerOutlines(
     std::string_view op, const std::vector<ComposerSlot> &parts,
-    const KageResources &resources, int view_box) {
+    const KageResources &resources, int view_box,
+    const LayoutAdjustments *adjust) {
   // Nested layouts are glyphs of their own; keep them in a table on top of the
   // shared, read-only one.
   kage::Buhin scratch(&resources.glyphs);
   const std::string data = ComposeKageData(op, parts, &scratch, &resources.layout,
-                                           &resources.subtrees);
+                                           &resources.subtrees, true, adjust);
   if (data.empty()) return std::nullopt;
   return OutlinesFromData(kage::Kage(&scratch), data, view_box);
 }

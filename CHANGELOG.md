@@ -10,6 +10,27 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character composer: adjust a drawing's components by hand
+
+- New **Adjust layout…** button (footer) opens a window with the composed
+  drawing and a box round each component. Drag a box to move it, drag its
+  handles to resize it (Shift on a corner keeps the shape), nudge with the
+  arrow keys (Shift = 10), type Left/Top/Width/Height, snap to the square's
+  edges and middle, the other components and the composer's own box, centre
+  across/down, and reset one or all. Nested layouts are adjustable too.
+- The adjusted boxes replace the automatic ones in `ComposeLayout`
+  (`LayoutAdjustments`, keyed by slot path; ⿲/⿳ use the paths of the two
+  nested pairs they are drawn as). The preview, Copy and Insert use them; an
+  adjusted drawing is inserted as an SVG, not as the encoded character, and
+  is dropped when the composition changes. Not saved anywhere yet; new
+  strings are English only.
+
+### Find by components: a component typed twice must occur twice
+
+- Typing 龍龍 now finds only characters containing 龍 at least twice (any
+  depth, e.g. 龖, 讋), not every character containing one. Occurrence counts
+  are kept per component in the containing index (`IdsTable::FindContaining`).
+
 ### Rare-ideograph font: Jigmo bundled (Windows, macOS) or recommended (Linux)
 
 - The Windows MSI and macOS pkg now install **Jigmo** (CC0 1.0, release

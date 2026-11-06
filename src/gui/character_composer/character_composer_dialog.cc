@@ -69,6 +69,7 @@
 #include "gui/character_composer/glyph_coverage.h"
 #include "gui/character_composer/glyphwiki_client.h"
 #include "gui/character_composer/layout_geometry.h"
+#include "gui/character_composer/layout_adjust_dialog.h"
 #include "gui/config_dialog/config_dialog_theme.h"
 #include "protocol/config.pb.h"
 
@@ -2338,6 +2339,14 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   clear_button_ = new QPushButton(Tr("Clear"), this);
   clear_button_->setObjectName(QStringLiteral("textButton"));
   clear_button_->setAutoDefault(false);
+  adjust_button_ = new QPushButton(Tr("Adjust layout…"), this);
+  adjust_button_->setObjectName(QStringLiteral("textButton"));
+  adjust_button_->setAutoDefault(false);
+  adjust_button_->setEnabled(false);
+  adjust_button_->setToolTip(
+      Tr("Move and resize the components of this drawing by hand"));
+  connect(adjust_button_, &QPushButton::clicked, this,
+          &CharacterComposerDialog::OnAdjustLayout);
   copy_button_ = new QPushButton(Tr("Copy"), this);
   copy_button_->setObjectName(QStringLiteral("outlineButton"));
   copy_button_->setAutoDefault(false);
@@ -2361,6 +2370,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   footer->setContentsMargins(14, 5, 14, 6);
   footer->setSpacing(8);
   footer->addWidget(clear_button_);
+  footer->addWidget(adjust_button_);
   footer->addStretch(1);
   footer->addWidget(copy_button_);
   footer->addWidget(insert_button_);
@@ -2729,15 +2739,40 @@ void CharacterComposerDialog::OnIdsEdited(const QString &text) {
   applying_ids_edit_ = false;
 }
 
+const LayoutAdjustments *CharacterComposerDialog::ActiveAdjustments() const {
+  if (adjustments_.empty() || editor_ == nullptr) return nullptr;
+  const auto ids = composer_ids::ComposeIds(editor_->op(), editor_->parts());
+  return ids.has_value() && *ids == adjustments_ids_ ? &adjustments_ : nullptr;
+}
+
+void CharacterComposerDialog::OnAdjustLayout() {
+  if (kage_ == nullptr) return;
+  const auto ids = composer_ids::ComposeIds(editor_->op(), editor_->parts());
+  if (!ids) return;
+  const LayoutAdjustments *current = ActiveAdjustments();
+  LayoutAdjustDialog dialog(editor_->op(), editor_->parts(), kage_.get(),
+                            current != nullptr ? *current : LayoutAdjustments(),
+                            this);
+  if (dialog.exec() != QDialog::Accepted) return;
+  adjustments_ = dialog.adjustments();
+  adjustments_ids_ = *ids;
+  UpdateCompositionState();
+  RefreshActiveView();
+}
+
 void CharacterComposerDialog::UpdateCompositionState() {
   SyncIdsEditFromEditor();
   found_.clear();
   pending_svg_.clear();
 
   if (const auto ids = composer_ids::ComposeIds(editor_->op(), editor_->parts())) {
+    if (ids != adjustments_ids_) adjustments_.clear();  // another structure
+    const LayoutAdjustments *adjust = ActiveAdjustments();
     pending_svg_ = RenderComposerSvg(editor_->op(), editor_->parts(), 1000,
-                                     kage_.get());
-    if (table_ != nullptr) {
+                                     kage_.get(), adjust);
+    // A hand-adjusted drawing is not the encoded character, so it is offered
+    // as the drawing it is.
+    if (table_ != nullptr && adjust == nullptr) {
       if (const auto found = table_->FindEncodedCharacter(*ids)) {
         found_ = *found;
       }
@@ -2775,6 +2810,7 @@ void CharacterComposerDialog::RefreshActiveView() {
 
   const bool prefer_glyphwiki =
       config::ConfigHandler::GetSharedConfig()->prefer_glyphwiki_drawings();
+  const LayoutAdjustments *adjust = ActiveAdjustments();
 
   // Prefer GlyphWiki's registered uXXXX glyph (local dump, then cache/network)
   // when the setting is on and |unicode_ch| names a character; otherwise the
@@ -2784,7 +2820,7 @@ void CharacterComposerDialog::RefreshActiveView() {
     char_label_->setFont(font());
     char_label_->setText(QString());
     std::optional<std::vector<Contour>> outlines;
-    if (prefer_glyphwiki && kage_ != nullptr) {
+    if (prefer_glyphwiki && kage_ != nullptr && adjust == nullptr) {
       // An encoded character is GlyphWiki's uXXXX; an unencoded structure is
       // its compound name (u2ff0-u6728-u99ac), which GlyphWiki registers for
       // many structures. A name GlyphWiki does not have is remembered for the
@@ -2825,7 +2861,8 @@ void CharacterComposerDialog::RefreshActiveView() {
       }
     }
     if (!outlines && kage_ != nullptr) {
-      outlines = ComposerOutlines(editor_->op(), editor_->parts(), *kage_);
+      outlines = ComposerOutlines(editor_->op(), editor_->parts(), *kage_, 1000,
+                                  adjust);
     }
     char_label_->setPixmap(
         outlines ? OutlinePreview(*outlines, ink, devicePixelRatioF())
@@ -2874,7 +2911,8 @@ void CharacterComposerDialog::RefreshActiveView() {
       // Unencoded: GlyphWiki's compound-named glyph when preferred and
       // registered, else local IDS composition.
       show_composition_drawing(plate_ink);
-      status_heading = Tr("Not encoded in Unicode");
+      status_heading = adjust != nullptr ? Tr("Adjusted by hand")
+                                         : Tr("Not encoded in Unicode");
       status_detail =
           Tr("Insert places a drawing on the clipboard for Word "
              "(Kaeriten → Insert composed character) or other office plugins.");
@@ -2896,6 +2934,8 @@ void CharacterComposerDialog::RefreshActiveView() {
   status_detail_->setText(status_detail);
   insert_button_->setEnabled(insertable);
   copy_button_->setEnabled(insertable);
+  adjust_button_->setEnabled(kage_ != nullptr && !pending_svg_.empty() &&
+                             active_source_ != ActiveSource::kSearchResult);
 }
 
 void CharacterComposerDialog::OnSubmitRequested() { TryInsert(); }

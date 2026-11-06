@@ -3,6 +3,8 @@
 
 #include "gui/character_composer/composer_svg.h"
 
+#include <string>
+
 #include "composer_ids/ids_tree.h"
 #include "testing/gunit.h"
 

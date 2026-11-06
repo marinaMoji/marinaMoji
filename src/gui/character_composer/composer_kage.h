@@ -87,6 +87,26 @@ struct KageResources {
       std::string_view directory);
 };
 
+// A rectangle in KAGE's 0..200 space, y down.
+struct BoxRect {
+  double left = 0, top = 0, right = 200, bottom = 200;
+};
+
+// Boxes the user has set by hand, by slot path (see composer_ids::SlotPath;
+// for ⿲ and ⿳ the path is that of the two nested pairs they are drawn as:
+// the second and third parts are {1, 0} and {1, 1}). Each is where the slot
+// is drawn, in the space of the layout it sits in, replacing the automatic box.
+using LayoutAdjustments = std::map<composer_ids::SlotPath, BoxRect>;
+
+// Where one component is drawn.
+struct PlacedBox {
+  composer_ids::SlotPath path;
+  std::string text;  // the component; empty for a ready-made nested glyph
+  BoxRect auto_box;  // where the composer would put it, in |parent|'s space
+  BoxRect box;       // where it is drawn (auto_box unless adjusted)
+  BoxRect parent;    // the layout it sits in, in the whole glyph's 0..200 space
+};
+
 // Closed outlines in a square of side |view_box| user units, y down. Fill them
 // with the non-zero rule.
 using Contour = std::vector<std::pair<double, double>>;
@@ -111,13 +131,21 @@ std::string ComposeKageData(std::string_view op,
                             kage::Buhin *nested,
                             const ComposerLayout *layout = nullptr,
                             const ComposerSubtrees *subtrees = nullptr,
-                            bool limit_ink_overlap = true);
+                            bool limit_ink_overlap = true,
+                            const LayoutAdjustments *adjust = nullptr);
+
+// Every component of a complete layout with where it is drawn, for editing
+// them by hand; empty if the layout is incomplete.
+std::vector<PlacedBox> ComposerBoxes(
+    std::string_view op, const std::vector<composer_ids::ComposerSlot> &parts,
+    const KageResources &resources, const LayoutAdjustments *adjust = nullptr);
 
 // The outlines of the composed glyph, or nullopt when the layout is incomplete
 // or a component has no KAGE data (then the caller falls back to plain text).
 std::optional<std::vector<Contour>> ComposerOutlines(
     std::string_view op, const std::vector<composer_ids::ComposerSlot> &parts,
-    const KageResources &resources, int view_box = 1000);
+    const KageResources &resources, int view_box = 1000,
+    const LayoutAdjustments *adjust = nullptr);
 
 // GlyphWiki's compound ("systematic") name for a structure: ⿰木馬 is
 // u2ff0-u6728-u99ac, and nested structures nest the same way
