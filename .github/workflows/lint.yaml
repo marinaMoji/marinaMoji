@@ -2,7 +2,13 @@ name: CI for Lint checks
 # https://github.com/marinaMoji/marinaMoji/blob/main/docs/build_marinamoji_in_docker.md
 
 # Run on push.
-on: push
+on:
+  push:
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - 'CHANGELOG.md'
+      - 'scripts/roadmap/**'
 
 permissions:
   contents: read

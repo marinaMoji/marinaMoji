@@ -9,11 +9,13 @@ on:
       - '*.md'
       - 'docs/**'
       - 'CHANGELOG.md'
+      - 'scripts/roadmap/**'
   pull_request:
     paths-ignore:
       - '*.md'
       - 'docs/**'
       - 'CHANGELOG.md'
+      - 'scripts/roadmap/**'
 
 permissions:
   contents: read
