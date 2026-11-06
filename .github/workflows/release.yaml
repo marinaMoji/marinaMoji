@@ -93,7 +93,7 @@ jobs:
       # is only rebuilt when the build script or the pinned Qt version changes.
       - name: Restore Qt build cache
         id: qt_cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: src/third_party/qt
           key: qt-${{ runner.os }}-${{ runner.arch }}-${{ matrix.macos_cpus }}-${{ hashFiles('src/build_tools/build_qt.py', 'src/build_tools/update_deps.py') }}
@@ -103,6 +103,13 @@ jobs:
         working-directory: ./src
         run: |
           python3 build_tools/build_qt.py --release --confirm_license --macos_cpus=${{ matrix.macos_cpus }}
+
+      - name: Save Qt build cache
+        if: steps.qt_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: src/third_party/qt
+          key: ${{ steps.qt_cache.outputs.cache-primary-key }}
 
       - name: Set up signing keychain
         env:
@@ -294,7 +301,7 @@ jobs:
       # is only rebuilt when the build script or the pinned Qt version changes.
       - name: Restore Qt build cache
         id: qt_cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: src/third_party/qt
           key: qt-${{ runner.os }}-${{ runner.arch }}-native-${{ hashFiles('src/build_tools/build_qt.py', 'src/build_tools/update_deps.py') }}
@@ -305,6 +312,13 @@ jobs:
         working-directory: .\src
         run: |
           python build_tools/build_qt.py --release --confirm_license
+
+      - name: Save Qt build cache
+        if: steps.qt_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: src/third_party/qt
+          key: ${{ steps.qt_cache.outputs.cache-primary-key }}
 
       # This is needed only for GitHub Actions where free disk space is quite limited.
       - name: Delete Qt src to save disk space
