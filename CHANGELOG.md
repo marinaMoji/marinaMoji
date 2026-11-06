@@ -10,6 +10,22 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.21-rc5
+
+Everything in 0.0.21-rc4 plus:
+
+- **Composer drawing: components no longer run into each other.** GlyphWiki's
+  median boxes overlap neighbours by 25–110 units, which suits its narrowed
+  positional forms but made full-size components (龍, 馬, 巻) collide. After
+  placing, each component is rasterized and, while its strokes collide with (or
+  touch) the neighbour's, the two boxes are squeezed apart. Interleaved forms
+  such as 亻木 keep GlyphWiki's overlap; 木巻, 木馬 and ⿱龍龍 come out clean.
+  Checked against the GlyphWiki comparison baseline.
+- **Rare ideographs show in the slot and IDS fields** (they were tofu even with
+  Jigmo installed: those two fields did not use the wide-coverage font list).
+- Also in this release, described below: **Adjust layout…**, finding by a
+  component typed twice, and the bundled Jigmo font.
+
 ### Character composer: adjust a drawing's components by hand
 
 - New **Adjust layout…** button (footer) opens a window with the composed
