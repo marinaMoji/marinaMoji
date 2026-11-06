@@ -158,6 +158,7 @@ class ConfigDialog : public QDialog, private Ui::ConfigDialog {
   std::unique_ptr<PreferencesExplanationController> explanation_controller_;
 
   QCheckBox *prefer_glyphwiki_drawings_checkbox_ = nullptr;
+  QCheckBox *show_unrenderable_palette_candidates_checkbox_ = nullptr;
   QCheckBox *include_unstable_updates_checkbox_ = nullptr;
   QCheckBox *auto_check_for_updates_checkbox_ = nullptr;
   QPushButton *check_for_updates_button_ = nullptr;

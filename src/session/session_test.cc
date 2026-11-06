@@ -36,6 +36,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/cleanup/cleanup.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/statusor.h"
@@ -8855,9 +8856,42 @@ TEST_F(SessionTest, ConvertComponents) {
   composer_ids::IdsTable::ClearDefaultForTesting();
 }
 
+// By default the Ctrl+2 palette leaves out unencoded drawings (blue).
+TEST_F(SessionTest, ConvertComponentsHidesSvgCandidatesByDefault) {
+  MockEngine engine;
+  std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+
+  constexpr char kIds[] = "⿰日月\t明\n";
+  auto table = composer_ids::IdsTable::FromTsv(kIds, "");
+  ASSERT_TRUE(table.ok());
+  composer_ids::IdsTable::SetDefaultForTesting(
+      std::make_unique<composer_ids::IdsTable>(std::move(*table)));
+
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+  commands::Command command;
+  command.mutable_input()->set_type(commands::Input::SEND_COMMAND);
+  command.mutable_input()->mutable_command()->set_type(
+      commands::SessionCommand::CONVERT_COMPONENTS);
+  command.mutable_input()->mutable_command()->set_text("木目");
+  EXPECT_TRUE(session.SendCommand(&command));
+  EXPECT_FALSE(command.output().has_candidate_window());
+
+  composer_ids::IdsTable::ClearDefaultForTesting();
+}
+
 TEST_F(SessionTest, ConvertComponentsSvgCandidateLeavesSelectionOnCommit) {
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
+
+  // The palette hides unencoded drawings unless the user opts in.
+  const config::Config original_config = config::ConfigHandler::GetCopiedConfig();
+  config::Config opted_in = original_config;
+  opted_in.set_show_unrenderable_palette_candidates(true);
+  config::ConfigHandler::SetConfig(opted_in);
+  absl::Cleanup restore_config = [&] {
+    config::ConfigHandler::SetConfig(original_config);
+  };
 
   // 木目 has no encoded character in this table, so the only candidate is
   // the unencoded-SVG one.

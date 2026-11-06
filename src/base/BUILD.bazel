@@ -55,6 +55,41 @@ mozc_cc_library(
 )
 
 mozc_cc_library(
+    name = "font_coverage_header",
+    hdrs = ["font_coverage.h"],
+    visibility = ["//base:__subpackages__"],
+    deps = ["@com_google_absl//absl/strings"],
+)
+
+# Whether any installed font can draw a character; used by the session to keep
+# undrawable characters out of the Ctrl+1 / Ctrl+2 palettes. CoreText on macOS,
+# fontconfig (dlopen'd) on Linux, always-true elsewhere.
+mozc_cc_library(
+    name = "font_coverage",
+    srcs = ["font_coverage.cc"],
+    linkopts = mozc_select(linux = ["-ldl"]),
+    visibility = ["//:__subpackages__"],
+    deps = [
+        ":font_coverage_header",
+        ":util",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+    ] + mozc_select(apple = ["//base/mac:font_coverage_mac"]),
+)
+
+mozc_cc_test(
+    name = "font_coverage_test",
+    size = "small",
+    srcs = ["font_coverage_test.cc"],
+    deps = [
+        ":font_coverage",
+        "//testing:gunit_main",
+    ],
+)
+
+mozc_cc_library(
     name = "init_mozc_buildtool",
     srcs = ["init_mozc.cc"],
     hdrs = ["init_mozc.h"],

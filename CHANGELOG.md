@@ -134,6 +134,15 @@ changed and, where it isn't obvious, why.
   composed glyph in dark mode.
 - **Preferences**: "Prefer GlyphWiki drawings" and the Sync tab's settings are
   now autosaved; they were built after the autosave hookup and never saved.
+- **Ctrl+1 / Ctrl+2 palettes hide undrawable characters by default.**
+  Characters no installed font can draw (amber) and unencoded drawings (blue)
+  no longer appear in these palettes; a new Preferences checkbox, "Show
+  characters that can’t be drawn in the Ctrl+1 / Ctrl+2 palettes"
+  (`show_unrenderable_palette_candidates`, off by default), brings them back.
+  The character composer always shows them. The session asks a new
+  `base/font_coverage` (CoreText on macOS; fontconfig, loaded at run time, on
+  Linux). Windows has no coverage query yet, so nothing is hidden there except
+  blue drawings.
 - **Releases**: the macOS release job runs on `macos-15`, and
   `auto_rerun.yaml` re-runs jobs that stalled for lack of a runner (up to six
   attempts).

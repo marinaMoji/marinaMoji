@@ -566,6 +566,14 @@
         <translation>初期設定はオフです。オフのとき、文字の組み立ては、符号化されていない文字やフォントにない文字を、同梱のGlyphWikiデータを使い、オフラインで、組み立てた構造から筆画を合成して描きます。オンのとき、構造がUnicodeの文字に一致し、その字形が同梱データにもローカルキャッシュにもない場合に、glyphwiki.org へ問い合わせます。送信されるのは字形名（例：u6728）だけで、通常のウェブリクエストと同様にIPアドレスが伝わります。入力した文字や辞書データは送信されません。Unicodeに符号化されていない構造は常にローカルで描画されます。取得した字形は、marinaMojiプロファイルの glyphwiki_cache フォルダーに保存されます。詳しくは marinamoji.crcao.fr のプライバシーポリシーをご覧ください。</translation>
     </message>
     <message>
+        <source>Palette characters with no font</source>
+        <translation>フォントのないパレット文字</translation>
+    </message>
+    <message>
+        <source>Off by default. When off, the Ctrl+1 (related characters) and Ctrl+2 (component search) palettes leave out characters that no installed font can draw (shown amber) and unencoded drawings (shown blue), so every entry is something you can actually insert and read. When on, they are listed too, as in the character composer. The character composer always shows them, whatever this setting.</source>
+        <translation>既定ではオフです。オフの場合、Ctrl+1（関連文字）と Ctrl+2（部品検索）のパレットには、インストール済みのどのフォントでも描画できない文字（琥珀色）と未エンコードの字形（青）が表示されません。オンにすると、文字合成ツールと同様にそれらも一覧に表示されます。文字合成ツールでは、この設定にかかわらず常に表示されます。</translation>
+    </message>
+    <message>
         <source>Mode switching</source>
         <translation>モード切替</translation>
     </message>
@@ -1275,6 +1283,10 @@ Kyū   國 學</source>
 </context>
 <context>
     <name>mozc::gui::ConfigDialog</name>
+    <message>
+        <source>Show characters that can’t be drawn in the Ctrl+1 / Ctrl+2 palettes</source>
+        <translation>Ctrl+1 / Ctrl+2 のパレットに描画できない文字も表示する</translation>
+    </message>
     <message>
         <source>Prefer GlyphWiki drawings when a matching glyph exists</source>
         <translation>対応する字形があればGlyphWikiの字形を優先する</translation>

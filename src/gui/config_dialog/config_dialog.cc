@@ -1717,6 +1717,19 @@ void ConfigDialog::MigratePreferencesInformationArchitecture() {
             MakeExplainedControlRow(prefer_glyphwiki_drawings_checkbox_, writing,
                                     explanations,
                                     "writing.prefer_glyphwiki_drawings"));
+  show_unrenderable_palette_candidates_checkbox_ = new QCheckBox(
+      tr("Show characters that can’t be drawn in the Ctrl+1 / Ctrl+2 "
+         "palettes"),
+      writing);
+  show_unrenderable_palette_candidates_checkbox_->setObjectName(
+      QStringLiteral("showUnrenderablePaletteCandidatesCheckBox"));
+  // Built after the constructor's blanket autosave hookup; connect it here.
+  connect(show_unrenderable_palette_candidates_checkbox_, &QCheckBox::toggled,
+          this, &ConfigDialog::EnableApplyButton);
+  AddToPage(writing_layout,
+            MakeExplainedControlRow(
+                show_unrenderable_palette_candidates_checkbox_, writing,
+                explanations, "writing.show_unrenderable_palette_candidates"));
 
   AddMajorSection(writing_layout, tr("Detailed width rules"), writing,
                   &writing_first);
@@ -3242,6 +3255,10 @@ void ConfigDialog::ConvertFromProto(const config::Config& config) {
     prefer_glyphwiki_drawings_checkbox_->setChecked(
         config.prefer_glyphwiki_drawings());
   }
+  if (show_unrenderable_palette_candidates_checkbox_ != nullptr) {
+    show_unrenderable_palette_candidates_checkbox_->setChecked(
+        config.show_unrenderable_palette_candidates());
+  }
   if (include_unstable_updates_checkbox_ != nullptr) {
     include_unstable_updates_checkbox_->setChecked(
         config.include_unstable_updates());
@@ -3402,12 +3419,16 @@ void ConfigDialog::ConvertToProto(config::Config* config) const {
   config->set_verbose_level(verboseLevelComboBox->currentIndex());
   GET_CHECKBOX(checkDefaultCheckBox, check_default);
   GET_COMBOBOX(yenSignComboBox, YenSignCharacter, yen_sign_character);
-#if defined(__linux__) || defined(__APPLE__)
-  config->set_use_traditional_kanji(startKanjiModeComboBox->currentIndex() == 1);
   if (prefer_glyphwiki_drawings_checkbox_ != nullptr) {
     config->set_prefer_glyphwiki_drawings(
         prefer_glyphwiki_drawings_checkbox_->isChecked());
   }
+  if (show_unrenderable_palette_candidates_checkbox_ != nullptr) {
+    config->set_show_unrenderable_palette_candidates(
+        show_unrenderable_palette_candidates_checkbox_->isChecked());
+  }
+#if defined(__linux__) || defined(__APPLE__)
+  config->set_use_traditional_kanji(startKanjiModeComboBox->currentIndex() == 1);
   config->set_use_live_conversion(startLiveModeComboBox->currentIndex() == 0);
 #endif
   GET_CHECKBOX(twoStepCommitCheckBox, use_two_step_commit);

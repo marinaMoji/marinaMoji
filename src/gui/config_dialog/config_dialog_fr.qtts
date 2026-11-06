@@ -565,6 +565,14 @@
         <translation>Désactivé par défaut. Désactivée, le compositeur de caractères dessine les caractères non encodés ou absents des polices en composant les traits de la structure que vous avez construite, à partir des données GlyphWiki incluses, hors ligne. Activée, si la structure correspond à un caractère Unicode et que le glyphe n’est ni dans les données incluses ni dans votre cache local, le compositeur le demande à glyphwiki.org. Seul le nom du glyphe (par exemple u6728) est envoyé, avec votre adresse IP comme pour toute requête web ; aucun texte saisi, aucune donnée de dictionnaire. Les structures sans encodage Unicode restent toujours locales. Les glyphes reçus sont conservés dans le dossier glyphwiki_cache de votre profil marinaMoji. Voir la politique de confidentialité sur marinamoji.crcao.fr.</translation>
     </message>
     <message>
+        <source>Palette characters with no font</source>
+        <translation>Caractères de palette sans police</translation>
+    </message>
+    <message>
+        <source>Off by default. When off, the Ctrl+1 (related characters) and Ctrl+2 (component search) palettes leave out characters that no installed font can draw (shown amber) and unencoded drawings (shown blue), so every entry is something you can actually insert and read. When on, they are listed too, as in the character composer. The character composer always shows them, whatever this setting.</source>
+        <translation>Désactivé par défaut. Lorsqu’il est désactivé, les palettes Ctrl+1 (caractères apparentés) et Ctrl+2 (recherche par composants) omettent les caractères qu’aucune police installée ne peut dessiner (en ambre) et les dessins non encodés (en bleu), de sorte que chaque entrée est un caractère que vous pouvez réellement insérer et lire. Lorsqu’il est activé, ils sont aussi listés, comme dans le compositeur de caractères. Le compositeur de caractères les affiche toujours, quel que soit ce réglage.</translation>
+    </message>
+    <message>
         <source>Mode switching</source>
         <translation>Changement de mode</translation>
     </message>
@@ -1274,6 +1282,10 @@ Kyū   國 學</translation>
 </context>
 <context>
     <name>mozc::gui::ConfigDialog</name>
+    <message>
+        <source>Show characters that can’t be drawn in the Ctrl+1 / Ctrl+2 palettes</source>
+        <translation>Afficher dans les palettes Ctrl+1 / Ctrl+2 les caractères qui ne peuvent pas être dessinés</translation>
+    </message>
     <message>
         <source>Prefer GlyphWiki drawings when a matching glyph exists</source>
         <translation>Préférer les dessins GlyphWiki lorsqu’un glyphe correspondant existe</translation>

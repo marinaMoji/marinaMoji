@@ -129,6 +129,18 @@ std::vector<PreferencesExplanation> BuildCatalog() {
           "policy on marinamoji.crcao.fr."),
       QString(), QStringLiteral("section_character_composer"));
 
+  add("writing.show_unrenderable_palette_candidates",
+      QObject::tr("Palette characters with no font"),
+      QObject::tr(
+          "Off by default. When off, the Ctrl+1 (related characters) and "
+          "Ctrl+2 (component search) palettes leave out characters that no "
+          "installed font can draw (shown amber) and unencoded drawings "
+          "(shown blue), so every entry is something you can actually insert "
+          "and read. When on, they are listed too, as in the character "
+          "composer. The character composer always shows them, whatever this "
+          "setting."),
+      QString(), QStringLiteral("section_character_composer"));
+
   add("writing.width_rules",
       QObject::tr("Detailed width rules"),
       QObject::tr(

@@ -40,6 +40,16 @@ load(
 package(default_visibility = ["//:__subpackages__"])
 
 mozc_objc_library(
+    name = "font_coverage_mac",
+    srcs = ["font_coverage_mac.mm"],
+    sdk_frameworks = [
+        "CoreFoundation",
+        "CoreText",
+    ],
+    deps = ["//base:font_coverage_header"],
+)
+
+mozc_objc_library(
     name = "mac_process",
     srcs = ["mac_process.mm"],
     hdrs = ["mac_process.h"],

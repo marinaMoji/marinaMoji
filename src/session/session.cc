@@ -53,6 +53,7 @@
 #include "absl/time/time.h"
 #include "base/clock.h"
 #include "base/file_util.h"
+#include "base/font_coverage.h"
 #include "base/japanese_util.h"
 #include "base/system_util.h"
 #include "base/util.h"
@@ -1820,7 +1821,16 @@ bool Session::ConvertRelated(commands::Command* command) {
   if (table == nullptr) {
     return DoNothing(command);
   }
-  const std::vector<std::string> candidates = table->RelatedCandidates(selected);
+  std::vector<std::string> candidates = table->RelatedCandidates(selected);
+  // Unless the user opted in, leave out characters no installed font can draw
+  // (the candidate window would show them amber). The composer still lists
+  // them.
+  if (!config::ConfigHandler::GetSharedConfig()
+           ->show_unrenderable_palette_candidates()) {
+    std::erase_if(candidates, [](const std::string& value) {
+      return !CanRenderText(value);
+    });
+  }
   if (candidates.empty()) {
     return DoNothing(command);
   }
@@ -1903,9 +1913,20 @@ bool Session::ConvertComponents(commands::Command* command) {
   std::vector<uint8_t> kinds;
   values.reserve(search.candidates.size());
   kinds.reserve(search.candidates.size());
+  const bool show_unrenderable =
+      config::ConfigHandler::GetSharedConfig()
+          ->show_unrenderable_palette_candidates();
   for (const composer_ids::ComponentCandidate& c : search.candidates) {
+    if (!show_unrenderable) {
+      // Hide unencoded drawings (blue) and characters no installed font can
+      // draw (amber) unless the user opted in. The composer shows both.
+      if (c.specimen_kind == 2 || !CanRenderText(c.value)) continue;
+    }
     values.push_back(c.value);
     kinds.push_back(c.specimen_kind);
+  }
+  if (values.empty()) {
+    return DoNothing(command);
   }
 
   composer::Composer* composer = context_->mutable_composer();

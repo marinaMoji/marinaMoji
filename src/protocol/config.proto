@@ -400,6 +400,12 @@ message Config {
   // structures always compose locally.
   optional bool prefer_glyphwiki_drawings = 76 [default = false];
 
+  // Ctrl+1 / Ctrl+2 palettes: also list characters that are not really
+  // drawable -- Unicode characters no installed font can draw (shown amber)
+  // and unencoded drawings (shown blue). Default off hides them from the
+  // palettes. The character composer always shows them.
+  optional bool show_unrenderable_palette_candidates = 77 [default = false];
+
   //////////////////////////////////////////////////////////////
   //
   // Dictionary (80-99)
