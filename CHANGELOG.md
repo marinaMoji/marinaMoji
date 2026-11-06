@@ -128,7 +128,9 @@ changed and, where it isn't obvious, why.
   nested mean IoU rose from ~0.38 to ~0.48 (侃 0.33→0.90, 侯 0.46→0.79); remaining
   weak spots are deep nests GlyphWiki draws as stroke data or unusual ops.
 
-### Next
+### Release candidate 0.0.21-rc4
+
+Everything in 0.0.21-rc3 plus:
 
 - **GlyphWiki drawings now cover unencoded structures.** With "Prefer GlyphWiki
   drawings" on, a structure with no Unicode encoding is looked up on GlyphWiki
@@ -138,7 +140,8 @@ changed and, where it isn't obvious, why.
   setting sends (the names reveal structures you combined), so the in-app
   explanation, `docs/PRIVACY.md` and the website privacy policy (EN/FR/JA, site
   repo, not yet published) were updated. A name GlyphWiki lacks is not asked
-  for again until the composer is reopened.
+  for again until the composer is reopened. The fetch uses `curl`; if it is not
+  installed the composer says so once instead of failing silently.
 
 ### Release candidate 0.0.21-rc3
 
