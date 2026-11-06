@@ -128,8 +128,11 @@ SHLIB_DEPS="$(echo "$SHLIB_DEPS" | awk -F', ' '{
 #                       QImageReader, which loads the plugin at run time, so
 #                       dpkg-shlibdeps never sees it. Without it the logo is
 #                       silently missing.
-# Nothing is Recommends/Suggests: the GUI tools, renderer and Emacs helper
-# are part of this package. The postinst only calls `ibus write-cache` if
+# Recommends: a font for rare ideographs (CJK Extensions B and beyond), which
+# the stock CJK fonts lack. Without one, those candidates fall back to the
+# amber GlyphWiki drawing, so it is a recommendation rather than a dependency.
+# Any of the three works; the package manager installs the first available.
+# The GUI tools, renderer and Emacs helper are part of this package. The postinst only calls `ibus write-cache` if
 # ibus is present, so a broken ibus never fails an install.
 DEPS="ibus (>= 1.5.0), hicolor-icon-theme, wl-clipboard, libqt6svg6${SHLIB_DEPS:+, $SHLIB_DEPS}"
 
@@ -145,6 +148,7 @@ Architecture: $ARCH
 Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
 Installed-Size: $INSTALLED_SIZE
 Depends: $DEPS
+Recommends: fonts-jigmo | fonts-babelstone-han | fonts-hanazono
 Conflicts: emacs-mozc, emacs-mozc-bin
 Replaces: emacs-mozc, emacs-mozc-bin
 Homepage: https://github.com/marinaMoji/marinaMoji

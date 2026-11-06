@@ -358,6 +358,16 @@ http_file(
 # would fail. https://github.com/bazelbuild/bazel/issues/5116
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+# Jigmo kanji fonts (CC0 1.0): Jigmo.ttf (BMP/SMP), Jigmo2.ttf (SIP) and
+# Jigmo3.ttf (TIP), covering CJK Extensions A-J. Shipped by the Windows and macOS
+# installers; Linux packages depend on the distribution's font package instead.
+http_archive(
+    name = "jigmo_fonts",
+    build_file = "@//bazel:BUILD.jigmo.bazel",
+    sha256 = "5744c7386d129475d87607ca66d043c8793c65448adeaedc921b6931890e5d0b",
+    url = "https://kamichikoichi.github.io/jigmo/Jigmo-20250912.zip",
+)
+
 # Windows Implementation Library (WIL)
 # https://github.com/microsoft/wil/
 http_archive(

@@ -10,6 +10,19 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Rare-ideograph font: Jigmo bundled (Windows, macOS) or recommended (Linux)
+
+- The Windows MSI and macOS pkg now install **Jigmo** (CC0 1.0, release
+  20250912; Jigmo/Jigmo2/Jigmo3, CJK Extensions A–J) system-wide, so
+  candidates for rare and variant characters draw from a real font instead of
+  falling back to the amber GlyphWiki drawing. Windows: a default-on
+  "Rare-character fonts (Jigmo)" feature into `FontsFolder`; macOS:
+  `/Library/Fonts`. Adds about 70 MB installed (35 MB compressed).
+- The zip is pinned by sha256 in `MODULE.bazel` (`jigmo_fonts`).
+- Linux does not bundle it: the deb `Recommends: fonts-jigmo |
+  fonts-babelstone-han | fonts-hanazono`; the Arch packages list `ttf-jigmo`
+  as an optdepend.
+
 ### Ctrl+Shift+7/8: keep the selection until you pick a candidate
 
 - Related and components no longer delete the selected character when the

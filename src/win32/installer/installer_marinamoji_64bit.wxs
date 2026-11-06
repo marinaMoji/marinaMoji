@@ -330,6 +330,20 @@
       <ComponentRef Id="MMToolbarIcon_toolbar_symbols_light_48" />
     </Feature>
 
+    <!--
+      Jigmo (CC0 1.0): one font family covering CJK Extensions A-J, so rare and
+      variant ideographs in candidate windows draw from a real font instead of a
+      GlyphWiki drawing. Installed system-wide because Windows font fallback only
+      sees installed fonts. On by default; clear it in the feature tree to skip
+      the ~70 MB.
+    -->
+    <Feature Id="MarinaMojiFonts" Title="Rare-character fonts (Jigmo)" Level="1">
+      <ComponentRef Id="MarinaMojiJigmo" />
+      <ComponentRef Id="MarinaMojiJigmo2" />
+      <ComponentRef Id="MarinaMojiJigmo3" />
+      <ComponentRef Id="MarinaMojiJigmoLicense" />
+    </Feature>
+
     <Binary Id="marinamoji_installer_helper.dll" SourceFile="$(var.CustomActions64Path)" />
 
     <CustomAction Id="RegisterTIP64" DllEntry="RegisterTIP" Execute="deferred" Impersonate="no" BinaryRef="marinamoji_installer_helper.dll" />
@@ -990,6 +1004,21 @@
           </Component>
         </Directory>
       </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="FontsFolder">
+      <Component Id="MarinaMojiJigmo" Bitness="always64">
+        <File Id="Jigmo.ttf" Name="Jigmo.ttf" FontTitle="Jigmo" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.JigmoPath)" />
+      </Component>
+      <Component Id="MarinaMojiJigmo2" Bitness="always64">
+        <File Id="Jigmo2.ttf" Name="Jigmo2.ttf" FontTitle="Jigmo2" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.Jigmo2Path)" />
+      </Component>
+      <Component Id="MarinaMojiJigmo3" Bitness="always64">
+        <File Id="Jigmo3.ttf" Name="Jigmo3.ttf" FontTitle="Jigmo3" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.Jigmo3Path)" />
+      </Component>
+      <Component Id="MarinaMojiJigmoLicense" Bitness="always64">
+        <File Id="Jigmo_LICENSE.txt" Name="Jigmo-LICENSE.txt" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.JigmoLicensePath)" />
+      </Component>
     </StandardDirectory>
 
     <!--

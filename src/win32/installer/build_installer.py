@@ -140,6 +140,10 @@ def run_wix4(args) -> None:
   kage_subtrees = pathlib.Path(args.kage_subtrees).resolve()
   kage_license = pathlib.Path(args.kage_license).resolve()
   kage_readme = pathlib.Path(args.kage_readme).resolve()
+  jigmo = pathlib.Path(args.jigmo).resolve()
+  jigmo2 = pathlib.Path(args.jigmo2).resolve()
+  jigmo3 = pathlib.Path(args.jigmo3).resolve()
+  jigmo_license = pathlib.Path(args.jigmo_license).resolve()
   char_info = pathlib.Path(args.char_info).resolve()
   char_info_notice = pathlib.Path(args.char_info_notice).resolve()
   # All toolbar_icons/*.png live alongside this one sample file (see
@@ -238,6 +242,10 @@ def run_wix4(args) -> None:
       '-define', f'KageSubtreesPath={kage_subtrees}',
       '-define', f'KageLicensePath={kage_license}',
       '-define', f'KageReadmePath={kage_readme}',
+      '-define', f'JigmoPath={jigmo}',
+      '-define', f'Jigmo2Path={jigmo2}',
+      '-define', f'Jigmo3Path={jigmo3}',
+      '-define', f'JigmoLicensePath={jigmo_license}',
       '-define', f'CharInfoPath={char_info}',
       '-define', f'CharInfoNoticePath={char_info_notice}',
       '-define', f'ToolbarIconsDir={toolbar_icons_dir}',
@@ -305,6 +313,10 @@ def main():
   parser.add_argument('--kage_subtrees', type=str)
   parser.add_argument('--kage_license', type=str)
   parser.add_argument('--kage_readme', type=str)
+  parser.add_argument('--jigmo', type=str)
+  parser.add_argument('--jigmo2', type=str)
+  parser.add_argument('--jigmo3', type=str)
+  parser.add_argument('--jigmo_license', type=str)
   parser.add_argument('--char_info', type=str)
   parser.add_argument('--char_info_notice', type=str)
   parser.add_argument('--toolbar_icons_sample', type=str)

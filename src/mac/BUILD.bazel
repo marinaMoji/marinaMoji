@@ -612,6 +612,12 @@ genrule(
             "//mac/installer:distribution.xml",
             "//mac/installer:InstallerSections.plist",
             "//mac/installer:resources",
+            # Installed system-wide (root/Library/Fonts) so CoreText's fallback
+            # cascade finds them in every process; see tweak_installer_files.py.
+            "@jigmo_fonts//:Jigmo.ttf",
+            "@jigmo_fonts//:Jigmo2.ttf",
+            "@jigmo_fonts//:Jigmo3.ttf",
+            "@jigmo_fonts//:LICENSE.txt",
         ],
         prod_macos = [
             "@google_updater//:GoogleUpdater.pkg",

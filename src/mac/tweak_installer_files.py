@@ -218,6 +218,15 @@ def TweakForProductbuild(
     with open('InstallerSections.plist', 'w') as f:
       f.write(''.join(contents))
 
+  if oss:
+    # Jigmo (CC0) for rare ideographs; the licence travels with the fonts.
+    renames += [
+        ('Jigmo.ttf', 'root/Library/Fonts/'),
+        ('Jigmo2.ttf', 'root/Library/Fonts/'),
+        ('Jigmo3.ttf', 'root/Library/Fonts/'),
+        ('LICENSE.txt', 'root/Library/Fonts/Jigmo-LICENSE.txt'),
+    ]
+
   for src, dst in renames:
     if dst.endswith('/'):
       dst = os.path.join(dst, src)

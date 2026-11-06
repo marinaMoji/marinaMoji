@@ -1,0 +1,12 @@
+# Jigmo fonts (CC0 1.0), bundled into the Windows and macOS installers so that
+# rare and variant ideographs (CJK Extensions B-J) have a font to draw with.
+# https://kamichikoichi.github.io/jigmo/
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "Jigmo.ttf",
+    "Jigmo2.ttf",
+    "Jigmo3.ttf",
+    "LICENSE.txt",
+    "README.txt",
+])

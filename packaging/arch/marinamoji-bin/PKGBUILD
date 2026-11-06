@@ -12,6 +12,7 @@ arch=('x86_64' 'aarch64')
 url='https://github.com/marinaMoji/marinaMoji'
 license=('BSD-3-Clause')
 depends=('ibus' 'qt6-base' 'opencc' 'hicolor-icon-theme' 'wl-clipboard')
+optdepends=('ttf-jigmo: draws rare ideographs (CJK Extensions B-J) instead of falling back to GlyphWiki drawings')
 provides=('marinamoji')
 conflicts=('marinamoji')
 
