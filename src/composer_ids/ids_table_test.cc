@@ -136,6 +136,17 @@ TEST(IdsTableTest, FindContainingRequiresEveryComponent) {
   EXPECT_THAT(table.FindContaining("目言"), IsEmpty());
 }
 
+TEST(IdsTableTest, FindContainingCountsRepeatedComponents) {
+  // 龖 = 龍龍, 讋 = 言龖 (龍 twice, one level down), 籠 has 龍 once.
+  auto table = IdsTable::FromTsv("⿱龍龍\t龖\n⿰言龖\t讋\n⿱竹龍\t籠\n", "");
+  ASSERT_TRUE(table.ok());
+  EXPECT_THAT(table->FindContaining("龍"), ElementsAre("籠", "讋", "龖"));
+  EXPECT_THAT(table->FindContaining("龍龍"), ElementsAre("讋", "龖"));
+  EXPECT_THAT(table->FindContaining("龍 龍"), ElementsAre("讋", "龖"));
+  EXPECT_THAT(table->FindContaining("龍龍龍"), IsEmpty());
+  EXPECT_THAT(table->FindContaining("龍龍言"), ElementsAre("讋"));
+}
+
 TEST(IdsTableTest, FindContainingTreatsRadicalFormsAsOneComponent) {
   const IdsTable table = LoadFixture();
   EXPECT_THAT(table.FindContaining("訁"), ElementsAre("謀", "𪘙"));  // typed 訁, stored 言

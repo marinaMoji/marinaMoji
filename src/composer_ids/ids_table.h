@@ -89,7 +89,8 @@ class IdsTable {
   std::vector<std::string> FindDecompositions(std::string_view input) const;
 
   // Every encoded character whose decomposition contains every component in
-  // |components| (one character each; whitespace and duplicates are ignored),
+  // |components| (one character each; whitespace is ignored; a component typed twice must
+  // occur twice),
   // at any depth: with 某 = ⿱廿木 and 謀 = ⿰言某, "木" finds both. Radical
   // forms count as the same component (扌 finds what 手 builds), and a
   // component never matches itself. Sorted by code point; empty when
@@ -174,7 +175,8 @@ class IdsTable {
   // the data ends the walk at the repeated character.
   mutable absl::flat_hash_set<std::string> leading_in_progress_;
   mutable bool leading_cut_short_ = false;
-  // Base form of a component -> sorted characters containing it at any depth.
+  // Base form of a component -> sorted characters containing it at any depth
+  // ("<component>N" for N >= 2: containing it at least N times).
   // Built by FindContaining.
   mutable std::optional<
       absl::flat_hash_map<std::string, std::vector<std::string>>>

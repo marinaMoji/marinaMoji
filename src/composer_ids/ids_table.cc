@@ -319,8 +319,6 @@ std::vector<std::string> IdsTable::FindDecompositions(
 
 namespace {
 
-using ComponentSet = absl::flat_hash_set<std::string>;
-
 // A component is a single non-ASCII character that is not an operator; ASCII
 // is what the data uses for placeholders like "&CDP-8C4D;".
 bool IsComponent(std::string_view ch) {
@@ -332,9 +330,11 @@ bool IsComponent(std::string_view ch) {
 void IdsTable::BuildContainingIndex() const {
   if (containing_.has_value()) return;
 
-  // character -> base forms of everything below it, over all its recorded
-  // decompositions. node_hash_map keeps references stable while recursing.
-  absl::node_hash_map<std::string, ComponentSet> memo;
+  // character -> base forms of everything below it, with how many times each
+  // occurs (the most over its recorded decompositions). node_hash_map keeps
+  // references stable while recursing.
+  using CountMap = absl::flat_hash_map<std::string, int>;
+  absl::node_hash_map<std::string, CountMap> memo;
   absl::flat_hash_set<std::string> visiting;  // guards against data cycles
 
   auto base_of = [this](const std::string &ch) {
@@ -342,22 +342,27 @@ void IdsTable::BuildContainingIndex() const {
     return it == base_form_.end() ? ch : it->second;
   };
 
-  auto expand = [&](auto &&self, const std::string &ch) -> const ComponentSet & {
+  auto expand = [&](auto &&self, const std::string &ch) -> const CountMap & {
     if (const auto it = memo.find(ch); it != memo.end()) return it->second;
-    ComponentSet &result = memo[ch];
+    CountMap &result = memo[ch];
     const auto decompositions = by_char_.find(ch);
     if (decompositions == by_char_.end() || !visiting.insert(ch).second) {
       return result;
     }
     for (const std::string &ids : decompositions->second) {
+      CountMap local;
       for (const std::string_view part : Utf8AsChars(ids)) {
         if (!IsComponent(part)) continue;
         const std::string part_str(part);
-        result.insert(base_of(part_str));
+        ++local[base_of(part_str)];
         if (part_str == ch) continue;
         // Copy: |result| may not be touched while |self| fills other entries.
-        const ComponentSet below = self(self, part_str);
-        result.insert(below.begin(), below.end());
+        const CountMap below = self(self, part_str);
+        for (const auto &entry : below) local[entry.first] += entry.second;
+      }
+      for (const auto &entry : local) {
+        int &n = result[entry.first];
+        n = std::max(n, entry.second);
       }
     }
     visiting.erase(ch);
@@ -367,8 +372,14 @@ void IdsTable::BuildContainingIndex() const {
   absl::flat_hash_map<std::string, std::vector<std::string>> index;
   for (const auto &entry : by_char_) {
     const std::string &ch = entry.first;
-    for (const std::string &component : expand(expand, ch)) {
-      if (component != base_of(ch)) index[component].push_back(ch);
+    for (const auto &component : expand(expand, ch)) {
+      if (component.first == base_of(ch)) continue;
+      index[component.first].push_back(ch);
+      // Characters with the component at least twice, three times...: listed
+      // under the component followed by that number.
+      for (int n = 2; n <= component.second; ++n) {
+        index[component.first + std::to_string(n)].push_back(ch);
+      }
     }
   }
   for (auto &entry : index) std::sort(entry.second.begin(), entry.second.end());
@@ -392,16 +403,26 @@ std::vector<std::string> IdsTable::FindContaining(
   };
 
   std::vector<const std::vector<std::string> *> lists;
-  ComponentSet seen;
+  // Each component with how many times it was typed.
+  std::vector<std::pair<std::string, int>> wanted;
   BuildContainingIndex();
   for (const std::string_view ch :
        Utf8AsChars(absl::StripAsciiWhitespace(components))) {
     if (!IsComponent(ch)) continue;
     const auto base = base_form_.find(std::string(ch));
     const std::string key = base == base_form_.end() ? std::string(ch) : base->second;
-    if (!seen.insert(key).second) continue;
-    const auto it = containing_->find(key);
-    if (it == containing_->end()) return {};  // nothing contains this one
+    const auto found = std::find_if(wanted.begin(), wanted.end(),
+                                    [&](const auto &w) { return w.first == key; });
+    if (found != wanted.end()) {
+      ++found->second;
+    } else {
+      wanted.emplace_back(key, 1);
+    }
+  }
+  for (const auto &w : wanted) {
+    const auto it = containing_->find(w.second == 1 ? w.first
+                                                    : w.first + std::to_string(w.second));
+    if (it == containing_->end()) return {};  // nothing contains this often
     lists.push_back(&it->second);
   }
   if (lists.empty()) {
