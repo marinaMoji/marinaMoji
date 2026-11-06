@@ -242,72 +242,98 @@ void HarmonizeVerticalOverlap(Box *upper, Box *lower) {
   if (lower->top > target) lower->top = target;
 }
 
-// The extent of the ink a placed component actually draws (its strokes, not
-// its box), in the 0..200 KAGE space; nullopt if it cannot be drawn.
-std::optional<Box> InkExtent(const kage::Buhin &glyphs, const Box &box,
-                             std::string_view name) {
+// A coarse bitmap of the ink a placed component draws (its strokes, not its
+// box) over the 0..200 KAGE square; empty if it cannot be drawn.
+constexpr int kInkGrid = 50;
+using InkMask = std::vector<bool>;
+
+InkMask InkMaskOf(const kage::Buhin &glyphs, const Box &box,
+                  std::string_view name) {
   const std::string record = absl::StrCat("99:0:0:", box.left, ":", box.top,
                                           ":", box.right, ":", box.bottom, ":",
                                           name, ":0:0:0");
   const kage::Kage engine(&glyphs);
-  if (!engine.UnresolvedComponents(record).empty()) return std::nullopt;
+  if (!engine.UnresolvedComponents(record).empty()) return {};
   kage::Polygons polygons;
   engine.MakeGlyphFromData(&polygons, record);
+  InkMask mask(kInkGrid * kInkGrid, false);
   bool any = false;
-  double left = 0, top = 0, right = 0, bottom = 0;
   for (const kage::Polygon &polygon : polygons.array()) {
-    for (const kage::Point &p : polygon.Points()) {
-      if (!any) {
-        left = right = p.x;
-        top = bottom = p.y;
-        any = true;
-      } else {
-        left = std::min<double>(left, p.x);
-        right = std::max<double>(right, p.x);
-        top = std::min<double>(top, p.y);
-        bottom = std::max<double>(bottom, p.y);
+    const auto &pts = polygon.Points();
+    if (pts.size() < 3) continue;
+    double min_y = pts[0].y, max_y = pts[0].y;
+    for (const kage::Point &p : pts) {
+      min_y = std::min<double>(min_y, p.y);
+      max_y = std::max<double>(max_y, p.y);
+    }
+    const double cell = 200.0 / kInkGrid;
+    for (int row = 0; row < kInkGrid; ++row) {
+      const double y = (row + 0.5) * cell;
+      if (y < min_y || y > max_y) continue;
+      // Even-odd scanline: x where the polygon's edges cross this row.
+      std::vector<double> xs;
+      for (size_t i = 0; i < pts.size(); ++i) {
+        const kage::Point &p = pts[i];
+        const kage::Point &q = pts[(i + 1) % pts.size()];
+        if ((p.y <= y) == (q.y <= y)) continue;
+        xs.push_back(p.x + (y - p.y) / (q.y - p.y) * (q.x - p.x));
+      }
+      std::sort(xs.begin(), xs.end());
+      for (size_t i = 0; i + 1 < xs.size(); i += 2) {
+        const int from = std::max(0, static_cast<int>(xs[i] / cell));
+        const int to = std::min(kInkGrid - 1, static_cast<int>(xs[i + 1] / cell));
+        for (int col = from; col <= to; ++col) {
+          mask[row * kInkGrid + col] = true;
+          any = true;
+        }
       }
     }
   }
-  if (!any) return std::nullopt;
-  return Box{static_cast<int>(left), static_cast<int>(top),
-             static_cast<int>(right + 0.5), static_cast<int>(bottom + 0.5)};
+  if (!any) return {};
+  return mask;
 }
 
-// GlyphWiki's medians let neighbouring boxes overlap by 25..55 units, which is
-// right for sparse components but makes dense ones (龍, 馬) collide. Measure
-// the ink and, if two neighbours' strokes overlap by more than a sliver, pull
-// their boxes apart (each shrinks by half the excess) until they do not.
-constexpr int kMaxInkOverlap = 20;  // of 200 units
+// Fraction of the smaller component's ink that the other's strokes cover.
+double InkCollision(const InkMask &a, const InkMask &b) {
+  long both = 0, na = 0, nb = 0;
+  for (size_t i = 0; i < a.size(); ++i) {
+    na += a[i];
+    nb += b[i];
+    both += a[i] && b[i];
+  }
+  const long smaller = std::min(na, nb);
+  return smaller == 0 ? 0.0 : static_cast<double>(both) / smaller;
+}
+
+// GlyphWiki's medians let neighbouring boxes overlap by 25..110 units, which
+// suits its narrowed positional forms and interleaved strokes (亻 and 木) but
+// makes dense components (木 and 巻, 龍 and 龍) run into each other. Compare
+// the strokes themselves and, while more than a sliver collide, squeeze the
+// facing edges of the two boxes closer together.
+constexpr double kMaxInkCollision = 0.015;
+constexpr int kInkStep = 3;
 constexpr int kMinBoxSpan = 60;
 
 template <typename Placement>
 void LimitInkOverlap(bool horizontal, const kage::Buhin &glyphs,
                      Placement *first, Placement *second) {
-  for (int round = 0; round < 4; ++round) {
-    const std::optional<Box> a = InkExtent(glyphs, first->box, first->name);
-    const std::optional<Box> b = InkExtent(glyphs, second->box, second->name);
-    if (!a || !b) return;
-    const int overlap = horizontal ? a->right - b->left : a->bottom - b->top;
-    if (overlap <= kMaxInkOverlap) return;
-    const int excess = overlap - kMaxInkOverlap;
-    const int give_first = (excess + 1) / 2;
-    const int give_second = excess - give_first;
-    if (horizontal) {
-      if (first->box.right - first->box.left - give_first < kMinBoxSpan ||
-          second->box.right - second->box.left - give_second < kMinBoxSpan) {
-        return;
-      }
-      first->box.right -= give_first;
-      second->box.left += give_second;
-    } else {
-      if (first->box.bottom - first->box.top - give_first < kMinBoxSpan ||
-          second->box.bottom - second->box.top - give_second < kMinBoxSpan) {
-        return;
-      }
-      first->box.bottom -= give_first;
-      second->box.top += give_second;
+  for (int round = 0; round < 30; ++round) {
+    int &a_end = horizontal ? first->box.right : first->box.bottom;
+    int &b_start = horizontal ? second->box.left : second->box.top;
+    if (b_start >= a_end) return;  // boxes no longer overlap
+    const InkMask a = InkMaskOf(glyphs, first->box, first->name);
+    const InkMask b = InkMaskOf(glyphs, second->box, second->name);
+    if (a.empty() || b.empty()) return;
+    if (InkCollision(a, b) <= kMaxInkCollision) return;
+    const int a_span = horizontal ? first->box.right - first->box.left
+                                  : first->box.bottom - first->box.top;
+    const int b_span = horizontal ? second->box.right - second->box.left
+                                  : second->box.bottom - second->box.top;
+    if (a_span - kInkStep < kMinBoxSpan || b_span - kInkStep < kMinBoxSpan) {
+      return;
     }
+    a_end -= kInkStep;
+    b_start += kInkStep;
   }
 }
 

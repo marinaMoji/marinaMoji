@@ -291,7 +291,7 @@ TEST(ComposerKageTest, DenseComponentsDoNotOverlapMuch) {
       boxes.push_back({static_cast<int>(lo), static_cast<int>(hi + 0.5)});
     }
     ASSERT_EQ(boxes.size(), 2u);
-    EXPECT_LE(boxes[0][1] - boxes[1][0], 40) << op << a << b << " " << data;
+    EXPECT_LE(boxes[0][1] - boxes[1][0], 30) << op << a << b << " " << data;
   }
 }
 
