@@ -141,8 +141,13 @@ changed and, where it isn't obvious, why.
   (`show_unrenderable_palette_candidates`, off by default), brings them back.
   The character composer always shows them. The session asks a new
   `base/font_coverage` (CoreText on macOS; fontconfig, loaded at run time, on
-  Linux). Windows has no coverage query yet, so nothing is hidden there except
-  blue drawings.
+  Linux; DirectWrite on Windows).
+- **Windows candidate window: amber check fixed (untested).** It judged each
+  character by the one candidate font, so a font without CJK marked every kanji
+  amber, and characters outside the basic plane (Extension B and later) were
+  always amber. It now asks whether any installed font has the character, the
+  same test the palette filter uses. Written on macOS; not built or run on
+  Windows.
 - **Releases**: the macOS release job runs on `macos-15`, and
   `auto_rerun.yaml` re-runs jobs that stalled for lack of a runner (up to six
   attempts).

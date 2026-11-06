@@ -7,9 +7,9 @@
 // the Ctrl+1 / Ctrl+2 palettes instead (see
 // Config.show_unrenderable_palette_candidates).
 //
-// Backends: CoreText on macOS, fontconfig (loaded at run time, so it is not a
-// build dependency) on Linux. Elsewhere, and whenever a backend is
-// unavailable, the answer is "yes", so a character is never hidden on a guess.
+// Backends: CoreText on macOS, DirectWrite on Windows, fontconfig (loaded at
+// run time, so it is not a build dependency) on Linux. Elsewhere, and whenever
+// a backend is unavailable, the answer is "yes", so a character is never hidden on a guess.
 
 #ifndef MOZC_BASE_FONT_COVERAGE_H_
 #define MOZC_BASE_FONT_COVERAGE_H_

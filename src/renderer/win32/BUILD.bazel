@@ -356,6 +356,7 @@ mozc_cc_library(
         ":win32_dpi_util",
         ":win32_font_util",
         "//base:coordinates",
+        "//base:font_coverage",
         "//bazel/win32:d2d1",
         "//bazel/win32:dwrite",
         "//protocol:renderer_cc_proto",

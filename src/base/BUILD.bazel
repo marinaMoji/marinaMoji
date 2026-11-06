@@ -76,7 +76,10 @@ mozc_cc_library(
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
-    ] + mozc_select(apple = ["//base/mac:font_coverage_mac"]),
+    ] + mozc_select(
+        apple = ["//base/mac:font_coverage_mac"],
+        windows = ["//base/win32:font_coverage_win"],
+    ),
 )
 
 mozc_cc_test(

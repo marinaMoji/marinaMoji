@@ -117,13 +117,13 @@ bool CanRenderCodePointUncached(char32_t code_point) {
 }
 
 }  // namespace internal
-#elif !defined(__APPLE__)
+#elif !defined(__APPLE__) && !defined(_WIN32)
 namespace internal {
-// Windows and others: no coverage query here yet, so never hide anything.
+// Other platforms: no coverage query, so never hide anything.
 bool CanRenderCodePointUncached(char32_t) { return true; }
 }  // namespace internal
 #endif
-// macOS: internal::CanRenderCodePointUncached lives in base/mac/font_coverage_mac.mm.
+// macOS: base/mac/font_coverage_mac.mm. Windows: base/win32/font_coverage_win.cc.
 
 bool CanRenderCodePoint(char32_t code_point) {
   if (IsAlwaysRenderable(code_point)) return true;

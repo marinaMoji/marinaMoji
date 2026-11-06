@@ -51,6 +51,7 @@
 #include "absl/log/log.h"
 #include "absl/types/span.h"
 #include "base/coordinates.h"
+#include "base/font_coverage.h"
 #include "protocol/renderer_style.pb.h"
 #include "renderer/win32/win32_dpi_util.h"
 #include "renderer/win32/win32_font_util.h"
@@ -62,6 +63,23 @@ namespace win32 {
 using ::mozc::renderer::RendererStyle;
 
 namespace {
+
+// Whether some installed font can draw every character of |text|. Windows
+// draws through font fallback, so judging by the one candidate font (what this
+// used to do with GetGlyphIndicesW) marked every kanji amber when that font
+// has no CJK, and always marked characters outside the basic plane amber,
+// since GetGlyphIndicesW sees a surrogate pair as two unknown code units.
+bool AllCodePointsRenderable(std::wstring_view text) {
+  for (size_t i = 0; i < text.size();) {
+    char32_t cp = text[i++];
+    if (cp >= 0xD800 && cp <= 0xDBFF && i < text.size() &&
+        text[i] >= 0xDC00 && text[i] <= 0xDFFF) {
+      cp = 0x10000 + ((cp - 0xD800) << 10) + (text[i++] - 0xDC00);
+    }
+    if (!CanRenderCodePoint(cp)) return false;
+  }
+  return true;
+}
 
 CRect ToCRect(const Rect& rect) {
   return CRect(rect.Left(), rect.Top(), rect.Right(), rect.Bottom());
@@ -273,26 +291,9 @@ class GdiTextRenderer : public TextRenderer {
     ::SetTextColor(dc, previous_color);
   }
 
-  bool FontCanDraw(FONT_TYPE font_type,
+  bool FontCanDraw(FONT_TYPE /*font_type*/,
                    std::wstring_view text) const override {
-    if (text.empty()) {
-      return true;
-    }
-    const auto old_font =
-        wil::SelectObject(mem_dc_.get(), render_info_[font_type].font.get());
-    std::vector<WORD> glyphs(text.size());
-    const DWORD result = ::GetGlyphIndicesW(
-        mem_dc_.get(), text.data(), static_cast<int>(text.size()),
-        glyphs.data(), GGI_MARK_NONEXISTING_GLYPHS);
-    if (result == GDI_ERROR) {
-      return true;
-    }
-    for (const WORD glyph : glyphs) {
-      if (glyph == 0xffff) {
-        return false;
-      }
-    }
-    return true;
+    return AllCodePointsRenderable(text);
   }
 
   std::vector<RenderInfo> render_info_;
@@ -434,32 +435,9 @@ class DirectWriteTextRenderer : public TextRenderer {
     }
   }
 
-  bool FontCanDraw(FONT_TYPE font_type,
+  bool FontCanDraw(FONT_TYPE /*font_type*/,
                    std::wstring_view text) const override {
-    if (text.empty()) {
-      return true;
-    }
-    // Probe with the same LOGFONT DirectWrite uses for this style.
-    const LOGFONTW log_font = GetLogFont(font_type, dpi_);
-    wil::unique_hfont font(::CreateFontIndirectW(&log_font));
-    if (!font) {
-      return true;
-    }
-    wil::unique_hdc mem_dc(::CreateCompatibleDC(nullptr));
-    const auto old_font = wil::SelectObject(mem_dc.get(), font.get());
-    std::vector<WORD> glyphs(text.size());
-    const DWORD result = ::GetGlyphIndicesW(
-        mem_dc.get(), text.data(), static_cast<int>(text.size()),
-        glyphs.data(), GGI_MARK_NONEXISTING_GLYPHS);
-    if (result == GDI_ERROR) {
-      return true;
-    }
-    for (const WORD glyph : glyphs) {
-      if (glyph == 0xffff) {
-        return false;
-      }
-    }
-    return true;
+    return AllCodePointsRenderable(text);
   }
 
   HRESULT RenderTextListImpl(
