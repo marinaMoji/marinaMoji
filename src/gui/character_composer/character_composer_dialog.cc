@@ -824,7 +824,9 @@ SlotEdit::SlotEdit(SlotPath path, QWidget *parent)
   setPlaceholderText(QStringLiteral("字"));
   QFont f = font();
   f.setPixelSize(36);
-  setFont(f);
+  // Rare ideographs (e.g. U+2BDA7) are in fonts like Jigmo that Qt's default
+  // fallback skips, which showed tofu in the slot.
+  setFont(WithWideCoverage(f));
 }
 
 void SlotEdit::SetSelected(bool selected) {
@@ -1908,6 +1910,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   ids_edit_ = new QLineEdit(this);
   ids_edit_->setObjectName(QStringLiteral("ids_edit"));
   ids_edit_->setPlaceholderText(Tr("e.g. LR日月 or ⿰日月"));
+  ids_edit_->setFont(WithWideCoverage(ids_edit_->font()));
   ids_edit_->installEventFilter(this);
   info_popover_ = new ComposerInfoPopover(this);
   ids_info_button_ = new ComposerInfoButton(Tr("About the IDS box"), this);

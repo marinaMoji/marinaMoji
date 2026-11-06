@@ -242,6 +242,75 @@ void HarmonizeVerticalOverlap(Box *upper, Box *lower) {
   if (lower->top > target) lower->top = target;
 }
 
+// The extent of the ink a placed component actually draws (its strokes, not
+// its box), in the 0..200 KAGE space; nullopt if it cannot be drawn.
+std::optional<Box> InkExtent(const kage::Buhin &glyphs, const Box &box,
+                             std::string_view name) {
+  const std::string record = absl::StrCat("99:0:0:", box.left, ":", box.top,
+                                          ":", box.right, ":", box.bottom, ":",
+                                          name, ":0:0:0");
+  const kage::Kage engine(&glyphs);
+  if (!engine.UnresolvedComponents(record).empty()) return std::nullopt;
+  kage::Polygons polygons;
+  engine.MakeGlyphFromData(&polygons, record);
+  bool any = false;
+  double left = 0, top = 0, right = 0, bottom = 0;
+  for (const kage::Polygon &polygon : polygons.array()) {
+    for (const kage::Point &p : polygon.Points()) {
+      if (!any) {
+        left = right = p.x;
+        top = bottom = p.y;
+        any = true;
+      } else {
+        left = std::min<double>(left, p.x);
+        right = std::max<double>(right, p.x);
+        top = std::min<double>(top, p.y);
+        bottom = std::max<double>(bottom, p.y);
+      }
+    }
+  }
+  if (!any) return std::nullopt;
+  return Box{static_cast<int>(left), static_cast<int>(top),
+             static_cast<int>(right + 0.5), static_cast<int>(bottom + 0.5)};
+}
+
+// GlyphWiki's medians let neighbouring boxes overlap by 25..55 units, which is
+// right for sparse components but makes dense ones (龍, 馬) collide. Measure
+// the ink and, if two neighbours' strokes overlap by more than a sliver, pull
+// their boxes apart (each shrinks by half the excess) until they do not.
+constexpr int kMaxInkOverlap = 20;  // of 200 units
+constexpr int kMinBoxSpan = 60;
+
+template <typename Placement>
+void LimitInkOverlap(bool horizontal, const kage::Buhin &glyphs,
+                     Placement *first, Placement *second) {
+  for (int round = 0; round < 4; ++round) {
+    const std::optional<Box> a = InkExtent(glyphs, first->box, first->name);
+    const std::optional<Box> b = InkExtent(glyphs, second->box, second->name);
+    if (!a || !b) return;
+    const int overlap = horizontal ? a->right - b->left : a->bottom - b->top;
+    if (overlap <= kMaxInkOverlap) return;
+    const int excess = overlap - kMaxInkOverlap;
+    const int give_first = (excess + 1) / 2;
+    const int give_second = excess - give_first;
+    if (horizontal) {
+      if (first->box.right - first->box.left - give_first < kMinBoxSpan ||
+          second->box.right - second->box.left - give_second < kMinBoxSpan) {
+        return;
+      }
+      first->box.right -= give_first;
+      second->box.left += give_second;
+    } else {
+      if (first->box.bottom - first->box.top - give_first < kMinBoxSpan ||
+          second->box.bottom - second->box.top - give_second < kMinBoxSpan) {
+        return;
+      }
+      first->box.bottom -= give_first;
+      second->box.top += give_second;
+    }
+  }
+}
+
 // GlyphWiki's compound name for a filled slot: ⿱口𫶧 → u2ff1-u53e3-u2bda7.
 std::string SystematicGlyphName(const ComposerSlot &slot) {
   if (slot.kind == ComposerSlot::Kind::kLeaf) {
@@ -275,7 +344,8 @@ std::string ReadyMadeNestedGlyph(const ComposerSlot &slot, const kage::Buhin &gl
 
 std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &parts,
                           kage::Buhin *nested, const ComposerLayout *layout,
-                          const ComposerSubtrees *subtrees) {
+                          const ComposerSubtrees *subtrees,
+                          bool limit_ink_overlap) {
   const std::vector<Box> boxes = BoxesFor(op);
   struct Placement {
     std::string name;
@@ -311,7 +381,8 @@ std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &
       name = ReadyMadeNestedGlyph(parts[i], *nested, subtrees);
       if (name.empty()) {
         const std::string inner = ComposeLayout(parts[i].op, parts[i].parts,
-                                                nested, layout, subtrees);
+                                                nested, layout, subtrees,
+                                                limit_ink_overlap);
         if (inner.empty()) return {};
         name = absl::StrCat("__nested", nested->size());
         nested->Set(name, inner);
@@ -333,6 +404,12 @@ std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &
   } else if (op == "⿳" && placements.size() >= 3) {
     HarmonizeVerticalOverlap(&placements[0].box, &placements[1].box);
     HarmonizeVerticalOverlap(&placements[1].box, &placements[2].box);
+  }
+  const bool horizontal = op == "⿰" || op == "⿲";
+  if (limit_ink_overlap && (horizontal || op == "⿱" || op == "⿳")) {
+    for (size_t i = 0; i + 1 < placements.size(); ++i) {
+      LimitInkOverlap(horizontal, *nested, &placements[i], &placements[i + 1]);
+    }
   }
   std::vector<std::string> records;
   records.reserve(placements.size());
@@ -465,9 +542,10 @@ std::unique_ptr<KageResources> KageResources::LoadFromDirectory(
 std::string ComposeKageData(std::string_view op,
                             const std::vector<ComposerSlot> &parts,
                             kage::Buhin *nested, const ComposerLayout *layout,
-                            const ComposerSubtrees *subtrees) {
+                            const ComposerSubtrees *subtrees,
+                            bool limit_ink_overlap) {
   if (!composer_ids::ComposeIds(op, parts)) return {};
-  return ComposeLayout(op, parts, nested, layout, subtrees);
+  return ComposeLayout(op, parts, nested, layout, subtrees, limit_ink_overlap);
 }
 
 std::optional<std::vector<Contour>> ComposerOutlines(

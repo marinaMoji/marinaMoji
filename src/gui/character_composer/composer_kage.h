@@ -101,11 +101,17 @@ using Contour = std::vector<std::pair<double, double>>;
 // glyph table, holds the variant); otherwise by the defaults. With |subtrees|, a
 // nested slot whose IDS is known is drawn as that GlyphWiki glyph instead of a
 // synthesized __nestedN.
+//
+// With |limit_ink_overlap| (the default), neighbouring components whose
+// strokes would overlap by more than ~10% of the square are pulled apart:
+// GlyphWiki's usual box overlap suits its narrowed positional forms but makes
+// a full-size component (龍) collide with its neighbour.
 std::string ComposeKageData(std::string_view op,
                             const std::vector<composer_ids::ComposerSlot> &parts,
                             kage::Buhin *nested,
                             const ComposerLayout *layout = nullptr,
-                            const ComposerSubtrees *subtrees = nullptr);
+                            const ComposerSubtrees *subtrees = nullptr,
+                            bool limit_ink_overlap = true);
 
 // The outlines of the composed glyph, or nullopt when the layout is incomplete
 // or a component has no KAGE data (then the caller falls back to plain text).

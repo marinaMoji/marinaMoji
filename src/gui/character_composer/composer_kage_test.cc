@@ -3,8 +3,12 @@
 
 #include "gui/character_composer/composer_kage.h"
 
+#include <algorithm>
 #include <string>
+#include <tuple>
 #include <vector>
+
+#include "absl/strings/str_split.h"
 
 #include "base/file_util.h"
 #include "composer_ids/ids_tree.h"
@@ -64,7 +68,8 @@ TEST(ComposerKageTest, UsesTheVariantAndBoxGlyphWikiUses) {
   r.layout = ComposerLayout::Parse("⿰\t0\t木\tu6728-01\t2 0 165 200\t442\n");
   kage::Buhin nested(&r.glyphs);
   // -01 expands the left box's right edge to at least 170.
-  EXPECT_EQ(ComposeKageData("⿰", Parts("木", "巻"), &nested, &r.layout),
+  EXPECT_EQ(ComposeKageData("⿰", Parts("木", "巻"), &nested, &r.layout, nullptr,
+                            /*limit_ink_overlap=*/false),
             "99:0:0:2:0:170:200:u6728-01:0:0:0$99:0:0:49:0:198:200:u5dfb:0:0:0");
 }
 
@@ -75,7 +80,8 @@ TEST(ComposerKageTest, PrefersAPositionalVariantWhenTheTableNamesTheBareGlyph) {
   r.glyphs.Set("u6728-01", std::string(r.glyphs.Search("u6728")));
   r.layout = ComposerLayout::Parse("⿰\t0\t木\tu6728\t5 0 115 200\t5\n");
   kage::Buhin nested(&r.glyphs);
-  EXPECT_EQ(ComposeKageData("⿰", Parts("木", "巻"), &nested, &r.layout),
+  EXPECT_EQ(ComposeKageData("⿰", Parts("木", "巻"), &nested, &r.layout, nullptr,
+                            /*limit_ink_overlap=*/false),
             "99:0:0:5:0:170:200:u6728-01:0:0:0$99:0:0:49:0:198:200:u5dfb:0:0:0");
 }
 
@@ -93,7 +99,8 @@ TEST(ComposerKageTest, DoesNotOverrideAChosenRegionVariant) {
       "⿰\t1\t目\tu76ee-j\t80 0 200 200\t1\t木\n");
   kage::Buhin nested(&r.glyphs);
   const std::string data =
-      ComposeKageData("⿰", Parts("木", "目"), &nested, &r.layout);
+      ComposeKageData("⿰", Parts("木", "目"), &nested, &r.layout, nullptr,
+                      /*limit_ink_overlap=*/false);
   EXPECT_NE(data.find("u76ee-j"), std::string::npos) << data;
   EXPECT_EQ(data.find("u76ee-02"), std::string::npos) << data;
 }
@@ -107,7 +114,8 @@ TEST(ComposerKageTest, UnknownComponentTakesTheUsualBoxOfItsPosition) {
   kage::Buhin nested(&r.glyphs);
   // No entry for 木/巻: left keeps the ⿰ default; right takes the position
   // median (50..198 from the three entries above).
-  EXPECT_EQ(ComposeKageData("⿰", Parts("木", "巻"), &nested, &r.layout),
+  EXPECT_EQ(ComposeKageData("⿰", Parts("木", "巻"), &nested, &r.layout, nullptr,
+                            /*limit_ink_overlap=*/false),
             "99:0:0:2:0:167:200:u6728:0:0:0$99:0:0:50:0:198:200:u5dfb:0:0:0");
 }
 
@@ -116,7 +124,8 @@ TEST(ComposerKageTest, IgnoresAVariantThatHasNoStrokes) {
   r.layout = ComposerLayout::Parse("⿰\t0\t木\tu6728-01\t2 0 165 200\t442\n");
   kage::Buhin nested(&r.glyphs);
   // Missing -01: fall back to bare u6728 with the ⿰ default boxes.
-  EXPECT_EQ(ComposeKageData("⿰", Parts("木", "巻"), &nested, &r.layout),
+  EXPECT_EQ(ComposeKageData("⿰", Parts("木", "巻"), &nested, &r.layout, nullptr,
+                            /*limit_ink_overlap=*/false),
             "99:0:0:2:0:167:200:u6728:0:0:0$99:0:0:49:0:198:200:u5dfb:0:0:0");
 }
 
@@ -246,6 +255,44 @@ TEST(ComposerKageTest, GlyphWikiSystematicName) {
   EXPECT_EQ(GlyphWikiSystematicName(
                 "⿰", {ComposerSlot::Leaf("木"), ComposerSlot::Leaf("")}),
             "");
+}
+
+TEST(ComposerKageTest, DenseComponentsDoNotOverlapMuch) {
+  const std::string kage_dir = FileUtil::Dirname(
+      testing::GetSourceFileOrDie({"data", "kage", "kage_glyphs.tsv"}));
+  auto resources = KageResources::LoadFromDirectory(kage_dir);
+  ASSERT_NE(resources, nullptr);
+  // Ink of each half of ⿱龍龍 and ⿰木馬, drawn alone, must not overlap by more
+  // than a few units after placement.
+  for (const auto &[op, a, b, horizontal] :
+       {std::tuple<const char *, const char *, const char *, bool>{
+            "⿱", "龍", "龍", false},
+        {"⿰", "木", "馬", true}}) {
+    kage::Buhin nested(&resources->glyphs);
+    const std::string data = ComposeKageData(
+        op, {ComposerSlot::Leaf(a), ComposerSlot::Leaf(b)}, &nested,
+        &resources->layout, &resources->subtrees);
+    ASSERT_FALSE(data.empty());
+    std::vector<std::vector<int>> boxes;
+    for (absl::string_view rec : absl::StrSplit(data, '$')) {
+      std::vector<std::string> f = absl::StrSplit(rec, ':');
+      ASSERT_GE(f.size(), 8u) << rec;
+      const kage::Kage engine(&nested);
+      kage::Polygons polygons;
+      engine.MakeGlyphFromData(&polygons, rec);
+      double lo = 1e9, hi = -1e9;
+      for (const kage::Polygon &polygon : polygons.array()) {
+        for (const kage::Point &p : polygon.Points()) {
+          const double v = horizontal ? p.x : p.y;
+          lo = std::min(lo, v);
+          hi = std::max(hi, v);
+        }
+      }
+      boxes.push_back({static_cast<int>(lo), static_cast<int>(hi + 0.5)});
+    }
+    ASSERT_EQ(boxes.size(), 2u);
+    EXPECT_LE(boxes[0][1] - boxes[1][0], 40) << op << a << b << " " << data;
+  }
 }
 
 }  // namespace
