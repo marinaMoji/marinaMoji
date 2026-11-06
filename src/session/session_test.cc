@@ -36,7 +36,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/cleanup/cleanup.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/statusor.h"
@@ -8727,6 +8726,25 @@ TEST_F(SessionTest, RequestConvertReverse) {
             commands::SessionCommand::CONVERT_REVERSE);
 }
 
+// The Ctrl+1 / Ctrl+2 palettes drop characters no installed font can draw
+// unless the user opts in. Which characters that is depends on the machine
+// (CI hosts have no CJK fonts), so tests that need specific candidates opt in.
+class ScopedShowUnrenderablePaletteCandidates {
+ public:
+  ScopedShowUnrenderablePaletteCandidates()
+      : original_(config::ConfigHandler::GetCopiedConfig()) {
+    config::Config config = original_;
+    config.set_show_unrenderable_palette_candidates(true);
+    config::ConfigHandler::SetConfig(config);
+  }
+  ~ScopedShowUnrenderablePaletteCandidates() {
+    config::ConfigHandler::SetConfig(original_);
+  }
+
+ private:
+  const config::Config original_;
+};
+
 TEST_F(SessionTest, RequestConvertRelated) {
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
@@ -8756,6 +8774,7 @@ TEST_F(SessionTest, RequestConvertComponents) {
 }
 
 TEST_F(SessionTest, ConvertRelated) {
+  ScopedShowUnrenderablePaletteCandidates show_unrenderable;
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
   EXPECT_CALL(*converter, ResetConversion(_)).Times(1);
@@ -8816,6 +8835,7 @@ TEST_F(SessionTest, ConvertRelated) {
 }
 
 TEST_F(SessionTest, ConvertComponents) {
+  ScopedShowUnrenderablePaletteCandidates show_unrenderable;
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
 
@@ -8885,13 +8905,7 @@ TEST_F(SessionTest, ConvertComponentsSvgCandidateLeavesSelectionOnCommit) {
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
 
   // The palette hides unencoded drawings unless the user opts in.
-  const config::Config original_config = config::ConfigHandler::GetCopiedConfig();
-  config::Config opted_in = original_config;
-  opted_in.set_show_unrenderable_palette_candidates(true);
-  config::ConfigHandler::SetConfig(opted_in);
-  absl::Cleanup restore_config = [&] {
-    config::ConfigHandler::SetConfig(original_config);
-  };
+  ScopedShowUnrenderablePaletteCandidates show_unrenderable;
 
   // 木目 has no encoded character in this table, so the only candidate is
   // the unencoded-SVG one.
@@ -8926,6 +8940,7 @@ TEST_F(SessionTest, ConvertComponentsSvgCandidateLeavesSelectionOnCommit) {
 }
 
 TEST_F(SessionTest, EscapeFromConvertRelatedLeavesSelection) {
+  ScopedShowUnrenderablePaletteCandidates show_unrenderable;
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
   EXPECT_CALL(*converter, ResetConversion(_))

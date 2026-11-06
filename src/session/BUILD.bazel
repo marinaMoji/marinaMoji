@@ -137,7 +137,6 @@ mozc_cc_test(
         "//testing:mozctest",
         "//testing:test_peer",
         "//transliteration",
-        "@com_google_absl//absl/cleanup",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status:statusor",
