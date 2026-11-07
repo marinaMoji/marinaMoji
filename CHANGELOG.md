@@ -10,6 +10,23 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.21-rc6
+
+Everything in 0.0.21-rc5 plus:
+
+- **Ctrl+2** lists only real characters (see below); no guessed drawing.
+- **macOS installer** shows the marinaMoji logo in the installer window.
+- **Windows:** candidate/cascading window DPI fix; saving files retries
+  `MoveFileExW` when it is briefly refused.
+- **Qt candidate window** hides the empty shortcut column.
+- **Number conversion** (from upstream Mozc): counter suffixes (本, 階, 個 ...)
+  and native-numeral expressions are decoded, with fewer false candidates such
+  as `2書いて` for `にかいて`.
+- **Internal:** `SuffixDictionary` removed; user-dictionary storage and importer
+  moved to `client/user_dictionary`; platform `#ifdef`s replaced with
+  `if constexpr` across session, config, IPC and GUI code; helpers for a future
+  private-input mode on Windows and IBus (no behaviour change yet).
+
 ### Ctrl+2 no longer offers a guessed drawing
 
 - Selecting components (木 卷) and pressing Ctrl+2 used to add a Prussian-blue
