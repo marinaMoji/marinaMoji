@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-06T15:58:02+00:00",
+  "generated": "2026-11-07T11:43:32+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -676,7 +676,7 @@
       "milestone": "Full public release",
       "assignee": null,
       "progress": {
-        "done": 0,
+        "done": 2,
         "total": 3
       },
       "category": "composition",
