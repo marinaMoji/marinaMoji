@@ -63,7 +63,6 @@
 #include "composer/table.h"
 #include "composer_ids/char_info.h"
 #include "composer_ids/component_candidates.h"
-#include "composer_ids/component_svg_handoff.h"
 #include "composer_ids/ids_table.h"
 #include "engine/engine_converter.h"
 #include "engine/engine_converter_interface.h"
@@ -1710,7 +1709,6 @@ bool Session::Revert(commands::Command* command) {
   command->mutable_output()->set_consumed(true);
   ClearUndoContext();
   keep_app_selection_ = false;
-  component_svg_op_.clear();
 
   SetStateToPredompositionAndCancel(context_.get());
   Output(command);
@@ -1733,7 +1731,6 @@ bool Session::ResetContext(commands::Command* command) {
   last_committed_reading_.clear();
   macron_dead_key_pending_ = false;
   keep_app_selection_ = false;
-  component_svg_op_.clear();
 
   SetStateToPredompositionAndCancel(context_.get());
   Output(command);
@@ -1901,7 +1898,7 @@ bool Session::ConvertComponents(commands::Command* command) {
   }
 
   // Dictionary exact lookup needs Modules; session only has ConverterInterface.
-  // BuildComponentCandidates still merges IDS exact + FindContaining + SVG.
+  // BuildComponentCandidates merges IDS exact + FindContaining.
   const composer_ids::ComponentSearchResult search =
       composer_ids::BuildComponentCandidates(*table, selected,
                                              /*dictionary_values=*/{});
@@ -1918,9 +1915,9 @@ bool Session::ConvertComponents(commands::Command* command) {
           ->show_unrenderable_palette_candidates();
   for (const composer_ids::ComponentCandidate& c : search.candidates) {
     if (!show_unrenderable) {
-      // Hide unencoded drawings (blue) and characters no installed font can
-      // draw (amber) unless the user opted in. The composer shows both.
-      if (c.specimen_kind == 2 || !CanRenderText(c.value)) continue;
+      // Hide characters no installed font can draw (amber) unless the user
+      // opted in. The composer shows them.
+      if (!CanRenderText(c.value)) continue;
     }
     values.push_back(c.value);
     kinds.push_back(c.specimen_kind);
@@ -1934,10 +1931,8 @@ bool Session::ConvertComponents(commands::Command* command) {
   ClearUndoContext();
   composer->InsertCharacterPreedit(selected);
   composer->set_source_text(selected);
-  component_svg_op_ = search.default_op;
 
   if (!converter->StartRelatedConversion(selected, values)) {
-    component_svg_op_.clear();
     return DoNothing(command);
   }
   converter->SetSpecimenKinds(kinds);
@@ -2143,7 +2138,6 @@ bool Session::CommitCandidate(commands::Command* command) {
   }
   command->mutable_output()->set_consumed(true);
   keep_app_selection_ = false;
-  component_svg_op_.clear();
 
   PushUndoContext();
 
@@ -2595,34 +2589,6 @@ bool Session::CommitInternal(commands::Command* command,
   }
   command->mutable_output()->set_consumed(true);
 
-  // Ctrl+2 unencoded SVG: hand off a drawing; do not insert the IDS string.
-  if (context_->state() == ImeContext::CONVERSION) {
-    uint8_t specimen_kind = 0;
-    if (EngineConverter* converter =
-            GetEngineConverter(context_->mutable_converter());
-        converter != nullptr &&
-        converter->GetFocusedSpecimenKind(&specimen_kind) &&
-        specimen_kind == 2) {
-      const std::string selected =
-          std::string(context_->composer().source_text());
-      const std::string op = component_svg_op_;
-      component_svg_op_.clear();
-      if (absl::Status status =
-              composer_ids::HandOffComponentSvgFromSelection(op, selected);
-          !status.ok()) {
-        LOG(WARNING) << "Component SVG hand-off failed: " << status;
-      }
-      // Selection stays in the app until commit; an SVG hand-off inserts
-      // nothing, so just dismiss. (Older clients that deleted on open used
-      // CommitSourceTextDirectly to put the text back.)
-      keep_app_selection_ = false;
-      context_->mutable_composer()->set_source_text("");
-      SetStateToPredompositionAndCancel(context_.get());
-      Output(command);
-      return true;
-    }
-  }
-  component_svg_op_.clear();
   keep_app_selection_ = false;
 
   // Capture typed reading before Commit clears the composer.
@@ -4042,7 +4008,6 @@ bool Session::ConvertCancel(commands::Command* command) {
   // original selection in the application (no composition to fall back to).
   if (keep_app_selection_) {
     keep_app_selection_ = false;
-    component_svg_op_.clear();
     context_->mutable_composer()->set_source_text("");
     SetStateToPredompositionAndCancel(context_.get());
     Output(command);

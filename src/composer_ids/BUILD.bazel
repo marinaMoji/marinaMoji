@@ -86,7 +86,6 @@ mozc_cc_library(
     ],
     deps = [
         ":ids_table",
-        ":ids_tree",
         "//base/strings:unicode",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/strings",
@@ -129,37 +128,6 @@ mozc_cc_test(
     deps = [
         ":ids_preview",
         "//testing:gunit_main",
-    ],
-)
-
-mozc_cc_library(
-    name = "component_svg_handoff",
-    srcs = ["component_svg_handoff.cc"],
-    hdrs = ["component_svg_handoff.h"],
-    visibility = [
-        "//session:__pkg__",
-    ],
-    deps = [
-        ":composer_result",
-        ":ids_tree",
-        "//base/strings:unicode",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/types:span",
-    ],
-)
-
-mozc_cc_test(
-    name = "component_svg_handoff_test",
-    size = "small",
-    srcs = ["component_svg_handoff_test.cc"],
-    deps = [
-        ":component_svg_handoff",
-        ":composer_result",
-        "//base:file_util",
-        "//base:system_util",
-        "//testing:gunit_main",
-        "//testing:mozctest",
     ],
 )
 

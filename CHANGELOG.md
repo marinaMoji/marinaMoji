@@ -10,6 +10,19 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Ctrl+2 no longer offers a guessed drawing
+
+- Selecting components (木 卷) and pressing Ctrl+2 used to add a Prussian-blue
+  drawing of the default layout (⿰ for two parts, ⿲ for three) when no Unicode
+  character matched, if "show characters that can't be drawn" was on. The
+  selection says nothing about how the parts combine, so that was a guess, and
+  committing it inserted a different drawing from the one in the palette (the
+  server rebuilt it as squeezed font text, since it must not link the GPL KAGE
+  engine). Ctrl+2 now lists only real characters: IDS exact encodes and
+  characters containing every selected part. With nothing to offer it does
+  nothing. Use the character composer to choose a layout. Removed
+  `composer_ids:component_svg_handoff`.
+
 ### Release candidate 0.0.21-rc5
 
 Everything in 0.0.21-rc4 plus:

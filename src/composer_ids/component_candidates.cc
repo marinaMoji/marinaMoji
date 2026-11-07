@@ -12,7 +12,6 @@
 #include "absl/types/span.h"
 #include "base/strings/unicode.h"
 #include "composer_ids/ids_table.h"
-#include "composer_ids/ids_tree.h"
 
 namespace mozc {
 namespace composer_ids {
@@ -75,9 +74,6 @@ ComponentSearchResult BuildComponentCandidates(
 
   const absl::Span<const std::string_view> ops =
       DefaultOpsForArity(parts.size());
-  if (!ops.empty()) {
-    result.default_op = std::string(ops.front());
-  }
   for (const std::string_view op : ops) {
     const std::string ids = ApplyAutomaticForms(table, op, parts);
     if (const auto encoded = table.FindEncodedCharacter(ids)) {
@@ -95,26 +91,6 @@ ComponentSearchResult BuildComponentCandidates(
   for (std::string &ch : containing) {
     if (selection_chars.contains(ch)) continue;
     AddUnique(&seen, &result.candidates, std::move(ch), /*specimen_kind=*/0);
-  }
-
-  // SVG fallback when 2+ parts have no exact Unicode encode for the default
-  // layout. specimen_kind 2 = Prussian blue unencoded plate.
-  if (!ops.empty() && !result.has_exact_encode) {
-    // Prefer automatic forms in the displayed IDS so 水毎 shows as ⿰氵毎.
-    std::vector<ComposerSlot> formed_slots;
-    formed_slots.reserve(parts.size());
-    for (size_t i = 0; i < parts.size(); ++i) {
-      if (const auto form =
-              table.AutomaticFormFor(parts[i], result.default_op,
-                                     static_cast<int>(i))) {
-        formed_slots.push_back(ComposerSlot::Leaf(*form));
-      } else {
-        formed_slots.push_back(ComposerSlot::Leaf(parts[i]));
-      }
-    }
-    if (const auto ids = ComposeIds(result.default_op, formed_slots)) {
-      AddUnique(&seen, &result.candidates, *ids, /*specimen_kind=*/2);
-    }
   }
 
   return result;

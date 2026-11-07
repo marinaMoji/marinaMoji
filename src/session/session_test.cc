@@ -8877,7 +8877,7 @@ TEST_F(SessionTest, ConvertComponents) {
 }
 
 // By default the Ctrl+2 palette leaves out unencoded drawings (blue).
-TEST_F(SessionTest, ConvertComponentsHidesSvgCandidatesByDefault) {
+TEST_F(SessionTest, ConvertComponentsOffersNothingWhenNoCharacterMatches) {
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
 
@@ -8900,15 +8900,15 @@ TEST_F(SessionTest, ConvertComponentsHidesSvgCandidatesByDefault) {
   composer_ids::IdsTable::ClearDefaultForTesting();
 }
 
-TEST_F(SessionTest, ConvertComponentsSvgCandidateLeavesSelectionOnCommit) {
+TEST_F(SessionTest, ConvertComponentsOffersNoDrawingForUnencodedLayout) {
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
 
-  // The palette hides unencoded drawings unless the user opts in.
+  // Even with unrenderable candidates shown, no drawing of a guessed layout is
+  // offered: the selection does not say how the parts combine.
   ScopedShowUnrenderablePaletteCandidates show_unrenderable;
 
-  // 木目 has no encoded character in this table, so the only candidate is
-  // the unencoded-SVG one.
+  // 木目 has no encoded character in this table, so there is nothing to offer.
   constexpr char kIds[] = "⿰日月\t明\n";
   auto table = composer_ids::IdsTable::FromTsv(kIds, "");
   ASSERT_TRUE(table.ok());
@@ -8923,18 +8923,8 @@ TEST_F(SessionTest, ConvertComponentsSvgCandidateLeavesSelectionOnCommit) {
       commands::SessionCommand::CONVERT_COMPONENTS);
   command.mutable_input()->mutable_command()->set_text("木目");
   EXPECT_TRUE(session.SendCommand(&command));
-  ASSERT_TRUE(command.output().has_candidate_window());
-  ASSERT_EQ(command.output().candidate_window().candidate_size(), 1);
-  EXPECT_EQ(command.output().candidate_window().candidate(0).value(), "⿰木目");
-  // Selection stays in the app: no replacing preedit while the palette is open.
-  EXPECT_FALSE(command.output().has_preedit());
-
-  // Choosing the drawing inserts nothing; the original selection was never
-  // removed, so there is no result to put back.
-  command.Clear();
-  EXPECT_TRUE(SendKey("Enter", &session, &command));
-  EXPECT_FALSE(command.output().has_result());
   EXPECT_FALSE(command.output().has_candidate_window());
+  EXPECT_FALSE(command.output().has_preedit());
 
   composer_ids::IdsTable::ClearDefaultForTesting();
 }

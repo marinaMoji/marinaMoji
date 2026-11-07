@@ -341,9 +341,6 @@ class Session {
   std::string last_committed_expression_;
   std::string last_committed_reading_;
 
-  // Default IDS operator from the last ConvertComponents (for SVG hand-off).
-  std::string component_svg_op_;
-
   // Related/components (Ctrl+Shift+7/8): the application keeps the selected
   // text until the user commits a candidate. Escape / cancel must not
   // re-insert |source_text| (that would duplicate), and Output suppresses

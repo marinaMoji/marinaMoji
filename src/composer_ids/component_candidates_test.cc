@@ -63,17 +63,19 @@ TEST(ComponentCandidatesTest, ExcludesSelectionItselfFromContaining) {
   }
 }
 
-TEST(ComponentCandidatesTest, SvgFallbackWhenUnencoded) {
+TEST(ComponentCandidatesTest, NoDrawingWhenUnencoded) {
   const IdsTable table = LoadFixture();
-  // 牙齒 has no encode in the fixture (only ⿰言齒 -> 𪘙).
+  // 牙齒 has no encode in the fixture (only ⿰言齒 -> 𪘙). The selection does
+  // not say how the parts combine, so no layout is guessed: nothing is offered
+  // for it (the character composer is where the user chooses one).
   const ComponentSearchResult result =
       BuildComponentCandidates(table, "牙齒", /*dictionary_values=*/{});
   EXPECT_FALSE(result.has_exact_encode);
-  ASSERT_FALSE(result.candidates.empty());
-  const ComponentCandidate &last = result.candidates.back();
-  EXPECT_EQ(last.specimen_kind, 2);
-  EXPECT_FALSE(last.value.empty());
-  EXPECT_EQ(result.default_op, "⿰");
+  for (const ComponentCandidate &c : result.candidates) {
+    EXPECT_EQ(c.specimen_kind, 0);
+    EXPECT_NE(c.value.find("⿰"), 0u) << c.value;
+    EXPECT_NE(c.value.find("⿱"), 0u) << c.value;
+  }
 }
 
 TEST(ComponentCandidatesTest, CapAtFourAndEmpty) {
@@ -83,7 +85,7 @@ TEST(ComponentCandidatesTest, CapAtFourAndEmpty) {
   EXPECT_TRUE(BuildComponentCandidates(table, "", {}).candidates.empty());
 }
 
-TEST(ComponentCandidatesTest, NoSvgWhenExactEncodeExists) {
+TEST(ComponentCandidatesTest, ExactEncodeIsPlainUnicode) {
   const IdsTable table = LoadFixture();
   const ComponentSearchResult result =
       BuildComponentCandidates(table, "木目", /*dictionary_values=*/{});

@@ -82,7 +82,6 @@ mozc_cc_library(
         "//composer:table",
         "//composer_ids:char_info",
         "//composer_ids:component_candidates",
-        "//composer_ids:component_svg_handoff",
         "//composer_ids:ids_table",
         "//engine:engine_converter",
         "//engine:engine_converter_interface",
