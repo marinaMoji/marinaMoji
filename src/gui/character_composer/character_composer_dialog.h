@@ -378,6 +378,12 @@ class CharacterComposerDialog : public QDialog {
     on_svg_inserted_ = std::move(cb);
   }
 
+  // Opens the composer on the structure the input method left in the seed
+  // file (the Ctrl+2 "Compose…" row), if there is one. Called when the dialog
+  // starts and whenever it is brought forward, so a composer that is already
+  // open picks up a new request too.
+  void ApplySeedIfAny();
+
   // Demo / screenshot helpers (env-driven capture from RunCharacterComposer).
   // Apply a full IDS expression to the composition without going through AX.
   void ApplyIdsExpression(const std::string &ids);

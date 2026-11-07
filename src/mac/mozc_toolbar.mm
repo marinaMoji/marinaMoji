@@ -88,6 +88,39 @@ static void WatchCharacterComposer(NSRunningApplication *app) {
   [[NSRunLoop mainRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
 }
 
+// Opens CharacterComposer.app and arranges for what it produces to be
+// committed (WatchCharacterComposer). Shared by the toolbar button and by the
+// session's request for it (the Ctrl+2 "Compose…" row, whose seed file the
+// composer reads when it starts or is brought forward).
+static void LaunchCharacterComposerApp() {
+  id<ControllerCallback> controller = g_active_controller;
+  if (controller) {
+    [controller flushCompositionForToolLaunch:controller];
+  }
+  // A stale result from an earlier run must not be inserted by this one.
+  if (!g_character_composer_watching) {
+    mozc::FileUtil::Unlink(mozc::composer_ids::DefaultResultFilePath()).IgnoreError();
+  }
+  NSString *directory = [NSString stringWithUTF8String:mozc::MacUtil::GetServerDirectory().c_str()];
+  NSURL *appURL =
+      [NSURL fileURLWithPath:[directory stringByAppendingPathComponent:@"CharacterComposer.app"]];
+  NSWorkspaceOpenConfiguration *configuration = [NSWorkspaceOpenConfiguration configuration];
+  configuration.activates = YES;
+  [[NSWorkspace sharedWorkspace]
+      openApplicationAtURL:appURL
+             configuration:configuration
+         completionHandler:^(NSRunningApplication *app, NSError *error) {
+           if (app == nil) {
+             LOG(ERROR) << "Cannot start the character composer: "
+                        << (error ? error.localizedDescription.UTF8String : "unknown error");
+             return;
+           }
+           dispatch_async(dispatch_get_main_queue(), ^{
+             WatchCharacterComposer(app);
+           });
+         }];
+}
+
 namespace {
 
 constexpr int kIconSize = 24;
@@ -1829,32 +1862,7 @@ void MozcSymbolsPalettePreviewShow() {
 
 - (void)composerClicked:(id)sender {
   (void)sender;
-  id<ControllerCallback> controller = g_active_controller;
-  if (controller) {
-    [controller flushCompositionForToolLaunch:controller];
-  }
-  // A stale result from an earlier run must not be inserted by this one.
-  if (!g_character_composer_watching) {
-    mozc::FileUtil::Unlink(mozc::composer_ids::DefaultResultFilePath()).IgnoreError();
-  }
-  NSString *directory = [NSString stringWithUTF8String:mozc::MacUtil::GetServerDirectory().c_str()];
-  NSURL *appURL =
-      [NSURL fileURLWithPath:[directory stringByAppendingPathComponent:@"CharacterComposer.app"]];
-  NSWorkspaceOpenConfiguration *configuration = [NSWorkspaceOpenConfiguration configuration];
-  configuration.activates = YES;
-  [[NSWorkspace sharedWorkspace]
-      openApplicationAtURL:appURL
-             configuration:configuration
-         completionHandler:^(NSRunningApplication *app, NSError *error) {
-           if (app == nil) {
-             LOG(ERROR) << "Cannot start the character composer: "
-                        << (error ? error.localizedDescription.UTF8String : "unknown error");
-             return;
-           }
-           dispatch_async(dispatch_get_main_queue(), ^{
-             WatchCharacterComposer(app);
-           });
-         }];
+  LaunchCharacterComposerApp();
 }
 
 - (void)dictToolClicked:(id)sender {
@@ -2120,6 +2128,12 @@ void MozcToolbarClearActiveControllerIfMatches(void *controller) {
   }
   g_active_controller = nullptr;
   MozcToolbarHide();
+}
+
+void MozcToolbarLaunchCharacterComposer() {
+  RunOnMainThread(^{
+    LaunchCharacterComposerApp();
+  });
 }
 
 void MozcImkNotifyToolLaunchStarting() {

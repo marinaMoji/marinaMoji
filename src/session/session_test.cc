@@ -51,6 +51,7 @@
 #include "composer/key_parser.h"
 #include "composer/table.h"
 #include "composer_ids/char_info.h"
+#include "composer_ids/composer_result.h"
 #include "composer_ids/ids_table.h"
 #include "config/config_handler.h"
 #include "converter/attribute.h"
@@ -8876,11 +8877,14 @@ TEST_F(SessionTest, ConvertComponents) {
   composer_ids::IdsTable::ClearDefaultForTesting();
 }
 
-// By default the Ctrl+2 palette leaves out unencoded drawings (blue).
-TEST_F(SessionTest, ConvertComponentsOffersNothingWhenNoCharacterMatches) {
+// An unencoded layout gets no drawing, only a final "Compose…" row, even with
+// the default config (which hides characters no font can draw): the row is an
+// action, not a character.
+TEST_F(SessionTest, ConvertComponentsOffersComposeRowForUnencodedLayout) {
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
 
+  // 木目 has no encoded character in this table.
   constexpr char kIds[] = "⿰日月\t明\n";
   auto table = composer_ids::IdsTable::FromTsv(kIds, "");
   ASSERT_TRUE(table.ok());
@@ -8895,20 +8899,35 @@ TEST_F(SessionTest, ConvertComponentsOffersNothingWhenNoCharacterMatches) {
       commands::SessionCommand::CONVERT_COMPONENTS);
   command.mutable_input()->mutable_command()->set_text("木目");
   EXPECT_TRUE(session.SendCommand(&command));
+  ASSERT_TRUE(command.output().has_candidate_window());
+  ASSERT_EQ(command.output().candidate_window().candidate_size(), 1);
+  EXPECT_EQ(command.output().candidate_window().candidate(0).value(), "⿰木目…");
+  // Selection stays in the app: no replacing preedit while the palette is open.
+  EXPECT_FALSE(command.output().has_preedit());
+  // It is a plain row: neither the amber nor the blue plate.
+  for (const auto attribute :
+       command.output().candidate_window().candidate(0).attributes()) {
+    EXPECT_NE(attribute, commands::UNENCODED_SVG);
+    EXPECT_NE(attribute, commands::MISSING_FONT);
+  }
+
+  // Choosing it inserts nothing, asks the client to open the composer, and
+  // leaves the structure for the composer in its seed file.
+  command.Clear();
+  EXPECT_TRUE(SendKey("Enter", &session, &command));
+  EXPECT_FALSE(command.output().has_result());
   EXPECT_FALSE(command.output().has_candidate_window());
+  EXPECT_EQ(command.output().launch_tool_mode(),
+            commands::Output::CHARACTER_COMPOSER);
+  EXPECT_EQ(composer_ids::TakeComposerSeed(), "⿰木目");
 
   composer_ids::IdsTable::ClearDefaultForTesting();
 }
 
-TEST_F(SessionTest, ConvertComponentsOffersNoDrawingForUnencodedLayout) {
+TEST_F(SessionTest, EscapeFromComposeRowWritesNoSeed) {
   MockEngine engine;
   std::shared_ptr<MockConverter> converter = CreateEngineConverterMock(&engine);
 
-  // Even with unrenderable candidates shown, no drawing of a guessed layout is
-  // offered: the selection does not say how the parts combine.
-  ScopedShowUnrenderablePaletteCandidates show_unrenderable;
-
-  // 木目 has no encoded character in this table, so there is nothing to offer.
   constexpr char kIds[] = "⿰日月\t明\n";
   auto table = composer_ids::IdsTable::FromTsv(kIds, "");
   ASSERT_TRUE(table.ok());
@@ -8922,9 +8941,14 @@ TEST_F(SessionTest, ConvertComponentsOffersNoDrawingForUnencodedLayout) {
   command.mutable_input()->mutable_command()->set_type(
       commands::SessionCommand::CONVERT_COMPONENTS);
   command.mutable_input()->mutable_command()->set_text("木目");
-  EXPECT_TRUE(session.SendCommand(&command));
-  EXPECT_FALSE(command.output().has_candidate_window());
-  EXPECT_FALSE(command.output().has_preedit());
+  ASSERT_TRUE(session.SendCommand(&command));
+  ASSERT_TRUE(command.output().has_candidate_window());
+
+  command.Clear();
+  EXPECT_TRUE(SendKey("Escape", &session, &command));
+  EXPECT_NE(command.output().launch_tool_mode(),
+            commands::Output::CHARACTER_COMPOSER);
+  EXPECT_EQ(composer_ids::TakeComposerSeed(), std::nullopt);
 
   composer_ids::IdsTable::ClearDefaultForTesting();
 }

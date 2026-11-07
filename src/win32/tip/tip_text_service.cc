@@ -67,6 +67,7 @@
 #include "protocol/commands.pb.h"
 #include "win32/base/config_snapshot.h"
 #include "win32/base/keyboard_layout_tables.h"
+#include "win32/base/keyevent_handler.h"
 #include "win32/base/toolbar_config.h"
 #include "win32/base/win32_window_util.h"
 #include "win32/tip/tip_display_attributes.h"
@@ -541,6 +542,7 @@ class TipTextServiceImpl
 
     TipUiHandler::OnDeactivate(this);
 
+    mozc::win32::KeyEventHandler::SetCharacterComposerLauncher(nullptr);
     thread_context_.reset();
     StorePointerForCurrentThread(nullptr);
 
@@ -555,6 +557,10 @@ class TipTextServiceImpl
     }
     thread_context_ = std::make_unique<TipThreadContext>();
     StorePointerForCurrentThread(this);
+    // The Ctrl+2 "Compose…" row asks for the composer through the session
+    // (Output::CHARACTER_COMPOSER); see KeyEventHandler.
+    mozc::win32::KeyEventHandler::SetCharacterComposerLauncher(
+        [this]() { LaunchCharacterComposer(); });
 
     HRESULT result = E_UNEXPECTED;
 

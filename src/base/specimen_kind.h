@@ -17,6 +17,9 @@ enum class Kind : uint8_t {
   kPlain = 0,
   kMissingFont = 1,
   kSvg = 2,
+  // Not a specimen: the Ctrl+2 "Compose…" row, which opens the character
+  // composer. Drawn as ordinary text (no plate, no attribute on the wire).
+  kComposeAction = 3,
 };
 
 // Amber plate: Unicode exists but no installed font can draw it.

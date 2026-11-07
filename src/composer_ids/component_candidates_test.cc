@@ -63,18 +63,37 @@ TEST(ComponentCandidatesTest, ExcludesSelectionItselfFromContaining) {
   }
 }
 
-TEST(ComponentCandidatesTest, NoDrawingWhenUnencoded) {
+TEST(ComponentCandidatesTest, UnencodedGetsOnlyTheComposeRow) {
   const IdsTable table = LoadFixture();
   // 牙齒 has no encode in the fixture (only ⿰言齒 -> 𪘙). The selection does
-  // not say how the parts combine, so no layout is guessed: nothing is offered
-  // for it (the character composer is where the user chooses one).
+  // not say how the parts combine, so no layout is drawn: the last row opens
+  // the character composer instead.
   const ComponentSearchResult result =
       BuildComponentCandidates(table, "牙齒", /*dictionary_values=*/{});
   EXPECT_FALSE(result.has_exact_encode);
+  ASSERT_FALSE(result.candidates.empty());
+  const ComponentCandidate &last = result.candidates.back();
+  EXPECT_EQ(last.specimen_kind, 3);
+  EXPECT_EQ(last.value, "⿰牙齒…");
+  for (size_t i = 0; i + 1 < result.candidates.size(); ++i) {
+    EXPECT_EQ(result.candidates[i].specimen_kind, 0);
+  }
+}
+
+TEST(ComponentCandidatesTest, ComposeSeedIds) {
+  EXPECT_EQ(ComposeSeedIds("木卷"), "⿰木卷");
+  EXPECT_EQ(ComposeSeedIds("木目心"), "⿲木目心");
+  EXPECT_EQ(ComposeSeedIds("木"), "");
+  EXPECT_EQ(ComposeSeedIds("一二三四"), "");
+  EXPECT_EQ(ComposeSeedIds(""), "");
+}
+
+TEST(ComponentCandidatesTest, NoComposeRowForOneCharacter) {
+  const IdsTable table = LoadFixture();
+  const ComponentSearchResult result =
+      BuildComponentCandidates(table, "某", /*dictionary_values=*/{});
   for (const ComponentCandidate &c : result.candidates) {
-    EXPECT_EQ(c.specimen_kind, 0);
-    EXPECT_NE(c.value.find("⿰"), 0u) << c.value;
-    EXPECT_NE(c.value.find("⿱"), 0u) << c.value;
+    EXPECT_NE(c.specimen_kind, 3);
   }
 }
 
@@ -93,6 +112,9 @@ TEST(ComponentCandidatesTest, ExactEncodeIsPlainUnicode) {
   for (const ComponentCandidate &c : result.candidates) {
     EXPECT_NE(c.specimen_kind, 2);
   }
+  // The composer is still offered, last.
+  ASSERT_FALSE(result.candidates.empty());
+  EXPECT_EQ(result.candidates.back().specimen_kind, 3);
 }
 
 }  // namespace

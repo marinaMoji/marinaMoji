@@ -3,6 +3,7 @@
 
 #include "composer_ids/component_candidates.h"
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -10,6 +11,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
+#include "base/specimen_kind.h"
 #include "base/strings/unicode.h"
 #include "composer_ids/ids_table.h"
 
@@ -56,6 +58,12 @@ bool AddUnique(absl::flat_hash_set<std::string> *seen,
 
 }  // namespace
 
+std::string ComposeSeedIds(absl::string_view selected) {
+  const std::vector<std::string> parts = SplitChars(selected);
+  if (parts.size() < 2 || parts.size() > 3) return {};
+  return absl::StrCat(parts.size() == 2 ? "⿰" : "⿲", selected);
+}
+
 ComponentSearchResult BuildComponentCandidates(
     const IdsTable &table, absl::string_view selected,
     absl::Span<const std::string> dictionary_values) {
@@ -91,6 +99,14 @@ ComponentSearchResult BuildComponentCandidates(
   for (std::string &ch : containing) {
     if (selection_chars.contains(ch)) continue;
     AddUnique(&seen, &result.candidates, std::move(ch), /*specimen_kind=*/0);
+  }
+
+  // Last: open the composer with these parts. The value is only a label (the
+  // session never inserts it); the ellipsis marks it as an action.
+  if (const std::string seed = ComposeSeedIds(selected); !seed.empty()) {
+    result.candidates.push_back(
+        {absl::StrCat(seed, "…"),
+         static_cast<uint8_t>(specimen_kind::Kind::kComposeAction)});
   }
 
   return result;

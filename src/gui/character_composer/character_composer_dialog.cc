@@ -59,6 +59,7 @@
 #include <vector>
 
 #include "composer_ids/char_info.h"
+#include "composer_ids/composer_result.h"
 #include "composer_ids/ids_operator.h"
 #include "composer_ids/ids_table.h"
 #include "composer_ids/ids_tree.h"
@@ -1836,6 +1837,10 @@ CharacterComposerDialog::CharacterComposerDialog(
 
 void CharacterComposerDialog::changeEvent(QEvent *event) {
   QDialog::changeEvent(event);
+  if (event->type() == QEvent::ActivationChange && isActiveWindow()) {
+    // Brought forward by a new "Compose…" request while already open.
+    ApplySeedIfAny();
+  }
   if (applying_theme_) return;
   if (event->type() == QEvent::PaletteChange ||
       event->type() == QEvent::ApplicationPaletteChange ||
@@ -3266,6 +3271,12 @@ void CharacterComposerDialog::OnContainingPicked(QListWidgetItem *item) {
   // Browse only: do not overwrite LayoutEditor / IDS.
   ActivateSearchResult(ToUtf8(item->text()));
   ShowMiddlePage(0);
+}
+
+void CharacterComposerDialog::ApplySeedIfAny() {
+  if (const std::optional<std::string> seed = composer_ids::TakeComposerSeed()) {
+    ApplyIdsExpression(*seed);
+  }
 }
 
 void CharacterComposerDialog::ApplyIdsExpression(const std::string &ids) {

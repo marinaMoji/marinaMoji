@@ -35,6 +35,29 @@ std::string DefaultResultFilePath();
 // Sibling of DefaultResultFilePath() with a .svg suffix — unencoded drawings.
 std::string DefaultSvgResultFilePath();
 
+// <user profile directory>/character_composer_seed.txt: the structure the
+// composer should open with. Written by the input method when the user picks
+// "Compose…" in the Ctrl+2 palette, which cannot hand arguments to the
+// composer on every platform (a macOS app bundle takes none).
+std::string DefaultSeedFilePath();
+
+// Longest seed accepted, in bytes of UTF-8: an IDS expression of a few
+// components, e.g. ⿰木卷.
+inline constexpr size_t kMaxComposerSeedBytes = 128;
+
+// A seed older than this is ignored, so one left behind by a composer that
+// never started is not applied the next time the composer is brought forward.
+inline constexpr int kComposerSeedMaxAgeSeconds = 60;
+
+// Writes |ids| (an IDS expression, UTF-8) and the time to the seed file,
+// replacing any.
+absl::Status WriteComposerSeed(std::string_view ids);
+
+// Reads and removes the seed file. Returns nullopt (and still removes the file)
+// if it is missing, empty, too long, not valid UTF-8 or older than
+// kComposerSeedMaxAgeSeconds. Each seed is used at most once.
+std::optional<std::string> TakeComposerSeed();
+
 // Writes |text| (UTF-8, one character) to |path|, replacing any file there.
 absl::Status WriteComposerResult(std::string_view path, std::string_view text);
 

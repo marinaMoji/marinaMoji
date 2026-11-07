@@ -10,7 +10,7 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
-### Ctrl+2 no longer offers a guessed drawing
+### Ctrl+2: "Compose…" instead of a guessed drawing
 
 - Selecting components (木 卷) and pressing Ctrl+2 used to add a Prussian-blue
   drawing of the default layout (⿰ for two parts, ⿲ for three) when no Unicode
@@ -18,10 +18,21 @@ changed and, where it isn't obvious, why.
   selection says nothing about how the parts combine, so that was a guess, and
   committing it inserted a different drawing from the one in the palette (the
   server rebuilt it as squeezed font text, since it must not link the GPL KAGE
-  engine). Ctrl+2 now lists only real characters: IDS exact encodes and
-  characters containing every selected part. With nothing to offer it does
-  nothing. Use the character composer to choose a layout. Removed
-  `composer_ids:component_svg_handoff`.
+  engine). The drawing and that hand-off are gone
+  (`composer_ids:component_svg_handoff` is removed).
+- With two or three components selected, the list now ends with a plain
+  "⿰木卷…" row. Choosing it inserts nothing and opens the character composer on
+  that structure, where the layout is yours to choose (and Adjust layout…
+  applies). Ctrl+2 still lists the real characters first: IDS exact encodes and
+  characters containing every selected part.
+- How it works: the session writes the structure to
+  `character_composer_seed.txt` in the profile directory (ignored after 60 s,
+  used once) and sets the new `Output::CHARACTER_COMPOSER`; each client starts
+  the composer the way its toolbar's composer button does, so the composed
+  character is inserted afterwards as usual. The composer reads the seed when
+  it starts and whenever it is brought forward, so one that is already open
+  picks up a new request. **Not yet run on Windows or Linux** (macOS builds;
+  the Windows text service and IBus engine changes are untested).
 
 ### Release candidate 0.0.21-rc5
 

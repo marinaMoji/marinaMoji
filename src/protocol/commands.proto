@@ -1596,6 +1596,13 @@ message Output {
     DICTIONARY_TOOL = 2;
     WORD_REGISTER_DIALOG = 3;
     reserved 4;  // marinaMoji: was DOCKET_DIALOG.
+    // marinaMoji: the character composer, opened by the Ctrl+2 "Compose…" row.
+    // The session has written the structure to open with to the composer's
+    // seed file (composer_ids::WriteComposerSeed). Unlike the tools above the
+    // composer is not started through Client::LaunchToolWithProtoBuf: each
+    // platform's toolbar code runs it and inserts what the user composed, so
+    // clients start it the way a click on the toolbar's composer button does.
+    CHARACTER_COMPOSER = 5;
   }
   optional ToolMode launch_tool_mode = 17 [default = NO_TOOL];
 
