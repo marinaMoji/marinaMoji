@@ -56,13 +56,13 @@
 #include "base/file_util.h"
 #include "base/system_util.h"
 #include "client/client.h"
-#include "protocol/commands.pb.h"
 #include "client/user_dictionary/user_dictionary_storage.h"
 #include "data_manager/pos_list_provider.h"
 #include "dictionary/user_dictionary_util.h"
 #include "dictionary/user_pos.h"
 #include "gui/base/util.h"
 #include "gui/config_dialog/config_dialog_theme.h"
+#include "protocol/commands.pb.h"
 #include "protocol/user_dictionary_storage.pb.h"
 
 #if defined(__ANDROID__) || defined(__wasm__)
