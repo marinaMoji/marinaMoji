@@ -2824,11 +2824,6 @@ void MozcToolbarActivateRememberedFocusApp() {
   ActivateDbusApplication(dbus_name);
 }
 
-bool MozcToolbarLaunchCharacterComposer() {
-  OnComposerClicked(nullptr, nullptr);
-  return true;
-}
-
 #else
 
 void MozcToolbarShow(MozcEngine* /*engine*/) {}
@@ -2844,7 +2839,6 @@ bool MozcToolbarLoadVisiblePreference() { return true; }
 void MozcToolbarSaveVisiblePreference(bool /*visible*/) {}
 void MozcToolbarRememberFocusApp() {}
 void MozcToolbarActivateRememberedFocusApp() {}
-bool MozcToolbarLaunchCharacterComposer() { return false; }
 
 #endif  // MOZC_HAVE_GTK_TOOLBAR
 

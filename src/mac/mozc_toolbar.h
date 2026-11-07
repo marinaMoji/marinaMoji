@@ -50,11 +50,6 @@ void MozcToolbarSaveVisiblePreference(bool visible);
 void MozcShortcutsWindowShow(client::ClientInterface *client);
 
 void MozcImkNotifyToolLaunchStarting();
-
-// Opens the character composer and commits what the user composes, as a click
-// on the toolbar's composer button does. Used when the session asks for it
-// (Output::CHARACTER_COMPOSER, the Ctrl+2 "Compose…" row).
-void MozcToolbarLaunchCharacterComposer();
 bool MozcImkShouldSuppressSetValueDirect();
 
 // Dev/UI preview: open the Symbols Palette with a nil client (no insertion).

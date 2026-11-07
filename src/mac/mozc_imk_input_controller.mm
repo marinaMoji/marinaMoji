@@ -1979,11 +1979,6 @@ bool IsConfigOnlySessionOutput(const Output &output) {
       case mozc::commands::Output::WORD_REGISTER_DIALOG:
         // Handled above before applyCommitAndPreedit.
         break;
-      case mozc::commands::Output::CHARACTER_COMPOSER:
-        // The Ctrl+2 "Compose…" row; the session left the seed for the
-        // composer in the profile directory.
-        mozc::mac::MozcToolbarLaunchCharacterComposer();
-        break;
       default:
         // do nothing
         break;

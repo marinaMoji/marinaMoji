@@ -86,7 +86,6 @@ mozc_cc_library(
     ],
     deps = [
         ":ids_table",
-        "//base:specimen_kind",
         "//base/strings:unicode",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/strings",

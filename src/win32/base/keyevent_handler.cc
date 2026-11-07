@@ -33,13 +33,10 @@
 #include <string.h>
 #include <windows.h>
 
-#include <functional>
 #include <set>
 #include <string>
-#include <utility>
 
 #include "absl/log/check.h"
-#include "absl/log/log.h"
 #include "base/japanese_util.h"
 #include "base/util.h"
 #include "base/win32/wide_char.h"
@@ -1173,28 +1170,8 @@ void KeyEventHandler::UnlockKanaLock(const KeyboardStatus& keyboard_status,
   }
 }
 
-namespace {
-thread_local std::function<void()> g_character_composer_launcher;
-}  // namespace
-
-void KeyEventHandler::SetCharacterComposerLauncher(
-    std::function<void()> launcher) {
-  g_character_composer_launcher = std::move(launcher);
-}
-
 void KeyEventHandler::MaybeSpawnTool(mozc::client::ClientInterface* client,
                                      commands::Output* output) {
-  if (output->has_launch_tool_mode() &&
-      output->launch_tool_mode() == commands::Output::CHARACTER_COMPOSER) {
-    // See SetCharacterComposerLauncher(): not something the client can spawn.
-    output->clear_launch_tool_mode();
-    if (g_character_composer_launcher) {
-      g_character_composer_launcher();
-    } else {
-      LOG(WARNING) << "No text service to open the character composer";
-    }
-    return;
-  }
   // URL handling:
   // When Output::url is set, MozcTool is supposed to be launched by client.
   // At this moment, we disable this feature as it may cause security hole.

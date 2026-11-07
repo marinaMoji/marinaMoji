@@ -55,7 +55,6 @@
 #include "base/file_util.h"
 #include "base/font_coverage.h"
 #include "base/japanese_util.h"
-#include "base/specimen_kind.h"
 #include "base/system_util.h"
 #include "base/util.h"
 #include "config/config_handler.h"
@@ -64,7 +63,6 @@
 #include "composer/table.h"
 #include "composer_ids/char_info.h"
 #include "composer_ids/component_candidates.h"
-#include "composer_ids/composer_result.h"
 #include "composer_ids/ids_table.h"
 #include "engine/engine_converter.h"
 #include "engine/engine_converter_interface.h"
@@ -1919,11 +1917,7 @@ bool Session::ConvertComponents(commands::Command* command) {
     if (!show_unrenderable) {
       // Hide characters no installed font can draw (amber) unless the user
       // opted in. The composer shows them.
-      if (c.specimen_kind !=
-              static_cast<uint8_t>(specimen_kind::Kind::kComposeAction) &&
-          !CanRenderText(c.value)) {
-        continue;
-      }
+      if (!CanRenderText(c.value)) continue;
     }
     values.push_back(c.value);
     kinds.push_back(c.specimen_kind);
@@ -2595,35 +2589,6 @@ bool Session::CommitInternal(commands::Command* command,
   }
   command->mutable_output()->set_consumed(true);
 
-  // Ctrl+2 "Compose…": open the character composer on the selected parts
-  // instead of inserting anything.
-  if (context_->state() == ImeContext::CONVERSION) {
-    uint8_t focused_kind = 0;
-    if (EngineConverter* converter =
-            GetEngineConverter(context_->mutable_converter());
-        converter != nullptr && converter->GetFocusedSpecimenKind(&focused_kind) &&
-        focused_kind ==
-            static_cast<uint8_t>(specimen_kind::Kind::kComposeAction)) {
-      const std::string seed = composer_ids::ComposeSeedIds(
-          std::string(context_->composer().source_text()));
-      if (!seed.empty()) {
-        if (absl::Status status = composer_ids::WriteComposerSeed(seed);
-            !status.ok()) {
-          LOG(WARNING) << "Cannot write the composer seed: " << status;
-        }
-      }
-      // The selection stays in the app, as for any dismissed palette.
-      keep_app_selection_ = false;
-      context_->mutable_composer()->set_source_text("");
-      SetStateToPredompositionAndCancel(context_.get());
-      Output(command);
-      if (!seed.empty()) {
-        command->mutable_output()->set_launch_tool_mode(
-            commands::Output::CHARACTER_COMPOSER);
-      }
-      return true;
-    }
-  }
   keep_app_selection_ = false;
 
   // Capture typed reading before Commit clears the composer.

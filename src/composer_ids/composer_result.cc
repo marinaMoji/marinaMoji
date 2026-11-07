@@ -5,7 +5,6 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <ctime>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -13,7 +12,6 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
-#include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "base/file_util.h"
 #include "base/strings/unicode.h"
@@ -58,43 +56,6 @@ std::string DefaultResultFilePath() {
 std::string DefaultSvgResultFilePath() {
   return FileUtil::JoinPath(SystemUtil::GetUserProfileDirectory(),
                             "character_composer_result.svg");
-}
-
-std::string DefaultSeedFilePath() {
-  return FileUtil::JoinPath(SystemUtil::GetUserProfileDirectory(),
-                            "character_composer_seed.txt");
-}
-
-absl::Status WriteComposerSeed(std::string_view ids) {
-  return FileUtil::SetContents(
-      DefaultSeedFilePath(),
-      absl::StrCat(ids, "\n", static_cast<int64_t>(std::time(nullptr)), "\n"));
-}
-
-std::optional<std::string> TakeComposerSeed() {
-  const std::string path = DefaultSeedFilePath();
-  const absl::StatusOr<std::string> contents = FileUtil::GetContents(path);
-  if (!contents.ok()) return std::nullopt;
-  FileUtil::Unlink(path).IgnoreError();
-  // "<ids>\n<seconds since the epoch>\n"
-  const std::string_view all = *contents;
-  const size_t newline = all.find('\n');
-  if (newline == std::string_view::npos) return std::nullopt;
-  const std::string_view ids = absl::StripAsciiWhitespace(all.substr(0, newline));
-  int64_t written = 0;
-  if (!absl::SimpleAtoi(absl::StripAsciiWhitespace(all.substr(newline + 1)),
-                        &written)) {
-    return std::nullopt;
-  }
-  const int64_t now = static_cast<int64_t>(std::time(nullptr));
-  if (written > now + 5 || now - written > kComposerSeedMaxAgeSeconds) {
-    return std::nullopt;
-  }
-  if (ids.empty() || ids.size() > kMaxComposerSeedBytes ||
-      !strings::IsValidUtf8(ids)) {
-    return std::nullopt;
-  }
-  return std::string(ids);
 }
 
 absl::Status WriteComposerResult(std::string_view path, std::string_view text) {

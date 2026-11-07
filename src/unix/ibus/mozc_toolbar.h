@@ -64,12 +64,6 @@ void MozcToolbarRememberFocusApp();
 // flush a queued composer character. No-op if nothing was remembered.
 void MozcToolbarActivateRememberedFocusApp();
 
-// Starts the character composer exactly as a click on the toolbar's composer
-// button does, and inserts what the user composes. Used when the session asks
-// for it (Output::CHARACTER_COMPOSER, the Ctrl+2 "Compose…" row). Returns false
-// when this build has no toolbar to read the result back through.
-bool MozcToolbarLaunchCharacterComposer();
-
 }  // namespace ibus
 }  // namespace mozc
 

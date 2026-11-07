@@ -3,7 +3,6 @@
 
 #include "composer_ids/composer_result.h"
 
-#include <ctime>
 #include <string>
 
 #include "base/file_util.h"
@@ -58,34 +57,6 @@ TEST_F(ComposerResultTest, OversizeOrInvalidUtf8IsRefused) {
 
 TEST_F(ComposerResultTest, DefaultPathIsInTheUserProfile) {
   EXPECT_EQ(DefaultResultFilePath(), Path("character_composer_result.txt"));
-}
-
-TEST_F(ComposerResultTest, SeedIsTakenOnce) {
-  EXPECT_EQ(DefaultSeedFilePath(), Path("character_composer_seed.txt"));
-  EXPECT_EQ(TakeComposerSeed(), std::nullopt);
-  ASSERT_TRUE(WriteComposerSeed("⿰木卷").ok());
-  EXPECT_EQ(TakeComposerSeed(), "⿰木卷");
-  EXPECT_EQ(TakeComposerSeed(), std::nullopt);
-}
-
-TEST_F(ComposerResultTest, OversizeInvalidOrStaleSeedIsRefusedAndRemoved) {
-  const std::string now = std::to_string(std::time(nullptr));
-  ASSERT_TRUE(FileUtil::SetContents(
-                  DefaultSeedFilePath(),
-                  std::string(kMaxComposerSeedBytes + 1, 'a') + "\n" + now + "\n")
-                  .ok());
-  EXPECT_EQ(TakeComposerSeed(), std::nullopt);
-  EXPECT_FALSE(FileUtil::FileExists(DefaultSeedFilePath()).ok());
-  ASSERT_TRUE(FileUtil::SetContents(DefaultSeedFilePath(),
-                                    "\xFF\xFE\n" + now + "\n")
-                  .ok());
-  EXPECT_EQ(TakeComposerSeed(), std::nullopt);
-  // Written long ago, e.g. by a composer launch that never happened.
-  ASSERT_TRUE(FileUtil::SetContents(DefaultSeedFilePath(), "⿰木卷\n1\n").ok());
-  EXPECT_EQ(TakeComposerSeed(), std::nullopt);
-  // No timestamp.
-  ASSERT_TRUE(FileUtil::SetContents(DefaultSeedFilePath(), "⿰木卷\n").ok());
-  EXPECT_EQ(TakeComposerSeed(), std::nullopt);
 }
 
 TEST_F(ComposerResultTest, OnlyOfficeScriptEscapesTheSvg) {

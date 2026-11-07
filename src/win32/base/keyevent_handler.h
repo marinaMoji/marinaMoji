@@ -32,8 +32,6 @@
 
 #include <windows.h>
 
-#include <functional>
-
 namespace mozc {
 namespace client {
 class ClientInterface;
@@ -107,15 +105,6 @@ class KeyEventHandler {
   // Span Tool if launch_tool_mode is set in |output|.
   static void MaybeSpawnTool(client::ClientInterface* client,
                              commands::Output* output);
-
-  // marinaMoji: Output::CHARACTER_COMPOSER (the Ctrl+2 "Compose…" row) cannot
-  // be started like the other tools: the text service has to start it and
-  // watch for the character it produces (TipTextService::
-  // LaunchCharacterComposer). The text service of the current thread registers
-  // itself here on activation and withdraws on deactivation (an empty
-  // |launcher|); MaybeSpawnTool then calls it. Per thread, like the text
-  // service itself.
-  static void SetCharacterComposerLauncher(std::function<void()> launcher);
 
  protected:
   static KeyEventHandlerResult HandleKey(const VirtualKey& virtual_key,

@@ -254,8 +254,6 @@ int RunCharacterComposer(int argc, char *argv[]) {
   dialog.show();
   dialog.raise();
   dialog.activateWindow();
-  // Opened from the Ctrl+2 "Compose…" row: start on the selected components.
-  dialog.ApplySeedIfAny();
 
   // Optional headless-ish demo capture for design validation:
   //   MARINAMOJI_COMPOSER_SCREENSHOT=/path/out.png

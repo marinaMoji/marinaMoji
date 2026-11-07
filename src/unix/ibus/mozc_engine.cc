@@ -1507,16 +1507,6 @@ void MozcEngine::SyncData(bool force) {
 }
 
 bool MozcEngine::LaunchTool(const commands::Output& output) const {
-  if (output.has_launch_tool_mode() &&
-      output.launch_tool_mode() == commands::Output::CHARACTER_COMPOSER) {
-    // Not a mozc_tool the client can simply start: the toolbar's launcher also
-    // reads the composed character back and inserts it.
-    if (!MozcToolbarLaunchCharacterComposer()) {
-      LOG(WARNING) << "Cannot open the character composer: no toolbar";
-      return false;
-    }
-    return true;
-  }
   if (!client_->LaunchToolWithProtoBuf(output)) {
     MOZC_VLOG(2) << output << " Launch Failed";
     return false;
