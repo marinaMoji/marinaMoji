@@ -68,6 +68,8 @@ filegroup(
 pkg_zip(
     name = "resources",
     srcs = [
+        "Resources/background_dark.png",
+        "Resources/background_light.png",
         "Resources/en.lproj/Conclusion.html",
         "Resources/en.lproj/Localizable.strings",
         "Resources/fr.lproj/Conclusion.html",

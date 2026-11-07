@@ -35,6 +35,10 @@
     <allowed-os-versions>
         <os-version min="13.0"/>
     </allowed-os-versions>
+    <!-- Logo in the bottom-left of the installer window (the sidebar area).
+         The PNGs are 240px rendered at 144 dpi, i.e. 120pt, hence scaling="none". -->
+    <background file="background_light.png" mime-type="image/png" alignment="bottomleft" scaling="none"/>
+    <background-darkAqua file="background_dark.png" mime-type="image/png" alignment="bottomleft" scaling="none"/>
     <pkg-ref id="org.mozc.pkg.JapaneseInput"/>
     <domains enable_localSystem="true"/>
     <options rootVolumeOnly="true"/>
