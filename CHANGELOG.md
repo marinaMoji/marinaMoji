@@ -10,6 +10,14 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.21-rc10
+
+Everything in 0.0.21-rc9 plus:
+
+- **Release builds:** Bazel downloads from github.com are authenticated with
+  the workflow token (via `NETRC`). GitHub was timing out anonymous downloads,
+  which failed rc8 and rc9 before compilation started.
+
 ### Release candidate 0.0.21-rc9
 
 Everything in 0.0.21-rc8 plus:
