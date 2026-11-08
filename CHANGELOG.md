@@ -10,6 +10,15 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.21-rc8
+
+Everything in 0.0.21-rc7 plus:
+
+- **Release builds:** the Windows build uses a shared Bazel remote cache (a
+  Cloudflare Worker over R2, in `tools/bazel-cache-worker`), so releases after
+  the first only recompile what changed. The macOS package check retries
+  `stapler` when Apple's service drops the connection.
+
 ### Release candidate 0.0.21-rc7
 
 Everything in 0.0.21-rc6 plus:
