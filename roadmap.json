@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-08T21:03:46+00:00",
+  "generated": "2026-11-08T21:04:04+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -240,26 +240,6 @@
       "description_fr": null,
       "description_ja": null,
       "depends_on": "issue-118,issue-104,issue-117"
-    },
-    {
-      "id": "issue-126",
-      "ref": "marinaMoji/marinaMoji#126",
-      "github_url": "https://github.com/marinaMoji/marinaMoji/issues/126",
-      "state": "OPEN",
-      "status": "planned",
-      "milestone": "Full public release",
-      "assignee": null,
-      "progress": null,
-      "category": "historical",
-      "type": "capability",
-      "layer": 2,
-      "title_en": "Grognard demonstration",
-      "title_fr": "Démonstration Grognard",
-      "title_ja": "Grognardの実演",
-      "description_en": null,
-      "description_fr": null,
-      "description_ja": null,
-      "depends_on": null
     },
     {
       "id": "issue-127",
