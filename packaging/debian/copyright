@@ -18,8 +18,12 @@ Comment:
  produced by packaging/debian/offline/vendor_deps.sh on Linux. That keeps
  the DFSG source reviewable separately from the large vendor tree.
  .
- The machine-readable copyright shipped inside today's third-party binary
- .deb (install-tree paths) remains packaging/linux/data/copyright.
+ This file is installed verbatim as /usr/share/doc/marinamoji/copyright.
+ It therefore also covers material that ends up in the binary package:
+ statically linked third-party code (see the vendor/* stanza) and data
+ files such as the OpenCC tables, character composer data and icons.
+ The third-party apt .deb ships packaging/linux/data/copyright instead,
+ which uses install-tree paths; keep the two in sync.
 
 Files: *
 Copyright: 2010-2021, Google Inc.
@@ -49,8 +53,40 @@ Files: src/data/emoticon/*
 Copyright: 2010-2021, Google Inc.
 License: BSD-3-Clause
 
+Files: src/data/marina_opencc/*
+Copyright: 2010-2024, Carbo Kuo and OpenCC contributors
+           2024-2026, Marina Pandolfino and Daniel Patrick Morgan
+License: Apache-2.0
+Comment: Conversion tables derived from OpenCC and recompiled for marinaMoji.
+
+Files: src/data/character_composer/*
+Copyright: CHISE project and contributors
+           kawabata (cjkvi-ids)
+           2024-2026, Marina Pandolfino and Daniel Patrick Morgan (format conversion)
+License: GPL-2+
+Comment:
+ Character composer data: IDS (ideographic description sequence) tables
+ derived from the CHISE IDS project (via github.com/cjkvi/cjkvi-ids and
+ github.com/chise/ids). These files are plain data read at run time by
+ mozc_tool; they are not compiled or linked into any binary, which stay
+ BSD-3-Clause. See src/data/character_composer/README.md.
+
 Files: vendor/*
-Copyright: various upstream authors of Bazel modules and http_archives
+Copyright: various upstream authors of Bazel modules and http_archives;
+           notably (code built into the binaries): 2000-2003, Nara Institute of Science and Technology
+           Okinawa dictionary contributors
+           2010-2021, Google Inc.
+           2008, Google Inc. (Protocol Buffers)
+           Google Inc. (Abseil)
+           2008-2019, Susumu Yata (darts-clone, marisa-trie)
+           2011, Hiroyuki Komatsu, Shoji Ogura, Tsuyoshi Horo
+           2015, THL A29 Limited, a Tencent company, and Milo Yip
+           2013-2023, Frank Denis
+           1995-2022, Jean-loup Gailly and Mark Adler
+           2010-2024, Carbo Kuo and OpenCC contributors
+           Unicode, Inc. (CLDR emoji names and annotations)
+           Japan Post Co., Ltd. (postal code data; no copyright asserted)
+           2024-2026, Marina Pandolfino and Daniel Patrick Morgan
 License: Apache-2.0 and BSD-3-Clause and BSD-2-Clause and MIT and ISC and Zlib and Unicode-3.0 and CC0-1.0 and Public-Domain
 Comment:
  The vendor/ tree is the Bazel vendor-mode snapshot for offline builds
@@ -63,6 +99,11 @@ Comment:
  .
  Stanzas below with a more specific Files pattern override this one
  (DEP-5: the last matching paragraph wins).
+
+Files: vendor/+http_file+material_icon_*
+Copyright: Google LLC
+License: Apache-2.0
+Comment: Material Design icons (installed as usr/share/icons/marinamoji/*).
 
 # Postal-code CSVs arrive via the Bazel vendor component
 # (+http_archive+zip_code_*), not as in-tree upstream files. Documented
@@ -319,3 +360,30 @@ License: Zlib
  2. Altered source versions must be plainly marked as such, and must not be
     misrepresented as being the original software.
  3. This notice may not be removed or altered from any source distribution.
+
+License: Japan-Post-Postal-Code-Data
+ Japan Post Co., Ltd. does not claim copyright in its postal code data and
+ permits it to be distributed freely, as stated on its download pages
+ (https://www.post.japanpost.jp/service/search/zipcode/download/readme.html
+ and, for the office data, .../zipcode/dl/jigyosyo/readme.html):
+ .
+ 郵便番号データに限っては日本郵便株式会社は著作権を主張しません。
+ 自由に配布していただいて結構です。
+ .
+ (For postal code data only, Japan Post Co., Ltd. does not claim copyright.
+ You are welcome to distribute it freely. For the office data it adds that no
+ permission from Japan Post is required.)
+
+License: GPL-2+
+ This data is free software; you can redistribute it and/or modify it
+ under the terms of the GNU General Public License as published by the
+ Free Software Foundation; either version 2 of the License, or (at your
+ option) any later version.
+ .
+ This data is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ Public License for more details.
+ .
+ On Debian systems the full text of the GNU General Public License
+ version 2 can be found in /usr/share/common-licenses/GPL-2.
