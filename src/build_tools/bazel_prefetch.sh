@@ -13,7 +13,7 @@ set -u
 attempts=8
 delay=20
 for ((i = 1; i <= attempts; i++)); do
-  if bazelisk fetch //package "$@"; then
+  if bazelisk fetch //:package "$@"; then
     exit 0
   fi
   echo "bazel fetch failed (attempt $i/$attempts)" >&2

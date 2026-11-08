@@ -10,6 +10,13 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.21-rc11
+
+Everything in 0.0.21-rc10 plus:
+
+- **Release builds:** fixed the dependency prefetch step, which targeted
+  `//package` instead of `//:package` and failed immediately in rc9 and rc10.
+
 ### Release candidate 0.0.21-rc10
 
 Everything in 0.0.21-rc9 plus:
