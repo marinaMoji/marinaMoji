@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-08T20:22:13+00:00",
+  "generated": "2026-11-08T21:03:46+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -227,7 +227,7 @@
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/125",
       "state": "OPEN",
       "status": "in-progress",
-      "milestone": "Laboratory beta",
+      "milestone": null,
       "assignee": null,
       "progress": null,
       "category": "distribution",
@@ -307,7 +307,7 @@
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/129",
       "state": "OPEN",
       "status": "blocked",
-      "milestone": "Laboratory beta",
+      "milestone": null,
       "assignee": null,
       "progress": null,
       "category": "distribution",
@@ -322,31 +322,11 @@
       "depends_on": "issue-115,issue-144,issue-137,issue-121,plugin-12,issue-125,plugin-4"
     },
     {
-      "id": "issue-130",
-      "ref": "marinaMoji/marinaMoji#130",
-      "github_url": "https://github.com/marinaMoji/marinaMoji/issues/130",
-      "state": "OPEN",
-      "status": "blocked",
-      "milestone": "Full public release",
-      "assignee": null,
-      "progress": null,
-      "category": "historical",
-      "type": "capability",
-      "layer": 3,
-      "title_en": "Grognard Japanese module development",
-      "title_fr": "Développement du module japonais Grognard",
-      "title_ja": "Grognard日本語モジュールの開発",
-      "description_en": null,
-      "description_fr": null,
-      "description_ja": null,
-      "depends_on": "issue-127,issue-126"
-    },
-    {
       "id": "issue-131",
       "ref": "marinaMoji/marinaMoji#131",
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/131",
       "state": "OPEN",
-      "status": "blocked",
+      "status": "planned",
       "milestone": "Full public release",
       "assignee": null,
       "progress": null,
@@ -359,7 +339,7 @@
       "description_en": null,
       "description_fr": null,
       "description_ja": null,
-      "depends_on": "issue-130"
+      "depends_on": null
     },
     {
       "id": "issue-132",
