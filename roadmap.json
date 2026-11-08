@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-08T20:07:53+00:00",
+  "generated": "2026-11-08T20:08:35+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -771,9 +771,9 @@
       "category": null,
       "type": "capability",
       "layer": null,
-      "title_en": "Full Linux Release Suite",
-      "title_fr": "Full Linux Release Suite",
-      "title_ja": "Full Linux Release Suite",
+      "title_en": "Milestone 4: Full Linux Release Suite",
+      "title_fr": "Milestone 4: Full Linux Release Suite",
+      "title_ja": "Milestone 4: Full Linux Release Suite",
       "description_en": null,
       "description_fr": null,
       "description_ja": null,
