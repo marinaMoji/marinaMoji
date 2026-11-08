@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-08T12:19:34+00:00",
+  "generated": "2026-11-08T14:49:12+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -722,7 +722,7 @@
       "milestone": "Linux Integration & Distribution",
       "assignee": null,
       "progress": {
-        "done": 3,
+        "done": 5,
         "total": 8
       },
       "category": "distribution",
