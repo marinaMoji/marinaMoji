@@ -10,6 +10,21 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.21-rc7
+
+Everything in 0.0.21-rc6 plus:
+
+- **Composer drawing: simpler, closer to GlyphWiki.** The hand-tuned widening
+  and overlap-pull rules for positional forms lowered the overlap with
+  GlyphWiki's registered glyphs when measured over a sample spread across the
+  whole IDS table, so they are gone. Only the shift of the right component
+  next to a narrow left one (亻 and kin) stays. Mean overlap (IoU): ⿰ 0.66 to
+  0.72, ⿱ 0.61 to 0.68, ⿲ 0.27 to 0.35. Characters whose strokes were tuned
+  against the old rules (休, 明, 付) look slightly different; the reviewed
+  comparison baseline was re-recorded.
+- **Developer:** `glyphwiki_compare_main` gains `--stride` (sample the whole
+  table) and `--chars` (score exact characters).
+
 ### Release candidate 0.0.21-rc6
 
 Everything in 0.0.21-rc5 plus:
