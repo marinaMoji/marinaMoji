@@ -55,15 +55,19 @@ Remove the symlink when you are done (`rm debian`); do not commit a
 * Still to decide for archive upload: how the vendor tree ships in the
   orig tarball / DFSG `Files-Excluded`.
 
+**QA (#55):** maintainer command paths for clean source builds and
+install smoke live in [`qa/`](qa/) (`docker_qa.sh` on Docker Desktop;
+real `sbuild` + `piuparts` on a Debian host).
+
 **Still required before an upload is realistic:**
 
 1. **Source-tree DEP-5 completeness** — `copyright` here is a starting
    inventory. Binary-package provenance already lives in
    `../linux/data/copyright` (#54).
-2. **`sbuild` / `piuparts`** ([#55](https://github.com/marinaMoji/marinaMoji/issues/55)).
-3. **Package split** ([#59](https://github.com/marinaMoji/marinaMoji/issues/59))
+2. **Package split** ([#59](https://github.com/marinaMoji/marinaMoji/issues/59))
    — optional; the scaffold keeps a single `marinamoji` binary package.
-4. **Sponsor / NEW** ([#61](https://github.com/marinaMoji/marinaMoji/issues/61)).
+3. **Sponsor / NEW** ([#61](https://github.com/marinaMoji/marinaMoji/issues/61)).
+4. Optional: wire `qa/docker_qa.sh` (or real sbuild) into CI once cheap.
 
 ## Versioning
 
