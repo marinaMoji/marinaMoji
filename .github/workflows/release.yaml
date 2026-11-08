@@ -233,14 +233,30 @@ jobs:
           fi
           rm -f "$KEY"
 
-          xcrun stapler staple "$PKG"
+          # staple also fetches the ticket from Apple's CloudKit (exit 68 on a
+          # dropped connection); it is idempotent, so retry.
+          ok=0
+          for attempt in 1 2 3 4; do
+            if xcrun stapler staple "$PKG"; then ok=1; break; fi
+            echo "stapler staple failed (attempt $attempt); retrying in 20s"
+            sleep 20
+          done
+          [[ "$ok" == 1 ]] || exit 1
           echo "PKG_PATH=$PKG" >> "$GITHUB_ENV"
 
       - name: Verify package
         run: |
           set -euo pipefail
           pkgutil --check-signature "$PKG_PATH"
-          xcrun stapler validate "$PKG_PATH"
+          # stapler validate asks Apple's CloudKit for the ticket and fails
+          # with exit 68 on a dropped connection; retry before giving up.
+          ok=0
+          for attempt in 1 2 3 4; do
+            if xcrun stapler validate "$PKG_PATH"; then ok=1; break; fi
+            echo "stapler validate failed (attempt $attempt); retrying in 20s"
+            sleep 20
+          done
+          [[ "$ok" == 1 ]] || exit 1
           spctl --assess -vv --type install "$PKG_PATH"
 
       - name: upload artifacts
