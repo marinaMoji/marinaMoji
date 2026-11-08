@@ -18,6 +18,10 @@
 MODULE.bazel.lock
 .bazelisk-cache/
 
+# Debian packaging: Bazel vendor tree for offline/sbuild builds (#53).
+# Populate with packaging/debian/offline/vendor_deps.sh; do not commit.
+/packaging/debian/vendor/
+
 # Hidden files
 .DS_Store
 

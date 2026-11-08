@@ -2,10 +2,12 @@
 # -*- makefile -*-
 # Debhelper rules for marinaMoji.
 #
-# Today this mirrors the Arch source PKGBUILD: Bazel builds `package`,
-# then the install tree from mozc.zip is staged. That build still needs
-# network access for Bazel modules and http_archive deps (#53). Do not
-# expect a clean `sbuild` until offline deps are solved.
+# Build path:
+#   1. Prefer Bazel vendor mode when debian/vendor/ exists (#53):
+#      populate with packaging/debian/offline/vendor_deps.sh, then
+#      dpkg-buildpackage / sbuild can run without network.
+#   2. Otherwise fall back to a networked Bazel build (same idea as the
+#      Arch marinamoji PKGBUILD). That path is for maintainer laptops only.
 #
 # Shared branding/metadata comes from packaging/linux/ so the archive
 # package and the third-party .deb present the same desktop files.
@@ -17,9 +19,17 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 BAZEL ?= $(shell command -v bazelisk 2>/dev/null || command -v bazel)
 
 PRODUCT_VERSION := $(shell cat src/marina_product_version.txt)
-# Convert SemVer -rcN to Debian ~rcN for the About/metainfo product string
-# stays as PRODUCT_VERSION; package Version comes from debian/changelog.
 LINUX_PACKAGING := packaging/linux
+
+# When packaging/debian is symlinked to debian/, vendor lives at debian/vendor.
+VENDOR_DIR := $(CURDIR)/debian/vendor
+BAZEL_OFFLINE_FLAGS :=
+ifneq ($(wildcard $(VENDOR_DIR)/.),)
+BAZEL_OFFLINE_FLAGS := \
+	--vendor_dir=$(VENDOR_DIR) \
+	--repository_disable_download \
+	--lockfile_mode=error
+endif
 
 %:
 	dh $@
@@ -30,13 +40,19 @@ override_dh_auto_configure:
 		exit 1; \
 	fi
 	@echo "debian/rules: using $$(command -v $(BAZEL) || echo $(BAZEL))"
-	@echo "debian/rules: WARNING: Bazel still fetches over the network (#53)."
+	@if [ -n "$(BAZEL_OFFLINE_FLAGS)" ]; then \
+		echo "debian/rules: offline mode via $(VENDOR_DIR)"; \
+	else \
+		echo "debian/rules: WARNING: no debian/vendor/; Bazel may use the network (#53)."; \
+		echo "debian/rules: Run packaging/debian/offline/vendor_deps.sh on a networked host first."; \
+	fi
 
 override_dh_auto_build:
 	cd src && $(BAZEL) build package \
 		--config oss_linux \
 		--config release_build \
-		--define CHANNEL=stable
+		--define CHANNEL=stable \
+		$(BAZEL_OFFLINE_FLAGS)
 
 override_dh_auto_test:
 	# Upstream test suite is large and not yet wired as a packaging gate.
@@ -67,5 +83,5 @@ override_dh_auto_install:
 
 override_dh_auto_clean:
 	dh_auto_clean
-	# Leave Bazel caches alone; `bazel clean --expunge` is intentionally
-	# not run here (slow and hostile to local iterative packaging).
+	# Leave Bazel caches and debian/vendor alone; regenerating the vendor
+	# tree is slow and intentional (offline/vendor_deps.sh).

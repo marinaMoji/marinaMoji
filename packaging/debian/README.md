@@ -47,25 +47,24 @@ Remove the symlink when you are done (`rm debian`); do not commit a
 **Scaffolded here (#52):** `control`, `rules`, `changelog`, `copyright`,
 `watch`, `source/format`, maintainer scripts, and this README.
 
+**Offline Bazel (#53) — in progress via vendor mode:**
+
+* Maintainer scripts: [`offline/`](offline/).
+* `debian/rules` uses `debian/vendor/` automatically when present.
+* Still to decide for archive upload: how the vendor tree ships in the
+  orig tarball / DFSG `Files-Excluded`.
+
 **Still required before an upload is realistic:**
 
-1. **Offline / reproducible Bazel** ([#53](https://github.com/marinaMoji/marinaMoji/issues/53))
-   — `sbuild` has no network. Debian’s experimental `mozc` packaging is
-   already moving toward Bazel with vendored/`Files-Excluded` stubs; we
-   will need a similar story (vendor deps, `+dfsg` orig tarball, and/or
-   Debian Bazel helpers).
+1. Finish offline story for **Linux** `oss_linux` (vendor + verify on a
+   Linux host or container; macOS can only prove the mechanism natively).
 2. **Source-tree DEP-5 completeness** — `copyright` here is a starting
    inventory. Binary-package provenance already lives in
-   `../linux/data/copyright` (#54). Official NEW review needs source
-   paths plus a clear `Files-Excluded` repack story paired with #53.
+   `../linux/data/copyright` (#54).
 3. **`sbuild` / `piuparts`** ([#55](https://github.com/marinaMoji/marinaMoji/issues/55)).
 4. **Package split** ([#59](https://github.com/marinaMoji/marinaMoji/issues/59))
-   — optional; the scaffold keeps a single `marinamoji` binary package
-   (IBus-only), matching today’s fat `.deb`.
+   — optional; the scaffold keeps a single `marinamoji` binary package.
 5. **Sponsor / NEW** ([#61](https://github.com/marinaMoji/marinaMoji/issues/61)).
-
-Until #53 lands, treat `debian/rules` as a *networked* maintainer build
-(similar to the Arch `marinamoji` PKGBUILD), not as archive-ready.
 
 ## Versioning
 

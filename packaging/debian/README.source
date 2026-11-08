@@ -21,16 +21,26 @@ Offline builds
 
 Tracked as https://github.com/marinaMoji/marinaMoji/issues/53.
 
-Likely ingredients (inspired by Debian's experimental mozc Bazel work):
+**Current approach:** Bazel [vendor mode](https://bazel.build/external/vendor).
 
-* Vendor or DFSG-repack every network-fetched dependency into the orig
-  tarball (or into debian/missing-sources / debian/third_party stubs).
-* Add `Files-Excluded` to debian/copyright for anything that must not
-  enter main.
-* Teach debian/rules to build with `--repository_cache` / local mirrors
-  and without remote downloads.
+1. On a networked machine, run
+   `bash packaging/debian/offline/vendor_deps.sh`
+   (add `-- --config oss_linux --config release_build` on Linux).
+   That fills `packaging/debian/vendor/` (gitignored).
+2. Symlink `packaging/debian` → `debian/` at the repo root.
+3. Build with `dpkg-buildpackage` / `verify_offline.sh`. `debian/rules`
+   detects `debian/vendor/` and passes `--vendor_dir`,
+   `--repository_disable_download`, and `--lockfile_mode=error`.
 
-Until that lands, do not file an ITP expecting NEW acceptance.
+See `packaging/debian/offline/README.md` for details and the network
+dependency inventory.
+
+Still open before NEW:
+
+* Decide how the large vendor tree ships (orig tarball vs separate
+  component) and any DFSG `Files-Excluded` / `+dfsg` repack.
+* Optional later: Debian-mozc-style `--override_module` stubs onto
+  system `-dev` packages to shrink the tree.
 
 Copyright inventory
 -------------------
