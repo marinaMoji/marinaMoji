@@ -38,15 +38,24 @@ fi
 # local unzip/symlink permissions unrelated to networking). Pass
 # MARINAMOJI_OFFLINE_TARGET=//:package to exercise the full package.
 TARGET="${MARINAMOJI_OFFLINE_TARGET:-//server:mozc_server}"
+# Fresh output base avoids stale external/ repos from the networked vendor
+# run (those can be incomplete or hard-linked oddly under Docker Desktop).
+OUTPUT_BASE="${MARINAMOJI_OFFLINE_OUTPUT_BASE:-}"
 
 echo "verify_offline.sh: vendor_dir=$VENDOR_DIR"
 echo "verify_offline.sh: target=$TARGET"
 echo "verify_offline.sh: bazel args: ${BAZEL_ARGS[*]}"
+if [[ -n "$OUTPUT_BASE" ]]; then
+  echo "verify_offline.sh: output_base=$OUTPUT_BASE"
+  mkdir -p "$OUTPUT_BASE"
+fi
 
 cd "$SRC"
 # lockfile_mode=error: do not refresh registry metadata.
 # repository_disable_download: fail loudly if anything still tries ctx.download.
-bazelisk build \
+bazelisk \
+  ${OUTPUT_BASE:+--output_base="$OUTPUT_BASE"} \
+  build \
   --vendor_dir="$VENDOR_DIR" \
   --repository_disable_download \
   --lockfile_mode=error \
