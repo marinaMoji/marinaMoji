@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-08T21:04:04+00:00",
+  "generated": "2026-11-08T21:06:15+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -307,8 +307,8 @@
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/131",
       "state": "OPEN",
       "status": "planned",
-      "milestone": "Full public release",
-      "assignee": null,
+      "milestone": null,
+      "assignee": "mpandolfino",
       "progress": null,
       "category": "historical",
       "type": "capability",
