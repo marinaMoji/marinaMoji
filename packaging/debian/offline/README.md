@@ -95,16 +95,12 @@ bash packaging/debian/offline/docker_linux_proof.sh
 MARINAMOJI_SKIP_VENDOR=1 bash packaging/debian/offline/docker_linux_proof.sh
 ```
 
-## What this does *not* solve yet
+## Orig tarball / DFSG
 
-* **DFSG / `Files-Excluded`:** vendoring may pull non-DFSG bits; a
-  `+dfsg` repack story still belongs with copyright work.
-* **Size:** a full vendor tree is large (~hundreds of MB); shipping it in
-  NEW needs a deliberate orig-tarball plan.
-* **Linux `.deb` verification** on a Linux host/container (IBus/Qt
-  Build-Depends).
-* **Debian-style module overrides** to system `-dev` packages (smaller
-  binary linkage) — optional later optimization.
+Finished layout: [`../DFSG.md`](../DFSG.md) and
+`../build_source_package.sh` (`+ds1` main orig + `orig-vendor`
+component). Optional later: shrink vendor via Debian-style
+`--override_module` onto system `-dev` packages.
 
 ## Network dependency inventory
 

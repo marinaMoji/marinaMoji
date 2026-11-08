@@ -1,77 +1,44 @@
 # Debian source packaging (archive readiness)
 
-This directory is the start of a proper Debian *source* package for
-marinaMoji ([#52](https://github.com/marinaMoji/marinaMoji/issues/52),
-parent [#161](https://github.com/marinaMoji/marinaMoji/issues/161)).
+This directory is the Debian *source* package for marinaMoji
+([#161](https://github.com/marinaMoji/marinaMoji/issues/161)).
 
 It is **not** the path that ships today’s GitHub Releases `.deb` or the
-third-party apt repo on GitHub Pages. Those stay in
-[`../linux/`](../linux/) (`build_deb.sh`, `build_apt_repo.sh`). Think of
-this tree as “what Debian/Ubuntu archive maintainers would eventually
-build with `dpkg-buildpackage` / `sbuild`.”
+third-party apt repo — those stay in [`../linux/`](../linux/).
 
-## How this relates to the binary `.deb`
+## Status (engineering)
 
-| | `packaging/linux/` (today) | `packaging/debian/` (this tree) |
+| Item | Issue | Status |
 | --- | --- | --- |
-| Input | Pre-built `mozc.zip` from CI Bazel | Upstream source + Build-Depends |
-| Tooling | `dpkg-deb` wrapper | debhelper (`dh`) |
-| Network at build | Not needed (zip already built) | Currently **required** (Bazel fetches) |
-| Users | apt repo / release assets | Future official archive / experimental |
+| `debian/` scaffold | #52 | Done |
+| Offline Bazel (vendor mode) | #53 | Done (macOS + Linux/Docker proof) |
+| Maintainer QA (`dpkg-buildpackage` / sbuild docs + Docker smoke) | #55 | Done |
+| DFSG `+ds1` orig + `orig-vendor` component | #52/#53 | Done — see [DFSG.md](DFSG.md) |
+| Package split | #59 | Optional later |
+| AppStream screenshots | #58 | Optional later |
+| Sponsor / NEW | #61 | Process — later |
 
-Desktop metadata, maintainer scripts, and dependency rationale are shared
-ideas: prefer reusing `../linux/data/` and
-`../linux/install_desktop_metadata.sh` from `debian/rules` rather than
-duplicating them.
-
-## Layout
-
-`dpkg-buildpackage` expects a `debian/` directory at the **root of the
-source tree**. These files live under `packaging/debian/` so packaging
-stays a separate concern from the IME core (same idea as
-`packaging/arch/` and `packaging/linux/`).
-
-From a checkout of the repository root:
+## How to use
 
 ```bash
-ln -sfn packaging/debian debian
-# optional binary-only try once Build-Depends and network are available:
-# dpkg-buildpackage -us -uc -b
+# 1) Linux vendor tree (networked, once per version)
+bash packaging/debian/offline/vendor_deps.sh -- \
+  --config oss_linux --config release_build
+
+# 2) Orig tarballs (+ds1 source + vendor component)
+bash packaging/debian/build_source_package.sh
+
+# 3) Binary build smoke in Docker (optional)
+MARINAMOJI_SKIP_VENDOR=1 bash packaging/debian/qa/docker_qa.sh
 ```
 
-Remove the symlink when you are done (`rm debian`); do not commit a
-`debian` symlink at the repo root.
+`dpkg-buildpackage` expects `debian/` at the source root:  
+`ln -sfn packaging/debian debian` from a git checkout, or unpack the
+source package produced above.
 
-## What works today vs what is blocked
+## Related
 
-**Scaffolded here (#52):** `control`, `rules`, `changelog`, `copyright`,
-`watch`, `source/format`, maintainer scripts, and this README.
-
-**Offline Bazel (#53) — vendor mode proven on macOS and Linux/Docker:**
-
-* Maintainer scripts: [`offline/`](offline/) (including
-  `docker_linux_proof.sh`).
-* `debian/rules` uses `debian/vendor/` automatically when present.
-* Still to decide for archive upload: how the vendor tree ships in the
-  orig tarball / DFSG `Files-Excluded`.
-
-**QA (#55):** maintainer command paths for clean source builds and
-install smoke live in [`qa/`](qa/) (`docker_qa.sh` on Docker Desktop;
-real `sbuild` + `piuparts` on a Debian host).
-
-**Still required before an upload is realistic:**
-
-1. **Source-tree DEP-5 completeness** — `copyright` here is a starting
-   inventory. Binary-package provenance already lives in
-   `../linux/data/copyright` (#54).
-2. **Package split** ([#59](https://github.com/marinaMoji/marinaMoji/issues/59))
-   — optional; the scaffold keeps a single `marinamoji` binary package.
-3. **Sponsor / NEW** ([#61](https://github.com/marinaMoji/marinaMoji/issues/61)).
-4. Optional: wire `qa/docker_qa.sh` (or real sbuild) into CI once cheap.
-
-## Versioning
-
-Product / GitHub tags keep SemVer prereleases (`0.0.21-rc11`). The Debian
-package **Version** uses the tilde form (`0.0.21~rc11-1`) so the final
-`0.0.21-1` sorts newer than its release candidates. See
-`../linux/debian_version.sh`.
+* [DFSG.md](DFSG.md) — orig layout and Files-Excluded  
+* [offline/](offline/) — vendor mode + Docker offline proof  
+* [qa/](qa/) — sbuild / piuparts maintainer paths  
+* [../linux/](../linux/) — third-party apt `.deb` (unchanged)

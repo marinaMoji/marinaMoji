@@ -3,28 +3,33 @@
 # Debhelper rules for marinaMoji.
 #
 # Build path:
-#   1. Prefer Bazel vendor mode when debian/vendor/ exists (#53):
-#      populate with packaging/debian/offline/vendor_deps.sh, then
-#      dpkg-buildpackage / sbuild can run without network.
-#   2. Otherwise fall back to a networked Bazel build (same idea as the
-#      Arch marinamoji PKGBUILD). That path is for maintainer laptops only.
+#   1. Prefer Bazel vendor mode when a vendor tree exists (#53 / DFSG.md):
+#      top-level vendor/ (additional orig tarball), else debian/vendor,
+#      else debian/vendor-linux.
+#   2. Otherwise fall back to a networked Bazel build (maintainer laptop).
 #
-# Shared branding/metadata comes from packaging/linux/ so the archive
-# package and the third-party .deb present the same desktop files.
+# Shared branding/metadata comes from packaging/linux/.
 
 export DH_VERBOSE = 1
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
-# Prefer bazelisk (pinned via src/.bazeliskrc). Fall back to bazel.
 BAZEL ?= $(shell command -v bazelisk 2>/dev/null || command -v bazel)
 
 PRODUCT_VERSION := $(shell cat src/marina_product_version.txt)
 LINUX_PACKAGING := packaging/linux
 
-# When packaging/debian is symlinked to debian/, vendor lives at debian/vendor.
+# Resolve vendor directory for offline builds.
+VENDOR_DIR :=
+ifneq ($(wildcard $(CURDIR)/vendor),)
+VENDOR_DIR := $(CURDIR)/vendor
+else ifneq ($(wildcard $(CURDIR)/debian/vendor),)
 VENDOR_DIR := $(CURDIR)/debian/vendor
+else ifneq ($(wildcard $(CURDIR)/debian/vendor-linux),)
+VENDOR_DIR := $(CURDIR)/debian/vendor-linux
+endif
+
 BAZEL_OFFLINE_FLAGS :=
-ifneq ($(wildcard $(VENDOR_DIR)/.),)
+ifneq ($(VENDOR_DIR),)
 BAZEL_OFFLINE_FLAGS := \
 	--vendor_dir=$(VENDOR_DIR) \
 	--repository_disable_download \
@@ -43,8 +48,8 @@ override_dh_auto_configure:
 	@if [ -n "$(BAZEL_OFFLINE_FLAGS)" ]; then \
 		echo "debian/rules: offline mode via $(VENDOR_DIR)"; \
 	else \
-		echo "debian/rules: WARNING: no debian/vendor/; Bazel may use the network (#53)."; \
-		echo "debian/rules: Run packaging/debian/offline/vendor_deps.sh on a networked host first."; \
+		echo "debian/rules: WARNING: no vendor tree; Bazel may use the network."; \
+		echo "debian/rules: See packaging/debian/DFSG.md and offline/vendor_deps.sh."; \
 	fi
 
 override_dh_auto_build:
@@ -55,7 +60,6 @@ override_dh_auto_build:
 		$(BAZEL_OFFLINE_FLAGS)
 
 override_dh_auto_test:
-	# Upstream test suite is large and not yet wired as a packaging gate.
 	@true
 
 override_dh_auto_install:
@@ -66,11 +70,9 @@ override_dh_auto_install:
 		--root debian/marinamoji \
 		--version $(PRODUCT_VERSION) \
 		--data-dir $(LINUX_PACKAGING)/data
-	# debian/copyright is installed by dh_installdocs.
 	install -d debian/marinamoji/usr/share/man/man1
 	gzip -9n < $(LINUX_PACKAGING)/data/mozc_emacs_helper.1 \
 		> debian/marinamoji/usr/share/man/man1/mozc_emacs_helper.1.gz
-	# Binaries from the zip must be executable; dh_strip handles stripping.
 	for bin in \
 		usr/lib/marinamoji/mozc_server \
 		usr/lib/marinamoji/mozc_tool \
@@ -83,5 +85,3 @@ override_dh_auto_install:
 
 override_dh_auto_clean:
 	dh_auto_clean
-	# Leave Bazel caches and debian/vendor alone; regenerating the vendor
-	# tree is slow and intentional (offline/vendor_deps.sh).

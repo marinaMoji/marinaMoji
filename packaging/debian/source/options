@@ -1,0 +1,2 @@
+# Ignore the Bazel vendor component when generating quilt diffs.
+extend-diff-ignore = (^|/)vendor(/|$)
