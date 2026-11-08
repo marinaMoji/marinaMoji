@@ -139,3 +139,4 @@ test:android_env  --test_tag_filters=-noandroid
 
 ## SFrame relocation errors workaround for GCC 15+ and LLD 19+
 build:no_sframe --copt="-Wa,--gsframe=no" --host_copt="-Wa,--gsframe=no"
+common --experimental_repository_downloader_retries=10

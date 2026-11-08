@@ -181,6 +181,10 @@ jobs:
         # wrote it; regenerate it so it matches the runner.
         run: bash mac/write_local_xcode_config.sh
 
+      - name: Prefetch Bazel dependencies (retry on GitHub 5xx)
+        working-directory: ./src
+        run: bash build_tools/bazel_prefetch.sh --macos_cpus=${{ matrix.macos_cpus }} --config release_build
+
       - name: bazel build (signed)
         working-directory: ./src
         run: |
@@ -343,6 +347,13 @@ jobs:
         run: |
           if exist third_party\qt_src rmdir third_party\qt_src /s /q
 
+      - name: Prefetch Bazel dependencies (retry on GitHub 5xx)
+        shell: bash
+        working-directory: ./src
+        env:
+          ANDROID_NDK_HOME: ""
+        run: bash build_tools/bazel_prefetch.sh --config release_build ${{ matrix.extra_configs }}
+
       - name: build installer
         shell: cmd
         working-directory: .\src
@@ -440,6 +451,10 @@ jobs:
           #
           # Unset the Android NDK setting to skip the unnecessary configuration.
           echo "ANDROID_NDK_HOME=" >> $GITHUB_ENV
+
+      - name: Prefetch Bazel dependencies (retry on GitHub 5xx)
+        working-directory: ./src
+        run: bash build_tools/bazel_prefetch.sh --config release_build
 
       - name: bazel build
         working-directory: ./src
