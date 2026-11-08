@@ -90,6 +90,12 @@ regressions.
 # Ranked report (first N IDS-layout characters from ids_table.tsv):
 bazel run //gui/character_composer:glyphwiki_compare_main -- --limit=200
 
+# Spread the sample over the whole table (the first entries are mostly 亻X):
+bazel run //gui/character_composer:glyphwiki_compare_main -- --stride=15 --limit=0
+
+# Score exact characters, e.g. to re-record the reviewed baseline:
+bazel run //gui/character_composer:glyphwiki_compare_main -- --chars=休相明
+
 # Regression test (reviewed baseline + IoU unit checks):
 bazel test //gui/character_composer:glyphwiki_compare_test
 ```

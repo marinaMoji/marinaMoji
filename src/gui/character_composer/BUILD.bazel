@@ -238,6 +238,7 @@ mozc_cc_binary(
         ":glyphwiki_compare",
         "//base:file_util",
         "//base:init_mozc",
+        "//base/strings:unicode",
         "//composer_ids:ids_table",
         "//testing:mozctest",
         "@com_google_absl//absl/flags:flag",

@@ -109,10 +109,10 @@ TEST(ComposerKageTest, UsesTheVariantAndBoxGlyphWikiUses) {
   r.glyphs.Set("u6728-01", std::string(r.glyphs.Search("u6728")));
   r.layout = ComposerLayout::Parse("⿰\t0\t木\tu6728-01\t2 0 165 200\t442\n");
   kage::Buhin nested(&r.glyphs);
-  // -01 expands the left box's right edge to at least 170.
+  // The learned box is used as it stands (no -01 widening any more).
   EXPECT_EQ(ComposeKageData("⿰", Parts("木", "巻"), &nested, &r.layout, nullptr,
                             /*limit_ink_overlap=*/false),
-            "99:0:0:2:0:170:200:u6728-01:0:0:0$99:0:0:49:0:198:200:u5dfb:0:0:0");
+            "99:0:0:2:0:165:200:u6728-01:0:0:0$99:0:0:49:0:198:200:u5dfb:0:0:0");
 }
 
 TEST(ComposerKageTest, PrefersAPositionalVariantWhenTheTableNamesTheBareGlyph) {
@@ -124,7 +124,7 @@ TEST(ComposerKageTest, PrefersAPositionalVariantWhenTheTableNamesTheBareGlyph) {
   kage::Buhin nested(&r.glyphs);
   EXPECT_EQ(ComposeKageData("⿰", Parts("木", "巻"), &nested, &r.layout, nullptr,
                             /*limit_ink_overlap=*/false),
-            "99:0:0:5:0:170:200:u6728-01:0:0:0$99:0:0:49:0:198:200:u5dfb:0:0:0");
+            "99:0:0:5:0:115:200:u6728-01:0:0:0$99:0:0:49:0:198:200:u5dfb:0:0:0");
 }
 
 TEST(ComposerKageTest, DoesNotOverrideAChosenRegionVariant) {

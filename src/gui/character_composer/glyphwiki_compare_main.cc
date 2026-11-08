@@ -14,6 +14,7 @@
 #include "absl/flags/flag.h"
 #include "base/file_util.h"
 #include "base/init_mozc.h"
+#include "base/strings/unicode.h"
 #include "composer_ids/ids_table.h"
 #include "gui/character_composer/composer_kage.h"
 #include "gui/character_composer/glyphwiki_compare.h"
@@ -23,6 +24,13 @@ ABSL_FLAG(int32_t, limit, 200,
           "Attempt at most this many IDS-layout characters from the table "
           "(0 = all). Successful drawings are ranked; raise for a fuller "
           "report.");
+ABSL_FLAG(int32_t, stride, 1,
+          "Keep every Nth character before applying --limit, to sample the "
+          "whole table instead of only its first entries (which are mostly "
+          "one component; see docs/GLYPHWIKI_COMPARISON.md).");
+ABSL_FLAG(std::string, chars, "",
+          "Compare exactly these characters (e.g. --chars=休相明) instead of "
+          "walking the table; used to rewrite the reviewed baseline.");
 ABSL_FLAG(int32_t, bitmap, 64,
           "Raster grid size (smaller is faster; 64 is enough for a report).");
 ABSL_FLAG(bool, all_blocks, false,
@@ -59,6 +67,21 @@ int main(int argc, char **argv) {
 
   std::vector<std::string> characters = mozc::gui::CharactersWithIdsLayout(
       *ids_tsv, /*unified_ideographs_only=*/!absl::GetFlag(FLAGS_all_blocks));
+  if (!absl::GetFlag(FLAGS_chars).empty()) {
+    characters.clear();
+    for (const char32_t cp :
+         mozc::strings::Utf8ToUtf32(absl::GetFlag(FLAGS_chars))) {
+      characters.push_back(mozc::strings::Utf32ToUtf8(std::u32string(1, cp)));
+    }
+  }
+  if (absl::GetFlag(FLAGS_stride) > 1) {
+    std::vector<std::string> sampled;
+    for (size_t i = 0; i < characters.size();
+         i += absl::GetFlag(FLAGS_stride)) {
+      sampled.push_back(std::move(characters[i]));
+    }
+    characters = std::move(sampled);
+  }
   if (absl::GetFlag(FLAGS_limit) > 0 &&
       static_cast<int>(characters.size()) > absl::GetFlag(FLAGS_limit)) {
     characters.resize(absl::GetFlag(FLAGS_limit));

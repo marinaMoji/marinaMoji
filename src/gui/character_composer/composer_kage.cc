@@ -69,52 +69,30 @@ bool IsPositionalForm(std::string_view name) {
   return suf == "01" || suf == "02" || suf == "03" || suf == "04" || suf == "05";
 }
 
-// Positional forms already encode narrowing/flattening in their strokes.
-// GlyphWiki then places them in wide boxes (often past 0..200). Learned median
-// boxes understate that: for ⿰, the right component's left edge sits ~20 units
-// too far right versus GlyphWiki's own ⿰亻X glyphs. Widen the placement so we
-// do not double-squeeze.
+// Positional forms already encode narrowing/flattening in their strokes, so
+// the learned box is used as it stands. Only the enclosing operators keep a
+// rule: -05 frame forms are drawn full-square in GlyphWiki.
+//
+// Earlier versions also widened or shifted the boxes of ⿰ ⿱ ⿲ ⿳ positional
+// forms by hand-picked amounts. Measured with glyphwiki_compare_main
+// (--stride=15 --limit=0, layout-only rows) those rules lowered the mean IoU
+// for every operator; see docs/GLYPHWIKI_COMPARISON.md.
+constexpr int kNarrowLeftRight = 165;
+constexpr int kNarrowLeftShift = 20;
+
 void ExpandBoxForPositionalForm(std::string_view op, int position,
-                                std::string_view name, Box *box) {
+                                std::string_view name, const Box *left_box,
+                                Box *box) {
   if (box == nullptr || !IsPositionalForm(name)) return;
-  if (op == "⿰") {
-    if (position == 0) {
-      box->right = std::max(box->right, 170);
-    } else if (position == 1 && box->left > 0) {
-      // Learned medians for -02 sit ~20 units too far right versus GlyphWiki
-      // (measured on ⿰亻X). Skip left==0: that box is already full-bleed and
-      // pulling it negative hurts characters whose registered glyph uses a
-      // different variant (e.g. 相's 目).
-      box->left -= 20;
-    }
-  } else if (op == "⿱") {
-    if (position == 0) {
-      box->bottom = std::max(box->bottom, 170);
-    } else if (position == 1 && box->top > 0) {
-      box->top = std::min(box->top, 30);
-      box->top -= 15;
-    }
-  } else if (op == "⿲") {
-    if (position == 0) {
-      box->right = std::max(box->right, 130);
-    } else if (position == 1) {
-      box->left = std::min(box->left, 50);
-      box->right = std::max(box->right, 165);
-    } else if (position == 2 && box->left > 0) {
-      box->left -= 15;
-    }
-  } else if (op == "⿳") {
-    if (position == 0) {
-      box->bottom = std::max(box->bottom, 130);
-    } else if (position == 1) {
-      box->top = std::min(box->top, 50);
-      box->bottom = std::max(box->bottom, 125);
-    } else if (position == 2 && box->top > 0) {
-      box->top -= 15;
-    }
-  } else if ((op == "⿴" || op == "⿵" || op == "⿶" || op == "⿷" ||
-              op == "⿸" || op == "⿹" || op == "⿺") &&
-             position == 0) {
+  if (op == "⿰" && position == 1 && left_box != nullptr && box->left > 0 &&
+      left_box->right <= kNarrowLeftRight) {
+    // Next to a narrow left component (亻 and its kin) GlyphWiki sets the
+    // right component further left than the learned median.
+    box->left -= kNarrowLeftShift;
+  }
+  if ((op == "⿴" || op == "⿵" || op == "⿶" || op == "⿷" || op == "⿸" ||
+       op == "⿹" || op == "⿺") &&
+      position == 0) {
     // -05 frame forms are drawn full-square in GlyphWiki.
     box->left = std::min(box->left, 0);
     box->top = std::min(box->top, 0);
@@ -232,15 +210,6 @@ void HarmonizeHorizontalOverlap(Box *left, Box *right) {
   const int overlap = left->right <= 155 ? 55 : left->right <= 170 ? 40 : 25;
   const int target = left->right - overlap;
   if (right->left > target) right->left = target;
-}
-
-// Same idea for ⿱ / ⿳: pull the lower part up so bands overlap as GlyphWiki
-// does (clean stacked strips leave a gap; medians overlap by ~40–80).
-void HarmonizeVerticalOverlap(Box *upper, Box *lower) {
-  if (upper == nullptr || lower == nullptr) return;
-  const int overlap = upper->bottom <= 120 ? 50 : upper->bottom <= 150 ? 40 : 25;
-  const int target = upper->bottom - overlap;
-  if (lower->top > target) lower->top = target;
 }
 
 // A coarse bitmap of the ink a placed component draws (its strokes, not its
@@ -462,7 +431,10 @@ std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &
       // Bare uXXXX only: prefer a positional form if the dump has one.
       name = PreferPositionalVariant(op, static_cast<int>(i), std::move(name),
                                      *nested);
-      ExpandBoxForPositionalForm(op, static_cast<int>(i), name, &box);
+      ExpandBoxForPositionalForm(op, static_cast<int>(i), name,
+                                 placements.empty() ? nullptr
+                                                    : &placements.back().box,
+                                 &box);
     } else {
       name = ReadyMadeNestedGlyph(parts[i], *nested, subtrees);
       if (name.empty()) {
@@ -483,14 +455,9 @@ std::string ComposeLayout(std::string_view op, const std::vector<ComposerSlot> &
   }
   if (op == "⿰" && placements.size() >= 2) {
     HarmonizeHorizontalOverlap(&placements[0].box, &placements[1].box);
-  } else if (op == "⿱" && placements.size() >= 2) {
-    HarmonizeVerticalOverlap(&placements[0].box, &placements[1].box);
   } else if (op == "⿲" && placements.size() >= 3) {
     HarmonizeHorizontalOverlap(&placements[0].box, &placements[1].box);
     HarmonizeHorizontalOverlap(&placements[1].box, &placements[2].box);
-  } else if (op == "⿳" && placements.size() >= 3) {
-    HarmonizeVerticalOverlap(&placements[0].box, &placements[1].box);
-    HarmonizeVerticalOverlap(&placements[1].box, &placements[2].box);
   }
   const bool horizontal = op == "⿰" || op == "⿲";
   if (limit_ink_overlap && (horizontal || op == "⿱" || op == "⿳")) {

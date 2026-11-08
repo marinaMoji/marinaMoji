@@ -3,13 +3,16 @@
 # kage_subtrees (bitmap 64, view_box 1000) after nested-subtree lookup.
 # All ten are pure 99: GlyphWiki compositions (layout sentinels).
 # Tolerance in the test is 0.05.
-休	0.5660
-相	0.7230
-明	0.3730
-昌	0.1751
-岩	0.7450
+# Re-recorded after the positional-form box rules were simplified (#152): the
+# wide-corpus mean rose (⿰ 0.66→0.72, ⿱ 0.61→0.68 on --stride=15), while this
+# hand-picked set, mostly ⿰亻X, drops a little (休 0.57→0.48, 明 0.37→0.20).
+休	0.4767
+相	0.7170
+明	0.1987
+昌	0.1630
+岩	0.6990
 困	1.0000
-付	0.3408
-他	0.4720
-仰	0.5335
-位	0.5474
+付	0.2585
+他	0.4250
+仰	0.4808
+位	0.4401
