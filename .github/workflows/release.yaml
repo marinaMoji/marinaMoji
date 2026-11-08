@@ -348,8 +348,14 @@ jobs:
         working-directory: .\src
         env:
           ANDROID_NDK_HOME: ""
+          BAZEL_CACHE_URL: ${{ secrets.BAZEL_CACHE_URL }}
+          BAZEL_CACHE_TOKEN: ${{ secrets.BAZEL_CACHE_RW_TOKEN }}
         run: |
-          bazelisk build package --config release_build ${{ matrix.extra_configs }} --define CHANNEL=stable
+          rem Shared Bazel cache (Cloudflare R2 behind tools/bazel-cache-worker).
+          rem Skipped when the secrets are not set, so the build still works.
+          set CACHE_FLAGS=
+          if defined BAZEL_CACHE_URL set CACHE_FLAGS=--remote_cache=%BAZEL_CACHE_URL% --remote_header="Authorization=Bearer %BAZEL_CACHE_TOKEN%" --remote_timeout=120
+          bazelisk build package --config release_build ${{ matrix.extra_configs }} --define CHANNEL=stable %CACHE_FLAGS%
 
       - name: Verify product version in build
         if: github.ref_type == 'tag'

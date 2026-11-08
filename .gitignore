@@ -83,3 +83,6 @@ MODULE.bazel.lock
 
 # Debugging
 /temp/
+
+# Cloudflare wrangler local state
+.wrangler/
