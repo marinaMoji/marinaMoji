@@ -127,6 +127,17 @@ if [[ "$SKIP_VENDOR" -eq 0 ]]; then
   # be named after the component ("vendor").
   mkdir -p "$STAGE/vendor-pack"
   cp -a "$VENDOR_SRC" "$STAGE/vendor-pack/vendor"
+  # The lockfile is gitignored, so it is not in the orig; --lockfile_mode=error
+  # needs it. vendor_deps.sh already stores it in the vendor tree; fall back
+  # to the local copy for older trees.
+  if [[ ! -f "$STAGE/vendor-pack/vendor/MODULE.bazel.lock" ]]; then
+    if [[ -f "$REPO_ROOT/src/MODULE.bazel.lock" ]]; then
+      cp "$REPO_ROOT/src/MODULE.bazel.lock" "$STAGE/vendor-pack/vendor/MODULE.bazel.lock"
+    else
+      echo "build_source_package.sh: no MODULE.bazel.lock in vendor tree or src/" >&2
+      exit 1
+    fi
+  fi
   "${TAR_CREATE[@]}" -C "$STAGE/vendor-pack" -cf - vendor | xz -T0 -6 > "$OUT_DIR/$VENDOR_NAME"
   ls -lh "$OUT_DIR/$VENDOR_NAME"
 fi

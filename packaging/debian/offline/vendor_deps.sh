@@ -44,5 +44,14 @@ bazelisk vendor \
   //:package \
   "${BAZEL_ARGS[@]}"
 
+# src/MODULE.bazel.lock is gitignored (not in the orig tarball) but
+# --lockfile_mode=error needs the exact lockfile this vendor run produced.
+# Ship it inside the vendor tree; debian/rules installs it if absent.
+if [[ -f "$SRC/MODULE.bazel.lock" ]]; then
+  cp "$SRC/MODULE.bazel.lock" "$VENDOR_DIR/MODULE.bazel.lock"
+else
+  echo "vendor_deps.sh: WARNING: $SRC/MODULE.bazel.lock missing" >&2
+fi
+
 echo "vendor_deps.sh: done. Tree size:"
 du -sh "$VENDOR_DIR"

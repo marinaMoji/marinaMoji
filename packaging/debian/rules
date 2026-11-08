@@ -39,12 +39,22 @@ endif
 %:
 	dh $@
 
+# The vendor tree contains no autotools-managed project of ours; do not let
+# debhelper rewrite files inside it (it would also dirty the source tree).
+override_dh_update_autotools_config:
+override_dh_autoreconf:
+
 override_dh_auto_configure:
 	@if [ -z "$(BAZEL)" ]; then \
 		echo "debian/rules: need bazelisk or bazel in PATH" >&2; \
 		exit 1; \
 	fi
 	@echo "debian/rules: using $$(command -v $(BAZEL) || echo $(BAZEL))"
+	@if [ -n "$(VENDOR_DIR)" ] && [ ! -f src/MODULE.bazel.lock ] \
+		&& [ -f "$(VENDOR_DIR)/MODULE.bazel.lock" ]; then \
+		echo "debian/rules: installing src/MODULE.bazel.lock from the vendor tree"; \
+		cp "$(VENDOR_DIR)/MODULE.bazel.lock" src/MODULE.bazel.lock; \
+	fi
 	@if [ -n "$(BAZEL_OFFLINE_FLAGS)" ]; then \
 		echo "debian/rules: offline mode via $(VENDOR_DIR)"; \
 	else \
