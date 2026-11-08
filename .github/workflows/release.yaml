@@ -181,6 +181,23 @@ jobs:
         # wrote it; regenerate it so it matches the runner.
         run: bash mac/write_local_xcode_config.sh
 
+      - name: Authenticate GitHub downloads
+        # GitHub is shedding anonymous download traffic (504s on release assets
+        # and archive tarballs). Bazel sends ~/.netrc credentials, and
+        # authenticated requests are served normally.
+        shell: bash
+        env:
+          GH_DL_TOKEN: ${{ github.token }}
+        run: |
+          NETRC_FILE="$RUNNER_TEMP/bazel-netrc"
+          : > "$NETRC_FILE"
+          chmod 600 "$NETRC_FILE"
+          for h in github.com codeload.github.com; do
+            printf 'machine %s\nlogin x-access-token\npassword %s\n' "$h" "$GH_DL_TOKEN" >> "$NETRC_FILE"
+          done
+          if command -v cygpath >/dev/null; then NETRC_FILE="$(cygpath -w "$NETRC_FILE")"; fi
+          echo "NETRC=$NETRC_FILE" >> "$GITHUB_ENV"
+
       - name: Prefetch Bazel dependencies (retry on GitHub 5xx)
         working-directory: ./src
         run: bash build_tools/bazel_prefetch.sh --macos_cpus=${{ matrix.macos_cpus }} --config release_build
@@ -347,6 +364,23 @@ jobs:
         run: |
           if exist third_party\qt_src rmdir third_party\qt_src /s /q
 
+      - name: Authenticate GitHub downloads
+        # GitHub is shedding anonymous download traffic (504s on release assets
+        # and archive tarballs). Bazel sends ~/.netrc credentials, and
+        # authenticated requests are served normally.
+        shell: bash
+        env:
+          GH_DL_TOKEN: ${{ github.token }}
+        run: |
+          NETRC_FILE="$RUNNER_TEMP/bazel-netrc"
+          : > "$NETRC_FILE"
+          chmod 600 "$NETRC_FILE"
+          for h in github.com codeload.github.com; do
+            printf 'machine %s\nlogin x-access-token\npassword %s\n' "$h" "$GH_DL_TOKEN" >> "$NETRC_FILE"
+          done
+          if command -v cygpath >/dev/null; then NETRC_FILE="$(cygpath -w "$NETRC_FILE")"; fi
+          echo "NETRC=$NETRC_FILE" >> "$GITHUB_ENV"
+
       - name: Prefetch Bazel dependencies (retry on GitHub 5xx)
         shell: bash
         working-directory: ./src
@@ -451,6 +485,23 @@ jobs:
           #
           # Unset the Android NDK setting to skip the unnecessary configuration.
           echo "ANDROID_NDK_HOME=" >> $GITHUB_ENV
+
+      - name: Authenticate GitHub downloads
+        # GitHub is shedding anonymous download traffic (504s on release assets
+        # and archive tarballs). Bazel sends ~/.netrc credentials, and
+        # authenticated requests are served normally.
+        shell: bash
+        env:
+          GH_DL_TOKEN: ${{ github.token }}
+        run: |
+          NETRC_FILE="$RUNNER_TEMP/bazel-netrc"
+          : > "$NETRC_FILE"
+          chmod 600 "$NETRC_FILE"
+          for h in github.com codeload.github.com; do
+            printf 'machine %s\nlogin x-access-token\npassword %s\n' "$h" "$GH_DL_TOKEN" >> "$NETRC_FILE"
+          done
+          if command -v cygpath >/dev/null; then NETRC_FILE="$(cygpath -w "$NETRC_FILE")"; fi
+          echo "NETRC=$NETRC_FILE" >> "$GITHUB_ENV"
 
       - name: Prefetch Bazel dependencies (retry on GitHub 5xx)
         working-directory: ./src
