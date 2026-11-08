@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-08T21:11:48+00:00",
+  "generated": "2026-11-08T21:13:24+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -697,29 +697,6 @@
       "depends_on": null
     },
     {
-      "id": "issue-162",
-      "ref": "marinaMoji/marinaMoji#162",
-      "github_url": "https://github.com/marinaMoji/marinaMoji/issues/162",
-      "state": "OPEN",
-      "status": "planned",
-      "milestone": "Linux Integration & Distribution",
-      "assignee": null,
-      "progress": {
-        "done": 0,
-        "total": 4
-      },
-      "category": "platform",
-      "type": "technical",
-      "layer": 0,
-      "title_en": "Linux release readiness",
-      "title_fr": "Préparation de la version Linux",
-      "title_ja": "Linux版リリース準備",
-      "description_en": null,
-      "description_fr": null,
-      "description_ja": null,
-      "depends_on": null
-    },
-    {
       "id": "issue-171",
       "ref": "marinaMoji/marinaMoji#171",
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/171",
@@ -737,7 +714,7 @@
       "description_en": null,
       "description_fr": null,
       "description_ja": null,
-      "depends_on": "issue-140,issue-133,issue-161,issue-162,issue-160,issue-139"
+      "depends_on": "issue-140,issue-133,issue-161,issue-160,issue-139"
     },
     {
       "id": "plugin-12",
