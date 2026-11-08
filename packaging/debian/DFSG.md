@@ -79,6 +79,17 @@ is not met yet.
    at Debian's `python3`, `protobuf-compiler`, etc. (`--override_module`,
    toolchain flags; this is what Debian's mozc packaging does) and drop
    those repositories from the vendor tree.
+ .
+   **Protobuf version conflict (checked 2026-11-08):** `src/MODULE.bazel`
+   pins BCR **protobuf 34.1**. Ubuntu 24.04 (noble), Debian trixie, and
+   Debian sid all ship **`protobuf-compiler` / `libprotobuf-dev` 3.21.12**.
+   Generated stubs from protoc 34 are not compatible with a 3.21 runtime
+   (or the reverse). Until Debian packages a 34.x protobuf, a Debian-only
+   `--override_module=protobuf=…` onto the distro packages is **not
+   viable** without either (a) Debian-only patches to build against 3.21
+   (large, fragile; must not touch the shared Release `.deb` path), or
+   (b) waiting for a newer distro protobuf. Do not switch the Debian
+   build to system protobuf until this gap closes.
 2. **Bazel itself.** Bazel is not in Debian main and Bazelisk downloads
    a Bazel binary at run time. A network-less `sbuild` has neither.
    Needs a packaged Bazel (or a vendored, source-built one) as a
