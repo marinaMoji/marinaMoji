@@ -44,6 +44,19 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# macOS bsdtar stores extended attributes as AppleDouble "._*" entries,
+# which pollute the tarballs. Disable that and prefer GNU tar.
+export COPYFILE_DISABLE=1
+if command -v gtar >/dev/null 2>&1; then
+  TAR=gtar
+else
+  TAR=tar
+fi
+TAR_CREATE=("$TAR")
+if "$TAR" --version 2>/dev/null | grep -q 'GNU tar'; then
+  TAR_CREATE+=(--owner=0 --group=0 --numeric-owner --sort=name)
+fi
+
 cd "$REPO_ROOT"
 git rev-parse --verify --quiet "$REF^{commit}" >/dev/null \
   || { echo "build_source_package.sh: unknown git ref: $REF" >&2; exit 1; }
@@ -101,7 +114,7 @@ for path in "${EXCLUDES[@]}"; do
 done
 
 echo "build_source_package.sh: writing $OUT_DIR/$ORIG_NAME"
-tar -C "$STAGE/tree" -cf - "$TOPDIR" | xz -T0 -6 > "$OUT_DIR/$ORIG_NAME"
+"${TAR_CREATE[@]}" -C "$STAGE/tree" -cf - "$TOPDIR" | xz -T0 -6 > "$OUT_DIR/$ORIG_NAME"
 ls -lh "$OUT_DIR/$ORIG_NAME"
 
 if [[ "$SKIP_VENDOR" -eq 0 ]]; then
@@ -114,7 +127,7 @@ if [[ "$SKIP_VENDOR" -eq 0 ]]; then
   # be named after the component ("vendor").
   mkdir -p "$STAGE/vendor-pack"
   cp -a "$VENDOR_SRC" "$STAGE/vendor-pack/vendor"
-  tar -C "$STAGE/vendor-pack" -cf - vendor | xz -T0 -6 > "$OUT_DIR/$VENDOR_NAME"
+  "${TAR_CREATE[@]}" -C "$STAGE/vendor-pack" -cf - vendor | xz -T0 -6 > "$OUT_DIR/$VENDOR_NAME"
   ls -lh "$OUT_DIR/$VENDOR_NAME"
 fi
 
