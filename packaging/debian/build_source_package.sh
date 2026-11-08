@@ -114,7 +114,7 @@ for path in "${EXCLUDES[@]}"; do
 done
 
 echo "build_source_package.sh: writing $OUT_DIR/$ORIG_NAME"
-"${TAR_CREATE[@]}" -C "$STAGE/tree" -cf - "$TOPDIR" | xz -T0 -6 > "$OUT_DIR/$ORIG_NAME"
+"${TAR_CREATE[@]}" -C "$STAGE/tree" -cf - "$TOPDIR" | xz -T"${MARINAMOJI_XZ_THREADS:-0}" -6 > "$OUT_DIR/$ORIG_NAME"
 ls -lh "$OUT_DIR/$ORIG_NAME"
 
 if [[ "$SKIP_VENDOR" -eq 0 ]]; then
@@ -138,7 +138,7 @@ if [[ "$SKIP_VENDOR" -eq 0 ]]; then
       exit 1
     fi
   fi
-  "${TAR_CREATE[@]}" -C "$STAGE/vendor-pack" -cf - vendor | xz -T0 -6 > "$OUT_DIR/$VENDOR_NAME"
+  "${TAR_CREATE[@]}" -C "$STAGE/vendor-pack" -cf - vendor | xz -T"${MARINAMOJI_XZ_THREADS:-0}" -6 > "$OUT_DIR/$VENDOR_NAME"
   ls -lh "$OUT_DIR/$VENDOR_NAME"
 fi
 

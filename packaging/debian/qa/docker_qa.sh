@@ -122,7 +122,7 @@ apt-get install -y -qq xz-utils >/dev/null
 rm -rf '"$BUILD_ROOT"'
 mkdir -p '"$BUILD_ROOT"'/out
 cd /src
-bash packaging/debian/build_source_package.sh \
+MARINAMOJI_XZ_THREADS=2 bash packaging/debian/build_source_package.sh \
   --vendor-src '"$VENDOR_CONTAINER"' \
   --output-dir '"$BUILD_ROOT"'/out \
   --with-dpkg-source
