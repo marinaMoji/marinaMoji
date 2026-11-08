@@ -109,6 +109,20 @@ is not met yet.
    toolchain story is settled; expect lintian hardening warnings until
    then.
 
+## Status: archive upload parked (2026-11-08)
+
+Decision: do not pursue an archive upload for now. The two blockers are
+outside this repo: Debian ships protobuf 3.21 (we pin 34.1) and has no
+packaged Bazel. Re-check both on each release; if Debian gains protobuf
+34.x and a packaged Bazel, resume with the toolchain overrides described
+above. Switching only `python3` is not worth doing alone, since it does
+not unblock anything.
+
+What remains useful meanwhile: offline, reproducible maintainer builds
+from a real two-component source package (`qa/docker_qa.sh` passes), and
+this list of blockers. End users are served by the third-party `.deb`
+(`packaging/linux/`), which this work does not change.
+
 ## What NEW still needs (non-engineering / process)
 
 * A Debian sponsor (#61)  

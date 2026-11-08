@@ -38,6 +38,11 @@ source package produced above.
 
 ## Related
 
+> **Status:** archive upload is parked (protobuf 34 vs Debian's 3.21, no
+> packaged Bazel); see DFSG.md. The vendor tree is built per architecture
+> and the current one is arm64-only: make an amd64 one on an amd64 host
+> before building there.
+
 * [DFSG.md](DFSG.md) — orig layout and Files-Excluded  
 * [offline/](offline/) — vendor mode + Docker offline proof  
 * [qa/](qa/) — sbuild / piuparts maintainer paths  
