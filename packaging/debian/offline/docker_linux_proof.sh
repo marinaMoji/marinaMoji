@@ -21,7 +21,13 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEB_DIR="$(cd "$HERE/.." && pwd)"
 REPO_ROOT="$(cd "$DEB_DIR/../.." && pwd)"
 IMAGE="${MARINAMOJI_DOCKER_IMAGE:-ubuntu:24.04}"
-VENDOR_HOST="${MARINAMOJI_VENDOR_DIR:-$DEB_DIR/vendor-linux}"
+# Host mirror of the vendor tree. Deliberately NOT MARINAMOJI_VENDOR_DIR (used
+# by vendor_deps.sh/verify_offline.sh) because this script rm -rf's it.
+VENDOR_HOST="${MARINAMOJI_VENDOR_HOST_DIR:-$DEB_DIR/vendor-linux}"
+case "$VENDOR_HOST" in
+  "$DEB_DIR"/vendor|"$DEB_DIR"/vendor-linux|"$DEB_DIR"/vendor-*) ;;
+  *) echo "docker_linux_proof.sh: refusing to manage $VENDOR_HOST (must be under $DEB_DIR/vendor*)" >&2; exit 1 ;;
+esac
 VENDOR_CONTAINER="/var/cache/marinamoji-vendor"
 CONTAINER_NAME="marinamoji-debian-offline-proof"
 BAZELISK_VERSION="${MARINAMOJI_BAZELISK_VERSION:-v1.30.0}"
@@ -134,8 +140,9 @@ if curl -fsS --max-time 3 https://bcr.bazel.build/ >/dev/null 2>&1; then
   exit 1
 fi
 echo "docker_linux_proof.sh: no external network (curl to BCR failed as expected)"
-# Sanity: the path Bazel previously complained about must exist on native FS.
-test -d '"$VENDOR_CONTAINER"'/rules_python++python+python_3_11_aarch64-unknown-linux-gnu/lib/python3.11/site-packages/pip/_internal/operations/build
+# Sanity: the path Bazel previously complained about must exist on native FS
+# (architecture-independent glob: aarch64 or x86_64 interpreter).
+compgen -G '"'"''"$VENDOR_CONTAINER"'/rules_python++python+python_3_11_*/lib/python3.11/site-packages/pip/_internal/operations/build'"'"' >/dev/null
 cd /src
 bash packaging/debian/offline/verify_offline.sh -- --config oss_linux --config release_build
 '

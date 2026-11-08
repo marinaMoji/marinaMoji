@@ -97,10 +97,12 @@ MARINAMOJI_SKIP_VENDOR=1 bash packaging/debian/offline/docker_linux_proof.sh
 
 ## Orig tarball / DFSG
 
-Finished layout: [`../DFSG.md`](../DFSG.md) and
-`../build_source_package.sh` (`+ds1` main orig + `orig-vendor`
-component). Optional later: shrink vendor via Debian-style
-`--override_module` onto system `-dev` packages.
+Layout: [`../DFSG.md`](../DFSG.md) and `../build_source_package.sh`
+(`+ds1` main orig + `orig-vendor` component). The vendor tree currently
+holds pre-built, architecture-specific toolchains, which the archive
+will not accept; replacing them with Debian-packaged tools via
+`--override_module` is required, not optional. See "Known archive
+blockers" in DFSG.md.
 
 ## Network dependency inventory
 

@@ -49,6 +49,21 @@ Files: src/data/emoticon/*
 Copyright: 2010-2021, Google Inc.
 License: BSD-3-Clause
 
+Files: vendor/*
+Copyright: various upstream authors of Bazel modules and http_archives
+License: Apache-2.0 and BSD-3-Clause and BSD-2-Clause and MIT and ISC and Zlib and Unicode-3.0 and CC0-1.0 and Public-Domain
+Comment:
+ The vendor/ tree is the Bazel vendor-mode snapshot for offline builds
+ (#53). It mixes many upstream projects, each under its own licence
+ (abseil Apache-2.0, rules_* Apache-2.0, libsodium ISC, ...). The "and"
+ list above names the licences present; it is NOT a per-file audit and
+ not every file carries every licence. A per-directory inventory is
+ still required before NEW, and pre-built toolchain binaries inside
+ vendor/ must go (see DFSG.md, "Known archive blockers").
+ .
+ Stanzas below with a more specific Files pattern override this one
+ (DEP-5: the last matching paragraph wins).
+
 # Postal-code CSVs arrive via the Bazel vendor component
 # (+http_archive+zip_code_*), not as in-tree upstream files. Documented
 # here for NEW reviewers; Debian mozc records the same data as CC0-1.0.
@@ -63,17 +78,6 @@ Comment:
 Files: vendor/+http_archive+ja_usage_dict/*
 Copyright: 2011, Hiroyuki Komatsu, Shoji Ogura, Tsuyoshi Horo
 License: BSD-2-Clause
-
-Files: vendor/*
-Copyright: various upstream authors of Bazel modules and http_archives
-License: Apache-2.0 or BSD-3-Clause or BSD-2-Clause or MIT or ISC or Zlib or Unicode-3.0 or CC0-1.0 or public-domain
-Comment:
- The vendor/ tree is the Bazel vendor-mode snapshot for offline builds
- (#53). Individual module licenses are those of the upstream projects
- pinned in src/MODULE.bazel (abseil Apache-2.0, protobuf BSD-ish /
- LICENSE in-tree, rules_* Apache-2.0, libsodium ISC, etc.). A
- per-directory DEP-5 inventory can be expanded during NEW review; this
- stanza records that the component is redistributable Free software.
 
 License: BSD-3-Clause
  Redistribution and use in source and binary forms, with or without

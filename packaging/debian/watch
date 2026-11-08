@@ -1,9 +1,12 @@
 # uscan configuration (watch file format version 4).
-# Tracks GitHub release tags; mangling maps SemVer -rcN to Debian ~rcN and
-# appends +ds1 for the Files-Excluded repack (see DFSG.md).
+# Tracks GitHub release tags. uversionmangle maps SemVer -rcN to Debian
+# ~rcN; repacksuffix applies Files-Excluded from debian/copyright and
+# appends +ds1 (see DFSG.md). The orig-vendor component is not
+# downloadable: build it with build_source_package.sh.
 version=4
 opts="filenamemangle=s%.*/v?@ANY_VERSION@%@PACKAGE@-$1.tar.gz%,\
-      uversionmangle=s/-rc/~rc/;s/$$/+ds1/, \
-      dversionmangle=s/\+ds\d+$$//" \
+      uversionmangle=s/-rc/~rc/,\
+      repacksuffix=+ds1,\
+      dversionmangle=s/\+ds\d*$//" \
   https://github.com/marinaMoji/marinaMoji/tags \
   .*/refs/tags/v?@ANY_VERSION@

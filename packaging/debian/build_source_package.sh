@@ -5,22 +5,30 @@
 #   bash packaging/debian/build_source_package.sh
 #   bash packaging/debian/build_source_package.sh --skip-vendor
 #   bash packaging/debian/build_source_package.sh --with-dpkg-source
+#   bash packaging/debian/build_source_package.sh --ref v0.0.21-rc11
 #
-# Reads the product version from src/marina_product_version.txt and writes:
-#   dist/debian-source/marinamoji_${UPSTREAM}+ds1.orig.tar.xz
-#   dist/debian-source/marinamoji_${UPSTREAM}+ds1.orig-vendor.tar.xz
-# Optionally runs dpkg-source -b after staging debian/ + vendor/.
+# The main orig tarball is produced with `git archive`, so it contains only
+# tracked files (no local caches, credentials or build output), minus the
+# paths listed in Files-Excluded in packaging/debian/copyright. That header
+# is the single source of truth for the DFSG repack.
+#
+# Reads the product version from src/marina_product_version.txt (at --ref)
+# and writes, under dist/debian-source/ (override with --output-dir):
+#   marinamoji_${UPSTREAM}+ds1.orig.tar.xz
+#   marinamoji_${UPSTREAM}+ds1.orig-vendor.tar.xz     (unless --skip-vendor)
+# With --with-dpkg-source it also builds the .dsc and debian tarball.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$HERE/../.." && pwd)"
 OUT_DIR="${MARINAMOJI_SOURCE_OUT:-$REPO_ROOT/dist/debian-source}"
 VENDOR_SRC="${MARINAMOJI_VENDOR_SRC:-}"
+REF="HEAD"
 SKIP_VENDOR=0
 WITH_DPKG_SOURCE=0
 
 usage() {
-  sed -n '2,14p' "$0" | sed 's/^# //;s/^#//'
+  sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 
@@ -30,17 +38,28 @@ while [[ $# -gt 0 ]]; do
     --with-dpkg-source) WITH_DPKG_SOURCE=1; shift ;;
     --vendor-src) VENDOR_SRC="$2"; shift 2 ;;
     --output-dir) OUT_DIR="$2"; shift 2 ;;
+    --ref) REF="$2"; shift 2 ;;
     -h|--help) usage 0 ;;
     *) echo "unknown option: $1" >&2; usage 1 ;;
   esac
 done
 
-PRODUCT_VERSION="$(tr -d '[:space:]' < "$REPO_ROOT/src/marina_product_version.txt")"
+cd "$REPO_ROOT"
+git rev-parse --verify --quiet "$REF^{commit}" >/dev/null \
+  || { echo "build_source_package.sh: unknown git ref: $REF" >&2; exit 1; }
+
+if [[ "$REF" == "HEAD" && -n "$(git status --porcelain --untracked-files=no)" ]]; then
+  echo "build_source_package.sh: WARNING: uncommitted changes are NOT in the" >&2
+  echo "build_source_package.sh:          tarball (git archive uses committed state)." >&2
+fi
+
+PRODUCT_VERSION="$(git show "$REF:src/marina_product_version.txt" | tr -d '[:space:]')"
 # 0.0.21-rc11 → 0.0.21~rc11
 UPSTREAM="${PRODUCT_VERSION/-rc/~rc}"
 DS_UPSTREAM="${UPSTREAM}+ds1"
 ORIG_NAME="marinamoji_${DS_UPSTREAM}.orig.tar.xz"
 VENDOR_NAME="marinamoji_${DS_UPSTREAM}.orig-vendor.tar.xz"
+TOPDIR="marinamoji-${DS_UPSTREAM}"
 
 if [[ -z "$VENDOR_SRC" ]]; then
   if [[ -d "$HERE/vendor-linux" ]]; then
@@ -52,48 +71,37 @@ fi
 
 mkdir -p "$OUT_DIR"
 STAGE="$(mktemp -d "${TMPDIR:-/tmp}/marinamoji-orig.XXXXXX")"
-cleanup() { rm -rf "$STAGE"; }
-trap cleanup EXIT
+trap 'rm -rf "$STAGE"' EXIT
 
-TREE="$STAGE/marinamoji-${DS_UPSTREAM}"
-mkdir -p "$TREE"
+echo "build_source_package.sh: product=$PRODUCT_VERSION upstream=$DS_UPSTREAM ref=$REF"
 
-echo "build_source_package.sh: product=$PRODUCT_VERSION upstream=$DS_UPSTREAM"
+# Files-Excluded paths from the copyright header paragraph (continuation
+# lines of the field, i.e. lines starting with whitespace).
+EXCLUDES=()
+while IFS= read -r line; do
+  EXCLUDES+=("$line")
+done < <(git show "$REF:packaging/debian/copyright" | awk '
+  /^Files-Excluded:/ { in_f = 1; next }
+  in_f && /^[[:space:]]+[^[:space:]]/ { gsub(/^[[:space:]]+|[[:space:]]+$/, ""); print; next }
+  in_f { exit }')
+if [[ ${#EXCLUDES[@]} -eq 0 ]]; then
+  echo "build_source_package.sh: no Files-Excluded found in debian/copyright" >&2
+  exit 1
+fi
 
-# Main orig: upstream tree minus Files-Excluded and packaging caches.
-rsync -a \
-  --exclude '.git/' \
-  --exclude '.github/' \
-  --exclude '.cursor/' \
-  --exclude '.vscode/' \
-  --exclude '.vs/' \
-  --exclude '*.code-workspace' \
-  --exclude 'packaging/debian/vendor/' \
-  --exclude 'packaging/debian/vendor-linux/' \
-  --exclude 'dist/' \
-  --exclude 'build/' \
-  --exclude 'oss/' \
-  --exclude 'src/bazel-*' \
-  --exclude 'src/third_party/ndk/' \
-  --exclude 'src/third_party/qt/' \
-  --exclude 'src/third_party/qt_host/' \
-  --exclude 'src/third_party/qt_src/' \
-  --exclude 'src/third_party/wix/' \
-  --exclude 'src/third_party/llvm/' \
-  --exclude 'src/third_party/msys64/' \
-  --exclude 'src/win32/' \
-  --exclude 'src/renderer/win32/' \
-  --exclude 'src/gui/tool/mozc_tool.rc' \
-  --exclude 'src/server/mozc_server.rc' \
-  --exclude 'src/build_tools/mozc_win32_resource_template.rc' \
-  --exclude '.DS_Store' \
-  "$REPO_ROOT/" "$TREE/"
-
-# Drop any leftover Windows .rc under win32 if rsync race; directory already gone.
-rm -f "$TREE"/src/win32/**/*.rc 2>/dev/null || true
+mkdir -p "$STAGE/tree"
+git archive --format=tar --prefix="${TOPDIR}/" "$REF" | tar -C "$STAGE/tree" -xf -
+for path in "${EXCLUDES[@]}"; do
+  if [[ -e "$STAGE/tree/${TOPDIR}/$path" ]]; then
+    echo "build_source_package.sh: Files-Excluded: $path"
+    rm -rf "${STAGE:?}/tree/${TOPDIR}/$path"
+  else
+    echo "build_source_package.sh: WARNING: Files-Excluded path not in tree: $path" >&2
+  fi
+done
 
 echo "build_source_package.sh: writing $OUT_DIR/$ORIG_NAME"
-tar -C "$STAGE" -cJf "$OUT_DIR/$ORIG_NAME" "marinamoji-${DS_UPSTREAM}"
+tar -C "$STAGE/tree" -cf - "$TOPDIR" | xz -T0 -6 > "$OUT_DIR/$ORIG_NAME"
 ls -lh "$OUT_DIR/$ORIG_NAME"
 
 if [[ "$SKIP_VENDOR" -eq 0 ]]; then
@@ -102,15 +110,11 @@ if [[ "$SKIP_VENDOR" -eq 0 ]]; then
     exit 1
   fi
   echo "build_source_package.sh: writing $OUT_DIR/$VENDOR_NAME from $VENDOR_SRC"
-  # Component name "vendor" → unpacks as ./vendor/ beside the orig root contents
-  # when using dpkg-source with multiple upstream tarballs. We pack the
-  # *contents* under a top-level vendor/ directory for clarity when extracted
-  # alone; dpkg-source expects the component tarball's top-level dir to match
-  # the component name.
-  VSTAGE="$STAGE/vendor-pack"
-  mkdir -p "$VSTAGE/vendor"
-  rsync -a "$VENDOR_SRC/" "$VSTAGE/vendor/"
-  tar -C "$VSTAGE" -cJf "$OUT_DIR/$VENDOR_NAME" vendor
+  # dpkg-source expects a component tarball's single top-level directory to
+  # be named after the component ("vendor").
+  mkdir -p "$STAGE/vendor-pack"
+  cp -a "$VENDOR_SRC" "$STAGE/vendor-pack/vendor"
+  tar -C "$STAGE/vendor-pack" -cf - vendor | xz -T0 -6 > "$OUT_DIR/$VENDOR_NAME"
   ls -lh "$OUT_DIR/$VENDOR_NAME"
 fi
 
@@ -119,31 +123,29 @@ if [[ "$WITH_DPKG_SOURCE" -eq 1 ]]; then
     echo "build_source_package.sh: dpkg-source not found (install dpkg-dev)" >&2
     exit 1
   fi
+  # dpkg-source -b looks for the orig tarballs next to the source directory.
   BUILD="$STAGE/build"
   mkdir -p "$BUILD"
-  tar -C "$BUILD" -xJf "$OUT_DIR/$ORIG_NAME"
-  SRC_DIR="$BUILD/marinamoji-${DS_UPSTREAM}"
+  cp "$OUT_DIR/$ORIG_NAME" "$BUILD/"
+  tar -C "$BUILD" -xJf "$BUILD/$ORIG_NAME"
+  SRC_DIR="$BUILD/$TOPDIR"
   if [[ "$SKIP_VENDOR" -eq 0 ]]; then
-    tar -C "$SRC_DIR" -xJf "$OUT_DIR/$VENDOR_NAME"
+    cp "$OUT_DIR/$VENDOR_NAME" "$BUILD/"
+    tar -C "$SRC_DIR" -xJf "$BUILD/$VENDOR_NAME"
   fi
-  # Place packaging/debian as debian/ for dpkg-source.
-  rm -rf "$SRC_DIR/debian"
+  # packaging/debian becomes debian/ (tracked files only).
   mkdir -p "$SRC_DIR/debian"
-  # Copy packaging files but not local vendor caches.
-  rsync -a \
-    --exclude vendor/ \
-    --exclude vendor-linux/ \
-    "$HERE/" "$SRC_DIR/debian/"
-  # Changelog version must match +ds1 for the source package.
-  # Keep UNRELEASED; rewrite the first line's version if needed.
-  if ! head -1 "$SRC_DIR/debian/changelog" | grep -q "+ds1"; then
-    sed -i.bak -E "1s/\\([^)]*\\)/(${DS_UPSTREAM}-1)/" "$SRC_DIR/debian/changelog"
-    rm -f "$SRC_DIR/debian/changelog.bak"
+  git archive --format=tar "$REF" packaging/debian \
+    | tar -C "$STAGE" -xf -
+  cp -a "$STAGE/packaging/debian/." "$SRC_DIR/debian/"
+  if ! head -1 "$SRC_DIR/debian/changelog" | grep -qF "(${DS_UPSTREAM}-"; then
+    echo "build_source_package.sh: debian/changelog's top entry is not for ${DS_UPSTREAM}-N" >&2
+    head -1 "$SRC_DIR/debian/changelog" >&2
+    exit 1
   fi
   echo "build_source_package.sh: dpkg-source -b"
-  (cd "$BUILD" && dpkg-source -b "marinamoji-${DS_UPSTREAM}")
-  mv "$BUILD"/marinamoji_*.dsc "$BUILD"/marinamoji_*.debian.tar.* "$OUT_DIR/" 2>/dev/null || true
-  # orig tarballs already in OUT_DIR; dpkg-source may expect them alongside
+  (cd "$BUILD" && dpkg-source -b "$TOPDIR")
+  cp "$BUILD"/marinamoji_*.dsc "$BUILD"/marinamoji_*.debian.tar.* "$OUT_DIR/"
   ls -la "$OUT_DIR"
 fi
 

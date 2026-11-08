@@ -1,2 +1,4 @@
-# Ignore the Bazel vendor component when generating quilt diffs.
-extend-diff-ignore = (^|/)vendor(/|$)
+# The Bazel vendor tree is a separate upstream component, not a patch.
+# Bazel convenience symlinks (src/bazel-*) and caches appear after a build
+# and must not end up in the quilt diff.
+extend-diff-ignore = "(^|/)(vendor|\.bazelisk-cache)(/|$)|(^|/)bazel-(bin|out|src|testlogs|[^/]+)$"

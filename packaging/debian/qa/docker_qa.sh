@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Source-package QA smoke in Docker (#55): dpkg-buildpackage + apt cycle.
+# Source-package QA smoke in Docker (#55): build the real source package
+# (orig + orig-vendor + dsc), unpack it, dpkg-buildpackage, apt cycle.
 #
 # This is the laptop-friendly stand-in for sbuild + piuparts. Full sbuild
 # on a Debian host is documented in qa/README.md.
@@ -108,24 +109,27 @@ bash packaging/debian/offline/vendor_deps.sh -- --config oss_linux --config rele
 '
 fi
 
-echo "=== QA Phase 3: dpkg-buildpackage (sbuild stand-in) ==="
+echo "=== QA Phase 3: source package -> dpkg-source -x -> dpkg-buildpackage ==="
+# Build the .orig / .orig-vendor / .dsc exactly as a maintainer would, from
+# the committed tree (git archive), then unpack them with dpkg-source and
+# build the result. Commit your changes first: uncommitted work is not
+# part of the source package.
 docker exec -e ANDROID_NDK_HOME= "$CONTAINER_NAME" bash -lc '
 set -euo pipefail
 unset ANDROID_NDK_HOME || true
+git config --global --add safe.directory /src
+apt-get install -y -qq xz-utils >/dev/null
 rm -rf '"$BUILD_ROOT"'
-mkdir -p '"$BUILD_ROOT"'
-# Copy sources onto container-native FS so .. is writable for .deb output
-# and debian/vendor hardlinks stay valid (same lesson as offline proof).
-rsync -a --delete \
-  --exclude packaging/debian/vendor \
-  --exclude packaging/debian/vendor-linux \
-  --exclude .git \
-  /src/ '"$BUILD_ROOT"'/src/
-cd '"$BUILD_ROOT"'/src
-ln -sfn packaging/debian debian
-rm -rf debian/vendor
-cp -a '"$VENDOR_CONTAINER"' debian/vendor
-test -d debian/vendor/rules_python+
+mkdir -p '"$BUILD_ROOT"'/out
+cd /src
+bash packaging/debian/build_source_package.sh \
+  --vendor-src '"$VENDOR_CONTAINER"' \
+  --output-dir '"$BUILD_ROOT"'/out \
+  --with-dpkg-source
+cd '"$BUILD_ROOT"'/out
+dpkg-source -x marinamoji_*.dsc '"$BUILD_ROOT"'/pkg
+cd '"$BUILD_ROOT"'/pkg
+test -d vendor/rules_python+
 # Binary-only build; UNRELEASED changelog is fine for smoke.
 dpkg-buildpackage -us -uc -b -rfakeroot
 ls -la '"$BUILD_ROOT"'/marinamoji_*.deb
