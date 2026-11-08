@@ -107,14 +107,11 @@ Comment: Material Design icons (installed as usr/share/icons/marinamoji/*).
 
 # Postal-code CSVs arrive via the Bazel vendor component
 # (+http_archive+zip_code_*), not as in-tree upstream files. Documented
-# here for NEW reviewers; Debian mozc records the same data as CC0-1.0.
+# here for NEW reviewers. Debian mozc records this data as CC0-1.0; we use
+# the upstream wording instead, since Japan Post never published a CC0 grant.
 Files: vendor/+http_archive+zip_code_jigyosyo/* vendor/+http_archive+zip_code_ken_all/*
 Copyright: Japan Post Co., Ltd. (no copyright asserted)
-License: CC0-1.0
-Comment:
- Japan Post states that it does not claim copyright in postal-code data
- and permits free distribution. See Japan-Post-Postal-Code-Data below
- for the upstream wording; CC0-1.0 matches Debian mozc's recording.
+License: Japan-Post-Postal-Code-Data
 
 Files: vendor/+http_archive+ja_usage_dict/*
 Copyright: 2011, Hiroyuki Komatsu, Shoji Ogura, Tsuyoshi Horo
