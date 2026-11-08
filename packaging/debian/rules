@@ -80,6 +80,8 @@ override_dh_auto_install:
 		--root debian/marinamoji \
 		--version $(PRODUCT_VERSION) \
 		--data-dir $(LINUX_PACKAGING)/data
+	# The zip entry is extracted executable; the released .deb ships 0644.
+	chmod 644 debian/marinamoji/usr/share/ibus/component/marinamoji.xml
 	install -d debian/marinamoji/usr/share/man/man1
 	gzip -9n < $(LINUX_PACKAGING)/data/mozc_emacs_helper.1 \
 		> debian/marinamoji/usr/share/man/man1/mozc_emacs_helper.1.gz
