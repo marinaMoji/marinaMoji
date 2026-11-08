@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-08T20:08:35+00:00",
+  "generated": "2026-11-08T20:22:13+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -386,8 +386,8 @@
       "ref": "marinaMoji/marinaMoji#133",
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/133",
       "state": "OPEN",
-      "status": "blocked",
-      "milestone": "Full public release",
+      "status": "planned",
+      "milestone": "Linux Integration & Distribution",
       "assignee": null,
       "progress": null,
       "category": "distribution",
@@ -399,7 +399,7 @@
       "description_en": null,
       "description_fr": null,
       "description_ja": null,
-      "depends_on": "issue-139"
+      "depends_on": null
     },
     {
       "id": "issue-134",
@@ -529,8 +529,8 @@
       "ref": "marinaMoji/marinaMoji#140",
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/140",
       "state": "OPEN",
-      "status": "blocked",
-      "milestone": "Nebulous future",
+      "status": "planned",
+      "milestone": "Linux Integration & Distribution",
       "assignee": null,
       "progress": {
         "done": 1,
@@ -545,7 +545,7 @@
       "description_en": null,
       "description_fr": null,
       "description_ja": null,
-      "depends_on": "issue-139"
+      "depends_on": null
     },
     {
       "id": "issue-141",
@@ -741,7 +741,7 @@
       "ref": "marinaMoji/marinaMoji#162",
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/162",
       "state": "OPEN",
-      "status": "blocked",
+      "status": "planned",
       "milestone": "Linux Integration & Distribution",
       "assignee": null,
       "progress": {
@@ -757,15 +757,15 @@
       "description_en": null,
       "description_fr": null,
       "description_ja": null,
-      "depends_on": "issue-139"
+      "depends_on": null
     },
     {
       "id": "issue-171",
       "ref": "marinaMoji/marinaMoji#171",
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/171",
       "state": "OPEN",
-      "status": "planned",
-      "milestone": "Linux Integration & Distribution",
+      "status": "blocked",
+      "milestone": null,
       "assignee": null,
       "progress": null,
       "category": null,
@@ -777,7 +777,7 @@
       "description_en": null,
       "description_fr": null,
       "description_ja": null,
-      "depends_on": null
+      "depends_on": "issue-140,issue-133,issue-161,issue-162,issue-160,issue-139"
     },
     {
       "id": "plugin-12",
