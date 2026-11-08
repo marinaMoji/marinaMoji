@@ -10,6 +10,14 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.21-rc9
+
+Everything in 0.0.21-rc8 plus:
+
+- **Release builds:** Bazel dependencies are prefetched with retries
+  (`build_tools/bazel_prefetch.sh`), so intermittent GitHub release-asset 504s
+  no longer fail the whole build. rc8 never published for this reason.
+
 ### Release candidate 0.0.21-rc8
 
 Everything in 0.0.21-rc7 plus:
