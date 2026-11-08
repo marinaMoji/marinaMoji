@@ -1,0 +1,49 @@
+marinaMoji Debian source notes
+==============================
+
+Building this package
+---------------------
+
+1. Symlink this tree to the repository root as `debian/` (see README.md).
+2. Install Build-Depends from debian/control, plus a Bazelisk binary that
+   can provide the Bazel version pinned in src/.bazeliskrc (currently
+   9.0.2). Distro `bazel` packages are often too old; prefer Bazelisk.
+3. Run `dpkg-buildpackage -us -uc -b` on a machine **with network**.
+
+The Bazel build downloads BCR modules and several http_archive /
+http_file dependencies declared in src/MODULE.bazel. That is fine for
+local maintainer experiments and mirrors the Arch `marinamoji` PKGBUILD,
+but it is incompatible with Debian's clean chroot builds (`sbuild`),
+which have no network.
+
+Offline builds
+--------------
+
+Tracked as https://github.com/marinaMoji/marinaMoji/issues/53.
+
+Likely ingredients (inspired by Debian's experimental mozc Bazel work):
+
+* Vendor or DFSG-repack every network-fetched dependency into the orig
+  tarball (or into debian/missing-sources / debian/third_party stubs).
+* Add `Files-Excluded` to debian/copyright for anything that must not
+  enter main.
+* Teach debian/rules to build with `--repository_cache` / local mirrors
+  and without remote downloads.
+
+Until that lands, do not file an ITP expecting NEW acceptance.
+
+Copyright inventory
+-------------------
+
+debian/copyright is the source-package DEP-5 starting point. The
+machine-readable file shipped inside today's binary .deb (install-tree
+paths) remains packaging/linux/data/copyright. Aligning source paths and
+a Files-Excluded repack story is part of #52 / #53.
+
+Package split
+-------------
+
+Debian mozc ships mozc-server, mozc-data, ibus-mozc, etc. marinaMoji
+currently installs one package named marinamoji. Splitting is
+https://github.com/marinaMoji/marinaMoji/issues/59 and is deliberately
+out of scope for the first scaffold.

@@ -1,0 +1,8 @@
+marinamoji (0.0.21~rc11-1) UNRELEASED; urgency=medium
+
+  * Initial Debian source-package scaffold (#52).
+  * Single binary package mirroring the current IBus-only fat .deb.
+  * Build still requires network for Bazel module fetches (#53); not yet
+    suitable for sbuild / official archive upload.
+
+ -- Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>  Sun, 08 Nov 2026 14:05:00 +0100

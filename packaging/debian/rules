@@ -1,0 +1,71 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Debhelper rules for marinaMoji.
+#
+# Today this mirrors the Arch source PKGBUILD: Bazel builds `package`,
+# then the install tree from mozc.zip is staged. That build still needs
+# network access for Bazel modules and http_archive deps (#53). Do not
+# expect a clean `sbuild` until offline deps are solved.
+#
+# Shared branding/metadata comes from packaging/linux/ so the archive
+# package and the third-party .deb present the same desktop files.
+
+export DH_VERBOSE = 1
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+# Prefer bazelisk (pinned via src/.bazeliskrc). Fall back to bazel.
+BAZEL ?= $(shell command -v bazelisk 2>/dev/null || command -v bazel)
+
+PRODUCT_VERSION := $(shell cat src/marina_product_version.txt)
+# Convert SemVer -rcN to Debian ~rcN for the About/metainfo product string
+# stays as PRODUCT_VERSION; package Version comes from debian/changelog.
+LINUX_PACKAGING := packaging/linux
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	@if [ -z "$(BAZEL)" ]; then \
+		echo "debian/rules: need bazelisk or bazel in PATH" >&2; \
+		exit 1; \
+	fi
+	@echo "debian/rules: using $$(command -v $(BAZEL) || echo $(BAZEL))"
+	@echo "debian/rules: WARNING: Bazel still fetches over the network (#53)."
+
+override_dh_auto_build:
+	cd src && $(BAZEL) build package \
+		--config oss_linux \
+		--config release_build \
+		--define CHANNEL=stable
+
+override_dh_auto_test:
+	# Upstream test suite is large and not yet wired as a packaging gate.
+	@true
+
+override_dh_auto_install:
+	install -d debian/marinamoji
+	unzip -q src/bazel-bin/unix/mozc.zip -d debian/marinamoji
+	rm -rf debian/marinamoji/tmp
+	bash $(LINUX_PACKAGING)/install_desktop_metadata.sh \
+		--root debian/marinamoji \
+		--version $(PRODUCT_VERSION) \
+		--data-dir $(LINUX_PACKAGING)/data
+	# debian/copyright is installed by dh_installdocs.
+	install -d debian/marinamoji/usr/share/man/man1
+	gzip -9n < $(LINUX_PACKAGING)/data/mozc_emacs_helper.1 \
+		> debian/marinamoji/usr/share/man/man1/mozc_emacs_helper.1.gz
+	# Binaries from the zip must be executable; dh_strip handles stripping.
+	for bin in \
+		usr/lib/marinamoji/mozc_server \
+		usr/lib/marinamoji/mozc_tool \
+		usr/lib/marinamoji/mozc_renderer \
+		usr/lib/marinamoji/mozc_sync \
+		usr/lib/ibus-marinamoji/ibus-engine-marinamoji \
+		usr/bin/mozc_emacs_helper; do \
+		chmod 755 debian/marinamoji/$$bin; \
+	done
+
+override_dh_auto_clean:
+	dh_auto_clean
+	# Leave Bazel caches alone; `bazel clean --expunge` is intentionally
+	# not run here (slow and hostile to local iterative packaging).

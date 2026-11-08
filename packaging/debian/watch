@@ -1,0 +1,7 @@
+# uscan configuration (watch file format version 4).
+# Tracks GitHub release tags of the form vX.Y.Z or vX.Y.Z-rcN.
+version=4
+opts="filenamemangle=s%.*/v?@ANY_VERSION@%@PACKAGE@-$1.tar.gz%,\
+      uversionmangle=s/-rc/~rc/" \
+  https://github.com/marinaMoji/marinaMoji/tags \
+  .*/refs/tags/v?@ANY_VERSION@

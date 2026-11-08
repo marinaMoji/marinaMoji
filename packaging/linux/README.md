@@ -96,9 +96,12 @@ Debian/Ubuntu archive source package.
 - Build uses Bazel and needs network access for modules and some archives.
 - Linux integration is **IBus only** (no Fcitx/Fcitx5 package).
 - Maintainer scripts refresh the IBus component cache only.
-- Fuller DFSG copyright, `debian/` source packaging, offline/`sbuild`
-  builds, and related archive work live as GitHub issues labeled
-  [`debian packaging`](https://github.com/marinaMoji/marinaMoji/issues?q=is%3Aissue+label%3A%22debian+packaging%22).
+- Archive readiness work starts in [`../debian/`](../debian/) (debhelper
+  source package scaffold, [#52](https://github.com/marinaMoji/marinaMoji/issues/52)).
+  Offline/`sbuild` Bazel builds, fuller source DEP-5 / `Files-Excluded`,
+  package splits, and sponsorship remain open under the
+  [`debian packaging`](https://github.com/marinaMoji/marinaMoji/issues?q=is%3Aissue+label%3A%22debian+packaging%22)
+  label (parent [#161](https://github.com/marinaMoji/marinaMoji/issues/161)).
 
 ## Product version (About / update checks)
 
