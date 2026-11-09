@@ -15,10 +15,23 @@ TABLES="$DIR/tables"
 
 python3 "$TABLES/generate_opencc_tables.py"
 
+# opencc_dict rejects the generated '#' header lines ("Tabular not found")
+# yet still exits 0, so feed it a comment-free copy and check the output.
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
 for name in Phrases Characters Variants; do
-  opencc_dict --input "$TABLES/marinaShin2Kyu${name}.txt" \
-              --output "$DIR/marinaShin2Kyu${name}.ocd2" \
+  out="$DIR/marinaShin2Kyu${name}.ocd2"
+  grep -v -e '^#' -e '^$' "$TABLES/marinaShin2Kyu${name}.txt" > "$TMP/${name}.txt"
+  rm -f "$TMP/${name}.ocd2"
+  opencc_dict --input "$TMP/${name}.txt" \
+              --output "$TMP/${name}.ocd2" \
               --from text --to ocd2
+  if [[ ! -s "$TMP/${name}.ocd2" ]]; then
+    echo "ERROR: opencc_dict did not produce $out" >&2
+    exit 1
+  fi
+  mv "$TMP/${name}.ocd2" "$out"
 done
 
 echo "Regenerated marina OpenCC tables in $DIR"
