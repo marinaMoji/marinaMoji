@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-08T21:13:24+00:00",
+  "generated": "2026-11-10T08:18:04+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -306,7 +306,7 @@
       "ref": "marinaMoji/marinaMoji#131",
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/131",
       "state": "OPEN",
-      "status": "planned",
+      "status": "blocked",
       "milestone": null,
       "assignee": "mpandolfino",
       "progress": null,
@@ -319,14 +319,14 @@
       "description_en": null,
       "description_fr": null,
       "description_ja": null,
-      "depends_on": null
+      "depends_on": "issue-143,issue-132"
     },
     {
       "id": "issue-132",
       "ref": "marinaMoji/marinaMoji#132",
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/132",
       "state": "OPEN",
-      "status": "blocked",
+      "status": "planned",
       "milestone": "Full public release",
       "assignee": null,
       "progress": null,
@@ -339,7 +339,7 @@
       "description_en": null,
       "description_fr": null,
       "description_ja": null,
-      "depends_on": "issue-131"
+      "depends_on": null
     },
     {
       "id": "issue-133",
@@ -482,7 +482,7 @@
       "description_en": "Begin Milestone 3 after the lab beta, dictionary modules, Composer plugin, and professional website design feedback are complete.",
       "description_fr": null,
       "description_ja": null,
-      "depends_on": "issue-154,issue-116,issue-131,plugin-13,issue-138"
+      "depends_on": "issue-141,issue-154,issue-116,issue-131,plugin-13,issue-138"
     },
     {
       "id": "issue-140",
@@ -512,7 +512,7 @@
       "ref": "marinaMoji/marinaMoji#141",
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/141",
       "state": "OPEN",
-      "status": "blocked",
+      "status": "planned",
       "milestone": "Nebulous future",
       "assignee": null,
       "progress": null,
@@ -525,7 +525,7 @@
       "description_en": null,
       "description_fr": null,
       "description_ja": null,
-      "depends_on": "issue-139"
+      "depends_on": null
     },
     {
       "id": "issue-142",
@@ -552,7 +552,7 @@
       "ref": "marinaMoji/marinaMoji#143",
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/143",
       "state": "OPEN",
-      "status": "blocked",
+      "status": "planned",
       "milestone": "Nebulous future",
       "assignee": null,
       "progress": null,
@@ -565,7 +565,7 @@
       "description_en": null,
       "description_fr": null,
       "description_ja": null,
-      "depends_on": "issue-139"
+      "depends_on": null
     },
     {
       "id": "issue-144",
