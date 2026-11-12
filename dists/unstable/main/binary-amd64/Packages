@@ -1,0 +1,1097 @@
+Package: marinamoji
+Version: 0.0.10
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41696
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.10_amd64.deb
+Size: 15642804
+MD5sum: 2985b7d0cc9547c996c9d7c5c619dc94
+SHA1: 6b3ecacd7da0ae478c5544104215f1823d1aad6d
+SHA256: a6dca9e99f82f40340c35a3129833292e72528b02df041941103790e5ad764f6
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.11
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41700
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.11_amd64.deb
+Size: 15643708
+MD5sum: ff7dbd6bcd91737a6769b04f234f9513
+SHA1: e32b2b37803ed82511b42e47a7af380130f8ffc7
+SHA256: 4a052a35f0eccb6f8d7af82d6b5e3b642fa68ac4d621586a8db8cad24fc01d3e
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.12
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41700
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.12_amd64.deb
+Size: 15643624
+MD5sum: 0c67961186576b127a0e99651fb81fbb
+SHA1: d2d6bef9a0b280649567c418c82f06a842555c0e
+SHA256: 9c205f7301b522952a72c9ef4bf4c47933a796a6adfab4ba315772b8fc10aacc
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.13
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41700
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.13_amd64.deb
+Size: 15641976
+MD5sum: 6e524dba461f1b49e143680f1a68f48c
+SHA1: 7c94b0a7a6b198c5221c075fc15d179ad04470ea
+SHA256: 3e286de686b0dca76761c1e02d9e337cc42dcca6e79856113e44335e583e943f
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.14
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41700
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.14_amd64.deb
+Size: 15642400
+MD5sum: 6d2ecfa815ef4d40c71d7548782c52d0
+SHA1: b8606bb64df62f7c24609d70e39c3ff504323689
+SHA256: 1adba3793041bb77335ffbcf7126a246e0cf4a2adc389eca2a4d109fadece28f
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.15
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41704
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.15_amd64.deb
+Size: 15647460
+MD5sum: baa4ae8d43d776b497b126077b706ce8
+SHA1: 6389c58cc38a74b7b87112a52584dbd03fe6eea8
+SHA256: eb2d2c43d7bb46fa76524c866f01d7eeb21dbe3c95b2f64a7654416a2f23893f
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.16
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41704
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.16_amd64.deb
+Size: 15646052
+MD5sum: d150cb2b55f0dde463777e6c3c51ed83
+SHA1: 2930b351a90ebf05b744830641d3088c633b7b77
+SHA256: 4f9599ade339e0733dd997141c17132bd04f3ad3f9224a45d4eab97e93200268
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.17+1
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 36180
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.17+1_amd64.deb
+Size: 15211488
+MD5sum: e8fb953ea11d645a68e80a1912f394c2
+SHA1: 8ae3a8aa1318b406ff1e167c7a7b047320b8597c
+SHA256: ede0b9f59f5ac80d864bf20fb52775ffb0abe32ebf5d72915cbd9fd9f3f90d97
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.17~rc1
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 36176
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.17~rc1_amd64.deb
+Size: 15209268
+MD5sum: dfee60b1d03a833a0c811ad1a998a8f5
+SHA1: cc04dc1562d3f582a8db9251bf6fc2f1f8f884b9
+SHA256: f52b3273f39c45a608653076247092a6b85e5bc235bfd512533dedc228e09bf8
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.17~rc2
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 36176
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.17~rc2_amd64.deb
+Size: 15209628
+MD5sum: 08baeea1e5a6e9317ec170a249721464
+SHA1: 8ec44af22e20cdecbb6c3b54a23b35ba30a9251f
+SHA256: a9686d811c8c90a9968ceb958a0f4dbfdd0c3968c4b83c23cf2bedbbf0a5569b
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.17~rc3
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 36180
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.17~rc3_amd64.deb
+Size: 15210592
+MD5sum: db40b8a6361d449ca771f60d9c866f7a
+SHA1: ceb676f2b2bd6510e1b3802336a8debc1b408cbb
+SHA256: 4dcfbf9727a1937827ca75cb7d30c51869d425d2ed261e204c9175446b0507c9
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.17~rc4
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 36180
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.17~rc4_amd64.deb
+Size: 15209716
+MD5sum: 07e78966be618a064259c639aedd49c0
+SHA1: aee2f9080df0b4e0968c2b1cf32e15ffcdbc8667
+SHA256: 68eef434f2a4517c5b44fe1af8d06e96b57421489a7f5df224932cc48f1053d8
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.17~rc5
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 36180
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.17~rc5_amd64.deb
+Size: 15211056
+MD5sum: a83e3963576ab45fb3a4233430edaee4
+SHA1: 46938425fd193a5f5777b92fee39e7055970ffd2
+SHA256: 3e9e2b3abbed2c3b37fb4a07efb4a1b8c4211fb251d3dabe70354aa8aee9a047
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.17~rc6
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 36180
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.17~rc6_amd64.deb
+Size: 15210040
+MD5sum: 70a5b93c8f45a4d229928b4238da8f40
+SHA1: 37d2bd13eff015275a835f6040db13b2c7f6eb1a
+SHA256: 34cb7d7a3878f81d516762d08343acc7d56f6ed35d3af833884ebadbdecae9c6
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.18~rc1
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 36212
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.18~rc1_amd64.deb
+Size: 15215472
+MD5sum: 6def8715d23cebd59682fdfa9c37938b
+SHA1: 59b91aed7e682f1997d309009bd7e84c6863a3ad
+SHA256: 46c8d15e93cd73cfcbc1bc78779215d0a91437b6b1a1316ece7146cae4239598
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.18~rc13
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 42400
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.18~rc13_amd64.deb
+Size: 16615644
+MD5sum: acefa4072e6e627cd52ced0963fc73ed
+SHA1: 7bad5c50422a711cf3adcc05bde5b2d87da2e766
+SHA256: e337a824e7acdb151bc407e2cacc7c9fc63723e013f8fcd8e092e6b4c1ba78f7
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.18~rc14
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 42408
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.18~rc14_amd64.deb
+Size: 16622740
+MD5sum: 337510854b6c1f817e0f7ec047237acd
+SHA1: 00ac84c64fd6b751d0178fe7882734d4fa2774d2
+SHA256: d226d10cc90646b14782855eec1dc8594fb013d9f85679f90106b1dd5a207668
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.18~rc2
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 36252
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.18~rc2_amd64.deb
+Size: 15220656
+MD5sum: d5f4733d71f7ccf1aac3ddbf2bab0a14
+SHA1: 1d2ccdae648f496c7bd76aa4446e698f586946c1
+SHA256: 80ffe9d846a75e0c3c8ba4e3a0520b743a01409d57413422224d6e9beac0a804
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.18~rc3
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 36256
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.18~rc3_amd64.deb
+Size: 15222084
+MD5sum: eb774e9bb9fc294ddac14285493debae
+SHA1: d200c0eea94b0b4e8dbfe599fd82f0d344a2be3a
+SHA256: 936bf46a323c9c52633f4ace4768e9419a1b141f4f9ebb1e2a8df34c9ae6ab78
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.18~rc4
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 36264
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.18~rc4_amd64.deb
+Size: 15223268
+MD5sum: 290da283367e13c7876e5f2e0bca8e98
+SHA1: 70aea1e59af2deef080a4732b8acb8bf6b57d233
+SHA256: a9e067682508a06183e1e3d13389283d3f3f7a04550d3538b287fab437b06033
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.18~rc5
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 38044
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.18~rc5_amd64.deb
+Size: 15730692
+MD5sum: 92776a64c03d18d3ae98517e48614775
+SHA1: 009763f1448390f89af77256d904fb02aaf08c6c
+SHA256: 7a5657ef56d9f139467e1989973ee54b1892fadba62b93784299732fbba1c009
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.18~rc6
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 38044
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.18~rc6_amd64.deb
+Size: 15727320
+MD5sum: c60b4994fffedfa0d3263df2b8b8c835
+SHA1: f8c8b0a3f0629480a77dd7a8a21b2f1921cce282
+SHA256: b76649c71b488aa3caefb17d5cec6c0a6e22f00105637bc1f95cf225d84f8a6f
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.18~rc7
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 38056
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.18~rc7_amd64.deb
+Size: 15731884
+MD5sum: 350fbe8f182e706a662b7ed0c5f002be
+SHA1: 1c1aaeab7541eeeb0babfdc4a25ba6e514230d3f
+SHA256: 1505b25e805df6cb7aba19afe0b41829f998a624fe3718d62ec30289a486193b
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.19+1
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 45432
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.2.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.19+1_amd64.deb
+Size: 19632508
+MD5sum: 0987a4bcf7d1e868651a0f79121b7345
+SHA1: c1ee4480a4800d35337b1de12fa7aa51710fb755
+SHA256: bae4e8f32281674a3893d13afc4f57a1b885bbcf840d4c7303e07324bf271440
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.19~rc1
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 42424
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.2.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.19~rc1_amd64.deb
+Size: 16627208
+MD5sum: 16df53775bb154b34b8ec9ef29a23e1d
+SHA1: 6e113562b8b51c57424c825ebef0549a7ac8669e
+SHA256: be657e4bb5b89f2e89b5dad5dc26aacd2798295468728e137c298e37635ad956
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.19~rc3
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 45432
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.2.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.19~rc3_amd64.deb
+Size: 19632732
+MD5sum: acd14a0969ba64e7e5da16c494ed307e
+SHA1: a5051b97b06437fee9a8cb847f411e9c66fb160e
+SHA256: f250ac7130eec37bd0b7ba78cefe837f1311f16c3d0a44c91174d1247b5f42bd
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.1~rc3
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41368
+Depends: ibus (>= 1.5.0), libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.2.4), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0), libgtk-3-0t64 (>= 3.24.22), libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0), libqt6gui6t64 (>= 6.1.2), libqt6widgets6t64 (>= 6.3.0), librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.1~rc3_amd64.deb
+Size: 15489696
+MD5sum: b45cd8edd6e7f3d2596d5152a498f317
+SHA1: f3dc2d16b4a0dfd6a675f5b3470d3ad6925456a3
+SHA256: 3835c66d40d12f7ab804c44d6c328f62fd01c0ac34fd146723e7f03f3f620f30
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.20
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 52564
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.3.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.20_amd64.deb
+Size: 24215860
+MD5sum: 22c033c1c0a0680b767ff820a7f886d8
+SHA1: 547530e94589ec165bcc293ab6c492cec05faa5c
+SHA256: aa5779a74f3406ff68d531a28f9d31076c2283531ceb5c5da9e06d64a9232b00
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.20~rc1
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 45440
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.2.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.20.rc1_amd64.deb
+Size: 19637392
+MD5sum: 5bfcdb6ee9f18c7b02531c5c44b5963a
+SHA1: ff8419ebdd0b5e8caeeeee20dbe1e66f6966aab6
+SHA256: da1c287744e288c9433f208264042096ce948c515fb5701b8b04b8b00d37e674
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.20~rc2
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 47844
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.2.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.20.rc2_amd64.deb
+Size: 20767724
+MD5sum: d55765f8213c214ba6d2f56639aa8813
+SHA1: f33415378884bf7f331ff6f61afea590a91edc0e
+SHA256: 399834fb6f0de18bb6beb56ab978c7d3aa94459324f038f6fa0844d2fda36a7a
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.20~rc3
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 48720
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.2.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.20.rc3_amd64.deb
+Size: 21099856
+MD5sum: 2b363ad7a3372b311a6df23f54f86763
+SHA1: bb984cfdc2a9e135ec9427156a14efdcf058b668
+SHA256: bc687542e37ed811d5c7b168cde4aadc07b573829117097af37375bb8a5ef82e
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.20~rc4
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 51572
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.2.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.20.rc4_amd64.deb
+Size: 24062584
+MD5sum: ec518e61a5b1f8dee380547cd7096575
+SHA1: ed837c14c6d73c20a9ffa08fd12be9846e69d577
+SHA256: c08c255976d4b3c24dc4743f8ed4a3ce120cefa3640adbd606a0cd52e3a33032
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.20~rc5
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 51668
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.2.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.20.rc5_amd64.deb
+Size: 24095048
+MD5sum: 35935e258d3678dc21cf83223acc5489
+SHA1: 9a255f5d4a24e91eb25d6c91041c0adc2048a4a6
+SHA256: 6d5f4eb699976f4da4018eea404200e95a48ad1ac92f590749d67776390a8030
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.20~rc6
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 52432
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.2.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.20.rc6_amd64.deb
+Size: 24175756
+MD5sum: 4cf43ded1c7d9a7f702769f65d2a9d68
+SHA1: 9b1a93db4b4f38fe3a41f7343a3267c97f0e9c3a
+SHA256: 61d599a14aaee117085403443b048eb0327b7b44a68925b246c92d40ecb2af7c
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.20~rc7
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 52496
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.2.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.20.rc7_amd64.deb
+Size: 24197800
+MD5sum: 70694307217a9bf14d34eb7f087ab15a
+SHA1: 443f96ab4477a8ff8ccdf6034d30b9e8ee0aa233
+SHA256: 890c371c7b49d4f5b24df64014e909a79432772580b22b39378fdbadc13f0e98
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.20~rc8
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 52536
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.3.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.20.rc8_amd64.deb
+Size: 24208664
+MD5sum: 2b874ced6e8667009c63623fe6fb820d
+SHA1: 69994437e182edeb7fc1da1264383445b014dc27
+SHA256: ad5478cbaa7317e8cf1751e52c4b9dbbca6cbbbb3b593f56df55168a05d3c3b0
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.20~rc9
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 52540
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.3.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.20.rc9_amd64.deb
+Size: 24206744
+MD5sum: 729c5a8fb5f75d6bc6763b79a9510b60
+SHA1: 4305df10541bcbaf2526d14926d57a38bcd02a3f
+SHA256: a23ce987453742cea503c82273192cf3ca262dc3e87cf9a45e69e14d62efe745
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.21~rc11
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 53100
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, wl-clipboard, libqt6svg6, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.70.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.3.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Recommends: fonts-jigmo | fonts-babelstone-han | fonts-hanazono
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.21.rc11_amd64.deb
+Size: 24389548
+MD5sum: fc67971ca5dbc6cd53b54fdae237c2a9
+SHA1: 1dd29ef7b45c1e23447014ac4757333cdfcaf9c8
+SHA256: 9c986cc0b997c2f6811c2cfe61b928e7c0cdeb10881e17e0d35fb296f8637a4c
+Section: utils
+Priority: optional
+Homepage: https://marinamoji.crcao.fr
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.21~rc13
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 53100
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, wl-clipboard, libqt6svg6, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.70.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.3.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Recommends: fonts-jigmo | fonts-babelstone-han | fonts-hanazono
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.21.rc13_amd64.deb
+Size: 24389316
+MD5sum: 1a743ae3681bff0edd0ad6b21ba7c639
+SHA1: fef2351e1f83c8ad159c970df699fbc3d4b97137
+SHA256: 3de1583d19eb6780b885b40a58b318be76a0aa5ac45c55871671a1f11da52153
+Section: utils
+Priority: optional
+Homepage: https://marinamoji.crcao.fr
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.21~rc2
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 52764
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libqt6svg6, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.3.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.21.rc2_amd64.deb
+Size: 24281888
+MD5sum: ffaa133e792244294f636fe4942dd475
+SHA1: 2c0951a97da323dc98acdd06998160e2240310ac
+SHA256: d0109ce98998fa786ea2ee69c8b20e5ba1502936fbb09b60211f0669dece74d6
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.21~rc3
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 52984
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, wl-clipboard, libqt6svg6, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.70.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.3.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.21.rc3_amd64.deb
+Size: 24354724
+MD5sum: 67456567465bc297ef1cf616152ec9eb
+SHA1: 9d6971f507bdc68c3cf67a6a2f2110fea93c6b56
+SHA256: 0e8570b93858a81d8389e5e9a3764d9baea09a507ffd8703f4c15c4027585972
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.21~rc4
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 52992
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, wl-clipboard, libqt6svg6, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.70.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.3.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Recommends: fonts-jigmo | fonts-babelstone-han | fonts-hanazono
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.21.rc4_amd64.deb
+Size: 24357664
+MD5sum: b6434de600839b1fa760bcfa6eb1262b
+SHA1: 127d2b5abf232481a6709a3eb58a1bd7c790ca7d
+SHA256: 9b4836bc4ab11660440f6fd4bdcdee6d0e1e6d44c8ec2e2b270dd43a2251c96e
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.21~rc5
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 53080
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, wl-clipboard, libqt6svg6, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.70.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.3.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Recommends: fonts-jigmo | fonts-babelstone-han | fonts-hanazono
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.21.rc5_amd64.deb
+Size: 24391468
+MD5sum: 104713f7e176cc6585e68e5ab4a51314
+SHA1: 9111a09b2c978189219b635a9762f85db784e80e
+SHA256: eb2748e7a37d369378c75d4a5ae4132737238e38ce55d587b416ac2a4d204677
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.21~rc7
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 53100
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, wl-clipboard, libqt6svg6, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.70.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.3.0) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Recommends: fonts-jigmo | fonts-babelstone-han | fonts-hanazono
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.21.rc7_amd64.deb
+Size: 24389960
+MD5sum: 5b6580361b61946fc5cb4cc1a033f958
+SHA1: 30da5c3d1d7c77ad4cb36c30851f72c03643eeaa
+SHA256: 24bd49b770afd138d73122106d8b64713aa6c479b995fc9dad03a0aac23df9fe
+Section: utils
+Priority: optional
+Homepage: https://marinamoji.crcao.fr
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.2~rc2
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41412
+Depends: ibus (>= 1.5.0), libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.2.4), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0), libgtk-3-0t64 (>= 3.24.22), libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0), libqt6gui6t64 (>= 6.1.2), libqt6widgets6t64 (>= 6.3.0), librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.2~rc2_amd64.deb
+Size: 15502520
+MD5sum: 01e19079334931ef09dd864536bbf6bf
+SHA1: 8fa549867edb0f8064b33348fe0e3b8b36b393f2
+SHA256: 503208f43d3f1242546432abec912ac254cccdbbc361aa0f2abbab778d3968a7
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.3
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41568
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.3_amd64.deb
+Size: 15571636
+MD5sum: ebae0f9c4d62310d31e68a9ed1b05922
+SHA1: 6cdf050994d51df24498ab79b8d261deb963f0c0
+SHA256: 38649c473ed9c9dc795b2981677bf6cc443f23da05954e489ed32931b72a2fe2
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.4
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41468
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.4_amd64.deb
+Size: 15543588
+MD5sum: 6abd4538ff6e50a80c62bc01527857e4
+SHA1: a9913b658504076f2d6ced9c107b64214c7cbdde
+SHA256: da6df2d196f48016057b945b51c75adef7743a135084e155cc69edf7d5635973
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.5
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41472
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.5_amd64.deb
+Size: 15545264
+MD5sum: 23999769dcc6fe4f356960f4b9e38034
+SHA1: 7cb0b66158540fc2f67e54c1057fdd2ac1e84092
+SHA256: ef50e80bd17390e3a50c286592d7aec7e818bb3af5cbf0b909cbd75c7157033f
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.6
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41504
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.6_amd64.deb
+Size: 15596204
+MD5sum: 674b6bb0da06759edd096aa7bcfdfb8d
+SHA1: 6b87cd89b9fc6ee6918f3739cef11faa524de738
+SHA256: 4bf019a749a68f909151f347fdb7f7e22577658cd92f2ccb037cf0b3cdd2d8f7
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.7
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41696
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.7_amd64.deb
+Size: 15641664
+MD5sum: 9f381d8edfa2fce259a872e3313c5ade
+SHA1: c9460e7ccb2e4eaabc735c53207232f90e12b4fb
+SHA256: 23a609b0bbdc12e7f066c55d71dd35f799e5d3266cda038e7f9b5f795d8b5fe7
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.8
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41696
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.8_amd64.deb
+Size: 15640812
+MD5sum: 501e2e239dc0f70fc627282fae37d94b
+SHA1: 408498a0eda817231b9fcb501e71efcdd4374c0c
+SHA256: 46e982cfec57e58736d768529401948ddaea66b5f60bf82994aec516139206e6
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
+Package: marinamoji
+Version: 0.0.9
+Architecture: amd64
+Maintainer: Daniel Patrick Morgan <daniel.morgan@college-de-france.fr>
+Installed-Size: 41696
+Depends: ibus (>= 1.5.0), hicolor-icon-theme, libc6 (>= 2.38), libcairo-gobject2 (>= 1.10.0), libcairo2 (>= 1.10.0), libgcc-s1 (>= 3.0), libgdk-pixbuf-2.0-0 (>= 2.22.0), libglib2.0-0t64 (>= 2.40.0) | libglib2.0-0, libgtk-3-0t64 (>= 3.24.22) | libgtk-3-0, libharfbuzz0b (>= 0.6.0), libibus-1.0-5 (>= 1.5.4), libopencc1.1 (>= 1.1.4+ds1), libpango-1.0-0 (>= 1.14.0), libpangocairo-1.0-0 (>= 1.14.0), libqt6core6t64 (>= 6.4.0) | libqt6core6, libqt6gui6t64 (>= 6.1.2) | libqt6gui6, libqt6widgets6t64 (>= 6.3.0) | libqt6widgets6, librsvg2-2 (>= 2.46.0), libstdc++6 (>= 13.1)
+Conflicts: emacs-mozc, emacs-mozc-bin
+Replaces: emacs-mozc, emacs-mozc-bin
+Filename: pool/main/m/marinamoji/marinamoji_0.0.9_amd64.deb
+Size: 15642680
+MD5sum: 0a13ec0d188cc6d03357dc7fe2242eec
+SHA1: ee3e0719693f9fb8db83347f2ed000f95d5e697c
+SHA256: 947c43f08a4a3064acf51a2f3e053a27e8b93c6f84dad268f1b7cf1b62446d3a
+Section: utils
+Priority: optional
+Homepage: https://github.com/marinaMoji/marinaMoji
+Description: Japanese input method for classical and literary Japanese
+ marinaMoji is a fork of Mozc focused on classical, literary, and
+ pre-reform Japanese. It provides an IBus engine that installs
+ alongside stock Mozc, GUI configuration tools, and an Emacs helper.
+
