@@ -10,7 +10,11 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
-### Stuck Left Shift mode lock (2026-11-12)
+### Release candidate 0.0.21-rc12
+
+Everything in 0.0.21-rc11 plus:
+
+#### Stuck Left Shift mode lock (2026-11-12)
 
 A macOS user (Japanese keyboard) switched layouts with the globe key and came
 back to marinaMoji with the mode lock on and no way off: double-tap Left Shift
