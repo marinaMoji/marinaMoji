@@ -218,6 +218,8 @@ class Session {
   bool ToggleHiraganaDirect(mozc::commands::Command* command);
   bool ToggleLeftShiftDirect(mozc::commands::Command* command);
   bool ToggleLeftShiftModeLock(mozc::commands::Command* command);
+  // Temporary: bare F12; toggles the lock in any state/config.
+  bool ToggleLeftShiftModeLockAnyState(mozc::commands::Command* command);
   bool ToggleTraditionalKanji(mozc::commands::Command* command);
   bool ToggleLiveConversion(mozc::commands::Command* command);
   bool TogglePrivacyMode(mozc::commands::Command* command);

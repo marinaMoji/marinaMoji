@@ -691,6 +691,16 @@ commands::CompositionMode VisibleCompositionModeForLeftShift(
   return ToCompositionMode(context.composer().GetInputMode());
 }
 
+// TEMPORARY escape hatch (RC): bare F12 toggles the Left Shift mode lock in
+// any state, with no eligibility checks, so a stuck lock can always be cleared
+// (or set) from the keyboard. Remove once the stuck-lock root cause is
+// confirmed fixed. On Mac laptops it needs fn unless "Use F1, F2, etc. keys as
+// standard function keys" is on.
+bool IsBareF12(const commands::KeyEvent& key) {
+  return key.has_special_key() && key.special_key() == commands::KeyEvent::F12 &&
+         key.modifier_keys_size() == 0;
+}
+
 // Ctrl+Alt+Right Shift alone: toggle mode lock for the Left Shift direct
 // toggle. Windows reserves plain Ctrl+Shift (either side) system-wide for the
 // "Switch Input Language" hotkey, intercepted by the shell before any
@@ -751,7 +761,7 @@ bool Session::TestSendKey(commands::Command* command) {
   // through to the application is still decided by the Toggle* handlers in
   // SendKey.
   if (IsRightShiftAlone(key) || IsCtrlAltRightShiftAlone(key) ||
-      IsLeftShiftAlone(key)) {
+      IsLeftShiftAlone(key) || IsBareF12(key)) {
     return DoNothing(command);
   }
 
@@ -902,6 +912,9 @@ bool Session::SendKey(commands::Command* command) {
   if (!odoriji_palette_visible_ &&
       IsCtrlAltRightShiftAlone(command->input().key())) {
     return ToggleLeftShiftModeLock(command);
+  }
+  if (!odoriji_palette_visible_ && IsBareF12(command->input().key())) {
+    return ToggleLeftShiftModeLockAnyState(command);
   }
   if (!odoriji_palette_visible_ &&
       IsLeftShiftAlone(command->input().key())) {
@@ -3364,6 +3377,17 @@ bool Session::ToggleLeftShiftDirect(commands::Command* command) {
 }
 
 bool Session::ToggleLeftShiftModeLock(commands::Command* command) {
+  // An engaged lock must always be clearable: the lock is persisted across
+  // sessions and layout switches, so the mode the client reports now (e.g.
+  // half-width alphanumeric after an Eisu key) or a config change since may
+  // make the eligibility checks below fail, leaving the user stuck.
+  if (left_shift_mode_lock_) {
+    command->mutable_output()->set_consumed(true);
+    left_shift_mode_lock_ = false;
+    PersistLeftShiftDirectLock(false);
+    OutputFromState(command);
+    return true;
+  }
   if (context_->GetConfig().disable_left_shift_direct_toggle()) {
     command->mutable_output()->set_consumed(false);
     OutputFromState(command);
@@ -3376,6 +3400,14 @@ bool Session::ToggleLeftShiftModeLock(commands::Command* command) {
     OutputFromState(command);
     return true;
   }
+  command->mutable_output()->set_consumed(true);
+  left_shift_mode_lock_ = !left_shift_mode_lock_;
+  PersistLeftShiftDirectLock(left_shift_mode_lock_);
+  OutputFromState(command);
+  return true;
+}
+
+bool Session::ToggleLeftShiftModeLockAnyState(commands::Command* command) {
   command->mutable_output()->set_consumed(true);
   left_shift_mode_lock_ = !left_shift_mode_lock_;
   PersistLeftShiftDirectLock(left_shift_mode_lock_);

@@ -1510,6 +1510,61 @@ TEST_F(SessionTest, LeftShiftDoubleTapTogglesModeLock) {
   EXPECT_FALSE(peer.left_shift_mode_lock_());
 }
 
+TEST_F(SessionTest, LeftShiftModeLockClearableFromIneligibleClientMode) {
+  ScopedClockMock clock(absl::FromUnixSeconds(1000));
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+  commands::Command command;
+
+  config::Config cfg;
+  cfg.set_disable_left_shift_direct_toggle(false);
+  session.SetConfig(cfg);
+
+  EXPECT_TRUE(SendKey("Ctrl Alt RightShift", &session, &command));
+  SessionTestPeer peer(session);
+  ASSERT_TRUE(peer.left_shift_mode_lock_());
+
+  // The client reports a mode that is not eligible for Left Shift handling
+  // (e.g. half-width alphanumeric after an Eisu key). The lock must still clear.
+  clock->Advance(absl::Seconds(5));
+  EXPECT_TRUE(SendKeyWithMode("LeftShift", commands::HALF_ASCII, &session,
+                              &command));
+  clock->Advance(absl::Milliseconds(120));
+  EXPECT_TRUE(SendKeyWithMode("LeftShift", commands::HALF_ASCII, &session,
+                              &command));
+  EXPECT_FALSE(peer.left_shift_mode_lock_());
+
+  // Also via the Ctrl+Alt+RightShift chord, and with the toggle disabled.
+  EXPECT_TRUE(SendKey("Ctrl Alt RightShift", &session, &command));
+  ASSERT_TRUE(peer.left_shift_mode_lock_());
+  cfg.set_disable_left_shift_direct_toggle(true);
+  session.SetConfig(cfg);
+  EXPECT_TRUE(SendKeyWithMode("Ctrl Alt RightShift", commands::HALF_ASCII,
+                              &session, &command));
+  EXPECT_FALSE(peer.left_shift_mode_lock_());
+}
+
+TEST_F(SessionTest, F12TogglesModeLockInAnyState) {
+  MockEngine engine;
+  CreateEngineConverterMock(&engine);
+  Session session(engine);
+  InitSessionToPrecomposition(&session);
+  commands::Command command;
+
+  config::Config cfg;
+  cfg.set_disable_left_shift_direct_toggle(true);
+  session.SetConfig(cfg);
+  SessionTestPeer peer(session);
+
+  EXPECT_TRUE(SendKeyWithMode("F12", commands::HALF_ASCII, &session, &command));
+  EXPECT_TRUE(command.output().consumed());
+  EXPECT_TRUE(peer.left_shift_mode_lock_());
+  EXPECT_TRUE(SendKeyWithMode("F12", commands::HALF_ASCII, &session, &command));
+  EXPECT_FALSE(peer.left_shift_mode_lock_());
+}
+
 TEST_F(SessionTest, LeftShiftSlowTapsDoNotLock) {
   ScopedClockMock clock(absl::FromUnixSeconds(1000));
   MockEngine engine;

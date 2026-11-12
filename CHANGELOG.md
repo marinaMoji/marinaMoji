@@ -10,6 +10,22 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Stuck Left Shift mode lock (2026-11-12)
+
+A macOS user (Japanese keyboard) switched layouts with the globe key and came
+back to marinaMoji with the mode lock on and no way off: double-tap Left Shift
+and Ctrl+Shift both did nothing, although the toolbar showed hiragana.
+
+- **Lock is always clearable:** `ToggleLeftShiftModeLock` now releases an
+  engaged lock before any eligible-mode or `disable_left_shift_direct_toggle`
+  check. The lock is persisted across sessions, and the mode the client reports
+  (restored on activate, or set by the Eisu key) can differ from the one the
+  toolbar shows, which made the old eligibility check drop the unlock key.
+  This is the likely cause, not confirmed on the user's machine.
+- **Temporary escape hatch:** bare **F12** toggles the lock in any state and
+  config (needs fn on Mac laptops unless F-keys are set as standard). Remove
+  once the root cause is confirmed fixed.
+
 ### Release candidate 0.0.21-rc11
 
 Everything in 0.0.21-rc10 plus:

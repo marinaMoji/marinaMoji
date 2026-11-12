@@ -2323,6 +2323,19 @@ bool IsConfigOnlySessionOutput(const Output &output) {
     }
   }
 
+  // TEMPORARY escape hatch (RC): bare F12 toggles the Left Shift mode lock in
+  // any state. Sent explicitly so it works in Direct input too, where key
+  // events may otherwise never reach the session. See Session::IsBareF12.
+  if ([event type] == NSEventTypeKeyDown && [event keyCode] == kVK_F12 &&
+      ([event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask &
+       (NSEventModifierFlagShift | NSEventModifierFlagControl |
+        NSEventModifierFlagOption | NSEventModifierFlagCommand)) == 0) {
+    KeyEvent f12Key;
+    f12Key.set_special_key(mozc::commands::KeyEvent::F12);
+    [self dispatchCtrlLeftShiftModeLock:f12Key client:sender];
+    return YES;
+  }
+
   if ([keyCodeMap_ isModeSwitchingKey:event]) {
     // Special hack for Eisu/Kana keys.  Sometimes those key events
     // come to this method but we should ignore them because some
