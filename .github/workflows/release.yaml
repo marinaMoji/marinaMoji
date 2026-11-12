@@ -52,11 +52,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: arm64
-            macos_cpus: arm64
-          - arch: x86_64
-            macos_cpus: x86_64
+        # Release candidates (tags containing "-rc") skip the Intel build: it
+        # held up rc12 for hours waiting on a runner. Final tags and manual
+        # runs still build both architectures.
+        include: ${{ fromJSON(contains(github.ref_name, '-rc') && '[{"arch":"arm64","macos_cpus":"arm64"}]' || '[{"arch":"arm64","macos_cpus":"arm64"},{"arch":"x86_64","macos_cpus":"x86_64"}]') }}
 
     steps:
       - name: Checkout

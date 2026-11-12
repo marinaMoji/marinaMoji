@@ -10,6 +10,11 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+- **Release builds:** release candidates (tags containing `-rc`) no longer build
+  the macOS Intel (x86_64) package; final tags and manual runs still do. The
+  Intel job was left queued for hours on a runner shortage and, because
+  `publish_release` needs every macOS job, blocked rc12.
+
 ### Release candidate 0.0.21-rc12
 
 Everything in 0.0.21-rc11 plus:
