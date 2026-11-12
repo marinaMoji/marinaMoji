@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-12T06:41:52+00:00",
+  "generated": "2026-11-12T06:42:10+00:00",
   "nodes": [
     {
       "id": "issue-104",
@@ -225,8 +225,8 @@
       "id": "issue-125",
       "ref": "marinaMoji/marinaMoji#125",
       "github_url": "https://github.com/marinaMoji/marinaMoji/issues/125",
-      "state": "OPEN",
-      "status": "in-progress",
+      "state": "CLOSED",
+      "status": "completed",
       "milestone": null,
       "assignee": null,
       "progress": null,
