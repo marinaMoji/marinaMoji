@@ -21,6 +21,13 @@ changed and, where it isn't obvious, why.
   2026-11-12 dump); no other column changed. Characters with a variant link
   fell from 21,464 to 12,410. `build_char_info.py --cjkvi-variants` now reads
   only `cjkvi-variants.txt`.
+- **EDRDG attribution:** the shin/kyū tables (`marinaShin2Kyu*`) were built in
+  part from KANJIDIC2 and JMdict (CC BY-SA 4.0), which was not credited. The About
+  dialog now has a line crediting EDRDG with links to the files and licence,
+  `credits_en.html` has entries for EDRDG, the CJKVI variant data, Unihan and
+  GlyphWiki, both copyright files list the tables as Apache-2.0 and CC-BY-SA-4.0,
+  and `data/marina_opencc/tables/README.md` records the sources. Wiktionary,
+  CC-CEDICT and MJ material mined by the same pipeline is not yet audited.
 - **Copyright files:** `packaging/debian/copyright` and
   `packaging/linux/data/copyright` now cover the Unihan stroke counts,
   `char_info.tsv` and the KAGE data (new `GlyphWiki-Free-Data` paragraph),

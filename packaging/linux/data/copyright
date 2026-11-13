@@ -15,8 +15,14 @@ License: BSD-3-Clause
 Files: usr/lib/marinamoji/opencc/*
 Copyright: 2010-2024, Carbo Kuo and OpenCC contributors
            2024-2026, Marina Pandolfino and Daniel Patrick Morgan
-License: Apache-2.0
-Comment: Conversion tables derived from OpenCC and recompiled for marinaMoji.
+           Electronic Dictionary Research and Development Group (KANJIDIC2, JMdict)
+License: Apache-2.0 and CC-BY-SA-4.0
+Comment:
+ Conversion tables derived from OpenCC and recompiled for marinaMoji. The
+ shinjitai/kyujitai character and phrase pairs were also built in part from
+ material in the KANJIDIC2 and JMdict files (https://www.edrdg.org/), used under
+ the EDRDG licence, CC BY-SA 4.0. The tables hold only character and word
+ pairs, no definitions or readings.
 
 Files: usr/lib/marinamoji/character_composer/*
 Copyright: CHISE project and contributors
@@ -422,3 +428,14 @@ License: GlyphWiki-Free-Data
  License of this document is the same as the data files.
  .
  Copyright 2009 GlyphWiki Project.
+
+License: CC-BY-SA-4.0
+ Creative Commons Attribution-ShareAlike 4.0 International.
+ .
+ You may share and adapt the material for any purpose, even commercially,
+ provided you give appropriate credit, provide a link to the licence, indicate
+ if changes were made, and distribute any contributions under the same licence.
+ .
+ The full legal text is at https://creativecommons.org/licenses/by-sa/4.0/legalcode
+ and the Electronic Dictionary Research and Development Group's statement is
+ at https://www.edrdg.org/edrdg/licence.html
