@@ -146,6 +146,92 @@ def add_cjkvi_variants(rows: dict[int, dict[str, str]],
     return added
 
 
+# Source Han regional forms (Adobe CMaps). Source Han Sans/Serif keep one glyph
+# pool for all five regions and one code point -> CID map per region, so two
+# regions draw a character the same way exactly when their CIDs are equal. As
+# in sxzz/hanji, regions count as the same when either the Sans or the Serif
+# map says so: a difference seen in only one typeface is a design detail, not
+# a regional one.
+CMAP_REGIONS = ('CN', 'HK', 'TW', 'JP', 'KR')
+CMAP_FAMILIES = ('Sans', 'Serif')
+CMAP_RANGE_BLOCK = re.compile(r'begincidrange(.*?)endcidrange', re.S)
+CMAP_RANGE_ENTRY = re.compile(r'<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*(\d+)')
+CMAP_CHAR_BLOCK = re.compile(r'begincidchar(.*?)endcidchar', re.S)
+CMAP_CHAR_ENTRY = re.compile(r'<([0-9a-fA-F]+)>\s*(\d+)')
+
+
+def parse_cmap(text: str) -> dict[int, int]:
+    """Maps code point -> CID from an Adobe UniSourceHan*-UTF32-H CMap."""
+    cids: dict[int, int] = {}
+    for block in CMAP_RANGE_BLOCK.findall(text):
+        for lo, hi, cid in CMAP_RANGE_ENTRY.findall(block):
+            lo_i = int(lo, 16)
+            for cp in range(lo_i, int(hi, 16) + 1):
+                cids[cp] = int(cid) + cp - lo_i
+    for block in CMAP_CHAR_BLOCK.findall(text):
+        for cp, cid in CMAP_CHAR_ENTRY.findall(block):
+            cids[int(cp, 16)] = int(cid)
+    return cids
+
+
+def region_forms(cp: int,
+                 maps: dict[str, dict[str, dict[int, int]]]) -> str:
+    """Groups the regions that draw |cp| alike, e.g. 'CN JP|HK TW|KR'.
+
+    Only regions whose maps contain |cp| are listed. Empty when fewer than two
+    regions have it or when all of them agree.
+    """
+    present = [r for r in CMAP_REGIONS
+               if any(cp in maps[f][r] for f in CMAP_FAMILIES)]
+    if len(present) < 2:
+        return ''
+    parent = {r: r for r in present}
+
+    def find(r: str) -> str:
+        while parent[r] != r:
+            r = parent[r]
+        return r
+
+    for i, a in enumerate(present):
+        for b in present[i + 1:]:
+            for f in CMAP_FAMILIES:
+                ca, cb = maps[f][a].get(cp), maps[f][b].get(cp)
+                if ca is not None and ca == cb:
+                    parent[find(b)] = find(a)
+                    break
+    groups: dict[str, list[str]] = {}
+    for r in present:
+        groups.setdefault(find(r), []).append(r)
+    if len(groups) == 1:
+        return ''
+    return '|'.join(' '.join(g) for g in groups.values())
+
+
+def add_region_forms(rows: dict[int, dict[str, str]],
+                     directory: pathlib.Path) -> int:
+    """Sets |region_forms| on rows whose regional glyphs differ.
+
+    Reads UniSourceHan{Sans,Serif}{CN,HK,TW,JP,KR}-UTF32-H from |directory|.
+    Only characters that already have a row are annotated. Returns the number
+    of rows annotated.
+    """
+    maps: dict[str, dict[str, dict[int, int]]] = {}
+    for f in CMAP_FAMILIES:
+        maps[f] = {}
+        for r in CMAP_REGIONS:
+            path = directory / f'UniSourceHan{f}{r}-UTF32-H'
+            if not path.exists():
+                raise SystemExit(f'missing {path}')
+            maps[f][r] = parse_cmap(path.read_text(encoding='utf-8'))
+    added = 0
+    for cp, row in rows.items():
+        forms = region_forms(cp, maps)
+        if forms:
+            row['region_forms'] = forms
+            added += 1
+    return added
+
+
 # GlyphWiki names a hand-made 異体字 glyph uXXXX-itaiji-NNN. When its data is
 # only the placement of another character, that character is an itaiji of XXXX.
 ITAIJI_NAME_RE = re.compile(r'^u([0-9a-f]{4,5})-itaiji-\d+$')
@@ -201,7 +287,8 @@ def in_composer_blocks(cp: int) -> bool:
 def write_tsv(rows: dict[int, dict[str, str]], out: pathlib.Path,
               composer_blocks: bool) -> int:
     columns = ('char', 'cp', 'strokes', 'pinyin', 'ja_on', 'ja_kun', 'rs',
-               'definition', 'variants', 'ja_kana', 'old_form', 'new_form')
+               'definition', 'variants', 'ja_kana', 'old_form', 'new_form',
+               'region_forms')
     n = 0
     with out.open('w', encoding='utf-8', newline='\n') as f:
         f.write('# Character display info for the marinaMoji character composer.\n')
@@ -231,6 +318,7 @@ def write_tsv(rows: dict[int, dict[str, str]], out: pathlib.Path,
                 'ja_kana': info.get('ja_kana', ''),
                 'old_form': info.get('old_form', ''),
                 'new_form': info.get('new_form', ''),
+                'region_forms': info.get('region_forms', ''),
             }
             f.write('\t'.join(cells[c] for c in columns) + '\n')
             n += 1
@@ -249,6 +337,10 @@ def main() -> None:
                          'by the kanji-database project; see README.md). '
                          'Do not add hydzd-variants.txt or '
                          'twedu-variants.txt')
+    ap.add_argument('--source-han-cmaps', type=pathlib.Path,
+                    help='directory with the ten Adobe UniSourceHan{Sans,'
+                         'Serif}{CN,HK,TW,JP,KR}-UTF32-H CMaps (BSD-3; see '
+                         'README.md)')
     ap.add_argument('--glyphwiki-itaiji', type=pathlib.Path,
                     help='GlyphWiki dump_newest_only.txt (see README.md)')
     args = ap.parse_args()
@@ -257,6 +349,9 @@ def main() -> None:
     if args.cjkvi_variants:
         added = add_cjkvi_variants(rows, args.cjkvi_variants)
         print(f'{added} cjkvi variant links added', file=sys.stderr)
+    if args.source_han_cmaps:
+        added = add_region_forms(rows, args.source_han_cmaps)
+        print(f'{added} characters with regional forms', file=sys.stderr)
     if args.glyphwiki_itaiji:
         added = add_glyphwiki_itaiji(rows, args.glyphwiki_itaiji)
         print(f'{added} GlyphWiki itaiji links added', file=sys.stderr)

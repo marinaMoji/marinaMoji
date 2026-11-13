@@ -31,6 +31,9 @@ struct CharInfo {
   std::string ja_kana;     // "カン ケン" (on in katakana, kun in hiragana)
   std::string old_form;    // 旧字体 of this character, if this is a 新字体
   std::string new_form;    // 新字体 of this character, if this is a 旧字体
+  // Regions (CN HK TW JP KR) that draw this character alike in Source Han,
+  // groups separated by '|', e.g. "CN JP|HK TW|KR". Empty if all agree.
+  std::string region_forms;
 };
 
 class CharInfoTable {

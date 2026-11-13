@@ -54,6 +54,34 @@ class BuildCharInfoTest(unittest.TestCase):
       self.assertEqual(cells[10], chr(0x8C09))
       self.assertEqual(cells[11], chr(0x8C0A))
 
+  def test_region_forms_group_regions_by_sans_or_serif_cid(self):
+    def cmap(entries):
+      body = ''.join(f'<{cp:08x}> {cid}\n' for cp, cid in entries)
+      return f'1 begincidchar\n{body}endcidchar\n'
+
+    def cmap_range(lo, hi, cid):
+      return f'1 begincidrange\n<{lo:08x}> <{hi:08x}> {cid}\nendcidrange\n'
+
+    with tempfile.TemporaryDirectory() as tmp:
+      root = pathlib.Path(tmp)
+      # U+9AA8: Sans CN=KR, HK=TW, JP alone. Serif says JP=HK, which joins
+      # {HK,TW} and {JP}. U+4E00: all agree. U+4E01: only in CN and JP.
+      sans = {'CN': 10, 'HK': 11, 'TW': 11, 'JP': 12, 'KR': 10}
+      serif = {'CN': 20, 'HK': 21, 'TW': 22, 'JP': 21, 'KR': 20}
+      for family, cids in (('Sans', sans), ('Serif', serif)):
+        for region, cid in cids.items():
+          text = cmap([(0x9AA8, cid)]) + cmap_range(0x4E00, 0x4E00, 5)
+          if region in ('CN', 'JP'):
+            text += cmap([(0x4E01, 7 if region == 'CN' else 8)])
+          (root / f'UniSourceHan{family}{region}-UTF32-H').write_text(text)
+      rows = {0x9AA8: {}, 0x4E00: {}, 0x4E01: {}, 0x4E02: {}}
+      added = b.add_region_forms(rows, root)
+      self.assertEqual(rows[0x9AA8]['region_forms'], 'CN KR|HK TW JP')
+      self.assertNotIn('region_forms', rows[0x4E00])
+      self.assertEqual(rows[0x4E01]['region_forms'], 'CN|JP')
+      self.assertNotIn('region_forms', rows[0x4E02])
+      self.assertEqual(added, 2)
+
   def test_cjkvi_variants_are_added_both_ways_to_existing_rows_only(self):
     with tempfile.TemporaryDirectory() as tmp:
       root = pathlib.Path(tmp)

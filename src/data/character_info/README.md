@@ -36,6 +36,8 @@ build script is BSD-3-Clause like the rest of marinaMoji tooling.
 | `old_form` | `kJapaneseOldVariant`: the 旧字体 of this character (set on a 新字体) |
 | `new_form` | `kJapaneseNewVariant`: the 新字体 of this character (set on a 旧字体) |
 
+| `region_forms` | which regions draw this character alike in Source Han, e.g. `CN JP\|HK TW\|KR` (groups split by `\|`, regions CN HK TW JP KR); empty when all regions that have the character agree |
+
 Empty fields are left blank. The file is generated; it is not hand-edited.
 
 ## Rebuild
@@ -56,6 +58,27 @@ Optional: limit to the same blocks the composer draws by default:
 ```bash
 python3 build_char_info.py --unihan /path/to/Unihan --out char_info.tsv --composer-blocks
 ```
+
+## Source Han regional forms
+
+`region_forms` is derived from the ten Adobe CMaps
+`UniSourceHan{Sans,Serif}{CN,HK,TW,JP,KR}-UTF32-H`
+(<https://github.com/adobe-fonts/source-han-sans>, `-serif`; Copyright
+1990-2025 Adobe, BSD-3-Clause in the file header; version 2.005 when fetched
+2026-11-13). Source Han keeps one glyph pool and a code point to CID map per
+region, so two regions draw a character the same way exactly when their CIDs
+match. As in sxzz/hanji (the idea; no code is copied), regions count as alike
+when either the Sans or the Serif map says so, which keeps design details of a
+single typeface out. Only characters that already have a row are annotated.
+Use `--source-han-cmaps DIR`. The maps are not shipped.
+
+It reports how Source Han draws a character, not what each region's standard
+says. Hong Kong coverage in Source Han is incomplete, so differences that only
+involve Hong Kong may be under-reported.
+
+The checked-in file got the column by appending it to the previous
+`char_info.tsv` (the other 12 columns are unchanged); a rebuild from scratch
+with `--source-han-cmaps` gives the same column.
 
 ## cjkvi-variants
 

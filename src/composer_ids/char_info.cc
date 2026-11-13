@@ -47,7 +47,7 @@ absl::StatusOr<CharInfoTable> CharInfoTable::FromTsv(std::string_view tsv) {
     const std::vector<std::string_view> cols =
         absl::StrSplit(line, '\t', absl::AllowEmpty());
     // char cp strokes pinyin ja_on ja_kun rs definition variants ja_kana old_form
-    // new_form
+    // new_form region_forms
     if (cols.size() < 2 || cols[0].empty()) {
       return absl::InvalidArgumentError(
           "char_info.tsv line needs at least char and cp");
@@ -64,6 +64,7 @@ absl::StatusOr<CharInfoTable> CharInfoTable::FromTsv(std::string_view tsv) {
     info.ja_kana = Cell(cols, 9);
     info.old_form = Cell(cols, 10);
     info.new_form = Cell(cols, 11);
+    info.region_forms = Cell(cols, 12);
     table.by_char_[std::string(cols[0])] = std::move(info);
   }
   return table;

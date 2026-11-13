@@ -21,6 +21,14 @@ TEST(CharInfoTableTest, ParsesJapaneseColumns) {
   EXPECT_EQ(info->ja_kana, "コク くに");
   EXPECT_EQ(info->old_form, "");
   EXPECT_EQ(info->new_form, "国");
+  EXPECT_EQ(info->region_forms, "");
+}
+
+TEST(CharInfoTableTest, ParsesRegionForms) {
+  auto table = CharInfoTable::FromTsv(
+      "骨\tU+9AA8\t9\t\t\t\t\t\t\t\t\t\tCN KR|HK TW|JP\n");
+  ASSERT_TRUE(table.ok());
+  EXPECT_EQ(table->Find("骨")->region_forms, "CN KR|HK TW|JP");
 }
 
 TEST(CharInfoTableTest, OldFilesWithoutJapaneseColumnsStillParse) {

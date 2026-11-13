@@ -10,6 +10,13 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character info: regional forms (2026-11-13)
+
+- `char_info.tsv` has a new `region_forms` column saying which regions (CN, HK,
+  TW, JP, KR) draw a character alike, derived from the Adobe Source Han CMaps
+  (BSD-3-Clause; credited in the copyright files and `credits_en.html`).
+  11,795 of 28,056 characters differ. Not shown in the UI yet.
+
 ### Licensing cleanup (2026-11-13)
 
 - **Character info:** `hydzd-variants.txt` (from the printed 漢語大字典) is no
