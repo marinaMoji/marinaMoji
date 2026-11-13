@@ -73,6 +73,21 @@ bool ShouldOfferMarinaUpdateGiven(std::string_view stamp, std::string_view tag,
   return now - absl::FromUnixSeconds(offered_sec) >= kMarinaUpdateOfferInterval;
 }
 
+bool MarinaUpdateStampHasTag(std::string_view stamp, std::string_view tag) {
+  stamp = absl::StripAsciiWhitespace(stamp);
+  const size_t space = stamp.find(' ');
+  if (space == std::string_view::npos) {
+    return false;
+  }
+  return absl::StripAsciiWhitespace(stamp.substr(space + 1)) == tag;
+}
+
+bool WasMarinaUpdateRecorded(std::string_view tag) {
+  const auto contents =
+      FileUtil::GetContents(UpdateOfferStampPath(), std::ios::in);
+  return contents.ok() && MarinaUpdateStampHasTag(*contents, tag);
+}
+
 bool ShouldOfferMarinaUpdate(std::string_view tag) {
   const auto contents =
       FileUtil::GetContents(UpdateOfferStampPath(), std::ios::in);

@@ -38,6 +38,15 @@ std::optional<MarinaGitHubRelease> SelectNewerMarinaRelease(
     absl::Span<const MarinaGitHubRelease> releases,
     absl::string_view current_version, bool include_unstable);
 
+// What the unattended background updater installs: SelectNewerMarinaRelease,
+// staying on the channel of the installed build. A stable build only ever
+// moves to stable releases; a prerelease build (-rc/-alpha/-beta) also follows
+// prereleases. Without the latter, a user running release candidates is never
+// updated in the background and only ever sees the interactive prompt.
+std::optional<MarinaGitHubRelease> SelectMarinaSilentUpdateRelease(
+    absl::Span<const MarinaGitHubRelease> releases,
+    absl::string_view current_version);
+
 // Prefer marinaMoji-*-arm64.pkg or marinaMoji-*-intel64.pkg from assets.
 // |arch_token| is typically "arm64" or "intel64" ("intel64" also matches assets
 // named "x86_64", which is how the Intel package is published). When set, does not return a

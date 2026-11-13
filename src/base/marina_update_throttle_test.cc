@@ -47,5 +47,12 @@ TEST(MarinaUpdateThrottleTest, TolerantOfSurroundingWhitespace) {
                                             "v0.0.14", At(1'000'001)));
 }
 
+TEST(MarinaUpdateThrottleTest, StampHasTag) {
+  EXPECT_TRUE(MarinaUpdateStampHasTag("1000000 v0.0.14\n", "v0.0.14"));
+  EXPECT_FALSE(MarinaUpdateStampHasTag("1000000 v0.0.14\n", "v0.0.15"));
+  EXPECT_FALSE(MarinaUpdateStampHasTag("", "v0.0.14"));
+  EXPECT_FALSE(MarinaUpdateStampHasTag("garbage", "garbage"));
+}
+
 }  // namespace
 }  // namespace mozc

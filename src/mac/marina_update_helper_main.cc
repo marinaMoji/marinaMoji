@@ -101,11 +101,12 @@ absl::Status RunSilentUpdateCheck() {
 
   const std::vector<MarinaGitHubRelease> releases =
       ParseMarinaGitHubReleasesJson(*json);
-  // Unattended installs never offer prereleases, regardless of the user's
-  // interactive-update channel preference.
+  // Unattended installs stay on the installed build's channel: a stable build
+  // never moves to a prerelease, a release candidate follows later ones. This
+  // daemon runs as root and does not read the user's interactive-update
+  // channel preference.
   const std::optional<MarinaGitHubRelease> newer =
-      SelectNewerMarinaRelease(releases, current_version,
-                               /*include_unstable=*/false);
+      SelectMarinaSilentUpdateRelease(releases, current_version);
   if (!newer.has_value()) {
     Log("already up to date");
     return absl::OkStatus();

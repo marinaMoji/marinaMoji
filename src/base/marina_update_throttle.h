@@ -31,6 +31,13 @@ void MarkMarinaAutoUpdateCheckRan();
 bool ShouldOfferMarinaUpdateGiven(std::string_view stamp, std::string_view tag,
                                   absl::Time now);
 
+// True if |stamp| (the offer file's contents) records |tag|. Pure, for tests.
+bool MarinaUpdateStampHasTag(std::string_view stamp, std::string_view tag);
+
+// True if |tag| is the release most recently recorded by
+// MarkMarinaUpdateOffered.
+bool WasMarinaUpdateRecorded(std::string_view tag);
+
 // Returns true if the update |tag| should be shown to the user now: it differs
 // from the last release offered, or the last offer was at least
 // kMarinaUpdateOfferInterval ago. Manual "Check for updates" never calls this.

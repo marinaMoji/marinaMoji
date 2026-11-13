@@ -121,6 +121,38 @@ TEST(FindMarinaMsiDownloadUrlTest, MatchesTheRealX86_64AssetName) {
             "https://example.com/marinaMoji-v0.0.16-windows-arm64.msi");
 }
 
+TEST(SelectMarinaSilentUpdateReleaseTest, PrereleaseBuildFollowsPrereleases) {
+  MarinaGitHubRelease rc13;
+  rc13.tag_name = "v0.0.21-rc13";
+  rc13.prerelease = true;
+  const std::vector<MarinaGitHubRelease> releases = {rc13};
+  const auto newer = SelectMarinaSilentUpdateRelease(releases, "0.0.21-rc11");
+  ASSERT_TRUE(newer.has_value());
+  EXPECT_EQ(newer->tag_name, "v0.0.21-rc13");
+}
+
+TEST(SelectMarinaSilentUpdateReleaseTest, StableBuildSkipsPrereleases) {
+  MarinaGitHubRelease rc1;
+  rc1.tag_name = "v0.0.22-rc1";
+  rc1.prerelease = true;
+  MarinaGitHubRelease stable;
+  stable.tag_name = "v0.0.21";
+  const std::vector<MarinaGitHubRelease> releases = {rc1, stable};
+  EXPECT_FALSE(SelectMarinaSilentUpdateRelease(releases, "0.0.21").has_value());
+  const auto newer = SelectMarinaSilentUpdateRelease(releases, "0.0.20");
+  ASSERT_TRUE(newer.has_value());
+  EXPECT_EQ(newer->tag_name, "v0.0.21");
+}
+
+TEST(SelectMarinaSilentUpdateReleaseTest, PrereleaseBuildMovesToStable) {
+  MarinaGitHubRelease stable;
+  stable.tag_name = "v0.0.21";
+  const std::vector<MarinaGitHubRelease> releases = {stable};
+  const auto newer = SelectMarinaSilentUpdateRelease(releases, "0.0.21-rc13");
+  ASSERT_TRUE(newer.has_value());
+  EXPECT_EQ(newer->tag_name, "v0.0.21");
+}
+
 TEST(FindMarinaPkgDownloadUrlTest, MatchesTheRealX86_64AssetName) {
   MarinaGitHubRelease release;
   release.tag_name = "v0.0.16";

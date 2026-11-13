@@ -29,7 +29,18 @@ struct UpdateOffer {
   std::string html_url;
   std::string pkg_url;
   std::string pkg_sha256;  // empty if GitHub published no digest.
+  // True if the background update helper, when enabled, installs this same
+  // release on its own (see SelectMarinaSilentUpdateRelease).
+  bool silent_eligible = false;
 };
+
+NSString* const kUpdateHelperPlistName =
+    @"org.mozc.inputmethod.Japanese.UpdateHelper.plist";
+
+bool IsSilentAutoUpdateHelperEnabled() {
+  return [SMAppService daemonServiceWithPlistName:kUpdateHelperPlistName]
+             .status == SMAppServiceStatusEnabled;
+}
 
 std::optional<UpdateOffer> ProbeForUpdate(bool include_unstable) {
   const auto json = MarinaCurlGet(kReleasesApiUrl);
@@ -50,6 +61,10 @@ std::optional<UpdateOffer> ProbeForUpdate(bool include_unstable) {
       pkg.has_value()) {
     offer.pkg_url = *pkg;
     offer.pkg_sha256 = FindMarinaPkgSha256Digest(*newer, arch_token);
+    const auto silent = SelectMarinaSilentUpdateRelease(
+        releases, Version::GetProductVersion());
+    offer.silent_eligible =
+        silent.has_value() && silent->tag_name == newer->tag_name;
   }
   return offer;
 }
@@ -131,8 +146,8 @@ InstallOutcome DownloadAndInstall(const UpdateOffer& offer) {
 // Login Items & Extensions. Only ever called in direct response to the user
 // clicking "Enable Automatic Updates" below -- never on their behalf.
 bool EnableSilentAutoUpdateHelper() {
-  SMAppService* service = [SMAppService
-      daemonServiceWithPlistName:@"org.mozc.inputmethod.Japanese.UpdateHelper.plist"];
+  SMAppService* service =
+      [SMAppService daemonServiceWithPlistName:kUpdateHelperPlistName];
   if (service.status == SMAppServiceStatusEnabled) {
     return true;
   }
@@ -155,9 +170,7 @@ void MaybeOfferSilentAutoUpdate() {
     return;
   }
   // Already on, e.g. switched on from Preferences: nothing to offer.
-  if ([SMAppService daemonServiceWithPlistName:
-                        @"org.mozc.inputmethod.Japanese.UpdateHelper.plist"]
-          .status == SMAppServiceStatusEnabled) {
+  if (IsSilentAutoUpdateHelperEnabled()) {
     return;
   }
   MarkOfferedSilentAutoUpdate();
@@ -274,7 +287,18 @@ void MaybeScheduleMarinaAutoUpdateCheck(bool include_unstable,
     if (!ShouldOfferMarinaUpdate(offer->tag_name)) {
       return;
     }
+    // With the background helper on, a release it will install by itself is
+    // not announced when first seen: recording it here holds the prompt back
+    // for kMarinaUpdateOfferInterval, which is several helper runs. If the
+    // release is still not installed after that, the helper is evidently not
+    // managing it, and the prompt appears as usual.
+    const bool leave_to_helper = offer->silent_eligible &&
+                                 !WasMarinaUpdateRecorded(offer->tag_name) &&
+                                 IsSilentAutoUpdateHelperEnabled();
     MarkMarinaUpdateOffered(offer->tag_name);
+    if (leave_to_helper) {
+      return;
+    }
     UpdateOffer copy = *offer;
     dispatch_async(dispatch_get_main_queue(), ^{
       PresentUpdateOfferOnMainThread(std::move(copy));

@@ -224,6 +224,13 @@ std::optional<MarinaGitHubRelease> SelectNewerMarinaRelease(
   return *best;
 }
 
+std::optional<MarinaGitHubRelease> SelectMarinaSilentUpdateRelease(
+    absl::Span<const MarinaGitHubRelease> releases,
+    absl::string_view current_version) {
+  return SelectNewerMarinaRelease(releases, current_version,
+                                  IsMarinaUnstableVersion(current_version));
+}
+
 namespace {
 
 // The hosts report short architecture tokens ("x64" on Windows, "intel64" on
