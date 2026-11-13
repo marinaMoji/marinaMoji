@@ -11,6 +11,7 @@ exports_files([
     "README.md",
     "UNICODE_NOTICE.txt",
     "char_info.tsv",
+    "char_info_mj.tsv",
     "build_char_info.py",
 ])
 
@@ -21,5 +22,7 @@ filegroup(
     srcs = [
         "UNICODE_NOTICE.txt",
         "char_info.tsv",
+        # CC BY-SA 2.1 Japan (IPA); see README.md, "MJ links".
+        "char_info_mj.tsv",
     ],
 )

@@ -3,6 +3,7 @@
 
 #include "composer_ids/char_info.h"
 
+#include <algorithm>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -10,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_split.h"
@@ -21,6 +23,7 @@ namespace composer_ids {
 namespace {
 
 constexpr std::string_view kFile = "char_info.tsv";
+constexpr std::string_view kMjFile = "char_info_mj.tsv";
 
 std::string Cell(const std::vector<std::string_view> &cols, size_t i) {
   return i < cols.size() ? std::string(cols[i]) : std::string();
@@ -76,7 +79,35 @@ absl::StatusOr<CharInfoTable> CharInfoTable::LoadFromDirectory(
   absl::StatusOr<std::string> contents =
       FileUtil::GetContents(FileUtil::JoinPath(directory, kFile));
   if (!contents.ok()) return contents.status();
-  return FromTsv(*contents);
+  absl::StatusOr<CharInfoTable> table = FromTsv(*contents);
+  if (!table.ok()) return table;
+  // Optional: the MJ links ship as a separate file under their own licence.
+  if (absl::StatusOr<std::string> mj =
+          FileUtil::GetContents(FileUtil::JoinPath(directory, kMjFile));
+      mj.ok()) {
+    table->AddMjLinks(*mj);
+  }
+  return table;
+}
+
+void CharInfoTable::AddMjLinks(std::string_view tsv) {
+  auto add = [this](const std::string &from, const std::string &to) {
+    std::vector<std::string> &links = mj_links_[from];
+    if (std::find(links.begin(), links.end(), to) == links.end()) {
+      links.push_back(to);
+    }
+  };
+  for (std::string_view line : absl::StrSplit(tsv, '\n')) {
+    if (line.empty() || line[0] == '#') continue;
+    const std::vector<std::string_view> cols =
+        absl::StrSplit(line, '\t', absl::AllowEmpty());
+    if (cols.size() < 2 || cols[0].empty() || cols[1].empty() ||
+        cols[0] == cols[1]) {
+      continue;
+    }
+    add(std::string(cols[0]), std::string(cols[1]));
+    add(std::string(cols[1]), std::string(cols[0]));
+  }
 }
 
 std::string CharInfoTable::DefaultDirectory() {
@@ -149,6 +180,9 @@ std::vector<std::string> CharInfoTable::RelatedCandidates(
   }
   add(info->old_form);
   add(info->new_form);
+  if (const auto it = mj_links_.find(ch); it != mj_links_.end()) {
+    for (const std::string &link : it->second) add(link);
+  }
 
   // Only the selected character: nothing related to offer.
   if (out.size() <= 1) {

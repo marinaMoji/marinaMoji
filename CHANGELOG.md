@@ -15,8 +15,10 @@ changed and, where it isn't obvious, why.
 - `char_info.tsv` has an `ivs_forms` column (registered IVD forms per
   collection; 13,949 rows). Not shown in the UI yet.
 - New `char_info_mj.tsv` (CC BY-SA 2.1 Japan, IPA): 4,711 variant to standard
-  links from the MJ縮退マップ, kept apart from `char_info.tsv`. Not installed
-  or read by anything yet.
+  links from the MJ縮退マップ, kept apart from `char_info.tsv`. It is installed
+  on Linux, macOS and Windows and read by the character composer, which offers
+  its links after the other variants. Credited in the copyright files and
+  `credits_en.html`. Packaging is untested on Linux and Windows.
 
 ### Character info: more variant links (2026-11-13)
 

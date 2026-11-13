@@ -192,7 +192,11 @@ python3 build_mj_links.py --mj-list mji.00602.xlsx \
 Not read: 辞書類等による関連字 (loose; see the GitHub issue), 読み・字形による類推
 (guesses), and 告示582号別表第四 (already used, from the government notice).
 
-**Not shipped yet.** Nothing reads this file and it is not in the
-`character_info_data` filegroup or any package. Before it is installed, add it
-to both copyright files, credit IPA in `credits_en.html` and the About page,
-and ship the CC BY-SA notice with it.
+**Shipped and read.** `char_info_mj.tsv` is installed beside `char_info.tsv`
+on every platform (the `character_info_data` filegroup, Linux
+`build_package.py`, the Windows installer) and `CharInfoTable` loads it if it is
+there. Its links are offered both ways by `RelatedCandidates()` after the main
+`variants`. It is credited in both copyright files and in `credits_en.html`,
+which Preferences > About links to; the licence notice is in the file's own
+header. Keep it a separate file: merging it into `char_info.tsv` would put that
+file under CC BY-SA.

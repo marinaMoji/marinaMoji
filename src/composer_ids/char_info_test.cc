@@ -31,6 +31,29 @@ TEST(CharInfoTableTest, ParsesRegionForms) {
   EXPECT_EQ(table->Find("骨")->region_forms, "CN KR|HK TW|JP");
 }
 
+TEST(CharInfoTableTest, MjLinksAreOfferedBothWaysAfterMainVariants) {
+  auto table = CharInfoTable::FromTsv(
+      "礦\tU+7926\t\t\t\t\t\t\t\t\t\t\t\t\n"
+      "砿\tU+780F\t\t\t\t\t\t\t\t\t\t\t\t\n"
+      "鑛\tU+945B\t\t\t\t\t\t\t\t\t\t\t\t\n"
+      "木\tU+6728\t\t\t\t\t\t\t\t\t\t\t\t\n");
+  ASSERT_TRUE(table.ok());
+  EXPECT_TRUE(table->RelatedCandidates("礦").empty());
+  table->AddMjLinks(
+      "# comment\n"
+      "#variant\tstandard\tkind\n"
+      "砿\t礦\tkoseki\n"
+      "砿\t礦\ttsutatsu\n"
+      "鑛\t礦\tkoseki\n"
+      "broken line\n"
+      "木\t木\tjis\n");
+  EXPECT_EQ(table->RelatedCandidates("礦"),
+            (std::vector<std::string>{"礦", "砿", "鑛"}));
+  EXPECT_EQ(table->RelatedCandidates("砿"),
+            (std::vector<std::string>{"砿", "礦"}));
+  EXPECT_TRUE(table->RelatedCandidates("木").empty());
+}
+
 TEST(CharInfoTableTest, ParsesIvsForms) {
   auto table = CharInfoTable::FromTsv(
       "邉\tU+9089\t\t\t\t\t\t\t\t\t\t\t\tA10 H3 M34\n");

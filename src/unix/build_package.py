@@ -64,6 +64,7 @@ CHARACTER_COMPOSER_FILES = (
     'README.kage.md',
     # Unihan display metadata (data/character_info).
     'char_info.tsv',
+    'char_info_mj.tsv',
     'UNICODE_NOTICE.txt',
 )
 

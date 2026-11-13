@@ -60,9 +60,17 @@ class CharInfoTable {
   static void SetDefaultForTesting(std::unique_ptr<CharInfoTable> table);
   static void ClearDefaultForTesting();
 
+  // Adds the variant -> standard links of char_info_mj.tsv (IPA MJ data, CC
+  // BY-SA 2.1 Japan): lines "variant<TAB>standard<TAB>kind", comments with #.
+  // They are kept apart from CharInfo::variants and are offered both ways by
+  // RelatedCandidates() after the main variants. Lines that do not have two
+  // characters are skipped.
+  void AddMjLinks(std::string_view tsv);
+
   const CharInfo *Find(std::string_view ch) const;
 
-  // Selected character first, then unique variants, old_form, new_form.
+  // Selected character first, then unique variants, old_form, new_form, then
+  // the MJ links (if char_info_mj.tsv was loaded).
   // Empty when |ch| is unknown or has no related forms besides itself.
   std::vector<std::string> RelatedCandidates(std::string_view ch) const;
 
@@ -72,6 +80,7 @@ class CharInfoTable {
   CharInfoTable() = default;
 
   absl::flat_hash_map<std::string, CharInfo> by_char_;
+  absl::flat_hash_map<std::string, std::vector<std::string>> mj_links_;
 };
 
 }  // namespace composer_ids

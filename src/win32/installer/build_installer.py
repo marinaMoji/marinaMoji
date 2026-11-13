@@ -145,6 +145,7 @@ def run_wix4(args) -> None:
   jigmo3 = pathlib.Path(args.jigmo3).resolve()
   jigmo_license = pathlib.Path(args.jigmo_license).resolve()
   char_info = pathlib.Path(args.char_info).resolve()
+  char_info_mj = pathlib.Path(args.char_info_mj).resolve()
   char_info_notice = pathlib.Path(args.char_info_notice).resolve()
   # All toolbar_icons/*.png live alongside this one sample file (see
   # data/images/win/generate_toolbar_icons.py); only its parent directory is
@@ -247,6 +248,7 @@ def run_wix4(args) -> None:
       '-define', f'Jigmo3Path={jigmo3}',
       '-define', f'JigmoLicensePath={jigmo_license}',
       '-define', f'CharInfoPath={char_info}',
+      '-define', f'CharInfoMjPath={char_info_mj}',
       '-define', f'CharInfoNoticePath={char_info_notice}',
       '-define', f'ToolbarIconsDir={toolbar_icons_dir}',
       '-define', f'DocumentsDir={document_dir}',
@@ -318,6 +320,7 @@ def main():
   parser.add_argument('--jigmo3', type=str)
   parser.add_argument('--jigmo_license', type=str)
   parser.add_argument('--char_info', type=str)
+  parser.add_argument('--char_info_mj', type=str)
   parser.add_argument('--char_info_notice', type=str)
   parser.add_argument('--toolbar_icons_sample', type=str)
   parser.add_argument('--icon_path', type=str)

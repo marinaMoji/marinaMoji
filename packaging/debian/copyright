@@ -120,7 +120,8 @@ License: CC-BY-SA-2.1-JP
 Comment:
  Variant to standard-form links from the MJ縮退マップ and MJ文字情報一覧表
  (https://moji.or.jp/mojikiban/), a derived work kept in its own file under the
- source licence. It is not installed by any package yet.
+ source licence. It is installed beside char_info.tsv and read by the character
+ composer; credited in credits_en.html.
 
 Files: src/data/kage/kage_glyphs.tsv
        src/data/kage/kage_layout.tsv

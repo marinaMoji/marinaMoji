@@ -212,6 +212,7 @@
       <ComponentRef Id="MarinaMojiKageLicense" />
       <ComponentRef Id="MarinaMojiKageReadme" />
       <ComponentRef Id="MarinaMojiCharInfo" />
+      <ComponentRef Id="MarinaMojiCharInfoMj" />
       <ComponentRef Id="MarinaMojiCharInfoNotice" />
       <ComponentRef Id="MarinaMojiSync" />
       <ComponentRef Id="MMToolbarIcon_logo_long_dark_24" />
@@ -646,6 +647,9 @@
           -->
           <Component Id="MarinaMojiCharInfo">
             <File Id="char_info.tsv" Name="char_info.tsv" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.CharInfoPath)" />
+          </Component>
+          <Component Id="MarinaMojiCharInfoMj">
+            <File Id="char_info_mj.tsv" Name="char_info_mj.tsv" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.CharInfoMjPath)" />
           </Component>
           <Component Id="MarinaMojiCharInfoNotice">
             <File Id="UNICODE_NOTICE.txt" Name="UNICODE_NOTICE.txt" DiskId="1" Checksum="yes" Vital="yes" Source="$(var.CharInfoNoticePath)" />

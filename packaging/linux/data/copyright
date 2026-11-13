@@ -68,6 +68,15 @@ Comment:
  requires. The other
  tables in that repository are not included.
 
+Files: usr/lib/marinamoji/character_composer/char_info_mj.tsv
+Copyright: IPA (Information-technology Promotion Agency, Japan)
+License: CC-BY-SA-2.1-JP
+Comment:
+ Variant to standard-form links from the MJ縮退マップ and MJ文字情報一覧表
+ (https://moji.or.jp/mojikiban/). A derived work, so it stays a separate file
+ under the source licence and is not merged into char_info.tsv. The licence
+ notice is in the file header.
+
 Files: usr/lib/marinamoji/character_composer/kage_glyphs.tsv
        usr/lib/marinamoji/character_composer/kage_layout.tsv
        usr/lib/marinamoji/character_composer/kage_subtrees.tsv
@@ -445,3 +454,9 @@ License: CC0-1.0
  with the deed has dedicated it to the public domain by waiving all rights
  to the work worldwide under copyright law, to the extent allowed by law.
  Full text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+License: CC-BY-SA-2.1-JP
+ Creative Commons Attribution-ShareAlike 2.1 Japan. The full licence text is
+ at https://creativecommons.org/licenses/by-sa/2.1/jp/legalcode . Attribute
+ IPA (Information-technology Promotion Agency, Japan); derived works must be
+ distributed under the same licence.
