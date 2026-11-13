@@ -10,6 +10,14 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character info: IVD forms and MJ links (2026-11-13)
+
+- `char_info.tsv` has an `ivs_forms` column (registered IVD forms per
+  collection; 13,949 rows). Not shown in the UI yet.
+- New `char_info_mj.tsv` (CC BY-SA 2.1 Japan, IPA): 4,711 variant to standard
+  links from the MJ縮退マップ, kept apart from `char_info.tsv`. Not installed
+  or read by anything yet.
+
 ### Character info: more variant links (2026-11-13)
 
 - `variants` in `char_info.tsv` gains about 12,400 links: tghb (通用规范汉字表

@@ -206,6 +206,48 @@ def add_nyukan_itaiji(rows: dict[int, dict[str, str]],
     return add_links(rows, pairs)
 
 
+# IVD collections, abbreviated in the |ivs_forms| column.
+IVD_COLLECTIONS = {'Adobe-Japan1': 'A', 'Hanyo-Denshi': 'H', 'Moji_Joho': 'M',
+                   'MSARG': 'S', 'KRName': 'K'}
+
+
+def add_ivs_forms(rows: dict[int, dict[str, str]],
+                  path: pathlib.Path) -> int:
+    """Sets |ivs_forms| to how many forms each IVD collection registers.
+
+    |path| is IVD_Sequences.txt (Unicode Ideographic Variation Database).
+    Lines are "<base> <selector>; <collection>; <id>". The value looks like
+    "A3 H2 M4": three Adobe-Japan1, two Hanyo-Denshi, four Moji_Joho
+    sequences. Only characters that already have a row are annotated.
+    Returns the number of rows annotated.
+    """
+    counts: dict[int, dict[str, set[str]]] = collections.defaultdict(
+        lambda: collections.defaultdict(set))
+    with path.open(encoding='utf-8') as f:
+        for line in f:
+            if not line.strip() or line.startswith('#'):
+                continue
+            parts = [p.strip() for p in line.split(';')]
+            if len(parts) < 2 or parts[1] not in IVD_COLLECTIONS:
+                continue
+            seq = parts[0].split()
+            if len(seq) != 2:
+                continue
+            base = parse_cp('U+' + seq[0])
+            if base is not None:
+                counts[base][parts[1]].add(seq[1])
+    added = 0
+    for cp, by_coll in counts.items():
+        row = rows.get(cp)
+        if row is None:
+            continue
+        row['ivs_forms'] = ' '.join(
+            f'{abbr}{len(by_coll[name])}'
+            for name, abbr in IVD_COLLECTIONS.items() if name in by_coll)
+        added += 1
+    return added
+
+
 # Source Han regional forms (Adobe CMaps). Source Han Sans/Serif keep one glyph
 # pool for all five regions and one code point -> CID map per region, so two
 # regions draw a character the same way exactly when their CIDs are equal. As
@@ -348,7 +390,7 @@ def write_tsv(rows: dict[int, dict[str, str]], out: pathlib.Path,
               composer_blocks: bool) -> int:
     columns = ('char', 'cp', 'strokes', 'pinyin', 'ja_on', 'ja_kun', 'rs',
                'definition', 'variants', 'ja_kana', 'old_form', 'new_form',
-               'region_forms')
+               'region_forms', 'ivs_forms')
     n = 0
     with out.open('w', encoding='utf-8', newline='\n') as f:
         f.write('# Character display info for the marinaMoji character composer.\n')
@@ -379,6 +421,7 @@ def write_tsv(rows: dict[int, dict[str, str]], out: pathlib.Path,
                 'old_form': info.get('old_form', ''),
                 'new_form': info.get('new_form', ''),
                 'region_forms': info.get('region_forms', ''),
+                'ivs_forms': info.get('ivs_forms', ''),
             }
             f.write('\t'.join(cells[c] for c in columns) + '\n')
             n += 1
@@ -403,6 +446,8 @@ def main() -> None:
     ap.add_argument('--nyukan-seiji', type=pathlib.Path,
                     help='nyukanseiji.json, table4_1 only (government '
                          'notice; see README.md)')
+    ap.add_argument('--ivd', type=pathlib.Path,
+                    help='IVD_Sequences.txt (Unicode-3.0; see README.md)')
     ap.add_argument('--source-han-cmaps', type=pathlib.Path,
                     help='directory with the ten Adobe UniSourceHan{Sans,'
                          'Serif}{CN,HK,TW,JP,KR}-UTF32-H CMaps (BSD-3; see '
@@ -421,6 +466,9 @@ def main() -> None:
     if args.nyukan_seiji:
         added = add_nyukan_itaiji(rows, args.nyukan_seiji)
         print(f'{added} nyukan variant links added', file=sys.stderr)
+    if args.ivd:
+        added = add_ivs_forms(rows, args.ivd)
+        print(f'{added} characters with IVS forms', file=sys.stderr)
     if args.source_han_cmaps:
         added = add_region_forms(rows, args.source_han_cmaps)
         print(f'{added} characters with regional forms', file=sys.stderr)

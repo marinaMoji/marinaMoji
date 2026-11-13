@@ -38,6 +38,8 @@ build script is BSD-3-Clause like the rest of marinaMoji tooling.
 
 | `region_forms` | which regions draw this character alike in Source Han, e.g. `CN JP\|HK TW\|KR` (groups split by `\|`, regions CN HK TW JP KR); empty when all regions that have the character agree |
 
+| `ivs_forms` | forms registered in the Unicode IVD, per collection: `A` Adobe-Japan1, `H` Hanyo-Denshi, `M` Moji_Joho, `S` MSARG, `K` KRName, e.g. `A3 H2 M4`; empty if none |
+
 Empty fields are left blank. The file is generated; it is not hand-edited.
 
 ## Rebuild
@@ -58,6 +60,16 @@ Optional: limit to the same blocks the composer draws by default:
 ```bash
 python3 build_char_info.py --unihan /path/to/Unihan --out char_info.tsv --composer-blocks
 ```
+
+## IVD forms
+
+`ivs_forms` counts the variation sequences registered for a character in the
+Unicode Ideographic Variation Database (`IVD_Sequences.txt`, 2022-09-13,
+SHA-256 `e6168c2ed8e0834d3eccb8a6d43aad004c97c8216e237101f1c2e8347be2b523`,
+Unicode-3.0, notice in `UNICODE_NOTICE.txt`). Use `--ivd FILE`. It says how
+many distinct glyph forms of one character exist (邉 has A15 H16 M16); it does
+not link different characters. 13,949 of 28,056 rows have a value. Not shown
+in the UI yet.
 
 ## Source Han regional forms
 
@@ -155,3 +167,32 @@ The checked-in file got 249 links from the 2026-11-12 dump (20 more were already
 To improve KAGE drawings, rebuild `../kage/` from a GlyphWiki dump (see
 `../kage/README.kage.md`). That pipeline is separate on purpose: different
 licence, different consumers, and much larger files.
+
+## MJ links (separate file, CC BY-SA 2.1 Japan)
+
+`char_info_mj.tsv` holds variant → standard-form links from IPA's
+[MJ縮退マップ 1.2.0](https://moji.or.jp/mojikiban/map/) (SHA-256 of
+`MJShrinkMapVer.1.2.0.zip`
+`f109f64aaf357d9d44b8eff39c1c633bc7e5b3f526efc812951732f4ca92014c`) and
+[MJ文字情報一覧表 006.02](https://moji.or.jp/mojikiban/mjlist/) (`mji.00602.xlsx`
+`f79075bf006b66c5e57a6df60503c5a01679cabbcea2f124eb3758593cf6fd3f`).
+Copyright IPA, licensed CC BY-SA 2.1 Japan. The file is a derived work, so it
+**stays a separate file** under that licence and is **never merged into
+`char_info.tsv`**. Columns: `variant`, `standard`, `kind`
+(`koseki` 戸籍統一文字情報 親字・正字, `tsutatsu` 民一2842号通達別表,
+`tsuchi` 民二5202号通知別表, `jis` JIS包摂規準・UCS統合規則). 4,711 links between
+characters that have a row in `char_info.tsv`:
+
+```bash
+python3 build_mj_links.py --mj-list mji.00602.xlsx \
+    --mj-map MJShrinkMap.1.2.0.json --char-info char_info.tsv \
+    --out char_info_mj.tsv
+```
+
+Not read: 辞書類等による関連字 (loose; see the GitHub issue), 読み・字形による類推
+(guesses), and 告示582号別表第四 (already used, from the government notice).
+
+**Not shipped yet.** Nothing reads this file and it is not in the
+`character_info_data` filegroup or any package. Before it is installed, add it
+to both copyright files, credit IPA in `credits_en.html` and the About page,
+and ship the CC BY-SA notice with it.

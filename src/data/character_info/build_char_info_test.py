@@ -105,6 +105,21 @@ class BuildCharInfoTest(unittest.TestCase):
       self.assertEqual(rows[0x342A]['variants'], '\u4ea5')
       self.assertNotIn('variants', rows[0x3403])  # table4_2 is ignored
 
+  def test_ivs_forms_count_sequences_per_collection(self):
+    with tempfile.TemporaryDirectory() as tmp:
+      path = pathlib.Path(tmp) / 'IVD_Sequences.txt'
+      path.write_text(
+          '# IVD_Sequences\n'
+          '3402 E0100; Adobe-Japan1; CID+13698\n'
+          '3402 E0101; Adobe-Japan1; CID+13697\n'
+          '3402 E0102; Moji_Joho; MJ000123\n'
+          '3402 E0100; Unknown; X\n'
+          '9999 E0100; Hanyo-Denshi; HD1\n', encoding='utf-8')
+      rows = {0x3402: {}, 0x4E00: {}}
+      self.assertEqual(b.add_ivs_forms(rows, path), 1)
+      self.assertEqual(rows[0x3402]['ivs_forms'], 'A2 M1')
+      self.assertNotIn('ivs_forms', rows[0x4E00])
+
   def test_cjkvi_variants_are_added_both_ways_to_existing_rows_only(self):
     with tempfile.TemporaryDirectory() as tmp:
       root = pathlib.Path(tmp)

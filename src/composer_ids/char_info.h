@@ -34,6 +34,9 @@ struct CharInfo {
   // Regions (CN HK TW JP KR) that draw this character alike in Source Han,
   // groups separated by '|', e.g. "CN JP|HK TW|KR". Empty if all agree.
   std::string region_forms;
+  // Ideographic Variation Database forms per collection, e.g. "A3 H2 M4"
+  // (A Adobe-Japan1, H Hanyo-Denshi, M Moji_Joho, S MSARG, K KRName).
+  std::string ivs_forms;
 };
 
 class CharInfoTable {

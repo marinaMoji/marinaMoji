@@ -31,6 +31,13 @@ TEST(CharInfoTableTest, ParsesRegionForms) {
   EXPECT_EQ(table->Find("骨")->region_forms, "CN KR|HK TW|JP");
 }
 
+TEST(CharInfoTableTest, ParsesIvsForms) {
+  auto table = CharInfoTable::FromTsv(
+      "邉\tU+9089\t\t\t\t\t\t\t\t\t\t\t\tA10 H3 M34\n");
+  ASSERT_TRUE(table.ok());
+  EXPECT_EQ(table->Find("邉")->ivs_forms, "A10 H3 M34");
+}
+
 TEST(CharInfoTableTest, OldFilesWithoutJapaneseColumnsStillParse) {
   auto table = CharInfoTable::FromTsv("謀\tU+8B00\t16\n");
   ASSERT_TRUE(table.ok());

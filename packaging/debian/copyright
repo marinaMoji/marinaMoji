@@ -114,6 +114,14 @@ Comment:
  that repository (hydzd-variants.txt, twedu-variants.txt, ...) are not
  included. See src/data/character_info/README.md.
 
+Files: src/data/character_info/char_info_mj.tsv
+Copyright: IPA (Information-technology Promotion Agency, Japan)
+License: CC-BY-SA-2.1-JP
+Comment:
+ Variant to standard-form links from the MJ縮退マップ and MJ文字情報一覧表
+ (https://moji.or.jp/mojikiban/), a derived work kept in its own file under the
+ source licence. It is not installed by any package yet.
+
 Files: src/data/kage/kage_glyphs.tsv
        src/data/kage/kage_layout.tsv
        src/data/kage/kage_subtrees.tsv
@@ -449,3 +457,9 @@ License: GlyphWiki-Free-Data
  License of this document is the same as the data files.
  .
  Copyright 2009 GlyphWiki Project.
+
+License: CC-BY-SA-2.1-JP
+ Creative Commons Attribution-ShareAlike 2.1 Japan. The full licence text is
+ at https://creativecommons.org/licenses/by-sa/2.1/jp/legalcode . Attribute
+ IPA (Information-technology Promotion Agency, Japan); derived works must be
+ distributed under the same licence.
