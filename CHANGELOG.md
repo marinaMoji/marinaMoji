@@ -12,14 +12,15 @@ changed and, where it isn't obvious, why.
 
 ### Licensing cleanup (2026-11-13)
 
-- **Character info:** the variant pairs from the cjkvi-variants tables
-  (`cjkvi-variants.txt`, `hydzd-variants.txt`) are no longer shipped. That
-  repository has no licence, the first file carries a copyright header with no
-  grant, and the second comes from a printed dictionary; the maintainers did
-  not answer a request for a licence. `char_info.tsv` was rebuilt from Unihan
-  18.0 plus GlyphWiki itaiji links (269 from the 2026-11-12 dump); no other
-  column changed. Characters with a variant link fell from 21,464 to 11,100.
-  `build_char_info.py --cjkvi-variants` remains for local, unshipped builds.
+- **Character info:** `hydzd-variants.txt` (from the printed 漢語大字典) is no
+  longer shipped in `char_info.tsv`. `cjkvi-variants.txt` stays: the repository
+  has no licence file, but the kanji-database project that owns it declares its
+  variant data MIT-licensed, and the notice is now in the copyright files.
+  `twedu-variants.txt` (MOE data) was never used. `char_info.tsv` was rebuilt
+  from Unihan 18.0, `cjkvi-variants.txt` and GlyphWiki itaiji links (the
+  2026-11-12 dump); no other column changed. Characters with a variant link
+  fell from 21,464 to 12,410. `build_char_info.py --cjkvi-variants` now reads
+  only `cjkvi-variants.txt`.
 - **Copyright files:** `packaging/debian/copyright` and
   `packaging/linux/data/copyright` now cover the Unihan stroke counts,
   `char_info.tsv` and the KAGE data (new `GlyphWiki-Free-Data` paragraph),

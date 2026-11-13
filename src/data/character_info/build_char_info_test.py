@@ -63,14 +63,15 @@ class BuildCharInfoTest(unittest.TestCase):
           '鐗,cjkvi/variant,鐧\n'
           '鐗,cjkvi/variant,鐗\n'
           '鐗,cjkvi/variant,鍵鍵\n', encoding='utf-8')
+      # Only cjkvi-variants.txt is read; other tables in the folder are ignored.
       (root / 'hydzd-variants.txt').write_text(
-          '鐧,hydzd/variant,𨰓\n鐧,hydzd/variant,鐗\n', encoding='utf-8')
+          '鐧,hydzd/variant,𨰓\n', encoding='utf-8')
       rows = {0x9427: {'variants': '锏'}, 0x9417: {}}
       added = b.add_cjkvi_variants(rows, root)
-      self.assertEqual(rows[0x9427]['variants'], '锏 鐗 𨰓')
+      self.assertEqual(rows[0x9427]['variants'], '锏 鐗')
       self.assertEqual(rows[0x9417]['variants'], '鐧')
       self.assertNotIn(0x28C13, rows)
-      self.assertEqual(added, 3)
+      self.assertEqual(added, 2)
 
   def test_glyphwiki_itaiji_aliases_link_existing_rows_both_ways(self):
     with tempfile.TemporaryDirectory() as tmp:

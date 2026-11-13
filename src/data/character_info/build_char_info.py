@@ -110,7 +110,7 @@ def load_unihan(directory: pathlib.Path) -> dict[int, dict[str, str]]:
 # is given. Lines are "A,relation,B"; header lines have <name>/<rev> in the
 # middle column. Relations are not directional here: each pair is listed both
 # ways in |variants|.
-CJKVI_VARIANT_FILES = ('cjkvi-variants.txt', 'hydzd-variants.txt')
+CJKVI_VARIANT_FILES = ('cjkvi-variants.txt',)
 
 
 def add_cjkvi_variants(rows: dict[int, dict[str, str]],
@@ -245,10 +245,10 @@ def main() -> None:
     ap.add_argument('--composer-blocks', action='store_true',
                     help='only BMP radicals/kana/CJK blocks the composer draws')
     ap.add_argument('--cjkvi-variants', type=pathlib.Path,
-                    help='LOCAL USE ONLY: directory with cjkvi-variants.txt '
-                         'and hydzd-variants.txt. Those tables have no '
-                         'licence; never ship a file built with this '
-                         '(see README.md)')
+                    help='directory with cjkvi-variants.txt (MIT, declared '
+                         'by the kanji-database project; see README.md). '
+                         'Do not add hydzd-variants.txt or '
+                         'twedu-variants.txt')
     ap.add_argument('--glyphwiki-itaiji', type=pathlib.Path,
                     help='GlyphWiki dump_newest_only.txt (see README.md)')
     args = ap.parse_args()
