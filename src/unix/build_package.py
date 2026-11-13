@@ -90,6 +90,9 @@ class Packager:
                                           'mozc_emacs_helper'),
         'mozc.el': os.path.join(args.emacs_client_dir, 'mozc.el'),
     }
+    # Preferences > About links to this file (SystemUtil::GetDocumentDirectory).
+    self.location_rules['credits_en.html'] = os.path.join(
+        args.mozc_dir, 'documents', 'credits_en.html')
     opencc_dir = os.path.join(args.mozc_dir, 'opencc')
     for filename in MARINA_OPENCC_FILES:
       self.location_rules[filename] = os.path.join(opencc_dir, filename)

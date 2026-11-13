@@ -55,17 +55,19 @@ License: BSD-3-Clause
 
 Files: src/data/marina_opencc/*
 Copyright: 2010-2024, Carbo Kuo and OpenCC contributors
+           2014, CJKVI Database (jp-old-style.txt)
            2024-2026, Marina Pandolfino and Daniel Patrick Morgan
-           Electronic Dictionary Research and Development Group (KANJIDIC2, JMdict)
-License: Apache-2.0 and CC-BY-SA-4.0
+License: Apache-2.0 and MIT
 Comment:
- Conversion tables derived from OpenCC and recompiled for marinaMoji. The
- shinjitai/kyujitai character and phrase pairs were also built in part from
- material in the KANJIDIC2 and JMdict files (https://www.edrdg.org/), used under
- the EDRDG licence, CC BY-SA 4.0. The tables hold only character and word
- pairs, no definitions or readings. They are plain data read at run time and
- not linked into any binary. The same sources are acknowledged in the About
- dialog and in credits_en.html. See src/data/marina_opencc/tables/README.md.
+ Shinjitai/kyujitai conversion tables. The OpenCC configuration and table
+ layout derive from OpenCC and were recompiled for marinaMoji. The character
+ pairs were collected from cjkvi-variants' jp-old-style.txt (MIT, declared by
+ the kanji-database project), a published list of old and new forms of the
+ joyo/jinmei kanji, the hyogai list and the Bunkacho (Kokugo Shingikai, 1956)
+ replacement-character list, then reviewed by hand. KANJIDIC2, JMdict and the
+ Mozc dictionary were used only to check which forms are attested; no
+ definitions or readings are included. The tables are plain data read at run
+ time and not linked into any binary. See src/data/marina_opencc/tables/README.md.
 
 Files: src/data/character_composer/*
 Copyright: CHISE project and contributors
@@ -440,14 +442,3 @@ License: GlyphWiki-Free-Data
  License of this document is the same as the data files.
  .
  Copyright 2009 GlyphWiki Project.
-
-License: CC-BY-SA-4.0
- Creative Commons Attribution-ShareAlike 4.0 International.
- .
- You may share and adapt the material for any purpose, even commercially,
- provided you give appropriate credit, provide a link to the licence, indicate
- if changes were made, and distribute any contributions under the same licence.
- .
- The full legal text is at https://creativecommons.org/licenses/by-sa/4.0/legalcode
- and the Electronic Dictionary Research and Development Group's statement is
- at https://www.edrdg.org/edrdg/licence.html

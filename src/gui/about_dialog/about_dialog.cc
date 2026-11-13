@@ -131,12 +131,7 @@ AboutDialog::AboutDialog(QWidget *parent)
   label_6->setTextFormat(Qt::RichText);
   label_6->setText(
       QObject::tr("marinaMoji is a fork of Mozc by M. Pandolfino and D.P. Morgan.\n"
-                  "<a href=\"https://github.com/google/mozc\">Mozc</a> © Google LLC.<br>"
-                  "Kanji conversion tables include material from "
-                  "<a href=\"https://www.edrdg.org/\">KANJIDIC2 and JMdict</a> "
-                  "© the Electronic Dictionary Research and Development Group, "
-                  "used under "
-                  "<a href=\"https://www.edrdg.org/edrdg/licence.html\">CC BY-SA 4.0</a>."));
+                  "<a href=\"https://github.com/google/mozc\">Mozc</a> © Google LLC."));
   label_6->setWordWrap(true);
   connect(label_6, &QLabel::linkActivated, this, &AboutDialog::linkActivated);
   // Let the label use the full width so the text can sit on one line (with margin).

@@ -102,6 +102,7 @@ genrule(
         "//data/character_composer:character_composer_data",
         "//data/kage:kage_data",
         "//data/character_info:character_info_data",
+        "//data/installer:credits_en.html",
         "//data/marina_opencc:opencc_data",
         "//gui/tool:mozc_tool",
         "//server:mozc_server",

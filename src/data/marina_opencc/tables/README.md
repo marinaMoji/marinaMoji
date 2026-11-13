@@ -14,26 +14,35 @@ See [`docs/OPENCC_INTEGRATION.md`](../../../../docs/OPENCC_INTEGRATION.md).
 
 ## Sources and licences
 
-The pairs in these tables were collected by the `character_conversion` project
-from several sources, and the source tags in `char_complete_shin_kyu_table_manual.csv`
-record which ones attest each character pair (`jmdict`, `kd2`, `mozc`):
+The `character_conversion` project builds these tables. Where the pairs come from:
 
-- **OpenCC** (Apache-2.0).
-- **Mozc** dictionary data (BSD-3-Clause).
-- **KANJIDIC2 and JMdict** (`kd2`, `jmdict`), from the Electronic Dictionary
-  Research and Development Group, **CC BY-SA 4.0**
-  (<https://www.edrdg.org/edrdg/licence.html>). Of the 500 character rows, 112
-  have no Mozc attestation and 16 rest only on KANJIDIC2 or JMdict. Many of the
-  phrase pairs were confirmed against JMdict headwords.
+- **Characters** (`char_complete_shin_kyu_table_manual.csv`, about 500 rows):
+  `jp-old-style.txt` from cjkvi-variants (MIT, declared by the kanji-database
+  project: <https://kanji-database.sourceforge.net/>); the 新旧字体表 on the
+  CyberLibrarian site (<https://www.asahi-net.or.jp/~ax2s-kmtn/ref/old_chara.html>),
+  a list of the 常用漢字表 and 人名用漢字 old forms that states no licence; and
+  a short 表外 (hyōgai) list. Reviewed and corrected by hand.
+- **Phrases** (`phrases_substitution_table_final.csv`, about 980 rows): the
+  Bunkachō / Kokugo Shingikai 「同音の漢字による書きかえ」 (1956) list and the
+  代用字 list at <https://sound.jp/mtnest/k/tojo-daiyo-.htm>, which also states no
+  licence. Reviewed by hand.
+- **OpenCC** (Apache-2.0): the configuration (`marinaShin2Kyu.json`) and the
+  three-layer table layout.
 
-The tables contain only character and word pairs, no definitions or readings,
-but EDRDG's licence covers "data files which are derived from" its files, so we
-treat these tables as CC BY-SA 4.0 data (ShareAlike: they cannot be relicensed
-more permissively). They are read as data at run time and are not linked into
-any binary. The acknowledgement the licence asks for is in the About dialog,
-`src/data/installer/credits_en.html` and both copyright files.
+The source tags in the characters CSV (`jmdict`, `kd2`, `mozc`) only record in
+which dictionaries each form is *attested*: they were added after the pairs were
+collected, by exact string match against Mozc, JMdict and KANJIDIC2, and they
+guided the manual review. No pair, definition or reading was copied from
+KANJIDIC2 or JMdict. We credit the Electronic Dictionary Research and
+Development Group (<https://www.edrdg.org/edrdg/licence.html>) anyway, in the
+About dialog and `credits_en.html`.
 
-Still to audit: the `character_conversion` pipeline also mines Wiktionary
-(`kaikki`), CC-CEDICT, the MJ shrink map and UniDic. Wiktionary, CC-CEDICT and
-the MJ data are ShareAlike licences too. How much of each reached these tables
-has not been checked.
+Open points:
+
+- The two web pages above state no licence. They compile official Japanese
+  lists (the 常用漢字表 and the 1956 Kokugo Shingikai report) and the pairs are
+  facts, so the risk looks low, but we have not asked their authors.
+- The same pipeline mines Wiktionary (`kaikki`), CC-CEDICT, the MJ shrink map and
+  UniDic. Their outputs are **not** read by `generate_opencc_tables.py`, which
+  takes only the three CSVs in this directory, so nothing from them is in these
+  tables. Keep it that way: those sources are ShareAlike.
