@@ -245,8 +245,10 @@ def main() -> None:
     ap.add_argument('--composer-blocks', action='store_true',
                     help='only BMP radicals/kana/CJK blocks the composer draws')
     ap.add_argument('--cjkvi-variants', type=pathlib.Path,
-                    help='directory with cjkvi-variants.txt and '
-                         'hydzd-variants.txt (see README.md)')
+                    help='LOCAL USE ONLY: directory with cjkvi-variants.txt '
+                         'and hydzd-variants.txt. Those tables have no '
+                         'licence; never ship a file built with this '
+                         '(see README.md)')
     ap.add_argument('--glyphwiki-itaiji', type=pathlib.Path,
                     help='GlyphWiki dump_newest_only.txt (see README.md)')
     args = ap.parse_args()

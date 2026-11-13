@@ -30,6 +30,34 @@ Comment:
  mozc_tool; they are not compiled or linked into any binary, which stay
  BSD-3-Clause. See character_composer/README.md in the same directory.
 
+Files: usr/lib/marinamoji/character_composer/stroke_counts.tsv
+       usr/lib/marinamoji/character_composer/LICENSE.Unicode
+Copyright: 1991-2026, Unicode, Inc.
+License: Unicode-3.0
+Comment:
+ Total stroke counts from the Unicode Unihan database (kTotalStrokes).
+
+Files: usr/lib/marinamoji/character_composer/char_info.tsv
+       usr/lib/marinamoji/character_composer/UNICODE_NOTICE.txt
+Copyright: 1991-2026, Unicode, Inc. (Unihan data)
+           2009, GlyphWiki Project and contributors (itaiji links)
+License: Unicode-3.0 and GlyphWiki-Free-Data
+Comment:
+ Generated from the Unicode Unihan database plus variant links taken from
+ GlyphWiki glyph names. UNICODE_NOTICE.txt carries the notice the Unicode
+ licence requires. No data from the unlicensed cjkvi-variants repository is
+ included.
+
+Files: usr/lib/marinamoji/character_composer/kage_glyphs.tsv
+       usr/lib/marinamoji/character_composer/kage_layout.tsv
+       usr/lib/marinamoji/character_composer/kage_subtrees.tsv
+       usr/lib/marinamoji/character_composer/LICENSE.GlyphWiki
+Copyright: 2009, GlyphWiki Project and contributors
+License: GlyphWiki-Free-Data
+Comment:
+ KAGE stroke data and layout tables derived from the GlyphWiki dump, read at
+ run time by mozc_tool.
+
 Files: usr/share/icons/marinamoji/dictionary.* usr/share/icons/marinamoji/properties.* usr/share/icons/marinamoji/tool.*
 Copyright: Google LLC
 License: Apache-2.0
@@ -380,3 +408,14 @@ License: GPL-2+
  .
  On Debian systems the full text of the GNU General Public License
  version 2 can be found in /usr/share/common-licenses/GPL-2.
+
+License: GlyphWiki-Free-Data
+ These data files are free software.
+ Unlimited permission is hereby granted to use, copy, and distribute
+ these files, with or without modification, either commercially
+ or non-commercially.
+ .
+ THIS DATA IS PROVIDED "AS IS" WITHOUT ANY WARRANTY.
+ License of this document is the same as the data files.
+ .
+ Copyright 2009 GlyphWiki Project.

@@ -15,7 +15,7 @@ Unihan files. Redistribution of Unihan data must follow the
 build script is BSD-3-Clause like the rest of marinaMoji tooling.
 
 `char_info.tsv` in this tree was built with `--composer-blocks` from Unihan
-(Unicode 18.0.0, 2026-07-31), `--cjkvi-variants` and `--glyphwiki-itaiji` (below).
+(Unicode 18.0.0, 2026-07-31) and `--glyphwiki-itaiji` (below).
 
 ## Output
 
@@ -31,7 +31,7 @@ build script is BSD-3-Clause like the rest of marinaMoji tooling.
 | `ja_kun` | `kJapaneseKun` |
 | `rs` | `kRSUnicode` (e.g. `149'.9`) |
 | `definition` | `kDefinition` (may be empty) |
-| `variants` | related characters, space-separated: Unihan's variant fields, then the cjkvi-variants pairs (both directions) |
+| `variants` | related characters, space-separated: Unihan's variant fields, then GlyphWiki itaiji links (both directions) |
 | `ja_kana` | `kJapanese`: on in katakana then kun in hiragana (covers far more characters than `ja_on`/`ja_kun`) |
 | `old_form` | `kJapaneseOldVariant`: the 旧字体 of this character (set on a 新字体) |
 | `new_form` | `kJapaneseNewVariant`: the 新字体 of this character (set on a 旧字体) |
@@ -57,25 +57,23 @@ Optional: limit to the same blocks the composer draws by default:
 python3 build_char_info.py --unihan /path/to/Unihan --out char_info.tsv --composer-blocks
 ```
 
-## cjkvi-variants
+## cjkvi-variants (not shipped)
 
-`variants` also draws on two tables from
-<https://github.com/cjkvi/cjkvi-variants>: `cjkvi-variants.txt` (header:
-"Copyright (c) 2014 CJKVI Database") and `hydzd-variants.txt` (variant forms
-from the 漢語大字典). Each `A,relation,B` pair is added in both directions, only
-to characters that already have a row. They add 鐧 → 鐗 and 𨰓, which Unihan
-does not link.
+`variants` used to include pairs from two tables in
+<https://github.com/cjkvi/cjkvi-variants>, `cjkvi-variants.txt` and
+`hydzd-variants.txt`. They were removed on 2026-11-13. The repository has no
+licence file, `cjkvi-variants.txt` carries a "Copyright (c) 2014 CJKVI
+Database" header with no grant, and `hydzd-variants.txt` is taken from the
+漢語大字典, a printed dictionary. The maintainers did not answer a request for
+a licence, so we have no permission to redistribute either table.
 
-**Licence caveat.** The repository has no licence file. The tables are
-collected from other works, so they are not covered by Unicode's terms. They are
-used here on the maintainer's decision. Do not take `twedu-variants.txt` from
-the same repository: it comes from the Taiwanese Ministry of Education's
-異體字字典, whose data may be supplied only on application. If the licence
-becomes a problem, rebuild without `--cjkvi-variants`.
+`build_char_info.py` still accepts `--cjkvi-variants DIR` so a developer can
+build a **local** file for their own use. Never commit or ship a
+`char_info.tsv` built that way.
 
-To rebuild with them, put the two files in one folder (fetched from
-`https://raw.githubusercontent.com/cjkvi/cjkvi-variants/master/<file>`) and add
-`--cjkvi-variants /that/folder`.
+Do not take `twedu-variants.txt` from that repository either: it comes from the
+Taiwanese Ministry of Education's 異體字字典, whose data may be supplied only on
+application and only for non-commercial use.
 
 ## GlyphWiki itaiji
 
@@ -86,7 +84,7 @@ editors made it as an 異体字 of XXXX. Only pairs where both characters lie in
 the composer blocks are kept; the rare extension characters it also reaches are
 mostly components, not variants. The links are unreviewed, so some are loose
 (for example 来 ↔ 耒). GlyphWiki's licence is in `../kage/LICENSE.GlyphWiki`.
-The checked-in file got 223 links from the 2026-11-02 dump.
+The checked-in file got 269 links from the 2026-11-12 dump.
 
 ## Drawing data (GlyphWiki)
 

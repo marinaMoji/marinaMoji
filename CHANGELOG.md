@@ -10,6 +10,21 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Licensing cleanup (2026-11-13)
+
+- **Character info:** the variant pairs from the cjkvi-variants tables
+  (`cjkvi-variants.txt`, `hydzd-variants.txt`) are no longer shipped. That
+  repository has no licence, the first file carries a copyright header with no
+  grant, and the second comes from a printed dictionary; the maintainers did
+  not answer a request for a licence. `char_info.tsv` was rebuilt from Unihan
+  18.0 plus GlyphWiki itaiji links (269 from the 2026-11-12 dump); no other
+  column changed. Characters with a variant link fell from 21,464 to 11,100.
+  `build_char_info.py --cjkvi-variants` remains for local, unshipped builds.
+- **Copyright files:** `packaging/debian/copyright` and
+  `packaging/linux/data/copyright` now cover the Unihan stroke counts,
+  `char_info.tsv` and the KAGE data (new `GlyphWiki-Free-Data` paragraph),
+  which were missing.
+
 ### Release candidate 0.0.21-rc13
 
 Everything in 0.0.21-rc12 plus (rc12 never published: its Intel macOS job
