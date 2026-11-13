@@ -146,6 +146,66 @@ def add_cjkvi_variants(rows: dict[int, dict[str, str]],
     return added
 
 
+def add_links(rows: dict[int, dict[str, str]], pairs) -> int:
+    """Adds each (a, b) pair of characters to |variants| both ways.
+
+    Only characters that already have a row get a link: this adds to what
+    Unihan describes, it does not create rows. Returns the links added.
+    """
+    added = 0
+    for a, b in pairs:
+        if len(a) != 1 or len(b) != 1 or a == b:
+            continue
+        for x, y in ((a, b), (b, a)):
+            row = rows.get(ord(x))
+            if row is None or ord(y) not in rows:
+                continue
+            have = row.get('variants', '').split()
+            if y not in have:
+                row['variants'] = ' '.join(have + [y])
+                added += 1
+    return added
+
+
+def add_tghb_variants(rows: dict[int, dict[str, str]],
+                      path: pathlib.Path) -> int:
+    """Links each 规范字 to its 繁体字 and 异体字 from tghb's variants.txt.
+
+    |path| is mandel59/tongyongguifanhanzibiao variants.txt (CC0 data from the
+    State Council's 通用规范汉字表). Columns: 序号, 规范字, 繁体字, 异体字, 註解.
+    """
+    pairs = []
+    with path.open(encoding='utf-8') as f:
+        next(f, None)  # header
+        for line in f:
+            cols = line.rstrip('\n').split('\t')
+            if len(cols) >= 4:
+                pairs += [(cols[1], cols[2]), (cols[1], cols[3])]
+    return add_links(rows, pairs)
+
+
+def add_nyukan_itaiji(rows: dict[int, dict[str, str]],
+                      path: pathlib.Path) -> int:
+    """Links 入管 簡体字等 to their 正字 (異体字) from 別表第四の一.
+
+    |path| is nyukanseiji.json (@mandel59/nyukanseiji): MOJ notice 582 of
+    2011, a government notice outside copyright. Only "table4_1" is read.
+    Each entry is [簡体字等, 正字 (第1順位), 正字 (第2順位)?], hex code points.
+    Table "table4_2" pairs with 類字 (look-alikes, not variants) and is not
+    used.
+    """
+    import json
+    data = dict(json.loads(path.read_text(encoding='utf-8')))
+    pairs = []
+    for entry in data['table4_1']:
+        try:
+            chars = [chr(int(h, 16)) for h in entry]
+        except ValueError:
+            continue
+        pairs += [(chars[0], c) for c in chars[1:]]
+    return add_links(rows, pairs)
+
+
 # Source Han regional forms (Adobe CMaps). Source Han Sans/Serif keep one glyph
 # pool for all five regions and one code point -> CID map per region, so two
 # regions draw a character the same way exactly when their CIDs are equal. As
@@ -337,6 +397,12 @@ def main() -> None:
                          'by the kanji-database project; see README.md). '
                          'Do not add hydzd-variants.txt or '
                          'twedu-variants.txt')
+    ap.add_argument('--tghb-variants', type=pathlib.Path,
+                    help='tongyongguifanhanzibiao variants.txt (CC0; see '
+                         'README.md)')
+    ap.add_argument('--nyukan-seiji', type=pathlib.Path,
+                    help='nyukanseiji.json, table4_1 only (government '
+                         'notice; see README.md)')
     ap.add_argument('--source-han-cmaps', type=pathlib.Path,
                     help='directory with the ten Adobe UniSourceHan{Sans,'
                          'Serif}{CN,HK,TW,JP,KR}-UTF32-H CMaps (BSD-3; see '
@@ -349,6 +415,12 @@ def main() -> None:
     if args.cjkvi_variants:
         added = add_cjkvi_variants(rows, args.cjkvi_variants)
         print(f'{added} cjkvi variant links added', file=sys.stderr)
+    if args.tghb_variants:
+        added = add_tghb_variants(rows, args.tghb_variants)
+        print(f'{added} tghb variant links added', file=sys.stderr)
+    if args.nyukan_seiji:
+        added = add_nyukan_itaiji(rows, args.nyukan_seiji)
+        print(f'{added} nyukan variant links added', file=sys.stderr)
     if args.source_han_cmaps:
         added = add_region_forms(rows, args.source_han_cmaps)
         print(f'{added} characters with regional forms', file=sys.stderr)

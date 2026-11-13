@@ -52,13 +52,16 @@ Files: usr/lib/marinamoji/character_composer/char_info.tsv
 Copyright: 1991-2026, Unicode, Inc. (Unihan data)
            2009, GlyphWiki Project and contributors (itaiji links)
            2014, CJKVI Database (cjkvi-variants.txt pairs)
+           mandel59 (tghb variants data, CC0-1.0)
            1990-2025, Adobe (Source Han regional-form data)
-License: Unicode-3.0 and GlyphWiki-Free-Data and MIT and BSD-3-Clause
+License: Unicode-3.0 and GlyphWiki-Free-Data and MIT and BSD-3-Clause and CC0-1.0
 Comment:
  Generated from the Unicode Unihan database, variant links taken from
  GlyphWiki glyph names, and the pairs in cjkvi-variants.txt
  (github.com/cjkvi/cjkvi-variants, commit e4f1da2), which the kanji-database
  project declares MIT-licensed (https://kanji-database.sourceforge.net/).
+ The tghb variants table (CC0) and the 入管 正字 table of Ministry of Justice
+ Notice 582 (2011, a government notice outside copyright) add variant links.
  The region_forms column records which regions draw a character alike,
  derived from the Adobe Source Han Sans/Serif code point to CID maps (the maps
  are not shipped). UNICODE_NOTICE.txt carries the notice the Unicode licence
@@ -436,3 +439,9 @@ License: GlyphWiki-Free-Data
  License of this document is the same as the data files.
  .
  Copyright 2009 GlyphWiki Project.
+
+License: CC0-1.0
+ Creative Commons Zero 1.0 Universal. The person who associated this work
+ with the deed has dedicated it to the public domain by waiving all rights
+ to the work worldwide under copyright law, to the extent allowed by law.
+ Full text: https://creativecommons.org/publicdomain/zero/1.0/legalcode

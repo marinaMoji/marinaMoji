@@ -10,6 +10,13 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Character info: more variant links (2026-11-13)
+
+- `variants` in `char_info.tsv` gains about 12,400 links: tghb (通用规范汉字表
+  variants, CC0 data) and 入管正字 別表第四の一 (法務省告示第582号, a government
+  notice). 別表第四の二 (類字, look-alikes) is deliberately not used. 17,376
+  characters now have variants (was 12,410).
+
 ### Character info: regional forms (2026-11-13)
 
 - `char_info.tsv` has a new `region_forms` column saying which regions (CN, HK,

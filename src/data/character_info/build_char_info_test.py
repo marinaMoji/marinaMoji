@@ -82,6 +82,29 @@ class BuildCharInfoTest(unittest.TestCase):
       self.assertNotIn('region_forms', rows[0x4E02])
       self.assertEqual(added, 2)
 
+  def test_tghb_and_nyukan_links_go_both_ways_to_existing_rows_only(self):
+    with tempfile.TemporaryDirectory() as tmp:
+      root = pathlib.Path(tmp)
+      (root / 'variants.txt').write_text(
+          '序号\t规范字\t繁体字\t异体字\t註解\n'
+          '0006\t厂\t廠\t廠\t\n'
+          '0008\t卜\t卜\t蔔\t\n', encoding='utf-8')
+      (root / 'nyukanseiji.json').write_text(
+          '[["table4_1", [["3400", "4e18"], ["342a", "4ea5", "5b9b"]]],'
+          ' ["table4_2", [["3403", "4ed0"]]]]', encoding='utf-8')
+      rows = {0x5382: {}, 0x5EE0: {}, 0x535C: {}, 0x8514: {},
+              0x3400: {}, 0x4E18: {}, 0x342A: {}, 0x4EA5: {},
+              0x3403: {}, 0x4ED0: {}}
+      self.assertEqual(b.add_tghb_variants(rows, root / 'variants.txt'), 4)
+      self.assertEqual(rows[0x5382]['variants'], '廠')
+      self.assertEqual(rows[0x535C]['variants'], '蔔')
+      self.assertEqual(rows[0x8514]['variants'], '卜')
+      self.assertEqual(b.add_nyukan_itaiji(rows, root / 'nyukanseiji.json'), 4)
+      self.assertEqual(rows[0x3400]['variants'], '\u4e18')
+      self.assertNotIn(chr(0x5B9B), rows[0x342A]['variants'])  # row absent
+      self.assertEqual(rows[0x342A]['variants'], '\u4ea5')
+      self.assertNotIn('variants', rows[0x3403])  # table4_2 is ignored
+
   def test_cjkvi_variants_are_added_both_ways_to_existing_rows_only(self):
     with tempfile.TemporaryDirectory() as tmp:
       root = pathlib.Path(tmp)

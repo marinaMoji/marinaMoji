@@ -31,7 +31,7 @@ build script is BSD-3-Clause like the rest of marinaMoji tooling.
 | `ja_kun` | `kJapaneseKun` |
 | `rs` | `kRSUnicode` (e.g. `149'.9`) |
 | `definition` | `kDefinition` (may be empty) |
-| `variants` | related characters, space-separated: Unihan's variant fields, then the cjkvi-variants pairs and GlyphWiki itaiji links (both directions) |
+| `variants` | related characters, space-separated: Unihan's variant fields, then the cjkvi-variants pairs, the tghb and 入管 pairs and GlyphWiki itaiji links (both directions) |
 | `ja_kana` | `kJapanese`: on in katakana then kun in hiragana (covers far more characters than `ja_on`/`ja_kun`) |
 | `old_form` | `kJapaneseOldVariant`: the 旧字体 of this character (set on a 新字体) |
 | `new_form` | `kJapaneseNewVariant`: the 新字体 of this character (set on a 旧字体) |
@@ -79,6 +79,33 @@ involve Hong Kong may be under-reported.
 The checked-in file got the column by appending it to the previous
 `char_info.tsv` (the other 12 columns are unchanged); a rebuild from scratch
 with `--source-han-cmaps` gives the same column.
+
+## tghb and 入管正字 variants
+
+`variants` also draws on two public-domain-style sources, both read through
+mandel59's extractions (pinned as in mojidata's data-licenses.json) and only
+added to characters that already have a row:
+
+- **tghb** (`--tghb-variants variants.txt`): 規範字 ↔ 繁体字/異体字 pairs from the
+  State Council's 通用规范汉字表 (2013). Data dedicated CC0 by
+  [mandel59/tongyongguifanhanzibiao](https://github.com/mandel59/tongyongguifanhanzibiao)
+  commit `8c0896737a618085c0d291b498a66657949ef9eb`; `variants.txt` SHA-256
+  `7e7ed4d51f71fa0afd4849d72b79cc5d13828c15a709b75f28914d3a7863ada0`. As
+  mojidata notes, it went through Wikisource and was not regenerated from the
+  official PDF. 994 links.
+- **入管正字** (`--nyukan-seiji nyukanseiji.json`): 別表第四の一 of 法務省告示
+  第582号 (2011), 簡体字等 ↔ their 正字 (異体字), first and second rank. A
+  government notice, outside copyright (Copyright Act Art. 13(2)); extraction
+  by [@mandel59/nyukanseiji](https://www.npmjs.com/package/@mandel59/nyukanseiji)
+  1.2.1 (MIT-0), `nyukanseiji.json` SHA-256
+  `1c9c83dca4aacea98985612904ef68004bf1f1df8e4a2dd2df2052229e8037aa`.
+  11,400 links. **Only table4_1.** 別表第四の二 pairs a 簡体字等 with a 正字
+  (類字), a merely similar-looking character chosen where no variant exists
+  (notice 別表第三 第4); it is not a variant relation and is not used.
+
+Together they take `variants` from 15,854 to 28,248 links (12,410 to 17,376
+characters). The checked-in file was updated by appending these links to the
+previous `char_info.tsv`; the other columns are unchanged.
 
 ## cjkvi-variants
 
