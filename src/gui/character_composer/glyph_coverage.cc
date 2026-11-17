@@ -6,10 +6,13 @@
 #include <QFontDatabase>
 #include <QGlyphRun>
 #include <QList>
+#include <QPainterPath>
+#include <QRawFont>
 #include <QRegularExpression>
 #include <QTextLayout>
 #include <QTextLine>
 #include <algorithm>
+#include <utility>
 
 namespace mozc {
 namespace gui {
@@ -41,6 +44,35 @@ std::vector<QRawFont> LoadRawFonts(const QStringList &families,
     if (loaded != nullptr) loaded->append(family);
   }
   return fonts;
+}
+
+// A font's cmap can claim a character whose glyph is empty (or Qt can lay it
+// out in a font that cannot paint it), which shows as a blank cell instead of
+// an amber one. Lay |text| out in |font| as the composer will paint it and
+// require every glyph to have an outline.
+bool PaintsInk(const QFont &font, const QString &text) {
+  QTextLayout layout(text, font);
+  layout.beginLayout();
+  QTextLine line = layout.createLine();
+  if (line.isValid()) line.setLineWidth(1.0e6);
+  layout.endLayout();
+  if (!line.isValid()) return false;
+  bool any = false;
+  for (const QGlyphRun &run : layout.glyphRuns()) {
+    const QRawFont raw = run.rawFont();
+    for (const quint32 glyph : run.glyphIndexes()) {
+      if (glyph == 0) return false;
+      if (raw.isValid() && raw.pathForGlyph(glyph).isEmpty()) return false;
+      any = true;
+    }
+  }
+  return any;
+}
+
+GlyphCoverage::Result Verified(const QFont &font, const QString &text,
+                               GlyphCoverage::Result result) {
+  if (result.drawable && !PaintsInk(font, text)) result.drawable = false;
+  return result;
 }
 
 }  // namespace
@@ -160,7 +192,7 @@ GlyphCoverage::Result GlyphCoverage::Compute(const QString &text) {
                          return raw.supportsCharacter(static_cast<uint>(cp));
                        });
   });
-  if (own) return result;
+  if (own) return Verified(font_, base, std::move(result));
 
   // 2. Another installed Han font, named so that Qt uses it.
   LoadExtraFonts();
@@ -170,13 +202,17 @@ GlyphCoverage::Result GlyphCoverage::Compute(const QString &text) {
           return raw.supportsCharacter(static_cast<uint>(cp));
         })) {
       result.extra_family = extra_families_[i];
-      return result;
+      QFont with_extra = font_;
+      QStringList families = FamiliesOf(with_extra);
+      families.append(result.extra_family);
+      with_extra.setFamilies(families);
+      return Verified(with_extra, base, std::move(result));
     }
   }
 
   // 3. Whatever Qt and the system fallback find.
   result.drawable = QtDraws(font_, base);
-  return result;
+  return Verified(font_, base, std::move(result));
 }
 
 void GlyphCoverage::LoadExtraFonts() {
