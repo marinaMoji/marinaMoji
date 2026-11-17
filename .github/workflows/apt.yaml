@@ -53,7 +53,15 @@ jobs:
             echo "error: no GitHub releases found" >&2
             exit 1
           fi
+          # Keep gh-pages small: ~24 MB per .deb adds up fast. apt only ever
+          # installs the newest version, so superseded release candidates are
+          # dead weight. Ship every final release plus the newest tag (which
+          # may be an RC); skip all other -rc tags. The list is newest-first.
           for tag in "${tags[@]}"; do
+            if [[ "$tag" == *-rc* && "$tag" != "${tags[0]}" ]]; then
+              echo "Skipping superseded release candidate $tag"
+              continue
+            fi
             echo "Downloading .deb from $tag"
             gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
               --pattern '*.deb' --dir debs --clobber || true
