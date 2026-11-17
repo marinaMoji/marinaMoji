@@ -27,6 +27,11 @@ QStringList WideCoverageFamilies();
 // |font| with WideCoverageFamilies() appended after its own families.
 QFont WithWideCoverage(QFont font);
 
+// |font| with WideCoverageFamilies() placed BEFORE its own families, for cells
+// that only show Han characters: the broadest fonts get first pick, so the UI
+// font's partial CJK coverage (or a fallback Qt cannot paint) never decides.
+QFont WideCoverageFirst(QFont font);
+
 // A character counts as drawable when, in this order:
 //  1. one of |font|'s own families (after WithWideCoverage) has a glyph;
 //  2. another installed font made for Han text (Japanese first, then

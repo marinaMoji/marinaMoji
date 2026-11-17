@@ -115,6 +115,17 @@ QStringList WideCoverageFamilies() {
   return families;
 }
 
+QFont WideCoverageFirst(QFont font) {
+  QStringList families = WideCoverageFamilies();
+  for (const QString &family : FamiliesOf(font)) {
+    if (!families.contains(family, Qt::CaseInsensitive)) {
+      families.append(family);
+    }
+  }
+  font.setFamilies(families);
+  return font;
+}
+
 QFont WithWideCoverage(QFont font) {
   QStringList families = FamiliesOf(font);
   for (const QString &family : WideCoverageFamilies()) {
@@ -127,7 +138,7 @@ QFont WithWideCoverage(QFont font) {
 }
 
 GlyphCoverage::GlyphCoverage(const QFont &font)
-    : font_(WithWideCoverage(font)) {
+    : font_(WideCoverageFirst(font)) {
   own_fonts_ = LoadRawFonts(FamiliesOf(font_), nullptr);
   usable_ = Compute(QStringLiteral("木")).drawable;
 }

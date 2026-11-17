@@ -2280,7 +2280,7 @@ void CharacterComposerDialog::BuildUi(const QString &data_directory) {
   results_list_->setAttribute(Qt::WA_MacShowFocusRect, false);
   QFont results_font = results_list_->font();
   results_font.setPointSize(results_font.pointSize() + 7);
-  results_list_->setFont(WithWideCoverage(results_font));
+  results_list_->setFont(WideCoverageFirst(results_font));
   connect(results_list_, &QListWidget::itemClicked, this,
           &CharacterComposerDialog::OnContainingPicked);
   connect(results_list_, &QListWidget::itemActivated, this,
@@ -2479,7 +2479,7 @@ void CharacterComposerDialog::SetVariantsChips(
     variants_value_->setToolTip(QString());
     return;
   }
-  QFont variants_font = WithWideCoverage(theme::UiFont(16));
+  QFont variants_font = WideCoverageFirst(theme::UiFont(16));
   const std::vector<VariantChip> chips =
       FormatVariantChips(*info, &variants_font);
   if (chips.empty()) {
