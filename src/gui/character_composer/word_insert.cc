@@ -156,18 +156,21 @@ std::string PowerShellEncodedCommand(std::string_view text) {
 #ifdef _WIN32
 namespace {
 bool g_word_was_foreground = false;
+HWND g_word_window = nullptr;
 }  // namespace
 #endif  // _WIN32
 
 void NoteForegroundApp() {
 #ifdef _WIN32
   g_word_was_foreground = false;
+  g_word_window = nullptr;
   const HWND window = ::GetForegroundWindow();
   if (window == nullptr) return;
   wchar_t class_name[64] = {};
   if (::GetClassNameW(window, class_name, 64) == 0) return;
   // Word's main (and document) windows.
   g_word_was_foreground = (std::wstring_view(class_name) == L"OpusApp");
+  if (g_word_was_foreground) g_word_window = window;
 #endif  // _WIN32
 }
 
@@ -286,6 +289,12 @@ absl::Status InsertSvgIntoWord(std::string_view svg_path, std::string_view ids) 
     return absl::InternalError(absl::StrCat(
         "powershell failed (exit ", exit_code,
         "); is a document open in Word, and not in Protected View?"));
+  }
+  // The composer has closed and the COM call may leave no window active, which
+  // let the IME's floating toolbar end up behind Word. Give Word the
+  // foreground again (best effort; Windows may refuse).
+  if (g_word_window != nullptr && ::IsWindow(g_word_window)) {
+    ::SetForegroundWindow(g_word_window);
   }
   return absl::OkStatus();
 #else
