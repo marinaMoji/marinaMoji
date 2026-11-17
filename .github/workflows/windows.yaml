@@ -337,6 +337,27 @@ jobs:
           rem This job does not build Qt, so skip the Qt-based character composer.
           bazelisk test -c dbg --test_output=errors --build_tests_only --build_event_json_file=bep.jsonl --disk_cache=%GITHUB_WORKSPACE%\.bazel_disk_cache -- ... -//gui/character_composer/...
 
+      # TEMPORARY diagnostics for the LLVM 22 "absolute path inclusion" failure.
+      # Remove once that is fixed.
+      - name: Diagnose clang-cl toolchain (temporary)
+        if: always()
+        shell: bash
+        working-directory: ./src
+        run: |
+          echo "--- clang-cl -v"
+          third_party/llvm/bin/clang-cl.exe -v 2>&1 | head -6 || true
+          echo "--- clang-cl -print-resource-dir"
+          third_party/llvm/bin/clang-cl.exe -print-resource-dir 2>&1 | head -3 || true
+          echo "--- lib/clang"
+          ls third_party/llvm/lib/clang || true
+          ob="$(bazelisk info output_base 2>/dev/null | tr -d '\r')"
+          echo "--- output_base=$ob"
+          ls "$ob/external" | grep -i -E "local_config_cc|rules_cc" || true
+          for f in "$ob"/external/*local_config_cc/BUILD; do
+            echo "--- $f (clang / builtin include lines)"
+            grep -n -i -E "clang|cxx_builtin_include" "$f" | cut -c1-400 | head -60
+          done || true
+
       - name: Save Bazel disk cache
         if: success() && github.ref == 'refs/heads/master'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
