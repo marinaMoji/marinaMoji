@@ -10,6 +10,11 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+- **Windows builds:** the vendored LLVM/clang-cl is now 22.1.8 (was 20.1.1). The
+  windows-11-arm runner image picked up Visual Studio 18 / MSVC 14.52, whose
+  STL refuses anything older than Clang 22 (`error STL1000`), which broke the
+  Windows CI build. Not yet confirmed by a CI run.
+
 ### Release candidate 0.0.21-rc14
 
 Everything in 0.0.21-rc13 plus the "Character info" entries below, and:
