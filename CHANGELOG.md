@@ -10,6 +10,25 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+### Release candidate 0.0.21-rc14
+
+Everything in 0.0.21-rc13 plus the "Character info" entries below, and:
+
+- **Character composer (Linux):** the results grid and the variants row now
+  give the wide-coverage Han fonts (HanaMin, Jigmo, Noto CJK, ...) first pick,
+  ahead of the UI font. On Linux the UI font could win for characters it cannot
+  paint, leaving blank cells that were not marked as missing (issue 177). The
+  font-coverage check now also requires every glyph to have an outline, and
+  judges characters in the same font order the grid paints them. Untested on
+  Linux.
+- **apt repository:** superseded release candidates are no longer republished
+  to `gh-pages`, which had grown to hundreds of MB. Only final releases and the
+  newest tag are kept.
+- **Windows:** Word gets the foreground back after the COM insert.
+- rc14 is the last release-candidate slot for 0.0.21 on Windows (the file
+  version has 14 rc slots per patch version); the next build must be 0.0.22-rc1
+  or a final 0.0.21.
+
 ### Character info: IVD forms and MJ links (2026-11-13)
 
 - `char_info.tsv` has an `ivs_forms` column (registered IVD forms per
