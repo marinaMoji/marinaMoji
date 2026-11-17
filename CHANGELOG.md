@@ -10,8 +10,11 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
-- **Windows builds:** the vendored LLVM/clang-cl is now 22.1.8 (was 20.1.1). The
-  windows-11-arm runner image picked up Visual Studio 18 / MSVC 14.52, whose
+- **Windows builds:** the vendored LLVM/clang-cl for **arm64** is now 22.1.8 (was
+  20.1.1); x64 stays on 20.1.1, since 22 fails Bazel's absolute-path inclusion
+  check on both architectures (`lib/clang/22/include/*.h` not recognised as
+  builtin; cause not yet found), so arm64 is still broken either way.
+  Reason for the bump: the windows-11-arm runner image picked up Visual Studio 18 / MSVC 14.52, whose
   STL refuses anything older than Clang 22 (`error STL1000`), which broke the
   Windows CI build. Not yet confirmed by a CI run.
 
