@@ -22,7 +22,7 @@ concurrency:
 jobs:
   build_arm64:
     # https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md
-    runs-on: [self-hosted, macOS, ARM64, marinamoji-mac]
+    runs-on: macos-15
     timeout-minutes: 60
 
     steps:
@@ -86,7 +86,7 @@ jobs:
 
   build_intel64:
     # https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md
-    runs-on: [self-hosted, macOS, ARM64, marinamoji-mac]
+    runs-on: macos-15
     timeout-minutes: 60
 
     steps:
@@ -150,7 +150,7 @@ jobs:
 
   test:
     # https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md
-    runs-on: [self-hosted, macOS, ARM64, marinamoji-mac]
+    runs-on: macos-15
     timeout-minutes: 60
 
     steps:
