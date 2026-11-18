@@ -78,19 +78,19 @@ class MozcVersionTest(absltest.TestCase):
 
   def testMarinaWindowsRevisionRisesAcrossRcsAndFinals(self):
     revision = lambda v: int(mozc_version._MarinaWindowsRevisionFromVersion(v))
-    ordered = ['0.0.17', '0.0.18-rc1', '0.0.18-rc2', '0.0.18-rc14', '0.0.18',
-               '0.0.19-rc1', '0.0.19', '0.1.0-rc1', '0.1.0', '0.40.95']
+    ordered = ['0.0.17', '0.0.18-rc1', '0.0.18-rc2', '0.0.18-rc30', '0.0.18',
+               '0.0.19-rc1', '0.0.19', '0.1.0-rc1', '0.1.0', '0.20.47']
     revisions = [revision(v) for v in ordered]
     self.assertEqual(revisions, sorted(set(revisions)))
-    self.assertEqual(revision('0.0.18-rc1'), 289)
-    self.assertEqual(revision('v0.0.18'), 303)
+    self.assertEqual(revision('0.0.18-rc1'), 577)
+    self.assertEqual(revision('v0.0.18'), 607)
     # Above every value the previous (slot-less) scheme gave 0.0.17 / 0.0.18.
     self.assertGreater(revision('0.0.18-rc1'), 18)
-    self.assertLessEqual(revision('0.40.95'), 0xffff)
+    self.assertLessEqual(revision('0.20.47'), 0xffff)
 
   def testMarinaWindowsRevisionRejectsUnmappableVersions(self):
-    for bad in ['0.0.18-rc0', '0.0.18-rc15', '0.0.18-beta1', '0.0.18-rc',
-                '0.41.0', '1.0.0', '0.0.100', 'garbage']:
+    for bad in ['0.0.18-rc0', '0.0.18-rc31', '0.0.18-beta1', '0.0.18-rc',
+                '0.20.48', '1.0.0', '0.0.100', 'garbage']:
       with self.assertRaises(ValueError, msg=bad):
         mozc_version._MarinaWindowsRevisionFromVersion(bad)
 

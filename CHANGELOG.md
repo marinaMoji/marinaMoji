@@ -10,6 +10,11 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+- **Windows versioning:** the file-version revision now has 32 slots per X.Y.Z
+  (rc1–rc30, final = 31) instead of 16 (rc1–rc14, final = 15), because
+  `0.0.21-rc15` was rejected by the build. Values still rise across all earlier
+  releases; the ceiling for X.Y.Z drops from 0.40.95 to 0.20.47.
+
 - **macOS:** with "use Japanese keyboard" on, the layout could flip back to AZERTY
   (the last ASCII layout) when switching input modes, because macOS resets the
   layout during the switch and the override was only applied in `activateServer:`.

@@ -105,12 +105,14 @@ def _GetRevisionForPlatform(revision, target_platform):
   return revision
 
 
-# marinaMoji: slots per X.Y.Z in the Windows file-version revision. Slots 1-14
-# are the release candidates (-rc1 ... -rc14) and slot 15 is the final release,
-# so rcN < rcN+1 < final.
-_MARINA_REVISION_SLOTS = 16
-_MARINA_FINAL_SLOT = 15
-_MARINA_MAX_RC = 14
+# marinaMoji: slots per X.Y.Z in the Windows file-version revision. Slots 1-30
+# are the release candidates (-rc1 ... -rc30) and slot 31 is the final release,
+# so rcN < rcN+1 < final.  (Originally 16 slots / 14 rcs; widened when 0.0.21
+# needed an rc15.  Every value is larger than the 16-slot scheme gave for the
+# same or an earlier release, so installed builds still upgrade.)
+_MARINA_REVISION_SLOTS = 32
+_MARINA_FINAL_SLOT = 31
+_MARINA_MAX_RC = 30
 
 
 def _MarinaWindowsRevisionFromVersion(version):
@@ -123,13 +125,13 @@ def _MarinaWindowsRevisionFromVersion(version):
   binaries in place. The fourth field is the only one free to vary (it is
   ignored for ProductVersion comparison but not for file versions).
 
-  revision = (major * 10000 + minor * 100 + patch) * 16 + slot, where slot is
-  the rc number for an "-rcN" release (1..14) and 15 for a final release. So
-  "0.0.18-rc1" -> 289, "0.0.18-rc2" -> 290, "0.0.18" -> 303, "0.0.19-rc1" ->
-  305: it rises with every release, rc or final, and an rc is always lower than
+  revision = (major * 10000 + minor * 100 + patch) * 32 + slot, where slot is
+  the rc number for an "-rcN" release (1..30) and 31 for a final release. So
+  "0.0.18-rc1" -> 577, "0.0.18-rc2" -> 578, "0.0.18" -> 607, "0.0.19-rc1" ->
+  609: it rises with every release, rc or final, and an rc is always lower than
   its final. The field is 16 bits, so the base (major * 10000 + minor * 100 +
-  patch) must stay below 4096 (0.40.95); beyond that, or for a suffix other
-  than -rcN, or an rc number above 14, the build fails rather than silently
+  patch) must stay below 2048 (0.20.47); beyond that, or for a suffix other
+  than -rcN, or an rc number above 30, the build fails rather than silently
   producing a version that does not rise.
 
   Versions released before this scheme used revision = major * 10000 +
@@ -161,7 +163,7 @@ def _MarinaWindowsRevisionFromVersion(version):
   if minor >= 100 or patch >= 100 or revision > 0xffff:
     raise ValueError(
         'marinaMoji version %r does not fit the Windows file-version '
-        'revision (X.Y.Z below 0.41.0); revisit '
+        'revision (X.Y.Z up to 0.20.47); revisit '
         '_MarinaWindowsRevisionFromVersion' % version)
   return str(revision)
 
