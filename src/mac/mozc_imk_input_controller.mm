@@ -371,6 +371,16 @@ TISInputSourceRef CopyPreferredKeyboardLayout() {
   return nullptr;
 }
 
+// Id of the layout macOS currently reports, for trace logging only.
+std::string CurrentKeyboardLayoutId() {
+  TISInputSourceRef source = TISCopyCurrentKeyboardLayoutInputSource();
+  const std::string id = InputSourceId(source);
+  if (source != nullptr) {
+    CFRelease(source);
+  }
+  return id;
+}
+
 TISInputSourceRef CopyInputSourceWithId(const std::string &source_id) {
   if (source_id.empty()) {
     return nullptr;
@@ -1501,6 +1511,10 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
     // Apple does not have "Japanese" layout actually -- here sets
     // "US" layout, which means US-ASCII layout or JIS layout
     // depending on which type of keyboard is actually connected.
+    if (MarinaImkTraceEnabled()) {
+      LOG(INFO) << "[marinaImk] keyboard override (activate/config); layout="
+                << CurrentKeyboardLayoutId();
+    }
     [[self client] overrideKeyboardWithKeyboardNamed:@"com.apple.keylayout.US"];
   }
 }
@@ -1508,6 +1522,10 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
 - (void)scheduleKeyboardOverrideReapply {
   if (!cachedUseJapaneseLayout_ || keyboardOverrideReapplyPending_) {
     return;
+  }
+  if (MarinaImkTraceEnabled()) {
+    LOG(INFO) << "[marinaImk] setValue: mode switch, layout now "
+              << CurrentKeyboardLayoutId() << "; queuing override reapply";
   }
   keyboardOverrideReapplyPending_ = true;
   // macOS resets the keyboard layout (to the last ASCII-capable one, e.g.
@@ -1524,6 +1542,10 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
     strongSelf->keyboardOverrideReapplyPending_ = false;
     if (!strongSelf->imeServerActive_ || !strongSelf->cachedUseJapaneseLayout_) {
       return;
+    }
+    if (MarinaImkTraceEnabled()) {
+      LOG(INFO) << "[marinaImk] override reapply; layout before="
+                << CurrentKeyboardLayoutId();
     }
     [[strongSelf client] overrideKeyboardWithKeyboardNamed:@"com.apple.keylayout.US"];
   });
