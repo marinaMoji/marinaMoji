@@ -164,6 +164,10 @@
   bool cachedMenuConfigValid_;
   bool cachedUseTraditionalKanji_;
   bool cachedPrivacyMode_;
+  // Config's use_japanese_layout, and whether a deferred keyboard override
+  // reapply is already queued (see -scheduleKeyboardOverrideReapply).
+  bool cachedUseJapaneseLayout_;
+  bool keyboardOverrideReapplyPending_;
 }
 
 /** These are externally accessible to achieve tests. */
@@ -313,6 +317,9 @@
 
 /** Obtains the current configuration from the server and update client-specific configurations. */
 - (void)handleConfig;
+// Reapplies the Japanese-keyboard override on the next run loop turn, after
+// macOS has finished switching input modes (which resets the layout).
+- (void)scheduleKeyboardOverrideReapply;
 
 /** Sets up the client capability */
 - (void)setupCapability;

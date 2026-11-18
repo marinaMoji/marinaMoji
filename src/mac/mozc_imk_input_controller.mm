@@ -670,6 +670,8 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   cachedMenuConfigValid_ = false;
   cachedUseTraditionalKanji_ = false;
   cachedPrivacyMode_ = false;
+  cachedUseJapaneseLayout_ = false;
+  keyboardOverrideReapplyPending_ = false;
   yenSignCharacter_ = mozc::config::Config::YEN_SIGN;
   mozcRenderer_ = mozc::renderer::RendererClient::Create();
   mozcClient_ = mozc::client::ClientFactory::NewClient();
@@ -1121,6 +1123,7 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   if (imkClientForTest_) {
     return;
   }
+  [self scheduleKeyboardOverrideReapply];
 
   // Called by macOS when |-switchDisplayMode| uses |selectInputMode:|.  Do not
   // push mode changes back to the server or call |-switchDisplayMode| again.
@@ -1493,12 +1496,37 @@ std::optional<CompositionMode> LoadLastCompositionMode() {
   [keyCodeMap_ setInputMode:input_mode];
   yenSignCharacter_ = config.yen_sign_character();
 
+  cachedUseJapaneseLayout_ = config.use_japanese_layout();
   if (config.use_japanese_layout()) {
     // Apple does not have "Japanese" layout actually -- here sets
     // "US" layout, which means US-ASCII layout or JIS layout
     // depending on which type of keyboard is actually connected.
     [[self client] overrideKeyboardWithKeyboardNamed:@"com.apple.keylayout.US"];
   }
+}
+
+- (void)scheduleKeyboardOverrideReapply {
+  if (!cachedUseJapaneseLayout_ || keyboardOverrideReapplyPending_) {
+    return;
+  }
+  keyboardOverrideReapplyPending_ = true;
+  // macOS resets the keyboard layout (to the last ASCII-capable one, e.g.
+  // AZERTY) while switching input modes, after |-setValue:forTag:client:|
+  // returns.  Calling the override synchronously from there can re-enter the
+  // input system and freeze, so wait for the next run loop turns instead.
+  __weak MozcImkInputController *weakSelf = self;
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 150 * NSEC_PER_MSEC),
+                 dispatch_get_main_queue(), ^{
+    MozcImkInputController *strongSelf = weakSelf;
+    if (strongSelf == nil) {
+      return;
+    }
+    strongSelf->keyboardOverrideReapplyPending_ = false;
+    if (!strongSelf->imeServerActive_ || !strongSelf->cachedUseJapaneseLayout_) {
+      return;
+    }
+    [[strongSelf client] overrideKeyboardWithKeyboardNamed:@"com.apple.keylayout.US"];
+  });
 }
 
 - (void)setupClientBundle:(id)sender {

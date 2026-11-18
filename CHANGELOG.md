@@ -10,6 +10,12 @@ changed and, where it isn't obvious, why.
 
 ## Unreleased
 
+- **macOS:** with "use Japanese keyboard" on, the layout could flip back to AZERTY
+  (the last ASCII layout) when switching input modes, because macOS resets the
+  layout during the switch and the override was only applied in `activateServer:`.
+  `setValue:forTag:client:` now queues a coalesced reapply 150 ms later on the
+  main queue (not synchronously, which re-entered the input system and froze).
+
 - **Windows builds:** the vendored LLVM/clang-cl for **arm64** is now 22.1.8 (was
   20.1.1); x64 stays on 20.1.1, since 22 fails Bazel's absolute-path inclusion
   check on both architectures (`lib/clang/22/include/*.h` not recognised as
