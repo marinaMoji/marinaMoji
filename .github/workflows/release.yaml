@@ -400,8 +400,13 @@ jobs:
         run: |
           rem Shared Bazel cache (Cloudflare R2 behind tools/bazel-cache-worker).
           rem Skipped when the secrets are not set, so the build still works.
+          rem Bazel only downloads top-level outputs from a remote cache. When a
+          rem rebuild of the same version is a full cache hit, the generated
+          rem product_version_def.h and the gui/tool .exe are never written to
+          rem disk and "Verify product version in build" finds nothing, so
+          rem force just those two to be downloaded.
           set CACHE_FLAGS=
-          if defined BAZEL_CACHE_URL set CACHE_FLAGS=--remote_cache=%BAZEL_CACHE_URL% --remote_header="Authorization=Bearer %BAZEL_CACHE_TOKEN%" --remote_timeout=120
+          if defined BAZEL_CACHE_URL set CACHE_FLAGS=--remote_cache=%BAZEL_CACHE_URL% --remote_header="Authorization=Bearer %BAZEL_CACHE_TOKEN%" --remote_timeout=120 --remote_download_regex=.*product_version_def\.h --remote_download_regex=.*/bin/gui/tool/.*\.exe
           bazelisk build package --config release_build ${{ matrix.extra_configs }} --define CHANNEL=stable %CACHE_FLAGS%
 
       - name: Verify product version in build
