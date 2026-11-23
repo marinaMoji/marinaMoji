@@ -43,10 +43,13 @@ concurrency:
 
 jobs:
   build_macos:
-    # macos-15, like macos.yaml: the macos-26 pool is small and jobs requesting
-    # it were cancelled after 15 minutes without ever getting a runner
-    # (v0.0.21-rc1, three attempts).
-    runs-on: macos-15
+    # arm64 runs on macos-15, like macos.yaml: the macos-26 pool is small and
+    # jobs requesting it were cancelled after 15 minutes without ever getting a
+    # runner (v0.0.21-rc1, three attempts). The Intel build runs natively on
+    # macos-15-intel: it was cross-built on macos-15 before, and that pool was
+    # so oversubscribed that the Intel job never got a runner in eight
+    # attempts (v0.0.21).
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
     environment: release
     strategy:
@@ -55,7 +58,7 @@ jobs:
         # Release candidates (tags containing "-rc") skip the Intel build: it
         # held up rc12 for hours waiting on a runner. Final tags and manual
         # runs still build both architectures.
-        include: ${{ fromJSON(contains(github.ref_name, '-rc') && '[{"arch":"arm64","macos_cpus":"arm64"}]' || '[{"arch":"arm64","macos_cpus":"arm64"},{"arch":"x86_64","macos_cpus":"x86_64"}]') }}
+        include: ${{ fromJSON(contains(github.ref_name, '-rc') && '[{"arch":"arm64","macos_cpus":"arm64","runner":"macos-15"}]' || '[{"arch":"arm64","macos_cpus":"arm64","runner":"macos-15"},{"arch":"x86_64","macos_cpus":"x86_64","runner":"macos-15-intel"}]') }}
 
     steps:
       - name: Checkout

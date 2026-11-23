@@ -265,6 +265,8 @@ systems; they say so.
 
 ### Release process, CI and packaging
 
+- The macOS Intel (x86_64) package is built natively on `macos-15-intel`; on
+  `macos-15` (cross-build) the job never got a runner in eight attempts.
 - Release builds retry `stapler` on transient CloudKit failures, prefetch
   Bazel dependencies with retries (`build_tools/bazel_prefetch.sh`) and
   authenticate GitHub downloads via `NETRC`, after GitHub release-asset 504s
