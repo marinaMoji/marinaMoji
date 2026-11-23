@@ -1,0 +1,22 @@
+# TEMPORARY: measures how long a macos-15-intel runner takes to be assigned,
+# to decide where the Intel release build should run. Manual only.
+# Remove once that is decided.
+name: Runner probe (temporary)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe_intel:
+    runs-on: macos-15-intel
+    timeout-minutes: 10
+    steps:
+      - name: Report runner
+        run: |
+          date -u
+          uname -m
+          sw_vers
+          xcodebuild -version || true
