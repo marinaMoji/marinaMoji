@@ -8,509 +8,300 @@ that touch more than one file or aren't obvious from a commit subject line.
 Format: newest entry first, grouped by date. Each entry should say what
 changed and, where it isn't obvious, why.
 
-## Unreleased
-
-- **Windows versioning:** the file-version revision now has 32 slots per X.Y.Z
-  (rc1–rc30, final = 31) instead of 16 (rc1–rc14, final = 15), because
-  `0.0.21-rc15` was rejected by the build. Values still rise across all earlier
-  releases; the ceiling for X.Y.Z drops from 0.40.95 to 0.20.47.
-
-- **macOS:** with "use Japanese keyboard" on, the layout could flip back to AZERTY
-  (the last ASCII layout) when switching input modes, because macOS resets the
-  layout during the switch and the override was only applied in `activateServer:`.
-  `setValue:forTag:client:` now queues a coalesced reapply 150 ms later on the
-  main queue (not synchronously, which re-entered the input system and froze).
-
-- **Windows builds:** the vendored LLVM/clang-cl for **arm64** is now 22.1.8 (was
-  20.1.1); x64 stays on 20.1.1, since 22 fails Bazel's absolute-path inclusion
-  check on both architectures (`lib/clang/22/include/*.h` not recognised as
-  builtin; cause not yet found), so arm64 is still broken either way.
-  Reason for the bump: the windows-11-arm runner image picked up Visual Studio 18 / MSVC 14.52, whose
-  STL refuses anything older than Clang 22 (`error STL1000`), which broke the
-  Windows CI build. Not yet confirmed by a CI run.
-
-### Release candidate 0.0.21-rc14
-
-Everything in 0.0.21-rc13 plus the "Character info" entries below, and:
-
-- **Character composer (Linux):** the results grid and the variants row now
-  give the wide-coverage Han fonts (HanaMin, Jigmo, Noto CJK, ...) first pick,
-  ahead of the UI font. On Linux the UI font could win for characters it cannot
-  paint, leaving blank cells that were not marked as missing (issue 177). The
-  font-coverage check now also requires every glyph to have an outline, and
-  judges characters in the same font order the grid paints them. Untested on
-  Linux.
-- **apt repository:** superseded release candidates are no longer republished
-  to `gh-pages`, which had grown to hundreds of MB. Only final releases and the
-  newest tag are kept.
-- **Windows:** Word gets the foreground back after the COM insert.
-- rc14 is the last release-candidate slot for 0.0.21 on Windows (the file
-  version has 14 rc slots per patch version); the next build must be 0.0.22-rc1
-  or a final 0.0.21.
-
-### Character info: IVD forms and MJ links (2026-11-13)
-
-- `char_info.tsv` has an `ivs_forms` column (registered IVD forms per
-  collection; 13,949 rows). Not shown in the UI yet.
-- New `char_info_mj.tsv` (CC BY-SA 2.1 Japan, IPA): 4,711 variant to standard
-  links from the MJ縮退マップ, kept apart from `char_info.tsv`. It is installed
-  on Linux, macOS and Windows and read by the character composer, which offers
-  its links after the other variants. Credited in the copyright files and
-  `credits_en.html`. Packaging is untested on Linux and Windows.
-
-### Character info: more variant links (2026-11-13)
-
-- `variants` in `char_info.tsv` gains about 12,400 links: tghb (通用规范汉字表
-  variants, CC0 data) and 入管正字 別表第四の一 (法務省告示第582号, a government
-  notice). 別表第四の二 (類字, look-alikes) is deliberately not used. 17,376
-  characters now have variants (was 12,410).
-
-### Character info: regional forms (2026-11-13)
-
-- `char_info.tsv` has a new `region_forms` column saying which regions (CN, HK,
-  TW, JP, KR) draw a character alike, derived from the Adobe Source Han CMaps
-  (BSD-3-Clause; credited in the copyright files and `credits_en.html`).
-  11,795 of 28,056 characters differ. Not shown in the UI yet.
-
-### Licensing cleanup (2026-11-13)
-
-- **Character info:** `hydzd-variants.txt` (from the printed 漢語大字典) is no
-  longer shipped in `char_info.tsv`. `cjkvi-variants.txt` stays: the repository
-  has no licence file, but the kanji-database project that owns it declares its
-  variant data MIT-licensed, and the notice is now in the copyright files.
-  `twedu-variants.txt` (MOE data) was never used. `char_info.tsv` was rebuilt
-  from Unihan 18.0, `cjkvi-variants.txt` and GlyphWiki itaiji links (the
-  2026-11-12 dump); no other column changed. Characters with a variant link
-  fell from 21,464 to 12,410. `build_char_info.py --cjkvi-variants` now reads
-  only `cjkvi-variants.txt`.
-- **Shin/kyū tables provenance:** audited the sibling `character_conversion`
-  pipeline. The pairs come from cjkvi `jp-old-style.txt` (MIT), a published list
-  of old/new joyo and jinmei forms, the hyōgai list and the Bunkachō 1956
-  replacement-character list; KANJIDIC2, JMdict and Mozc were used only to check
-  which forms are attested, and Wiktionary/CC-CEDICT/MJ outputs never reach the
-  shipped tables. The About dialog now acknowledges EDRDG (KANJIDIC2, JMdict) as
-  "checked against", `credits_en.html` has entries for EDRDG, the CJKVI data,
-  Unihan and GlyphWiki, and the tables README records the sources. The copyright
-  files list the tables as Apache-2.0 and MIT.
-- **Copyright files:** `packaging/debian/copyright` and
-  `packaging/linux/data/copyright` now cover the Unihan stroke counts,
-  `char_info.tsv` and the KAGE data (new `GlyphWiki-Free-Data` paragraph),
-  which were missing.
-
-### Release candidate 0.0.21-rc13
-
-Everything in 0.0.21-rc12 plus (rc12 never published: its Intel macOS job
-was cancelled waiting for a runner):
-
-- **Release builds:** release candidates (tags containing `-rc`) no longer build
-  the macOS Intel (x86_64) package; final tags and manual runs still do. The
-  Intel job was left queued for hours on a runner shortage and, because
-  `publish_release` needs every macOS job, blocked rc12.
-
-### Release candidate 0.0.21-rc12
-
-Everything in 0.0.21-rc11 plus:
-
-#### Stuck Left Shift mode lock (2026-11-12)
-
-A macOS user (Japanese keyboard) switched layouts with the globe key and came
-back to marinaMoji with the mode lock on and no way off: double-tap Left Shift
-and Ctrl+Shift both did nothing, although the toolbar showed hiragana.
-
-- **Lock is always clearable:** `ToggleLeftShiftModeLock` now releases an
-  engaged lock before any eligible-mode or `disable_left_shift_direct_toggle`
-  check. The lock is persisted across sessions, and the mode the client reports
-  (restored on activate, or set by the Eisu key) can differ from the one the
-  toolbar shows, which made the old eligibility check drop the unlock key.
-  This is the likely cause, not confirmed on the user's machine.
-- **Temporary escape hatch:** bare **F12** toggles the lock in any state and
-  config (needs fn on Mac laptops unless F-keys are set as standard). Remove
-  once the root cause is confirmed fixed.
-
-### Release candidate 0.0.21-rc11
-
-Everything in 0.0.21-rc10 plus:
-
-- **Release builds:** fixed the dependency prefetch step, which targeted
-  `//package` instead of `//:package` and failed immediately in rc9 and rc10.
-
-### Release candidate 0.0.21-rc10
-
-Everything in 0.0.21-rc9 plus:
-
-- **Release builds:** Bazel downloads from github.com are authenticated with
-  the workflow token (via `NETRC`). GitHub was timing out anonymous downloads,
-  which failed rc8 and rc9 before compilation started.
-
-### Release candidate 0.0.21-rc9
-
-Everything in 0.0.21-rc8 plus:
-
-- **Release builds:** Bazel dependencies are prefetched with retries
-  (`build_tools/bazel_prefetch.sh`), so intermittent GitHub release-asset 504s
-  no longer fail the whole build. rc8 never published for this reason.
-
-### Release candidate 0.0.21-rc8
-
-Everything in 0.0.21-rc7 plus:
-
-- **Release builds:** the Windows build uses a shared Bazel remote cache (a
-  Cloudflare Worker over R2, in `tools/bazel-cache-worker`), so releases after
-  the first only recompile what changed. The macOS package check retries
-  `stapler` when Apple's service drops the connection.
-
-### Release candidate 0.0.21-rc7
-
-Everything in 0.0.21-rc6 plus:
-
-- **Composer drawing: simpler, closer to GlyphWiki.** The hand-tuned widening
-  and overlap-pull rules for positional forms lowered the overlap with
-  GlyphWiki's registered glyphs when measured over a sample spread across the
-  whole IDS table, so they are gone. Only the shift of the right component
-  next to a narrow left one (亻 and kin) stays. Mean overlap (IoU): ⿰ 0.66 to
-  0.72, ⿱ 0.61 to 0.68, ⿲ 0.27 to 0.35. Characters whose strokes were tuned
-  against the old rules (休, 明, 付) look slightly different; the reviewed
-  comparison baseline was re-recorded.
-- **Developer:** `glyphwiki_compare_main` gains `--stride` (sample the whole
-  table) and `--chars` (score exact characters).
-
-### Release candidate 0.0.21-rc6
-
-Everything in 0.0.21-rc5 plus:
-
-- **Ctrl+2** lists only real characters (see below); no guessed drawing.
-- **macOS installer** shows the marinaMoji logo in the installer window.
-- **Windows:** candidate/cascading window DPI fix; saving files retries
-  `MoveFileExW` when it is briefly refused.
-- **Qt candidate window** hides the empty shortcut column.
-- **Number conversion** (from upstream Mozc): counter suffixes (本, 階, 個 ...)
-  and native-numeral expressions are decoded, with fewer false candidates such
-  as `2書いて` for `にかいて`.
-- **Internal:** `SuffixDictionary` removed; user-dictionary storage and importer
-  moved to `client/user_dictionary`; platform `#ifdef`s replaced with
-  `if constexpr` across session, config, IPC and GUI code; helpers for a future
-  private-input mode on Windows and IBus (no behaviour change yet).
-
-### Ctrl+2 no longer offers a guessed drawing
-
-- Selecting components (木 卷) and pressing Ctrl+2 used to add a Prussian-blue
-  drawing of the default layout (⿰ for two parts, ⿲ for three) when no Unicode
-  character matched, if "show characters that can't be drawn" was on. The
-  selection says nothing about how the parts combine, so that was a guess, and
-  committing it inserted a different drawing from the one in the palette (the
-  server rebuilt it as squeezed font text, since it must not link the GPL KAGE
-  engine). Ctrl+2 now lists only real characters: IDS exact encodes and
-  characters containing every selected part. With nothing to offer it does
-  nothing. Use the character composer to choose a layout. Removed
-  `composer_ids:component_svg_handoff`.
-
-### Release candidate 0.0.21-rc5
-
-Everything in 0.0.21-rc4 plus:
-
-- **Composer drawing: components no longer run into each other.** GlyphWiki's
-  median boxes overlap neighbours by 25–110 units, which suits its narrowed
-  positional forms but made full-size components (龍, 馬, 巻) collide. After
-  placing, each component is rasterized and, while its strokes collide with (or
-  touch) the neighbour's, the two boxes are squeezed apart. Interleaved forms
-  such as 亻木 keep GlyphWiki's overlap; 木巻, 木馬 and ⿱龍龍 come out clean.
-  Checked against the GlyphWiki comparison baseline.
-- **Rare ideographs show in the slot and IDS fields** (they were tofu even with
-  Jigmo installed: those two fields did not use the wide-coverage font list).
-- Also in this release, described below: **Adjust layout…**, finding by a
-  component typed twice, and the bundled Jigmo font.
-
-### Character composer: adjust a drawing's components by hand
-
-- New **Adjust layout…** button (footer) opens a window with the composed
-  drawing and a box round each component. Drag a box to move it, drag its
-  handles to resize it (Shift on a corner keeps the shape), nudge with the
-  arrow keys (Shift = 10), type Left/Top/Width/Height, snap to the square's
-  edges and middle, the other components and the composer's own box, centre
-  across/down, and reset one or all. Nested layouts are adjustable too.
-- The adjusted boxes replace the automatic ones in `ComposeLayout`
-  (`LayoutAdjustments`, keyed by slot path; ⿲/⿳ use the paths of the two
-  nested pairs they are drawn as). The preview, Copy and Insert use them; an
-  adjusted drawing is inserted as an SVG, not as the encoded character, and
-  is dropped when the composition changes. Not saved anywhere yet; new
-  strings are English only.
-
-### Find by components: a component typed twice must occur twice
-
-- Typing 龍龍 now finds only characters containing 龍 at least twice (any
-  depth, e.g. 龖, 讋), not every character containing one. Occurrence counts
-  are kept per component in the containing index (`IdsTable::FindContaining`).
-
-### Rare-ideograph font: Jigmo bundled (Windows, macOS) or recommended (Linux)
-
-- The Windows MSI and macOS pkg now install **Jigmo** (CC0 1.0, release
-  20250912; Jigmo/Jigmo2/Jigmo3, CJK Extensions A–J) system-wide, so
-  candidates for rare and variant characters draw from a real font instead of
-  falling back to the amber GlyphWiki drawing. Windows: a default-on
-  "Rare-character fonts (Jigmo)" feature into `FontsFolder`; macOS:
-  `/Library/Fonts`. Adds about 70 MB installed (35 MB compressed).
-- The zip is pinned by sha256 in `MODULE.bazel` (`jigmo_fonts`).
-- Linux does not bundle it: the deb `Recommends: fonts-jigmo |
-  fonts-babelstone-han | fonts-hanazono`; the Arch packages list `ttf-jigmo`
-  as an optdepend.
-
-### Ctrl+Shift+7/8: keep the selection until you pick a candidate
-
-- Related and components no longer delete the selected character when the
-  palette opens. Escape dismisses the list and leaves the original in place.
-  Choosing a candidate deletes and replaces only then. (Reconvert / 再変換
-  still removes the selection immediately, as before.)
-
-### Candidate window: GlyphWiki drawings for unencoded IDS (Ctrl+2)
-
-- Prussian-blue “SVG” rows used a naive half/half font layout (亻|国). They now
-  use the same GlyphWiki/KAGE composition as the character composer
-  (`ComposeKageData`), left-aligned like ordinary candidate text. The old
-  font preview remains only if a component has no KAGE strokes.
-- **macOS and Windows** use the same shared resolver (`renderer/candidate_kage`)
-  and paint filled KAGE contours (NSBezierPath / GDI+). Amber missing-font rows
-  with bundled strokes also get a drawing. Matches Linux/Qt for Issue #158.
-
-### Candidate window: left-align GlyphWiki drawings
-
-- Amber-plate KAGE drawings sit on the left of the value cell, like ordinary
-  candidate text (they were centred).
-
-### Linux Wayland: Ctrl+Shift+7/8 no longer deletes then inserts a newline
-
-- Forward-delete (`delete_surrounding` offset 0) plus a focus-stealing
-  candidate window made IBus `PREEDIT_COMMIT` into the hole (often a stray
-  newline) while the toolbar gear flashed. The candidate popup now refuses
-  focus (`WindowDoesNotAcceptFocus`), and a short FocusOut grace keeps the
-  conversion alive without committing the preedit.
-
-### Linux Wayland: Ctrl+Shift+7/8 used the neighbour / only worked after newline
-
-- After a mouse selection, Wayland often reports no range and leaves the caret
-  at the *start* of the highlight (select 際 → caret between 國 and 際). The
-  caret fallback preferred “character before the caret,” so Ctrl+Shift+7
-  operated on 國 and Ctrl+Shift+8 on only the last component of a multi-char
-  selection. Related/components now prefer the character(s) *after* the caret
-  (end-of-line still falls back to “before,” which is why a line-break seemed
-  to fix it). Primary/AT-SPI are still tried first; a primary that starts at
-  the caret is accepted.
-
-### Linux: follow installed ExtB fonts (stop false yellow plates)
-
-- Qt’s default font merging on Linux often skips ExtB fonts such as
-  **HanaMinB** even when gedit/fontconfig draws the character. The candidate
-  window now uses the same `GlyphCoverage` / wide-coverage family list as the
-  composer, and sets that font on the cell so the real glyph paints instead of
-  an amber plate.
-
-### Character composer: specimen stays inside its plate
-
-- The middle specimen is a fixed `kPreviewLogical` square; Unicode face and
-  SVG/KAGE previews are sized for that box (no stylesheet padding that shrank
-  the content rect and let the glyph spill out).
-
-### Candidate window: GlyphWiki drawings for missing-font rows (Linux/Qt)
-
-- Yellow “tofu” candidates (Unicode the fonts cannot draw) keep the **amber
-  plate** and draw a GlyphWiki/KAGE outline in the cell when possible:
-  bundled `kage_glyphs.tsv`, on-disk GlyphWiki cache, IDS composition from
-  parts, then a GlyphWiki network fetch (cached under the user profile; the
-  first hit for a new character can take a couple of seconds). Prussian blue
-  remains only for unencoded IDS drawings. `mozc_renderer` links `//kage`
-  (GPL-3.0).
-
-### Linux Wayland: related / components / reconvert selection
-
-- On GNOME Wayland, IBus surrounding text often reports no selection
-  (`cursor == anchor`, [ibus#2760](https://github.com/ibus/ibus/issues/2760)),
-  so Ctrl+Shift+7/8 and reconvert silently did nothing in gedit even though
-  Ctrl+Shift+1–6 worked. The ibus engine now resolves text in order:
-  surrounding selection → primary (`wl-paste -p`) → AT-SPI → caret fallback.
-  Primary/AT-SPI must match surrounding text ending *or* starting at the
-  caret (stale primary rejected). Runtime dependency: `wl-clipboard`.
-  `wl-paste` runs under `timeout 0.2s`. Debug tag: `engine.selection`.
-
-### Character composer / GlyphWiki comparison
-
-- **Licence and data policy for comparison work** documented in
-  [`docs/GLYPHWIKI_COMPARISON.md`](docs/GLYPHWIKI_COMPARISON.md) (#150 / #154):
-  GlyphWiki dump terms (free, no attribution), KAGE engine GPL-3.0, no new
-  GlyphWiki data shipped for the harness, harness is developer-only so it needs
-  no privacy-policy entry.
-- **Render-and-diff harness** (#151): `glyphwiki_compare` rasterises the
-  composer's IDS drawing and GlyphWiki's registered glyph with the same KAGE
-  engine, scores IoU, and prints a ranked report
-  (`bazel run //gui/character_composer:glyphwiki_compare_main`). A reviewed
-  baseline of ten characters fails
-  `//gui/character_composer:glyphwiki_compare_test` if a score drops by more
-  than 0.05.
-- **Drawing geometry closer to GlyphWiki** (#152): default ⿰/⿱ boxes now use
-  GlyphWiki's median overlap (not clean halves), and positional forms
-  (`-01`/`-02`/`-03`/`-04`) get wider placement boxes so their built-in
-  narrowing is not applied twice. Right-side overhang is scaled by how narrow
-  the left is. The layout table gains optional sibling-context rows (rebuilt
-  with `build_kage_data.py --layout-only`), and PreferPositionalVariant no
-  longer overrides a chosen `-j` form with `-02`. The compare report tags each
-  row `layout` vs `style`. 相 rose from 0.56 to 0.72 IoU; 休 stays at 0.57.
-- **Complex operators** (#152): ⿲/⿳ defaults use GlyphWiki's overlapping
-  thirds (not clean strips); enclosure inners (⿴–⿺) and ⿻ follow learned
-  medians; vertical overlap is harmonised for ⿱/⿳ the way ⿰ already was.
-- **Nested IDS** (#152): `kage_subtrees.tsv` maps nested fragments to the
-  GlyphWiki glyph used for them (`cdp-…`, `u2ff1-…`, …). ComposeLayout prefers
-  that ready-made glyph (or the systematic compound name when it is in the
-  dump) over synthesizing `__nestedN`. On a 500-character sample, layout-tagged
-  nested mean IoU rose from ~0.38 to ~0.48 (侃 0.33→0.90, 侯 0.46→0.79); remaining
-  weak spots are deep nests GlyphWiki draws as stroke data or unusual ops.
-
-### Release candidate 0.0.21-rc4
-
-Everything in 0.0.21-rc3 plus:
-
-- **GlyphWiki drawings now cover unencoded structures.** With "Prefer GlyphWiki
-  drawings" on, a structure with no Unicode encoding is looked up on GlyphWiki
-  by its compound name (⿰木馬 → `u2ff0-u6728-u99ac`) when the bundled data and
-  the local cache lack it, and drawn locally if GlyphWiki has no such glyph.
-  Before, only encoded characters were ever requested. This widens what the
-  setting sends (the names reveal structures you combined), so the in-app
-  explanation, `docs/PRIVACY.md` and the website privacy policy (EN/FR/JA, site
-  repo, not yet published) were updated. A name GlyphWiki lacks is not asked
-  for again until the composer is reopened. The fetch uses `curl`; if it is not
-  installed the composer says so once instead of failing silently.
-
-### Release candidate 0.0.21-rc3
-
-Everything in 0.0.21-rc2 plus:
-
-- **CI caching:** the Qt build is cached as soon as it is built (a cancelled
-  run no longer discards it), and the Windows Bazel caches no longer overflow
-  the repository's cache limit.
-
-- **Candidate windows**: the missing-font check on macOS now asks CoreText for
-  a fallback font per character, so characters any installed font can draw are
-  no longer all shown yellow. Unencoded Ctrl+2 results show their layout (a
-  drawing of the parts) instead of the IDS text. "About marinaMoji" is gone from
-  the macOS and Linux input-method menus.
-- **Dark mode**: in the composer and in the macOS and Qt candidate windows,
-  SVG-drawn characters sit on a white rounded plate and missing-font characters
-  on a light warning-yellow plate, both with the character in the window's dark
-  navy. The Windows candidate window is unchanged.
-- **Composer Variants row**: click a variant to make it the chosen character;
-  right-click to copy it or the whole row. The row is left-aligned with the
-  other data lines.
-- **Composer fixes**: the specimen plate is no longer hidden by
-  `WA_TranslucentBackground`, and the status text no longer overlaps the
-  composed glyph in dark mode.
-- **Preferences**: "Prefer GlyphWiki drawings" and the Sync tab's settings are
-  now autosaved; they were built after the autosave hookup and never saved.
-- **Ctrl+1 / Ctrl+2 palettes hide undrawable characters by default.**
-  Characters no installed font can draw (amber) and unencoded drawings (blue)
-  no longer appear in these palettes; a new Preferences checkbox, "Show
-  characters that can’t be drawn in the Ctrl+1 / Ctrl+2 palettes"
-  (`show_unrenderable_palette_candidates`, off by default), brings them back.
-  The character composer always shows them. The session asks a new
-  `base/font_coverage` (CoreText on macOS; fontconfig, loaded at run time, on
-  Linux; DirectWrite on Windows).
-- **Windows candidate window: amber check fixed (untested).** It judged each
-  character by the one candidate font, so a font without CJK marked every kanji
-  amber, and characters outside the basic plane (Extension B and later) were
-  always amber. It now asks whether any installed font has the character, the
-  same test the palette filter uses. Written on macOS; not built or run on
-  Windows.
-- **Releases**: the macOS release job runs on `macos-15`, and
-  `auto_rerun.yaml` re-runs jobs that stalled for lack of a runner (up to six
-  attempts).
-
-### Release candidate 0.0.21-rc2
-
-Everything in 0.0.21-rc1 (which was tagged but never published: its macOS
-jobs could not get a `macos-26` runner) plus:
-
-- **Release:** the macOS release jobs run on `macos-15`, as the CI does,
-  instead of `macos-26`.
-
-### Release candidate 0.0.21-rc1
-
-Everything in 0.0.20 plus the changes below.
+## v0.0.21 (2026-11-23)
+
+The stable release after v0.0.20. Its release candidates (rc1 to rc15)
+are rolled into this section, which is everything since v0.0.20, grouped by
+area. The final build is the rc15 code with no further changes.
+
+Main changes: related characters and component search on Ctrl+Shift+7 / 8,
+a character composer that draws unencoded structures from GlyphWiki's data
+(with hand adjustment of components), much richer character data (variants,
+regional forms, IVD forms, MJ links), the Jigmo rare-ideograph font bundled
+on Windows and macOS, and a set of Linux and macOS fixes. Several Linux and
+Windows items below were written on macOS and have not been run on those
+systems; they say so.
 
 ### Character composer
 
 - **Prefer GlyphWiki drawings** (Preferences → Writing, off by default): when a
-  composition matches a Unicode character, the specimen can show GlyphWiki’s
-  registered glyph instead of an IDS-composed drawing. Uses the bundled dump
-  first, then a disk cache under the user profile, then a short network fetch.
-  Unencoded structures always compose locally.
+  composition matches a Unicode character, the specimen can show GlyphWiki's
+  registered glyph instead of an IDS-composed drawing. Order: bundled dump,
+  disk cache under the user profile, short network fetch. Unencoded structures
+  are looked up on GlyphWiki by compound name (⿰木馬 → `u2ff0-u6728-u99ac`)
+  when the bundled data and the cache lack them, and drawn locally if
+  GlyphWiki has no such glyph. A name GlyphWiki lacks is not asked for again
+  until the composer is reopened. The fetch uses `curl`; if it is missing the
+  composer says so once.
+- **Adjust layout…** (footer button): a window with the composed drawing and a
+  box round each component. Drag to move, drag handles to resize (Shift on a
+  corner keeps the shape), arrow keys nudge (Shift = 10), type
+  Left/Top/Width/Height, snap to the square's edges and middle, the other
+  components and the composer's own box, centre across/down, reset one or all.
+  Nested layouts are adjustable. The preview, Copy and Insert use the adjusted
+  boxes; an adjusted drawing is inserted as an SVG, not as the encoded
+  character, and is dropped when the composition changes. Not saved anywhere;
+  the new strings are English only.
+- **Drawing geometry closer to GlyphWiki** (#150, #151, #152, #154):
+  - Default ⿰/⿱ boxes use GlyphWiki's median overlap, positional forms
+    (`-01`…`-04`) get wider boxes so their built-in narrowing is not applied
+    twice, and `PreferPositionalVariant` no longer overrides a chosen `-j` form.
+    ⿲/⿳, enclosures (⿴–⿺) and ⿻ follow learned medians.
+  - `kage_subtrees.tsv` maps nested fragments to the GlyphWiki glyph used for
+    them (`cdp-…`, `u2ff1-…`); on a 500-character sample, nested mean IoU rose
+    from about 0.38 to 0.48.
+  - Components no longer run into each other: after placing, each component is
+    rasterized and neighbours whose strokes collide are squeezed apart (木巻,
+    木馬 and ⿱龍龍 come out clean; interleaved forms such as 亻木 keep
+    GlyphWiki's overlap).
+  - The hand-tuned widening and overlap-pull rules for positional forms
+    lowered the measured overlap with GlyphWiki over a sample spread across
+    the whole IDS table, so they were removed. Only the shift of the right
+    component next to a narrow left one (亻 and kin) stays. Mean IoU: ⿰ 0.66
+    to 0.72, ⿱ 0.61 to 0.68, ⿲ 0.27 to 0.35. Characters tuned against the
+    old rules (休, 明, 付) look slightly different.
+  - Developer tools: `glyphwiki_compare` (render-and-diff harness, with a
+    reviewed baseline checked by `glyphwiki_compare_test`; `--stride` samples
+    the whole table, `--chars` scores exact characters) and
+    [`docs/GLYPHWIKI_COMPARISON.md`](docs/GLYPHWIKI_COMPARISON.md), which
+    records the licence and data policy (GlyphWiki dump free, KAGE engine
+    GPL-3.0, nothing new shipped for the harness).
+- **A component typed twice must occur twice:** 龍龍 now finds only characters
+  containing 龍 at least twice (龖, 讋), not every character containing one.
+- **Variants row** is a palette of clickable chips in the specimen colours:
+  click one to make it the chosen character, right-click to copy it or the
+  whole row. Variants from the MJ links file come after the others.
+- **Fixes:** the specimen stays inside its plate; the specimen plate is no
+  longer hidden by `WA_TranslucentBackground`; the status text no longer
+  overlaps the glyph in dark mode; rare ideographs show in the slot and IDS
+  fields (they were tofu even with Jigmo installed).
+- **Linux:** the results grid, the variants row and the coverage check give
+  the wide-coverage Han fonts (HanaMin, Jigmo, Noto CJK, …) first pick, ahead
+  of the UI font, and a character counts as drawable only if its glyph has an
+  outline. This is the attempted fix for blank, unmarked cells in the
+  component search (issue 177). **Not tested on Linux; issue 177 stays open.**
 
-### Privacy
+### Related characters (Ctrl+Shift+7) and component search (Ctrl+Shift+8)
 
-- **Network features documented.** The website privacy policy (EN/FR/JA) now
-  has a section on the IME's two network features: the optional GlyphWiki
-  lookup (what is sent: only the glyph name plus the IP address any web
-  request reveals; what is cached; how to turn it off) and the update check.
-  The source text is in [`docs/PRIVACY.md`](docs/PRIVACY.md).
-- The **Prefer GlyphWiki drawings** explanation in Preferences now says what
-  is sent and points to the policy. That setting's labels and explanation
-  were previously untranslated; they now have English, French and Japanese
-  strings, as does the "Character composer" subhead.
+- **Related characters:** select one committed character and press
+  **Ctrl+Shift+7** to list its related forms (異体字 / 旧字体 / 新字体) from
+  `char_info.tsv`, like Kotoeri's 関連文字に変換. Enter confirms, Esc cancels;
+  multi-character selections and characters with no variants do nothing.
+- **Component search:** select one to four committed characters and press
+  **Ctrl+Shift+8** (#115) for IDS exact encodes (with positional radical
+  forms) and characters that contain every selected component (水/氵 and other
+  radical families count as the same part). It lists only real characters:
+  with nothing to offer it does nothing. It no longer offers a guessed drawing
+  of the default layout, because the selection says nothing about how the parts
+  combine and committing it inserted a different drawing from the one shown.
+  Use the composer to choose a layout. Longer selections do nothing.
+- **Shortcuts:** plain Ctrl+1 / Ctrl+2 are bound only in the Kotoeri keymap
+  scheme; the ATOK, MS-IME and ChromeOS schemes no longer bind them (browsers
+  and Word use Ctrl+digit). On every scheme the two actions are number-row
+  shortcuts like Ctrl+Shift+1…6, matched by physical key so AZERTY works. They
+  appear as two new rows in Preferences → Shortcuts and can be rebound; saved
+  profiles get the rows on those chords, or on the next free number-row slot.
+  New session commands `REQUEST_CONVERT_RELATED` / `REQUEST_CONVERT_COMPONENTS`
+  start the same flow from the platform dispatchers. The Windows and ibus
+  dispatcher changes have not been built or run on those systems.
+- **The selection is kept until you pick a candidate:** the character is no
+  longer deleted when the palette opens. Escape leaves the original in place.
+  (Reconvert / 再変換 still removes the selection immediately.)
+- **Palettes hide undrawable characters by default.** Characters no installed
+  font can draw (amber) are no longer listed; a new checkbox, "Show characters
+  that can't be drawn in the Ctrl+1 / Ctrl+2 palettes"
+  (`show_unrenderable_palette_candidates`, off by default), brings them back.
+  The composer always shows them. The session asks a new `base/font_coverage`
+  (CoreText on macOS; fontconfig, loaded at run time, on Linux; DirectWrite on
+  Windows).
+- **Candidate kinds:** drawable Unicode is plain; Unicode no installed font can
+  draw uses an amber plate (`MISSING_FONT`), unencoded SVG drawings a
+  Prussian-blue plate (`UNENCODED_SVG`). The kinds and colours are in
+  `src/base/specimen_kind.h`, shared by the composer and the macOS, Windows and
+  Qt candidate windows. Dark mode: SVG-drawn characters sit on a white rounded
+  plate and missing-font characters on a light warning-yellow plate, with the
+  character in the window's dark navy (the Windows window is unchanged).
+- **Missing-font rows show a drawing** where possible (macOS, Windows and
+  Linux/Qt): bundled `kage_glyphs.tsv`, the on-disk GlyphWiki cache, IDS
+  composition from parts, then a network fetch (cached under the user profile;
+  the first hit for a new character can take a couple of seconds). Drawings are
+  left-aligned like ordinary candidate text. `mozc_renderer` links `//kage`
+  (GPL-3.0). macOS and Windows use the shared `renderer/candidate_kage`
+  resolver (NSBezierPath / GDI+).
+- **Platform notes:** the macOS check asks CoreText for a fallback font per
+  character, so characters any installed font can draw are no longer all
+  yellow. The Windows check now asks whether any installed font has the
+  character (DirectWrite); before, a font without CJK marked every kanji amber
+  and characters beyond the basic plane were always amber. Written on macOS;
+  not built or run on Windows. The Qt window
+  hides the empty shortcut column.
 
-### Related characters (Ctrl+1) and component search (Ctrl+2)
+### Character data
 
-- **Shortcuts on every system.** Plain Ctrl+1 and Ctrl+2 are bound only in the
-  Kotoeri keymap scheme (what macOS users expect); the ATOK, MS-IME and
-  ChromeOS schemes no longer bind them, because applications use Ctrl+digit
-  (browser tabs, Word line spacing). Both actions are instead number-row
-  shortcuts, like the other Ctrl+Shift+1…6 ones: **Ctrl+Shift+7** for related
-  characters and **Ctrl+Shift+8** for component search, on all platforms,
-  matched by physical key so French (AZERTY) keyboards work. They appear as
-  two new rows in Preferences → Shortcuts and can be rebound there. Profiles
-  saved before this get the two rows added on those chords, or on the next
-  free number-row slot if the user already uses them. New session commands
-  `REQUEST_CONVERT_RELATED` / `REQUEST_CONVERT_COMPONENTS` let the platform
-  dispatchers start the same selection-reading flow as the keymap. The
-  Windows and ibus dispatcher changes are not built or tested on this
-  machine.
+- `char_info.tsv` was rebuilt from Unihan 18.0, `cjkvi-variants.txt` and
+  GlyphWiki itaiji links (2026-11-12 dump). New columns: `ivs_forms`
+  (registered IVD forms per collection; 13,949 rows) and `region_forms` (which
+  of CN, HK, TW, JP, KR draw a character alike, from the Adobe Source Han
+  CMaps, BSD-3-Clause; 11,795 of 28,056 characters differ). Neither is shown
+  in the UI yet.
+- `variants` gained about 12,400 links from tghb (通用规范汉字表, CC0 data) and
+  入管正字 別表第四の一 (法務省告示第582号); 別表第四の二 (類字,
+  look-alikes) is deliberately not used. 17,376 characters now have variants.
+  `hydzd-variants.txt` (from the printed 漢語大字典) is no longer shipped;
+  `cjkvi-variants.txt` stays (its project declares the variant data MIT).
+  `twedu-variants.txt` was never used.
+- New `char_info_mj.tsv` (CC BY-SA 2.1 Japan, IPA): 4,711 variant-to-standard
+  links from the MJ縮退マップ, kept apart from `char_info.tsv`, installed on
+  Linux, macOS and Windows and read by the composer after the other variants.
+  Packaging is untested on Linux and Windows.
+- **Provenance:** the shin/kyū pairs come from cjkvi `jp-old-style.txt` (MIT),
+  a published list of old/new joyo and jinmei forms, the hyōgai list and the
+  Bunkachō 1956 replacement-character list; KANJIDIC2, JMdict and Mozc only
+  checked which forms are attested. The About dialog acknowledges EDRDG, and
+  `credits_en.html` now credits EDRDG, the CJKVI data, Unihan, GlyphWiki and
+  Source Han. The Debian and Linux copyright files now also cover the Unihan
+  stroke counts, `char_info.tsv` and the KAGE data. `credits_en.html` ships on
+  Linux.
 
-- Selecting one committed character and pressing **Ctrl+1** opens the
-  candidate window with related forms (異体字 / 旧字体 / 新字体) from
-  `char_info.tsv`, like Kotoeri’s 関連文字に変換. Enter confirms; Esc
-  cancels. Works on macOS, Windows and Linux through the same selection
-  path as reconvert. Multi-character selections and characters with no
-  variants do nothing.
-- **Ctrl+2** ([#115](https://github.com/marinaMoji/marinaMoji/issues/115)):
-  select one to four committed characters to open a candidate list of IDS
-  exact encodes (with positional radical forms) and characters that contain
-  every selected component (`FindContaining`, treating 水/氵 and other
-  radical families as the same part). The merge helper also accepts
-  dictionary exact hits when the session can supply them. Longer selections
-  no-op. When the default layout has no Unicode character, a Prussian-blue
-  `UNENCODED_SVG` candidate is appended; committing it writes the drawing
-  via the composer SVG hand-off (profile file + ONLYOFFICE plugin) instead
-  of inserting IDS text; with keep-until-commit the selection was never
-  removed, so Escape/SVG hand-off simply dismisses (older builds put the
-  original back unchanged after deleting on open)
-  (the client removes it when the palette opens, so without this choosing
-  the drawing would have deleted the user's text). The drawing is made of
-  text glyphs in a serif font stack, so it depends on installed fonts;
-  dictionary hits are not yet fed in.
-- Specimen colours: drawable Unicode is plain; Unicode that no installed
-  font can draw (non-displaying) uses an amber plate; unencoded SVG drawings
-  (when present) use a Prussian-blue plate. The kinds and colours live in
-  `src/base/specimen_kind.h` and are shared by the character composer and the
-  candidate-window renderers (macOS, Windows, Qt), so the same plates appear
-  on composer Variants chips, Discover results and Ctrl+1 / Ctrl+2
-  candidates. Related candidates carry the kind as new `MISSING_FONT` /
-  `UNENCODED_SVG` candidate attributes in the protocol.
-- The character composer's **Variants** row is now a palette of clickable
-  specimen-coloured chips instead of plain text, in the manner of Kotoeri’s
-  variant palette.
+### Fonts
+
+- The Windows MSI and macOS pkg install **Jigmo** (CC0 1.0, release 20250912;
+  CJK Extensions A–J) system-wide, so candidates for rare characters draw from
+  a real font instead of the amber GlyphWiki drawing. Windows: a default-on
+  "Rare-character fonts (Jigmo)" feature into `FontsFolder`; macOS:
+  `/Library/Fonts`. About 70 MB installed (35 MB compressed); the zip is pinned
+  by sha256 in `MODULE.bazel` (`jigmo_fonts`).
+- Linux does not bundle it: the deb `Recommends: fonts-jigmo |
+  fonts-babelstone-han | fonts-hanazono`; the Arch packages list `ttf-jigmo`
+  as an optdepend.
+
+### Preferences and privacy
+
+- "Prefer GlyphWiki drawings" and the Sync tab's settings are autosaved (they
+  were built after the autosave hookup and never saved). A headless Qt test
+  covers the autosave wiring (#103).
+- The website privacy policy (EN/FR/JA) gained a section on the IME's two
+  network features, the optional GlyphWiki lookup (only the glyph or structure
+  name plus the IP address any web request reveals) and the update check; the
+  source text is [`docs/PRIVACY.md`](docs/PRIVACY.md). The in-app explanation of
+  the GlyphWiki setting says what is sent and points to the policy. It and its
+  "Character composer" subhead now have EN/FR/JA strings. The website text is
+  in the site repository.
+- About marinaMoji is gone from the macOS and Linux input-method menus.
+
+### Converter
+
+- Number conversion (from upstream Mozc) decodes counter suffixes (本, 階,
+  個 …) and native-numeral expressions, with fewer false candidates such as
+  `2書いて` for `にかいて`.
+- The user history predictor no longer chains stale, unrelated links into
+  synthesized phrases (#106).
+- Internal: `SuffixDictionary` removed.
+
+### Windows
+
+- Candidate and cascading windows: stale DPI fixed (#1610). Saving files
+  retries `MoveFileExW` when it is briefly refused (#1597).
+- Word gets the foreground back after the COM insert.
+- **File version:** the revision now has 32 slots per X.Y.Z (rc1–rc30, final =
+  31) instead of 16, because `0.0.21-rc15` was rejected by the build. Values
+  still rise across all earlier releases; the ceiling for X.Y.Z drops from
+  0.40.95 to 0.20.47.
+- **Builds:** the vendored LLVM/clang-cl for **arm64** is 22.1.8 (x64 stays on
+  20.1.1). The windows-11-arm runner image picked up Visual Studio 18 / MSVC
+  14.52, whose STL refuses anything older than Clang 22 (`error STL1000`).
+  LLVM 22 fails Bazel's absolute-path inclusion check on x64 (`lib/clang/22/
+  include/*.h` not recognised as builtin; cause not found), hence the split.
+  The rules_cc patch now parses the clang version robustly (LLVM 22's first
+  line has trailing text).
+- The release build uses a shared Bazel remote cache (a Cloudflare Worker over
+  R2, in `tools/bazel-cache-worker`).
+
+### macOS
+
+- With "use Japanese keyboard" on, the layout could flip back to AZERTY (the
+  last ASCII layout) when switching input modes, because macOS resets the
+  layout during the switch and the override was only applied in
+  `activateServer:`. `setValue:forTag:client:` now queues a coalesced reapply
+  150 ms later on the main queue (not synchronously, which re-entered the input
+  system and froze). Trace logging of the layout was added around the override.
+- **Stuck Left Shift mode lock:** a user (Japanese keyboard) switched layouts
+  with the globe key and came back with the lock on and no way off.
+  `ToggleLeftShiftModeLock` now releases an engaged lock before any
+  eligible-mode or `disable_left_shift_direct_toggle` check, since the mode the
+  client reports can differ from the one the toolbar shows. Likely cause, not
+  confirmed on the user's machine. A **temporary bare F12** toggles the lock in
+  any state (needs fn on Mac laptops); remove it once the root cause is
+  confirmed fixed.
+- The installer window shows the marinaMoji logo. The background updater
+  follows release candidates on RC builds.
 
 ### Linux
 
-- The `.deb` now depends on `libqt6svg6`. The candidate window reads its
-  footer logo (an SVG) through Qt's SVG image plugin, which is loaded at run
-  time and so never appeared in the dependencies computed from linked
-  libraries; on a machine without it the logo was silently missing. The
-  renderer now logs a warning naming the file and Qt's error when the logo
-  cannot be loaded.
+- The `.deb` depends on `libqt6svg6` (the candidate window reads its footer
+  logo through Qt's SVG plugin, loaded at run time, so it never appeared in the
+  computed dependencies); the renderer logs a warning naming the file when the
+  logo cannot be loaded.
+- **Wayland:**
+  - On GNOME Wayland, IBus surrounding text often reports no selection
+    ([ibus#2760](https://github.com/ibus/ibus/issues/2760)), so Ctrl+Shift+7/8
+    and reconvert silently did nothing in gedit. The engine now resolves text
+    in order: surrounding selection → primary (`wl-paste -p`, under
+    `timeout 0.2s`) → AT-SPI → caret fallback. Runtime dependency:
+    `wl-clipboard`. Debug tag: `engine.selection`.
+  - After a mouse selection Wayland leaves the caret at the start of the
+    highlight, so Related/components acted on the neighbour; they now prefer
+    the character(s) after the caret (end of line still falls back to before).
+  - Forward-delete plus a focus-stealing candidate window made IBus commit the
+    preedit into the hole (often a stray newline). The candidate popup now
+    refuses focus and a short FocusOut grace keeps the conversion alive.
+- Qt's default font merging often skips ExtB fonts such as HanaMinB even when
+  fontconfig draws the character; the candidate window now uses the same
+  wide-coverage family list as the composer, so the real glyph paints instead
+  of an amber plate.
+- `IbusEngineWrapper::HasPrivateInputHint` added (no behaviour change yet).
+
+### Release process, CI and packaging
+
+- Release builds retry `stapler` on transient CloudKit failures, prefetch
+  Bazel dependencies with retries (`build_tools/bazel_prefetch.sh`) and
+  authenticate GitHub downloads via `NETRC`, after GitHub release-asset 504s
+  and anonymous-download timeouts failed rc8 to rc10. The macOS jobs run on
+  `macos-15`; `auto_rerun.yaml` re-runs jobs that stalled for lack of a runner
+  (up to six attempts). Release candidates no longer build the macOS Intel
+  package (final tags and manual runs still do).
+- CI saves the Qt cache as soon as it is built and keeps the Windows Bazel
+  caches within the repository's limit; roadmap-data-only changes
+  (`scripts/roadmap/**`) no longer trigger builds.
+- The apt repository no longer republishes superseded release candidates to
+  `gh-pages` (it had grown to hundreds of MB): only final releases and the
+  newest tag are kept.
+- **Debian source package scaffold** (`packaging/debian`, #53, #55): Bazel
+  vendor mode for offline builds, a two-component DFSG source package, a
+  Docker QA path (clean build and install smoke) and notes on the protobuf
+  conflict with the distribution's version. Archive upload is parked; manual
+  VM verification is issue 170.
+- The roadmap overlay gained Linux desktop compatibility, official Debian and
+  Linux release readiness nodes, and EN/FR/JA entries for #115, #153 and #154;
+  roadmap-labelled issues are exported hourly or on issue events.
+
+### Internal
+
+- User-dictionary storage and importer moved to `client/user_dictionary`;
+  platform `#ifdef`s replaced with `if constexpr` across session, config, IPC
+  and GUI code; `SystemUtil::GetProcessId` and `GetThreadIdForWindows` added;
+  `TipInputModeManager::HasPrivateInputScope` and
+  `BitVectorBasedArray::Get` reworked. No behaviour change.
+
+### Release candidate history
+
+- 0.0.21-rc2, rc3, rc4, rc5, rc7, rc11, rc13, rc14 and rc15 were published.
+- rc1 was tagged but never published (its macOS jobs could not get a `macos-26`
+  runner). rc8 to rc10 failed in the dependency download or prefetch step
+  (GitHub release-asset 504s and timeouts, then a wrong prefetch target), and
+  rc12 was cancelled (its Intel macOS job waited hours for a runner). rc6 has
+  no release.
+- rc15 was the last release candidate; v0.0.21 is the same code.
 
 ## v0.0.20 (2026-11-03)
 
