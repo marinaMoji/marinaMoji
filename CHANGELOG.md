@@ -207,13 +207,15 @@ systems; they say so.
   31) instead of 16, because `0.0.21-rc15` was rejected by the build. Values
   still rise across all earlier releases; the ceiling for X.Y.Z drops from
   0.40.95 to 0.20.47.
-- **Builds:** the vendored LLVM/clang-cl for **arm64** is 22.1.8 (x64 stays on
-  20.1.1). The windows-11-arm runner image picked up Visual Studio 18 / MSVC
-  14.52, whose STL refuses anything older than Clang 22 (`error STL1000`).
-  LLVM 22 fails Bazel's absolute-path inclusion check on x64 (`lib/clang/22/
-  include/*.h` not recognised as builtin; cause not found), hence the split.
-  The rules_cc patch now parses the clang version robustly (LLVM 22's first
-  line has trailing text).
+- **Builds:** the vendored LLVM/clang-cl is 22.1.8 on both x64 and arm64 (was
+  20.1.1). The Windows runner images (`windows-2025`, `windows-11-arm`) now ship
+  Visual Studio 18 / MSVC 14.52, whose STL refuses anything older than Clang 22
+  (`error STL1000`); x64 broke on the Release run of v0.0.21 for this reason.
+  An earlier attempt at LLVM 22 failed Bazel's absolute-path inclusion check on
+  `lib/clang/22/include/*.h`. The cause was in the rules_cc patch, not LLVM:
+  `_get_clang_version` took the last word of the first `clang -v` line, and
+  LLVM 22 appends text after the version, so the registered built-in include
+  directory was wrong. The patch now parses the version properly.
 - The release build uses a shared Bazel remote cache (a Cloudflare Worker over
   R2, in `tools/bazel-cache-worker`).
 
